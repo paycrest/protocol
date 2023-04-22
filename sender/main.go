@@ -1,12 +1,13 @@
 package main
 
 import (
+	"time"
+
 	"github.com/akmamun/gin-boilerplate-examples/config"
 	"github.com/akmamun/gin-boilerplate-examples/infra/database"
 	"github.com/akmamun/gin-boilerplate-examples/infra/logger"
 	"github.com/akmamun/gin-boilerplate-examples/routers"
 	"github.com/spf13/viper"
-	"time"
 )
 
 func main() {

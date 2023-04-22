@@ -1,8 +1,8 @@
 package routers
 
 import (
-	"github.com/akmamun/gin-boilerplate-examples/controllers"
 	"github.com/gin-gonic/gin"
+	"github.com/paycrest/paycrest-services/controllers"
 )
 
 func ExamplesRoutes(route *gin.Engine) {

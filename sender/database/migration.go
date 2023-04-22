@@ -1,7 +1,7 @@
 package database
 
 import (
-	"github.com/akmamun/gin-boilerplate-examples/models"
+	"github.com/paycrest/paycrest-services/models"
 )
 
 //Add list of model add for migrations

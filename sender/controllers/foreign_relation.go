@@ -1,10 +1,11 @@
 package controllers
 
 import (
-	"github.com/akmamun/gin-boilerplate-examples/infra/database"
-	"github.com/akmamun/gin-boilerplate-examples/models"
-	"github.com/gin-gonic/gin"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
+	"github.com/paycrest/paycrest-services/infra/database"
+	"github.com/paycrest/paycrest-services/models"
 )
 
 // GetNormalData get normal data if added pagination see example_controller

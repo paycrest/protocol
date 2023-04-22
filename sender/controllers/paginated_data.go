@@ -1,12 +1,13 @@
 package controllers
 
 import (
-	"github.com/akmamun/gin-boilerplate-examples/infra/database"
-	"github.com/akmamun/gin-boilerplate-examples/models"
-	"github.com/akmamun/gorm-pagination/pagination"
-	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
+
+	"github.com/akmamun/gorm-pagination/pagination"
+	"github.com/gin-gonic/gin"
+	"github.com/paycrest/paycrest-services/infra/database"
+	"github.com/paycrest/paycrest-services/models"
 )
 
 func (ctrl *ExampleController) GetExamplePaginated(ctx *gin.Context) {
