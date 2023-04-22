@@ -1,11 +1,12 @@
 package controllers
 
 import (
-	"github.com/akmamun/gin-boilerplate-examples/infra/database"
-	"github.com/akmamun/gin-boilerplate-examples/infra/logger"
-	"github.com/akmamun/gin-boilerplate-examples/models"
-	"github.com/gin-gonic/gin"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
+	"github.com/paycrest/paycrest-services/infra/database"
+	"github.com/paycrest/paycrest-services/models"
+	"github.com/paycrest/paycrest-services/sender/utils/logger"
 )
 
 type ExampleController struct{}

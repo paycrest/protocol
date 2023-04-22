@@ -1,13 +1,14 @@
 package controllers
 
 import (
-	"github.com/akmamun/gin-boilerplate-examples/infra/database"
-	"github.com/akmamun/gorm-pagination/pagination"
 	"net/http"
 	"strconv"
 
-	examples "github.com/akmamun/gin-boilerplate-examples/models"
+	"github.com/akmamun/gorm-pagination/pagination"
+	"github.com/paycrest/paycrest-services/infra/database"
+
 	"github.com/gin-gonic/gin"
+	examples "github.com/paycrest/paycrest-services/models"
 )
 
 type CreditCardData struct {
