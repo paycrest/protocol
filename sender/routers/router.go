@@ -1,8 +1,9 @@
 package routers
 
 import (
+	"github.com/paycrest/paycrest-services/sender/routers/middleware"
+
 	"github.com/gin-gonic/gin"
-	"github.com/paycrest/paycrest-services/routers/middleware"
 	"github.com/spf13/viper"
 )
 

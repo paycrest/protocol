@@ -3,10 +3,11 @@ package main
 import (
 	"time"
 
-	"github.com/akmamun/gin-boilerplate-examples/config"
-	"github.com/akmamun/gin-boilerplate-examples/infra/database"
-	"github.com/akmamun/gin-boilerplate-examples/infra/logger"
-	"github.com/akmamun/gin-boilerplate-examples/routers"
+	"github.com/paycrest/paycrest-services/sender/config"
+	"github.com/paycrest/paycrest-services/sender/database"
+	"github.com/paycrest/paycrest-services/sender/routers"
+	"github.com/paycrest/paycrest-services/sender/utils/logger"
+
 	"github.com/spf13/viper"
 )
 
