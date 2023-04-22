@@ -4,10 +4,11 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/paycrest/paycrest-services/sender/database"
+	"github.com/paycrest/paycrest-services/sender/models"
+
 	"github.com/akmamun/gorm-pagination/pagination"
 	"github.com/gin-gonic/gin"
-	"github.com/paycrest/paycrest-services/infra/database"
-	"github.com/paycrest/paycrest-services/models"
 )
 
 func (ctrl *ExampleController) GetExamplePaginated(ctx *gin.Context) {

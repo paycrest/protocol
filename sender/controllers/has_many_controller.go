@@ -4,11 +4,13 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/paycrest/paycrest-services/sender/database"
+
 	"github.com/akmamun/gorm-pagination/pagination"
-	"github.com/paycrest/paycrest-services/infra/database"
+
+	examples "github.com/paycrest/paycrest-services/sender/models"
 
 	"github.com/gin-gonic/gin"
-	examples "github.com/paycrest/paycrest-services/models"
 )
 
 type CreditCardData struct {

@@ -1,8 +1,9 @@
 package routers
 
 import (
+	"github.com/paycrest/paycrest-services/sender/controllers"
+
 	"github.com/gin-gonic/gin"
-	"github.com/paycrest/paycrest-services/controllers"
 )
 
 func ExamplesRoutes(route *gin.Engine) {

@@ -3,10 +3,11 @@ package controllers
 import (
 	"net/http"
 
-	"github.com/gin-gonic/gin"
-	"github.com/paycrest/paycrest-services/infra/database"
-	"github.com/paycrest/paycrest-services/models"
+	"github.com/paycrest/paycrest-services/sender/database"
+	"github.com/paycrest/paycrest-services/sender/models"
 	"github.com/paycrest/paycrest-services/sender/utils/logger"
+
+	"github.com/gin-gonic/gin"
 )
 
 type ExampleController struct{}

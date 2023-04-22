@@ -1,7 +1,7 @@
 package database
 
 import (
-	"github.com/paycrest/paycrest-services/models"
+	"github.com/paycrest/paycrest-services/sender/models"
 )
 
 //Add list of model add for migrations
