@@ -22,6 +22,7 @@ func Routes() *gin.Engine {
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
 	router.Use(middleware.CORSMiddleware())
+	// router.Use(middleware.APIResponseMiddleware())
 
 	RegisterRoutes(router) //routes register
 
