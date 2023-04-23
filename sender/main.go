@@ -20,9 +20,9 @@ func main() {
 	if err := config.SetupConfig(); err != nil {
 		logger.Fatalf("config SetupConfig() error: %s", err)
 	}
-	masterDSN, replicaDSN := config.DbConfiguration()
+	DSN := config.DbConfiguration()
 
-	if err := database.DBConnection(masterDSN, replicaDSN); err != nil {
+	if err := database.DBConnection(DSN); err != nil {
 		logger.Fatalf("database DbConnection error: %s", err)
 	}
 
