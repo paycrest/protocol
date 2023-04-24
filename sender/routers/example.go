@@ -1,7 +1,7 @@
 package routers
 
 import (
-	"github.com/paycrest/paycrest-services/sender/controllers"
+	"github.com/paycrest/paycrest-protocol/sender/controllers"
 
 	"github.com/gin-gonic/gin"
 )
