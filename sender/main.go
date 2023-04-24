@@ -3,10 +3,10 @@ package main
 import (
 	"time"
 
-	"github.com/paycrest/paycrest-services/sender/config"
-	"github.com/paycrest/paycrest-services/sender/database"
-	"github.com/paycrest/paycrest-services/sender/routers"
-	"github.com/paycrest/paycrest-services/sender/utils/logger"
+	"github.com/paycrest/paycrest-protocol/sender/config"
+	"github.com/paycrest/paycrest-protocol/sender/database"
+	"github.com/paycrest/paycrest-protocol/sender/routers"
+	"github.com/paycrest/paycrest-protocol/sender/utils/logger"
 
 	"github.com/spf13/viper"
 )

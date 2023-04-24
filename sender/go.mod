@@ -1,4 +1,4 @@
-module github.com/paycrest/paycrest-services/sender
+module github.com/paycrest/paycrest-protocol/sender
 
 go 1.20
 

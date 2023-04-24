@@ -3,10 +3,10 @@ package controllers
 import (
 	"net/http"
 
-	"github.com/paycrest/paycrest-services/sender/database"
-	"github.com/paycrest/paycrest-services/sender/models"
-	utils "github.com/paycrest/paycrest-services/sender/utils"
-	"github.com/paycrest/paycrest-services/sender/utils/logger"
+	"github.com/paycrest/paycrest-protocol/sender/database"
+	"github.com/paycrest/paycrest-protocol/sender/models"
+	utils "github.com/paycrest/paycrest-protocol/sender/utils"
+	"github.com/paycrest/paycrest-protocol/sender/utils/logger"
 
 	"github.com/gin-gonic/gin"
 )
