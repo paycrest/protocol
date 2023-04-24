@@ -7,6 +7,7 @@ This is a work in progress. Follow [this guide](https://www.freecodecamp.org/new
 T.B.D.
 
 ## Architecture
+T.B.D.
 
 ## Development Setup
 T.B.D.

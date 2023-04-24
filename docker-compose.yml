@@ -12,18 +12,6 @@ services:
       - paycrest_postgres_data:/var/lib/postgresql/data/
     restart: always
 
-  # pgadmin:
-  #   container_name: pgadmin4_container
-  #   image: dpage/pgadmin4
-  #   restart: always
-  #   ports:
-  #     - "5050:80"
-  #   environment:
-  #     - PGADMIN_DEFAULT_EMAIL=admin@admin.com
-  #     - PGADMIN_DEFAULT_PASSWORD=root
-  #   volumes:
-  #     - pgadmin_data:/var/lib/pgadmin
-
   sender:
     container_name: paycrest_sender
     build:
@@ -43,4 +31,3 @@ services:
 
 volumes:
   paycrest_postgres_data:
-  # pgadmin_data:
