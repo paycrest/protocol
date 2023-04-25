@@ -16,7 +16,7 @@ type DatabaseConfiguration struct {
 	LogMode  bool
 }
 
-func DbConfiguration() (DSN string) {
+func DBConfiguration() (DSN string) {
 	DBName := viper.GetString("DB_NAME")
 	DBUser := viper.GetString("DB_USER")
 	DBPassword := viper.GetString("DB_PASSWORD")
