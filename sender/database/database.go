@@ -1,57 +1,47 @@
 package database
 
 import (
+	"context"
 	"log"
 
-	"github.com/spf13/viper"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
+	"entgo.io/ent/dialect"
+	"github.com/paycrest/paycrest-protocol/sender/ent"
+
+	_ "github.com/lib/pq"
 )
 
 var (
-	DB    *gorm.DB
-	err   error
-	DBErr error
+	Client *ent.Client
+	Err    error
 )
 
 // DBConnection create database connection
 func DBConnection(DSN string) error {
-	var db = DB
+	var client = Client
 
-	logMode := viper.GetBool("DB_LOG_MODE")
-
-	loglevel := logger.Silent
-	if logMode {
-		loglevel = logger.Info
-	}
-
-	db, err = gorm.Open(postgres.Open(DSN), &gorm.Config{
-		Logger: logger.Default.LogMode(loglevel),
-	})
-
+	client, err := ent.Open(dialect.Postgres, DSN)
 	if err != nil {
-		DBErr = err
-		log.Println("DB connection error")
+		Err = err
+		log.Println("Database connection error")
 		return err
 	}
 
-	err = db.AutoMigrate(migrationModels...)
-
-	if err != nil {
+	// Run the auto migration tool.
+	if err := client.Schema.Create(context.Background()); err != nil {
 		return err
 	}
-	DB = db
+
+	Client = client
 
 	return nil
 }
 
-// GetDB connection
-func GetDB() *gorm.DB {
-	return DB
+// GetClient connection
+func GetClient() *ent.Client {
+	return Client
 }
 
-// GetDBError connection error
-func GetDBError() error {
-	return DBErr
+// GetError connection error
+func GetError() error {
+	return Err
 }
