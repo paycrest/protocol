@@ -1,3 +1,4 @@
+# Start from golang base image
 FROM golang:1.20.3-alpine
 
 RUN apk --no-cache add curl
