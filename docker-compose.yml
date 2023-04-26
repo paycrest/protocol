@@ -5,28 +5,26 @@ services:
     container_name: paycrest_db
     image: postgres:13-alpine
     environment:
-      - POSTGRES_USER=africa
-      - POSTGRES_PASSWORD=totheworld
-      - POSTGRES_DB=paycrest_db
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
     volumes:
       - paycrest_postgres_data:/var/lib/postgresql/data/
     restart: always
 
-  sender:
-    container_name: paycrest_sender
+  server:
+    container_name: paycrest_server
     build:
       context: .
-      dockerfile: ./sender/Dockerfile
-    env_file:
-      - ./sender/.env
+      dockerfile: Dockerfile
     ports:
-      - 8100:8000
+      - ${SERVER_PORT}:${SERVER_PORT}
     depends_on:
       - postgres_db
     links:
       - postgres_db:postgres_db
     volumes:
-      - ./sender:/app
+      - .:/app
     restart: always
 
 volumes:
