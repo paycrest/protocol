@@ -1,26 +1,25 @@
 package main
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/paycrest/paycrest-protocol/config"
 	"github.com/paycrest/paycrest-protocol/database"
 	"github.com/paycrest/paycrest-protocol/routers"
 	"github.com/paycrest/paycrest-protocol/utils/logger"
-
-	"github.com/spf13/viper"
 )
 
 func main() {
-	// Set timezone
-	viper.SetDefault("SERVER_TIMEZONE", "Asia/Dhaka")
-	loc, _ := time.LoadLocation(viper.GetString("SERVER_TIMEZONE"))
-	time.Local = loc
-
 	// Setup config
 	if err := config.SetupConfig(); err != nil {
 		logger.Fatalf("config SetupConfig() error: %s", err)
 	}
+
+	// Set timezone
+	conf := config.ServerConfig()
+	loc, _ := time.LoadLocation(conf.Timezone)
+	time.Local = loc
 
 	// Connect to the database
 	DSN := config.DBConfiguration()
@@ -34,6 +33,9 @@ func main() {
 	// Run the server
 	router := routers.Routes()
 
-	logger.Fatalf("%v", router.Run(config.ServerConfig()))
+	appServer := fmt.Sprintf("%s:%s", conf.Host, conf.Port)
+	logger.Infof("Server Running at :", appServer)
+
+	logger.Fatalf("%v", router.Run(appServer))
 
 }

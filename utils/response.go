@@ -5,14 +5,14 @@ import (
 )
 
 type Response struct {
-	Code    int         `json:"code"`
+	Status  string      `json:"status"`
 	Message string      `json:"message"`
 	Data    interface{} `json:"data"`
 }
 
-func APIResponse(ctx *gin.Context, httpCode, code int, message string, data interface{}) {
+func APIResponse(ctx *gin.Context, httpCode int, status string, message string, data interface{}) {
 	ctx.JSON(httpCode, Response{
-		Code:    code,
+		Status:  status,
 		Message: message,
 		Data:    data,
 	})
