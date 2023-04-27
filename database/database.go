@@ -6,6 +6,7 @@ import (
 
 	"entgo.io/ent/dialect"
 	"github.com/paycrest/paycrest-protocol/ent"
+	"github.com/paycrest/paycrest-protocol/ent/migrate"
 
 	_ "github.com/lib/pq"
 )
@@ -27,7 +28,7 @@ func DBConnection(DSN string) error {
 	}
 
 	// Run the auto migration tool.
-	if err := client.Schema.Create(context.Background()); err != nil {
+	if err := client.Schema.Create(context.Background(), migrate.WithGlobalUniqueID(true)); err != nil {
 		return err
 	}
 
