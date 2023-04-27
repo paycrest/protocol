@@ -19,22 +19,24 @@ func (ctrl *UserController) CreateUser(ctx *gin.Context) {
 
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusBadRequest, 400, "error", err.Error())
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "error", err.Error())
 		return
 	}
 
 	user, err := db.Client.User.
 		Create().
-		SetAge(payload.Age).
-		SetName(payload.Name).
+		SetFirstName(payload.FirstName).
+		SetLastName(payload.LastName).
+		SetEmail(payload.Email).
+		SetPassword(payload.Password).
 		Save(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusInternalServerError, 500, "error", err.Error())
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "error", err.Error())
 		return
 	}
 
-	u.APIResponse(ctx, http.StatusOK, 200, "User returned successfully", &user)
+	u.APIResponse(ctx, http.StatusOK, "success", "User returned successfully", &user)
 }
 
 func (ctrl *UserController) GetUsers(ctx *gin.Context) {
@@ -44,9 +46,9 @@ func (ctrl *UserController) GetUsers(ctx *gin.Context) {
 	users, err = db.Client.User.Query().All(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusInternalServerError, 500, "error", err.Error())
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "error", err.Error())
 		return
 	}
 	log.Println("users", users)
-	u.APIResponse(ctx, http.StatusOK, 200, "Users returned successfully", &users)
+	u.APIResponse(ctx, http.StatusOK, "success", "Users returned successfully", &users)
 }

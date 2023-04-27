@@ -11,13 +11,13 @@ import (
 type SenderController struct{}
 
 func (ctrl *SenderController) CreateOrder(ctx *gin.Context) {
-	u.APIResponse(ctx, http.StatusOK, 200, "OK", nil)
+	u.APIResponse(ctx, http.StatusOK, "success", "OK", nil)
 }
 
 func (ctrl *SenderController) GetOrderByID(ctx *gin.Context) {
-	u.APIResponse(ctx, http.StatusOK, 200, "OK", nil)
+	u.APIResponse(ctx, http.StatusOK, "success", "OK", nil)
 }
 
 func (ctrl *SenderController) DeleteOrder(ctx *gin.Context) {
-	u.APIResponse(ctx, http.StatusOK, 200, "OK", nil)
+	u.APIResponse(ctx, http.StatusOK, "success", "OK", nil)
 }

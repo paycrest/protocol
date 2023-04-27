@@ -11,13 +11,13 @@ import (
 type MiscController struct{}
 
 func (ctrl *MiscController) GetFiatCurrencies(ctx *gin.Context) {
-	u.APIResponse(ctx, http.StatusOK, 200, "OK", nil)
+	u.APIResponse(ctx, http.StatusOK, "success", "OK", nil)
 }
 
 func (ctrl *MiscController) GetInstitutionsByCurrency(ctx *gin.Context) {
-	u.APIResponse(ctx, http.StatusOK, 200, "OK", nil)
+	u.APIResponse(ctx, http.StatusOK, "success", "OK", nil)
 }
 
 func (ctrl *MiscController) GetCryptoRates(ctx *gin.Context) {
-	u.APIResponse(ctx, http.StatusOK, 200, "OK", nil)
+	u.APIResponse(ctx, http.StatusOK, "success", "OK", nil)
 }
