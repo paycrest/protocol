@@ -35,3 +35,13 @@ type LoginResponse struct {
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
 }
+
+// RefreshJWTPayload is the payload for the refresh endpoint
+type RefreshJWTPayload struct {
+	RefreshToken string `json:"refresh_token" binding:"required"`
+}
+
+// RefreshResponse is the response for the refresh endpoint
+type RefreshResponse struct {
+	AccessToken string `json:"access_token"`
+}
