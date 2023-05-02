@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 
+	"github.com/paycrest/paycrest-protocol/utils/logger"
 	"github.com/spf13/viper"
 )
 
@@ -30,4 +31,10 @@ func DBConfiguration() (DSN string) {
 	)
 
 	return
+}
+
+func init() {
+	if err := SetupConfig(); err != nil {
+		logger.Fatalf("config SetupConfig() error: %s", err)
+	}
 }

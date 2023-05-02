@@ -1,4 +1,4 @@
-package controllers
+package accounts
 
 import (
 	"net/http"
@@ -15,14 +15,6 @@ import (
 
 type AuthController struct{}
 
-// RegisterPayload is the payload for the register endpoint
-type RegisterPayload struct {
-	FirstName string `json:"first_name" binding:"required"`
-	LastName  string `json:"last_name" binding:"required"`
-	Email     string `json:"email" binding:"required"`
-	Password  string `json:"password" binding:"required"`
-}
-
 // Register controller validates the payload and creates a new user.
 // It hashes the password provided by the user.
 // It also sends an email to verify the user's email address.
@@ -31,7 +23,8 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusBadRequest, "error", "error", err.Error())
+		u.APIResponse(ctx, http.StatusBadRequest, "error",
+			"Failed to validate payload", err.Error())
 		return
 	}
 
@@ -47,19 +40,21 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 		Save(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusInternalServerError, "error", "error", err.Error())
+		u.APIResponse(ctx, http.StatusInternalServerError, "error",
+			"Failed to create new user", err.Error())
 		return
 	}
 
 	// TODO: Send email to verify the user's email address
 
-	u.APIResponse(ctx, http.StatusCreated, "success", "User created successfully", &user)
-}
-
-// LoginPayload is the payload for the login endpoint
-type LoginPayload struct {
-	Email    string `json:"email" binding:"required"`
-	Password string `json:"password" binding:"required"`
+	u.APIResponse(ctx, http.StatusCreated, "success", "User created successfully", &RegisterResponse{
+		ID:        user.ID,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
+		Email:     user.Email,
+	})
 }
 
 // Login controller validates the payload and creates a new user.
@@ -68,7 +63,7 @@ func (ctrl *AuthController) Login(ctx *gin.Context) {
 
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusBadRequest, "error", "error", err.Error())
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", err.Error())
 		return
 	}
 
@@ -100,9 +95,9 @@ func (ctrl *AuthController) Login(ctx *gin.Context) {
 		return
 	}
 
-	u.APIResponse(ctx, http.StatusOK, "success", "Successfully logged in", gin.H{
-		"access":  accessToken,
-		"refresh": refreshToken,
+	u.APIResponse(ctx, http.StatusOK, "success", "Successfully logged in", &LoginResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
 	})
 }
 

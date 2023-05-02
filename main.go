@@ -11,11 +11,6 @@ import (
 )
 
 func main() {
-	// Setup config
-	if err := config.SetupConfig(); err != nil {
-		logger.Fatalf("config SetupConfig() error: %s", err)
-	}
-
 	// Set timezone
 	conf := config.ServerConfig()
 	loc, _ := time.LoadLocation(conf.Timezone)

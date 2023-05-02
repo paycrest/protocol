@@ -1,6 +1,7 @@
 package config
 
 import (
+	"github.com/paycrest/paycrest-protocol/utils/logger"
 	"github.com/spf13/viper"
 )
 
@@ -8,7 +9,6 @@ type ServerConfiguration struct {
 	Debug        bool
 	Host         string
 	Port         string
-	Secret       string
 	Timezone     string
 	AllowedHosts string
 }
@@ -22,10 +22,15 @@ func ServerConfig() *ServerConfiguration {
 
 	return &ServerConfiguration{
 		Debug:        viper.GetBool("DEBUG"),
-		Secret:       viper.GetString("SECRET"),
 		Host:         viper.GetString("SERVER_HOST"),
 		Port:         viper.GetString("SERVER_PORT"),
 		Timezone:     viper.GetString("SERVER_TIMEZONE"),
 		AllowedHosts: viper.GetString("ALLOWED_HOSTS"),
+	}
+}
+
+func init() {
+	if err := SetupConfig(); err != nil {
+		logger.Fatalf("config SetupConfig() error: %s", err)
 	}
 }
