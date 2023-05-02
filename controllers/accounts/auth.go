@@ -28,7 +28,17 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 		return
 	}
 
-	// TODO: Check if user with email already exists
+	// Check if user with email already exists
+	userTmp, _ := db.Client.User.
+		Query().
+		Where(user.EmailEQ(strings.ToLower(payload.Email))).
+		Only(ctx)
+
+	if userTmp != nil {
+		u.APIResponse(ctx, http.StatusBadRequest, "error",
+			"User with email already exists", nil)
+		return
+	}
 
 	// Save the user
 	user, err := db.Client.User.
@@ -38,6 +48,7 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 		SetEmail(strings.ToLower(payload.Email)).
 		SetPassword(payload.Password).
 		Save(ctx)
+
 	if err != nil {
 		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusInternalServerError, "error",
@@ -47,14 +58,15 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 
 	// TODO: Send email to verify the user's email address
 
-	u.APIResponse(ctx, http.StatusCreated, "success", "User created successfully", &RegisterResponse{
-		ID:        user.ID,
-		CreatedAt: user.CreatedAt,
-		UpdatedAt: user.UpdatedAt,
-		FirstName: user.FirstName,
-		LastName:  user.LastName,
-		Email:     user.Email,
-	})
+	u.APIResponse(ctx, http.StatusCreated, "success", "User created successfully",
+		&RegisterResponse{
+			ID:        user.ID,
+			CreatedAt: user.CreatedAt,
+			UpdatedAt: user.UpdatedAt,
+			FirstName: user.FirstName,
+			LastName:  user.LastName,
+			Email:     user.Email,
+		})
 }
 
 // Login controller validates the payload and creates a new user.
