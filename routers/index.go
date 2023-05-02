@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/paycrest/paycrest-protocol/controllers"
 	"github.com/paycrest/paycrest-protocol/controllers/accounts"
+	"github.com/paycrest/paycrest-protocol/routers/middleware"
 	u "github.com/paycrest/paycrest-protocol/utils"
 )
 
@@ -36,7 +37,7 @@ func AuthRoutes(route *gin.Engine) {
 	v1 := route.Group("/v1/auth/")
 	v1.POST("register/", ctrl.Register)
 	v1.POST("login/", ctrl.Login)
-	v1.POST("refresh/", ctrl.RefreshJWT)
+	v1.POST("refresh/", middleware.JWTMiddleware, ctrl.RefreshJWT)
 }
 
 func SenderRoutes(route *gin.Engine) {

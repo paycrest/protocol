@@ -30,7 +30,7 @@ func JWTMiddleware(c *gin.Context) {
 	claims, err := token.ValidateJWT(authParts[1])
 	userID, ok := claims["sub"].(string)
 	if err != nil || !ok {
-		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid token", nil)
+		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid token", err.Error())
 		c.Abort()
 		return
 	}

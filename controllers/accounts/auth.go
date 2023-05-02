@@ -91,7 +91,7 @@ func (ctrl *AuthController) Login(ctx *gin.Context) {
 	if !passwordMatch || emailErr != nil {
 		logger.Errorf("error: %v", "Invalid email or password")
 		u.APIResponse(ctx, http.StatusBadRequest, "error",
-			"Email and password do not match any user", emailErr.Error(),
+			"Invalid credentials", "Email and password do not match any user",
 		)
 		return
 	}
@@ -113,6 +113,32 @@ func (ctrl *AuthController) Login(ctx *gin.Context) {
 	})
 }
 
+// RefreshJWT controller returns a new access token given a valid refresh token.
 func (ctrl *AuthController) RefreshJWT(ctx *gin.Context) {
-	u.APIResponse(ctx, http.StatusOK, "success", "OK", nil)
+	var payload RefreshJWTPayload
+
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid request payload", err.Error())
+		return
+	}
+
+	// Validate the refresh token
+	claims, err := token.ValidateJWT(payload.RefreshToken)
+	userID, ok := claims["sub"].(string)
+	if err != nil || !ok {
+		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid refresh token", err.Error())
+		return
+	}
+
+	// Generate a new access token
+	accessToken, err := token.GenerateAccessJWT(userID)
+	if err != nil {
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to generate access token", err.Error())
+		return
+	}
+
+	// Return the new access token
+	u.APIResponse(ctx, http.StatusOK, "success", "Successfully refreshed access token", &RefreshResponse{
+		AccessToken: accessToken,
+	})
 }
