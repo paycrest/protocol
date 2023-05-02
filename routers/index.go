@@ -1,10 +1,12 @@
 package routers
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/paycrest/paycrest-protocol/controllers"
+	"github.com/paycrest/paycrest-protocol/controllers/accounts"
 	u "github.com/paycrest/paycrest-protocol/utils"
-	"net/http"
 )
 
 // RegisterRoutes add all routing list here automatically get main router
@@ -16,6 +18,7 @@ func RegisterRoutes(route *gin.Engine) {
 
 	// Add all routes
 	UserRoutes(route)
+	AuthRoutes(route)
 	SenderRoutes(route)
 	ProviderRoutes(route)
 	MiscRoutes(route)
@@ -26,6 +29,14 @@ func UserRoutes(route *gin.Engine) {
 	v1 := route.Group("/v1/")
 	v1.GET("users/", ctrl.GetUsers)
 	v1.POST("users/", ctrl.CreateUser)
+}
+
+func AuthRoutes(route *gin.Engine) {
+	var ctrl accounts.AuthController
+	v1 := route.Group("/v1/auth/")
+	v1.POST("register/", ctrl.Register)
+	v1.POST("login/", ctrl.Login)
+	v1.POST("refresh/", ctrl.RefreshJWT)
 }
 
 func SenderRoutes(route *gin.Engine) {

@@ -3,6 +3,7 @@ package config
 import (
 	"time"
 
+	"github.com/paycrest/paycrest-protocol/utils/logger"
 	"github.com/spf13/viper"
 )
 
@@ -18,5 +19,11 @@ func AuthConfig() (config *AuthConfiguration) {
 		Secret:                 viper.GetString("SECRET"),
 		JwtAccessHourLifespan:  time.Duration(15) * time.Minute,
 		JwtRefreshHourLifespan: time.Duration(24) * time.Hour,
+	}
+}
+
+func init() {
+	if err := SetupConfig(); err != nil {
+		logger.Fatalf("config SetupConfig() error: %s", err)
 	}
 }
