@@ -13,7 +13,8 @@ import (
 func JWTMiddleware(c *gin.Context) {
 	authHeader := c.GetHeader("Authorization")
 	if authHeader == "" {
-		u.APIResponse(c, http.StatusUnauthorized, "error", "Authorization header is missing", nil)
+		u.APIResponse(c, http.StatusUnauthorized, "error",
+			"Authorization header is missing", "Expected: Bearer <token>")
 		c.Abort()
 		return
 	}
@@ -21,7 +22,8 @@ func JWTMiddleware(c *gin.Context) {
 	// Split the Authorization header value into two parts: the authentication scheme and the token value
 	authParts := strings.SplitN(authHeader, " ", 2)
 	if len(authParts) != 2 || authParts[0] != "Bearer" {
-		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid Authorization header format", nil)
+		u.APIResponse(c, http.StatusUnauthorized, "error",
+			"Invalid Authorization header format", "Expected: Bearer <token>")
 		c.Abort()
 		return
 	}
@@ -30,7 +32,7 @@ func JWTMiddleware(c *gin.Context) {
 	claims, err := token.ValidateJWT(authParts[1])
 	userID, ok := claims["sub"].(string)
 	if err != nil || !ok {
-		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid token", err.Error())
+		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid or expired token", err.Error())
 		c.Abort()
 		return
 	}

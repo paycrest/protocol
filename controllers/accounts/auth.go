@@ -91,7 +91,7 @@ func (ctrl *AuthController) Login(ctx *gin.Context) {
 
 	if !passwordMatch || emailErr != nil {
 		logger.Errorf("error: %v", "Invalid email or password")
-		u.APIResponse(ctx, http.StatusBadRequest, "error",
+		u.APIResponse(ctx, http.StatusUnauthorized, "error",
 			"Invalid credentials", "Email and password do not match any user",
 		)
 		return
@@ -128,7 +128,7 @@ func (ctrl *AuthController) RefreshJWT(ctx *gin.Context) {
 	claims, err := token.ValidateJWT(payload.RefreshToken)
 	userID, ok := claims["sub"].(string)
 	if err != nil || !ok {
-		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid refresh token", err.Error())
+		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid or expired refresh token", err.Error())
 		return
 	}
 
