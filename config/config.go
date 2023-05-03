@@ -8,14 +8,20 @@ import (
 type Configuration struct {
 	Server   ServerConfiguration
 	Database DatabaseConfiguration
-	Auth	 AuthConfiguration
+	Auth     AuthConfiguration
 }
 
 // SetupConfig configuration
 func SetupConfig() error {
 	var configuration *Configuration
 
-	viper.SetConfigFile(".env")
+	viper.AddConfigPath("../..")
+	viper.AddConfigPath("..")
+	viper.AddConfigPath(".")
+
+	viper.SetConfigName(".env")
+	viper.SetConfigType("env")
+
 	if err := viper.ReadInConfig(); err != nil {
 		logger.Errorf("Error to reading config file, %s", err)
 		return err

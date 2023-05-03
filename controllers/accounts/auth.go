@@ -24,7 +24,7 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusBadRequest, "error",
-			"Failed to validate payload", err.Error())
+			"Failed to validate payload", u.GetErrorData(err))
 		return
 	}
 
@@ -75,7 +75,8 @@ func (ctrl *AuthController) Login(ctx *gin.Context) {
 
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", err.Error())
+		u.APIResponse(ctx, http.StatusBadRequest, "error",
+			"Failed to validate payload", u.GetErrorData(err))
 		return
 	}
 
@@ -118,7 +119,8 @@ func (ctrl *AuthController) RefreshJWT(ctx *gin.Context) {
 	var payload RefreshJWTPayload
 
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid request payload", err.Error())
+		u.APIResponse(ctx, http.StatusBadRequest, "error",
+			"Failed to validate payload", u.GetErrorData(err))
 		return
 	}
 

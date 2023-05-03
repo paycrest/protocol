@@ -18,22 +18,15 @@ func RegisterRoutes(route *gin.Engine) {
 	route.GET("/health", func(ctx *gin.Context) { ctx.JSON(http.StatusOK, gin.H{"live": "ok"}) })
 
 	// Add all routes
-	UserRoutes(route)
 	AuthRoutes(route)
 	SenderRoutes(route)
 	ProviderRoutes(route)
 	MiscRoutes(route)
 }
 
-func UserRoutes(route *gin.Engine) {
-	var ctrl controllers.UserController
-	v1 := route.Group("/v1/")
-	v1.GET("users/", ctrl.GetUsers)
-	v1.POST("users/", ctrl.CreateUser)
-}
-
 func AuthRoutes(route *gin.Engine) {
 	var ctrl accounts.AuthController
+
 	v1 := route.Group("/v1/auth/")
 	v1.POST("register/", ctrl.Register)
 	v1.POST("login/", ctrl.Login)
