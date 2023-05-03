@@ -29,7 +29,7 @@ func main() {
 	router := routers.Routes()
 
 	appServer := fmt.Sprintf("%s:%s", conf.Host, conf.Port)
-	logger.Infof("Server Running at :", appServer)
+	logger.Infof("Server Running at :%v", appServer)
 
 	logger.Fatalf("%v", router.Run(appServer))
 
