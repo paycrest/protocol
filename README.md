@@ -22,7 +22,6 @@ cd paycrest-protocol
 cp .env.example .env
 ```
 
-
 2. Start the development environment:
 
 **With Docker**
@@ -80,5 +79,19 @@ Our team will review your pull request and work with you to get it merged into t
 
 If you encounter any issues or have questions, feel free to open an issue on the repository or contact us via email on support@paycrest.io
 
-### License
+## Testing
+Paycrest Protocol uses a combination of unit tests and integration tests to ensure the reliability of the codebase.
+
+To run the tests, run the following command:
+```bash
+# run all tests
+go test ./...
+
+# run a specific test
+go test ./path/to/test/file
+```
+
+It is mandatory that you write tests for any new features or changes you make to the codebase. Only PRs that include passing tests will be accepted.
+
+## License
 [Affero General Public License v3.0](https://choosealicense.com/licenses/agpl-3.0/)
