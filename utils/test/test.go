@@ -10,7 +10,20 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func PerformRequest(t *testing.T, method string, path string, payload interface{}, router *gin.Engine) (*httptest.ResponseRecorder, error) {
+// PerformRequest performs a http request with the given method, path, and payload
+func PerformRequest(t *testing.T, method string, path string, payload interface{}, auth *string, router *gin.Engine) (*httptest.ResponseRecorder, error) {
+	req, _ := GetRequest(t, method, path, payload, router)
+
+	if auth != nil {
+		req.Header.Set("Authorization", "Bearer "+*auth)
+	}
+	res := httptest.NewRecorder()
+	router.ServeHTTP(res, req)
+	return res, nil
+}
+
+// GetRequest returns a new http.Request with the given method, path, and payload
+func GetRequest(t *testing.T, method string, path string, payload interface{}, router *gin.Engine) (*http.Request, error) {
 	body, err := json.Marshal(payload)
 	if err != nil {
 		return nil, err
@@ -21,7 +34,5 @@ func PerformRequest(t *testing.T, method string, path string, payload interface{
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	res := httptest.NewRecorder()
-	router.ServeHTTP(res, req)
-	return res, nil
+	return req, nil
 }
