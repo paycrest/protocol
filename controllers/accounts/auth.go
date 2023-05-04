@@ -98,7 +98,7 @@ func (ctrl *AuthController) Login(ctx *gin.Context) {
 	}
 
 	// Generate JWT pair
-	accessToken, refreshToken, err := token.GeneratePairJWT(user.ID.String(), user.FirstName+" "+user.LastName)
+	accessToken, refreshToken, err := token.GeneratePairJWT(user.ID.String())
 
 	if err != nil {
 		logger.Errorf("error: %v", err)
