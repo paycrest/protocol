@@ -19,7 +19,6 @@ func GenerateAccessJWT(user_id string) (string, error) {
 	claims["exp"] = time.Now().Add(conf.JwtAccessHourLifespan).Unix()
 
 	return token.SignedString([]byte(conf.Secret))
-
 }
 
 // GenerateRefreshJWT generates a refresh token with a long expiry time >= 24 hours
@@ -33,7 +32,7 @@ func GenerateRefreshJWT(user_id string) (string, error) {
 }
 
 // GeneratePairJWT generates a pair of access and refresh tokens
-func GeneratePairJWT(user_id, name string) (string, string, error) {
+func GeneratePairJWT(user_id string) (string, string, error) {
 	access, err := GenerateAccessJWT(user_id)
 	if err != nil {
 		return "", "", err

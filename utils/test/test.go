@@ -12,7 +12,7 @@ import (
 
 // PerformRequest performs a http request with the given method, path, and payload
 func PerformRequest(t *testing.T, method string, path string, payload interface{}, auth *string, router *gin.Engine) (*httptest.ResponseRecorder, error) {
-	req, _ := GetRequest(t, method, path, payload, router)
+	req, _ := getRequest(t, method, path, payload, router)
 
 	if auth != nil {
 		req.Header.Set("Authorization", "Bearer "+*auth)
@@ -23,7 +23,7 @@ func PerformRequest(t *testing.T, method string, path string, payload interface{
 }
 
 // GetRequest returns a new http.Request with the given method, path, and payload
-func GetRequest(t *testing.T, method string, path string, payload interface{}, router *gin.Engine) (*http.Request, error) {
+func getRequest(t *testing.T, method string, path string, payload interface{}, router *gin.Engine) (*http.Request, error) {
 	body, err := json.Marshal(payload)
 	if err != nil {
 		return nil, err
