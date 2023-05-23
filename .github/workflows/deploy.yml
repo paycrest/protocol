@@ -19,10 +19,10 @@ jobs:
           go-version: 1.x
 
       - name: Install precommit hook
-        run: go get -u github.com/alecthomas/gometalinter && gometalinter --fast --install
+        run: go get -u github.com/golangci/golangci-lint/cmd/golangci-lint && golangci-lint --fast --install
 
       - name: Linter
-        run: gometalinter ./...
+        run: golangci-lint ./...
 
       - name: Install dependencies
         run: go mod download
