@@ -18,7 +18,7 @@ jobs:
           go-version: 1.x
 
       - name: Install precommit hook
-        run: go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
+        run: pwd && go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
 
       - name: Linter
         run: golangci-lint run
