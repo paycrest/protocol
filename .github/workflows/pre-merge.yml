@@ -17,9 +17,6 @@ jobs:
         with:
           go-version: 1.x
 
-      - name: Install precommit hook
-        run: go get github.com/dnephin/gometalinter && gometalinter --install
-
       - name: Linter
         run: gometalinter ./...
 
