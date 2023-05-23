@@ -26,6 +26,9 @@ jobs:
       - name: Install dependencies
         run: go mod download
 
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v3.3.1 
+
       - name: Build
         run: go build -o myapp
 
