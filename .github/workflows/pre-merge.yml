@@ -21,7 +21,7 @@ jobs:
         run: go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
 
       - name: Linter
-        run: golangci-lint
+        run: golangci-lint run
 
       - name: Install dependencies
         run: go mod download
