@@ -1,0 +1,40 @@
+name: Deployment CI/CD Pipeline to Koyeb
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.x
+
+      - name: Install precommit hook
+        run: go get github.com/dnephin/gometalinter && gometalinter --install
+
+      - name: Linter
+        run: gometalinter ./...
+
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Build
+        run: go build -o myapp
+
+      - name: Run tests with coverage
+        run: go test -coverprofile=coverage.out ./...
+
+      - name: Deploy to Koyeb
+        uses: koyeb/deploy-github-action@v1
+        with:
+          token: ${{ secrets.KOYEB_API_TOKEN }}
+          image: myimage:latest
