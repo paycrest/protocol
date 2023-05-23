@@ -18,11 +18,8 @@ jobs:
         with:
           go-version: 1.x
 
-      - name: Install precommit hook
-        run: go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
-
-      - name: Linter
-        run: golangci-lint run
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v3.4.0
 
       - name: Install dependencies
         run: go mod download
