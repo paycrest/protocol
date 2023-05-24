@@ -35,8 +35,11 @@ jobs:
       - name: Run tests with coverage
         run: go test -coverprofile=coverage.out ./...
 
-      - name: Deploy to Koyeb
-        uses: koyeb/deploy-github-action@v1
+      - name: Install and configure the Koyeb CLI
+        uses: koyeb-community/install-koyeb-cli@v2
         with:
-          token: ${{ secrets.KOYEB_API_TOKEN }}
-          image: myimage:latest
+          api_token: "${{ secrets.KOYEB_TOKEN }}"
+          github_token: "${{ secrets.TOKEN_GH }}"
+
+      - name: Deploy to Koyeb
+        run: koyeb service redeploy app_name/service_name
