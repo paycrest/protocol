@@ -1,6 +1,8 @@
 package token
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"time"
@@ -71,4 +73,27 @@ func ValidateJWT(tokenString string) (jwt.MapClaims, error) {
 	}
 
 	return claims, nil
+}
+
+// GenerateHMACKeys generates a pair of public and private keys for HMAC authentication.
+// It returns the public key (Client Key) and private key (Secret Key).
+func GenerateHMACKeys() (string, string, error) {
+	// Generate random bytes for the keys
+	keySize := 32 // 32 bytes = 256 bits -- for HMAC-SHA256 hashing function
+	publicKeyBytes := make([]byte, keySize)
+	privateKeyBytes := make([]byte, keySize)
+	_, err := rand.Read(publicKeyBytes)
+	if err != nil {
+		return "", "", err
+	}
+	_, err = rand.Read(privateKeyBytes)
+	if err != nil {
+		return "", "", err
+	}
+
+	// Encode keys to base64 strings
+	publicKey := base64.URLEncoding.EncodeToString(publicKeyBytes)
+	privateKey := base64.URLEncoding.EncodeToString(privateKeyBytes)
+
+	return publicKey, privateKey, nil
 }
