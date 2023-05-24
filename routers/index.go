@@ -31,6 +31,9 @@ func authRoutes(route *gin.Engine) {
 	v1.POST("register/", ctrl.Register)
 	v1.POST("login/", ctrl.Login)
 	v1.POST("refresh/", middleware.JWTMiddleware, ctrl.RefreshJWT)
+	v1.POST("api-keys/", middleware.JWTMiddleware, ctrl.GenerateAPIKey)
+	v1.GET("api-keys/", middleware.JWTMiddleware, ctrl.GetAPIKeys)
+	v1.DELETE("api-keys/:id", middleware.JWTMiddleware, ctrl.DeleteAPIKey)
 }
 
 func senderRoutes(route *gin.Engine) {

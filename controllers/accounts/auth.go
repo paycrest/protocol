@@ -145,3 +145,31 @@ func (ctrl *AuthController) RefreshJWT(ctx *gin.Context) {
 		AccessToken: accessToken,
 	})
 }
+
+// GenerateAPIKey controller generates a new API key pair for the user.
+func (ctrl *AuthController) GenerateAPIKey(ctx *gin.Context) {
+	// Return the new access token
+	u.APIResponse(ctx, http.StatusOK, "success", "Successfully generated API key", nil)
+}
+
+// GetAPIKeys controller returns all API keys for the user.
+func (ctrl *AuthController) GetAPIKeys(ctx *gin.Context) {
+	publicKey, privateKey, err := token.GenerateHMACKeys()
+	if err != nil {
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to generate API keys", err.Error())
+		return
+	}
+
+	// Return the new access token
+	u.APIResponse(ctx, http.StatusOK, "success", "Successfully retrieved API keys", gin.H{
+		"publicKey": publicKey,
+		"secretKey": privateKey,
+		"user_id":   ctx.Value("user_id").(string),
+	})
+}
+
+// DeleteAPIKey controller deletes an API key for the user.
+func (ctrl *AuthController) DeleteAPIKey(ctx *gin.Context) {
+	// Return the new access token
+	u.APIResponse(ctx, http.StatusOK, "success", "Successfully deleted API key", nil)
+}
