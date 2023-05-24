@@ -24,7 +24,7 @@ jobs:
         run: go mod download
 
       - name: Build
-        run: go build -o myapp
+        run: go build -o paycrest
 
       - name: Run tests with coverage
         run: go test -coverprofile=coverage.out ./...
