@@ -42,4 +42,4 @@ jobs:
           github_token: "${{ secrets.TOKEN_GH }}"
 
       - name: Deploy to Koyeb
-        run: koyeb deployment create paycrest
+        run: koyeb deployments create paycrest
