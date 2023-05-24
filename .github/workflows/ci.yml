@@ -35,3 +35,8 @@ jobs:
       - name: Run tests with coverage
         run: go test -coverprofile=coverage.out ./...
 
+      - name: Deploy to Koyeb
+        uses: koyeb/deploy-github-action@v1
+        with:
+          token: ${{ secrets.KOYEB_API_TOKEN }}
+          image: myimage:latest
