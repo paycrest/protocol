@@ -5,7 +5,9 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	db "github.com/paycrest/paycrest-protocol/database"
+	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/user"
 	u "github.com/paycrest/paycrest-protocol/utils"
 	"github.com/paycrest/paycrest-protocol/utils/crypto"
@@ -146,26 +148,112 @@ func (ctrl *AuthController) RefreshJWT(ctx *gin.Context) {
 	})
 }
 
+func mapPayloadScopeToAPIKeyScope(payloadScope string) apikey.Scope {
+	switch payloadScope {
+	case "provider":
+		return apikey.ScopeProvider
+	case "sender":
+		return apikey.ScopeSender
+	case "validator":
+		return apikey.ScopeTxValidator
+	default:
+		// Return a default value or handle the error accordingly
+		return apikey.ScopeProvider
+	}
+}
+
 // GenerateAPIKey controller generates a new API key pair for the user.
 func (ctrl *AuthController) GenerateAPIKey(ctx *gin.Context) {
-	// Return the new access token
-	u.APIResponse(ctx, http.StatusOK, "success", "Successfully generated API key", nil)
+	// Get the user ID from the context
+	userIDString, _ := ctx.Get("user_id")
+
+	// Parse the user ID string to uuid.UUID
+	userID, err := uuid.Parse(userIDString.(string))
+	if err != nil {
+		logger.Errorf("error parsing user ID: %v", err)
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid user ID", nil)
+		return
+	}
+
+	var payload GenerateAPIKeyPayload
+
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid request body", u.GetErrorData(err))
+		return
+	}
+
+	// Generate a new API key pair
+	publicKey, secretKey, err := token.GenerateHMACKeys()
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to generate API key", err.Error())
+		return
+	}
+
+	// Fetch the User entity from the database using the userID value
+	user, err := db.Client.User.Get(ctx, userID)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to generate API key", err.Error())
+		return
+	}
+
+	// Create a new APIKey entity
+	apiKey, err := db.Client.APIKey.
+		Create().
+		SetName(payload.Name).
+		SetScope(mapPayloadScopeToAPIKeyScope(payload.Scope)).
+		SetPair(publicKey + "::" + secretKey).
+		SetUser(user).
+		Save(ctx)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to generate API key", err.Error())
+		return
+	}
+
+	// Return the newly generated API key
+	u.APIResponse(ctx, http.StatusOK, "success", "Successfully generated API key", &GenerateAPIKeyResponse{
+		ID:        apiKey.ID,
+		Name:      apiKey.Name,
+		Scope:     apiKey.Scope,
+		PublicKey: publicKey,
+		SecretKey: secretKey,
+		IsActive:  apiKey.IsActive,
+		CreatedAt: apiKey.CreatedAt,
+	})
 }
 
 // GetAPIKeys controller returns all API keys for the user.
 func (ctrl *AuthController) GetAPIKeys(ctx *gin.Context) {
-	publicKey, privateKey, err := token.GenerateHMACKeys()
+	// Get the user ID from the context
+	userIDString, _ := ctx.Get("user_id")
+
+	// Parse the user ID string to uuid.UUID
+	userID, err := uuid.Parse(userIDString.(string))
 	if err != nil {
-		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to generate API keys", err.Error())
+		logger.Errorf("error parsing user ID: %v", err)
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid user ID", nil)
 		return
 	}
 
-	// Return the new access token
-	u.APIResponse(ctx, http.StatusOK, "success", "Successfully retrieved API keys", gin.H{
-		"publicKey": publicKey,
-		"secretKey": privateKey,
-		"user_id":   ctx.Value("user_id").(string),
-	})
+	// Query the user's API keys
+	apiKeys, err := db.Client.User.
+		Query().
+		Where(user.IDEQ(userID)).
+		QueryAPIKeys().
+		All(ctx)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to retrieve API keys", err.Error())
+		return
+	}
+
+	// TODO: split API key pair to public and secret keys
+
+	// Return the API keys
+	u.APIResponse(ctx, http.StatusOK, "success", "Successfully retrieved API keys", apiKeys)
 }
 
 // DeleteAPIKey controller deletes an API key for the user.

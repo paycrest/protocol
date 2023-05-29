@@ -1,6 +1,8 @@
 package schema
 
 import (
+	"time"
+
 	"entgo.io/ent"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
@@ -15,13 +17,16 @@ type APIKey struct {
 func (APIKey) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("name"),
-		field.Enum("type").
-			Values("sender", "provider", "validator"),
+		field.Enum("scope").
+			Values("sender", "provider", "tx_validator"),
 		field.String("pair").
 			NotEmpty().
 			Unique(),
 		field.Bool("is_active").
-			Default(false),
+			Default(true),
+		field.Time("created_at").
+			Immutable().
+			Default(time.Now),
 	}
 }
 
