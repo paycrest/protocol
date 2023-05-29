@@ -43,6 +43,8 @@ func GetErrorMsg(fe validator.FieldError) string {
 		return "Should be at least " + fe.Param() + " characters"
 	case "max":
 		return "Should be at most " + fe.Param() + " characters"
+	case "oneof":
+		return "Must be one of " + fe.Param()
 	}
 	return "Unknown error"
 }

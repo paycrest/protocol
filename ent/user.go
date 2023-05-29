@@ -29,10 +29,31 @@ type User struct {
 	// Email holds the value of the "email" field.
 	Email string `json:"email,omitempty"`
 	// Password holds the value of the "password" field.
-	Password string `json:"password,omitempty"`
+	Password string `json:"-"`
 	// IsVerified holds the value of the "is_verified" field.
-	IsVerified   bool `json:"is_verified,omitempty"`
+	IsVerified bool `json:"is_verified,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the UserQuery when eager-loading is set.
+	Edges        UserEdges `json:"edges"`
 	selectValues sql.SelectValues
+}
+
+// UserEdges holds the relations/edges for other nodes in the graph.
+type UserEdges struct {
+	// APIKeys holds the value of the api_keys edge.
+	APIKeys []*APIKey `json:"api_keys,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+}
+
+// APIKeysOrErr returns the APIKeys value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) APIKeysOrErr() ([]*APIKey, error) {
+	if e.loadedTypes[0] {
+		return e.APIKeys, nil
+	}
+	return nil, &NotLoadedError{edge: "api_keys"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -124,6 +145,11 @@ func (u *User) Value(name string) (ent.Value, error) {
 	return u.selectValues.Get(name)
 }
 
+// QueryAPIKeys queries the "api_keys" edge of the User entity.
+func (u *User) QueryAPIKeys() *APIKeyQuery {
+	return NewUserClient(u.config).QueryAPIKeys(u)
+}
+
 // Update returns a builder for updating this User.
 // Note that you need to call User.Unwrap() before calling this method if this User
 // was returned from a transaction, and the transaction was committed or rolled back.
@@ -162,8 +188,7 @@ func (u *User) String() string {
 	builder.WriteString("email=")
 	builder.WriteString(u.Email)
 	builder.WriteString(", ")
-	builder.WriteString("password=")
-	builder.WriteString(u.Password)
+	builder.WriteString("password=<sensitive>")
 	builder.WriteString(", ")
 	builder.WriteString("is_verified=")
 	builder.WriteString(fmt.Sprintf("%v", u.IsVerified))

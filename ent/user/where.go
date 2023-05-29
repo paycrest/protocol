@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
 )
@@ -438,6 +439,29 @@ func IsVerifiedEQ(v bool) predicate.User {
 // IsVerifiedNEQ applies the NEQ predicate on the "is_verified" field.
 func IsVerifiedNEQ(v bool) predicate.User {
 	return predicate.User(sql.FieldNEQ(FieldIsVerified, v))
+}
+
+// HasAPIKeys applies the HasEdge predicate on the "api_keys" edge.
+func HasAPIKeys() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, APIKeysTable, APIKeysColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasAPIKeysWith applies the HasEdge predicate on the "api_keys" edge with a given conditions (other predicates).
+func HasAPIKeysWith(preds ...predicate.APIKey) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := newAPIKeysStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
 }
 
 // And groups predicates with the AND operator between them.

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/schema"
 	"github.com/paycrest/paycrest-protocol/ent/user"
 )
@@ -14,6 +15,20 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	apikeyFields := schema.APIKey{}.Fields()
+	_ = apikeyFields
+	// apikeyDescPair is the schema descriptor for pair field.
+	apikeyDescPair := apikeyFields[2].Descriptor()
+	// apikey.PairValidator is a validator for the "pair" field. It is called by the builders before save.
+	apikey.PairValidator = apikeyDescPair.Validators[0].(func(string) error)
+	// apikeyDescIsActive is the schema descriptor for is_active field.
+	apikeyDescIsActive := apikeyFields[3].Descriptor()
+	// apikey.DefaultIsActive holds the default value on creation for the is_active field.
+	apikey.DefaultIsActive = apikeyDescIsActive.Default.(bool)
+	// apikeyDescCreatedAt is the schema descriptor for created_at field.
+	apikeyDescCreatedAt := apikeyFields[4].Descriptor()
+	// apikey.DefaultCreatedAt holds the default value on creation for the created_at field.
+	apikey.DefaultCreatedAt = apikeyDescCreatedAt.Default.(func() time.Time)
 	userMixin := schema.User{}.Mixin()
 	userHooks := schema.User{}.Hooks()
 	user.Hooks[0] = userHooks[0]
