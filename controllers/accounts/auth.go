@@ -1,6 +1,7 @@
 package accounts
 
 import (
+	"encoding/base64"
 	"net/http"
 	"strings"
 
@@ -175,6 +176,14 @@ func (ctrl *AuthController) GenerateAPIKey(ctx *gin.Context) {
 		return
 	}
 
+	// Fetch the User entity from the database using the userID value
+	user, err := db.Client.User.Get(ctx, userID)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Invalid user ID", err.Error())
+		return
+	}
+
 	var payload GenerateAPIKeyPayload
 
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
@@ -191,42 +200,43 @@ func (ctrl *AuthController) GenerateAPIKey(ctx *gin.Context) {
 		return
 	}
 
-	// Fetch the User entity from the database using the userID value
-	user, err := db.Client.User.Get(ctx, userID)
+	// Encrypt the key pair
+	pair, err := crypto.Encrypt([]byte(publicKey + "::" + secretKey))
 	if err != nil {
 		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to generate API key", err.Error())
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to encrypt API Key", err.Error())
 		return
 	}
+
+	encodedPair := base64.StdEncoding.EncodeToString(pair)
 
 	// Create a new APIKey entity
 	apiKey, err := db.Client.APIKey.
 		Create().
 		SetName(payload.Name).
 		SetScope(mapPayloadScopeToAPIKeyScope(payload.Scope)).
-		SetPair(publicKey + "::" + secretKey).
+		SetPair(encodedPair).
 		SetUser(user).
 		Save(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to generate API key", err.Error())
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to create new entity", err.Error())
 		return
 	}
 
 	// Return the newly generated API key
-	u.APIResponse(ctx, http.StatusOK, "success", "Successfully generated API key", &GenerateAPIKeyResponse{
+	u.APIResponse(ctx, http.StatusOK, "success", "Successfully generated API key", &APIKeyResponse{
 		ID:        apiKey.ID,
 		Name:      apiKey.Name,
 		Scope:     apiKey.Scope,
-		PublicKey: publicKey,
-		SecretKey: secretKey,
+		Pair:      publicKey + "::" + secretKey,
 		IsActive:  apiKey.IsActive,
 		CreatedAt: apiKey.CreatedAt,
 	})
 }
 
-// GetAPIKeys controller returns all API keys for the user.
-func (ctrl *AuthController) GetAPIKeys(ctx *gin.Context) {
+// ListAPIKeys controller returns all API keys for the user.
+func (ctrl *AuthController) ListAPIKeys(ctx *gin.Context) {
 	// Get the user ID from the context
 	userIDString, _ := ctx.Get("user_id")
 
@@ -250,10 +260,36 @@ func (ctrl *AuthController) GetAPIKeys(ctx *gin.Context) {
 		return
 	}
 
-	// TODO: split API key pair to public and secret keys
+	// Create APIKeyResponse objects without the Pair field
+	apiKeyResponses := make([]APIKeyResponse, len(apiKeys))
+	for i, apiKey := range apiKeys {
+		// Decode the stored key pair to bytes
+		decodedPair, err := base64.StdEncoding.DecodeString(apiKey.Pair)
+		if err != nil {
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to decode API key", err.Error())
+			return
+		}
+
+		// Decrypt the key pair
+		decryptedPair, err := crypto.Decrypt(decodedPair)
+		if err != nil {
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to decrypt API key", err.Error())
+			return
+		}
+		apiKeyResponses[i] = APIKeyResponse{
+			ID:        apiKey.ID,
+			CreatedAt: apiKey.CreatedAt,
+			Name:      apiKey.Name,
+			Scope:     apiKey.Scope,
+			Pair:      string(decryptedPair),
+			IsActive:  apiKey.IsActive,
+		}
+	}
 
 	// Return the API keys
-	u.APIResponse(ctx, http.StatusOK, "success", "Successfully retrieved API keys", apiKeys)
+	u.APIResponse(ctx, http.StatusOK, "success", "Successfully retrieved API keys", apiKeyResponses)
 }
 
 // DeleteAPIKey controller deletes an API key for the user.
