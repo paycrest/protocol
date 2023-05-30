@@ -7,8 +7,11 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/paycrest/paycrest-protocol/config"
 	"golang.org/x/crypto/bcrypt"
 )
+
+var conf = config.AuthConfig()
 
 // CheckPasswordHash is a function to compare provided password with the hashed password
 func CheckPasswordHash(password, hash string) bool {
@@ -17,8 +20,8 @@ func CheckPasswordHash(password, hash string) bool {
 }
 
 // Encrypt is a function to encrypt plaintext using AES encryption algorithm
-func Encrypt(key, plaintext []byte) ([]byte, error) {
-	block, err := aes.NewCipher(key)
+func Encrypt(plaintext []byte) ([]byte, error) {
+	block, err := aes.NewCipher([]byte(conf.Secret))
 	if err != nil {
 		return nil, err
 	}
@@ -36,8 +39,8 @@ func Encrypt(key, plaintext []byte) ([]byte, error) {
 }
 
 // Decrypt is a function to decrypt ciphertext using AES encryption algorithm
-func Decrypt(key, ciphertext []byte) ([]byte, error) {
-	block, err := aes.NewCipher(key)
+func Decrypt(ciphertext []byte) ([]byte, error) {
+	block, err := aes.NewCipher([]byte(conf.Secret))
 	if err != nil {
 		return nil, err
 	}

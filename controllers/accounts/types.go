@@ -54,12 +54,11 @@ type GenerateAPIKeyPayload struct {
 }
 
 // GenerateAPIKeyResponse is the response for the generate api key endpoint
-type GenerateAPIKeyResponse struct {
+type APIKeyResponse struct {
 	ID        int          `json:"id"`
 	CreatedAt time.Time    `json:"createdAt"`
 	Name      string       `json:"name"`
 	Scope     apikey.Scope `json:"scope"`
-	PublicKey string       `json:"publicKey"`
-	SecretKey string       `json:"secretKey"`
+	Pair      string       `json:"pair"`
 	IsActive  bool         `json:"isActive"`
 }
