@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	db "github.com/paycrest/paycrest-protocol/database"
+	"github.com/paycrest/paycrest-protocol/ent"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/user"
 	u "github.com/paycrest/paycrest-protocol/utils"
@@ -149,20 +150,6 @@ func (ctrl *AuthController) RefreshJWT(ctx *gin.Context) {
 	})
 }
 
-func mapPayloadScopeToAPIKeyScope(payloadScope string) apikey.Scope {
-	switch payloadScope {
-	case "provider":
-		return apikey.ScopeProvider
-	case "sender":
-		return apikey.ScopeSender
-	case "validator":
-		return apikey.ScopeTxValidator
-	default:
-		// Return a default value or handle the error accordingly
-		return apikey.ScopeProvider
-	}
-}
-
 // GenerateAPIKey controller generates a new API key pair for the user.
 func (ctrl *AuthController) GenerateAPIKey(ctx *gin.Context) {
 	// Get the user ID from the context
@@ -208,13 +195,14 @@ func (ctrl *AuthController) GenerateAPIKey(ctx *gin.Context) {
 		return
 	}
 
+	// Encode the encrypted key pair to base64
 	encodedPair := base64.StdEncoding.EncodeToString(pair)
 
 	// Create a new APIKey entity
 	apiKey, err := db.Client.APIKey.
 		Create().
 		SetName(payload.Name).
-		SetScope(mapPayloadScopeToAPIKeyScope(payload.Scope)).
+		SetScope(payload.Scope).
 		SetPair(encodedPair).
 		SetUser(user).
 		Save(ctx)
@@ -294,6 +282,53 @@ func (ctrl *AuthController) ListAPIKeys(ctx *gin.Context) {
 
 // DeleteAPIKey controller deletes an API key for the user.
 func (ctrl *AuthController) DeleteAPIKey(ctx *gin.Context) {
-	// Return the new access token
-	u.APIResponse(ctx, http.StatusOK, "success", "Successfully deleted API key", nil)
+	// Get the API key ID from the request URL
+	apiKeyID := ctx.Param("id")
+
+	// Parse the API key ID string to uuid.UUID
+	apiKeyUUID, err := uuid.Parse(apiKeyID)
+	if err != nil {
+		logger.Errorf("error parsing API key ID: %v", err)
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid API key ID", nil)
+		return
+	}
+
+	// Get the user ID from the context
+	userIDString, _ := ctx.Get("user_id")
+
+	// Parse the user ID string to uuid.UUID
+	userID, err := uuid.Parse(userIDString.(string))
+	if err != nil {
+		logger.Errorf("error parsing user ID: %v", err)
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid user ID", nil)
+		return
+	}
+
+	// Check if the API key belongs to the user making the request
+	apiKey, err := db.Client.APIKey.
+		Query().
+		Where(apikey.IDEQ(apiKeyUUID), apikey.HasUserWith(user.IDEQ(userID))).
+		Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			u.APIResponse(ctx, http.StatusNotFound, "error", "API key not found", nil)
+		} else {
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to delete API key", err.Error())
+		}
+		return
+	}
+
+	// Delete the API key
+	err = db.Client.APIKey.
+		DeleteOne(apiKey).
+		Exec(ctx)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to delete API key", err.Error())
+		return
+	}
+
+	// Return a success response
+	u.APIResponse(ctx, http.StatusNoContent, "success", "API key deleted successfully", nil)
 }

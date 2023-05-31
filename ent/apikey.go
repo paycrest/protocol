@@ -18,7 +18,7 @@ import (
 type APIKey struct {
 	config `json:"-"`
 	// ID of the ent.
-	ID int `json:"id,omitempty"`
+	ID uuid.UUID `json:"id,omitempty"`
 	// Name holds the value of the "name" field.
 	Name string `json:"name,omitempty"`
 	// Scope holds the value of the "scope" field.
@@ -65,12 +65,12 @@ func (*APIKey) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case apikey.FieldIsActive:
 			values[i] = new(sql.NullBool)
-		case apikey.FieldID:
-			values[i] = new(sql.NullInt64)
 		case apikey.FieldName, apikey.FieldScope, apikey.FieldPair:
 			values[i] = new(sql.NullString)
 		case apikey.FieldCreatedAt:
 			values[i] = new(sql.NullTime)
+		case apikey.FieldID:
+			values[i] = new(uuid.UUID)
 		case apikey.ForeignKeys[0]: // user_api_keys
 			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		default:
@@ -89,11 +89,11 @@ func (ak *APIKey) assignValues(columns []string, values []any) error {
 	for i := range columns {
 		switch columns[i] {
 		case apikey.FieldID:
-			value, ok := values[i].(*sql.NullInt64)
-			if !ok {
-				return fmt.Errorf("unexpected type %T for field id", value)
+			if value, ok := values[i].(*uuid.UUID); !ok {
+				return fmt.Errorf("unexpected type %T for field id", values[i])
+			} else if value != nil {
+				ak.ID = *value
 			}
-			ak.ID = int(value.Int64)
 		case apikey.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field name", values[i])

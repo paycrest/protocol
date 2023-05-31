@@ -35,7 +35,7 @@ func (User) Fields() []ent.Field {
 			Unique(),
 		field.String("password").Sensitive(),
 		field.Bool("is_verified").
-			Default(false),
+			Default(true),
 	}
 }
 
