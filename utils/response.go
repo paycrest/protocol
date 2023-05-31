@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"strings"
+
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
@@ -44,7 +46,8 @@ func GetErrorMsg(fe validator.FieldError) string {
 	case "max":
 		return "Should be at most " + fe.Param() + " characters"
 	case "oneof":
-		return "Must be one of " + fe.Param()
+		options := strings.Split(fe.Param(), ",")
+		return "Must be one of " + strings.Join(options, ", ")
 	}
 	return "Unknown error"
 }

@@ -6,6 +6,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 )
 
 // APIKey holds the schema definition for the APIKey entity.
@@ -16,6 +17,8 @@ type APIKey struct {
 // Fields of the APIKey.
 func (APIKey) Fields() []ent.Field {
 	return []ent.Field{
+		field.UUID("id", uuid.UUID{}).
+			Default(uuid.New),
 		field.String("name"),
 		field.Enum("scope").
 			Values("sender", "provider", "tx_validator"),

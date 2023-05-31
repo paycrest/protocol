@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
 	"github.com/paycrest/paycrest-protocol/ent/user"
@@ -74,14 +75,14 @@ func (uu *UserUpdate) SetNillableIsVerified(b *bool) *UserUpdate {
 }
 
 // AddAPIKeyIDs adds the "api_keys" edge to the APIKey entity by IDs.
-func (uu *UserUpdate) AddAPIKeyIDs(ids ...int) *UserUpdate {
+func (uu *UserUpdate) AddAPIKeyIDs(ids ...uuid.UUID) *UserUpdate {
 	uu.mutation.AddAPIKeyIDs(ids...)
 	return uu
 }
 
 // AddAPIKeys adds the "api_keys" edges to the APIKey entity.
 func (uu *UserUpdate) AddAPIKeys(a ...*APIKey) *UserUpdate {
-	ids := make([]int, len(a))
+	ids := make([]uuid.UUID, len(a))
 	for i := range a {
 		ids[i] = a[i].ID
 	}
@@ -100,14 +101,14 @@ func (uu *UserUpdate) ClearAPIKeys() *UserUpdate {
 }
 
 // RemoveAPIKeyIDs removes the "api_keys" edge to APIKey entities by IDs.
-func (uu *UserUpdate) RemoveAPIKeyIDs(ids ...int) *UserUpdate {
+func (uu *UserUpdate) RemoveAPIKeyIDs(ids ...uuid.UUID) *UserUpdate {
 	uu.mutation.RemoveAPIKeyIDs(ids...)
 	return uu
 }
 
 // RemoveAPIKeys removes "api_keys" edges to APIKey entities.
 func (uu *UserUpdate) RemoveAPIKeys(a ...*APIKey) *UserUpdate {
-	ids := make([]int, len(a))
+	ids := make([]uuid.UUID, len(a))
 	for i := range a {
 		ids[i] = a[i].ID
 	}
@@ -209,7 +210,7 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Columns: []string{user.APIKeysColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -222,7 +223,7 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Columns: []string{user.APIKeysColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -238,7 +239,7 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Columns: []string{user.APIKeysColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -311,14 +312,14 @@ func (uuo *UserUpdateOne) SetNillableIsVerified(b *bool) *UserUpdateOne {
 }
 
 // AddAPIKeyIDs adds the "api_keys" edge to the APIKey entity by IDs.
-func (uuo *UserUpdateOne) AddAPIKeyIDs(ids ...int) *UserUpdateOne {
+func (uuo *UserUpdateOne) AddAPIKeyIDs(ids ...uuid.UUID) *UserUpdateOne {
 	uuo.mutation.AddAPIKeyIDs(ids...)
 	return uuo
 }
 
 // AddAPIKeys adds the "api_keys" edges to the APIKey entity.
 func (uuo *UserUpdateOne) AddAPIKeys(a ...*APIKey) *UserUpdateOne {
-	ids := make([]int, len(a))
+	ids := make([]uuid.UUID, len(a))
 	for i := range a {
 		ids[i] = a[i].ID
 	}
@@ -337,14 +338,14 @@ func (uuo *UserUpdateOne) ClearAPIKeys() *UserUpdateOne {
 }
 
 // RemoveAPIKeyIDs removes the "api_keys" edge to APIKey entities by IDs.
-func (uuo *UserUpdateOne) RemoveAPIKeyIDs(ids ...int) *UserUpdateOne {
+func (uuo *UserUpdateOne) RemoveAPIKeyIDs(ids ...uuid.UUID) *UserUpdateOne {
 	uuo.mutation.RemoveAPIKeyIDs(ids...)
 	return uuo
 }
 
 // RemoveAPIKeys removes "api_keys" edges to APIKey entities.
 func (uuo *UserUpdateOne) RemoveAPIKeys(a ...*APIKey) *UserUpdateOne {
-	ids := make([]int, len(a))
+	ids := make([]uuid.UUID, len(a))
 	for i := range a {
 		ids[i] = a[i].ID
 	}
@@ -476,7 +477,7 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 			Columns: []string{user.APIKeysColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -489,7 +490,7 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 			Columns: []string{user.APIKeysColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -505,7 +506,7 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 			Columns: []string{user.APIKeysColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

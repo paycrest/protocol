@@ -107,8 +107,8 @@ func (akq *APIKeyQuery) FirstX(ctx context.Context) *APIKey {
 
 // FirstID returns the first APIKey ID from the query.
 // Returns a *NotFoundError when no APIKey ID was found.
-func (akq *APIKeyQuery) FirstID(ctx context.Context) (id int, err error) {
-	var ids []int
+func (akq *APIKeyQuery) FirstID(ctx context.Context) (id uuid.UUID, err error) {
+	var ids []uuid.UUID
 	if ids, err = akq.Limit(1).IDs(setContextOp(ctx, akq.ctx, "FirstID")); err != nil {
 		return
 	}
@@ -120,7 +120,7 @@ func (akq *APIKeyQuery) FirstID(ctx context.Context) (id int, err error) {
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (akq *APIKeyQuery) FirstIDX(ctx context.Context) int {
+func (akq *APIKeyQuery) FirstIDX(ctx context.Context) uuid.UUID {
 	id, err := akq.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -158,8 +158,8 @@ func (akq *APIKeyQuery) OnlyX(ctx context.Context) *APIKey {
 // OnlyID is like Only, but returns the only APIKey ID in the query.
 // Returns a *NotSingularError when more than one APIKey ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (akq *APIKeyQuery) OnlyID(ctx context.Context) (id int, err error) {
-	var ids []int
+func (akq *APIKeyQuery) OnlyID(ctx context.Context) (id uuid.UUID, err error) {
+	var ids []uuid.UUID
 	if ids, err = akq.Limit(2).IDs(setContextOp(ctx, akq.ctx, "OnlyID")); err != nil {
 		return
 	}
@@ -175,7 +175,7 @@ func (akq *APIKeyQuery) OnlyID(ctx context.Context) (id int, err error) {
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (akq *APIKeyQuery) OnlyIDX(ctx context.Context) int {
+func (akq *APIKeyQuery) OnlyIDX(ctx context.Context) uuid.UUID {
 	id, err := akq.OnlyID(ctx)
 	if err != nil {
 		panic(err)
@@ -203,7 +203,7 @@ func (akq *APIKeyQuery) AllX(ctx context.Context) []*APIKey {
 }
 
 // IDs executes the query and returns a list of APIKey IDs.
-func (akq *APIKeyQuery) IDs(ctx context.Context) (ids []int, err error) {
+func (akq *APIKeyQuery) IDs(ctx context.Context) (ids []uuid.UUID, err error) {
 	if akq.ctx.Unique == nil && akq.path != nil {
 		akq.Unique(true)
 	}
@@ -215,7 +215,7 @@ func (akq *APIKeyQuery) IDs(ctx context.Context) (ids []int, err error) {
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (akq *APIKeyQuery) IDsX(ctx context.Context) []int {
+func (akq *APIKeyQuery) IDsX(ctx context.Context) []uuid.UUID {
 	ids, err := akq.IDs(ctx)
 	if err != nil {
 		panic(err)
@@ -452,7 +452,7 @@ func (akq *APIKeyQuery) sqlCount(ctx context.Context) (int, error) {
 }
 
 func (akq *APIKeyQuery) querySpec() *sqlgraph.QuerySpec {
-	_spec := sqlgraph.NewQuerySpec(apikey.Table, apikey.Columns, sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeInt))
+	_spec := sqlgraph.NewQuerySpec(apikey.Table, apikey.Columns, sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID))
 	_spec.From = akq.sql
 	if unique := akq.ctx.Unique; unique != nil {
 		_spec.Unique = *unique

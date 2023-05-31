@@ -68,6 +68,20 @@ func (akc *APIKeyCreate) SetNillableCreatedAt(t *time.Time) *APIKeyCreate {
 	return akc
 }
 
+// SetID sets the "id" field.
+func (akc *APIKeyCreate) SetID(u uuid.UUID) *APIKeyCreate {
+	akc.mutation.SetID(u)
+	return akc
+}
+
+// SetNillableID sets the "id" field if the given value is not nil.
+func (akc *APIKeyCreate) SetNillableID(u *uuid.UUID) *APIKeyCreate {
+	if u != nil {
+		akc.SetID(*u)
+	}
+	return akc
+}
+
 // SetUserID sets the "user" edge to the User entity by ID.
 func (akc *APIKeyCreate) SetUserID(id uuid.UUID) *APIKeyCreate {
 	akc.mutation.SetUserID(id)
@@ -130,6 +144,10 @@ func (akc *APIKeyCreate) defaults() {
 		v := apikey.DefaultCreatedAt()
 		akc.mutation.SetCreatedAt(v)
 	}
+	if _, ok := akc.mutation.ID(); !ok {
+		v := apikey.DefaultID()
+		akc.mutation.SetID(v)
+	}
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -173,8 +191,13 @@ func (akc *APIKeyCreate) sqlSave(ctx context.Context) (*APIKey, error) {
 		}
 		return nil, err
 	}
-	id := _spec.ID.Value.(int64)
-	_node.ID = int(id)
+	if _spec.ID.Value != nil {
+		if id, ok := _spec.ID.Value.(*uuid.UUID); ok {
+			_node.ID = *id
+		} else if err := _node.ID.Scan(_spec.ID.Value); err != nil {
+			return nil, err
+		}
+	}
 	akc.mutation.id = &_node.ID
 	akc.mutation.done = true
 	return _node, nil
@@ -183,8 +206,12 @@ func (akc *APIKeyCreate) sqlSave(ctx context.Context) (*APIKey, error) {
 func (akc *APIKeyCreate) createSpec() (*APIKey, *sqlgraph.CreateSpec) {
 	var (
 		_node = &APIKey{config: akc.config}
-		_spec = sqlgraph.NewCreateSpec(apikey.Table, sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeInt))
+		_spec = sqlgraph.NewCreateSpec(apikey.Table, sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID))
 	)
+	if id, ok := akc.mutation.ID(); ok {
+		_node.ID = id
+		_spec.ID.Value = &id
+	}
 	if value, ok := akc.mutation.Name(); ok {
 		_spec.SetField(apikey.FieldName, field.TypeString, value)
 		_node.Name = value
@@ -266,10 +293,6 @@ func (akcb *APIKeyCreateBulk) Save(ctx context.Context) ([]*APIKey, error) {
 					return nil, err
 				}
 				mutation.id = &nodes[i].ID
-				if specs[i].ID.Value != nil {
-					id := specs[i].ID.Value.(int64)
-					nodes[i].ID = int(id)
-				}
 				mutation.done = true
 				return nodes[i], nil
 			})

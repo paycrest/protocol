@@ -103,14 +103,14 @@ func (uc *UserCreate) SetNillableID(u *uuid.UUID) *UserCreate {
 }
 
 // AddAPIKeyIDs adds the "api_keys" edge to the APIKey entity by IDs.
-func (uc *UserCreate) AddAPIKeyIDs(ids ...int) *UserCreate {
+func (uc *UserCreate) AddAPIKeyIDs(ids ...uuid.UUID) *UserCreate {
 	uc.mutation.AddAPIKeyIDs(ids...)
 	return uc
 }
 
 // AddAPIKeys adds the "api_keys" edges to the APIKey entity.
 func (uc *UserCreate) AddAPIKeys(a ...*APIKey) *UserCreate {
-	ids := make([]int, len(a))
+	ids := make([]uuid.UUID, len(a))
 	for i := range a {
 		ids[i] = a[i].ID
 	}
@@ -286,7 +286,7 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Columns: []string{user.APIKeysColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

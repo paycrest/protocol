@@ -27,8 +27,8 @@ type RegisterResponse struct {
 
 // LoginPayload is the payload for the login endpoint
 type LoginPayload struct {
-	Email    string `json:"email" binding:"required"`
-	Password string `json:"password" binding:"required"`
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required,min=6,max=20"`
 }
 
 // LoginResponse is the response for the login endpoint
@@ -49,13 +49,13 @@ type RefreshResponse struct {
 
 // GnerateAPIKeyPayload is the payload for the generate api key endpoint
 type GenerateAPIKeyPayload struct {
-	Name  string `json:"name" binding:"required"`
-	Scope string `json:"type" binding:"required,oneof=sender provider tx_validator"`
+	Name  string       `json:"name" binding:"required"`
+	Scope apikey.Scope `json:"scope" binding:"required,oneof=sender provider tx_validator"`
 }
 
 // GenerateAPIKeyResponse is the response for the generate api key endpoint
 type APIKeyResponse struct {
-	ID        int          `json:"id"`
+	ID        uuid.UUID    `json:"id"`
 	CreatedAt time.Time    `json:"createdAt"`
 	Name      string       `json:"name"`
 	Scope     apikey.Scope `json:"scope"`

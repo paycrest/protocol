@@ -245,7 +245,7 @@ func (c *APIKeyClient) UpdateOne(ak *APIKey) *APIKeyUpdateOne {
 }
 
 // UpdateOneID returns an update builder for the given id.
-func (c *APIKeyClient) UpdateOneID(id int) *APIKeyUpdateOne {
+func (c *APIKeyClient) UpdateOneID(id uuid.UUID) *APIKeyUpdateOne {
 	mutation := newAPIKeyMutation(c.config, OpUpdateOne, withAPIKeyID(id))
 	return &APIKeyUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
@@ -262,7 +262,7 @@ func (c *APIKeyClient) DeleteOne(ak *APIKey) *APIKeyDeleteOne {
 }
 
 // DeleteOneID returns a builder for deleting the given entity by its id.
-func (c *APIKeyClient) DeleteOneID(id int) *APIKeyDeleteOne {
+func (c *APIKeyClient) DeleteOneID(id uuid.UUID) *APIKeyDeleteOne {
 	builder := c.Delete().Where(apikey.ID(id))
 	builder.mutation.id = &id
 	builder.mutation.op = OpDeleteOne
@@ -279,12 +279,12 @@ func (c *APIKeyClient) Query() *APIKeyQuery {
 }
 
 // Get returns a APIKey entity by its id.
-func (c *APIKeyClient) Get(ctx context.Context, id int) (*APIKey, error) {
+func (c *APIKeyClient) Get(ctx context.Context, id uuid.UUID) (*APIKey, error) {
 	return c.Query().Where(apikey.ID(id)).Only(ctx)
 }
 
 // GetX is like Get, but panics if an error occurs.
-func (c *APIKeyClient) GetX(ctx context.Context, id int) *APIKey {
+func (c *APIKeyClient) GetX(ctx context.Context, id uuid.UUID) *APIKey {
 	obj, err := c.Get(ctx, id)
 	if err != nil {
 		panic(err)

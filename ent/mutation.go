@@ -35,7 +35,7 @@ type APIKeyMutation struct {
 	config
 	op            Op
 	typ           string
-	id            *int
+	id            *uuid.UUID
 	name          *string
 	scope         *apikey.Scope
 	pair          *string
@@ -69,7 +69,7 @@ func newAPIKeyMutation(c config, op Op, opts ...apikeyOption) *APIKeyMutation {
 }
 
 // withAPIKeyID sets the ID field of the mutation.
-func withAPIKeyID(id int) apikeyOption {
+func withAPIKeyID(id uuid.UUID) apikeyOption {
 	return func(m *APIKeyMutation) {
 		var (
 			err   error
@@ -119,9 +119,15 @@ func (m APIKeyMutation) Tx() (*Tx, error) {
 	return tx, nil
 }
 
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of APIKey entities.
+func (m *APIKeyMutation) SetID(id uuid.UUID) {
+	m.id = &id
+}
+
 // ID returns the ID value in the mutation. Note that the ID is only available
 // if it was provided to the builder or after it was returned from the database.
-func (m *APIKeyMutation) ID() (id int, exists bool) {
+func (m *APIKeyMutation) ID() (id uuid.UUID, exists bool) {
 	if m.id == nil {
 		return
 	}
@@ -132,12 +138,12 @@ func (m *APIKeyMutation) ID() (id int, exists bool) {
 // That means, if the mutation is applied within a transaction with an isolation level such
 // as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
 // or updated by the mutation.
-func (m *APIKeyMutation) IDs(ctx context.Context) ([]int, error) {
+func (m *APIKeyMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
 	switch {
 	case m.op.Is(OpUpdateOne | OpDeleteOne):
 		id, exists := m.ID()
 		if exists {
-			return []int{id}, nil
+			return []uuid.UUID{id}, nil
 		}
 		fallthrough
 	case m.op.Is(OpUpdate | OpDelete):
@@ -653,8 +659,8 @@ type UserMutation struct {
 	password        *string
 	is_verified     *bool
 	clearedFields   map[string]struct{}
-	api_keys        map[int]struct{}
-	removedapi_keys map[int]struct{}
+	api_keys        map[uuid.UUID]struct{}
+	removedapi_keys map[uuid.UUID]struct{}
 	clearedapi_keys bool
 	done            bool
 	oldValue        func(context.Context) (*User, error)
@@ -1018,9 +1024,9 @@ func (m *UserMutation) ResetIsVerified() {
 }
 
 // AddAPIKeyIDs adds the "api_keys" edge to the APIKey entity by ids.
-func (m *UserMutation) AddAPIKeyIDs(ids ...int) {
+func (m *UserMutation) AddAPIKeyIDs(ids ...uuid.UUID) {
 	if m.api_keys == nil {
-		m.api_keys = make(map[int]struct{})
+		m.api_keys = make(map[uuid.UUID]struct{})
 	}
 	for i := range ids {
 		m.api_keys[ids[i]] = struct{}{}
@@ -1038,9 +1044,9 @@ func (m *UserMutation) APIKeysCleared() bool {
 }
 
 // RemoveAPIKeyIDs removes the "api_keys" edge to the APIKey entity by IDs.
-func (m *UserMutation) RemoveAPIKeyIDs(ids ...int) {
+func (m *UserMutation) RemoveAPIKeyIDs(ids ...uuid.UUID) {
 	if m.removedapi_keys == nil {
-		m.removedapi_keys = make(map[int]struct{})
+		m.removedapi_keys = make(map[uuid.UUID]struct{})
 	}
 	for i := range ids {
 		delete(m.api_keys, ids[i])
@@ -1049,7 +1055,7 @@ func (m *UserMutation) RemoveAPIKeyIDs(ids ...int) {
 }
 
 // RemovedAPIKeys returns the removed IDs of the "api_keys" edge to the APIKey entity.
-func (m *UserMutation) RemovedAPIKeysIDs() (ids []int) {
+func (m *UserMutation) RemovedAPIKeysIDs() (ids []uuid.UUID) {
 	for id := range m.removedapi_keys {
 		ids = append(ids, id)
 	}
@@ -1057,7 +1063,7 @@ func (m *UserMutation) RemovedAPIKeysIDs() (ids []int) {
 }
 
 // APIKeysIDs returns the "api_keys" edge IDs in the mutation.
-func (m *UserMutation) APIKeysIDs() (ids []int) {
+func (m *UserMutation) APIKeysIDs() (ids []uuid.UUID) {
 	for id := range m.api_keys {
 		ids = append(ids, id)
 	}

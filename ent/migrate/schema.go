@@ -10,7 +10,7 @@ import (
 var (
 	// APIKeysColumns holds the columns for the "api_keys" table.
 	APIKeysColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "id", Type: field.TypeUUID},
 		{Name: "name", Type: field.TypeString},
 		{Name: "scope", Type: field.TypeEnum, Enums: []string{"sender", "provider", "tx_validator"}},
 		{Name: "pair", Type: field.TypeString, Unique: true},
@@ -41,7 +41,7 @@ var (
 		{Name: "last_name", Type: field.TypeString, Size: 80},
 		{Name: "email", Type: field.TypeString, Unique: true},
 		{Name: "password", Type: field.TypeString},
-		{Name: "is_verified", Type: field.TypeBool, Default: false},
+		{Name: "is_verified", Type: field.TypeBool, Default: true},
 	}
 	// UsersTable holds the schema information for the "users" table.
 	UsersTable = &schema.Table{
