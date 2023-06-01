@@ -22,7 +22,7 @@ func (APIKey) Fields() []ent.Field {
 		field.String("name"),
 		field.Enum("scope").
 			Values("sender", "provider", "tx_validator"),
-		field.String("pair").
+		field.String("secret").
 			NotEmpty().
 			Unique(),
 		field.Bool("is_active").

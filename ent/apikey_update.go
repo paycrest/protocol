@@ -41,9 +41,9 @@ func (aku *APIKeyUpdate) SetScope(a apikey.Scope) *APIKeyUpdate {
 	return aku
 }
 
-// SetPair sets the "pair" field.
-func (aku *APIKeyUpdate) SetPair(s string) *APIKeyUpdate {
-	aku.mutation.SetPair(s)
+// SetSecret sets the "secret" field.
+func (aku *APIKeyUpdate) SetSecret(s string) *APIKeyUpdate {
+	aku.mutation.SetSecret(s)
 	return aku
 }
 
@@ -125,9 +125,9 @@ func (aku *APIKeyUpdate) check() error {
 			return &ValidationError{Name: "scope", err: fmt.Errorf(`ent: validator failed for field "APIKey.scope": %w`, err)}
 		}
 	}
-	if v, ok := aku.mutation.Pair(); ok {
-		if err := apikey.PairValidator(v); err != nil {
-			return &ValidationError{Name: "pair", err: fmt.Errorf(`ent: validator failed for field "APIKey.pair": %w`, err)}
+	if v, ok := aku.mutation.Secret(); ok {
+		if err := apikey.SecretValidator(v); err != nil {
+			return &ValidationError{Name: "secret", err: fmt.Errorf(`ent: validator failed for field "APIKey.secret": %w`, err)}
 		}
 	}
 	return nil
@@ -151,8 +151,8 @@ func (aku *APIKeyUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if value, ok := aku.mutation.Scope(); ok {
 		_spec.SetField(apikey.FieldScope, field.TypeEnum, value)
 	}
-	if value, ok := aku.mutation.Pair(); ok {
-		_spec.SetField(apikey.FieldPair, field.TypeString, value)
+	if value, ok := aku.mutation.Secret(); ok {
+		_spec.SetField(apikey.FieldSecret, field.TypeString, value)
 	}
 	if value, ok := aku.mutation.IsActive(); ok {
 		_spec.SetField(apikey.FieldIsActive, field.TypeBool, value)
@@ -218,9 +218,9 @@ func (akuo *APIKeyUpdateOne) SetScope(a apikey.Scope) *APIKeyUpdateOne {
 	return akuo
 }
 
-// SetPair sets the "pair" field.
-func (akuo *APIKeyUpdateOne) SetPair(s string) *APIKeyUpdateOne {
-	akuo.mutation.SetPair(s)
+// SetSecret sets the "secret" field.
+func (akuo *APIKeyUpdateOne) SetSecret(s string) *APIKeyUpdateOne {
+	akuo.mutation.SetSecret(s)
 	return akuo
 }
 
@@ -315,9 +315,9 @@ func (akuo *APIKeyUpdateOne) check() error {
 			return &ValidationError{Name: "scope", err: fmt.Errorf(`ent: validator failed for field "APIKey.scope": %w`, err)}
 		}
 	}
-	if v, ok := akuo.mutation.Pair(); ok {
-		if err := apikey.PairValidator(v); err != nil {
-			return &ValidationError{Name: "pair", err: fmt.Errorf(`ent: validator failed for field "APIKey.pair": %w`, err)}
+	if v, ok := akuo.mutation.Secret(); ok {
+		if err := apikey.SecretValidator(v); err != nil {
+			return &ValidationError{Name: "secret", err: fmt.Errorf(`ent: validator failed for field "APIKey.secret": %w`, err)}
 		}
 	}
 	return nil
@@ -358,8 +358,8 @@ func (akuo *APIKeyUpdateOne) sqlSave(ctx context.Context) (_node *APIKey, err er
 	if value, ok := akuo.mutation.Scope(); ok {
 		_spec.SetField(apikey.FieldScope, field.TypeEnum, value)
 	}
-	if value, ok := akuo.mutation.Pair(); ok {
-		_spec.SetField(apikey.FieldPair, field.TypeString, value)
+	if value, ok := akuo.mutation.Secret(); ok {
+		_spec.SetField(apikey.FieldSecret, field.TypeString, value)
 	}
 	if value, ok := akuo.mutation.IsActive(); ok {
 		_spec.SetField(apikey.FieldIsActive, field.TypeBool, value)

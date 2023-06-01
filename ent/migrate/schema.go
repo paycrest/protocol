@@ -13,7 +13,7 @@ var (
 		{Name: "id", Type: field.TypeUUID},
 		{Name: "name", Type: field.TypeString},
 		{Name: "scope", Type: field.TypeEnum, Enums: []string{"sender", "provider", "tx_validator"}},
-		{Name: "pair", Type: field.TypeString, Unique: true},
+		{Name: "secret", Type: field.TypeString, Unique: true},
 		{Name: "is_active", Type: field.TypeBool, Default: true},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "user_api_keys", Type: field.TypeUUID, Nullable: true},

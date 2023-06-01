@@ -38,7 +38,7 @@ type APIKeyMutation struct {
 	id            *uuid.UUID
 	name          *string
 	scope         *apikey.Scope
-	pair          *string
+	secret        *string
 	is_active     *bool
 	created_at    *time.Time
 	clearedFields map[string]struct{}
@@ -225,40 +225,40 @@ func (m *APIKeyMutation) ResetScope() {
 	m.scope = nil
 }
 
-// SetPair sets the "pair" field.
-func (m *APIKeyMutation) SetPair(s string) {
-	m.pair = &s
+// SetSecret sets the "secret" field.
+func (m *APIKeyMutation) SetSecret(s string) {
+	m.secret = &s
 }
 
-// Pair returns the value of the "pair" field in the mutation.
-func (m *APIKeyMutation) Pair() (r string, exists bool) {
-	v := m.pair
+// Secret returns the value of the "secret" field in the mutation.
+func (m *APIKeyMutation) Secret() (r string, exists bool) {
+	v := m.secret
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldPair returns the old "pair" field's value of the APIKey entity.
+// OldSecret returns the old "secret" field's value of the APIKey entity.
 // If the APIKey object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *APIKeyMutation) OldPair(ctx context.Context) (v string, err error) {
+func (m *APIKeyMutation) OldSecret(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldPair is only allowed on UpdateOne operations")
+		return v, errors.New("OldSecret is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldPair requires an ID field in the mutation")
+		return v, errors.New("OldSecret requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldPair: %w", err)
+		return v, fmt.Errorf("querying old value for OldSecret: %w", err)
 	}
-	return oldValue.Pair, nil
+	return oldValue.Secret, nil
 }
 
-// ResetPair resets all changes to the "pair" field.
-func (m *APIKeyMutation) ResetPair() {
-	m.pair = nil
+// ResetSecret resets all changes to the "secret" field.
+func (m *APIKeyMutation) ResetSecret() {
+	m.secret = nil
 }
 
 // SetIsActive sets the "is_active" field.
@@ -413,8 +413,8 @@ func (m *APIKeyMutation) Fields() []string {
 	if m.scope != nil {
 		fields = append(fields, apikey.FieldScope)
 	}
-	if m.pair != nil {
-		fields = append(fields, apikey.FieldPair)
+	if m.secret != nil {
+		fields = append(fields, apikey.FieldSecret)
 	}
 	if m.is_active != nil {
 		fields = append(fields, apikey.FieldIsActive)
@@ -434,8 +434,8 @@ func (m *APIKeyMutation) Field(name string) (ent.Value, bool) {
 		return m.Name()
 	case apikey.FieldScope:
 		return m.Scope()
-	case apikey.FieldPair:
-		return m.Pair()
+	case apikey.FieldSecret:
+		return m.Secret()
 	case apikey.FieldIsActive:
 		return m.IsActive()
 	case apikey.FieldCreatedAt:
@@ -453,8 +453,8 @@ func (m *APIKeyMutation) OldField(ctx context.Context, name string) (ent.Value, 
 		return m.OldName(ctx)
 	case apikey.FieldScope:
 		return m.OldScope(ctx)
-	case apikey.FieldPair:
-		return m.OldPair(ctx)
+	case apikey.FieldSecret:
+		return m.OldSecret(ctx)
 	case apikey.FieldIsActive:
 		return m.OldIsActive(ctx)
 	case apikey.FieldCreatedAt:
@@ -482,12 +482,12 @@ func (m *APIKeyMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetScope(v)
 		return nil
-	case apikey.FieldPair:
+	case apikey.FieldSecret:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetPair(v)
+		m.SetSecret(v)
 		return nil
 	case apikey.FieldIsActive:
 		v, ok := value.(bool)
@@ -558,8 +558,8 @@ func (m *APIKeyMutation) ResetField(name string) error {
 	case apikey.FieldScope:
 		m.ResetScope()
 		return nil
-	case apikey.FieldPair:
-		m.ResetPair()
+	case apikey.FieldSecret:
+		m.ResetSecret()
 		return nil
 	case apikey.FieldIsActive:
 		m.ResetIsActive()

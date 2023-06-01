@@ -59,6 +59,6 @@ type APIKeyResponse struct {
 	CreatedAt time.Time    `json:"createdAt"`
 	Name      string       `json:"name"`
 	Scope     apikey.Scope `json:"scope"`
-	Pair      string       `json:"pair"`
+	Secret    string       `json:"secret"`
 	IsActive  bool         `json:"isActive"`
 }

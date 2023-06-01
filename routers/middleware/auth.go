@@ -3,9 +3,16 @@ package middleware
 import (
 	"net/http"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	db "github.com/paycrest/paycrest-protocol/database"
+	"github.com/paycrest/paycrest-protocol/ent"
+	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	u "github.com/paycrest/paycrest-protocol/utils"
+	"github.com/paycrest/paycrest-protocol/utils/logger"
 	"github.com/paycrest/paycrest-protocol/utils/token"
 )
 
@@ -41,4 +48,132 @@ func JWTMiddleware(c *gin.Context) {
 	c.Set("user_id", userID)
 
 	c.Next()
+}
+
+// HMACVerificationMiddleware is a middleware for HMAC verification.
+// It verifies the HMAC signature in the Authorization header of the request
+// and checks if the nonce is valid and timestamp is not expired.
+func HMACVerificationMiddleware() gin.HandlerFunc {
+	// Set of nonces to track previously used nonces
+	nonces := make(map[string]time.Time)
+	mutex := sync.Mutex{}
+
+	return func(c *gin.Context) {
+		// Get the authorization header value
+		authHeader := c.GetHeader("Authorization")
+		if authHeader == "" {
+			u.APIResponse(c, http.StatusUnauthorized, "error", "Missing Authorization header", nil)
+			c.Abort()
+			return
+		}
+
+		// Parse the authorization header
+		parts := strings.SplitN(authHeader, " ", 2)
+		if len(parts) != 2 || parts[0] != "HMAC" {
+			u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid Authorization header", "Expected: HMAC <public_key>:<signature>")
+			c.Abort()
+			return
+		}
+
+		// Extract the public key and signature
+		parts = strings.SplitN(parts[1], ":", 2)
+		publicKey, signature := parts[0], parts[1]
+		if publicKey == "" || signature == "" {
+			u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid Authorization header format", "Expected: HMAC <public_key>:<signature>")
+			c.Abort()
+			return
+		}
+
+		// Get the request payload
+		payload, err := c.GetRawData()
+		if err != nil {
+			u.APIResponse(c, http.StatusInternalServerError, "error", "Failed to read request payload", err.Error())
+			c.Abort()
+			return
+		}
+
+		// Parse the API key ID string to uuid.UUID
+		apiKeyUUID, err := uuid.Parse(publicKey)
+		if err != nil {
+			logger.Errorf("error parsing API key ID: %v", err)
+			u.APIResponse(c, http.StatusBadRequest, "error", "Invalid API key ID", nil)
+			return
+		}
+
+		// Fetch the API key from the database
+		apiKey, err := db.Client.APIKey.
+			Query().
+			Where(apikey.IDEQ(apiKeyUUID)).
+			Only(c)
+		if err != nil {
+			if ent.IsNotFound(err) {
+				u.APIResponse(c, http.StatusNotFound, "error", "API key not found", nil)
+			} else {
+				logger.Errorf("error: %v", err)
+				u.APIResponse(c, http.StatusInternalServerError, "error", "Failed to fetch API key", err.Error())
+			}
+			return
+		}
+
+		// Verify the HMAC signature
+		valid := token.VerifyHMACSignature(payload, apiKey.Secret, signature)
+		if !valid {
+			u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid HMAC signature", nil)
+			c.Abort()
+			return
+		}
+
+		// Check the nonce
+		nonce := c.GetHeader("X-Nonce")
+		if nonce == "" {
+			u.APIResponse(c, http.StatusUnauthorized, "error", "Missing X-Nonce header", nil)
+			c.Abort()
+			return
+		}
+
+		// Check if the nonce has been used before
+		mutex.Lock()
+		if _, exists := nonces[nonce]; exists {
+			mutex.Unlock()
+			u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid nonce", nil)
+			c.Abort()
+			return
+		}
+
+		// Add the nonce to the set of used nonces
+		nonces[nonce] = time.Now()
+		mutex.Unlock()
+
+		// Check the timestamp
+		timestampStr := c.GetHeader("X-Timestamp")
+		if timestampStr == "" {
+			u.APIResponse(c, http.StatusUnauthorized, "error", "Missing X-Timestamp header", nil)
+			c.Abort()
+			return
+		}
+
+		// Parse the timestamp
+		timestamp, err := time.Parse(time.RFC3339, timestampStr)
+		if err != nil {
+			u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid timestamp format", err.Error())
+			c.Abort()
+			return
+		}
+
+		// Set the acceptable time window for the timestamp (e.g., 5 minutes)
+		acceptableWindow := 5 * time.Minute
+
+		// Calculate the time difference between the current time and the provided timestamp
+		timeDiff := time.Since(timestamp)
+
+		// Check if the timestamp is within the acceptable window
+		if timeDiff > acceptableWindow || timeDiff < -acceptableWindow {
+			u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid timestamp", nil)
+			c.Abort()
+			return
+		}
+
+		// Continue to the next middleware
+		c.Next()
+	}
 }

@@ -17,10 +17,10 @@ import (
 func init() {
 	apikeyFields := schema.APIKey{}.Fields()
 	_ = apikeyFields
-	// apikeyDescPair is the schema descriptor for pair field.
-	apikeyDescPair := apikeyFields[3].Descriptor()
-	// apikey.PairValidator is a validator for the "pair" field. It is called by the builders before save.
-	apikey.PairValidator = apikeyDescPair.Validators[0].(func(string) error)
+	// apikeyDescSecret is the schema descriptor for secret field.
+	apikeyDescSecret := apikeyFields[3].Descriptor()
+	// apikey.SecretValidator is a validator for the "secret" field. It is called by the builders before save.
+	apikey.SecretValidator = apikeyDescSecret.Validators[0].(func(string) error)
 	// apikeyDescIsActive is the schema descriptor for is_active field.
 	apikeyDescIsActive := apikeyFields[4].Descriptor()
 	// apikey.DefaultIsActive holds the default value on creation for the is_active field.

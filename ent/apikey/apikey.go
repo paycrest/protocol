@@ -20,8 +20,8 @@ const (
 	FieldName = "name"
 	// FieldScope holds the string denoting the scope field in the database.
 	FieldScope = "scope"
-	// FieldPair holds the string denoting the pair field in the database.
-	FieldPair = "pair"
+	// FieldSecret holds the string denoting the secret field in the database.
+	FieldSecret = "secret"
 	// FieldIsActive holds the string denoting the is_active field in the database.
 	FieldIsActive = "is_active"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
@@ -44,7 +44,7 @@ var Columns = []string{
 	FieldID,
 	FieldName,
 	FieldScope,
-	FieldPair,
+	FieldSecret,
 	FieldIsActive,
 	FieldCreatedAt,
 }
@@ -71,8 +71,8 @@ func ValidColumn(column string) bool {
 }
 
 var (
-	// PairValidator is a validator for the "pair" field. It is called by the builders before save.
-	PairValidator func(string) error
+	// SecretValidator is a validator for the "secret" field. It is called by the builders before save.
+	SecretValidator func(string) error
 	// DefaultIsActive holds the default value on creation for the "is_active" field.
 	DefaultIsActive bool
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
@@ -123,9 +123,9 @@ func ByScope(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldScope, opts...).ToFunc()
 }
 
-// ByPair orders the results by the pair field.
-func ByPair(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldPair, opts...).ToFunc()
+// BySecret orders the results by the secret field.
+func BySecret(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSecret, opts...).ToFunc()
 }
 
 // ByIsActive orders the results by the is_active field.

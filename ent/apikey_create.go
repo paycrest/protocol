@@ -34,9 +34,9 @@ func (akc *APIKeyCreate) SetScope(a apikey.Scope) *APIKeyCreate {
 	return akc
 }
 
-// SetPair sets the "pair" field.
-func (akc *APIKeyCreate) SetPair(s string) *APIKeyCreate {
-	akc.mutation.SetPair(s)
+// SetSecret sets the "secret" field.
+func (akc *APIKeyCreate) SetSecret(s string) *APIKeyCreate {
+	akc.mutation.SetSecret(s)
 	return akc
 }
 
@@ -163,12 +163,12 @@ func (akc *APIKeyCreate) check() error {
 			return &ValidationError{Name: "scope", err: fmt.Errorf(`ent: validator failed for field "APIKey.scope": %w`, err)}
 		}
 	}
-	if _, ok := akc.mutation.Pair(); !ok {
-		return &ValidationError{Name: "pair", err: errors.New(`ent: missing required field "APIKey.pair"`)}
+	if _, ok := akc.mutation.Secret(); !ok {
+		return &ValidationError{Name: "secret", err: errors.New(`ent: missing required field "APIKey.secret"`)}
 	}
-	if v, ok := akc.mutation.Pair(); ok {
-		if err := apikey.PairValidator(v); err != nil {
-			return &ValidationError{Name: "pair", err: fmt.Errorf(`ent: validator failed for field "APIKey.pair": %w`, err)}
+	if v, ok := akc.mutation.Secret(); ok {
+		if err := apikey.SecretValidator(v); err != nil {
+			return &ValidationError{Name: "secret", err: fmt.Errorf(`ent: validator failed for field "APIKey.secret": %w`, err)}
 		}
 	}
 	if _, ok := akc.mutation.IsActive(); !ok {
@@ -220,9 +220,9 @@ func (akc *APIKeyCreate) createSpec() (*APIKey, *sqlgraph.CreateSpec) {
 		_spec.SetField(apikey.FieldScope, field.TypeEnum, value)
 		_node.Scope = value
 	}
-	if value, ok := akc.mutation.Pair(); ok {
-		_spec.SetField(apikey.FieldPair, field.TypeString, value)
-		_node.Pair = value
+	if value, ok := akc.mutation.Secret(); ok {
+		_spec.SetField(apikey.FieldSecret, field.TypeString, value)
+		_node.Secret = value
 	}
 	if value, ok := akc.mutation.IsActive(); ok {
 		_spec.SetField(apikey.FieldIsActive, field.TypeBool, value)
