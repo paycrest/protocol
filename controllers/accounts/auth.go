@@ -179,31 +179,31 @@ func (ctrl *AuthController) GenerateAPIKey(ctx *gin.Context) {
 		return
 	}
 
-	// Generate a new API key pair
-	publicKey, secretKey, err := token.GenerateHMACKeys()
+	// Generate a new secret key
+	secretKey, err := token.GeneratePrivateKey()
 	if err != nil {
 		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to generate API key", err.Error())
 		return
 	}
 
-	// Encrypt the key pair
-	pair, err := crypto.Encrypt([]byte(publicKey + "::" + secretKey))
+	// Encrypt the secret key
+	encryptedSecret, err := crypto.Encrypt([]byte(secretKey))
 	if err != nil {
 		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to encrypt API Key", err.Error())
 		return
 	}
 
-	// Encode the encrypted key pair to base64
-	encodedPair := base64.StdEncoding.EncodeToString(pair)
+	// Encode the encrypted secret to base64
+	encodedSecret := base64.StdEncoding.EncodeToString(encryptedSecret)
 
 	// Create a new APIKey entity
 	apiKey, err := db.Client.APIKey.
 		Create().
 		SetName(payload.Name).
 		SetScope(payload.Scope).
-		SetPair(encodedPair).
+		SetSecret(encodedSecret).
 		SetUser(user).
 		Save(ctx)
 	if err != nil {
@@ -217,7 +217,7 @@ func (ctrl *AuthController) GenerateAPIKey(ctx *gin.Context) {
 		ID:        apiKey.ID,
 		Name:      apiKey.Name,
 		Scope:     apiKey.Scope,
-		Pair:      publicKey + "::" + secretKey,
+		Secret:    secretKey,
 		IsActive:  apiKey.IsActive,
 		CreatedAt: apiKey.CreatedAt,
 	})
@@ -251,16 +251,16 @@ func (ctrl *AuthController) ListAPIKeys(ctx *gin.Context) {
 	// Create APIKeyResponse objects without the Pair field
 	apiKeyResponses := make([]APIKeyResponse, len(apiKeys))
 	for i, apiKey := range apiKeys {
-		// Decode the stored key pair to bytes
-		decodedPair, err := base64.StdEncoding.DecodeString(apiKey.Pair)
+		// Decode the stored secret key to bytes
+		decodedSecret, err := base64.StdEncoding.DecodeString(apiKey.Secret)
 		if err != nil {
 			logger.Errorf("error: %v", err)
 			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to decode API key", err.Error())
 			return
 		}
 
-		// Decrypt the key pair
-		decryptedPair, err := crypto.Decrypt(decodedPair)
+		// Decrypt the decoded secret
+		decryptedSecret, err := crypto.Decrypt(decodedSecret)
 		if err != nil {
 			logger.Errorf("error: %v", err)
 			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to decrypt API key", err.Error())
@@ -271,7 +271,7 @@ func (ctrl *AuthController) ListAPIKeys(ctx *gin.Context) {
 			CreatedAt: apiKey.CreatedAt,
 			Name:      apiKey.Name,
 			Scope:     apiKey.Scope,
-			Pair:      string(decryptedPair),
+			Secret:    string(decryptedSecret),
 			IsActive:  apiKey.IsActive,
 		}
 	}

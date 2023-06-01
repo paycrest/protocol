@@ -23,8 +23,8 @@ type APIKey struct {
 	Name string `json:"name,omitempty"`
 	// Scope holds the value of the "scope" field.
 	Scope apikey.Scope `json:"scope,omitempty"`
-	// Pair holds the value of the "pair" field.
-	Pair string `json:"pair,omitempty"`
+	// Secret holds the value of the "secret" field.
+	Secret string `json:"secret,omitempty"`
 	// IsActive holds the value of the "is_active" field.
 	IsActive bool `json:"is_active,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
@@ -65,7 +65,7 @@ func (*APIKey) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case apikey.FieldIsActive:
 			values[i] = new(sql.NullBool)
-		case apikey.FieldName, apikey.FieldScope, apikey.FieldPair:
+		case apikey.FieldName, apikey.FieldScope, apikey.FieldSecret:
 			values[i] = new(sql.NullString)
 		case apikey.FieldCreatedAt:
 			values[i] = new(sql.NullTime)
@@ -106,11 +106,11 @@ func (ak *APIKey) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				ak.Scope = apikey.Scope(value.String)
 			}
-		case apikey.FieldPair:
+		case apikey.FieldSecret:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field pair", values[i])
+				return fmt.Errorf("unexpected type %T for field secret", values[i])
 			} else if value.Valid {
-				ak.Pair = value.String
+				ak.Secret = value.String
 			}
 		case apikey.FieldIsActive:
 			if value, ok := values[i].(*sql.NullBool); !ok {
@@ -178,8 +178,8 @@ func (ak *APIKey) String() string {
 	builder.WriteString("scope=")
 	builder.WriteString(fmt.Sprintf("%v", ak.Scope))
 	builder.WriteString(", ")
-	builder.WriteString("pair=")
-	builder.WriteString(ak.Pair)
+	builder.WriteString("secret=")
+	builder.WriteString(ak.Secret)
 	builder.WriteString(", ")
 	builder.WriteString("is_active=")
 	builder.WriteString(fmt.Sprintf("%v", ak.IsActive))

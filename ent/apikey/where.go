@@ -61,9 +61,9 @@ func Name(v string) predicate.APIKey {
 	return predicate.APIKey(sql.FieldEQ(FieldName, v))
 }
 
-// Pair applies equality check predicate on the "pair" field. It's identical to PairEQ.
-func Pair(v string) predicate.APIKey {
-	return predicate.APIKey(sql.FieldEQ(FieldPair, v))
+// Secret applies equality check predicate on the "secret" field. It's identical to SecretEQ.
+func Secret(v string) predicate.APIKey {
+	return predicate.APIKey(sql.FieldEQ(FieldSecret, v))
 }
 
 // IsActive applies equality check predicate on the "is_active" field. It's identical to IsActiveEQ.
@@ -161,69 +161,69 @@ func ScopeNotIn(vs ...Scope) predicate.APIKey {
 	return predicate.APIKey(sql.FieldNotIn(FieldScope, vs...))
 }
 
-// PairEQ applies the EQ predicate on the "pair" field.
-func PairEQ(v string) predicate.APIKey {
-	return predicate.APIKey(sql.FieldEQ(FieldPair, v))
+// SecretEQ applies the EQ predicate on the "secret" field.
+func SecretEQ(v string) predicate.APIKey {
+	return predicate.APIKey(sql.FieldEQ(FieldSecret, v))
 }
 
-// PairNEQ applies the NEQ predicate on the "pair" field.
-func PairNEQ(v string) predicate.APIKey {
-	return predicate.APIKey(sql.FieldNEQ(FieldPair, v))
+// SecretNEQ applies the NEQ predicate on the "secret" field.
+func SecretNEQ(v string) predicate.APIKey {
+	return predicate.APIKey(sql.FieldNEQ(FieldSecret, v))
 }
 
-// PairIn applies the In predicate on the "pair" field.
-func PairIn(vs ...string) predicate.APIKey {
-	return predicate.APIKey(sql.FieldIn(FieldPair, vs...))
+// SecretIn applies the In predicate on the "secret" field.
+func SecretIn(vs ...string) predicate.APIKey {
+	return predicate.APIKey(sql.FieldIn(FieldSecret, vs...))
 }
 
-// PairNotIn applies the NotIn predicate on the "pair" field.
-func PairNotIn(vs ...string) predicate.APIKey {
-	return predicate.APIKey(sql.FieldNotIn(FieldPair, vs...))
+// SecretNotIn applies the NotIn predicate on the "secret" field.
+func SecretNotIn(vs ...string) predicate.APIKey {
+	return predicate.APIKey(sql.FieldNotIn(FieldSecret, vs...))
 }
 
-// PairGT applies the GT predicate on the "pair" field.
-func PairGT(v string) predicate.APIKey {
-	return predicate.APIKey(sql.FieldGT(FieldPair, v))
+// SecretGT applies the GT predicate on the "secret" field.
+func SecretGT(v string) predicate.APIKey {
+	return predicate.APIKey(sql.FieldGT(FieldSecret, v))
 }
 
-// PairGTE applies the GTE predicate on the "pair" field.
-func PairGTE(v string) predicate.APIKey {
-	return predicate.APIKey(sql.FieldGTE(FieldPair, v))
+// SecretGTE applies the GTE predicate on the "secret" field.
+func SecretGTE(v string) predicate.APIKey {
+	return predicate.APIKey(sql.FieldGTE(FieldSecret, v))
 }
 
-// PairLT applies the LT predicate on the "pair" field.
-func PairLT(v string) predicate.APIKey {
-	return predicate.APIKey(sql.FieldLT(FieldPair, v))
+// SecretLT applies the LT predicate on the "secret" field.
+func SecretLT(v string) predicate.APIKey {
+	return predicate.APIKey(sql.FieldLT(FieldSecret, v))
 }
 
-// PairLTE applies the LTE predicate on the "pair" field.
-func PairLTE(v string) predicate.APIKey {
-	return predicate.APIKey(sql.FieldLTE(FieldPair, v))
+// SecretLTE applies the LTE predicate on the "secret" field.
+func SecretLTE(v string) predicate.APIKey {
+	return predicate.APIKey(sql.FieldLTE(FieldSecret, v))
 }
 
-// PairContains applies the Contains predicate on the "pair" field.
-func PairContains(v string) predicate.APIKey {
-	return predicate.APIKey(sql.FieldContains(FieldPair, v))
+// SecretContains applies the Contains predicate on the "secret" field.
+func SecretContains(v string) predicate.APIKey {
+	return predicate.APIKey(sql.FieldContains(FieldSecret, v))
 }
 
-// PairHasPrefix applies the HasPrefix predicate on the "pair" field.
-func PairHasPrefix(v string) predicate.APIKey {
-	return predicate.APIKey(sql.FieldHasPrefix(FieldPair, v))
+// SecretHasPrefix applies the HasPrefix predicate on the "secret" field.
+func SecretHasPrefix(v string) predicate.APIKey {
+	return predicate.APIKey(sql.FieldHasPrefix(FieldSecret, v))
 }
 
-// PairHasSuffix applies the HasSuffix predicate on the "pair" field.
-func PairHasSuffix(v string) predicate.APIKey {
-	return predicate.APIKey(sql.FieldHasSuffix(FieldPair, v))
+// SecretHasSuffix applies the HasSuffix predicate on the "secret" field.
+func SecretHasSuffix(v string) predicate.APIKey {
+	return predicate.APIKey(sql.FieldHasSuffix(FieldSecret, v))
 }
 
-// PairEqualFold applies the EqualFold predicate on the "pair" field.
-func PairEqualFold(v string) predicate.APIKey {
-	return predicate.APIKey(sql.FieldEqualFold(FieldPair, v))
+// SecretEqualFold applies the EqualFold predicate on the "secret" field.
+func SecretEqualFold(v string) predicate.APIKey {
+	return predicate.APIKey(sql.FieldEqualFold(FieldSecret, v))
 }
 
-// PairContainsFold applies the ContainsFold predicate on the "pair" field.
-func PairContainsFold(v string) predicate.APIKey {
-	return predicate.APIKey(sql.FieldContainsFold(FieldPair, v))
+// SecretContainsFold applies the ContainsFold predicate on the "secret" field.
+func SecretContainsFold(v string) predicate.APIKey {
+	return predicate.APIKey(sql.FieldContainsFold(FieldSecret, v))
 }
 
 // IsActiveEQ applies the EQ predicate on the "is_active" field.
