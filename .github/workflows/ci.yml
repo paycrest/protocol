@@ -42,7 +42,7 @@ jobs:
           github_token: "${{ secrets.TOKEN_GH }}"
 
       - name: Deploy to Koyeb
-        run: koyeb app init paycrest-protocol \
+        run: koyeb apps init paycrest-protocol \
              --git github.com/paycrest/paycrest-protocol \
              --git-branch main \
              --ports 8080:http \
