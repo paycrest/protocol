@@ -33,11 +33,11 @@ jobs:
       - name: Build
         run: go build -o myapp
 
-      - name: Run tests with coverage
-        run: go test -coverprofile=coverage.out ./...
+      - name: Install and configure the Koyeb CLI
+        uses: koyeb-community/install-koyeb-cli@v2
+        with:
+          api_token: "${{ secrets.KOYEB_API_TOKEN }}"
+          github_token: "${{ secrets.TOKEN_GH }}"
 
       - name: Deploy to Koyeb
-        uses: koyeb/deploy-github-action@v1
-        with:
-          token: ${{ secrets.KOYEB_API_TOKEN }}
-          image: myimage:latest
+        run: koyeb service redeploy paycrest-protocol/paycrest-protocol

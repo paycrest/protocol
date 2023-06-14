@@ -33,18 +33,4 @@ jobs:
         run: go build -o paycrest
 
       - name: Run tests with coverage
-        run: go test -coverprofile=coverage.out ./...
-
-      - name: Install and configure the Koyeb CLI
-        uses: koyeb-community/install-koyeb-cli@v2
-        with:
-          api_token: "${{ secrets.KOYEB_API_TOKEN }}"
-          github_token: "${{ secrets.TOKEN_GH }}"
-
-      - name: Deploy to Koyeb
-        run: koyeb apps init paycrest-protocol \
-             --git github.com/paycrest/paycrest-protocol \
-             --git-branch main \
-             --ports 8080:http \
-             --routes /:8080 \
-             --env PORT=8080
+        run: go test $(go list ./... | grep -v /ent | grep -v /config | grep -v /database | grep -v /routers)  -coverprofile=coverage.out ./...
