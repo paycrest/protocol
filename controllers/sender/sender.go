@@ -1,9 +1,10 @@
-package controllers
+package sender
 
 import (
 	"net/http"
 
 	u "github.com/paycrest/paycrest-protocol/utils"
+	"github.com/paycrest/paycrest-protocol/utils/logger"
 
 	"github.com/gin-gonic/gin"
 )
@@ -13,7 +14,15 @@ type SenderController struct{}
 
 // CreateOrder controller creates an order
 func (ctrl *SenderController) CreateOrder(ctx *gin.Context) {
-	u.APIResponse(ctx, http.StatusOK, "success", "OK", nil)
+	var payload interface{}
+
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusBadRequest, "error",
+			"Failed to validate payload", u.GetErrorData(err))
+		return
+	}
+	u.APIResponse(ctx, http.StatusOK, "success", "OK", &payload)
 }
 
 // GetOrderByID controller fetches an order by ID

@@ -5,6 +5,8 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -95,11 +97,19 @@ func GeneratePrivateKey() (string, error) {
 
 // VerifyHMACSignature verifies the HMAC signature for the given payload using the private key
 // and returns true if the signature is valid.
-func VerifyHMACSignature(payload []byte, privateKey string, signature string) bool {
-	key := []byte(privateKey)
-	h := hmac.New(sha256.New, key)
-	h.Write(payload)
-	expectedSignature := h.Sum(nil)
+func VerifyHMACSignature(payload map[string]interface{}, privateKey string, signature string) bool {
+	expectedSignature := []byte(GenerateHMACSignature(payload, privateKey))
 	computedSignature := []byte(signature)
 	return hmac.Equal(expectedSignature, computedSignature)
+}
+
+// GenerateHMACSignature generates the HMAC signature for the given payload using the private key.
+// The signature is returned as a hex-encoded string.
+func GenerateHMACSignature(payload map[string]interface{}, privateKey string) string {
+	key := []byte(privateKey)
+	h := hmac.New(sha256.New, key)
+	payloadBytes, _ := json.Marshal(payload)
+
+	h.Write(payloadBytes)
+	return hex.EncodeToString(h.Sum(nil))
 }

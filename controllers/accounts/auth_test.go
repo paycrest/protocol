@@ -1,17 +1,22 @@
 package accounts
 
 import (
+	"context"
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"regexp"
 	"testing"
+	"time"
 
+	"github.com/google/uuid"
 	_ "github.com/mattn/go-sqlite3"
 	db "github.com/paycrest/paycrest-protocol/database"
 	"github.com/paycrest/paycrest-protocol/routers/middleware"
 
 	"github.com/gin-gonic/gin"
 	"github.com/paycrest/paycrest-protocol/ent/enttest"
+	"github.com/paycrest/paycrest-protocol/ent/user"
 	"github.com/paycrest/paycrest-protocol/utils"
 	"github.com/paycrest/paycrest-protocol/utils/test"
 	"github.com/paycrest/paycrest-protocol/utils/token"
@@ -31,6 +36,9 @@ func TestAuth(t *testing.T) {
 	router.POST("/register", ctrl.Register)
 	router.POST("/login", ctrl.Login)
 	router.POST("/refresh", middleware.JWTMiddleware, ctrl.RefreshJWT)
+	router.POST("/api-keys", middleware.JWTMiddleware, ctrl.GenerateAPIKey)
+	router.GET("/api-keys", middleware.JWTMiddleware, ctrl.ListAPIKeys)
+	router.DELETE("/api-keys/:id", middleware.JWTMiddleware, ctrl.DeleteAPIKey)
 
 	var userID string
 
@@ -69,8 +77,8 @@ func TestAuth(t *testing.T) {
 			}
 			userID = data["id"].(string)
 			assert.Equal(t, payload.Email, data["email"].(string))
-			assert.Equal(t, payload.FirstName, data["first_name"].(string))
-			assert.Equal(t, payload.LastName, data["last_name"].(string))
+			assert.Equal(t, payload.FirstName, data["firstName"].(string))
+			assert.Equal(t, payload.LastName, data["lastName"].(string))
 		})
 
 		t.Run("with existing user", func(t *testing.T) {
@@ -154,10 +162,10 @@ func TestAuth(t *testing.T) {
 			assert.NotNil(t, data, "response.Data is nil")
 
 			// Assert the response data
-			assert.Contains(t, data, "access_token")
-			assert.NotEmpty(t, data["access_token"].(string))
-			assert.Contains(t, data, "refresh_token")
-			assert.NotEmpty(t, data["refresh_token"].(string))
+			assert.Contains(t, data, "accessToken")
+			assert.NotEmpty(t, data["accessToken"].(string))
+			assert.Contains(t, data, "refreshToken")
+			assert.NotEmpty(t, data["refreshToken"].(string))
 		})
 
 		t.Run("with invalid credentials", func(t *testing.T) {
@@ -206,9 +214,9 @@ func TestAuth(t *testing.T) {
 			assert.NotNil(t, data, "response.Data is nil")
 
 			// Assert the response data
-			assert.Contains(t, data, "access_token")
-			assert.NotEmpty(t, data["access_token"].(string))
-			assert.NotContains(t, data, "refresh_token")
+			assert.Contains(t, data, "accessToken")
+			assert.NotEmpty(t, data["accessToken"].(string))
+			assert.NotContains(t, data, "refreshToken")
 		})
 
 		t.Run("with an invalid refresh token", func(t *testing.T) {
@@ -232,6 +240,155 @@ func TestAuth(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Equal(t, "Invalid or expired refresh token", response.Message)
 			assert.NotNil(t, response.Data, "response.Data is nil")
+		})
+	})
+
+	t.Run("GenerateAPIKey", func(t *testing.T) {
+		accessToken, _ := token.GenerateAccessJWT(userID)
+
+		t.Run("with a valid scope", func(t *testing.T) {
+			payload := GenerateAPIKeyPayload{
+				Name:  "Test API Key",
+				Scope: "sender",
+			}
+
+			res, err := test.PerformRequest(t, "POST", "/api-keys", payload, &accessToken, router)
+			assert.NoError(t, err)
+
+			// Assert the response body
+			assert.Equal(t, http.StatusCreated, res.Code)
+
+			var response utils.Response
+			err = json.Unmarshal(res.Body.Bytes(), &response)
+			assert.NoError(t, err)
+			assert.Equal(t, "Successfully generated API key", response.Message)
+			data, ok := response.Data.(map[string]interface{})
+			assert.True(t, ok, "response.Data is not of type map[string]interface{}")
+			assert.NotNil(t, data, "response.Data is nil")
+
+			assert.Equal(t, "sender", data["scope"])
+			assert.True(t, data["isActive"].(bool))
+
+			// Assert that id is a valid UUID
+			assert.Contains(t, data, "id")
+			id, err := uuid.Parse(data["id"].(string))
+			assert.NoError(t, err)
+			_ = id
+
+			// Assert that the secret is a base64 encoded string
+			secret, err := base64.URLEncoding.DecodeString(data["secret"].(string))
+			assert.NoError(t, err)
+			_ = secret
+		})
+
+		t.Run("with an invalid scope", func(t *testing.T) {
+			payload := GenerateAPIKeyPayload{
+				Name:  "Test API Key",
+				Scope: "bad-scope",
+			}
+
+			res, err := test.PerformRequest(t, "POST", "/api-keys", payload, &accessToken, router)
+			assert.NoError(t, err)
+
+			// Assert the response body
+			assert.Equal(t, http.StatusBadRequest, res.Code)
+
+			var response utils.Response
+			err = json.Unmarshal(res.Body.Bytes(), &response)
+			assert.NoError(t, err)
+			assert.Equal(t, "Invalid request body", response.Message)
+			assert.Equal(t, "error", response.Status)
+			data, ok := response.Data.([]interface{})
+			assert.True(t, ok, "response.Data is not of type map[string]interface{}")
+			assert.NotNil(t, data, "response.Data is nil")
+
+			// Assert the response errors in data
+			assert.Len(t, data, 1)
+			errorMap, ok := data[0].(map[string]interface{})
+			assert.True(t, ok, "error is not of type map[string]interface{}")
+			assert.NotNil(t, errorMap, "error is nil")
+			assert.Contains(t, errorMap, "field")
+			assert.Equal(t, "Scope", errorMap["field"].(string))
+			assert.Contains(t, errorMap, "message")
+			assert.Equal(t, "Must be one of sender provider tx_validator", errorMap["message"].(string))
+		})
+	})
+
+	t.Run("ListAPIKeys", func(t *testing.T) {
+		accessToken, _ := token.GenerateAccessJWT(userID)
+		res, err := test.PerformRequest(t, "GET", "/api-keys", nil, &accessToken, router)
+		assert.NoError(t, err)
+
+		// Assert the response body
+		assert.Equal(t, http.StatusOK, res.Code)
+
+		var response utils.Response
+		err = json.Unmarshal(res.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.Equal(t, "Successfully retrieved API keys", response.Message)
+		assert.Equal(t, "success", response.Status)
+		data, ok := response.Data.([]interface{})
+		assert.True(t, ok, "response.Data is not of type []interface{}")
+		assert.NotNil(t, data, "response.Data is nil")
+
+		assert.Len(t, data, 1)
+		dataMap, ok := data[0].(map[string]interface{})
+		assert.True(t, ok, "error is not of type map[string]interface{}")
+		assert.Contains(t, dataMap, "secret")
+		assert.Contains(t, dataMap, "id")
+	})
+
+	t.Run("DeleteAPIKey", func(t *testing.T) {
+		accessToken, _ := token.GenerateAccessJWT(userID)
+
+		t.Run("with a valid API key", func(t *testing.T) {
+
+			userUUID, err := uuid.Parse(userID)
+			assert.NoError(t, err)
+
+			// Create a context with a timeout of 5 seconds
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+
+			// BEFORE: Query the user's API keys
+			apiKeys, err := client.User.
+				Query().
+				Where(user.IDEQ(userUUID)).
+				QueryAPIKeys().
+				All(ctx)
+
+			assert.NoError(t, err)
+			assert.Len(t, apiKeys, 1)
+
+			res, err := test.PerformRequest(t, "DELETE", "/api-keys/"+apiKeys[0].ID.String(), nil, &accessToken, router)
+			assert.NoError(t, err)
+
+			assert.Equal(t, http.StatusNoContent, res.Code)
+
+			// AFTER: Query the user's API keys again
+			apiKeysAgain, err := client.User.
+				Query().
+				Where(user.IDEQ(userUUID)).
+				QueryAPIKeys().
+				All(ctx)
+
+			assert.NoError(t, err)
+			assert.Len(t, apiKeysAgain, 0)
+		})
+
+		t.Run("with an invalid API key", func(t *testing.T) {
+
+			res, err := test.PerformRequest(t, "DELETE", "/api-keys/invalid-api-key", nil, &accessToken, router)
+			assert.NoError(t, err)
+
+			// Assert the response body
+			assert.Equal(t, http.StatusBadRequest, res.Code)
+
+			var response utils.Response
+			err = json.Unmarshal(res.Body.Bytes(), &response)
+			assert.NoError(t, err)
+			assert.Equal(t, "error", response.Status)
+			assert.Equal(t, "Invalid API key ID", response.Message)
 		})
 	})
 }
