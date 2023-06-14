@@ -5,7 +5,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-// Server configuration type
+// ServerConfiguration type defines the server configurations
 type ServerConfiguration struct {
 	Debug        bool
 	Host         string
@@ -14,7 +14,7 @@ type ServerConfiguration struct {
 	AllowedHosts string
 }
 
-// Server configuration
+// ServerConfig sets the server configuration
 func ServerConfig() *ServerConfiguration {
 	viper.SetDefault("DEBUG", true)
 	viper.SetDefault("SERVER_HOST", "0.0.0.0")

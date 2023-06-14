@@ -13,9 +13,9 @@ import (
 )
 
 var (
-	// Client connection
+	// Client holds the database connection
 	Client *ent.Client
-	// Connection error
+	// Err holds database connection error
 	Err    error
 )
 
