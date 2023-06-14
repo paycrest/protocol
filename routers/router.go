@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// Routes function registers all routes
 func Routes() *gin.Engine {
 	conf := config.ServerConfig()
 

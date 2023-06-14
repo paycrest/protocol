@@ -19,6 +19,7 @@ type TimeMixin struct {
 	mixin.Schema
 }
 
+// Fields of the TimeMixin.
 func (TimeMixin) Fields() []ent.Field {
 	return []ent.Field{
 		field.Time("created_at").

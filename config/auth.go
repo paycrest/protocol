@@ -7,12 +7,14 @@ import (
 	"github.com/spf13/viper"
 )
 
+// AuthConfiguration defines the authentication & authorization settings
 type AuthConfiguration struct {
 	Secret                 string
 	JwtAccessHourLifespan  time.Duration
 	JwtRefreshHourLifespan time.Duration
 }
 
+// AuthConfig sets the authentication & authorization configurations
 func AuthConfig() (config *AuthConfiguration) {
 
 	return &AuthConfiguration{
