@@ -6,6 +6,7 @@ import (
 	"os"
 )
 
+// Configuration type
 type Configuration struct {
 	Server   ServerConfiguration
 	Database DatabaseConfiguration

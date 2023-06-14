@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/viper"
 )
 
+// Database configuration type
 type DatabaseConfiguration struct {
 	Driver   string
 	Dbname   string
@@ -17,6 +18,7 @@ type DatabaseConfiguration struct {
 	LogMode  bool
 }
 
+// Database configuration
 func DBConfiguration() (DSN string) {
 	DbName := viper.GetString("DB_NAME")
 	DbUser := viper.GetString("DB_USER")

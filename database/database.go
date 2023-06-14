@@ -7,13 +7,15 @@ import (
 	"entgo.io/ent/dialect"
 	"github.com/paycrest/paycrest-protocol/ent"
 	"github.com/paycrest/paycrest-protocol/ent/migrate"
-	_ "github.com/paycrest/paycrest-protocol/ent/runtime"
+	_ "github.com/paycrest/paycrest-protocol/ent/runtime" // ent runtime
 
-	_ "github.com/lib/pq"
+	_ "github.com/lib/pq" // postgres driver
 )
 
 var (
+	// Client connection
 	Client *ent.Client
+	// Connection error
 	Err    error
 )
 

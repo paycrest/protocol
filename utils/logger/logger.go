@@ -16,10 +16,12 @@ func init() {
 	logger.SetReportCaller(true)
 }
 
+// SetLogLevel sets the log level for the logger.
 func SetLogLevel(level logrus.Level) {
 	logger.Level = level
 }
 
+// Fields type, used to pass to `WithFields`.
 type Fields logrus.Fields
 
 // Debugf logs a message at level Debug on the standard logger.

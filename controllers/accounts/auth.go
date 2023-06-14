@@ -13,6 +13,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/utils/token"
 )
 
+// AuthController is the controller type for the auth endpoints
 type AuthController struct{}
 
 // Register controller validates the payload and creates a new user.

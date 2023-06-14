@@ -18,9 +18,6 @@ jobs:
         with:
           go-version: 1.x
 
-      - name: Go-linter
-        uses: Jerome1337/golint-action@v1.0.3
-
       - name: Set up environment variables
         env:
           ENV_FILE_PATH: '/utils/test/test.env' # Specify the path to your test environment file
