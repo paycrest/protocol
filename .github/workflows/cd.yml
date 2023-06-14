@@ -1,4 +1,4 @@
-name: Deployment CI/CD Pipeline to Koyeb
+name: Deployment Pipeline to Koyeb
 
 on:
   push:
