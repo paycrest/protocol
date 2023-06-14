@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/paycrest/paycrest-protocol/controllers"
 	"github.com/paycrest/paycrest-protocol/controllers/accounts"
+	"github.com/paycrest/paycrest-protocol/controllers/sender"
 	"github.com/paycrest/paycrest-protocol/routers/middleware"
 	u "github.com/paycrest/paycrest-protocol/utils"
 )
@@ -37,10 +38,12 @@ func authRoutes(route *gin.Engine) {
 }
 
 func senderRoutes(route *gin.Engine) {
-	var ctrl controllers.SenderController
+	var ctrl sender.SenderController
 
 	v1 := route.Group("/v1/sender/")
-	v1.POST("orders/", middleware.HMACVerificationMiddleware, ctrl.CreateOrder)
+	v1.Use(middleware.HMACVerificationMiddleware)
+
+	v1.POST("orders/", ctrl.CreateOrder)
 	v1.GET("orders/:id", ctrl.GetOrderByID)
 	v1.DELETE("orders/:id", ctrl.DeleteOrder)
 }

@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -10,10 +11,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/paycrest/paycrest-protocol/config"
 	db "github.com/paycrest/paycrest-protocol/database"
 	"github.com/paycrest/paycrest-protocol/ent"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	u "github.com/paycrest/paycrest-protocol/utils"
+	"github.com/paycrest/paycrest-protocol/utils/crypto"
 	"github.com/paycrest/paycrest-protocol/utils/logger"
 	"github.com/paycrest/paycrest-protocol/utils/token"
 )
@@ -98,15 +101,17 @@ func HMACVerificationMiddleware(c *gin.Context) {
 	}
 
 	// Get the timestamp from the payload
-	timestamp, ok := payloadData["timestamp"].(int64) // unix timestamp
+	timestamp, ok := payloadData["timestamp"].(float64) // unix timestamp
 	if !ok || timestamp == 0 {
 		u.APIResponse(c, http.StatusUnauthorized, "error", "Missing or invalid timestamp in payload", nil)
 		c.Abort()
 		return
 	}
 
+	var conf = config.AuthConfig()
+
 	// Check if the timestamp is within the acceptable window
-	if (time.Now().Unix() - timestamp) > (5 * 60) {
+	if (time.Now().Unix() - int64(timestamp)) > (conf.HmacTimestampAge * 60) {
 		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid timestamp", nil)
 		c.Abort()
 		return
@@ -137,8 +142,24 @@ func HMACVerificationMiddleware(c *gin.Context) {
 		return
 	}
 
+	// Decode the stored secret key to bytes
+	decodedSecret, err := base64.StdEncoding.DecodeString(apiKey.Secret)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(c, http.StatusInternalServerError, "error", "Failed to decode API key", err.Error())
+		return
+	}
+
+	// Decrypt the decoded secret
+	decryptedSecret, err := crypto.Decrypt(decodedSecret)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(c, http.StatusInternalServerError, "error", "Failed to decrypt API key", err.Error())
+		return
+	}
+
 	// Verify the HMAC signature
-	valid := token.VerifyHMACSignature(payload, apiKey.Secret, signature)
+	valid := token.VerifyHMACSignature(payloadData, string(decryptedSecret), signature)
 	if !valid {
 		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid HMAC signature", nil)
 		c.Abort()

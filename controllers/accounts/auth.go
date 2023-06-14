@@ -213,7 +213,7 @@ func (ctrl *AuthController) GenerateAPIKey(ctx *gin.Context) {
 	}
 
 	// Return the newly generated API key
-	u.APIResponse(ctx, http.StatusOK, "success", "Successfully generated API key", &APIKeyResponse{
+	u.APIResponse(ctx, http.StatusCreated, "success", "Successfully generated API key", &APIKeyResponse{
 		ID:        apiKey.ID,
 		Name:      apiKey.Name,
 		Scope:     apiKey.Scope,
