@@ -38,7 +38,7 @@ jobs:
       - name: Install and configure the Koyeb CLI
         uses: koyeb-community/install-koyeb-cli@v2
         with:
-          api_token: "${{ secrets.KOYEB_TOKEN }}"
+          api_token: "${{ secrets.KOYEB_API_TOKEN }}"
           github_token: "${{ secrets.TOKEN_GH }}"
 
       - name: Deploy to Koyeb
