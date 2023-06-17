@@ -9,11 +9,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// SenderController is a controller type for sender endpoints
-type SenderController struct{}
+// Controller is a controller type for sender endpoints
+type Controller struct{}
 
 // CreateOrder controller creates an order
-func (ctrl *SenderController) CreateOrder(ctx *gin.Context) {
+func (ctrl *Controller) CreateOrder(ctx *gin.Context) {
 	var payload interface{}
 
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
@@ -26,11 +26,11 @@ func (ctrl *SenderController) CreateOrder(ctx *gin.Context) {
 }
 
 // GetOrderByID controller fetches an order by ID
-func (ctrl *SenderController) GetOrderByID(ctx *gin.Context) {
+func (ctrl *Controller) GetOrderByID(ctx *gin.Context) {
 	u.APIResponse(ctx, http.StatusOK, "success", "OK", nil)
 }
 
 // DeleteOrder controller deletes an order
-func (ctrl *SenderController) DeleteOrder(ctx *gin.Context) {
+func (ctrl *Controller) DeleteOrder(ctx *gin.Context) {
 	u.APIResponse(ctx, http.StatusOK, "success", "OK", nil)
 }

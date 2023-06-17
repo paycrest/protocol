@@ -38,7 +38,7 @@ func authRoutes(route *gin.Engine) {
 }
 
 func senderRoutes(route *gin.Engine) {
-	var ctrl sender.SenderController
+	var ctrl sender.Controller
 
 	v1 := route.Group("/v1/sender/")
 	v1.Use(middleware.HMACVerificationMiddleware)

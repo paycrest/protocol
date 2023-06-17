@@ -47,13 +47,13 @@ type RefreshResponse struct {
 	AccessToken string `json:"accessToken"`
 }
 
-// GnerateAPIKeyPayload is the payload for the generate api key endpoint
+// GenerateAPIKeyPayload is the payload for the generate API key endpoint
 type GenerateAPIKeyPayload struct {
 	Name  string       `json:"name" binding:"required"`
 	Scope apikey.Scope `json:"scope" binding:"required,oneof=sender provider tx_validator"`
 }
 
-// GenerateAPIKeyResponse is the response for the generate api key endpoint
+// APIKeyResponse is the response type for an API key
 type APIKeyResponse struct {
 	ID        uuid.UUID    `json:"id"`
 	CreatedAt time.Time    `json:"createdAt"`

@@ -20,6 +20,12 @@ jobs:
       - name: Go-linter
         uses: Jerome1337/golint-action@v1.0.3
 
+      - name: Set up environment variables
+        env:
+          ENV_FILE_PATH: '/utils/test/test.env' # Specify the path to your test environment file
+        run: |
+          echo "ENV_FILE_PATH=$ENV_FILE_PATH" >> $GITHUB_ENV
+
       - name: Install dependencies
         run: go mod download
 
