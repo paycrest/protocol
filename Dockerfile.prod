@@ -1,5 +1,5 @@
 # Start from golang base image
-FROM golang:1.17-alpine as builder
+FROM golang:1.20-alpine as builder
 
 # Install git.
 RUN apk update && apk add --no-cache git
