@@ -30,4 +30,4 @@ jobs:
           api_token: "${{ secrets.KOYEB_API_TOKEN }}"
 
       - name: Deploy to Koyeb
-        run: koyeb service redeploy paycrest-protocol/paycrest-protocol
+        run: koyeb service redeploy protocol/protocol

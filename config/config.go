@@ -1,6 +1,8 @@
 package config
 
 import (
+	"os"
+
 	"github.com/paycrest/paycrest-protocol/utils/logger"
 	"github.com/spf13/viper"
 )
@@ -20,7 +22,12 @@ func SetupConfig() error {
 	viper.AddConfigPath("..")
 	viper.AddConfigPath(".")
 
-	viper.SetConfigName(".env")
+	envFilePath := os.Getenv("ENV_FILE_PATH")
+	if envFilePath == "" {
+		envFilePath = ".env" // Set default value to ".env"
+	}
+
+	viper.SetConfigName(envFilePath)
 	viper.SetConfigType("env")
 
 	viper.AutomaticEnv()
