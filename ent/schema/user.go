@@ -68,7 +68,10 @@ func hashPasswordHook() ent.Hook {
 				if err != nil {
 					return nil, err
 				}
-				m.SetField("password", string(hashedPassword))
+				err = m.SetField("password", string(hashedPassword))
+				if err != nil {
+					return nil, err
+				}
 			}
 			return next.Mutate(ctx, m)
 		})
