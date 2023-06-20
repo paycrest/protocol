@@ -3,6 +3,7 @@ package routers
 import (
 	"github.com/paycrest/paycrest-protocol/config"
 	"github.com/paycrest/paycrest-protocol/routers/middleware"
+	"github.com/paycrest/paycrest-protocol/utils/logger"
 
 	"github.com/gin-gonic/gin"
 )
@@ -19,7 +20,10 @@ func Routes() *gin.Engine {
 	}
 
 	router := gin.New()
-	router.SetTrustedProxies([]string{conf.AllowedHosts})
+	err := router.SetTrustedProxies([]string{conf.AllowedHosts})
+	if err != nil {
+		logger.Fatalf("failed to set trusted proxies")
+	}
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
 	router.Use(middleware.CORSMiddleware())

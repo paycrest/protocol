@@ -21,8 +21,7 @@ var (
 
 // DBConnection create database connection
 func DBConnection(DSN string) error {
-	var client = Client
-
+	// Create an ent.Client for postgresql database.	
 	client, err := ent.Open(dialect.Postgres, DSN)
 	if err != nil {
 		Err = err
