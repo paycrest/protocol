@@ -16,6 +16,10 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
+	"github.com/paycrest/paycrest-protocol/ent/provideravailability"
+	"github.com/paycrest/paycrest-protocol/ent/providerordertoken"
+	"github.com/paycrest/paycrest-protocol/ent/providerordertokenaddress"
+	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 	"github.com/paycrest/paycrest-protocol/ent/user"
 )
 
@@ -26,6 +30,14 @@ type Client struct {
 	Schema *migrate.Schema
 	// APIKey is the client for interacting with the APIKey builders.
 	APIKey *APIKeyClient
+	// ProviderAvailability is the client for interacting with the ProviderAvailability builders.
+	ProviderAvailability *ProviderAvailabilityClient
+	// ProviderOrderToken is the client for interacting with the ProviderOrderToken builders.
+	ProviderOrderToken *ProviderOrderTokenClient
+	// ProviderOrderTokenAddress is the client for interacting with the ProviderOrderTokenAddress builders.
+	ProviderOrderTokenAddress *ProviderOrderTokenAddressClient
+	// ProviderProfile is the client for interacting with the ProviderProfile builders.
+	ProviderProfile *ProviderProfileClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
 }
@@ -42,6 +54,10 @@ func NewClient(opts ...Option) *Client {
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
 	c.APIKey = NewAPIKeyClient(c.config)
+	c.ProviderAvailability = NewProviderAvailabilityClient(c.config)
+	c.ProviderOrderToken = NewProviderOrderTokenClient(c.config)
+	c.ProviderOrderTokenAddress = NewProviderOrderTokenAddressClient(c.config)
+	c.ProviderProfile = NewProviderProfileClient(c.config)
 	c.User = NewUserClient(c.config)
 }
 
@@ -123,10 +139,14 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:    ctx,
-		config: cfg,
-		APIKey: NewAPIKeyClient(cfg),
-		User:   NewUserClient(cfg),
+		ctx:                       ctx,
+		config:                    cfg,
+		APIKey:                    NewAPIKeyClient(cfg),
+		ProviderAvailability:      NewProviderAvailabilityClient(cfg),
+		ProviderOrderToken:        NewProviderOrderTokenClient(cfg),
+		ProviderOrderTokenAddress: NewProviderOrderTokenAddressClient(cfg),
+		ProviderProfile:           NewProviderProfileClient(cfg),
+		User:                      NewUserClient(cfg),
 	}, nil
 }
 
@@ -144,10 +164,14 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:    ctx,
-		config: cfg,
-		APIKey: NewAPIKeyClient(cfg),
-		User:   NewUserClient(cfg),
+		ctx:                       ctx,
+		config:                    cfg,
+		APIKey:                    NewAPIKeyClient(cfg),
+		ProviderAvailability:      NewProviderAvailabilityClient(cfg),
+		ProviderOrderToken:        NewProviderOrderTokenClient(cfg),
+		ProviderOrderTokenAddress: NewProviderOrderTokenAddressClient(cfg),
+		ProviderProfile:           NewProviderProfileClient(cfg),
+		User:                      NewUserClient(cfg),
 	}, nil
 }
 
@@ -176,15 +200,23 @@ func (c *Client) Close() error {
 // Use adds the mutation hooks to all the entity clients.
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
-	c.APIKey.Use(hooks...)
-	c.User.Use(hooks...)
+	for _, n := range []interface{ Use(...Hook) }{
+		c.APIKey, c.ProviderAvailability, c.ProviderOrderToken,
+		c.ProviderOrderTokenAddress, c.ProviderProfile, c.User,
+	} {
+		n.Use(hooks...)
+	}
 }
 
 // Intercept adds the query interceptors to all the entity clients.
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
-	c.APIKey.Intercept(interceptors...)
-	c.User.Intercept(interceptors...)
+	for _, n := range []interface{ Intercept(...Interceptor) }{
+		c.APIKey, c.ProviderAvailability, c.ProviderOrderToken,
+		c.ProviderOrderTokenAddress, c.ProviderProfile, c.User,
+	} {
+		n.Intercept(interceptors...)
+	}
 }
 
 // Mutate implements the ent.Mutator interface.
@@ -192,6 +224,14 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
 	case *APIKeyMutation:
 		return c.APIKey.mutate(ctx, m)
+	case *ProviderAvailabilityMutation:
+		return c.ProviderAvailability.mutate(ctx, m)
+	case *ProviderOrderTokenMutation:
+		return c.ProviderOrderToken.mutate(ctx, m)
+	case *ProviderOrderTokenAddressMutation:
+		return c.ProviderOrderTokenAddress.mutate(ctx, m)
+	case *ProviderProfileMutation:
+		return c.ProviderProfile.mutate(ctx, m)
 	case *UserMutation:
 		return c.User.mutate(ctx, m)
 	default:
@@ -292,15 +332,31 @@ func (c *APIKeyClient) GetX(ctx context.Context, id uuid.UUID) *APIKey {
 	return obj
 }
 
-// QueryUser queries the user edge of a APIKey.
-func (c *APIKeyClient) QueryUser(ak *APIKey) *UserQuery {
+// QueryOwner queries the owner edge of a APIKey.
+func (c *APIKeyClient) QueryOwner(ak *APIKey) *UserQuery {
 	query := (&UserClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := ak.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(apikey.Table, apikey.FieldID, id),
 			sqlgraph.To(user.Table, user.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, apikey.UserTable, apikey.UserColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, apikey.OwnerTable, apikey.OwnerColumn),
+		)
+		fromV = sqlgraph.Neighbors(ak.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryProviderProfile queries the provider_profile edge of a APIKey.
+func (c *APIKeyClient) QueryProviderProfile(ak *APIKey) *ProviderProfileQuery {
+	query := (&ProviderProfileClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := ak.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(apikey.Table, apikey.FieldID, id),
+			sqlgraph.To(providerprofile.Table, providerprofile.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, apikey.ProviderProfileTable, apikey.ProviderProfileColumn),
 		)
 		fromV = sqlgraph.Neighbors(ak.driver.Dialect(), step)
 		return fromV, nil
@@ -330,6 +386,590 @@ func (c *APIKeyClient) mutate(ctx context.Context, m *APIKeyMutation) (Value, er
 		return (&APIKeyDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown APIKey mutation op: %q", m.Op())
+	}
+}
+
+// ProviderAvailabilityClient is a client for the ProviderAvailability schema.
+type ProviderAvailabilityClient struct {
+	config
+}
+
+// NewProviderAvailabilityClient returns a client for the ProviderAvailability from the given config.
+func NewProviderAvailabilityClient(c config) *ProviderAvailabilityClient {
+	return &ProviderAvailabilityClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `provideravailability.Hooks(f(g(h())))`.
+func (c *ProviderAvailabilityClient) Use(hooks ...Hook) {
+	c.hooks.ProviderAvailability = append(c.hooks.ProviderAvailability, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `provideravailability.Intercept(f(g(h())))`.
+func (c *ProviderAvailabilityClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ProviderAvailability = append(c.inters.ProviderAvailability, interceptors...)
+}
+
+// Create returns a builder for creating a ProviderAvailability entity.
+func (c *ProviderAvailabilityClient) Create() *ProviderAvailabilityCreate {
+	mutation := newProviderAvailabilityMutation(c.config, OpCreate)
+	return &ProviderAvailabilityCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ProviderAvailability entities.
+func (c *ProviderAvailabilityClient) CreateBulk(builders ...*ProviderAvailabilityCreate) *ProviderAvailabilityCreateBulk {
+	return &ProviderAvailabilityCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ProviderAvailability.
+func (c *ProviderAvailabilityClient) Update() *ProviderAvailabilityUpdate {
+	mutation := newProviderAvailabilityMutation(c.config, OpUpdate)
+	return &ProviderAvailabilityUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ProviderAvailabilityClient) UpdateOne(pa *ProviderAvailability) *ProviderAvailabilityUpdateOne {
+	mutation := newProviderAvailabilityMutation(c.config, OpUpdateOne, withProviderAvailability(pa))
+	return &ProviderAvailabilityUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ProviderAvailabilityClient) UpdateOneID(id int) *ProviderAvailabilityUpdateOne {
+	mutation := newProviderAvailabilityMutation(c.config, OpUpdateOne, withProviderAvailabilityID(id))
+	return &ProviderAvailabilityUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ProviderAvailability.
+func (c *ProviderAvailabilityClient) Delete() *ProviderAvailabilityDelete {
+	mutation := newProviderAvailabilityMutation(c.config, OpDelete)
+	return &ProviderAvailabilityDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ProviderAvailabilityClient) DeleteOne(pa *ProviderAvailability) *ProviderAvailabilityDeleteOne {
+	return c.DeleteOneID(pa.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ProviderAvailabilityClient) DeleteOneID(id int) *ProviderAvailabilityDeleteOne {
+	builder := c.Delete().Where(provideravailability.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ProviderAvailabilityDeleteOne{builder}
+}
+
+// Query returns a query builder for ProviderAvailability.
+func (c *ProviderAvailabilityClient) Query() *ProviderAvailabilityQuery {
+	return &ProviderAvailabilityQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeProviderAvailability},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ProviderAvailability entity by its id.
+func (c *ProviderAvailabilityClient) Get(ctx context.Context, id int) (*ProviderAvailability, error) {
+	return c.Query().Where(provideravailability.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ProviderAvailabilityClient) GetX(ctx context.Context, id int) *ProviderAvailability {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryProvider queries the provider edge of a ProviderAvailability.
+func (c *ProviderAvailabilityClient) QueryProvider(pa *ProviderAvailability) *ProviderProfileQuery {
+	query := (&ProviderProfileClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := pa.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(provideravailability.Table, provideravailability.FieldID, id),
+			sqlgraph.To(providerprofile.Table, providerprofile.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, provideravailability.ProviderTable, provideravailability.ProviderColumn),
+		)
+		fromV = sqlgraph.Neighbors(pa.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *ProviderAvailabilityClient) Hooks() []Hook {
+	return c.hooks.ProviderAvailability
+}
+
+// Interceptors returns the client interceptors.
+func (c *ProviderAvailabilityClient) Interceptors() []Interceptor {
+	return c.inters.ProviderAvailability
+}
+
+func (c *ProviderAvailabilityClient) mutate(ctx context.Context, m *ProviderAvailabilityMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ProviderAvailabilityCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ProviderAvailabilityUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ProviderAvailabilityUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ProviderAvailabilityDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown ProviderAvailability mutation op: %q", m.Op())
+	}
+}
+
+// ProviderOrderTokenClient is a client for the ProviderOrderToken schema.
+type ProviderOrderTokenClient struct {
+	config
+}
+
+// NewProviderOrderTokenClient returns a client for the ProviderOrderToken from the given config.
+func NewProviderOrderTokenClient(c config) *ProviderOrderTokenClient {
+	return &ProviderOrderTokenClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `providerordertoken.Hooks(f(g(h())))`.
+func (c *ProviderOrderTokenClient) Use(hooks ...Hook) {
+	c.hooks.ProviderOrderToken = append(c.hooks.ProviderOrderToken, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `providerordertoken.Intercept(f(g(h())))`.
+func (c *ProviderOrderTokenClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ProviderOrderToken = append(c.inters.ProviderOrderToken, interceptors...)
+}
+
+// Create returns a builder for creating a ProviderOrderToken entity.
+func (c *ProviderOrderTokenClient) Create() *ProviderOrderTokenCreate {
+	mutation := newProviderOrderTokenMutation(c.config, OpCreate)
+	return &ProviderOrderTokenCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ProviderOrderToken entities.
+func (c *ProviderOrderTokenClient) CreateBulk(builders ...*ProviderOrderTokenCreate) *ProviderOrderTokenCreateBulk {
+	return &ProviderOrderTokenCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ProviderOrderToken.
+func (c *ProviderOrderTokenClient) Update() *ProviderOrderTokenUpdate {
+	mutation := newProviderOrderTokenMutation(c.config, OpUpdate)
+	return &ProviderOrderTokenUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ProviderOrderTokenClient) UpdateOne(pot *ProviderOrderToken) *ProviderOrderTokenUpdateOne {
+	mutation := newProviderOrderTokenMutation(c.config, OpUpdateOne, withProviderOrderToken(pot))
+	return &ProviderOrderTokenUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ProviderOrderTokenClient) UpdateOneID(id int) *ProviderOrderTokenUpdateOne {
+	mutation := newProviderOrderTokenMutation(c.config, OpUpdateOne, withProviderOrderTokenID(id))
+	return &ProviderOrderTokenUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ProviderOrderToken.
+func (c *ProviderOrderTokenClient) Delete() *ProviderOrderTokenDelete {
+	mutation := newProviderOrderTokenMutation(c.config, OpDelete)
+	return &ProviderOrderTokenDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ProviderOrderTokenClient) DeleteOne(pot *ProviderOrderToken) *ProviderOrderTokenDeleteOne {
+	return c.DeleteOneID(pot.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ProviderOrderTokenClient) DeleteOneID(id int) *ProviderOrderTokenDeleteOne {
+	builder := c.Delete().Where(providerordertoken.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ProviderOrderTokenDeleteOne{builder}
+}
+
+// Query returns a query builder for ProviderOrderToken.
+func (c *ProviderOrderTokenClient) Query() *ProviderOrderTokenQuery {
+	return &ProviderOrderTokenQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeProviderOrderToken},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ProviderOrderToken entity by its id.
+func (c *ProviderOrderTokenClient) Get(ctx context.Context, id int) (*ProviderOrderToken, error) {
+	return c.Query().Where(providerordertoken.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ProviderOrderTokenClient) GetX(ctx context.Context, id int) *ProviderOrderToken {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryProvider queries the provider edge of a ProviderOrderToken.
+func (c *ProviderOrderTokenClient) QueryProvider(pot *ProviderOrderToken) *ProviderProfileQuery {
+	query := (&ProviderProfileClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := pot.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(providerordertoken.Table, providerordertoken.FieldID, id),
+			sqlgraph.To(providerprofile.Table, providerprofile.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, providerordertoken.ProviderTable, providerordertoken.ProviderColumn),
+		)
+		fromV = sqlgraph.Neighbors(pot.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryAddresses queries the addresses edge of a ProviderOrderToken.
+func (c *ProviderOrderTokenClient) QueryAddresses(pot *ProviderOrderToken) *ProviderOrderTokenAddressQuery {
+	query := (&ProviderOrderTokenAddressClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := pot.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(providerordertoken.Table, providerordertoken.FieldID, id),
+			sqlgraph.To(providerordertokenaddress.Table, providerordertokenaddress.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, providerordertoken.AddressesTable, providerordertoken.AddressesColumn),
+		)
+		fromV = sqlgraph.Neighbors(pot.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *ProviderOrderTokenClient) Hooks() []Hook {
+	return c.hooks.ProviderOrderToken
+}
+
+// Interceptors returns the client interceptors.
+func (c *ProviderOrderTokenClient) Interceptors() []Interceptor {
+	return c.inters.ProviderOrderToken
+}
+
+func (c *ProviderOrderTokenClient) mutate(ctx context.Context, m *ProviderOrderTokenMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ProviderOrderTokenCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ProviderOrderTokenUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ProviderOrderTokenUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ProviderOrderTokenDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown ProviderOrderToken mutation op: %q", m.Op())
+	}
+}
+
+// ProviderOrderTokenAddressClient is a client for the ProviderOrderTokenAddress schema.
+type ProviderOrderTokenAddressClient struct {
+	config
+}
+
+// NewProviderOrderTokenAddressClient returns a client for the ProviderOrderTokenAddress from the given config.
+func NewProviderOrderTokenAddressClient(c config) *ProviderOrderTokenAddressClient {
+	return &ProviderOrderTokenAddressClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `providerordertokenaddress.Hooks(f(g(h())))`.
+func (c *ProviderOrderTokenAddressClient) Use(hooks ...Hook) {
+	c.hooks.ProviderOrderTokenAddress = append(c.hooks.ProviderOrderTokenAddress, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `providerordertokenaddress.Intercept(f(g(h())))`.
+func (c *ProviderOrderTokenAddressClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ProviderOrderTokenAddress = append(c.inters.ProviderOrderTokenAddress, interceptors...)
+}
+
+// Create returns a builder for creating a ProviderOrderTokenAddress entity.
+func (c *ProviderOrderTokenAddressClient) Create() *ProviderOrderTokenAddressCreate {
+	mutation := newProviderOrderTokenAddressMutation(c.config, OpCreate)
+	return &ProviderOrderTokenAddressCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ProviderOrderTokenAddress entities.
+func (c *ProviderOrderTokenAddressClient) CreateBulk(builders ...*ProviderOrderTokenAddressCreate) *ProviderOrderTokenAddressCreateBulk {
+	return &ProviderOrderTokenAddressCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ProviderOrderTokenAddress.
+func (c *ProviderOrderTokenAddressClient) Update() *ProviderOrderTokenAddressUpdate {
+	mutation := newProviderOrderTokenAddressMutation(c.config, OpUpdate)
+	return &ProviderOrderTokenAddressUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ProviderOrderTokenAddressClient) UpdateOne(pota *ProviderOrderTokenAddress) *ProviderOrderTokenAddressUpdateOne {
+	mutation := newProviderOrderTokenAddressMutation(c.config, OpUpdateOne, withProviderOrderTokenAddress(pota))
+	return &ProviderOrderTokenAddressUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ProviderOrderTokenAddressClient) UpdateOneID(id int) *ProviderOrderTokenAddressUpdateOne {
+	mutation := newProviderOrderTokenAddressMutation(c.config, OpUpdateOne, withProviderOrderTokenAddressID(id))
+	return &ProviderOrderTokenAddressUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ProviderOrderTokenAddress.
+func (c *ProviderOrderTokenAddressClient) Delete() *ProviderOrderTokenAddressDelete {
+	mutation := newProviderOrderTokenAddressMutation(c.config, OpDelete)
+	return &ProviderOrderTokenAddressDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ProviderOrderTokenAddressClient) DeleteOne(pota *ProviderOrderTokenAddress) *ProviderOrderTokenAddressDeleteOne {
+	return c.DeleteOneID(pota.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ProviderOrderTokenAddressClient) DeleteOneID(id int) *ProviderOrderTokenAddressDeleteOne {
+	builder := c.Delete().Where(providerordertokenaddress.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ProviderOrderTokenAddressDeleteOne{builder}
+}
+
+// Query returns a query builder for ProviderOrderTokenAddress.
+func (c *ProviderOrderTokenAddressClient) Query() *ProviderOrderTokenAddressQuery {
+	return &ProviderOrderTokenAddressQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeProviderOrderTokenAddress},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ProviderOrderTokenAddress entity by its id.
+func (c *ProviderOrderTokenAddressClient) Get(ctx context.Context, id int) (*ProviderOrderTokenAddress, error) {
+	return c.Query().Where(providerordertokenaddress.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ProviderOrderTokenAddressClient) GetX(ctx context.Context, id int) *ProviderOrderTokenAddress {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryProviderordertoken queries the providerordertoken edge of a ProviderOrderTokenAddress.
+func (c *ProviderOrderTokenAddressClient) QueryProviderordertoken(pota *ProviderOrderTokenAddress) *ProviderOrderTokenQuery {
+	query := (&ProviderOrderTokenClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := pota.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(providerordertokenaddress.Table, providerordertokenaddress.FieldID, id),
+			sqlgraph.To(providerordertoken.Table, providerordertoken.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, providerordertokenaddress.ProviderordertokenTable, providerordertokenaddress.ProviderordertokenColumn),
+		)
+		fromV = sqlgraph.Neighbors(pota.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *ProviderOrderTokenAddressClient) Hooks() []Hook {
+	return c.hooks.ProviderOrderTokenAddress
+}
+
+// Interceptors returns the client interceptors.
+func (c *ProviderOrderTokenAddressClient) Interceptors() []Interceptor {
+	return c.inters.ProviderOrderTokenAddress
+}
+
+func (c *ProviderOrderTokenAddressClient) mutate(ctx context.Context, m *ProviderOrderTokenAddressMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ProviderOrderTokenAddressCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ProviderOrderTokenAddressUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ProviderOrderTokenAddressUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ProviderOrderTokenAddressDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown ProviderOrderTokenAddress mutation op: %q", m.Op())
+	}
+}
+
+// ProviderProfileClient is a client for the ProviderProfile schema.
+type ProviderProfileClient struct {
+	config
+}
+
+// NewProviderProfileClient returns a client for the ProviderProfile from the given config.
+func NewProviderProfileClient(c config) *ProviderProfileClient {
+	return &ProviderProfileClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `providerprofile.Hooks(f(g(h())))`.
+func (c *ProviderProfileClient) Use(hooks ...Hook) {
+	c.hooks.ProviderProfile = append(c.hooks.ProviderProfile, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `providerprofile.Intercept(f(g(h())))`.
+func (c *ProviderProfileClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ProviderProfile = append(c.inters.ProviderProfile, interceptors...)
+}
+
+// Create returns a builder for creating a ProviderProfile entity.
+func (c *ProviderProfileClient) Create() *ProviderProfileCreate {
+	mutation := newProviderProfileMutation(c.config, OpCreate)
+	return &ProviderProfileCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ProviderProfile entities.
+func (c *ProviderProfileClient) CreateBulk(builders ...*ProviderProfileCreate) *ProviderProfileCreateBulk {
+	return &ProviderProfileCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ProviderProfile.
+func (c *ProviderProfileClient) Update() *ProviderProfileUpdate {
+	mutation := newProviderProfileMutation(c.config, OpUpdate)
+	return &ProviderProfileUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ProviderProfileClient) UpdateOne(pp *ProviderProfile) *ProviderProfileUpdateOne {
+	mutation := newProviderProfileMutation(c.config, OpUpdateOne, withProviderProfile(pp))
+	return &ProviderProfileUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ProviderProfileClient) UpdateOneID(id string) *ProviderProfileUpdateOne {
+	mutation := newProviderProfileMutation(c.config, OpUpdateOne, withProviderProfileID(id))
+	return &ProviderProfileUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ProviderProfile.
+func (c *ProviderProfileClient) Delete() *ProviderProfileDelete {
+	mutation := newProviderProfileMutation(c.config, OpDelete)
+	return &ProviderProfileDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ProviderProfileClient) DeleteOne(pp *ProviderProfile) *ProviderProfileDeleteOne {
+	return c.DeleteOneID(pp.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ProviderProfileClient) DeleteOneID(id string) *ProviderProfileDeleteOne {
+	builder := c.Delete().Where(providerprofile.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ProviderProfileDeleteOne{builder}
+}
+
+// Query returns a query builder for ProviderProfile.
+func (c *ProviderProfileClient) Query() *ProviderProfileQuery {
+	return &ProviderProfileQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeProviderProfile},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ProviderProfile entity by its id.
+func (c *ProviderProfileClient) Get(ctx context.Context, id string) (*ProviderProfile, error) {
+	return c.Query().Where(providerprofile.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ProviderProfileClient) GetX(ctx context.Context, id string) *ProviderProfile {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryAPIKey queries the api_key edge of a ProviderProfile.
+func (c *ProviderProfileClient) QueryAPIKey(pp *ProviderProfile) *APIKeyQuery {
+	query := (&APIKeyClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := pp.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(providerprofile.Table, providerprofile.FieldID, id),
+			sqlgraph.To(apikey.Table, apikey.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, providerprofile.APIKeyTable, providerprofile.APIKeyColumn),
+		)
+		fromV = sqlgraph.Neighbors(pp.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryOrderTokens queries the order_tokens edge of a ProviderProfile.
+func (c *ProviderProfileClient) QueryOrderTokens(pp *ProviderProfile) *ProviderOrderTokenQuery {
+	query := (&ProviderOrderTokenClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := pp.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(providerprofile.Table, providerprofile.FieldID, id),
+			sqlgraph.To(providerordertoken.Table, providerordertoken.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, providerprofile.OrderTokensTable, providerprofile.OrderTokensColumn),
+		)
+		fromV = sqlgraph.Neighbors(pp.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryAvailability queries the availability edge of a ProviderProfile.
+func (c *ProviderProfileClient) QueryAvailability(pp *ProviderProfile) *ProviderAvailabilityQuery {
+	query := (&ProviderAvailabilityClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := pp.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(providerprofile.Table, providerprofile.FieldID, id),
+			sqlgraph.To(provideravailability.Table, provideravailability.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, providerprofile.AvailabilityTable, providerprofile.AvailabilityColumn),
+		)
+		fromV = sqlgraph.Neighbors(pp.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *ProviderProfileClient) Hooks() []Hook {
+	return c.hooks.ProviderProfile
+}
+
+// Interceptors returns the client interceptors.
+func (c *ProviderProfileClient) Interceptors() []Interceptor {
+	return c.inters.ProviderProfile
+}
+
+func (c *ProviderProfileClient) mutate(ctx context.Context, m *ProviderProfileMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ProviderProfileCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ProviderProfileUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ProviderProfileUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ProviderProfileDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown ProviderProfile mutation op: %q", m.Op())
 	}
 }
 
@@ -471,9 +1111,11 @@ func (c *UserClient) mutate(ctx context.Context, m *UserMutation) (Value, error)
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		APIKey, User []ent.Hook
+		APIKey, ProviderAvailability, ProviderOrderToken, ProviderOrderTokenAddress,
+		ProviderProfile, User []ent.Hook
 	}
 	inters struct {
-		APIKey, User []ent.Interceptor
+		APIKey, ProviderAvailability, ProviderOrderToken, ProviderOrderTokenAddress,
+		ProviderProfile, User []ent.Interceptor
 	}
 )

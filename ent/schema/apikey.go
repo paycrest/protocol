@@ -39,7 +39,8 @@ func (APIKey) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("owner", User.Type).
 			Ref("api_keys").
-			Required(),
+			Unique().
+			Immutable(),
 		edge.To("provider_profile", ProviderProfile.Type),
 	}
 }

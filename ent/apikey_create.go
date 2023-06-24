@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
+	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 	"github.com/paycrest/paycrest-protocol/ent/user"
 )
 
@@ -82,23 +83,38 @@ func (akc *APIKeyCreate) SetNillableID(u *uuid.UUID) *APIKeyCreate {
 	return akc
 }
 
-// SetUserID sets the "user" edge to the User entity by ID.
-func (akc *APIKeyCreate) SetUserID(id uuid.UUID) *APIKeyCreate {
-	akc.mutation.SetUserID(id)
+// SetOwnerID sets the "owner" edge to the User entity by ID.
+func (akc *APIKeyCreate) SetOwnerID(id uuid.UUID) *APIKeyCreate {
+	akc.mutation.SetOwnerID(id)
 	return akc
 }
 
-// SetNillableUserID sets the "user" edge to the User entity by ID if the given value is not nil.
-func (akc *APIKeyCreate) SetNillableUserID(id *uuid.UUID) *APIKeyCreate {
+// SetNillableOwnerID sets the "owner" edge to the User entity by ID if the given value is not nil.
+func (akc *APIKeyCreate) SetNillableOwnerID(id *uuid.UUID) *APIKeyCreate {
 	if id != nil {
-		akc = akc.SetUserID(*id)
+		akc = akc.SetOwnerID(*id)
 	}
 	return akc
 }
 
-// SetUser sets the "user" edge to the User entity.
-func (akc *APIKeyCreate) SetUser(u *User) *APIKeyCreate {
-	return akc.SetUserID(u.ID)
+// SetOwner sets the "owner" edge to the User entity.
+func (akc *APIKeyCreate) SetOwner(u *User) *APIKeyCreate {
+	return akc.SetOwnerID(u.ID)
+}
+
+// AddProviderProfileIDs adds the "provider_profile" edge to the ProviderProfile entity by IDs.
+func (akc *APIKeyCreate) AddProviderProfileIDs(ids ...string) *APIKeyCreate {
+	akc.mutation.AddProviderProfileIDs(ids...)
+	return akc
+}
+
+// AddProviderProfile adds the "provider_profile" edges to the ProviderProfile entity.
+func (akc *APIKeyCreate) AddProviderProfile(p ...*ProviderProfile) *APIKeyCreate {
+	ids := make([]string, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return akc.AddProviderProfileIDs(ids...)
 }
 
 // Mutation returns the APIKeyMutation object of the builder.
@@ -232,12 +248,12 @@ func (akc *APIKeyCreate) createSpec() (*APIKey, *sqlgraph.CreateSpec) {
 		_spec.SetField(apikey.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
 	}
-	if nodes := akc.mutation.UserIDs(); len(nodes) > 0 {
+	if nodes := akc.mutation.OwnerIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
-			Table:   apikey.UserTable,
-			Columns: []string{apikey.UserColumn},
+			Table:   apikey.OwnerTable,
+			Columns: []string{apikey.OwnerColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
@@ -247,6 +263,22 @@ func (akc *APIKeyCreate) createSpec() (*APIKey, *sqlgraph.CreateSpec) {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.user_api_keys = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := akc.mutation.ProviderProfileIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   apikey.ProviderProfileTable,
+			Columns: []string{apikey.ProviderProfileColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(providerprofile.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

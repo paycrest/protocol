@@ -67,20 +67,29 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 		go func() {
 			apiKeyService := svc.NewAPIKeyService(db.Client)
 
-			payload := svc.GenerateAPIKeyPayload{
+			apiKeyInput := svc.GenerateAPIKeyPayload{
 				Name:  "Provider API Key",
 				Scope: apikey.ScopeProvider,
 			}
 
 			// Generate the API key using the service
-			_, _, err := apiKeyService.GenerateAPIKey(ctx, user.ID, payload)
+			_, _, err := apiKeyService.GenerateAPIKey(ctx, user.ID, apiKeyInput)
 			if err != nil {
 				logger.Errorf("error: %v", err)
-				u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to generate API key", err.Error())
 				return
 			}
 
-			// TODO: create provider profile with trading name
+			// Create a provider profile
+			_, err = db.Client.ProviderProfile.
+				Create().
+				SetTradingName(payload.TradingName).
+				SetCountry(payload.Country).
+				Save(ctx)
+
+			if err != nil {
+				logger.Errorf("error: %v", err)
+				return
+			}
 		}()
 	}
 
@@ -300,7 +309,7 @@ func (ctrl *AuthController) DeleteAPIKey(ctx *gin.Context) {
 	// Check if the API key belongs to the user making the request
 	apiKey, err := db.Client.APIKey.
 		Query().
-		Where(apikey.IDEQ(apiKeyUUID), apikey.HasUserWith(user.IDEQ(userID))).
+		Where(apikey.IDEQ(apiKeyUUID), apikey.HasOwnerWith(user.IDEQ(userID))).
 		Only(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {

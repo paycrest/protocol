@@ -43,7 +43,7 @@ func (ProviderOrderToken) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("provider", ProviderProfile.Type).
 			Ref("order_tokens").
-			Required(),
+			Unique(),
 		edge.To("addresses", ProviderOrderTokenAddress.Type),
 	}
 }
@@ -51,7 +51,8 @@ func (ProviderOrderToken) Edges() []ent.Edge {
 // Indexes of the ProviderOrderToken.
 func (ProviderOrderToken) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Fields("name", "provider").
+		index.Fields("name").
+			Edges("provider").
 			Unique(),
 	}
 }

@@ -52,7 +52,7 @@ func (s *APIKeyService) GenerateAPIKey(ctx context.Context, userID uuid.UUID, pa
 		SetName(payload.Name).
 		SetScope(payload.Scope).
 		SetSecret(encodedSecret).
-		SetUser(user).
+		SetOwner(user).
 		Save(ctx)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to create API key: %w", err)

@@ -15,7 +15,7 @@ type ProviderOrderTokenAddress struct {
 func (ProviderOrderTokenAddress) Fields() []ent.Field {
 	return []ent.Field{
 		field.Enum("network").
-			Values("BNB Smart Chain (BEP20)", "Polygon", "TRON (TRC20)", "Polygon Mumbai", "Tron Shasta"),
+			Values("bnb-smart-chain", "polygon", "tron", "polygon-mumbai", "tron-shasta"),
 		field.String("address").MaxLen(50),
 	}
 }
@@ -25,6 +25,6 @@ func (ProviderOrderTokenAddress) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("providerordertoken", ProviderOrderToken.Type).
 			Ref("addresses").
-			Required(),
+			Unique(),
 	}
 }
