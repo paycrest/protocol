@@ -2,7 +2,9 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
+	"entgo.io/ent/schema/index"
 	"github.com/shopspring/decimal"
 )
 
@@ -24,19 +26,15 @@ func (ProviderOrderToken) Fields() []ent.Field {
 		field.Enum("name").
 			Values("USDT", "USDC", "BUSD"),
 		field.Float("fixed_conversion_rate").
-			GoType(decimal.Decimal{}).
-			Scale(2),
+			GoType(decimal.Decimal{}),
 		field.Float("floating_conversion_rate").
-			GoType(decimal.Decimal{}).
-			Scale(2),
+			GoType(decimal.Decimal{}),
 		field.Enum("conversion_rate_type").
 			Values("fixed", "floating"),
 		field.String("max_order_amount").
-			GoType(decimal.Decimal{}).
-			Scale(2),
+			GoType(decimal.Decimal{}),
 		field.String("min_order_amount").
-			GoType(decimal.Decimal{}).
-			Scale(2),
+			GoType(decimal.Decimal{}),
 	}
 }
 

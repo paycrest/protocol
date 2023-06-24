@@ -1,6 +1,10 @@
 package schema
 
-import "entgo.io/ent"
+import (
+	"entgo.io/ent"
+	"entgo.io/ent/schema/edge"
+	"entgo.io/ent/schema/field"
+)
 
 // ProviderOrderTokenAddress holds the schema definition for the ProviderOrderTokenAddress entity.
 type ProviderOrderTokenAddress struct {
@@ -9,7 +13,7 @@ type ProviderOrderTokenAddress struct {
 
 // Fields of the ProviderOrderTokenAddress.
 func (ProviderOrderTokenAddress) Fields() []ent.Field {
-	return []ent.Field{,
+	return []ent.Field{
 		field.Enum("network").
 			Values("BNB Smart Chain (BEP20)", "Polygon", "TRON (TRC20)", "Polygon Mumbai", "Tron Shasta"),
 		field.String("address").MaxLen(50),

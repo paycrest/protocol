@@ -1,6 +1,10 @@
 package schema
 
-import "entgo.io/ent"
+import (
+	"entgo.io/ent"
+	"entgo.io/ent/schema/edge"
+	"entgo.io/ent/schema/field"
+)
 
 // ProviderAvailability holds the schema definition for the ProviderAvailability entity.
 type ProviderAvailability struct {

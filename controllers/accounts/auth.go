@@ -11,6 +11,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/user"
+	svc "github.com/paycrest/paycrest-protocol/services"
 	u "github.com/paycrest/paycrest-protocol/utils"
 	"github.com/paycrest/paycrest-protocol/utils/crypto"
 	"github.com/paycrest/paycrest-protocol/utils/logger"
@@ -24,7 +25,7 @@ type AuthController struct{}
 // It hashes the password provided by the user.
 // It also sends an email to verify the user's email address.
 func (ctrl *AuthController) Register(ctx *gin.Context) {
-	var payload RegisterPayload
+	var payload svc.RegisterPayload
 
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		logger.Errorf("error: %v", err)
@@ -61,10 +62,32 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 		return
 	}
 
+	// Create a provider API Key and profile in the background
+	if appID := ctx.GetHeader("X-App-ID"); appID == "provider" {
+		go func() {
+			apiKeyService := svc.NewAPIKeyService(db.Client)
+
+			payload := svc.GenerateAPIKeyPayload{
+				Name:  "Provider API Key",
+				Scope: apikey.ScopeProvider,
+			}
+
+			// Generate the API key using the service
+			_, _, err := apiKeyService.GenerateAPIKey(ctx, user.ID, payload)
+			if err != nil {
+				logger.Errorf("error: %v", err)
+				u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to generate API key", err.Error())
+				return
+			}
+
+			// TODO: create provider profile with trading name
+		}()
+	}
+
 	// TODO: Send email to verify the user's email address
 
 	u.APIResponse(ctx, http.StatusCreated, "success", "User created successfully",
-		&RegisterResponse{
+		&svc.RegisterResponse{
 			ID:        user.ID,
 			CreatedAt: user.CreatedAt,
 			UpdatedAt: user.UpdatedAt,
@@ -76,7 +99,7 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 
 // Login controller validates the payload and creates a new user.
 func (ctrl *AuthController) Login(ctx *gin.Context) {
-	var payload LoginPayload
+	var payload svc.LoginPayload
 
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		logger.Errorf("error: %v", err)
@@ -113,7 +136,7 @@ func (ctrl *AuthController) Login(ctx *gin.Context) {
 		return
 	}
 
-	u.APIResponse(ctx, http.StatusOK, "success", "Successfully logged in", &LoginResponse{
+	u.APIResponse(ctx, http.StatusOK, "success", "Successfully logged in", &svc.LoginResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 	})
@@ -121,7 +144,7 @@ func (ctrl *AuthController) Login(ctx *gin.Context) {
 
 // RefreshJWT controller returns a new access token given a valid refresh token.
 func (ctrl *AuthController) RefreshJWT(ctx *gin.Context) {
-	var payload RefreshJWTPayload
+	var payload svc.RefreshJWTPayload
 
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		u.APIResponse(ctx, http.StatusBadRequest, "error",
@@ -145,7 +168,7 @@ func (ctrl *AuthController) RefreshJWT(ctx *gin.Context) {
 	}
 
 	// Return the new access token
-	u.APIResponse(ctx, http.StatusOK, "success", "Successfully refreshed access token", &RefreshResponse{
+	u.APIResponse(ctx, http.StatusOK, "success", "Successfully refreshed access token", &svc.RefreshResponse{
 		AccessToken: accessToken,
 	})
 }
@@ -163,15 +186,7 @@ func (ctrl *AuthController) GenerateAPIKey(ctx *gin.Context) {
 		return
 	}
 
-	// Fetch the User entity from the database using the userID value
-	user, err := db.Client.User.Get(ctx, userID)
-	if err != nil {
-		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Invalid user ID", err.Error())
-		return
-	}
-
-	var payload GenerateAPIKeyPayload
+	var payload svc.GenerateAPIKeyPayload
 
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		logger.Errorf("error: %v", err)
@@ -179,41 +194,19 @@ func (ctrl *AuthController) GenerateAPIKey(ctx *gin.Context) {
 		return
 	}
 
-	// Generate a new secret key
-	secretKey, err := token.GeneratePrivateKey()
+	// Create a new instance of APIKeyService
+	apiKeyService := svc.NewAPIKeyService(db.Client)
+
+	// Generate the API key using the service
+	apiKey, secretKey, err := apiKeyService.GenerateAPIKey(ctx, userID, payload)
 	if err != nil {
 		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to generate API key", err.Error())
 		return
 	}
 
-	// Encrypt the secret key
-	encryptedSecret, err := crypto.Encrypt([]byte(secretKey))
-	if err != nil {
-		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to encrypt API Key", err.Error())
-		return
-	}
-
-	// Encode the encrypted secret to base64
-	encodedSecret := base64.StdEncoding.EncodeToString(encryptedSecret)
-
-	// Create a new APIKey entity
-	apiKey, err := db.Client.APIKey.
-		Create().
-		SetName(payload.Name).
-		SetScope(payload.Scope).
-		SetSecret(encodedSecret).
-		SetUser(user).
-		Save(ctx)
-	if err != nil {
-		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to create new entity", err.Error())
-		return
-	}
-
 	// Return the newly generated API key
-	u.APIResponse(ctx, http.StatusCreated, "success", "Successfully generated API key", &APIKeyResponse{
+	u.APIResponse(ctx, http.StatusCreated, "success", "Successfully generated API key", &svc.APIKeyResponse{
 		ID:        apiKey.ID,
 		Name:      apiKey.Name,
 		Scope:     apiKey.Scope,
@@ -249,7 +242,7 @@ func (ctrl *AuthController) ListAPIKeys(ctx *gin.Context) {
 	}
 
 	// Create APIKeyResponse objects without the Pair field
-	apiKeyResponses := make([]APIKeyResponse, len(apiKeys))
+	apiKeyResponses := make([]svc.APIKeyResponse, len(apiKeys))
 	for i, apiKey := range apiKeys {
 		// Decode the stored secret key to bytes
 		decodedSecret, err := base64.StdEncoding.DecodeString(apiKey.Secret)
@@ -266,7 +259,7 @@ func (ctrl *AuthController) ListAPIKeys(ctx *gin.Context) {
 			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to decrypt API key", err.Error())
 			return
 		}
-		apiKeyResponses[i] = APIKeyResponse{
+		apiKeyResponses[i] = svc.APIKeyResponse{
 			ID:        apiKey.ID,
 			CreatedAt: apiKey.CreatedAt,
 			Name:      apiKey.Name,

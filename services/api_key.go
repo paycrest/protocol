@@ -1,0 +1,62 @@
+package services
+
+import (
+	"context"
+	"encoding/base64"
+	"fmt"
+
+	"github.com/google/uuid"
+	"github.com/paycrest/paycrest-protocol/ent"
+	"github.com/paycrest/paycrest-protocol/utils/crypto"
+	"github.com/paycrest/paycrest-protocol/utils/token"
+)
+
+// APIKeyService provides functionality related to API keys.
+type APIKeyService struct {
+	db *ent.Client
+}
+
+// NewAPIKeyService creates a new instance of APIKeyService.
+func NewAPIKeyService(db *ent.Client) *APIKeyService {
+	return &APIKeyService{
+		db: db,
+	}
+}
+
+// GenerateAPIKey generates a new API key for the user.
+func (s *APIKeyService) GenerateAPIKey(ctx context.Context, userID uuid.UUID, payload GenerateAPIKeyPayload) (*ent.APIKey, string, error) {
+	// Generate a new secret key
+	secretKey, err := token.GeneratePrivateKey()
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to generate API key: %w", err)
+	}
+
+	// Encrypt the secret key
+	encryptedSecret, err := crypto.Encrypt([]byte(secretKey))
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to encrypt API key: %w", err)
+	}
+
+	// Encode the encrypted secret to base64
+	encodedSecret := base64.StdEncoding.EncodeToString(encryptedSecret)
+
+	// Fetch the User entity from the database using the userID value
+	user, err := s.db.User.Get(ctx, userID)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to fetch user: %w", err)
+	}
+
+	// Create a new APIKey entity
+	apiKey, err := s.db.APIKey.
+		Create().
+		SetName(payload.Name).
+		SetScope(payload.Scope).
+		SetSecret(encodedSecret).
+		SetUser(user).
+		Save(ctx)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to create API key: %w", err)
+	}
+
+	return apiKey, secretKey, nil
+}

@@ -17,6 +17,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/paycrest/paycrest-protocol/ent/enttest"
 	"github.com/paycrest/paycrest-protocol/ent/user"
+	svc "github.com/paycrest/paycrest-protocol/services"
 	"github.com/paycrest/paycrest-protocol/utils"
 	"github.com/paycrest/paycrest-protocol/utils/test"
 	"github.com/paycrest/paycrest-protocol/utils/token"
@@ -45,7 +46,7 @@ func TestAuth(t *testing.T) {
 	t.Run("Register", func(t *testing.T) {
 		t.Run("with valid payload", func(t *testing.T) {
 			// Test register with valid payload
-			payload := RegisterPayload{
+			payload := svc.RegisterPayload{
 				FirstName: "Ike",
 				LastName:  "Ayo",
 				Email:     "ikeayo@example.com",
@@ -83,7 +84,7 @@ func TestAuth(t *testing.T) {
 
 		t.Run("with existing user", func(t *testing.T) {
 			// Test register with existing user
-			payload := RegisterPayload{
+			payload := svc.RegisterPayload{
 				FirstName: "Ike",
 				LastName:  "Ayo",
 				Email:     "ikeayo@example.com",
@@ -105,7 +106,7 @@ func TestAuth(t *testing.T) {
 
 		t.Run("with invalid email", func(t *testing.T) {
 			// Test register with invalid email
-			payload := RegisterPayload{
+			payload := svc.RegisterPayload{
 				FirstName: "Ike",
 				LastName:  "Ayo",
 				Email:     "invalid-email",
@@ -142,7 +143,7 @@ func TestAuth(t *testing.T) {
 	t.Run("Login", func(t *testing.T) {
 		t.Run("with valid credentials", func(t *testing.T) {
 			// Test login with valid credentials
-			payload := LoginPayload{
+			payload := svc.LoginPayload{
 				Email:    "ikeayo@example.com",
 				Password: "password",
 			}
@@ -170,7 +171,7 @@ func TestAuth(t *testing.T) {
 
 		t.Run("with invalid credentials", func(t *testing.T) {
 			// Test login with invalid credentials
-			payload := LoginPayload{
+			payload := svc.LoginPayload{
 				Email:    "ikeayo@example.com",
 				Password: "wrong-password",
 			}
@@ -195,7 +196,7 @@ func TestAuth(t *testing.T) {
 			assert.NoError(t, err, "failed to generate refresh token")
 
 			// Test refresh token with valid refresh token
-			payload := RefreshJWTPayload{
+			payload := svc.RefreshJWTPayload{
 				RefreshToken: refreshToken,
 			}
 
@@ -223,7 +224,7 @@ func TestAuth(t *testing.T) {
 			refreshToken := "invalid-refresh-token"
 
 			// Test refresh token with invalid refresh token
-			payload := RefreshJWTPayload{
+			payload := svc.RefreshJWTPayload{
 				RefreshToken: refreshToken,
 			}
 
@@ -247,7 +248,7 @@ func TestAuth(t *testing.T) {
 		accessToken, _ := token.GenerateAccessJWT(userID)
 
 		t.Run("with a valid scope", func(t *testing.T) {
-			payload := GenerateAPIKeyPayload{
+			payload := svc.GenerateAPIKeyPayload{
 				Name:  "Test API Key",
 				Scope: "sender",
 			}
@@ -282,7 +283,7 @@ func TestAuth(t *testing.T) {
 		})
 
 		t.Run("with an invalid scope", func(t *testing.T) {
-			payload := GenerateAPIKeyPayload{
+			payload := svc.GenerateAPIKeyPayload{
 				Name:  "Test API Key",
 				Scope: "bad-scope",
 			}
