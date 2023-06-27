@@ -120,7 +120,7 @@ func (uu *UserUpdate) Save(ctx context.Context) (int, error) {
 	if err := uu.defaults(); err != nil {
 		return 0, err
 	}
-	return withHooks[int, UserMutation](ctx, uu.sqlSave, uu.mutation, uu.hooks)
+	return withHooks(ctx, uu.sqlSave, uu.mutation, uu.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
@@ -370,7 +370,7 @@ func (uuo *UserUpdateOne) Save(ctx context.Context) (*User, error) {
 	if err := uuo.defaults(); err != nil {
 		return nil, err
 	}
-	return withHooks[*User, UserMutation](ctx, uuo.sqlSave, uuo.mutation, uuo.hooks)
+	return withHooks(ctx, uuo.sqlSave, uuo.mutation, uuo.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.

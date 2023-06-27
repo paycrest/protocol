@@ -1,8 +1,6 @@
 package schema
 
 import (
-	"time"
-
 	"entgo.io/ent"
 	"entgo.io/ent/schema/field"
 )
@@ -15,11 +13,11 @@ type ReceiveAddress struct {
 // Fields of the ReceiveAddress.
 func (ReceiveAddress) Fields() []ent.Field {
 	return []ent.Field{
-		field.Int("id").Unique().Immutable(),
 		field.String("address").Unique(),
-		field.String("privateKey"),
+		field.Int("accountIndex"),
 		field.Enum("status").Values("active", "inactive").Default("active"),
-		field.Time("created_at").Default(time.Now),
+		// TODO: add timestamps from mixin
+		// TODO: add "last_used" datetime
 	}
 }
 

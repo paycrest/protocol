@@ -1,55 +1,42 @@
 package services
 
 import (
+	"context"
 	"fmt"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/miguelmota/go-ethereum-hdwallet"
-	db "github.com/paycrest/paycrest-protocol/database"
+
+	"github.com/paycrest/paycrest-protocol/ent"
+	"github.com/paycrest/paycrest-protocol/utils/crypto"
 )
 
 type ReceiveAddressService struct {
-	wallet       *hdwallet.Wallet
-	initialIndex int
+	db *ent.Client
 }
 
-func NewReceiveAddressService(wallet *hdwallet.Wallet, initialIndex int) *ReceiveAddressService {
+func NewReceiveAddressService(db *ent.Client) *ReceiveAddressService {
 	return &ReceiveAddressService{
-		wallet:       wallet,
-		initialIndex: initialIndex,
+		db: db,
 	}
 }
 
-func (s *ReceiveAddressService) GenerateAndSaveAddress() (string, string, error) {
-	path, err := hdwallet.ParseDerivationPath(fmt.Sprintf("m/44'/60'/0'/0/%d", s.initialIndex))
-	if err != nil {
-		return "", "", fmt.Errorf("failed to parse derivation path: %w", err)
-	}
+func (s *ReceiveAddressService) GenerateAndSaveAddress(ctx context.Context) (string, error) {
+	// TODO: query db to know number of receive addresses
+	// accountIndex should be num_of_address + 1
+	accountIndex := 0
 
-	account, err := s.wallet.Derive(path, false)
-	if err != nil {
-		return "", "", fmt.Errorf("failed to derive account: %w", err)
-	}
-
-	privateKey, err := s.wallet.PrivateKey(account)
-	if err != nil {
-		return "", "", fmt.Errorf("failed to get private key: %w", err)
-	}
-
-	privateKeyHex := hexutil.Encode(crypto.FromECDSA(privateKey))
-	address := account.Address.Hex()
+	address, _, err := crypto.GenerateReceiveAddress(accountIndex)
 
 	// TODO: Save the address and privateKey to the database using ent
-		// Save the address and privateKey to the database using ent
-		receivedAddress, err := s.db.ReceiveAddress.
+	// Save the address and privateKey to the database using ent
+	// statuses: unused, partial, used, expired
+	_, err = s.db.ReceiveAddress.
 		Create().
 		SetAddress(address).
-		SetPrivateKey(privateKeyHex).
+		SetAccountIndex(accountIndex).
 		SetStatus("active").
-		Save(s.ctx)
+		Save(ctx)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to save address: %w", err)
+		return "", fmt.Errorf("failed to save address: %w", err)
 	}
 
-	return address, privateKeyHex, nil
+	return address, nil
 }

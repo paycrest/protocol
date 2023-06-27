@@ -32,6 +32,19 @@ var (
 			},
 		},
 	}
+	// ReceiveAddressesColumns holds the columns for the "receive_addresses" table.
+	ReceiveAddressesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "address", Type: field.TypeString, Unique: true},
+		{Name: "account_index", Type: field.TypeInt},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"active", "inactive"}, Default: "active"},
+	}
+	// ReceiveAddressesTable holds the schema information for the "receive_addresses" table.
+	ReceiveAddressesTable = &schema.Table{
+		Name:       "receive_addresses",
+		Columns:    ReceiveAddressesColumns,
+		PrimaryKey: []*schema.Column{ReceiveAddressesColumns[0]},
+	}
 	// UsersColumns holds the columns for the "users" table.
 	UsersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -52,6 +65,7 @@ var (
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		APIKeysTable,
+		ReceiveAddressesTable,
 		UsersTable,
 	}
 )
