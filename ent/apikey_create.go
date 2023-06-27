@@ -109,7 +109,7 @@ func (akc *APIKeyCreate) Mutation() *APIKeyMutation {
 // Save creates the APIKey in the database.
 func (akc *APIKeyCreate) Save(ctx context.Context) (*APIKey, error) {
 	akc.defaults()
-	return withHooks[*APIKey, APIKeyMutation](ctx, akc.sqlSave, akc.mutation, akc.hooks)
+	return withHooks(ctx, akc.sqlSave, akc.mutation, akc.hooks)
 }
 
 // SaveX calls Save and panics if Save returns an error.
