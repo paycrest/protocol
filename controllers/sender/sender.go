@@ -3,6 +3,7 @@ package sender
 import (
 	"net/http"
 
+	"github.com/paycrest/paycrest-protocol/services"
 	u "github.com/paycrest/paycrest-protocol/utils"
 	"github.com/paycrest/paycrest-protocol/utils/logger"
 
@@ -33,4 +34,27 @@ func (ctrl *Controller) GetOrderByID(ctx *gin.Context) {
 // DeleteOrder controller deletes an order
 func (ctrl *Controller) DeleteOrder(ctx *gin.Context) {
 	u.APIResponse(ctx, http.StatusOK, "success", "OK", nil)
+}
+
+// generate an address
+func NewReceiveAddressController(service *services.ReceiveAddressService) *ReceiveAddressController {
+	return &ReceiveAddressController{
+		service: service,
+	}
+}
+
+func (ctrl *ReceiveAddressController) SaveAddress(c *gin.Context) {
+	address, privateKey, err := ctrl.service.GenerateAndSaveAddress()
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(200, gin.H{"address": address, "privateKey": privateKey})
+}
+
+func RegisterReceiveAddressRoutes(router *gin.Engine, service *services.ReceiveAddressService) {
+	controller := NewReceiveAddressController(service)
+
+	router.POST("/save-address", controller.SaveAddress)
 }

@@ -46,6 +46,8 @@ func senderRoutes(route *gin.Engine) {
 	v1.POST("orders/", ctrl.CreateOrder)
 	v1.GET("orders/:id", ctrl.GetOrderByID)
 	v1.DELETE("orders/:id", ctrl.DeleteOrder)
+	
+	
 }
 
 func providerRoutes(route *gin.Engine) {
