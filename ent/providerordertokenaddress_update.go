@@ -72,7 +72,7 @@ func (potau *ProviderOrderTokenAddressUpdate) ClearProviderordertoken() *Provide
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (potau *ProviderOrderTokenAddressUpdate) Save(ctx context.Context) (int, error) {
-	return withHooks[int, ProviderOrderTokenAddressMutation](ctx, potau.sqlSave, potau.mutation, potau.hooks)
+	return withHooks(ctx, potau.sqlSave, potau.mutation, potau.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
@@ -236,7 +236,7 @@ func (potauo *ProviderOrderTokenAddressUpdateOne) Select(field string, fields ..
 
 // Save executes the query and returns the updated ProviderOrderTokenAddress entity.
 func (potauo *ProviderOrderTokenAddressUpdateOne) Save(ctx context.Context) (*ProviderOrderTokenAddress, error) {
-	return withHooks[*ProviderOrderTokenAddress, ProviderOrderTokenAddressMutation](ctx, potauo.sqlSave, potauo.mutation, potauo.hooks)
+	return withHooks(ctx, potauo.sqlSave, potauo.mutation, potauo.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.

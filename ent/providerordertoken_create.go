@@ -129,7 +129,7 @@ func (potc *ProviderOrderTokenCreate) Mutation() *ProviderOrderTokenMutation {
 // Save creates the ProviderOrderToken in the database.
 func (potc *ProviderOrderTokenCreate) Save(ctx context.Context) (*ProviderOrderToken, error) {
 	potc.defaults()
-	return withHooks[*ProviderOrderToken, ProviderOrderTokenMutation](ctx, potc.sqlSave, potc.mutation, potc.hooks)
+	return withHooks(ctx, potc.sqlSave, potc.mutation, potc.hooks)
 }
 
 // SaveX calls Save and panics if Save returns an error.

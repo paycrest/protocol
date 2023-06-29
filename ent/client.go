@@ -20,6 +20,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/providerordertoken"
 	"github.com/paycrest/paycrest-protocol/ent/providerordertokenaddress"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
+	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
 	"github.com/paycrest/paycrest-protocol/ent/user"
 )
 
@@ -38,6 +39,8 @@ type Client struct {
 	ProviderOrderTokenAddress *ProviderOrderTokenAddressClient
 	// ProviderProfile is the client for interacting with the ProviderProfile builders.
 	ProviderProfile *ProviderProfileClient
+	// ReceiveAddress is the client for interacting with the ReceiveAddress builders.
+	ReceiveAddress *ReceiveAddressClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
 }
@@ -58,6 +61,7 @@ func (c *Client) init() {
 	c.ProviderOrderToken = NewProviderOrderTokenClient(c.config)
 	c.ProviderOrderTokenAddress = NewProviderOrderTokenAddressClient(c.config)
 	c.ProviderProfile = NewProviderProfileClient(c.config)
+	c.ReceiveAddress = NewReceiveAddressClient(c.config)
 	c.User = NewUserClient(c.config)
 }
 
@@ -146,6 +150,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		ProviderOrderToken:        NewProviderOrderTokenClient(cfg),
 		ProviderOrderTokenAddress: NewProviderOrderTokenAddressClient(cfg),
 		ProviderProfile:           NewProviderProfileClient(cfg),
+		ReceiveAddress:            NewReceiveAddressClient(cfg),
 		User:                      NewUserClient(cfg),
 	}, nil
 }
@@ -171,6 +176,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		ProviderOrderToken:        NewProviderOrderTokenClient(cfg),
 		ProviderOrderTokenAddress: NewProviderOrderTokenAddressClient(cfg),
 		ProviderProfile:           NewProviderProfileClient(cfg),
+		ReceiveAddress:            NewReceiveAddressClient(cfg),
 		User:                      NewUserClient(cfg),
 	}, nil
 }
@@ -202,7 +208,7 @@ func (c *Client) Close() error {
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
 		c.APIKey, c.ProviderAvailability, c.ProviderOrderToken,
-		c.ProviderOrderTokenAddress, c.ProviderProfile, c.User,
+		c.ProviderOrderTokenAddress, c.ProviderProfile, c.ReceiveAddress, c.User,
 	} {
 		n.Use(hooks...)
 	}
@@ -213,7 +219,7 @@ func (c *Client) Use(hooks ...Hook) {
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
 		c.APIKey, c.ProviderAvailability, c.ProviderOrderToken,
-		c.ProviderOrderTokenAddress, c.ProviderProfile, c.User,
+		c.ProviderOrderTokenAddress, c.ProviderProfile, c.ReceiveAddress, c.User,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -232,6 +238,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.ProviderOrderTokenAddress.mutate(ctx, m)
 	case *ProviderProfileMutation:
 		return c.ProviderProfile.mutate(ctx, m)
+	case *ReceiveAddressMutation:
+		return c.ReceiveAddress.mutate(ctx, m)
 	case *UserMutation:
 		return c.User.mutate(ctx, m)
 	default:
@@ -973,6 +981,124 @@ func (c *ProviderProfileClient) mutate(ctx context.Context, m *ProviderProfileMu
 	}
 }
 
+// ReceiveAddressClient is a client for the ReceiveAddress schema.
+type ReceiveAddressClient struct {
+	config
+}
+
+// NewReceiveAddressClient returns a client for the ReceiveAddress from the given config.
+func NewReceiveAddressClient(c config) *ReceiveAddressClient {
+	return &ReceiveAddressClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `receiveaddress.Hooks(f(g(h())))`.
+func (c *ReceiveAddressClient) Use(hooks ...Hook) {
+	c.hooks.ReceiveAddress = append(c.hooks.ReceiveAddress, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `receiveaddress.Intercept(f(g(h())))`.
+func (c *ReceiveAddressClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ReceiveAddress = append(c.inters.ReceiveAddress, interceptors...)
+}
+
+// Create returns a builder for creating a ReceiveAddress entity.
+func (c *ReceiveAddressClient) Create() *ReceiveAddressCreate {
+	mutation := newReceiveAddressMutation(c.config, OpCreate)
+	return &ReceiveAddressCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ReceiveAddress entities.
+func (c *ReceiveAddressClient) CreateBulk(builders ...*ReceiveAddressCreate) *ReceiveAddressCreateBulk {
+	return &ReceiveAddressCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ReceiveAddress.
+func (c *ReceiveAddressClient) Update() *ReceiveAddressUpdate {
+	mutation := newReceiveAddressMutation(c.config, OpUpdate)
+	return &ReceiveAddressUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ReceiveAddressClient) UpdateOne(ra *ReceiveAddress) *ReceiveAddressUpdateOne {
+	mutation := newReceiveAddressMutation(c.config, OpUpdateOne, withReceiveAddress(ra))
+	return &ReceiveAddressUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ReceiveAddressClient) UpdateOneID(id int) *ReceiveAddressUpdateOne {
+	mutation := newReceiveAddressMutation(c.config, OpUpdateOne, withReceiveAddressID(id))
+	return &ReceiveAddressUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ReceiveAddress.
+func (c *ReceiveAddressClient) Delete() *ReceiveAddressDelete {
+	mutation := newReceiveAddressMutation(c.config, OpDelete)
+	return &ReceiveAddressDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ReceiveAddressClient) DeleteOne(ra *ReceiveAddress) *ReceiveAddressDeleteOne {
+	return c.DeleteOneID(ra.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ReceiveAddressClient) DeleteOneID(id int) *ReceiveAddressDeleteOne {
+	builder := c.Delete().Where(receiveaddress.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ReceiveAddressDeleteOne{builder}
+}
+
+// Query returns a query builder for ReceiveAddress.
+func (c *ReceiveAddressClient) Query() *ReceiveAddressQuery {
+	return &ReceiveAddressQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeReceiveAddress},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ReceiveAddress entity by its id.
+func (c *ReceiveAddressClient) Get(ctx context.Context, id int) (*ReceiveAddress, error) {
+	return c.Query().Where(receiveaddress.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ReceiveAddressClient) GetX(ctx context.Context, id int) *ReceiveAddress {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *ReceiveAddressClient) Hooks() []Hook {
+	return c.hooks.ReceiveAddress
+}
+
+// Interceptors returns the client interceptors.
+func (c *ReceiveAddressClient) Interceptors() []Interceptor {
+	return c.inters.ReceiveAddress
+}
+
+func (c *ReceiveAddressClient) mutate(ctx context.Context, m *ReceiveAddressMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ReceiveAddressCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ReceiveAddressUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ReceiveAddressUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ReceiveAddressDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown ReceiveAddress mutation op: %q", m.Op())
+	}
+}
+
 // UserClient is a client for the User schema.
 type UserClient struct {
 	config
@@ -1112,10 +1238,10 @@ func (c *UserClient) mutate(ctx context.Context, m *UserMutation) (Value, error)
 type (
 	hooks struct {
 		APIKey, ProviderAvailability, ProviderOrderToken, ProviderOrderTokenAddress,
-		ProviderProfile, User []ent.Hook
+		ProviderProfile, ReceiveAddress, User []ent.Hook
 	}
 	inters struct {
 		APIKey, ProviderAvailability, ProviderOrderToken, ProviderOrderTokenAddress,
-		ProviderProfile, User []ent.Interceptor
+		ProviderProfile, ReceiveAddress, User []ent.Interceptor
 	}
 )

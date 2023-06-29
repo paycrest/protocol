@@ -27,7 +27,7 @@ func (pad *ProviderAvailabilityDelete) Where(ps ...predicate.ProviderAvailabilit
 
 // Exec executes the deletion query and returns how many vertices were deleted.
 func (pad *ProviderAvailabilityDelete) Exec(ctx context.Context) (int, error) {
-	return withHooks[int, ProviderAvailabilityMutation](ctx, pad.sqlExec, pad.mutation, pad.hooks)
+	return withHooks(ctx, pad.sqlExec, pad.mutation, pad.hooks)
 }
 
 // ExecX is like Exec, but panics if an error occurs.

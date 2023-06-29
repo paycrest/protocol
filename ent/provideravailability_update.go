@@ -79,7 +79,7 @@ func (pau *ProviderAvailabilityUpdate) ClearProvider() *ProviderAvailabilityUpda
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (pau *ProviderAvailabilityUpdate) Save(ctx context.Context) (int, error) {
-	return withHooks[int, ProviderAvailabilityMutation](ctx, pau.sqlSave, pau.mutation, pau.hooks)
+	return withHooks(ctx, pau.sqlSave, pau.mutation, pau.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
@@ -247,7 +247,7 @@ func (pauo *ProviderAvailabilityUpdateOne) Select(field string, fields ...string
 
 // Save executes the query and returns the updated ProviderAvailability entity.
 func (pauo *ProviderAvailabilityUpdateOne) Save(ctx context.Context) (*ProviderAvailability, error) {
-	return withHooks[*ProviderAvailability, ProviderAvailabilityMutation](ctx, pauo.sqlSave, pauo.mutation, pauo.hooks)
+	return withHooks(ctx, pauo.sqlSave, pauo.mutation, pauo.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.

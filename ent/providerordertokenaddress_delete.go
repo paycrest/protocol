@@ -27,7 +27,7 @@ func (potad *ProviderOrderTokenAddressDelete) Where(ps ...predicate.ProviderOrde
 
 // Exec executes the deletion query and returns how many vertices were deleted.
 func (potad *ProviderOrderTokenAddressDelete) Exec(ctx context.Context) (int, error) {
-	return withHooks[int, ProviderOrderTokenAddressMutation](ctx, potad.sqlExec, potad.mutation, potad.hooks)
+	return withHooks(ctx, potad.sqlExec, potad.mutation, potad.hooks)
 }
 
 // ExecX is like Exec, but panics if an error occurs.

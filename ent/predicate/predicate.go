@@ -21,5 +21,8 @@ type ProviderOrderTokenAddress func(*sql.Selector)
 // ProviderProfile is the predicate function for providerprofile builders.
 type ProviderProfile func(*sql.Selector)
 
+// ReceiveAddress is the predicate function for receiveaddress builders.
+type ReceiveAddress func(*sql.Selector)
+
 // User is the predicate function for user builders.
 type User func(*sql.Selector)

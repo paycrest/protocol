@@ -139,6 +139,22 @@ var (
 			},
 		},
 	}
+	// ReceiveAddressesColumns holds the columns for the "receive_addresses" table.
+	ReceiveAddressesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "address", Type: field.TypeString, Unique: true},
+		{Name: "account_index", Type: field.TypeInt},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"unused", "partial", "used", "expired"}, Default: "unused"},
+		{Name: "last_used", Type: field.TypeTime, Nullable: true},
+	}
+	// ReceiveAddressesTable holds the schema information for the "receive_addresses" table.
+	ReceiveAddressesTable = &schema.Table{
+		Name:       "receive_addresses",
+		Columns:    ReceiveAddressesColumns,
+		PrimaryKey: []*schema.Column{ReceiveAddressesColumns[0]},
+	}
 	// UsersColumns holds the columns for the "users" table.
 	UsersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -163,6 +179,7 @@ var (
 		ProviderOrderTokensTable,
 		ProviderOrderTokenAddressesTable,
 		ProviderProfilesTable,
+		ReceiveAddressesTable,
 		UsersTable,
 	}
 )

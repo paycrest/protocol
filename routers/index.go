@@ -41,7 +41,7 @@ func senderRoutes(route *gin.Engine) {
 	var ctrl sender.Controller
 
 	v1 := route.Group("/v1/sender/")
-	v1.Use(middleware.HMACVerificationMiddleware)
+	// v1.Use(middleware.HMACVerificationMiddleware)
 
 	v1.POST("orders/", ctrl.CreateOrder)
 	v1.GET("orders/:id", ctrl.GetOrderByID)

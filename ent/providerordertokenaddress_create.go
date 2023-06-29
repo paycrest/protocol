@@ -58,7 +58,7 @@ func (potac *ProviderOrderTokenAddressCreate) Mutation() *ProviderOrderTokenAddr
 
 // Save creates the ProviderOrderTokenAddress in the database.
 func (potac *ProviderOrderTokenAddressCreate) Save(ctx context.Context) (*ProviderOrderTokenAddress, error) {
-	return withHooks[*ProviderOrderTokenAddress, ProviderOrderTokenAddressMutation](ctx, potac.sqlSave, potac.mutation, potac.hooks)
+	return withHooks(ctx, potac.sqlSave, potac.mutation, potac.hooks)
 }
 
 // SaveX calls Save and panics if Save returns an error.

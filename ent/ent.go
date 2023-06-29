@@ -17,6 +17,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/providerordertoken"
 	"github.com/paycrest/paycrest-protocol/ent/providerordertokenaddress"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
+	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
 	"github.com/paycrest/paycrest-protocol/ent/user"
 )
 
@@ -83,6 +84,7 @@ func checkColumn(table, column string) error {
 			providerordertoken.Table:        providerordertoken.ValidColumn,
 			providerordertokenaddress.Table: providerordertokenaddress.ValidColumn,
 			providerprofile.Table:           providerprofile.ValidColumn,
+			receiveaddress.Table:            receiveaddress.ValidColumn,
 			user.Table:                      user.ValidColumn,
 		})
 	})

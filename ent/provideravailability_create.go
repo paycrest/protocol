@@ -65,7 +65,7 @@ func (pac *ProviderAvailabilityCreate) Mutation() *ProviderAvailabilityMutation 
 
 // Save creates the ProviderAvailability in the database.
 func (pac *ProviderAvailabilityCreate) Save(ctx context.Context) (*ProviderAvailability, error) {
-	return withHooks[*ProviderAvailability, ProviderAvailabilityMutation](ctx, pac.sqlSave, pac.mutation, pac.hooks)
+	return withHooks(ctx, pac.sqlSave, pac.mutation, pac.hooks)
 }
 
 // SaveX calls Save and panics if Save returns an error.

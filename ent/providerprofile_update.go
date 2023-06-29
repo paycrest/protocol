@@ -155,7 +155,7 @@ func (ppu *ProviderProfileUpdate) RemoveAvailability(p ...*ProviderAvailability)
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (ppu *ProviderProfileUpdate) Save(ctx context.Context) (int, error) {
 	ppu.defaults()
-	return withHooks[int, ProviderProfileMutation](ctx, ppu.sqlSave, ppu.mutation, ppu.hooks)
+	return withHooks(ctx, ppu.sqlSave, ppu.mutation, ppu.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
@@ -499,7 +499,7 @@ func (ppuo *ProviderProfileUpdateOne) Select(field string, fields ...string) *Pr
 // Save executes the query and returns the updated ProviderProfile entity.
 func (ppuo *ProviderProfileUpdateOne) Save(ctx context.Context) (*ProviderProfile, error) {
 	ppuo.defaults()
-	return withHooks[*ProviderProfile, ProviderProfileMutation](ctx, ppuo.sqlSave, ppuo.mutation, ppuo.hooks)
+	return withHooks(ctx, ppuo.sqlSave, ppuo.mutation, ppuo.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.

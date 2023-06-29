@@ -27,7 +27,7 @@ func (ppd *ProviderProfileDelete) Where(ps ...predicate.ProviderProfile) *Provid
 
 // Exec executes the deletion query and returns how many vertices were deleted.
 func (ppd *ProviderProfileDelete) Exec(ctx context.Context) (int, error) {
-	return withHooks[int, ProviderProfileMutation](ctx, ppd.sqlExec, ppd.mutation, ppd.hooks)
+	return withHooks(ctx, ppd.sqlExec, ppd.mutation, ppd.hooks)
 }
 
 // ExecX is like Exec, but panics if an error occurs.

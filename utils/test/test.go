@@ -11,12 +11,14 @@ import (
 )
 
 // PerformRequest performs a http request with the given method, path, and payload
-func PerformRequest(t *testing.T, method string, path string, payload interface{}, auth *string, router *gin.Engine) (*httptest.ResponseRecorder, error) {
+func PerformRequest(t *testing.T, method string, path string, payload interface{}, headers map[string]string, router *gin.Engine) (*httptest.ResponseRecorder, error) {
 	req, _ := getRequest(t, method, path, payload, router)
 
-	if auth != nil {
-		req.Header.Set("Authorization", "Bearer "+*auth)
+	// Set headers
+	for key, value := range headers {
+		req.Header.Set(key, value)
 	}
+
 	res := httptest.NewRecorder()
 	router.ServeHTTP(res, req)
 	return res, nil

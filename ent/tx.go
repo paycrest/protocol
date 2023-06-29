@@ -22,6 +22,8 @@ type Tx struct {
 	ProviderOrderTokenAddress *ProviderOrderTokenAddressClient
 	// ProviderProfile is the client for interacting with the ProviderProfile builders.
 	ProviderProfile *ProviderProfileClient
+	// ReceiveAddress is the client for interacting with the ReceiveAddress builders.
+	ReceiveAddress *ReceiveAddressClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
 
@@ -160,6 +162,7 @@ func (tx *Tx) init() {
 	tx.ProviderOrderToken = NewProviderOrderTokenClient(tx.config)
 	tx.ProviderOrderTokenAddress = NewProviderOrderTokenAddressClient(tx.config)
 	tx.ProviderProfile = NewProviderProfileClient(tx.config)
+	tx.ReceiveAddress = NewReceiveAddressClient(tx.config)
 	tx.User = NewUserClient(tx.config)
 }
 

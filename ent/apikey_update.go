@@ -103,7 +103,7 @@ func (aku *APIKeyUpdate) RemoveProviderProfile(p ...*ProviderProfile) *APIKeyUpd
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (aku *APIKeyUpdate) Save(ctx context.Context) (int, error) {
-	return withHooks[int, APIKeyMutation](ctx, aku.sqlSave, aku.mutation, aku.hooks)
+	return withHooks(ctx, aku.sqlSave, aku.mutation, aku.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
@@ -320,7 +320,7 @@ func (akuo *APIKeyUpdateOne) Select(field string, fields ...string) *APIKeyUpdat
 
 // Save executes the query and returns the updated APIKey entity.
 func (akuo *APIKeyUpdateOne) Save(ctx context.Context) (*APIKey, error) {
-	return withHooks[*APIKey, APIKeyMutation](ctx, akuo.sqlSave, akuo.mutation, akuo.hooks)
+	return withHooks(ctx, akuo.sqlSave, akuo.mutation, akuo.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.

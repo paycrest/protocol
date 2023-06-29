@@ -135,7 +135,7 @@ func (ppc *ProviderProfileCreate) Mutation() *ProviderProfileMutation {
 // Save creates the ProviderProfile in the database.
 func (ppc *ProviderProfileCreate) Save(ctx context.Context) (*ProviderProfile, error) {
 	ppc.defaults()
-	return withHooks[*ProviderProfile, ProviderProfileMutation](ctx, ppc.sqlSave, ppc.mutation, ppc.hooks)
+	return withHooks(ctx, ppc.sqlSave, ppc.mutation, ppc.hooks)
 }
 
 // SaveX calls Save and panics if Save returns an error.

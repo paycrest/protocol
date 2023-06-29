@@ -63,34 +63,34 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 	}
 
 	// Create a provider API Key and profile in the background
+	// TODO: Replace provider with a UUID environment variable
 	if appID := ctx.GetHeader("X-App-ID"); appID == "provider" {
-		go func() {
-			apiKeyService := svc.NewAPIKeyService(db.Client)
+		apiKeyService := svc.NewAPIKeyService(db.Client)
 
-			apiKeyInput := svc.GenerateAPIKeyPayload{
-				Name:  "Provider API Key",
-				Scope: apikey.ScopeProvider,
-			}
+		apiKeyInput := svc.GenerateAPIKeyPayload{
+			Name:  payload.TradingName + " API Key",
+			Scope: apikey.ScopeProvider,
+		}
 
-			// Generate the API key using the service
-			_, _, err := apiKeyService.GenerateAPIKey(ctx, user.ID, apiKeyInput)
-			if err != nil {
-				logger.Errorf("error: %v", err)
-				return
-			}
+		// Generate the API key using the service
+		apiKey, _, err := apiKeyService.GenerateAPIKey(ctx, user.ID, apiKeyInput)
+		if err != nil {
+			logger.Errorf("error: %v", err)
+			return
+		}
 
-			// Create a provider profile
-			_, err = db.Client.ProviderProfile.
-				Create().
-				SetTradingName(payload.TradingName).
-				SetCountry(payload.Country).
-				Save(ctx)
+		// Create a provider profile
+		_, err = db.Client.ProviderProfile.
+			Create().
+			SetTradingName(payload.TradingName).
+			SetCountry(payload.Country).
+			SetAPIKey(apiKey).
+			Save(ctx)
 
-			if err != nil {
-				logger.Errorf("error: %v", err)
-				return
-			}
-		}()
+		if err != nil {
+			logger.Errorf("error: %v", err)
+			return
+		}
 	}
 
 	// TODO: Send email to verify the user's email address

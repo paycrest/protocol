@@ -156,7 +156,7 @@ func (potu *ProviderOrderTokenUpdate) RemoveAddresses(p ...*ProviderOrderTokenAd
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (potu *ProviderOrderTokenUpdate) Save(ctx context.Context) (int, error) {
 	potu.defaults()
-	return withHooks[int, ProviderOrderTokenMutation](ctx, potu.sqlSave, potu.mutation, potu.hooks)
+	return withHooks(ctx, potu.sqlSave, potu.mutation, potu.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
@@ -475,7 +475,7 @@ func (potuo *ProviderOrderTokenUpdateOne) Select(field string, fields ...string)
 // Save executes the query and returns the updated ProviderOrderToken entity.
 func (potuo *ProviderOrderTokenUpdateOne) Save(ctx context.Context) (*ProviderOrderToken, error) {
 	potuo.defaults()
-	return withHooks[*ProviderOrderToken, ProviderOrderTokenMutation](ctx, potuo.sqlSave, potuo.mutation, potuo.hooks)
+	return withHooks(ctx, potuo.sqlSave, potuo.mutation, potuo.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
