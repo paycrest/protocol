@@ -3,6 +3,8 @@
 package receiveaddress
 
 import (
+	"time"
+
 	"entgo.io/ent/dialect/sql"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
 )
@@ -52,6 +54,16 @@ func IDLTE(id int) predicate.ReceiveAddress {
 	return predicate.ReceiveAddress(sql.FieldLTE(FieldID, id))
 }
 
+// CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
+func CreatedAt(v time.Time) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldEQ(FieldCreatedAt, v))
+}
+
+// UpdatedAt applies equality check predicate on the "updated_at" field. It's identical to UpdatedAtEQ.
+func UpdatedAt(v time.Time) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldEQ(FieldUpdatedAt, v))
+}
+
 // Address applies equality check predicate on the "address" field. It's identical to AddressEQ.
 func Address(v string) predicate.ReceiveAddress {
 	return predicate.ReceiveAddress(sql.FieldEQ(FieldAddress, v))
@@ -60,6 +72,91 @@ func Address(v string) predicate.ReceiveAddress {
 // AccountIndex applies equality check predicate on the "accountIndex" field. It's identical to AccountIndexEQ.
 func AccountIndex(v int) predicate.ReceiveAddress {
 	return predicate.ReceiveAddress(sql.FieldEQ(FieldAccountIndex, v))
+}
+
+// LastUsed applies equality check predicate on the "last_used" field. It's identical to LastUsedEQ.
+func LastUsed(v time.Time) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldEQ(FieldLastUsed, v))
+}
+
+// CreatedAtEQ applies the EQ predicate on the "created_at" field.
+func CreatedAtEQ(v time.Time) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldEQ(FieldCreatedAt, v))
+}
+
+// CreatedAtNEQ applies the NEQ predicate on the "created_at" field.
+func CreatedAtNEQ(v time.Time) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldNEQ(FieldCreatedAt, v))
+}
+
+// CreatedAtIn applies the In predicate on the "created_at" field.
+func CreatedAtIn(vs ...time.Time) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldIn(FieldCreatedAt, vs...))
+}
+
+// CreatedAtNotIn applies the NotIn predicate on the "created_at" field.
+func CreatedAtNotIn(vs ...time.Time) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldNotIn(FieldCreatedAt, vs...))
+}
+
+// CreatedAtGT applies the GT predicate on the "created_at" field.
+func CreatedAtGT(v time.Time) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldGT(FieldCreatedAt, v))
+}
+
+// CreatedAtGTE applies the GTE predicate on the "created_at" field.
+func CreatedAtGTE(v time.Time) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldGTE(FieldCreatedAt, v))
+}
+
+// CreatedAtLT applies the LT predicate on the "created_at" field.
+func CreatedAtLT(v time.Time) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldLT(FieldCreatedAt, v))
+}
+
+// CreatedAtLTE applies the LTE predicate on the "created_at" field.
+func CreatedAtLTE(v time.Time) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldLTE(FieldCreatedAt, v))
+}
+
+// UpdatedAtEQ applies the EQ predicate on the "updated_at" field.
+func UpdatedAtEQ(v time.Time) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldEQ(FieldUpdatedAt, v))
+}
+
+// UpdatedAtNEQ applies the NEQ predicate on the "updated_at" field.
+func UpdatedAtNEQ(v time.Time) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldNEQ(FieldUpdatedAt, v))
+}
+
+// UpdatedAtIn applies the In predicate on the "updated_at" field.
+func UpdatedAtIn(vs ...time.Time) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldIn(FieldUpdatedAt, vs...))
+}
+
+// UpdatedAtNotIn applies the NotIn predicate on the "updated_at" field.
+func UpdatedAtNotIn(vs ...time.Time) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldNotIn(FieldUpdatedAt, vs...))
+}
+
+// UpdatedAtGT applies the GT predicate on the "updated_at" field.
+func UpdatedAtGT(v time.Time) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldGT(FieldUpdatedAt, v))
+}
+
+// UpdatedAtGTE applies the GTE predicate on the "updated_at" field.
+func UpdatedAtGTE(v time.Time) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldGTE(FieldUpdatedAt, v))
+}
+
+// UpdatedAtLT applies the LT predicate on the "updated_at" field.
+func UpdatedAtLT(v time.Time) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldLT(FieldUpdatedAt, v))
+}
+
+// UpdatedAtLTE applies the LTE predicate on the "updated_at" field.
+func UpdatedAtLTE(v time.Time) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldLTE(FieldUpdatedAt, v))
 }
 
 // AddressEQ applies the EQ predicate on the "address" field.
@@ -185,6 +282,56 @@ func StatusIn(vs ...Status) predicate.ReceiveAddress {
 // StatusNotIn applies the NotIn predicate on the "status" field.
 func StatusNotIn(vs ...Status) predicate.ReceiveAddress {
 	return predicate.ReceiveAddress(sql.FieldNotIn(FieldStatus, vs...))
+}
+
+// LastUsedEQ applies the EQ predicate on the "last_used" field.
+func LastUsedEQ(v time.Time) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldEQ(FieldLastUsed, v))
+}
+
+// LastUsedNEQ applies the NEQ predicate on the "last_used" field.
+func LastUsedNEQ(v time.Time) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldNEQ(FieldLastUsed, v))
+}
+
+// LastUsedIn applies the In predicate on the "last_used" field.
+func LastUsedIn(vs ...time.Time) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldIn(FieldLastUsed, vs...))
+}
+
+// LastUsedNotIn applies the NotIn predicate on the "last_used" field.
+func LastUsedNotIn(vs ...time.Time) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldNotIn(FieldLastUsed, vs...))
+}
+
+// LastUsedGT applies the GT predicate on the "last_used" field.
+func LastUsedGT(v time.Time) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldGT(FieldLastUsed, v))
+}
+
+// LastUsedGTE applies the GTE predicate on the "last_used" field.
+func LastUsedGTE(v time.Time) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldGTE(FieldLastUsed, v))
+}
+
+// LastUsedLT applies the LT predicate on the "last_used" field.
+func LastUsedLT(v time.Time) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldLT(FieldLastUsed, v))
+}
+
+// LastUsedLTE applies the LTE predicate on the "last_used" field.
+func LastUsedLTE(v time.Time) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldLTE(FieldLastUsed, v))
+}
+
+// LastUsedIsNil applies the IsNil predicate on the "last_used" field.
+func LastUsedIsNil() predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldIsNull(FieldLastUsed))
+}
+
+// LastUsedNotNil applies the NotNil predicate on the "last_used" field.
+func LastUsedNotNil() predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldNotNull(FieldLastUsed))
 }
 
 // And groups predicates with the AND operator between them.

@@ -10,14 +10,20 @@ type ReceiveAddress struct {
 	ent.Schema
 }
 
+// Mixin of the ReceiveAddress.
+func (ReceiveAddress) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		TimeMixin{},
+	}
+}
+
 // Fields of the ReceiveAddress.
 func (ReceiveAddress) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("address").Unique(),
 		field.Int("accountIndex"),
-		field.Enum("status").Values("active", "inactive").Default("active"),
-		// TODO: add timestamps from mixin
-		// TODO: add "last_used" datetime
+		field.Enum("status").Values("unused", "partial", "used", "expired").Default("unused"),
+		field.Time("last_used").Optional(),
 	}
 }
 

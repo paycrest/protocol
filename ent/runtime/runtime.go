@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
+	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
 	"github.com/paycrest/paycrest-protocol/ent/schema"
 	"github.com/paycrest/paycrest-protocol/ent/user"
 )
@@ -33,8 +34,21 @@ func init() {
 	apikeyDescID := apikeyFields[0].Descriptor()
 	// apikey.DefaultID holds the default value on creation for the id field.
 	apikey.DefaultID = apikeyDescID.Default.(func() uuid.UUID)
+	receiveaddressMixin := schema.ReceiveAddress{}.Mixin()
+	receiveaddressMixinFields0 := receiveaddressMixin[0].Fields()
+	_ = receiveaddressMixinFields0
 	receiveaddressFields := schema.ReceiveAddress{}.Fields()
 	_ = receiveaddressFields
+	// receiveaddressDescCreatedAt is the schema descriptor for created_at field.
+	receiveaddressDescCreatedAt := receiveaddressMixinFields0[0].Descriptor()
+	// receiveaddress.DefaultCreatedAt holds the default value on creation for the created_at field.
+	receiveaddress.DefaultCreatedAt = receiveaddressDescCreatedAt.Default.(func() time.Time)
+	// receiveaddressDescUpdatedAt is the schema descriptor for updated_at field.
+	receiveaddressDescUpdatedAt := receiveaddressMixinFields0[1].Descriptor()
+	// receiveaddress.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	receiveaddress.DefaultUpdatedAt = receiveaddressDescUpdatedAt.Default.(func() time.Time)
+	// receiveaddress.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	receiveaddress.UpdateDefaultUpdatedAt = receiveaddressDescUpdatedAt.UpdateDefault.(func() time.Time)
 	userMixin := schema.User{}.Mixin()
 	userHooks := schema.User{}.Hooks()
 	user.Hooks[0] = userHooks[0]

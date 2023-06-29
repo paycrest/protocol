@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -24,6 +25,12 @@ type ReceiveAddressUpdate struct {
 // Where appends a list predicates to the ReceiveAddressUpdate builder.
 func (rau *ReceiveAddressUpdate) Where(ps ...predicate.ReceiveAddress) *ReceiveAddressUpdate {
 	rau.mutation.Where(ps...)
+	return rau
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (rau *ReceiveAddressUpdate) SetUpdatedAt(t time.Time) *ReceiveAddressUpdate {
+	rau.mutation.SetUpdatedAt(t)
 	return rau
 }
 
@@ -60,6 +67,26 @@ func (rau *ReceiveAddressUpdate) SetNillableStatus(r *receiveaddress.Status) *Re
 	return rau
 }
 
+// SetLastUsed sets the "last_used" field.
+func (rau *ReceiveAddressUpdate) SetLastUsed(t time.Time) *ReceiveAddressUpdate {
+	rau.mutation.SetLastUsed(t)
+	return rau
+}
+
+// SetNillableLastUsed sets the "last_used" field if the given value is not nil.
+func (rau *ReceiveAddressUpdate) SetNillableLastUsed(t *time.Time) *ReceiveAddressUpdate {
+	if t != nil {
+		rau.SetLastUsed(*t)
+	}
+	return rau
+}
+
+// ClearLastUsed clears the value of the "last_used" field.
+func (rau *ReceiveAddressUpdate) ClearLastUsed() *ReceiveAddressUpdate {
+	rau.mutation.ClearLastUsed()
+	return rau
+}
+
 // Mutation returns the ReceiveAddressMutation object of the builder.
 func (rau *ReceiveAddressUpdate) Mutation() *ReceiveAddressMutation {
 	return rau.mutation
@@ -67,6 +94,7 @@ func (rau *ReceiveAddressUpdate) Mutation() *ReceiveAddressMutation {
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (rau *ReceiveAddressUpdate) Save(ctx context.Context) (int, error) {
+	rau.defaults()
 	return withHooks(ctx, rau.sqlSave, rau.mutation, rau.hooks)
 }
 
@@ -92,6 +120,14 @@ func (rau *ReceiveAddressUpdate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (rau *ReceiveAddressUpdate) defaults() {
+	if _, ok := rau.mutation.UpdatedAt(); !ok {
+		v := receiveaddress.UpdateDefaultUpdatedAt()
+		rau.mutation.SetUpdatedAt(v)
+	}
+}
+
 // check runs all checks and user-defined validators on the builder.
 func (rau *ReceiveAddressUpdate) check() error {
 	if v, ok := rau.mutation.Status(); ok {
@@ -114,6 +150,9 @@ func (rau *ReceiveAddressUpdate) sqlSave(ctx context.Context) (n int, err error)
 			}
 		}
 	}
+	if value, ok := rau.mutation.UpdatedAt(); ok {
+		_spec.SetField(receiveaddress.FieldUpdatedAt, field.TypeTime, value)
+	}
 	if value, ok := rau.mutation.Address(); ok {
 		_spec.SetField(receiveaddress.FieldAddress, field.TypeString, value)
 	}
@@ -125,6 +164,12 @@ func (rau *ReceiveAddressUpdate) sqlSave(ctx context.Context) (n int, err error)
 	}
 	if value, ok := rau.mutation.Status(); ok {
 		_spec.SetField(receiveaddress.FieldStatus, field.TypeEnum, value)
+	}
+	if value, ok := rau.mutation.LastUsed(); ok {
+		_spec.SetField(receiveaddress.FieldLastUsed, field.TypeTime, value)
+	}
+	if rau.mutation.LastUsedCleared() {
+		_spec.ClearField(receiveaddress.FieldLastUsed, field.TypeTime)
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, rau.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -144,6 +189,12 @@ type ReceiveAddressUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *ReceiveAddressMutation
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (rauo *ReceiveAddressUpdateOne) SetUpdatedAt(t time.Time) *ReceiveAddressUpdateOne {
+	rauo.mutation.SetUpdatedAt(t)
+	return rauo
 }
 
 // SetAddress sets the "address" field.
@@ -179,6 +230,26 @@ func (rauo *ReceiveAddressUpdateOne) SetNillableStatus(r *receiveaddress.Status)
 	return rauo
 }
 
+// SetLastUsed sets the "last_used" field.
+func (rauo *ReceiveAddressUpdateOne) SetLastUsed(t time.Time) *ReceiveAddressUpdateOne {
+	rauo.mutation.SetLastUsed(t)
+	return rauo
+}
+
+// SetNillableLastUsed sets the "last_used" field if the given value is not nil.
+func (rauo *ReceiveAddressUpdateOne) SetNillableLastUsed(t *time.Time) *ReceiveAddressUpdateOne {
+	if t != nil {
+		rauo.SetLastUsed(*t)
+	}
+	return rauo
+}
+
+// ClearLastUsed clears the value of the "last_used" field.
+func (rauo *ReceiveAddressUpdateOne) ClearLastUsed() *ReceiveAddressUpdateOne {
+	rauo.mutation.ClearLastUsed()
+	return rauo
+}
+
 // Mutation returns the ReceiveAddressMutation object of the builder.
 func (rauo *ReceiveAddressUpdateOne) Mutation() *ReceiveAddressMutation {
 	return rauo.mutation
@@ -199,6 +270,7 @@ func (rauo *ReceiveAddressUpdateOne) Select(field string, fields ...string) *Rec
 
 // Save executes the query and returns the updated ReceiveAddress entity.
 func (rauo *ReceiveAddressUpdateOne) Save(ctx context.Context) (*ReceiveAddress, error) {
+	rauo.defaults()
 	return withHooks(ctx, rauo.sqlSave, rauo.mutation, rauo.hooks)
 }
 
@@ -221,6 +293,14 @@ func (rauo *ReceiveAddressUpdateOne) Exec(ctx context.Context) error {
 func (rauo *ReceiveAddressUpdateOne) ExecX(ctx context.Context) {
 	if err := rauo.Exec(ctx); err != nil {
 		panic(err)
+	}
+}
+
+// defaults sets the default values of the builder before save.
+func (rauo *ReceiveAddressUpdateOne) defaults() {
+	if _, ok := rauo.mutation.UpdatedAt(); !ok {
+		v := receiveaddress.UpdateDefaultUpdatedAt()
+		rauo.mutation.SetUpdatedAt(v)
 	}
 }
 
@@ -263,6 +343,9 @@ func (rauo *ReceiveAddressUpdateOne) sqlSave(ctx context.Context) (_node *Receiv
 			}
 		}
 	}
+	if value, ok := rauo.mutation.UpdatedAt(); ok {
+		_spec.SetField(receiveaddress.FieldUpdatedAt, field.TypeTime, value)
+	}
 	if value, ok := rauo.mutation.Address(); ok {
 		_spec.SetField(receiveaddress.FieldAddress, field.TypeString, value)
 	}
@@ -274,6 +357,12 @@ func (rauo *ReceiveAddressUpdateOne) sqlSave(ctx context.Context) (_node *Receiv
 	}
 	if value, ok := rauo.mutation.Status(); ok {
 		_spec.SetField(receiveaddress.FieldStatus, field.TypeEnum, value)
+	}
+	if value, ok := rauo.mutation.LastUsed(); ok {
+		_spec.SetField(receiveaddress.FieldLastUsed, field.TypeTime, value)
+	}
+	if rauo.mutation.LastUsedCleared() {
+		_spec.ClearField(receiveaddress.FieldLastUsed, field.TypeTime)
 	}
 	_node = &ReceiveAddress{config: rauo.config}
 	_spec.Assign = _node.assignValues

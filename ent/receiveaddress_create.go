@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
@@ -17,6 +18,34 @@ type ReceiveAddressCreate struct {
 	config
 	mutation *ReceiveAddressMutation
 	hooks    []Hook
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (rac *ReceiveAddressCreate) SetCreatedAt(t time.Time) *ReceiveAddressCreate {
+	rac.mutation.SetCreatedAt(t)
+	return rac
+}
+
+// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
+func (rac *ReceiveAddressCreate) SetNillableCreatedAt(t *time.Time) *ReceiveAddressCreate {
+	if t != nil {
+		rac.SetCreatedAt(*t)
+	}
+	return rac
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (rac *ReceiveAddressCreate) SetUpdatedAt(t time.Time) *ReceiveAddressCreate {
+	rac.mutation.SetUpdatedAt(t)
+	return rac
+}
+
+// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
+func (rac *ReceiveAddressCreate) SetNillableUpdatedAt(t *time.Time) *ReceiveAddressCreate {
+	if t != nil {
+		rac.SetUpdatedAt(*t)
+	}
+	return rac
 }
 
 // SetAddress sets the "address" field.
@@ -41,6 +70,20 @@ func (rac *ReceiveAddressCreate) SetStatus(r receiveaddress.Status) *ReceiveAddr
 func (rac *ReceiveAddressCreate) SetNillableStatus(r *receiveaddress.Status) *ReceiveAddressCreate {
 	if r != nil {
 		rac.SetStatus(*r)
+	}
+	return rac
+}
+
+// SetLastUsed sets the "last_used" field.
+func (rac *ReceiveAddressCreate) SetLastUsed(t time.Time) *ReceiveAddressCreate {
+	rac.mutation.SetLastUsed(t)
+	return rac
+}
+
+// SetNillableLastUsed sets the "last_used" field if the given value is not nil.
+func (rac *ReceiveAddressCreate) SetNillableLastUsed(t *time.Time) *ReceiveAddressCreate {
+	if t != nil {
+		rac.SetLastUsed(*t)
 	}
 	return rac
 }
@@ -80,6 +123,14 @@ func (rac *ReceiveAddressCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (rac *ReceiveAddressCreate) defaults() {
+	if _, ok := rac.mutation.CreatedAt(); !ok {
+		v := receiveaddress.DefaultCreatedAt()
+		rac.mutation.SetCreatedAt(v)
+	}
+	if _, ok := rac.mutation.UpdatedAt(); !ok {
+		v := receiveaddress.DefaultUpdatedAt()
+		rac.mutation.SetUpdatedAt(v)
+	}
 	if _, ok := rac.mutation.Status(); !ok {
 		v := receiveaddress.DefaultStatus
 		rac.mutation.SetStatus(v)
@@ -88,6 +139,12 @@ func (rac *ReceiveAddressCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (rac *ReceiveAddressCreate) check() error {
+	if _, ok := rac.mutation.CreatedAt(); !ok {
+		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "ReceiveAddress.created_at"`)}
+	}
+	if _, ok := rac.mutation.UpdatedAt(); !ok {
+		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "ReceiveAddress.updated_at"`)}
+	}
 	if _, ok := rac.mutation.Address(); !ok {
 		return &ValidationError{Name: "address", err: errors.New(`ent: missing required field "ReceiveAddress.address"`)}
 	}
@@ -128,6 +185,14 @@ func (rac *ReceiveAddressCreate) createSpec() (*ReceiveAddress, *sqlgraph.Create
 		_node = &ReceiveAddress{config: rac.config}
 		_spec = sqlgraph.NewCreateSpec(receiveaddress.Table, sqlgraph.NewFieldSpec(receiveaddress.FieldID, field.TypeInt))
 	)
+	if value, ok := rac.mutation.CreatedAt(); ok {
+		_spec.SetField(receiveaddress.FieldCreatedAt, field.TypeTime, value)
+		_node.CreatedAt = value
+	}
+	if value, ok := rac.mutation.UpdatedAt(); ok {
+		_spec.SetField(receiveaddress.FieldUpdatedAt, field.TypeTime, value)
+		_node.UpdatedAt = value
+	}
 	if value, ok := rac.mutation.Address(); ok {
 		_spec.SetField(receiveaddress.FieldAddress, field.TypeString, value)
 		_node.Address = value
@@ -139,6 +204,10 @@ func (rac *ReceiveAddressCreate) createSpec() (*ReceiveAddress, *sqlgraph.Create
 	if value, ok := rac.mutation.Status(); ok {
 		_spec.SetField(receiveaddress.FieldStatus, field.TypeEnum, value)
 		_node.Status = value
+	}
+	if value, ok := rac.mutation.LastUsed(); ok {
+		_spec.SetField(receiveaddress.FieldLastUsed, field.TypeTime, value)
+		_node.LastUsed = value
 	}
 	return _node, _spec
 }

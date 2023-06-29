@@ -261,12 +261,12 @@ func (raq *ReceiveAddressQuery) Clone() *ReceiveAddressQuery {
 // Example:
 //
 //	var v []struct {
-//		Address string `json:"address,omitempty"`
+//		CreatedAt time.Time `json:"created_at,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.ReceiveAddress.Query().
-//		GroupBy(receiveaddress.FieldAddress).
+//		GroupBy(receiveaddress.FieldCreatedAt).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
 func (raq *ReceiveAddressQuery) GroupBy(field string, fields ...string) *ReceiveAddressGroupBy {
@@ -284,11 +284,11 @@ func (raq *ReceiveAddressQuery) GroupBy(field string, fields ...string) *Receive
 // Example:
 //
 //	var v []struct {
-//		Address string `json:"address,omitempty"`
+//		CreatedAt time.Time `json:"created_at,omitempty"`
 //	}
 //
 //	client.ReceiveAddress.Query().
-//		Select(receiveaddress.FieldAddress).
+//		Select(receiveaddress.FieldCreatedAt).
 //		Scan(ctx, &v)
 func (raq *ReceiveAddressQuery) Select(fields ...string) *ReceiveAddressSelect {
 	raq.ctx.Fields = append(raq.ctx.Fields, fields...)
