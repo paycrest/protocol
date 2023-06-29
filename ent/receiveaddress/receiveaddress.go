@@ -4,6 +4,7 @@ package receiveaddress
 
 import (
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 )
@@ -13,12 +14,18 @@ const (
 	Label = "receive_address"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
+	// FieldCreatedAt holds the string denoting the created_at field in the database.
+	FieldCreatedAt = "created_at"
+	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
+	FieldUpdatedAt = "updated_at"
 	// FieldAddress holds the string denoting the address field in the database.
 	FieldAddress = "address"
 	// FieldAccountIndex holds the string denoting the accountindex field in the database.
 	FieldAccountIndex = "account_index"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
+	// FieldLastUsed holds the string denoting the last_used field in the database.
+	FieldLastUsed = "last_used"
 	// Table holds the table name of the receiveaddress in the database.
 	Table = "receive_addresses"
 )
@@ -26,9 +33,12 @@ const (
 // Columns holds all SQL columns for receiveaddress fields.
 var Columns = []string{
 	FieldID,
+	FieldCreatedAt,
+	FieldUpdatedAt,
 	FieldAddress,
 	FieldAccountIndex,
 	FieldStatus,
+	FieldLastUsed,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -41,16 +51,27 @@ func ValidColumn(column string) bool {
 	return false
 }
 
+var (
+	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
+	DefaultCreatedAt func() time.Time
+	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
+	DefaultUpdatedAt func() time.Time
+	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
+	UpdateDefaultUpdatedAt func() time.Time
+)
+
 // Status defines the type for the "status" enum field.
 type Status string
 
-// StatusActive is the default value of the Status enum.
-const DefaultStatus = StatusActive
+// StatusUnused is the default value of the Status enum.
+const DefaultStatus = StatusUnused
 
 // Status values.
 const (
-	StatusActive   Status = "active"
-	StatusInactive Status = "inactive"
+	StatusUnused  Status = "unused"
+	StatusPartial Status = "partial"
+	StatusUsed    Status = "used"
+	StatusExpired Status = "expired"
 )
 
 func (s Status) String() string {
@@ -60,7 +81,7 @@ func (s Status) String() string {
 // StatusValidator is a validator for the "status" field enum values. It is called by the builders before save.
 func StatusValidator(s Status) error {
 	switch s {
-	case StatusActive, StatusInactive:
+	case StatusUnused, StatusPartial, StatusUsed, StatusExpired:
 		return nil
 	default:
 		return fmt.Errorf("receiveaddress: invalid enum value for status field: %q", s)
@@ -73,6 +94,16 @@ type OrderOption func(*sql.Selector)
 // ByID orders the results by the id field.
 func ByID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldID, opts...).ToFunc()
+}
+
+// ByCreatedAt orders the results by the created_at field.
+func ByCreatedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCreatedAt, opts...).ToFunc()
+}
+
+// ByUpdatedAt orders the results by the updated_at field.
+func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUpdatedAt, opts...).ToFunc()
 }
 
 // ByAddress orders the results by the address field.
@@ -88,4 +119,9 @@ func ByAccountIndex(opts ...sql.OrderTermOption) OrderOption {
 // ByStatus orders the results by the status field.
 func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatus, opts...).ToFunc()
+}
+
+// ByLastUsed orders the results by the last_used field.
+func ByLastUsed(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLastUsed, opts...).ToFunc()
 }

@@ -5,6 +5,7 @@ package ent
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
@@ -16,12 +17,18 @@ type ReceiveAddress struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID int `json:"id,omitempty"`
+	// CreatedAt holds the value of the "created_at" field.
+	CreatedAt time.Time `json:"created_at,omitempty"`
+	// UpdatedAt holds the value of the "updated_at" field.
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// Address holds the value of the "address" field.
 	Address string `json:"address,omitempty"`
 	// AccountIndex holds the value of the "accountIndex" field.
 	AccountIndex int `json:"accountIndex,omitempty"`
 	// Status holds the value of the "status" field.
-	Status       receiveaddress.Status `json:"status,omitempty"`
+	Status receiveaddress.Status `json:"status,omitempty"`
+	// LastUsed holds the value of the "last_used" field.
+	LastUsed     time.Time `json:"last_used,omitempty"`
 	selectValues sql.SelectValues
 }
 
@@ -34,6 +41,8 @@ func (*ReceiveAddress) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullInt64)
 		case receiveaddress.FieldAddress, receiveaddress.FieldStatus:
 			values[i] = new(sql.NullString)
+		case receiveaddress.FieldCreatedAt, receiveaddress.FieldUpdatedAt, receiveaddress.FieldLastUsed:
+			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -55,6 +64,18 @@ func (ra *ReceiveAddress) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			ra.ID = int(value.Int64)
+		case receiveaddress.FieldCreatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field created_at", values[i])
+			} else if value.Valid {
+				ra.CreatedAt = value.Time
+			}
+		case receiveaddress.FieldUpdatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
+			} else if value.Valid {
+				ra.UpdatedAt = value.Time
+			}
 		case receiveaddress.FieldAddress:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field address", values[i])
@@ -72,6 +93,12 @@ func (ra *ReceiveAddress) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field status", values[i])
 			} else if value.Valid {
 				ra.Status = receiveaddress.Status(value.String)
+			}
+		case receiveaddress.FieldLastUsed:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field last_used", values[i])
+			} else if value.Valid {
+				ra.LastUsed = value.Time
 			}
 		default:
 			ra.selectValues.Set(columns[i], values[i])
@@ -109,6 +136,12 @@ func (ra *ReceiveAddress) String() string {
 	var builder strings.Builder
 	builder.WriteString("ReceiveAddress(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", ra.ID))
+	builder.WriteString("created_at=")
+	builder.WriteString(ra.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("updated_at=")
+	builder.WriteString(ra.UpdatedAt.Format(time.ANSIC))
+	builder.WriteString(", ")
 	builder.WriteString("address=")
 	builder.WriteString(ra.Address)
 	builder.WriteString(", ")
@@ -117,6 +150,9 @@ func (ra *ReceiveAddress) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(fmt.Sprintf("%v", ra.Status))
+	builder.WriteString(", ")
+	builder.WriteString("last_used=")
+	builder.WriteString(ra.LastUsed.Format(time.ANSIC))
 	builder.WriteByte(')')
 	return builder.String()
 }

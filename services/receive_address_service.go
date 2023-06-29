@@ -19,20 +19,22 @@ func NewReceiveAddressService(db *ent.Client) *ReceiveAddressService {
 }
 
 func (s *ReceiveAddressService) GenerateAndSaveAddress(ctx context.Context) (string, error) {
-	// TODO: query db to know number of receive addresses
-	// accountIndex should be num_of_address + 1
-	accountIndex := 0
+	count, err := s.db.ReceiveAddress.
+		Query().
+		Count(ctx)
+	if err != nil {
+		return "", fmt.Errorf("failed to query receive addresses: %w", err)
+	}
 
+	// accountIndex = number of receive addresses in DB + 1
+	accountIndex := count + 1
 	address, _, err := crypto.GenerateReceiveAddress(accountIndex)
 
-	// TODO: Save the address and privateKey to the database using ent
-	// Save the address and privateKey to the database using ent
-	// statuses: unused, partial, used, expired
 	_, err = s.db.ReceiveAddress.
 		Create().
 		SetAddress(address).
 		SetAccountIndex(accountIndex).
-		SetStatus("active").
+		SetStatus("unused").
 		Save(ctx)
 	if err != nil {
 		return "", fmt.Errorf("failed to save address: %w", err)
