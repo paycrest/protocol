@@ -12,12 +12,14 @@ type ReceiveAddressService struct {
 	db *ent.Client
 }
 
+// NewReceiveAddressService creates a new instance of NewReceiveAddress.
 func NewReceiveAddressService(db *ent.Client) *ReceiveAddressService {
 	return &ReceiveAddressService{
 		db: db,
 	}
 }
 
+//GenerateAndSaveAddress func generates a new address for a user
 func (s *ReceiveAddressService) GenerateAndSaveAddress(ctx context.Context) (string, error) {
 	count, err := s.db.ReceiveAddress.
 		Query().
