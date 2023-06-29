@@ -4,6 +4,7 @@ package ent
 
 import (
 	"context"
+	"database/sql/driver"
 	"fmt"
 	"math"
 
@@ -13,18 +14,20 @@ import (
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
+	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 	"github.com/paycrest/paycrest-protocol/ent/user"
 )
 
 // APIKeyQuery is the builder for querying APIKey entities.
 type APIKeyQuery struct {
 	config
-	ctx        *QueryContext
-	order      []apikey.OrderOption
-	inters     []Interceptor
-	predicates []predicate.APIKey
-	withUser   *UserQuery
-	withFKs    bool
+	ctx                 *QueryContext
+	order               []apikey.OrderOption
+	inters              []Interceptor
+	predicates          []predicate.APIKey
+	withOwner           *UserQuery
+	withProviderProfile *ProviderProfileQuery
+	withFKs             bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -61,8 +64,8 @@ func (akq *APIKeyQuery) Order(o ...apikey.OrderOption) *APIKeyQuery {
 	return akq
 }
 
-// QueryUser chains the current query on the "user" edge.
-func (akq *APIKeyQuery) QueryUser() *UserQuery {
+// QueryOwner chains the current query on the "owner" edge.
+func (akq *APIKeyQuery) QueryOwner() *UserQuery {
 	query := (&UserClient{config: akq.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := akq.prepareQuery(ctx); err != nil {
@@ -75,7 +78,29 @@ func (akq *APIKeyQuery) QueryUser() *UserQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(apikey.Table, apikey.FieldID, selector),
 			sqlgraph.To(user.Table, user.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, apikey.UserTable, apikey.UserColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, apikey.OwnerTable, apikey.OwnerColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(akq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryProviderProfile chains the current query on the "provider_profile" edge.
+func (akq *APIKeyQuery) QueryProviderProfile() *ProviderProfileQuery {
+	query := (&ProviderProfileClient{config: akq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := akq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := akq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(apikey.Table, apikey.FieldID, selector),
+			sqlgraph.To(providerprofile.Table, providerprofile.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, apikey.ProviderProfileTable, apikey.ProviderProfileColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(akq.driver.Dialect(), step)
 		return fromU, nil
@@ -270,26 +295,38 @@ func (akq *APIKeyQuery) Clone() *APIKeyQuery {
 		return nil
 	}
 	return &APIKeyQuery{
-		config:     akq.config,
-		ctx:        akq.ctx.Clone(),
-		order:      append([]apikey.OrderOption{}, akq.order...),
-		inters:     append([]Interceptor{}, akq.inters...),
-		predicates: append([]predicate.APIKey{}, akq.predicates...),
-		withUser:   akq.withUser.Clone(),
+		config:              akq.config,
+		ctx:                 akq.ctx.Clone(),
+		order:               append([]apikey.OrderOption{}, akq.order...),
+		inters:              append([]Interceptor{}, akq.inters...),
+		predicates:          append([]predicate.APIKey{}, akq.predicates...),
+		withOwner:           akq.withOwner.Clone(),
+		withProviderProfile: akq.withProviderProfile.Clone(),
 		// clone intermediate query.
 		sql:  akq.sql.Clone(),
 		path: akq.path,
 	}
 }
 
-// WithUser tells the query-builder to eager-load the nodes that are connected to
-// the "user" edge. The optional arguments are used to configure the query builder of the edge.
-func (akq *APIKeyQuery) WithUser(opts ...func(*UserQuery)) *APIKeyQuery {
+// WithOwner tells the query-builder to eager-load the nodes that are connected to
+// the "owner" edge. The optional arguments are used to configure the query builder of the edge.
+func (akq *APIKeyQuery) WithOwner(opts ...func(*UserQuery)) *APIKeyQuery {
 	query := (&UserClient{config: akq.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	akq.withUser = query
+	akq.withOwner = query
+	return akq
+}
+
+// WithProviderProfile tells the query-builder to eager-load the nodes that are connected to
+// the "provider_profile" edge. The optional arguments are used to configure the query builder of the edge.
+func (akq *APIKeyQuery) WithProviderProfile(opts ...func(*ProviderProfileQuery)) *APIKeyQuery {
+	query := (&ProviderProfileClient{config: akq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	akq.withProviderProfile = query
 	return akq
 }
 
@@ -372,11 +409,12 @@ func (akq *APIKeyQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*APIK
 		nodes       = []*APIKey{}
 		withFKs     = akq.withFKs
 		_spec       = akq.querySpec()
-		loadedTypes = [1]bool{
-			akq.withUser != nil,
+		loadedTypes = [2]bool{
+			akq.withOwner != nil,
+			akq.withProviderProfile != nil,
 		}
 	)
-	if akq.withUser != nil {
+	if akq.withOwner != nil {
 		withFKs = true
 	}
 	if withFKs {
@@ -400,16 +438,23 @@ func (akq *APIKeyQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*APIK
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := akq.withUser; query != nil {
-		if err := akq.loadUser(ctx, query, nodes, nil,
-			func(n *APIKey, e *User) { n.Edges.User = e }); err != nil {
+	if query := akq.withOwner; query != nil {
+		if err := akq.loadOwner(ctx, query, nodes, nil,
+			func(n *APIKey, e *User) { n.Edges.Owner = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := akq.withProviderProfile; query != nil {
+		if err := akq.loadProviderProfile(ctx, query, nodes,
+			func(n *APIKey) { n.Edges.ProviderProfile = []*ProviderProfile{} },
+			func(n *APIKey, e *ProviderProfile) { n.Edges.ProviderProfile = append(n.Edges.ProviderProfile, e) }); err != nil {
 			return nil, err
 		}
 	}
 	return nodes, nil
 }
 
-func (akq *APIKeyQuery) loadUser(ctx context.Context, query *UserQuery, nodes []*APIKey, init func(*APIKey), assign func(*APIKey, *User)) error {
+func (akq *APIKeyQuery) loadOwner(ctx context.Context, query *UserQuery, nodes []*APIKey, init func(*APIKey), assign func(*APIKey, *User)) error {
 	ids := make([]uuid.UUID, 0, len(nodes))
 	nodeids := make(map[uuid.UUID][]*APIKey)
 	for i := range nodes {
@@ -438,6 +483,37 @@ func (akq *APIKeyQuery) loadUser(ctx context.Context, query *UserQuery, nodes []
 		for i := range nodes {
 			assign(nodes[i], n)
 		}
+	}
+	return nil
+}
+func (akq *APIKeyQuery) loadProviderProfile(ctx context.Context, query *ProviderProfileQuery, nodes []*APIKey, init func(*APIKey), assign func(*APIKey, *ProviderProfile)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*APIKey)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.ProviderProfile(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(apikey.ProviderProfileColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.api_key_provider_profile
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "api_key_provider_profile" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "api_key_provider_profile" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
 	}
 	return nil
 }

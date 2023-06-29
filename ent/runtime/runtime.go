@@ -7,6 +7,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
+	"github.com/paycrest/paycrest-protocol/ent/providerordertoken"
+	"github.com/paycrest/paycrest-protocol/ent/providerordertokenaddress"
+	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
 	"github.com/paycrest/paycrest-protocol/ent/schema"
 	"github.com/paycrest/paycrest-protocol/ent/user"
@@ -34,6 +37,54 @@ func init() {
 	apikeyDescID := apikeyFields[0].Descriptor()
 	// apikey.DefaultID holds the default value on creation for the id field.
 	apikey.DefaultID = apikeyDescID.Default.(func() uuid.UUID)
+	providerordertokenMixin := schema.ProviderOrderToken{}.Mixin()
+	providerordertokenMixinFields0 := providerordertokenMixin[0].Fields()
+	_ = providerordertokenMixinFields0
+	providerordertokenFields := schema.ProviderOrderToken{}.Fields()
+	_ = providerordertokenFields
+	// providerordertokenDescCreatedAt is the schema descriptor for created_at field.
+	providerordertokenDescCreatedAt := providerordertokenMixinFields0[0].Descriptor()
+	// providerordertoken.DefaultCreatedAt holds the default value on creation for the created_at field.
+	providerordertoken.DefaultCreatedAt = providerordertokenDescCreatedAt.Default.(func() time.Time)
+	// providerordertokenDescUpdatedAt is the schema descriptor for updated_at field.
+	providerordertokenDescUpdatedAt := providerordertokenMixinFields0[1].Descriptor()
+	// providerordertoken.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	providerordertoken.DefaultUpdatedAt = providerordertokenDescUpdatedAt.Default.(func() time.Time)
+	// providerordertoken.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	providerordertoken.UpdateDefaultUpdatedAt = providerordertokenDescUpdatedAt.UpdateDefault.(func() time.Time)
+	providerordertokenaddressFields := schema.ProviderOrderTokenAddress{}.Fields()
+	_ = providerordertokenaddressFields
+	// providerordertokenaddressDescAddress is the schema descriptor for address field.
+	providerordertokenaddressDescAddress := providerordertokenaddressFields[1].Descriptor()
+	// providerordertokenaddress.AddressValidator is a validator for the "address" field. It is called by the builders before save.
+	providerordertokenaddress.AddressValidator = providerordertokenaddressDescAddress.Validators[0].(func(string) error)
+	providerprofileMixin := schema.ProviderProfile{}.Mixin()
+	providerprofileMixinFields0 := providerprofileMixin[0].Fields()
+	_ = providerprofileMixinFields0
+	providerprofileFields := schema.ProviderProfile{}.Fields()
+	_ = providerprofileFields
+	// providerprofileDescCreatedAt is the schema descriptor for created_at field.
+	providerprofileDescCreatedAt := providerprofileMixinFields0[0].Descriptor()
+	// providerprofile.DefaultCreatedAt holds the default value on creation for the created_at field.
+	providerprofile.DefaultCreatedAt = providerprofileDescCreatedAt.Default.(func() time.Time)
+	// providerprofileDescUpdatedAt is the schema descriptor for updated_at field.
+	providerprofileDescUpdatedAt := providerprofileMixinFields0[1].Descriptor()
+	// providerprofile.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	providerprofile.DefaultUpdatedAt = providerprofileDescUpdatedAt.Default.(func() time.Time)
+	// providerprofile.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	providerprofile.UpdateDefaultUpdatedAt = providerprofileDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// providerprofileDescTradingName is the schema descriptor for trading_name field.
+	providerprofileDescTradingName := providerprofileFields[1].Descriptor()
+	// providerprofile.TradingNameValidator is a validator for the "trading_name" field. It is called by the builders before save.
+	providerprofile.TradingNameValidator = providerprofileDescTradingName.Validators[0].(func(string) error)
+	// providerprofileDescCountry is the schema descriptor for country field.
+	providerprofileDescCountry := providerprofileFields[2].Descriptor()
+	// providerprofile.CountryValidator is a validator for the "country" field. It is called by the builders before save.
+	providerprofile.CountryValidator = providerprofileDescCountry.Validators[0].(func(string) error)
+	// providerprofileDescID is the schema descriptor for id field.
+	providerprofileDescID := providerprofileFields[0].Descriptor()
+	// providerprofile.DefaultID holds the default value on creation for the id field.
+	providerprofile.DefaultID = providerprofileDescID.Default.(func() string)
 	receiveaddressMixin := schema.ReceiveAddress{}.Mixin()
 	receiveaddressMixinFields0 := receiveaddressMixin[0].Fields()
 	_ = receiveaddressMixinFields0

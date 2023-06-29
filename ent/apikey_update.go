@@ -10,10 +10,9 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
-	"github.com/paycrest/paycrest-protocol/ent/user"
+	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 )
 
 // APIKeyUpdate is the builder for updating APIKey entities.
@@ -61,23 +60,19 @@ func (aku *APIKeyUpdate) SetNillableIsActive(b *bool) *APIKeyUpdate {
 	return aku
 }
 
-// SetUserID sets the "user" edge to the User entity by ID.
-func (aku *APIKeyUpdate) SetUserID(id uuid.UUID) *APIKeyUpdate {
-	aku.mutation.SetUserID(id)
+// AddProviderProfileIDs adds the "provider_profile" edge to the ProviderProfile entity by IDs.
+func (aku *APIKeyUpdate) AddProviderProfileIDs(ids ...string) *APIKeyUpdate {
+	aku.mutation.AddProviderProfileIDs(ids...)
 	return aku
 }
 
-// SetNillableUserID sets the "user" edge to the User entity by ID if the given value is not nil.
-func (aku *APIKeyUpdate) SetNillableUserID(id *uuid.UUID) *APIKeyUpdate {
-	if id != nil {
-		aku = aku.SetUserID(*id)
+// AddProviderProfile adds the "provider_profile" edges to the ProviderProfile entity.
+func (aku *APIKeyUpdate) AddProviderProfile(p ...*ProviderProfile) *APIKeyUpdate {
+	ids := make([]string, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
 	}
-	return aku
-}
-
-// SetUser sets the "user" edge to the User entity.
-func (aku *APIKeyUpdate) SetUser(u *User) *APIKeyUpdate {
-	return aku.SetUserID(u.ID)
+	return aku.AddProviderProfileIDs(ids...)
 }
 
 // Mutation returns the APIKeyMutation object of the builder.
@@ -85,10 +80,25 @@ func (aku *APIKeyUpdate) Mutation() *APIKeyMutation {
 	return aku.mutation
 }
 
-// ClearUser clears the "user" edge to the User entity.
-func (aku *APIKeyUpdate) ClearUser() *APIKeyUpdate {
-	aku.mutation.ClearUser()
+// ClearProviderProfile clears all "provider_profile" edges to the ProviderProfile entity.
+func (aku *APIKeyUpdate) ClearProviderProfile() *APIKeyUpdate {
+	aku.mutation.ClearProviderProfile()
 	return aku
+}
+
+// RemoveProviderProfileIDs removes the "provider_profile" edge to ProviderProfile entities by IDs.
+func (aku *APIKeyUpdate) RemoveProviderProfileIDs(ids ...string) *APIKeyUpdate {
+	aku.mutation.RemoveProviderProfileIDs(ids...)
+	return aku
+}
+
+// RemoveProviderProfile removes "provider_profile" edges to ProviderProfile entities.
+func (aku *APIKeyUpdate) RemoveProviderProfile(p ...*ProviderProfile) *APIKeyUpdate {
+	ids := make([]string, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return aku.RemoveProviderProfileIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -157,28 +167,44 @@ func (aku *APIKeyUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if value, ok := aku.mutation.IsActive(); ok {
 		_spec.SetField(apikey.FieldIsActive, field.TypeBool, value)
 	}
-	if aku.mutation.UserCleared() {
+	if aku.mutation.ProviderProfileCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   apikey.UserTable,
-			Columns: []string{apikey.UserColumn},
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   apikey.ProviderProfileTable,
+			Columns: []string{apikey.ProviderProfileColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
+				IDSpec: sqlgraph.NewFieldSpec(providerprofile.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := aku.mutation.UserIDs(); len(nodes) > 0 {
+	if nodes := aku.mutation.RemovedProviderProfileIDs(); len(nodes) > 0 && !aku.mutation.ProviderProfileCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   apikey.UserTable,
-			Columns: []string{apikey.UserColumn},
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   apikey.ProviderProfileTable,
+			Columns: []string{apikey.ProviderProfileColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
+				IDSpec: sqlgraph.NewFieldSpec(providerprofile.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := aku.mutation.ProviderProfileIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   apikey.ProviderProfileTable,
+			Columns: []string{apikey.ProviderProfileColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(providerprofile.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -238,23 +264,19 @@ func (akuo *APIKeyUpdateOne) SetNillableIsActive(b *bool) *APIKeyUpdateOne {
 	return akuo
 }
 
-// SetUserID sets the "user" edge to the User entity by ID.
-func (akuo *APIKeyUpdateOne) SetUserID(id uuid.UUID) *APIKeyUpdateOne {
-	akuo.mutation.SetUserID(id)
+// AddProviderProfileIDs adds the "provider_profile" edge to the ProviderProfile entity by IDs.
+func (akuo *APIKeyUpdateOne) AddProviderProfileIDs(ids ...string) *APIKeyUpdateOne {
+	akuo.mutation.AddProviderProfileIDs(ids...)
 	return akuo
 }
 
-// SetNillableUserID sets the "user" edge to the User entity by ID if the given value is not nil.
-func (akuo *APIKeyUpdateOne) SetNillableUserID(id *uuid.UUID) *APIKeyUpdateOne {
-	if id != nil {
-		akuo = akuo.SetUserID(*id)
+// AddProviderProfile adds the "provider_profile" edges to the ProviderProfile entity.
+func (akuo *APIKeyUpdateOne) AddProviderProfile(p ...*ProviderProfile) *APIKeyUpdateOne {
+	ids := make([]string, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
 	}
-	return akuo
-}
-
-// SetUser sets the "user" edge to the User entity.
-func (akuo *APIKeyUpdateOne) SetUser(u *User) *APIKeyUpdateOne {
-	return akuo.SetUserID(u.ID)
+	return akuo.AddProviderProfileIDs(ids...)
 }
 
 // Mutation returns the APIKeyMutation object of the builder.
@@ -262,10 +284,25 @@ func (akuo *APIKeyUpdateOne) Mutation() *APIKeyMutation {
 	return akuo.mutation
 }
 
-// ClearUser clears the "user" edge to the User entity.
-func (akuo *APIKeyUpdateOne) ClearUser() *APIKeyUpdateOne {
-	akuo.mutation.ClearUser()
+// ClearProviderProfile clears all "provider_profile" edges to the ProviderProfile entity.
+func (akuo *APIKeyUpdateOne) ClearProviderProfile() *APIKeyUpdateOne {
+	akuo.mutation.ClearProviderProfile()
 	return akuo
+}
+
+// RemoveProviderProfileIDs removes the "provider_profile" edge to ProviderProfile entities by IDs.
+func (akuo *APIKeyUpdateOne) RemoveProviderProfileIDs(ids ...string) *APIKeyUpdateOne {
+	akuo.mutation.RemoveProviderProfileIDs(ids...)
+	return akuo
+}
+
+// RemoveProviderProfile removes "provider_profile" edges to ProviderProfile entities.
+func (akuo *APIKeyUpdateOne) RemoveProviderProfile(p ...*ProviderProfile) *APIKeyUpdateOne {
+	ids := make([]string, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return akuo.RemoveProviderProfileIDs(ids...)
 }
 
 // Where appends a list predicates to the APIKeyUpdate builder.
@@ -364,28 +401,44 @@ func (akuo *APIKeyUpdateOne) sqlSave(ctx context.Context) (_node *APIKey, err er
 	if value, ok := akuo.mutation.IsActive(); ok {
 		_spec.SetField(apikey.FieldIsActive, field.TypeBool, value)
 	}
-	if akuo.mutation.UserCleared() {
+	if akuo.mutation.ProviderProfileCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   apikey.UserTable,
-			Columns: []string{apikey.UserColumn},
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   apikey.ProviderProfileTable,
+			Columns: []string{apikey.ProviderProfileColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
+				IDSpec: sqlgraph.NewFieldSpec(providerprofile.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := akuo.mutation.UserIDs(); len(nodes) > 0 {
+	if nodes := akuo.mutation.RemovedProviderProfileIDs(); len(nodes) > 0 && !akuo.mutation.ProviderProfileCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   apikey.UserTable,
-			Columns: []string{apikey.UserColumn},
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   apikey.ProviderProfileTable,
+			Columns: []string{apikey.ProviderProfileColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
+				IDSpec: sqlgraph.NewFieldSpec(providerprofile.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := akuo.mutation.ProviderProfileIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   apikey.ProviderProfileTable,
+			Columns: []string{apikey.ProviderProfileColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(providerprofile.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

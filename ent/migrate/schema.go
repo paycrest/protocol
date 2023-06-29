@@ -31,6 +31,113 @@ var (
 				OnDelete:   schema.SetNull,
 			},
 		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "apikey_scope_user_api_keys",
+				Unique:  true,
+				Columns: []*schema.Column{APIKeysColumns[2], APIKeysColumns[6]},
+			},
+		},
+	}
+	// ProviderAvailabilitiesColumns holds the columns for the "provider_availabilities" table.
+	ProviderAvailabilitiesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "cadence", Type: field.TypeEnum, Enums: []string{"always", "weekdays", "weekends"}},
+		{Name: "start_time", Type: field.TypeTime},
+		{Name: "end_time", Type: field.TypeTime},
+		{Name: "provider_profile_availability", Type: field.TypeString, Nullable: true},
+	}
+	// ProviderAvailabilitiesTable holds the schema information for the "provider_availabilities" table.
+	ProviderAvailabilitiesTable = &schema.Table{
+		Name:       "provider_availabilities",
+		Columns:    ProviderAvailabilitiesColumns,
+		PrimaryKey: []*schema.Column{ProviderAvailabilitiesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "provider_availabilities_provider_profiles_availability",
+				Columns:    []*schema.Column{ProviderAvailabilitiesColumns[4]},
+				RefColumns: []*schema.Column{ProviderProfilesColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+	}
+	// ProviderOrderTokensColumns holds the columns for the "provider_order_tokens" table.
+	ProviderOrderTokensColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "name", Type: field.TypeEnum, Enums: []string{"USDT", "USDC", "BUSD"}},
+		{Name: "fixed_conversion_rate", Type: field.TypeFloat64},
+		{Name: "floating_conversion_rate", Type: field.TypeFloat64},
+		{Name: "conversion_rate_type", Type: field.TypeEnum, Enums: []string{"fixed", "floating"}},
+		{Name: "max_order_amount", Type: field.TypeString},
+		{Name: "min_order_amount", Type: field.TypeString},
+		{Name: "provider_profile_order_tokens", Type: field.TypeString, Nullable: true},
+	}
+	// ProviderOrderTokensTable holds the schema information for the "provider_order_tokens" table.
+	ProviderOrderTokensTable = &schema.Table{
+		Name:       "provider_order_tokens",
+		Columns:    ProviderOrderTokensColumns,
+		PrimaryKey: []*schema.Column{ProviderOrderTokensColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "provider_order_tokens_provider_profiles_order_tokens",
+				Columns:    []*schema.Column{ProviderOrderTokensColumns[9]},
+				RefColumns: []*schema.Column{ProviderProfilesColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "providerordertoken_name_provider_profile_order_tokens",
+				Unique:  true,
+				Columns: []*schema.Column{ProviderOrderTokensColumns[3], ProviderOrderTokensColumns[9]},
+			},
+		},
+	}
+	// ProviderOrderTokenAddressesColumns holds the columns for the "provider_order_token_addresses" table.
+	ProviderOrderTokenAddressesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "network", Type: field.TypeEnum, Enums: []string{"bnb-smart-chain", "polygon", "tron", "polygon-mumbai", "tron-shasta"}},
+		{Name: "address", Type: field.TypeString, Size: 50},
+		{Name: "provider_order_token_addresses", Type: field.TypeInt, Nullable: true},
+	}
+	// ProviderOrderTokenAddressesTable holds the schema information for the "provider_order_token_addresses" table.
+	ProviderOrderTokenAddressesTable = &schema.Table{
+		Name:       "provider_order_token_addresses",
+		Columns:    ProviderOrderTokenAddressesColumns,
+		PrimaryKey: []*schema.Column{ProviderOrderTokenAddressesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "provider_order_token_addresses_provider_order_tokens_addresses",
+				Columns:    []*schema.Column{ProviderOrderTokenAddressesColumns[3]},
+				RefColumns: []*schema.Column{ProviderOrderTokensColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+	}
+	// ProviderProfilesColumns holds the columns for the "provider_profiles" table.
+	ProviderProfilesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "trading_name", Type: field.TypeString, Size: 80},
+		{Name: "country", Type: field.TypeString, Size: 80},
+		{Name: "api_key_provider_profile", Type: field.TypeUUID, Nullable: true},
+	}
+	// ProviderProfilesTable holds the schema information for the "provider_profiles" table.
+	ProviderProfilesTable = &schema.Table{
+		Name:       "provider_profiles",
+		Columns:    ProviderProfilesColumns,
+		PrimaryKey: []*schema.Column{ProviderProfilesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "provider_profiles_api_keys_provider_profile",
+				Columns:    []*schema.Column{ProviderProfilesColumns[5]},
+				RefColumns: []*schema.Column{APIKeysColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
 	}
 	// ReceiveAddressesColumns holds the columns for the "receive_addresses" table.
 	ReceiveAddressesColumns = []*schema.Column{
@@ -68,6 +175,10 @@ var (
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		APIKeysTable,
+		ProviderAvailabilitiesTable,
+		ProviderOrderTokensTable,
+		ProviderOrderTokenAddressesTable,
+		ProviderProfilesTable,
 		ReceiveAddressesTable,
 		UsersTable,
 	}
@@ -75,4 +186,8 @@ var (
 
 func init() {
 	APIKeysTable.ForeignKeys[0].RefTable = UsersTable
+	ProviderAvailabilitiesTable.ForeignKeys[0].RefTable = ProviderProfilesTable
+	ProviderOrderTokensTable.ForeignKeys[0].RefTable = ProviderProfilesTable
+	ProviderOrderTokenAddressesTable.ForeignKeys[0].RefTable = ProviderOrderTokensTable
+	ProviderProfilesTable.ForeignKeys[0].RefTable = APIKeysTable
 }
