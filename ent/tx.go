@@ -14,6 +14,16 @@ type Tx struct {
 	config
 	// APIKey is the client for interacting with the APIKey builders.
 	APIKey *APIKeyClient
+	// ProviderAvailability is the client for interacting with the ProviderAvailability builders.
+	ProviderAvailability *ProviderAvailabilityClient
+	// ProviderOrderToken is the client for interacting with the ProviderOrderToken builders.
+	ProviderOrderToken *ProviderOrderTokenClient
+	// ProviderOrderTokenAddress is the client for interacting with the ProviderOrderTokenAddress builders.
+	ProviderOrderTokenAddress *ProviderOrderTokenAddressClient
+	// ProviderProfile is the client for interacting with the ProviderProfile builders.
+	ProviderProfile *ProviderProfileClient
+	// ReceiveAddress is the client for interacting with the ReceiveAddress builders.
+	ReceiveAddress *ReceiveAddressClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
 
@@ -148,6 +158,11 @@ func (tx *Tx) Client() *Client {
 
 func (tx *Tx) init() {
 	tx.APIKey = NewAPIKeyClient(tx.config)
+	tx.ProviderAvailability = NewProviderAvailabilityClient(tx.config)
+	tx.ProviderOrderToken = NewProviderOrderTokenClient(tx.config)
+	tx.ProviderOrderTokenAddress = NewProviderOrderTokenAddressClient(tx.config)
+	tx.ProviderProfile = NewProviderProfileClient(tx.config)
+	tx.ReceiveAddress = NewReceiveAddressClient(tx.config)
 	tx.User = NewUserClient(tx.config)
 }
 

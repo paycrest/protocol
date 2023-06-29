@@ -21,6 +21,66 @@ func (f APIKeyFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, erro
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.APIKeyMutation", m)
 }
 
+// The ProviderAvailabilityFunc type is an adapter to allow the use of ordinary
+// function as ProviderAvailability mutator.
+type ProviderAvailabilityFunc func(context.Context, *ent.ProviderAvailabilityMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ProviderAvailabilityFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ProviderAvailabilityMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ProviderAvailabilityMutation", m)
+}
+
+// The ProviderOrderTokenFunc type is an adapter to allow the use of ordinary
+// function as ProviderOrderToken mutator.
+type ProviderOrderTokenFunc func(context.Context, *ent.ProviderOrderTokenMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ProviderOrderTokenFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ProviderOrderTokenMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ProviderOrderTokenMutation", m)
+}
+
+// The ProviderOrderTokenAddressFunc type is an adapter to allow the use of ordinary
+// function as ProviderOrderTokenAddress mutator.
+type ProviderOrderTokenAddressFunc func(context.Context, *ent.ProviderOrderTokenAddressMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ProviderOrderTokenAddressFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ProviderOrderTokenAddressMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ProviderOrderTokenAddressMutation", m)
+}
+
+// The ProviderProfileFunc type is an adapter to allow the use of ordinary
+// function as ProviderProfile mutator.
+type ProviderProfileFunc func(context.Context, *ent.ProviderProfileMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ProviderProfileFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ProviderProfileMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ProviderProfileMutation", m)
+}
+
+// The ReceiveAddressFunc type is an adapter to allow the use of ordinary
+// function as ReceiveAddress mutator.
+type ReceiveAddressFunc func(context.Context, *ent.ReceiveAddressMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ReceiveAddressFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ReceiveAddressMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ReceiveAddressMutation", m)
+}
+
 // The UserFunc type is an adapter to allow the use of ordinary
 // function as User mutator.
 type UserFunc func(context.Context, *ent.UserMutation) (ent.Value, error)

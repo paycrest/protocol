@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 
+	"github.com/cosmos/go-bip39"
 	"github.com/paycrest/paycrest-protocol/utils/logger"
 	"github.com/spf13/viper"
 )
@@ -41,6 +42,14 @@ func SetupConfig() error {
 	if err != nil {
 		logger.Errorf("error to decode, %v", err)
 		return err
+	}
+
+	var serverConf = ServerConfig()
+
+	valid := bip39.IsMnemonicValid(serverConf.HDWalletMnemonic)
+	if !valid {
+		logger.Errorf("Invalid mnemonic phrase")
+		return nil
 	}
 
 	return nil

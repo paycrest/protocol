@@ -1,4 +1,4 @@
-package accounts
+package services
 
 import (
 	"time"
@@ -9,10 +9,12 @@ import (
 
 // RegisterPayload is the payload for the register endpoint
 type RegisterPayload struct {
-	FirstName string `json:"firstName" binding:"required"`
-	LastName  string `json:"lastName" binding:"required"`
-	Email     string `json:"email" binding:"required,email"`
-	Password  string `json:"password" binding:"required,min=6,max=20"`
+	FirstName   string `json:"firstName" binding:"required"`
+	LastName    string `json:"lastName" binding:"required"`
+	Email       string `json:"email" binding:"required,email"`
+	Password    string `json:"password" binding:"required,min=6,max=20"`
+	TradingName string `json:"tradingName"`
+	Country     string `json:"country"`
 }
 
 // RegisterResponse is the response for the register endpoint

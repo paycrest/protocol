@@ -15,8 +15,11 @@ import (
 	"github.com/paycrest/paycrest-protocol/routers/middleware"
 
 	"github.com/gin-gonic/gin"
+	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/enttest"
+	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 	"github.com/paycrest/paycrest-protocol/ent/user"
+	svc "github.com/paycrest/paycrest-protocol/services"
 	"github.com/paycrest/paycrest-protocol/utils"
 	"github.com/paycrest/paycrest-protocol/utils/test"
 	"github.com/paycrest/paycrest-protocol/utils/token"
@@ -45,7 +48,7 @@ func TestAuth(t *testing.T) {
 	t.Run("Register", func(t *testing.T) {
 		t.Run("with valid payload", func(t *testing.T) {
 			// Test register with valid payload
-			payload := RegisterPayload{
+			payload := svc.RegisterPayload{
 				FirstName: "Ike",
 				LastName:  "Ayo",
 				Email:     "ikeayo@example.com",
@@ -81,9 +84,58 @@ func TestAuth(t *testing.T) {
 			assert.Equal(t, payload.LastName, data["lastName"].(string))
 		})
 
+		t.Run("from the provider app", func(t *testing.T) {
+			// Test register with valid payload
+			payload := svc.RegisterPayload{
+				FirstName:   "Ike",
+				LastName:    "Ayo",
+				Email:       "ikeayoprovider@example.com",
+				Password:    "password",
+				TradingName: "Africana LP",
+				Country:     "Nigeria",
+			}
+
+			headers := map[string]string{
+				"X-App-ID": "provider",
+			}
+
+			res, err := test.PerformRequest(t, "POST", "/register", payload, headers, router)
+			assert.NoError(t, err)
+
+			// Assert the response body
+			assert.Equal(t, http.StatusCreated, res.Code)
+
+			var response utils.Response
+			err = json.Unmarshal(res.Body.Bytes(), &response)
+			assert.NoError(t, err)
+			data, ok := response.Data.(map[string]interface{})
+			assert.True(t, ok, "response.Data is not of type map[string]interface{}")
+			assert.NotNil(t, data, "response.Data is nil")
+
+			// Parse the user ID string to uuid.UUID
+			userUUID, err := uuid.Parse(data["id"].(string))
+			assert.NoError(t, err)
+
+			// Query the database to check if API key and profile were created for the provider
+			apiKey, err := db.Client.APIKey.
+				Query().
+				Where(apikey.HasOwnerWith(user.ID(userUUID))).
+				Only(context.Background())
+			assert.NoError(t, err)
+
+			providerProfile, err := db.Client.ProviderProfile.
+				Query().
+				Where(providerprofile.HasAPIKeyWith(apikey.ID(apiKey.ID))).
+				Only(context.Background())
+			assert.NoError(t, err)
+
+			assert.NotNil(t, apiKey)
+			assert.NotNil(t, providerProfile)
+		})
+
 		t.Run("with existing user", func(t *testing.T) {
 			// Test register with existing user
-			payload := RegisterPayload{
+			payload := svc.RegisterPayload{
 				FirstName: "Ike",
 				LastName:  "Ayo",
 				Email:     "ikeayo@example.com",
@@ -105,7 +157,7 @@ func TestAuth(t *testing.T) {
 
 		t.Run("with invalid email", func(t *testing.T) {
 			// Test register with invalid email
-			payload := RegisterPayload{
+			payload := svc.RegisterPayload{
 				FirstName: "Ike",
 				LastName:  "Ayo",
 				Email:     "invalid-email",
@@ -142,7 +194,7 @@ func TestAuth(t *testing.T) {
 	t.Run("Login", func(t *testing.T) {
 		t.Run("with valid credentials", func(t *testing.T) {
 			// Test login with valid credentials
-			payload := LoginPayload{
+			payload := svc.LoginPayload{
 				Email:    "ikeayo@example.com",
 				Password: "password",
 			}
@@ -170,7 +222,7 @@ func TestAuth(t *testing.T) {
 
 		t.Run("with invalid credentials", func(t *testing.T) {
 			// Test login with invalid credentials
-			payload := LoginPayload{
+			payload := svc.LoginPayload{
 				Email:    "ikeayo@example.com",
 				Password: "wrong-password",
 			}
@@ -195,11 +247,15 @@ func TestAuth(t *testing.T) {
 			assert.NoError(t, err, "failed to generate refresh token")
 
 			// Test refresh token with valid refresh token
-			payload := RefreshJWTPayload{
+			payload := svc.RefreshJWTPayload{
 				RefreshToken: refreshToken,
 			}
 
-			res, err := test.PerformRequest(t, "POST", "/refresh", payload, &refreshToken, router)
+			headers := map[string]string{
+				"Authorization": "Bearer " + refreshToken,
+			}
+
+			res, err := test.PerformRequest(t, "POST", "/refresh", payload, headers, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -223,13 +279,17 @@ func TestAuth(t *testing.T) {
 			refreshToken := "invalid-refresh-token"
 
 			// Test refresh token with invalid refresh token
-			payload := RefreshJWTPayload{
+			payload := svc.RefreshJWTPayload{
 				RefreshToken: refreshToken,
 			}
 
 			refreshTokenForHeader, err := token.GenerateRefreshJWT(userID)
 			assert.NoError(t, err, "failed to generate refresh token")
-			res, err := test.PerformRequest(t, "POST", "/refresh", payload, &refreshTokenForHeader, router)
+
+			headers := map[string]string{
+				"Authorization": "Bearer " + refreshTokenForHeader,
+			}
+			res, err := test.PerformRequest(t, "POST", "/refresh", payload, headers, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -247,12 +307,16 @@ func TestAuth(t *testing.T) {
 		accessToken, _ := token.GenerateAccessJWT(userID)
 
 		t.Run("with a valid scope", func(t *testing.T) {
-			payload := GenerateAPIKeyPayload{
+			payload := svc.GenerateAPIKeyPayload{
 				Name:  "Test API Key",
 				Scope: "sender",
 			}
 
-			res, err := test.PerformRequest(t, "POST", "/api-keys", payload, &accessToken, router)
+			headers := map[string]string{
+				"Authorization": "Bearer " + accessToken,
+			}
+
+			res, err := test.PerformRequest(t, "POST", "/api-keys", payload, headers, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -282,12 +346,16 @@ func TestAuth(t *testing.T) {
 		})
 
 		t.Run("with an invalid scope", func(t *testing.T) {
-			payload := GenerateAPIKeyPayload{
+			payload := svc.GenerateAPIKeyPayload{
 				Name:  "Test API Key",
 				Scope: "bad-scope",
 			}
 
-			res, err := test.PerformRequest(t, "POST", "/api-keys", payload, &accessToken, router)
+			headers := map[string]string{
+				"Authorization": "Bearer " + accessToken,
+			}
+
+			res, err := test.PerformRequest(t, "POST", "/api-keys", payload, headers, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -316,7 +384,10 @@ func TestAuth(t *testing.T) {
 
 	t.Run("ListAPIKeys", func(t *testing.T) {
 		accessToken, _ := token.GenerateAccessJWT(userID)
-		res, err := test.PerformRequest(t, "GET", "/api-keys", nil, &accessToken, router)
+		headers := map[string]string{
+			"Authorization": "Bearer " + accessToken,
+		}
+		res, err := test.PerformRequest(t, "GET", "/api-keys", nil, headers, router)
 		assert.NoError(t, err)
 
 		// Assert the response body
@@ -360,7 +431,11 @@ func TestAuth(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Len(t, apiKeys, 1)
 
-			res, err := test.PerformRequest(t, "DELETE", "/api-keys/"+apiKeys[0].ID.String(), nil, &accessToken, router)
+			headers := map[string]string{
+				"Authorization": "Bearer " + accessToken,
+			}
+
+			res, err := test.PerformRequest(t, "DELETE", "/api-keys/"+apiKeys[0].ID.String(), nil, headers, router)
 			assert.NoError(t, err)
 
 			assert.Equal(t, http.StatusNoContent, res.Code)
@@ -378,7 +453,10 @@ func TestAuth(t *testing.T) {
 
 		t.Run("with an invalid API key", func(t *testing.T) {
 
-			res, err := test.PerformRequest(t, "DELETE", "/api-keys/invalid-api-key", nil, &accessToken, router)
+			headers := map[string]string{
+				"Authorization": "Bearer " + accessToken,
+			}
+			res, err := test.PerformRequest(t, "DELETE", "/api-keys/invalid-api-key", nil, headers, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
