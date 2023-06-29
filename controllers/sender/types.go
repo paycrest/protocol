@@ -8,7 +8,7 @@ type LoginResponse struct {
 	RefreshToken string `json:"refreshToken"`
 }
 
-
+// ReceiveAddressController payload
 type ReceiveAddressController struct {
 	service *services.ReceiveAddressService
 }
