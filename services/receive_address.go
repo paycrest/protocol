@@ -8,6 +8,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/utils/crypto"
 )
 
+// ReceiveAddressService provides functionality releated to managing receive addresses
 type ReceiveAddressService struct {
 	db *ent.Client
 }
@@ -19,7 +20,7 @@ func NewReceiveAddressService(db *ent.Client) *ReceiveAddressService {
 	}
 }
 
-//GenerateAndSaveAddress func generates a new address for a user
+// GenerateAndSaveAddress function generates a new address for a user
 func (s *ReceiveAddressService) GenerateAndSaveAddress(ctx context.Context) (string, error) {
 	count, err := s.db.ReceiveAddress.
 		Query().
