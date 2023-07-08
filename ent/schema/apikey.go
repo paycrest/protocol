@@ -41,7 +41,9 @@ func (APIKey) Edges() []ent.Edge {
 			Ref("api_keys").
 			Unique().
 			Immutable(),
-		edge.To("provider_profile", ProviderProfile.Type),
+		edge.To("provider_profile", ProviderProfile.Type).
+			Unique(),
+		edge.To("payment_orders", PaymentOrder.Type),
 	}
 }
 

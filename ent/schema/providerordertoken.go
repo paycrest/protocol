@@ -31,9 +31,9 @@ func (ProviderOrderToken) Fields() []ent.Field {
 			GoType(decimal.Decimal{}),
 		field.Enum("conversion_rate_type").
 			Values("fixed", "floating"),
-		field.String("max_order_amount").
+		field.Float("max_order_amount").
 			GoType(decimal.Decimal{}),
-		field.String("min_order_amount").
+		field.Float("min_order_amount").
 			GoType(decimal.Decimal{}),
 	}
 }
@@ -43,7 +43,8 @@ func (ProviderOrderToken) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("provider", ProviderProfile.Type).
 			Ref("order_tokens").
-			Unique(),
+			Unique().
+			Immutable(),
 		edge.To("addresses", ProviderOrderTokenAddress.Type),
 	}
 }

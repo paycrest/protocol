@@ -2,6 +2,7 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 )
 
@@ -29,5 +30,9 @@ func (ReceiveAddress) Fields() []ent.Field {
 
 // Edges of the ReceiveAddress.
 func (ReceiveAddress) Edges() []ent.Edge {
-	return nil
+	return []ent.Edge{
+		edge.From("payment_order", PaymentOrder.Type).
+			Ref("receive_address_fk").
+			Unique(),
+	}
 }
