@@ -5,10 +5,11 @@ import (
 	"fmt"
 
 	"github.com/paycrest/paycrest-protocol/ent"
+	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
 	"github.com/paycrest/paycrest-protocol/utils/crypto"
 )
 
-// ReceiveAddressService provides functionality releated to managing receive addresses
+// ReceiveAddressService provides functionality related to managing receive addresses
 type ReceiveAddressService struct {
 	db *ent.Client
 }
@@ -32,12 +33,15 @@ func (s *ReceiveAddressService) GenerateAndSaveAddress(ctx context.Context) (str
 	// accountIndex = number of receive addresses in DB + 1
 	accountIndex := count + 1
 	address, _, err := crypto.GenerateReceiveAddress(accountIndex)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate receive address: %w", err)
+	}
 
 	_, err = s.db.ReceiveAddress.
 		Create().
 		SetAddress(address).
 		SetAccountIndex(accountIndex).
-		SetStatus("unused").
+		SetStatus(receiveaddress.StatusUnused).
 		Save(ctx)
 	if err != nil {
 		return "", fmt.Errorf("failed to save address: %w", err)
