@@ -56,14 +56,6 @@ func (ppu *ProviderProfileUpdate) SetAPIKeyID(id uuid.UUID) *ProviderProfileUpda
 	return ppu
 }
 
-// SetNillableAPIKeyID sets the "api_key" edge to the APIKey entity by ID if the given value is not nil.
-func (ppu *ProviderProfileUpdate) SetNillableAPIKeyID(id *uuid.UUID) *ProviderProfileUpdate {
-	if id != nil {
-		ppu = ppu.SetAPIKeyID(*id)
-	}
-	return ppu
-}
-
 // SetAPIKey sets the "api_key" edge to the APIKey entity.
 func (ppu *ProviderProfileUpdate) SetAPIKey(a *APIKey) *ProviderProfileUpdate {
 	return ppu.SetAPIKeyID(a.ID)
@@ -84,19 +76,23 @@ func (ppu *ProviderProfileUpdate) AddOrderTokens(p ...*ProviderOrderToken) *Prov
 	return ppu.AddOrderTokenIDs(ids...)
 }
 
-// AddAvailabilityIDs adds the "availability" edge to the ProviderAvailability entity by IDs.
-func (ppu *ProviderProfileUpdate) AddAvailabilityIDs(ids ...int) *ProviderProfileUpdate {
-	ppu.mutation.AddAvailabilityIDs(ids...)
+// SetAvailabilityID sets the "availability" edge to the ProviderAvailability entity by ID.
+func (ppu *ProviderProfileUpdate) SetAvailabilityID(id int) *ProviderProfileUpdate {
+	ppu.mutation.SetAvailabilityID(id)
 	return ppu
 }
 
-// AddAvailability adds the "availability" edges to the ProviderAvailability entity.
-func (ppu *ProviderProfileUpdate) AddAvailability(p ...*ProviderAvailability) *ProviderProfileUpdate {
-	ids := make([]int, len(p))
-	for i := range p {
-		ids[i] = p[i].ID
+// SetNillableAvailabilityID sets the "availability" edge to the ProviderAvailability entity by ID if the given value is not nil.
+func (ppu *ProviderProfileUpdate) SetNillableAvailabilityID(id *int) *ProviderProfileUpdate {
+	if id != nil {
+		ppu = ppu.SetAvailabilityID(*id)
 	}
-	return ppu.AddAvailabilityIDs(ids...)
+	return ppu
+}
+
+// SetAvailability sets the "availability" edge to the ProviderAvailability entity.
+func (ppu *ProviderProfileUpdate) SetAvailability(p *ProviderAvailability) *ProviderProfileUpdate {
+	return ppu.SetAvailabilityID(p.ID)
 }
 
 // Mutation returns the ProviderProfileMutation object of the builder.
@@ -131,25 +127,10 @@ func (ppu *ProviderProfileUpdate) RemoveOrderTokens(p ...*ProviderOrderToken) *P
 	return ppu.RemoveOrderTokenIDs(ids...)
 }
 
-// ClearAvailability clears all "availability" edges to the ProviderAvailability entity.
+// ClearAvailability clears the "availability" edge to the ProviderAvailability entity.
 func (ppu *ProviderProfileUpdate) ClearAvailability() *ProviderProfileUpdate {
 	ppu.mutation.ClearAvailability()
 	return ppu
-}
-
-// RemoveAvailabilityIDs removes the "availability" edge to ProviderAvailability entities by IDs.
-func (ppu *ProviderProfileUpdate) RemoveAvailabilityIDs(ids ...int) *ProviderProfileUpdate {
-	ppu.mutation.RemoveAvailabilityIDs(ids...)
-	return ppu
-}
-
-// RemoveAvailability removes "availability" edges to ProviderAvailability entities.
-func (ppu *ProviderProfileUpdate) RemoveAvailability(p ...*ProviderAvailability) *ProviderProfileUpdate {
-	ids := make([]int, len(p))
-	for i := range p {
-		ids[i] = p[i].ID
-	}
-	return ppu.RemoveAvailabilityIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -200,6 +181,9 @@ func (ppu *ProviderProfileUpdate) check() error {
 			return &ValidationError{Name: "country", err: fmt.Errorf(`ent: validator failed for field "ProviderProfile.country": %w`, err)}
 		}
 	}
+	if _, ok := ppu.mutation.APIKeyID(); ppu.mutation.APIKeyCleared() && !ok {
+		return errors.New(`ent: clearing a required unique edge "ProviderProfile.api_key"`)
+	}
 	return nil
 }
 
@@ -226,7 +210,7 @@ func (ppu *ProviderProfileUpdate) sqlSave(ctx context.Context) (n int, err error
 	}
 	if ppu.mutation.APIKeyCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
+			Rel:     sqlgraph.O2O,
 			Inverse: true,
 			Table:   providerprofile.APIKeyTable,
 			Columns: []string{providerprofile.APIKeyColumn},
@@ -239,7 +223,7 @@ func (ppu *ProviderProfileUpdate) sqlSave(ctx context.Context) (n int, err error
 	}
 	if nodes := ppu.mutation.APIKeyIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
+			Rel:     sqlgraph.O2O,
 			Inverse: true,
 			Table:   providerprofile.APIKeyTable,
 			Columns: []string{providerprofile.APIKeyColumn},
@@ -300,7 +284,7 @@ func (ppu *ProviderProfileUpdate) sqlSave(ctx context.Context) (n int, err error
 	}
 	if ppu.mutation.AvailabilityCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.O2O,
 			Inverse: false,
 			Table:   providerprofile.AvailabilityTable,
 			Columns: []string{providerprofile.AvailabilityColumn},
@@ -308,28 +292,12 @@ func (ppu *ProviderProfileUpdate) sqlSave(ctx context.Context) (n int, err error
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(provideravailability.FieldID, field.TypeInt),
 			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := ppu.mutation.RemovedAvailabilityIDs(); len(nodes) > 0 && !ppu.mutation.AvailabilityCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   providerprofile.AvailabilityTable,
-			Columns: []string{providerprofile.AvailabilityColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(provideravailability.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
 	if nodes := ppu.mutation.AvailabilityIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.O2O,
 			Inverse: false,
 			Table:   providerprofile.AvailabilityTable,
 			Columns: []string{providerprofile.AvailabilityColumn},
@@ -387,14 +355,6 @@ func (ppuo *ProviderProfileUpdateOne) SetAPIKeyID(id uuid.UUID) *ProviderProfile
 	return ppuo
 }
 
-// SetNillableAPIKeyID sets the "api_key" edge to the APIKey entity by ID if the given value is not nil.
-func (ppuo *ProviderProfileUpdateOne) SetNillableAPIKeyID(id *uuid.UUID) *ProviderProfileUpdateOne {
-	if id != nil {
-		ppuo = ppuo.SetAPIKeyID(*id)
-	}
-	return ppuo
-}
-
 // SetAPIKey sets the "api_key" edge to the APIKey entity.
 func (ppuo *ProviderProfileUpdateOne) SetAPIKey(a *APIKey) *ProviderProfileUpdateOne {
 	return ppuo.SetAPIKeyID(a.ID)
@@ -415,19 +375,23 @@ func (ppuo *ProviderProfileUpdateOne) AddOrderTokens(p ...*ProviderOrderToken) *
 	return ppuo.AddOrderTokenIDs(ids...)
 }
 
-// AddAvailabilityIDs adds the "availability" edge to the ProviderAvailability entity by IDs.
-func (ppuo *ProviderProfileUpdateOne) AddAvailabilityIDs(ids ...int) *ProviderProfileUpdateOne {
-	ppuo.mutation.AddAvailabilityIDs(ids...)
+// SetAvailabilityID sets the "availability" edge to the ProviderAvailability entity by ID.
+func (ppuo *ProviderProfileUpdateOne) SetAvailabilityID(id int) *ProviderProfileUpdateOne {
+	ppuo.mutation.SetAvailabilityID(id)
 	return ppuo
 }
 
-// AddAvailability adds the "availability" edges to the ProviderAvailability entity.
-func (ppuo *ProviderProfileUpdateOne) AddAvailability(p ...*ProviderAvailability) *ProviderProfileUpdateOne {
-	ids := make([]int, len(p))
-	for i := range p {
-		ids[i] = p[i].ID
+// SetNillableAvailabilityID sets the "availability" edge to the ProviderAvailability entity by ID if the given value is not nil.
+func (ppuo *ProviderProfileUpdateOne) SetNillableAvailabilityID(id *int) *ProviderProfileUpdateOne {
+	if id != nil {
+		ppuo = ppuo.SetAvailabilityID(*id)
 	}
-	return ppuo.AddAvailabilityIDs(ids...)
+	return ppuo
+}
+
+// SetAvailability sets the "availability" edge to the ProviderAvailability entity.
+func (ppuo *ProviderProfileUpdateOne) SetAvailability(p *ProviderAvailability) *ProviderProfileUpdateOne {
+	return ppuo.SetAvailabilityID(p.ID)
 }
 
 // Mutation returns the ProviderProfileMutation object of the builder.
@@ -462,25 +426,10 @@ func (ppuo *ProviderProfileUpdateOne) RemoveOrderTokens(p ...*ProviderOrderToken
 	return ppuo.RemoveOrderTokenIDs(ids...)
 }
 
-// ClearAvailability clears all "availability" edges to the ProviderAvailability entity.
+// ClearAvailability clears the "availability" edge to the ProviderAvailability entity.
 func (ppuo *ProviderProfileUpdateOne) ClearAvailability() *ProviderProfileUpdateOne {
 	ppuo.mutation.ClearAvailability()
 	return ppuo
-}
-
-// RemoveAvailabilityIDs removes the "availability" edge to ProviderAvailability entities by IDs.
-func (ppuo *ProviderProfileUpdateOne) RemoveAvailabilityIDs(ids ...int) *ProviderProfileUpdateOne {
-	ppuo.mutation.RemoveAvailabilityIDs(ids...)
-	return ppuo
-}
-
-// RemoveAvailability removes "availability" edges to ProviderAvailability entities.
-func (ppuo *ProviderProfileUpdateOne) RemoveAvailability(p ...*ProviderAvailability) *ProviderProfileUpdateOne {
-	ids := make([]int, len(p))
-	for i := range p {
-		ids[i] = p[i].ID
-	}
-	return ppuo.RemoveAvailabilityIDs(ids...)
 }
 
 // Where appends a list predicates to the ProviderProfileUpdate builder.
@@ -544,6 +493,9 @@ func (ppuo *ProviderProfileUpdateOne) check() error {
 			return &ValidationError{Name: "country", err: fmt.Errorf(`ent: validator failed for field "ProviderProfile.country": %w`, err)}
 		}
 	}
+	if _, ok := ppuo.mutation.APIKeyID(); ppuo.mutation.APIKeyCleared() && !ok {
+		return errors.New(`ent: clearing a required unique edge "ProviderProfile.api_key"`)
+	}
 	return nil
 }
 
@@ -587,7 +539,7 @@ func (ppuo *ProviderProfileUpdateOne) sqlSave(ctx context.Context) (_node *Provi
 	}
 	if ppuo.mutation.APIKeyCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
+			Rel:     sqlgraph.O2O,
 			Inverse: true,
 			Table:   providerprofile.APIKeyTable,
 			Columns: []string{providerprofile.APIKeyColumn},
@@ -600,7 +552,7 @@ func (ppuo *ProviderProfileUpdateOne) sqlSave(ctx context.Context) (_node *Provi
 	}
 	if nodes := ppuo.mutation.APIKeyIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
+			Rel:     sqlgraph.O2O,
 			Inverse: true,
 			Table:   providerprofile.APIKeyTable,
 			Columns: []string{providerprofile.APIKeyColumn},
@@ -661,7 +613,7 @@ func (ppuo *ProviderProfileUpdateOne) sqlSave(ctx context.Context) (_node *Provi
 	}
 	if ppuo.mutation.AvailabilityCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.O2O,
 			Inverse: false,
 			Table:   providerprofile.AvailabilityTable,
 			Columns: []string{providerprofile.AvailabilityColumn},
@@ -669,28 +621,12 @@ func (ppuo *ProviderProfileUpdateOne) sqlSave(ctx context.Context) (_node *Provi
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(provideravailability.FieldID, field.TypeInt),
 			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := ppuo.mutation.RemovedAvailabilityIDs(); len(nodes) > 0 && !ppuo.mutation.AvailabilityCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   providerprofile.AvailabilityTable,
-			Columns: []string{providerprofile.AvailabilityColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(provideravailability.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
 	if nodes := ppuo.mutation.AvailabilityIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.O2O,
 			Inverse: false,
 			Table:   providerprofile.AvailabilityTable,
 			Columns: []string{providerprofile.AvailabilityColumn},

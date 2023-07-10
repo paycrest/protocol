@@ -74,7 +74,7 @@ func (paq *ProviderAvailabilityQuery) QueryProvider() *ProviderProfileQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(provideravailability.Table, provideravailability.FieldID, selector),
 			sqlgraph.To(providerprofile.Table, providerprofile.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, provideravailability.ProviderTable, provideravailability.ProviderColumn),
+			sqlgraph.Edge(sqlgraph.O2O, true, provideravailability.ProviderTable, provideravailability.ProviderColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(paq.driver.Dialect(), step)
 		return fromU, nil

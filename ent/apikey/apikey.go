@@ -30,6 +30,8 @@ const (
 	EdgeOwner = "owner"
 	// EdgeProviderProfile holds the string denoting the provider_profile edge name in mutations.
 	EdgeProviderProfile = "provider_profile"
+	// EdgePaymentOrders holds the string denoting the payment_orders edge name in mutations.
+	EdgePaymentOrders = "payment_orders"
 	// Table holds the table name of the apikey in the database.
 	Table = "api_keys"
 	// OwnerTable is the table that holds the owner relation/edge.
@@ -46,6 +48,13 @@ const (
 	ProviderProfileInverseTable = "provider_profiles"
 	// ProviderProfileColumn is the table column denoting the provider_profile relation/edge.
 	ProviderProfileColumn = "api_key_provider_profile"
+	// PaymentOrdersTable is the table that holds the payment_orders relation/edge.
+	PaymentOrdersTable = "payment_orders"
+	// PaymentOrdersInverseTable is the table name for the PaymentOrder entity.
+	// It exists in this package in order to avoid circular dependency with the "paymentorder" package.
+	PaymentOrdersInverseTable = "payment_orders"
+	// PaymentOrdersColumn is the table column denoting the payment_orders relation/edge.
+	PaymentOrdersColumn = "api_key_payment_orders"
 )
 
 // Columns holds all SQL columns for apikey fields.
@@ -154,17 +163,24 @@ func ByOwnerField(field string, opts ...sql.OrderTermOption) OrderOption {
 	}
 }
 
-// ByProviderProfileCount orders the results by provider_profile count.
-func ByProviderProfileCount(opts ...sql.OrderTermOption) OrderOption {
+// ByProviderProfileField orders the results by provider_profile field.
+func ByProviderProfileField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newProviderProfileStep(), opts...)
+		sqlgraph.OrderByNeighborTerms(s, newProviderProfileStep(), sql.OrderByField(field, opts...))
 	}
 }
 
-// ByProviderProfile orders the results by provider_profile terms.
-func ByProviderProfile(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+// ByPaymentOrdersCount orders the results by payment_orders count.
+func ByPaymentOrdersCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newProviderProfileStep(), append([]sql.OrderTerm{term}, terms...)...)
+		sqlgraph.OrderByNeighborsCount(s, newPaymentOrdersStep(), opts...)
+	}
+}
+
+// ByPaymentOrders orders the results by payment_orders terms.
+func ByPaymentOrders(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newPaymentOrdersStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
 func newOwnerStep() *sqlgraph.Step {
@@ -178,6 +194,13 @@ func newProviderProfileStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(ProviderProfileInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, ProviderProfileTable, ProviderProfileColumn),
+		sqlgraph.Edge(sqlgraph.O2O, false, ProviderProfileTable, ProviderProfileColumn),
+	)
+}
+func newPaymentOrdersStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(PaymentOrdersInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, PaymentOrdersTable, PaymentOrdersColumn),
 	)
 }

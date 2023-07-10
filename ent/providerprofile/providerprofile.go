@@ -147,24 +147,17 @@ func ByOrderTokens(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	}
 }
 
-// ByAvailabilityCount orders the results by availability count.
-func ByAvailabilityCount(opts ...sql.OrderTermOption) OrderOption {
+// ByAvailabilityField orders the results by availability field.
+func ByAvailabilityField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newAvailabilityStep(), opts...)
-	}
-}
-
-// ByAvailability orders the results by availability terms.
-func ByAvailability(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newAvailabilityStep(), append([]sql.OrderTerm{term}, terms...)...)
+		sqlgraph.OrderByNeighborTerms(s, newAvailabilityStep(), sql.OrderByField(field, opts...))
 	}
 }
 func newAPIKeyStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(APIKeyInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, true, APIKeyTable, APIKeyColumn),
+		sqlgraph.Edge(sqlgraph.O2O, true, APIKeyTable, APIKeyColumn),
 	)
 }
 func newOrderTokensStep() *sqlgraph.Step {
@@ -178,6 +171,6 @@ func newAvailabilityStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(AvailabilityInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, AvailabilityTable, AvailabilityColumn),
+		sqlgraph.Edge(sqlgraph.O2O, false, AvailabilityTable, AvailabilityColumn),
 	)
 }

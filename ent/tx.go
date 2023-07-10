@@ -14,6 +14,10 @@ type Tx struct {
 	config
 	// APIKey is the client for interacting with the APIKey builders.
 	APIKey *APIKeyClient
+	// PaymentOrder is the client for interacting with the PaymentOrder builders.
+	PaymentOrder *PaymentOrderClient
+	// PaymentOrderRecipient is the client for interacting with the PaymentOrderRecipient builders.
+	PaymentOrderRecipient *PaymentOrderRecipientClient
 	// ProviderAvailability is the client for interacting with the ProviderAvailability builders.
 	ProviderAvailability *ProviderAvailabilityClient
 	// ProviderOrderToken is the client for interacting with the ProviderOrderToken builders.
@@ -158,6 +162,8 @@ func (tx *Tx) Client() *Client {
 
 func (tx *Tx) init() {
 	tx.APIKey = NewAPIKeyClient(tx.config)
+	tx.PaymentOrder = NewPaymentOrderClient(tx.config)
+	tx.PaymentOrderRecipient = NewPaymentOrderRecipientClient(tx.config)
 	tx.ProviderAvailability = NewProviderAvailabilityClient(tx.config)
 	tx.ProviderOrderToken = NewProviderOrderTokenClient(tx.config)
 	tx.ProviderOrderTokenAddress = NewProviderOrderTokenAddressClient(tx.config)

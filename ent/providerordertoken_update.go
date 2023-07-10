@@ -14,7 +14,6 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
 	"github.com/paycrest/paycrest-protocol/ent/providerordertoken"
 	"github.com/paycrest/paycrest-protocol/ent/providerordertokenaddress"
-	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 	"github.com/shopspring/decimal"
 )
 
@@ -77,33 +76,28 @@ func (potu *ProviderOrderTokenUpdate) SetConversionRateType(prt providerordertok
 
 // SetMaxOrderAmount sets the "max_order_amount" field.
 func (potu *ProviderOrderTokenUpdate) SetMaxOrderAmount(d decimal.Decimal) *ProviderOrderTokenUpdate {
+	potu.mutation.ResetMaxOrderAmount()
 	potu.mutation.SetMaxOrderAmount(d)
+	return potu
+}
+
+// AddMaxOrderAmount adds d to the "max_order_amount" field.
+func (potu *ProviderOrderTokenUpdate) AddMaxOrderAmount(d decimal.Decimal) *ProviderOrderTokenUpdate {
+	potu.mutation.AddMaxOrderAmount(d)
 	return potu
 }
 
 // SetMinOrderAmount sets the "min_order_amount" field.
 func (potu *ProviderOrderTokenUpdate) SetMinOrderAmount(d decimal.Decimal) *ProviderOrderTokenUpdate {
+	potu.mutation.ResetMinOrderAmount()
 	potu.mutation.SetMinOrderAmount(d)
 	return potu
 }
 
-// SetProviderID sets the "provider" edge to the ProviderProfile entity by ID.
-func (potu *ProviderOrderTokenUpdate) SetProviderID(id string) *ProviderOrderTokenUpdate {
-	potu.mutation.SetProviderID(id)
+// AddMinOrderAmount adds d to the "min_order_amount" field.
+func (potu *ProviderOrderTokenUpdate) AddMinOrderAmount(d decimal.Decimal) *ProviderOrderTokenUpdate {
+	potu.mutation.AddMinOrderAmount(d)
 	return potu
-}
-
-// SetNillableProviderID sets the "provider" edge to the ProviderProfile entity by ID if the given value is not nil.
-func (potu *ProviderOrderTokenUpdate) SetNillableProviderID(id *string) *ProviderOrderTokenUpdate {
-	if id != nil {
-		potu = potu.SetProviderID(*id)
-	}
-	return potu
-}
-
-// SetProvider sets the "provider" edge to the ProviderProfile entity.
-func (potu *ProviderOrderTokenUpdate) SetProvider(p *ProviderProfile) *ProviderOrderTokenUpdate {
-	return potu.SetProviderID(p.ID)
 }
 
 // AddAddressIDs adds the "addresses" edge to the ProviderOrderTokenAddress entity by IDs.
@@ -124,12 +118,6 @@ func (potu *ProviderOrderTokenUpdate) AddAddresses(p ...*ProviderOrderTokenAddre
 // Mutation returns the ProviderOrderTokenMutation object of the builder.
 func (potu *ProviderOrderTokenUpdate) Mutation() *ProviderOrderTokenMutation {
 	return potu.mutation
-}
-
-// ClearProvider clears the "provider" edge to the ProviderProfile entity.
-func (potu *ProviderOrderTokenUpdate) ClearProvider() *ProviderOrderTokenUpdate {
-	potu.mutation.ClearProvider()
-	return potu
 }
 
 // ClearAddresses clears all "addresses" edges to the ProviderOrderTokenAddress entity.
@@ -238,39 +226,16 @@ func (potu *ProviderOrderTokenUpdate) sqlSave(ctx context.Context) (n int, err e
 		_spec.SetField(providerordertoken.FieldConversionRateType, field.TypeEnum, value)
 	}
 	if value, ok := potu.mutation.MaxOrderAmount(); ok {
-		_spec.SetField(providerordertoken.FieldMaxOrderAmount, field.TypeString, value)
+		_spec.SetField(providerordertoken.FieldMaxOrderAmount, field.TypeFloat64, value)
+	}
+	if value, ok := potu.mutation.AddedMaxOrderAmount(); ok {
+		_spec.AddField(providerordertoken.FieldMaxOrderAmount, field.TypeFloat64, value)
 	}
 	if value, ok := potu.mutation.MinOrderAmount(); ok {
-		_spec.SetField(providerordertoken.FieldMinOrderAmount, field.TypeString, value)
+		_spec.SetField(providerordertoken.FieldMinOrderAmount, field.TypeFloat64, value)
 	}
-	if potu.mutation.ProviderCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   providerordertoken.ProviderTable,
-			Columns: []string{providerordertoken.ProviderColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(providerprofile.FieldID, field.TypeString),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := potu.mutation.ProviderIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   providerordertoken.ProviderTable,
-			Columns: []string{providerordertoken.ProviderColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(providerprofile.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	if value, ok := potu.mutation.AddedMinOrderAmount(); ok {
+		_spec.AddField(providerordertoken.FieldMinOrderAmount, field.TypeFloat64, value)
 	}
 	if potu.mutation.AddressesCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -383,33 +348,28 @@ func (potuo *ProviderOrderTokenUpdateOne) SetConversionRateType(prt providerorde
 
 // SetMaxOrderAmount sets the "max_order_amount" field.
 func (potuo *ProviderOrderTokenUpdateOne) SetMaxOrderAmount(d decimal.Decimal) *ProviderOrderTokenUpdateOne {
+	potuo.mutation.ResetMaxOrderAmount()
 	potuo.mutation.SetMaxOrderAmount(d)
+	return potuo
+}
+
+// AddMaxOrderAmount adds d to the "max_order_amount" field.
+func (potuo *ProviderOrderTokenUpdateOne) AddMaxOrderAmount(d decimal.Decimal) *ProviderOrderTokenUpdateOne {
+	potuo.mutation.AddMaxOrderAmount(d)
 	return potuo
 }
 
 // SetMinOrderAmount sets the "min_order_amount" field.
 func (potuo *ProviderOrderTokenUpdateOne) SetMinOrderAmount(d decimal.Decimal) *ProviderOrderTokenUpdateOne {
+	potuo.mutation.ResetMinOrderAmount()
 	potuo.mutation.SetMinOrderAmount(d)
 	return potuo
 }
 
-// SetProviderID sets the "provider" edge to the ProviderProfile entity by ID.
-func (potuo *ProviderOrderTokenUpdateOne) SetProviderID(id string) *ProviderOrderTokenUpdateOne {
-	potuo.mutation.SetProviderID(id)
+// AddMinOrderAmount adds d to the "min_order_amount" field.
+func (potuo *ProviderOrderTokenUpdateOne) AddMinOrderAmount(d decimal.Decimal) *ProviderOrderTokenUpdateOne {
+	potuo.mutation.AddMinOrderAmount(d)
 	return potuo
-}
-
-// SetNillableProviderID sets the "provider" edge to the ProviderProfile entity by ID if the given value is not nil.
-func (potuo *ProviderOrderTokenUpdateOne) SetNillableProviderID(id *string) *ProviderOrderTokenUpdateOne {
-	if id != nil {
-		potuo = potuo.SetProviderID(*id)
-	}
-	return potuo
-}
-
-// SetProvider sets the "provider" edge to the ProviderProfile entity.
-func (potuo *ProviderOrderTokenUpdateOne) SetProvider(p *ProviderProfile) *ProviderOrderTokenUpdateOne {
-	return potuo.SetProviderID(p.ID)
 }
 
 // AddAddressIDs adds the "addresses" edge to the ProviderOrderTokenAddress entity by IDs.
@@ -430,12 +390,6 @@ func (potuo *ProviderOrderTokenUpdateOne) AddAddresses(p ...*ProviderOrderTokenA
 // Mutation returns the ProviderOrderTokenMutation object of the builder.
 func (potuo *ProviderOrderTokenUpdateOne) Mutation() *ProviderOrderTokenMutation {
 	return potuo.mutation
-}
-
-// ClearProvider clears the "provider" edge to the ProviderProfile entity.
-func (potuo *ProviderOrderTokenUpdateOne) ClearProvider() *ProviderOrderTokenUpdateOne {
-	potuo.mutation.ClearProvider()
-	return potuo
 }
 
 // ClearAddresses clears all "addresses" edges to the ProviderOrderTokenAddress entity.
@@ -574,39 +528,16 @@ func (potuo *ProviderOrderTokenUpdateOne) sqlSave(ctx context.Context) (_node *P
 		_spec.SetField(providerordertoken.FieldConversionRateType, field.TypeEnum, value)
 	}
 	if value, ok := potuo.mutation.MaxOrderAmount(); ok {
-		_spec.SetField(providerordertoken.FieldMaxOrderAmount, field.TypeString, value)
+		_spec.SetField(providerordertoken.FieldMaxOrderAmount, field.TypeFloat64, value)
+	}
+	if value, ok := potuo.mutation.AddedMaxOrderAmount(); ok {
+		_spec.AddField(providerordertoken.FieldMaxOrderAmount, field.TypeFloat64, value)
 	}
 	if value, ok := potuo.mutation.MinOrderAmount(); ok {
-		_spec.SetField(providerordertoken.FieldMinOrderAmount, field.TypeString, value)
+		_spec.SetField(providerordertoken.FieldMinOrderAmount, field.TypeFloat64, value)
 	}
-	if potuo.mutation.ProviderCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   providerordertoken.ProviderTable,
-			Columns: []string{providerordertoken.ProviderColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(providerprofile.FieldID, field.TypeString),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := potuo.mutation.ProviderIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   providerordertoken.ProviderTable,
-			Columns: []string{providerordertoken.ProviderColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(providerprofile.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	if value, ok := potuo.mutation.AddedMinOrderAmount(); ok {
+		_spec.AddField(providerordertoken.FieldMinOrderAmount, field.TypeFloat64, value)
 	}
 	if potuo.mutation.AddressesCleared() {
 		edge := &sqlgraph.EdgeSpec{

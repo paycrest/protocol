@@ -80,7 +80,7 @@ func (ppq *ProviderProfileQuery) QueryAPIKey() *APIKeyQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(providerprofile.Table, providerprofile.FieldID, selector),
 			sqlgraph.To(apikey.Table, apikey.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, providerprofile.APIKeyTable, providerprofile.APIKeyColumn),
+			sqlgraph.Edge(sqlgraph.O2O, true, providerprofile.APIKeyTable, providerprofile.APIKeyColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(ppq.driver.Dialect(), step)
 		return fromU, nil
@@ -124,7 +124,7 @@ func (ppq *ProviderProfileQuery) QueryAvailability() *ProviderAvailabilityQuery 
 		step := sqlgraph.NewStep(
 			sqlgraph.From(providerprofile.Table, providerprofile.FieldID, selector),
 			sqlgraph.To(provideravailability.Table, provideravailability.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, providerprofile.AvailabilityTable, providerprofile.AvailabilityColumn),
+			sqlgraph.Edge(sqlgraph.O2O, false, providerprofile.AvailabilityTable, providerprofile.AvailabilityColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(ppq.driver.Dialect(), step)
 		return fromU, nil
@@ -489,11 +489,8 @@ func (ppq *ProviderProfileQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 		}
 	}
 	if query := ppq.withAvailability; query != nil {
-		if err := ppq.loadAvailability(ctx, query, nodes,
-			func(n *ProviderProfile) { n.Edges.Availability = []*ProviderAvailability{} },
-			func(n *ProviderProfile, e *ProviderAvailability) {
-				n.Edges.Availability = append(n.Edges.Availability, e)
-			}); err != nil {
+		if err := ppq.loadAvailability(ctx, query, nodes, nil,
+			func(n *ProviderProfile, e *ProviderAvailability) { n.Edges.Availability = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -569,9 +566,6 @@ func (ppq *ProviderProfileQuery) loadAvailability(ctx context.Context, query *Pr
 	for i := range nodes {
 		fks = append(fks, nodes[i].ID)
 		nodeids[nodes[i].ID] = nodes[i]
-		if init != nil {
-			init(nodes[i])
-		}
 	}
 	query.withFKs = true
 	query.Where(predicate.ProviderAvailability(func(s *sql.Selector) {

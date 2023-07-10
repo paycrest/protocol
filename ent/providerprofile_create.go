@@ -84,14 +84,6 @@ func (ppc *ProviderProfileCreate) SetAPIKeyID(id uuid.UUID) *ProviderProfileCrea
 	return ppc
 }
 
-// SetNillableAPIKeyID sets the "api_key" edge to the APIKey entity by ID if the given value is not nil.
-func (ppc *ProviderProfileCreate) SetNillableAPIKeyID(id *uuid.UUID) *ProviderProfileCreate {
-	if id != nil {
-		ppc = ppc.SetAPIKeyID(*id)
-	}
-	return ppc
-}
-
 // SetAPIKey sets the "api_key" edge to the APIKey entity.
 func (ppc *ProviderProfileCreate) SetAPIKey(a *APIKey) *ProviderProfileCreate {
 	return ppc.SetAPIKeyID(a.ID)
@@ -112,19 +104,23 @@ func (ppc *ProviderProfileCreate) AddOrderTokens(p ...*ProviderOrderToken) *Prov
 	return ppc.AddOrderTokenIDs(ids...)
 }
 
-// AddAvailabilityIDs adds the "availability" edge to the ProviderAvailability entity by IDs.
-func (ppc *ProviderProfileCreate) AddAvailabilityIDs(ids ...int) *ProviderProfileCreate {
-	ppc.mutation.AddAvailabilityIDs(ids...)
+// SetAvailabilityID sets the "availability" edge to the ProviderAvailability entity by ID.
+func (ppc *ProviderProfileCreate) SetAvailabilityID(id int) *ProviderProfileCreate {
+	ppc.mutation.SetAvailabilityID(id)
 	return ppc
 }
 
-// AddAvailability adds the "availability" edges to the ProviderAvailability entity.
-func (ppc *ProviderProfileCreate) AddAvailability(p ...*ProviderAvailability) *ProviderProfileCreate {
-	ids := make([]int, len(p))
-	for i := range p {
-		ids[i] = p[i].ID
+// SetNillableAvailabilityID sets the "availability" edge to the ProviderAvailability entity by ID if the given value is not nil.
+func (ppc *ProviderProfileCreate) SetNillableAvailabilityID(id *int) *ProviderProfileCreate {
+	if id != nil {
+		ppc = ppc.SetAvailabilityID(*id)
 	}
-	return ppc.AddAvailabilityIDs(ids...)
+	return ppc
+}
+
+// SetAvailability sets the "availability" edge to the ProviderAvailability entity.
+func (ppc *ProviderProfileCreate) SetAvailability(p *ProviderAvailability) *ProviderProfileCreate {
+	return ppc.SetAvailabilityID(p.ID)
 }
 
 // Mutation returns the ProviderProfileMutation object of the builder.
@@ -200,6 +196,9 @@ func (ppc *ProviderProfileCreate) check() error {
 			return &ValidationError{Name: "country", err: fmt.Errorf(`ent: validator failed for field "ProviderProfile.country": %w`, err)}
 		}
 	}
+	if _, ok := ppc.mutation.APIKeyID(); !ok {
+		return &ValidationError{Name: "api_key", err: errors.New(`ent: missing required edge "ProviderProfile.api_key"`)}
+	}
 	return nil
 }
 
@@ -253,7 +252,7 @@ func (ppc *ProviderProfileCreate) createSpec() (*ProviderProfile, *sqlgraph.Crea
 	}
 	if nodes := ppc.mutation.APIKeyIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
+			Rel:     sqlgraph.O2O,
 			Inverse: true,
 			Table:   providerprofile.APIKeyTable,
 			Columns: []string{providerprofile.APIKeyColumn},
@@ -286,7 +285,7 @@ func (ppc *ProviderProfileCreate) createSpec() (*ProviderProfile, *sqlgraph.Crea
 	}
 	if nodes := ppc.mutation.AvailabilityIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.O2O,
 			Inverse: false,
 			Table:   providerprofile.AvailabilityTable,
 			Columns: []string{providerprofile.AvailabilityColumn},

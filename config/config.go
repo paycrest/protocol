@@ -13,6 +13,7 @@ type Configuration struct {
 	Server   ServerConfiguration
 	Database DatabaseConfiguration
 	Auth     AuthConfiguration
+	Order    OrderConfiguration
 }
 
 // SetupConfig configuration

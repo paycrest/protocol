@@ -22,8 +22,9 @@ func (ReceiveAddress) Mixin() []ent.Mixin {
 func (ReceiveAddress) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("address").Unique(),
-		field.Int("accountIndex"),
+		field.Int("account_index"),
 		field.Enum("status").Values("unused", "partial", "used", "expired").Default("unused"),
+		field.Int64("last_indexed_block").Optional(),
 		field.Time("last_used").Optional(),
 	}
 }

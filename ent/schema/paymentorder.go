@@ -27,8 +27,7 @@ func (PaymentOrder) Fields() []ent.Field {
 		field.Float("amount").
 			GoType(decimal.Decimal{}),
 		field.Float("amount_paid").
-			GoType(decimal.Decimal{}).
-			Default(0.0),
+			GoType(decimal.Decimal{}),
 		field.Enum("network").
 			Values("bnb-smart-chain", "polygon", "tron", "polygon-mumbai", "tron-shasta"),
 		field.String("tx_hash").
@@ -36,8 +35,8 @@ func (PaymentOrder) Fields() []ent.Field {
 			Optional(),
 		field.String("receive_address"),
 		field.Enum("status").
-			Values("pending", "cancelled", "fulfilled", "validated").
-			Default("pending"),
+			Values("initiated", "pending", "settled", "cancelled", "failed", "refunded").
+			Default("initiated"),
 		field.Time("last_used").Optional(),
 	}
 }
