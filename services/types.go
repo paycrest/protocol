@@ -1,8 +1,10 @@
 package services
 
 import (
+	"math/big"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
 )
@@ -63,4 +65,11 @@ type APIKeyResponse struct {
 	Scope     apikey.Scope `json:"scope"`
 	Secret    string       `json:"secret"`
 	IsActive  bool         `json:"isActive"`
+}
+
+// ERC20Transfer is the Transfer event of an ERC20 smart contract
+type ERC20Transfer struct {
+	From  common.Address
+	To    common.Address
+	Value *big.Int
 }

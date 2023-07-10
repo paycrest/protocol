@@ -19,26 +19,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/utils/logger"
 )
 
-type LogTransfer struct {
-	From  common.Address
-	To    common.Address
-	Value *big.Int
-}
-
-type ERC20Token struct {
-	Name     string
-	Symbol   string
-	Decimals uint8
-	Address  string
-	Network  string
-}
-
-var USDT = ERC20Token{
-	Name:    "USDT",
-	Address: "0xdac17f958d2ee523a2206206994597c13d831ec7",
-}
-
-const erc20ABI = `[{"constant":true,"inputs":[],"name":"name","outputs":[{"name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_upgradedAddress","type":"address"}],"name":"deprecate","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"_spender","type":"address"},{"name":"_value","type":"uint256"}],"name":"approve","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"deprecated","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_evilUser","type":"address"}],"name":"addBlackList","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"totalSupply","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transferFrom","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"upgradedAddress","outputs":[{"name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"name":"","type":"address"}],"name":"balances","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"maximumFee","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"_totalSupply","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[],"name":"unpause","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"_maker","type":"address"}],"name":"getBlackListStatus","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"name":"","type":"address"},{"name":"","type":"address"}],"name":"allowed","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"paused","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"name":"who","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[],"name":"pause","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"getOwner","outputs":[{"name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"owner","outputs":[{"name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"symbol","outputs":[{"name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"newBasisPoints","type":"uint256"},{"name":"newMaxFee","type":"uint256"}],"name":"setParams","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"amount","type":"uint256"}],"name":"issue","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"amount","type":"uint256"}],"name":"redeem","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"_owner","type":"address"},{"name":"_spender","type":"address"}],"name":"allowance","outputs":[{"name":"remaining","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"basisPointsRate","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"name":"","type":"address"}],"name":"isBlackListed","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_clearedUser","type":"address"}],"name":"removeBlackList","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"MAX_UINT","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"newOwner","type":"address"}],"name":"transferOwnership","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"_blackListedUser","type":"address"}],"name":"destroyBlackFunds","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"inputs":[{"name":"_initialSupply","type":"uint256"},{"name":"_name","type":"string"},{"name":"_symbol","type":"string"},{"name":"_decimals","type":"uint256"}],"payable":false,"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":false,"name":"amount","type":"uint256"}],"name":"Issue","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"name":"amount","type":"uint256"}],"name":"Redeem","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"name":"newAddress","type":"address"}],"name":"Deprecate","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"name":"feeBasisPoints","type":"uint256"},{"indexed":false,"name":"maxFee","type":"uint256"}],"name":"Params","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"name":"_blackListedUser","type":"address"},{"indexed":false,"name":"_balance","type":"uint256"}],"name":"DestroyedBlackFunds","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"name":"_user","type":"address"}],"name":"AddedBlackList","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"name":"_user","type":"address"}],"name":"RemovedBlackList","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"owner","type":"address"},{"indexed":true,"name":"spender","type":"address"},{"indexed":false,"name":"value","type":"uint256"}],"name":"Approval","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"from","type":"address"},{"indexed":true,"name":"to","type":"address"},{"indexed":false,"name":"value","type":"uint256"}],"name":"Transfer","type":"event"},{"anonymous":false,"inputs":[],"name":"Pause","type":"event"},{"anonymous":false,"inputs":[],"name":"Unpause","type":"event"}]`
+var conf = config.OrderConfig()
 
 // IndexerService performs blockchain to database extract, transform, load (ETL) operations.
 type IndexerService struct {
@@ -52,54 +33,59 @@ func NewIndexerService(db *ent.Client) *ReceiveAddressService {
 	}
 }
 
-var conf = config.OrderConfig()
-
 // IndexERC20Transfer indexes ERC20 token transfers for a specific address.
 func (s *IndexerService) IndexERC20Transfer(ctx context.Context, address common.Address) error {
+
 	// Fetch receive address from db
 	receiveAddress, err := s.db.ReceiveAddress.
 		Query().
-		Where(receiveaddress.AddressEQ(address.String())).
-		WithPaymentOrder().
+		Where(receiveaddress.AddressEQ(address.Hex())).
+		WithPaymentOrder(func(pq *ent.PaymentOrderQuery) { // prefetch payment order, token, and network
+			pq.WithToken(func(tq *ent.TokenQuery) {
+				tq.WithNetwork()
+			})
+		}).
 		Only(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to fetch receive address: %w", err)
 	}
 
-	// TODO: get the contract address based on the token in payment order edge of receive address
-	contractAddress := common.HexToAddress(USDT.Address)
+	paymentOrder := receiveAddress.Edges.PaymentOrder
+	token := paymentOrder.Edges.Token
 
-	// TODO: set RPC url from env based on network of the payment order edge of receive address
-	client, err := ethclient.Dial("<RPC_URL>")
+	client, err := ethclient.Dial(token.Edges.Network.RPCEndpoint)
 	if err != nil {
 		return fmt.Errorf("failed to dial RPC: %w", err)
 	}
 
+	// Fetch current block header
 	header, err := client.HeaderByNumber(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("failed to fetch current block number: %w", err)
 	}
 
-	// Number blocks that will be generated within the receive address valid period.
+	// Number of blocks that will be generated within the receive address valid period.
 	// Layer 2 networks have the shortest blocktimes e.g Polygon, Tron etc. are < 5 seconds
-	// We assume a blocktime of 1s for the largest number of blocks to scan
-	numOfBlocks := int64(conf.ReceiveAddressValidity.Seconds() / 1)
+	// We assume a blocktime of 2s for the largest number of blocks to scan.
+	// number of blocks = receive address validity period in seconds / blocktime
+	numOfBlocks := int64(conf.ReceiveAddressValidity.Seconds() / 2)
 
 	var fromBlock *big.Int
 
 	if receiveAddress.LastIndexedBlock > 0 {
 		// Continue indexing from last indexed block if the last process failed
-		fromBlock = big.NewInt(receiveAddress.LastIndexedBlock)
+		fromBlock = big.NewInt(receiveAddress.LastIndexedBlock + 1)
 	} else {
-		fromBlock = big.NewInt(header.Number.Int64() - numOfBlocks)
+		fromBlock = big.NewInt(header.Number.Int64() - numOfBlocks + 1)
 	}
 
+	// Query event logs of the token contract starting from the oldest block
+	// within the receive address validity period
 	query := ethereum.FilterQuery{
-		// Query blocks starting from the oldest block within the valid period
 		FromBlock: fromBlock,
 		ToBlock:   header.Number,
 		Addresses: []common.Address{
-			contractAddress,
+			common.HexToAddress(paymentOrder.Edges.Token.ContractAddress),
 		},
 	}
 
@@ -111,7 +97,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, address common.
 	finalBlockNumber := query.ToBlock
 
 	// Get Transfer event signature hash
-	contractAbi, err := abi.JSON(strings.NewReader(erc20ABI))
+	contractAbi, err := abi.JSON(strings.NewReader(ERC20ABI))
 	if err != nil {
 		return fmt.Errorf("failed to parse ABI: %w", err)
 	}
@@ -119,7 +105,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, address common.
 	logTransferSig := []byte("Transfer(address,address,uint256)")
 	logTransferSigHash := crypto.Keccak256Hash(logTransferSig)
 
-	logger.Infof("Indexing transfer logs for " + address.Hex())
+	logger.Infof("Indexing transfer logs for %s from Block #%s - #%s", address.Hex(), fromBlock.String(), header.Number.String())
 
 	for {
 		// Update the filter parameters
@@ -140,7 +126,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, address common.
 		for _, vLog := range logs {
 			switch vLog.Topics[0].Hex() {
 			case logTransferSigHash.Hex():
-				var transferEvent LogTransfer
+				var transferEvent ERC20Transfer
 
 				err := contractAbi.UnpackIntoInterface(&transferEvent, "Transfer", vLog.Data)
 				if err != nil {
@@ -152,7 +138,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, address common.
 
 				if transferEvent.To.Hex() == receiveAddress.Address {
 					// Compare the transferred value with the expected order amount
-					orderAmountInSubUnit := utils.ToSubUnit(receiveAddress.Edges.PaymentOrder.Amount, USDT.Decimals)
+					orderAmountInSubUnit := utils.ToSubUnit(paymentOrder.Amount, token.Decimals)
 					var comparisonResult = transferEvent.Value.Cmp(orderAmountInSubUnit)
 
 					if comparisonResult == 0 {
@@ -177,9 +163,9 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, address common.
 					}
 
 					// Update the payment order with amount paid
-					_, err = receiveAddress.Edges.PaymentOrder.
+					_, err = paymentOrder.
 						Update().
-						SetAmountPaid(receiveAddress.Edges.PaymentOrder.AmountPaid.Add(utils.FromSubUnit(transferEvent.Value, USDT.Decimals))).
+						SetAmountPaid(paymentOrder.AmountPaid.Add(utils.FromSubUnit(transferEvent.Value, token.Decimals))).
 						Save(ctx)
 					if err != nil {
 						return fmt.Errorf("failed to record amount paid: %w", err)
@@ -197,7 +183,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, address common.
 						}
 
 						// If amount paid meets or exceeds the expected amount, mark receive address as used
-						if receiveAddress.Edges.PaymentOrder.AmountPaid.GreaterThanOrEqual(receiveAddress.Edges.PaymentOrder.Amount) {
+						if paymentOrder.AmountPaid.GreaterThanOrEqual(paymentOrder.Amount) {
 							_, err = receiveAddress.
 								Update().
 								SetStatus(receiveaddress.StatusUsed).
@@ -210,18 +196,20 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, address common.
 					}
 
 					return nil
-				} else {
-					// Check if the receive address was created more than 1 hour ago
-					oneHourAgo := time.Now().Add(-1 * time.Hour)
-					if receiveAddress.CreatedAt.Before(oneHourAgo) {
-						// Receive address created more than 1 hour ago, mark status as expired
-						_, err = receiveAddress.
-							Update().
-							SetStatus(receiveaddress.StatusExpired).
-							Save(ctx)
-						if err != nil {
-							return fmt.Errorf("failed to update receive address status: %w", err)
-						}
+				}
+
+				// Check if receive address validity period has passed
+				timeAgo := time.Now().Add(conf.ReceiveAddressValidity)
+				amountNotPaidInFull := (receiveAddress.Status == receiveaddress.StatusPartial || receiveAddress.Status == receiveaddress.StatusUnused)
+
+				if receiveAddress.CreatedAt.Before(timeAgo) && amountNotPaidInFull {
+					// Receive address hasn't received full payment after validity period, mark status as expired
+					_, err = receiveAddress.
+						Update().
+						SetStatus(receiveaddress.StatusExpired).
+						Save(ctx)
+					if err != nil {
+						return fmt.Errorf("failed to update receive address status: %w", err)
 					}
 				}
 			}
