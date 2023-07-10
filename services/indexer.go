@@ -26,7 +26,7 @@ type IndexerService struct {
 	db *ent.Client
 }
 
-// IndexerService creates a new instance of NewIndexer.
+// NewIndexerService creates a new instance of IndexerService.
 func NewIndexerService(db *ent.Client) *ReceiveAddressService {
 	return &ReceiveAddressService{
 		db: db,

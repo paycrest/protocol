@@ -14,7 +14,7 @@ type ReceiveAddressService struct {
 	db *ent.Client
 }
 
-// NewReceiveAddressService creates a new instance of NewReceiveAddress.
+// NewReceiveAddressService creates a new instance of ReceiveAddressService.
 func NewReceiveAddressService(db *ent.Client) *ReceiveAddressService {
 	return &ReceiveAddressService{
 		db: db,
