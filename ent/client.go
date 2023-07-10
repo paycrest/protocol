@@ -16,6 +16,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
+	"github.com/paycrest/paycrest-protocol/ent/network"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorderrecipient"
 	"github.com/paycrest/paycrest-protocol/ent/provideravailability"
@@ -23,6 +24,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/providerordertokenaddress"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
+	"github.com/paycrest/paycrest-protocol/ent/token"
 	"github.com/paycrest/paycrest-protocol/ent/user"
 )
 
@@ -33,6 +35,8 @@ type Client struct {
 	Schema *migrate.Schema
 	// APIKey is the client for interacting with the APIKey builders.
 	APIKey *APIKeyClient
+	// Network is the client for interacting with the Network builders.
+	Network *NetworkClient
 	// PaymentOrder is the client for interacting with the PaymentOrder builders.
 	PaymentOrder *PaymentOrderClient
 	// PaymentOrderRecipient is the client for interacting with the PaymentOrderRecipient builders.
@@ -47,6 +51,8 @@ type Client struct {
 	ProviderProfile *ProviderProfileClient
 	// ReceiveAddress is the client for interacting with the ReceiveAddress builders.
 	ReceiveAddress *ReceiveAddressClient
+	// Token is the client for interacting with the Token builders.
+	Token *TokenClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
 }
@@ -63,6 +69,7 @@ func NewClient(opts ...Option) *Client {
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
 	c.APIKey = NewAPIKeyClient(c.config)
+	c.Network = NewNetworkClient(c.config)
 	c.PaymentOrder = NewPaymentOrderClient(c.config)
 	c.PaymentOrderRecipient = NewPaymentOrderRecipientClient(c.config)
 	c.ProviderAvailability = NewProviderAvailabilityClient(c.config)
@@ -70,6 +77,7 @@ func (c *Client) init() {
 	c.ProviderOrderTokenAddress = NewProviderOrderTokenAddressClient(c.config)
 	c.ProviderProfile = NewProviderProfileClient(c.config)
 	c.ReceiveAddress = NewReceiveAddressClient(c.config)
+	c.Token = NewTokenClient(c.config)
 	c.User = NewUserClient(c.config)
 }
 
@@ -154,6 +162,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		ctx:                       ctx,
 		config:                    cfg,
 		APIKey:                    NewAPIKeyClient(cfg),
+		Network:                   NewNetworkClient(cfg),
 		PaymentOrder:              NewPaymentOrderClient(cfg),
 		PaymentOrderRecipient:     NewPaymentOrderRecipientClient(cfg),
 		ProviderAvailability:      NewProviderAvailabilityClient(cfg),
@@ -161,6 +170,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		ProviderOrderTokenAddress: NewProviderOrderTokenAddressClient(cfg),
 		ProviderProfile:           NewProviderProfileClient(cfg),
 		ReceiveAddress:            NewReceiveAddressClient(cfg),
+		Token:                     NewTokenClient(cfg),
 		User:                      NewUserClient(cfg),
 	}, nil
 }
@@ -182,6 +192,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		ctx:                       ctx,
 		config:                    cfg,
 		APIKey:                    NewAPIKeyClient(cfg),
+		Network:                   NewNetworkClient(cfg),
 		PaymentOrder:              NewPaymentOrderClient(cfg),
 		PaymentOrderRecipient:     NewPaymentOrderRecipientClient(cfg),
 		ProviderAvailability:      NewProviderAvailabilityClient(cfg),
@@ -189,6 +200,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		ProviderOrderTokenAddress: NewProviderOrderTokenAddressClient(cfg),
 		ProviderProfile:           NewProviderProfileClient(cfg),
 		ReceiveAddress:            NewReceiveAddressClient(cfg),
+		Token:                     NewTokenClient(cfg),
 		User:                      NewUserClient(cfg),
 	}, nil
 }
@@ -219,9 +231,9 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.APIKey, c.PaymentOrder, c.PaymentOrderRecipient, c.ProviderAvailability,
-		c.ProviderOrderToken, c.ProviderOrderTokenAddress, c.ProviderProfile,
-		c.ReceiveAddress, c.User,
+		c.APIKey, c.Network, c.PaymentOrder, c.PaymentOrderRecipient,
+		c.ProviderAvailability, c.ProviderOrderToken, c.ProviderOrderTokenAddress,
+		c.ProviderProfile, c.ReceiveAddress, c.Token, c.User,
 	} {
 		n.Use(hooks...)
 	}
@@ -231,9 +243,9 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.APIKey, c.PaymentOrder, c.PaymentOrderRecipient, c.ProviderAvailability,
-		c.ProviderOrderToken, c.ProviderOrderTokenAddress, c.ProviderProfile,
-		c.ReceiveAddress, c.User,
+		c.APIKey, c.Network, c.PaymentOrder, c.PaymentOrderRecipient,
+		c.ProviderAvailability, c.ProviderOrderToken, c.ProviderOrderTokenAddress,
+		c.ProviderProfile, c.ReceiveAddress, c.Token, c.User,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -244,6 +256,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
 	case *APIKeyMutation:
 		return c.APIKey.mutate(ctx, m)
+	case *NetworkMutation:
+		return c.Network.mutate(ctx, m)
 	case *PaymentOrderMutation:
 		return c.PaymentOrder.mutate(ctx, m)
 	case *PaymentOrderRecipientMutation:
@@ -258,6 +272,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.ProviderProfile.mutate(ctx, m)
 	case *ReceiveAddressMutation:
 		return c.ReceiveAddress.mutate(ctx, m)
+	case *TokenMutation:
+		return c.Token.mutate(ctx, m)
 	case *UserMutation:
 		return c.User.mutate(ctx, m)
 	default:
@@ -431,6 +447,140 @@ func (c *APIKeyClient) mutate(ctx context.Context, m *APIKeyMutation) (Value, er
 	}
 }
 
+// NetworkClient is a client for the Network schema.
+type NetworkClient struct {
+	config
+}
+
+// NewNetworkClient returns a client for the Network from the given config.
+func NewNetworkClient(c config) *NetworkClient {
+	return &NetworkClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `network.Hooks(f(g(h())))`.
+func (c *NetworkClient) Use(hooks ...Hook) {
+	c.hooks.Network = append(c.hooks.Network, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `network.Intercept(f(g(h())))`.
+func (c *NetworkClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Network = append(c.inters.Network, interceptors...)
+}
+
+// Create returns a builder for creating a Network entity.
+func (c *NetworkClient) Create() *NetworkCreate {
+	mutation := newNetworkMutation(c.config, OpCreate)
+	return &NetworkCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Network entities.
+func (c *NetworkClient) CreateBulk(builders ...*NetworkCreate) *NetworkCreateBulk {
+	return &NetworkCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Network.
+func (c *NetworkClient) Update() *NetworkUpdate {
+	mutation := newNetworkMutation(c.config, OpUpdate)
+	return &NetworkUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *NetworkClient) UpdateOne(n *Network) *NetworkUpdateOne {
+	mutation := newNetworkMutation(c.config, OpUpdateOne, withNetwork(n))
+	return &NetworkUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *NetworkClient) UpdateOneID(id int) *NetworkUpdateOne {
+	mutation := newNetworkMutation(c.config, OpUpdateOne, withNetworkID(id))
+	return &NetworkUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Network.
+func (c *NetworkClient) Delete() *NetworkDelete {
+	mutation := newNetworkMutation(c.config, OpDelete)
+	return &NetworkDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *NetworkClient) DeleteOne(n *Network) *NetworkDeleteOne {
+	return c.DeleteOneID(n.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *NetworkClient) DeleteOneID(id int) *NetworkDeleteOne {
+	builder := c.Delete().Where(network.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &NetworkDeleteOne{builder}
+}
+
+// Query returns a query builder for Network.
+func (c *NetworkClient) Query() *NetworkQuery {
+	return &NetworkQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeNetwork},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Network entity by its id.
+func (c *NetworkClient) Get(ctx context.Context, id int) (*Network, error) {
+	return c.Query().Where(network.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *NetworkClient) GetX(ctx context.Context, id int) *Network {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryTokens queries the tokens edge of a Network.
+func (c *NetworkClient) QueryTokens(n *Network) *TokenQuery {
+	query := (&TokenClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := n.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(network.Table, network.FieldID, id),
+			sqlgraph.To(token.Table, token.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, network.TokensTable, network.TokensColumn),
+		)
+		fromV = sqlgraph.Neighbors(n.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *NetworkClient) Hooks() []Hook {
+	return c.hooks.Network
+}
+
+// Interceptors returns the client interceptors.
+func (c *NetworkClient) Interceptors() []Interceptor {
+	return c.inters.Network
+}
+
+func (c *NetworkClient) mutate(ctx context.Context, m *NetworkMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&NetworkCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&NetworkUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&NetworkUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&NetworkDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Network mutation op: %q", m.Op())
+	}
+}
+
 // PaymentOrderClient is a client for the PaymentOrder schema.
 type PaymentOrderClient struct {
 	config
@@ -533,6 +683,22 @@ func (c *PaymentOrderClient) QueryAPIKey(po *PaymentOrder) *APIKeyQuery {
 			sqlgraph.From(paymentorder.Table, paymentorder.FieldID, id),
 			sqlgraph.To(apikey.Table, apikey.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, paymentorder.APIKeyTable, paymentorder.APIKeyColumn),
+		)
+		fromV = sqlgraph.Neighbors(po.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryToken queries the token edge of a PaymentOrder.
+func (c *PaymentOrderClient) QueryToken(po *PaymentOrder) *TokenQuery {
+	query := (&TokenClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := po.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(paymentorder.Table, paymentorder.FieldID, id),
+			sqlgraph.To(token.Table, token.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, paymentorder.TokenTable, paymentorder.TokenColumn),
 		)
 		fromV = sqlgraph.Neighbors(po.driver.Dialect(), step)
 		return fromV, nil
@@ -1449,6 +1615,156 @@ func (c *ReceiveAddressClient) mutate(ctx context.Context, m *ReceiveAddressMuta
 	}
 }
 
+// TokenClient is a client for the Token schema.
+type TokenClient struct {
+	config
+}
+
+// NewTokenClient returns a client for the Token from the given config.
+func NewTokenClient(c config) *TokenClient {
+	return &TokenClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `token.Hooks(f(g(h())))`.
+func (c *TokenClient) Use(hooks ...Hook) {
+	c.hooks.Token = append(c.hooks.Token, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `token.Intercept(f(g(h())))`.
+func (c *TokenClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Token = append(c.inters.Token, interceptors...)
+}
+
+// Create returns a builder for creating a Token entity.
+func (c *TokenClient) Create() *TokenCreate {
+	mutation := newTokenMutation(c.config, OpCreate)
+	return &TokenCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Token entities.
+func (c *TokenClient) CreateBulk(builders ...*TokenCreate) *TokenCreateBulk {
+	return &TokenCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Token.
+func (c *TokenClient) Update() *TokenUpdate {
+	mutation := newTokenMutation(c.config, OpUpdate)
+	return &TokenUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *TokenClient) UpdateOne(t *Token) *TokenUpdateOne {
+	mutation := newTokenMutation(c.config, OpUpdateOne, withToken(t))
+	return &TokenUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *TokenClient) UpdateOneID(id int) *TokenUpdateOne {
+	mutation := newTokenMutation(c.config, OpUpdateOne, withTokenID(id))
+	return &TokenUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Token.
+func (c *TokenClient) Delete() *TokenDelete {
+	mutation := newTokenMutation(c.config, OpDelete)
+	return &TokenDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *TokenClient) DeleteOne(t *Token) *TokenDeleteOne {
+	return c.DeleteOneID(t.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *TokenClient) DeleteOneID(id int) *TokenDeleteOne {
+	builder := c.Delete().Where(token.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &TokenDeleteOne{builder}
+}
+
+// Query returns a query builder for Token.
+func (c *TokenClient) Query() *TokenQuery {
+	return &TokenQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeToken},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Token entity by its id.
+func (c *TokenClient) Get(ctx context.Context, id int) (*Token, error) {
+	return c.Query().Where(token.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *TokenClient) GetX(ctx context.Context, id int) *Token {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryNetwork queries the network edge of a Token.
+func (c *TokenClient) QueryNetwork(t *Token) *NetworkQuery {
+	query := (&NetworkClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := t.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(token.Table, token.FieldID, id),
+			sqlgraph.To(network.Table, network.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, token.NetworkTable, token.NetworkColumn),
+		)
+		fromV = sqlgraph.Neighbors(t.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryPaymentOrders queries the payment_orders edge of a Token.
+func (c *TokenClient) QueryPaymentOrders(t *Token) *PaymentOrderQuery {
+	query := (&PaymentOrderClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := t.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(token.Table, token.FieldID, id),
+			sqlgraph.To(paymentorder.Table, paymentorder.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, token.PaymentOrdersTable, token.PaymentOrdersColumn),
+		)
+		fromV = sqlgraph.Neighbors(t.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *TokenClient) Hooks() []Hook {
+	return c.hooks.Token
+}
+
+// Interceptors returns the client interceptors.
+func (c *TokenClient) Interceptors() []Interceptor {
+	return c.inters.Token
+}
+
+func (c *TokenClient) mutate(ctx context.Context, m *TokenMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&TokenCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&TokenUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&TokenUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&TokenDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Token mutation op: %q", m.Op())
+	}
+}
+
 // UserClient is a client for the User schema.
 type UserClient struct {
 	config
@@ -1587,13 +1903,13 @@ func (c *UserClient) mutate(ctx context.Context, m *UserMutation) (Value, error)
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		APIKey, PaymentOrder, PaymentOrderRecipient, ProviderAvailability,
+		APIKey, Network, PaymentOrder, PaymentOrderRecipient, ProviderAvailability,
 		ProviderOrderToken, ProviderOrderTokenAddress, ProviderProfile, ReceiveAddress,
-		User []ent.Hook
+		Token, User []ent.Hook
 	}
 	inters struct {
-		APIKey, PaymentOrder, PaymentOrderRecipient, ProviderAvailability,
+		APIKey, Network, PaymentOrder, PaymentOrderRecipient, ProviderAvailability,
 		ProviderOrderToken, ProviderOrderTokenAddress, ProviderProfile, ReceiveAddress,
-		User []ent.Interceptor
+		Token, User []ent.Interceptor
 	}
 )

@@ -17,6 +17,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/paymentorderrecipient"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
 	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
+	"github.com/paycrest/paycrest-protocol/ent/token"
 )
 
 // PaymentOrderQuery is the builder for querying PaymentOrder entities.
@@ -27,6 +28,7 @@ type PaymentOrderQuery struct {
 	inters               []Interceptor
 	predicates           []predicate.PaymentOrder
 	withAPIKey           *APIKeyQuery
+	withToken            *TokenQuery
 	withReceiveAddressFk *ReceiveAddressQuery
 	withRecipient        *PaymentOrderRecipientQuery
 	withFKs              bool
@@ -81,6 +83,28 @@ func (poq *PaymentOrderQuery) QueryAPIKey() *APIKeyQuery {
 			sqlgraph.From(paymentorder.Table, paymentorder.FieldID, selector),
 			sqlgraph.To(apikey.Table, apikey.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, paymentorder.APIKeyTable, paymentorder.APIKeyColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(poq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryToken chains the current query on the "token" edge.
+func (poq *PaymentOrderQuery) QueryToken() *TokenQuery {
+	query := (&TokenClient{config: poq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := poq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := poq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(paymentorder.Table, paymentorder.FieldID, selector),
+			sqlgraph.To(token.Table, token.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, paymentorder.TokenTable, paymentorder.TokenColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(poq.driver.Dialect(), step)
 		return fromU, nil
@@ -325,6 +349,7 @@ func (poq *PaymentOrderQuery) Clone() *PaymentOrderQuery {
 		inters:               append([]Interceptor{}, poq.inters...),
 		predicates:           append([]predicate.PaymentOrder{}, poq.predicates...),
 		withAPIKey:           poq.withAPIKey.Clone(),
+		withToken:            poq.withToken.Clone(),
 		withReceiveAddressFk: poq.withReceiveAddressFk.Clone(),
 		withRecipient:        poq.withRecipient.Clone(),
 		// clone intermediate query.
@@ -341,6 +366,17 @@ func (poq *PaymentOrderQuery) WithAPIKey(opts ...func(*APIKeyQuery)) *PaymentOrd
 		opt(query)
 	}
 	poq.withAPIKey = query
+	return poq
+}
+
+// WithToken tells the query-builder to eager-load the nodes that are connected to
+// the "token" edge. The optional arguments are used to configure the query builder of the edge.
+func (poq *PaymentOrderQuery) WithToken(opts ...func(*TokenQuery)) *PaymentOrderQuery {
+	query := (&TokenClient{config: poq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	poq.withToken = query
 	return poq
 }
 
@@ -445,13 +481,14 @@ func (poq *PaymentOrderQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([
 		nodes       = []*PaymentOrder{}
 		withFKs     = poq.withFKs
 		_spec       = poq.querySpec()
-		loadedTypes = [3]bool{
+		loadedTypes = [4]bool{
 			poq.withAPIKey != nil,
+			poq.withToken != nil,
 			poq.withReceiveAddressFk != nil,
 			poq.withRecipient != nil,
 		}
 	)
-	if poq.withAPIKey != nil {
+	if poq.withAPIKey != nil || poq.withToken != nil {
 		withFKs = true
 	}
 	if withFKs {
@@ -478,6 +515,12 @@ func (poq *PaymentOrderQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([
 	if query := poq.withAPIKey; query != nil {
 		if err := poq.loadAPIKey(ctx, query, nodes, nil,
 			func(n *PaymentOrder, e *APIKey) { n.Edges.APIKey = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := poq.withToken; query != nil {
+		if err := poq.loadToken(ctx, query, nodes, nil,
+			func(n *PaymentOrder, e *Token) { n.Edges.Token = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -521,6 +564,38 @@ func (poq *PaymentOrderQuery) loadAPIKey(ctx context.Context, query *APIKeyQuery
 		nodes, ok := nodeids[n.ID]
 		if !ok {
 			return fmt.Errorf(`unexpected foreign-key "api_key_payment_orders" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
+func (poq *PaymentOrderQuery) loadToken(ctx context.Context, query *TokenQuery, nodes []*PaymentOrder, init func(*PaymentOrder), assign func(*PaymentOrder, *Token)) error {
+	ids := make([]int, 0, len(nodes))
+	nodeids := make(map[int][]*PaymentOrder)
+	for i := range nodes {
+		if nodes[i].token_payment_orders == nil {
+			continue
+		}
+		fk := *nodes[i].token_payment_orders
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(token.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "token_payment_orders" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)

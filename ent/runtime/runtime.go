@@ -7,12 +7,14 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
+	"github.com/paycrest/paycrest-protocol/ent/network"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/providerordertoken"
 	"github.com/paycrest/paycrest-protocol/ent/providerordertokenaddress"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
 	"github.com/paycrest/paycrest-protocol/ent/schema"
+	"github.com/paycrest/paycrest-protocol/ent/token"
 	"github.com/paycrest/paycrest-protocol/ent/user"
 )
 
@@ -38,6 +40,21 @@ func init() {
 	apikeyDescID := apikeyFields[0].Descriptor()
 	// apikey.DefaultID holds the default value on creation for the id field.
 	apikey.DefaultID = apikeyDescID.Default.(func() uuid.UUID)
+	networkMixin := schema.Network{}.Mixin()
+	networkMixinFields0 := networkMixin[0].Fields()
+	_ = networkMixinFields0
+	networkFields := schema.Network{}.Fields()
+	_ = networkFields
+	// networkDescCreatedAt is the schema descriptor for created_at field.
+	networkDescCreatedAt := networkMixinFields0[0].Descriptor()
+	// network.DefaultCreatedAt holds the default value on creation for the created_at field.
+	network.DefaultCreatedAt = networkDescCreatedAt.Default.(func() time.Time)
+	// networkDescUpdatedAt is the schema descriptor for updated_at field.
+	networkDescUpdatedAt := networkMixinFields0[1].Descriptor()
+	// network.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	network.DefaultUpdatedAt = networkDescUpdatedAt.Default.(func() time.Time)
+	// network.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	network.UpdateDefaultUpdatedAt = networkDescUpdatedAt.UpdateDefault.(func() time.Time)
 	paymentorderMixin := schema.PaymentOrder{}.Mixin()
 	paymentorderMixinFields0 := paymentorderMixin[0].Fields()
 	_ = paymentorderMixinFields0
@@ -54,9 +71,13 @@ func init() {
 	// paymentorder.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	paymentorder.UpdateDefaultUpdatedAt = paymentorderDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// paymentorderDescTxHash is the schema descriptor for tx_hash field.
-	paymentorderDescTxHash := paymentorderFields[4].Descriptor()
+	paymentorderDescTxHash := paymentorderFields[3].Descriptor()
 	// paymentorder.TxHashValidator is a validator for the "tx_hash" field. It is called by the builders before save.
 	paymentorder.TxHashValidator = paymentorderDescTxHash.Validators[0].(func(string) error)
+	// paymentorderDescReceiveAddress is the schema descriptor for receive_address field.
+	paymentorderDescReceiveAddress := paymentorderFields[4].Descriptor()
+	// paymentorder.ReceiveAddressValidator is a validator for the "receive_address" field. It is called by the builders before save.
+	paymentorder.ReceiveAddressValidator = paymentorderDescReceiveAddress.Validators[0].(func(string) error)
 	providerordertokenMixin := schema.ProviderOrderToken{}.Mixin()
 	providerordertokenMixinFields0 := providerordertokenMixin[0].Fields()
 	_ = providerordertokenMixinFields0
@@ -120,6 +141,33 @@ func init() {
 	receiveaddress.DefaultUpdatedAt = receiveaddressDescUpdatedAt.Default.(func() time.Time)
 	// receiveaddress.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	receiveaddress.UpdateDefaultUpdatedAt = receiveaddressDescUpdatedAt.UpdateDefault.(func() time.Time)
+	tokenMixin := schema.Token{}.Mixin()
+	tokenMixinFields0 := tokenMixin[0].Fields()
+	_ = tokenMixinFields0
+	tokenFields := schema.Token{}.Fields()
+	_ = tokenFields
+	// tokenDescCreatedAt is the schema descriptor for created_at field.
+	tokenDescCreatedAt := tokenMixinFields0[0].Descriptor()
+	// token.DefaultCreatedAt holds the default value on creation for the created_at field.
+	token.DefaultCreatedAt = tokenDescCreatedAt.Default.(func() time.Time)
+	// tokenDescUpdatedAt is the schema descriptor for updated_at field.
+	tokenDescUpdatedAt := tokenMixinFields0[1].Descriptor()
+	// token.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	token.DefaultUpdatedAt = tokenDescUpdatedAt.Default.(func() time.Time)
+	// token.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	token.UpdateDefaultUpdatedAt = tokenDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// tokenDescSymbol is the schema descriptor for symbol field.
+	tokenDescSymbol := tokenFields[0].Descriptor()
+	// token.SymbolValidator is a validator for the "symbol" field. It is called by the builders before save.
+	token.SymbolValidator = tokenDescSymbol.Validators[0].(func(string) error)
+	// tokenDescContractAddress is the schema descriptor for contract_address field.
+	tokenDescContractAddress := tokenFields[1].Descriptor()
+	// token.ContractAddressValidator is a validator for the "contract_address" field. It is called by the builders before save.
+	token.ContractAddressValidator = tokenDescContractAddress.Validators[0].(func(string) error)
+	// tokenDescIsEnabled is the schema descriptor for is_enabled field.
+	tokenDescIsEnabled := tokenFields[3].Descriptor()
+	// token.DefaultIsEnabled holds the default value on creation for the is_enabled field.
+	token.DefaultIsEnabled = tokenDescIsEnabled.Default.(bool)
 	userMixin := schema.User{}.Mixin()
 	userHooks := schema.User{}.Hooks()
 	user.Hooks[0] = userHooks[0]

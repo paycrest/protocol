@@ -19,8 +19,6 @@ const (
 	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
 	FieldUpdatedAt = "updated_at"
-	// FieldToken holds the string denoting the token field in the database.
-	FieldToken = "token"
 	// FieldAmount holds the string denoting the amount field in the database.
 	FieldAmount = "amount"
 	// FieldAmountPaid holds the string denoting the amount_paid field in the database.
@@ -37,6 +35,8 @@ const (
 	FieldLastUsed = "last_used"
 	// EdgeAPIKey holds the string denoting the api_key edge name in mutations.
 	EdgeAPIKey = "api_key"
+	// EdgeToken holds the string denoting the token edge name in mutations.
+	EdgeToken = "token"
 	// EdgeReceiveAddressFk holds the string denoting the receive_address_fk edge name in mutations.
 	EdgeReceiveAddressFk = "receive_address_fk"
 	// EdgeRecipient holds the string denoting the recipient edge name in mutations.
@@ -50,6 +50,13 @@ const (
 	APIKeyInverseTable = "api_keys"
 	// APIKeyColumn is the table column denoting the api_key relation/edge.
 	APIKeyColumn = "api_key_payment_orders"
+	// TokenTable is the table that holds the token relation/edge.
+	TokenTable = "payment_orders"
+	// TokenInverseTable is the table name for the Token entity.
+	// It exists in this package in order to avoid circular dependency with the "token" package.
+	TokenInverseTable = "tokens"
+	// TokenColumn is the table column denoting the token relation/edge.
+	TokenColumn = "token_payment_orders"
 	// ReceiveAddressFkTable is the table that holds the receive_address_fk relation/edge.
 	ReceiveAddressFkTable = "receive_addresses"
 	// ReceiveAddressFkInverseTable is the table name for the ReceiveAddress entity.
@@ -71,7 +78,6 @@ var Columns = []string{
 	FieldID,
 	FieldCreatedAt,
 	FieldUpdatedAt,
-	FieldToken,
 	FieldAmount,
 	FieldAmountPaid,
 	FieldNetwork,
@@ -85,6 +91,7 @@ var Columns = []string{
 // table and are not defined as standalone fields in the schema.
 var ForeignKeys = []string{
 	"api_key_payment_orders",
+	"token_payment_orders",
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -111,31 +118,9 @@ var (
 	UpdateDefaultUpdatedAt func() time.Time
 	// TxHashValidator is a validator for the "tx_hash" field. It is called by the builders before save.
 	TxHashValidator func(string) error
+	// ReceiveAddressValidator is a validator for the "receive_address" field. It is called by the builders before save.
+	ReceiveAddressValidator func(string) error
 )
-
-// Token defines the type for the "token" enum field.
-type Token string
-
-// Token values.
-const (
-	TokenUSDT Token = "USDT"
-	TokenUSDC Token = "USDC"
-	TokenBUSD Token = "BUSD"
-)
-
-func (t Token) String() string {
-	return string(t)
-}
-
-// TokenValidator is a validator for the "token" field enum values. It is called by the builders before save.
-func TokenValidator(t Token) error {
-	switch t {
-	case TokenUSDT, TokenUSDC, TokenBUSD:
-		return nil
-	default:
-		return fmt.Errorf("paymentorder: invalid enum value for token field: %q", t)
-	}
-}
 
 // Network defines the type for the "network" enum field.
 type Network string
@@ -211,11 +196,6 @@ func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldUpdatedAt, opts...).ToFunc()
 }
 
-// ByToken orders the results by the token field.
-func ByToken(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldToken, opts...).ToFunc()
-}
-
 // ByAmount orders the results by the amount field.
 func ByAmount(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAmount, opts...).ToFunc()
@@ -258,6 +238,13 @@ func ByAPIKeyField(field string, opts ...sql.OrderTermOption) OrderOption {
 	}
 }
 
+// ByTokenField orders the results by token field.
+func ByTokenField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newTokenStep(), sql.OrderByField(field, opts...))
+	}
+}
+
 // ByReceiveAddressFkField orders the results by receive_address_fk field.
 func ByReceiveAddressFkField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -276,6 +263,13 @@ func newAPIKeyStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(APIKeyInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, APIKeyTable, APIKeyColumn),
+	)
+}
+func newTokenStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(TokenInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, TokenTable, TokenColumn),
 	)
 }
 func newReceiveAddressFkStep() *sqlgraph.Step {

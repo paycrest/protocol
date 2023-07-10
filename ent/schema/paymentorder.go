@@ -22,8 +22,6 @@ func (PaymentOrder) Mixin() []ent.Mixin {
 // Fields of the PaymentOrder.
 func (PaymentOrder) Fields() []ent.Field {
 	return []ent.Field{
-		field.Enum("token").
-			Values("USDT", "USDC", "BUSD"),
 		field.Float("amount").
 			GoType(decimal.Decimal{}),
 		field.Float("amount_paid").
@@ -33,7 +31,7 @@ func (PaymentOrder) Fields() []ent.Field {
 		field.String("tx_hash").
 			MaxLen(70).
 			Optional(),
-		field.String("receive_address"),
+		field.String("receive_address").MaxLen(60),
 		field.Enum("status").
 			Values("initiated", "pending", "settled", "cancelled", "failed", "refunded").
 			Default("initiated"),
@@ -45,6 +43,9 @@ func (PaymentOrder) Fields() []ent.Field {
 func (PaymentOrder) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("api_key", APIKey.Type).
+			Ref("payment_orders").
+			Unique(),
+		edge.From("token", Token.Type).
 			Ref("payment_orders").
 			Unique(),
 		edge.To("receive_address_fk", ReceiveAddress.Type).

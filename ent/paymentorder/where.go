@@ -171,26 +171,6 @@ func UpdatedAtLTE(v time.Time) predicate.PaymentOrder {
 	return predicate.PaymentOrder(sql.FieldLTE(FieldUpdatedAt, v))
 }
 
-// TokenEQ applies the EQ predicate on the "token" field.
-func TokenEQ(v Token) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldEQ(FieldToken, v))
-}
-
-// TokenNEQ applies the NEQ predicate on the "token" field.
-func TokenNEQ(v Token) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldNEQ(FieldToken, v))
-}
-
-// TokenIn applies the In predicate on the "token" field.
-func TokenIn(vs ...Token) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldIn(FieldToken, vs...))
-}
-
-// TokenNotIn applies the NotIn predicate on the "token" field.
-func TokenNotIn(vs ...Token) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldNotIn(FieldToken, vs...))
-}
-
 // AmountEQ applies the EQ predicate on the "amount" field.
 func AmountEQ(v decimal.Decimal) predicate.PaymentOrder {
 	return predicate.PaymentOrder(sql.FieldEQ(FieldAmount, v))
@@ -516,6 +496,29 @@ func HasAPIKey() predicate.PaymentOrder {
 func HasAPIKeyWith(preds ...predicate.APIKey) predicate.PaymentOrder {
 	return predicate.PaymentOrder(func(s *sql.Selector) {
 		step := newAPIKeyStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasToken applies the HasEdge predicate on the "token" edge.
+func HasToken() predicate.PaymentOrder {
+	return predicate.PaymentOrder(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, TokenTable, TokenColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasTokenWith applies the HasEdge predicate on the "token" edge with a given conditions (other predicates).
+func HasTokenWith(preds ...predicate.Token) predicate.PaymentOrder {
+	return predicate.PaymentOrder(func(s *sql.Selector) {
+		step := newTokenStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)
