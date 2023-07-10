@@ -17,6 +17,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/paymentorderrecipient"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
 	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
+	"github.com/paycrest/paycrest-protocol/ent/token"
 	"github.com/shopspring/decimal"
 )
 
@@ -36,12 +37,6 @@ func (pou *PaymentOrderUpdate) Where(ps ...predicate.PaymentOrder) *PaymentOrder
 // SetUpdatedAt sets the "updated_at" field.
 func (pou *PaymentOrderUpdate) SetUpdatedAt(t time.Time) *PaymentOrderUpdate {
 	pou.mutation.SetUpdatedAt(t)
-	return pou
-}
-
-// SetToken sets the "token" field.
-func (pou *PaymentOrderUpdate) SetToken(pa paymentorder.Token) *PaymentOrderUpdate {
-	pou.mutation.SetToken(pa)
 	return pou
 }
 
@@ -156,6 +151,25 @@ func (pou *PaymentOrderUpdate) SetAPIKey(a *APIKey) *PaymentOrderUpdate {
 	return pou.SetAPIKeyID(a.ID)
 }
 
+// SetTokenID sets the "token" edge to the Token entity by ID.
+func (pou *PaymentOrderUpdate) SetTokenID(id int) *PaymentOrderUpdate {
+	pou.mutation.SetTokenID(id)
+	return pou
+}
+
+// SetNillableTokenID sets the "token" edge to the Token entity by ID if the given value is not nil.
+func (pou *PaymentOrderUpdate) SetNillableTokenID(id *int) *PaymentOrderUpdate {
+	if id != nil {
+		pou = pou.SetTokenID(*id)
+	}
+	return pou
+}
+
+// SetToken sets the "token" edge to the Token entity.
+func (pou *PaymentOrderUpdate) SetToken(t *Token) *PaymentOrderUpdate {
+	return pou.SetTokenID(t.ID)
+}
+
 // SetReceiveAddressFkID sets the "receive_address_fk" edge to the ReceiveAddress entity by ID.
 func (pou *PaymentOrderUpdate) SetReceiveAddressFkID(id int) *PaymentOrderUpdate {
 	pou.mutation.SetReceiveAddressFkID(id)
@@ -202,6 +216,12 @@ func (pou *PaymentOrderUpdate) Mutation() *PaymentOrderMutation {
 // ClearAPIKey clears the "api_key" edge to the APIKey entity.
 func (pou *PaymentOrderUpdate) ClearAPIKey() *PaymentOrderUpdate {
 	pou.mutation.ClearAPIKey()
+	return pou
+}
+
+// ClearToken clears the "token" edge to the Token entity.
+func (pou *PaymentOrderUpdate) ClearToken() *PaymentOrderUpdate {
+	pou.mutation.ClearToken()
 	return pou
 }
 
@@ -255,11 +275,6 @@ func (pou *PaymentOrderUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (pou *PaymentOrderUpdate) check() error {
-	if v, ok := pou.mutation.Token(); ok {
-		if err := paymentorder.TokenValidator(v); err != nil {
-			return &ValidationError{Name: "token", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.token": %w`, err)}
-		}
-	}
 	if v, ok := pou.mutation.Network(); ok {
 		if err := paymentorder.NetworkValidator(v); err != nil {
 			return &ValidationError{Name: "network", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.network": %w`, err)}
@@ -268,6 +283,11 @@ func (pou *PaymentOrderUpdate) check() error {
 	if v, ok := pou.mutation.TxHash(); ok {
 		if err := paymentorder.TxHashValidator(v); err != nil {
 			return &ValidationError{Name: "tx_hash", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.tx_hash": %w`, err)}
+		}
+	}
+	if v, ok := pou.mutation.ReceiveAddress(); ok {
+		if err := paymentorder.ReceiveAddressValidator(v); err != nil {
+			return &ValidationError{Name: "receive_address", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.receive_address": %w`, err)}
 		}
 	}
 	if v, ok := pou.mutation.Status(); ok {
@@ -292,9 +312,6 @@ func (pou *PaymentOrderUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if value, ok := pou.mutation.UpdatedAt(); ok {
 		_spec.SetField(paymentorder.FieldUpdatedAt, field.TypeTime, value)
-	}
-	if value, ok := pou.mutation.Token(); ok {
-		_spec.SetField(paymentorder.FieldToken, field.TypeEnum, value)
 	}
 	if value, ok := pou.mutation.Amount(); ok {
 		_spec.SetField(paymentorder.FieldAmount, field.TypeFloat64, value)
@@ -351,6 +368,35 @@ func (pou *PaymentOrderUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if pou.mutation.TokenCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   paymentorder.TokenTable,
+			Columns: []string{paymentorder.TokenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(token.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := pou.mutation.TokenIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   paymentorder.TokenTable,
+			Columns: []string{paymentorder.TokenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(token.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -439,12 +485,6 @@ type PaymentOrderUpdateOne struct {
 // SetUpdatedAt sets the "updated_at" field.
 func (pouo *PaymentOrderUpdateOne) SetUpdatedAt(t time.Time) *PaymentOrderUpdateOne {
 	pouo.mutation.SetUpdatedAt(t)
-	return pouo
-}
-
-// SetToken sets the "token" field.
-func (pouo *PaymentOrderUpdateOne) SetToken(pa paymentorder.Token) *PaymentOrderUpdateOne {
-	pouo.mutation.SetToken(pa)
 	return pouo
 }
 
@@ -559,6 +599,25 @@ func (pouo *PaymentOrderUpdateOne) SetAPIKey(a *APIKey) *PaymentOrderUpdateOne {
 	return pouo.SetAPIKeyID(a.ID)
 }
 
+// SetTokenID sets the "token" edge to the Token entity by ID.
+func (pouo *PaymentOrderUpdateOne) SetTokenID(id int) *PaymentOrderUpdateOne {
+	pouo.mutation.SetTokenID(id)
+	return pouo
+}
+
+// SetNillableTokenID sets the "token" edge to the Token entity by ID if the given value is not nil.
+func (pouo *PaymentOrderUpdateOne) SetNillableTokenID(id *int) *PaymentOrderUpdateOne {
+	if id != nil {
+		pouo = pouo.SetTokenID(*id)
+	}
+	return pouo
+}
+
+// SetToken sets the "token" edge to the Token entity.
+func (pouo *PaymentOrderUpdateOne) SetToken(t *Token) *PaymentOrderUpdateOne {
+	return pouo.SetTokenID(t.ID)
+}
+
 // SetReceiveAddressFkID sets the "receive_address_fk" edge to the ReceiveAddress entity by ID.
 func (pouo *PaymentOrderUpdateOne) SetReceiveAddressFkID(id int) *PaymentOrderUpdateOne {
 	pouo.mutation.SetReceiveAddressFkID(id)
@@ -605,6 +664,12 @@ func (pouo *PaymentOrderUpdateOne) Mutation() *PaymentOrderMutation {
 // ClearAPIKey clears the "api_key" edge to the APIKey entity.
 func (pouo *PaymentOrderUpdateOne) ClearAPIKey() *PaymentOrderUpdateOne {
 	pouo.mutation.ClearAPIKey()
+	return pouo
+}
+
+// ClearToken clears the "token" edge to the Token entity.
+func (pouo *PaymentOrderUpdateOne) ClearToken() *PaymentOrderUpdateOne {
+	pouo.mutation.ClearToken()
 	return pouo
 }
 
@@ -671,11 +736,6 @@ func (pouo *PaymentOrderUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (pouo *PaymentOrderUpdateOne) check() error {
-	if v, ok := pouo.mutation.Token(); ok {
-		if err := paymentorder.TokenValidator(v); err != nil {
-			return &ValidationError{Name: "token", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.token": %w`, err)}
-		}
-	}
 	if v, ok := pouo.mutation.Network(); ok {
 		if err := paymentorder.NetworkValidator(v); err != nil {
 			return &ValidationError{Name: "network", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.network": %w`, err)}
@@ -684,6 +744,11 @@ func (pouo *PaymentOrderUpdateOne) check() error {
 	if v, ok := pouo.mutation.TxHash(); ok {
 		if err := paymentorder.TxHashValidator(v); err != nil {
 			return &ValidationError{Name: "tx_hash", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.tx_hash": %w`, err)}
+		}
+	}
+	if v, ok := pouo.mutation.ReceiveAddress(); ok {
+		if err := paymentorder.ReceiveAddressValidator(v); err != nil {
+			return &ValidationError{Name: "receive_address", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.receive_address": %w`, err)}
 		}
 	}
 	if v, ok := pouo.mutation.Status(); ok {
@@ -725,9 +790,6 @@ func (pouo *PaymentOrderUpdateOne) sqlSave(ctx context.Context) (_node *PaymentO
 	}
 	if value, ok := pouo.mutation.UpdatedAt(); ok {
 		_spec.SetField(paymentorder.FieldUpdatedAt, field.TypeTime, value)
-	}
-	if value, ok := pouo.mutation.Token(); ok {
-		_spec.SetField(paymentorder.FieldToken, field.TypeEnum, value)
 	}
 	if value, ok := pouo.mutation.Amount(); ok {
 		_spec.SetField(paymentorder.FieldAmount, field.TypeFloat64, value)
@@ -784,6 +846,35 @@ func (pouo *PaymentOrderUpdateOne) sqlSave(ctx context.Context) (_node *PaymentO
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if pouo.mutation.TokenCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   paymentorder.TokenTable,
+			Columns: []string{paymentorder.TokenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(token.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := pouo.mutation.TokenIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   paymentorder.TokenTable,
+			Columns: []string{paymentorder.TokenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(token.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

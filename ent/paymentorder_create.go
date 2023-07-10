@@ -15,6 +15,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorderrecipient"
 	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
+	"github.com/paycrest/paycrest-protocol/ent/token"
 	"github.com/shopspring/decimal"
 )
 
@@ -50,12 +51,6 @@ func (poc *PaymentOrderCreate) SetNillableUpdatedAt(t *time.Time) *PaymentOrderC
 	if t != nil {
 		poc.SetUpdatedAt(*t)
 	}
-	return poc
-}
-
-// SetToken sets the "token" field.
-func (poc *PaymentOrderCreate) SetToken(pa paymentorder.Token) *PaymentOrderCreate {
-	poc.mutation.SetToken(pa)
 	return poc
 }
 
@@ -142,6 +137,25 @@ func (poc *PaymentOrderCreate) SetNillableAPIKeyID(id *uuid.UUID) *PaymentOrderC
 // SetAPIKey sets the "api_key" edge to the APIKey entity.
 func (poc *PaymentOrderCreate) SetAPIKey(a *APIKey) *PaymentOrderCreate {
 	return poc.SetAPIKeyID(a.ID)
+}
+
+// SetTokenID sets the "token" edge to the Token entity by ID.
+func (poc *PaymentOrderCreate) SetTokenID(id int) *PaymentOrderCreate {
+	poc.mutation.SetTokenID(id)
+	return poc
+}
+
+// SetNillableTokenID sets the "token" edge to the Token entity by ID if the given value is not nil.
+func (poc *PaymentOrderCreate) SetNillableTokenID(id *int) *PaymentOrderCreate {
+	if id != nil {
+		poc = poc.SetTokenID(*id)
+	}
+	return poc
+}
+
+// SetToken sets the "token" edge to the Token entity.
+func (poc *PaymentOrderCreate) SetToken(t *Token) *PaymentOrderCreate {
+	return poc.SetTokenID(t.ID)
 }
 
 // SetReceiveAddressFkID sets the "receive_address_fk" edge to the ReceiveAddress entity by ID.
@@ -239,14 +253,6 @@ func (poc *PaymentOrderCreate) check() error {
 	if _, ok := poc.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "PaymentOrder.updated_at"`)}
 	}
-	if _, ok := poc.mutation.Token(); !ok {
-		return &ValidationError{Name: "token", err: errors.New(`ent: missing required field "PaymentOrder.token"`)}
-	}
-	if v, ok := poc.mutation.Token(); ok {
-		if err := paymentorder.TokenValidator(v); err != nil {
-			return &ValidationError{Name: "token", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.token": %w`, err)}
-		}
-	}
 	if _, ok := poc.mutation.Amount(); !ok {
 		return &ValidationError{Name: "amount", err: errors.New(`ent: missing required field "PaymentOrder.amount"`)}
 	}
@@ -268,6 +274,11 @@ func (poc *PaymentOrderCreate) check() error {
 	}
 	if _, ok := poc.mutation.ReceiveAddress(); !ok {
 		return &ValidationError{Name: "receive_address", err: errors.New(`ent: missing required field "PaymentOrder.receive_address"`)}
+	}
+	if v, ok := poc.mutation.ReceiveAddress(); ok {
+		if err := paymentorder.ReceiveAddressValidator(v); err != nil {
+			return &ValidationError{Name: "receive_address", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.receive_address": %w`, err)}
+		}
 	}
 	if _, ok := poc.mutation.Status(); !ok {
 		return &ValidationError{Name: "status", err: errors.New(`ent: missing required field "PaymentOrder.status"`)}
@@ -310,10 +321,6 @@ func (poc *PaymentOrderCreate) createSpec() (*PaymentOrder, *sqlgraph.CreateSpec
 	if value, ok := poc.mutation.UpdatedAt(); ok {
 		_spec.SetField(paymentorder.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
-	}
-	if value, ok := poc.mutation.Token(); ok {
-		_spec.SetField(paymentorder.FieldToken, field.TypeEnum, value)
-		_node.Token = value
 	}
 	if value, ok := poc.mutation.Amount(); ok {
 		_spec.SetField(paymentorder.FieldAmount, field.TypeFloat64, value)
@@ -358,6 +365,23 @@ func (poc *PaymentOrderCreate) createSpec() (*PaymentOrder, *sqlgraph.CreateSpec
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.api_key_payment_orders = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := poc.mutation.TokenIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   paymentorder.TokenTable,
+			Columns: []string{paymentorder.TokenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(token.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.token_payment_orders = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := poc.mutation.ReceiveAddressFkIDs(); len(nodes) > 0 {

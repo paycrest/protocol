@@ -14,6 +14,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorderrecipient"
 	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
+	"github.com/paycrest/paycrest-protocol/ent/token"
 	"github.com/shopspring/decimal"
 )
 
@@ -26,8 +27,6 @@ type PaymentOrder struct {
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
-	// Token holds the value of the "token" field.
-	Token paymentorder.Token `json:"token,omitempty"`
 	// Amount holds the value of the "amount" field.
 	Amount decimal.Decimal `json:"amount,omitempty"`
 	// AmountPaid holds the value of the "amount_paid" field.
@@ -46,6 +45,7 @@ type PaymentOrder struct {
 	// The values are being populated by the PaymentOrderQuery when eager-loading is set.
 	Edges                  PaymentOrderEdges `json:"edges"`
 	api_key_payment_orders *uuid.UUID
+	token_payment_orders   *int
 	selectValues           sql.SelectValues
 }
 
@@ -53,13 +53,15 @@ type PaymentOrder struct {
 type PaymentOrderEdges struct {
 	// APIKey holds the value of the api_key edge.
 	APIKey *APIKey `json:"api_key,omitempty"`
+	// Token holds the value of the token edge.
+	Token *Token `json:"token,omitempty"`
 	// ReceiveAddressFk holds the value of the receive_address_fk edge.
 	ReceiveAddressFk *ReceiveAddress `json:"receive_address_fk,omitempty"`
 	// Recipient holds the value of the recipient edge.
 	Recipient *PaymentOrderRecipient `json:"recipient,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [4]bool
 }
 
 // APIKeyOrErr returns the APIKey value or an error if the edge
@@ -75,10 +77,23 @@ func (e PaymentOrderEdges) APIKeyOrErr() (*APIKey, error) {
 	return nil, &NotLoadedError{edge: "api_key"}
 }
 
+// TokenOrErr returns the Token value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e PaymentOrderEdges) TokenOrErr() (*Token, error) {
+	if e.loadedTypes[1] {
+		if e.Token == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: token.Label}
+		}
+		return e.Token, nil
+	}
+	return nil, &NotLoadedError{edge: "token"}
+}
+
 // ReceiveAddressFkOrErr returns the ReceiveAddressFk value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e PaymentOrderEdges) ReceiveAddressFkOrErr() (*ReceiveAddress, error) {
-	if e.loadedTypes[1] {
+	if e.loadedTypes[2] {
 		if e.ReceiveAddressFk == nil {
 			// Edge was loaded but was not found.
 			return nil, &NotFoundError{label: receiveaddress.Label}
@@ -91,7 +106,7 @@ func (e PaymentOrderEdges) ReceiveAddressFkOrErr() (*ReceiveAddress, error) {
 // RecipientOrErr returns the Recipient value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e PaymentOrderEdges) RecipientOrErr() (*PaymentOrderRecipient, error) {
-	if e.loadedTypes[2] {
+	if e.loadedTypes[3] {
 		if e.Recipient == nil {
 			// Edge was loaded but was not found.
 			return nil, &NotFoundError{label: paymentorderrecipient.Label}
@@ -110,12 +125,14 @@ func (*PaymentOrder) scanValues(columns []string) ([]any, error) {
 			values[i] = new(decimal.Decimal)
 		case paymentorder.FieldID:
 			values[i] = new(sql.NullInt64)
-		case paymentorder.FieldToken, paymentorder.FieldNetwork, paymentorder.FieldTxHash, paymentorder.FieldReceiveAddress, paymentorder.FieldStatus:
+		case paymentorder.FieldNetwork, paymentorder.FieldTxHash, paymentorder.FieldReceiveAddress, paymentorder.FieldStatus:
 			values[i] = new(sql.NullString)
 		case paymentorder.FieldCreatedAt, paymentorder.FieldUpdatedAt, paymentorder.FieldLastUsed:
 			values[i] = new(sql.NullTime)
 		case paymentorder.ForeignKeys[0]: // api_key_payment_orders
 			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
+		case paymentorder.ForeignKeys[1]: // token_payment_orders
+			values[i] = new(sql.NullInt64)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -148,12 +165,6 @@ func (po *PaymentOrder) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
 				po.UpdatedAt = value.Time
-			}
-		case paymentorder.FieldToken:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field token", values[i])
-			} else if value.Valid {
-				po.Token = paymentorder.Token(value.String)
 			}
 		case paymentorder.FieldAmount:
 			if value, ok := values[i].(*decimal.Decimal); !ok {
@@ -204,6 +215,13 @@ func (po *PaymentOrder) assignValues(columns []string, values []any) error {
 				po.api_key_payment_orders = new(uuid.UUID)
 				*po.api_key_payment_orders = *value.S.(*uuid.UUID)
 			}
+		case paymentorder.ForeignKeys[1]:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for edge-field token_payment_orders", value)
+			} else if value.Valid {
+				po.token_payment_orders = new(int)
+				*po.token_payment_orders = int(value.Int64)
+			}
 		default:
 			po.selectValues.Set(columns[i], values[i])
 		}
@@ -220,6 +238,11 @@ func (po *PaymentOrder) Value(name string) (ent.Value, error) {
 // QueryAPIKey queries the "api_key" edge of the PaymentOrder entity.
 func (po *PaymentOrder) QueryAPIKey() *APIKeyQuery {
 	return NewPaymentOrderClient(po.config).QueryAPIKey(po)
+}
+
+// QueryToken queries the "token" edge of the PaymentOrder entity.
+func (po *PaymentOrder) QueryToken() *TokenQuery {
+	return NewPaymentOrderClient(po.config).QueryToken(po)
 }
 
 // QueryReceiveAddressFk queries the "receive_address_fk" edge of the PaymentOrder entity.
@@ -260,9 +283,6 @@ func (po *PaymentOrder) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("updated_at=")
 	builder.WriteString(po.UpdatedAt.Format(time.ANSIC))
-	builder.WriteString(", ")
-	builder.WriteString("token=")
-	builder.WriteString(fmt.Sprintf("%v", po.Token))
 	builder.WriteString(", ")
 	builder.WriteString("amount=")
 	builder.WriteString(fmt.Sprintf("%v", po.Amount))

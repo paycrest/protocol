@@ -39,20 +39,36 @@ var (
 			},
 		},
 	}
+	// NetworksColumns holds the columns for the "networks" table.
+	NetworksColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "chain_id", Type: field.TypeInt64},
+		{Name: "identifier", Type: field.TypeEnum, Enums: []string{"bnb-smart-chain", "polygon", "tron", "polygon-mumbai", "tron-shasta"}},
+		{Name: "rpc_endpoint", Type: field.TypeString},
+		{Name: "is_testnet", Type: field.TypeBool},
+	}
+	// NetworksTable holds the schema information for the "networks" table.
+	NetworksTable = &schema.Table{
+		Name:       "networks",
+		Columns:    NetworksColumns,
+		PrimaryKey: []*schema.Column{NetworksColumns[0]},
+	}
 	// PaymentOrdersColumns holds the columns for the "payment_orders" table.
 	PaymentOrdersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
-		{Name: "token", Type: field.TypeEnum, Enums: []string{"USDT", "USDC", "BUSD"}},
 		{Name: "amount", Type: field.TypeFloat64},
 		{Name: "amount_paid", Type: field.TypeFloat64},
 		{Name: "network", Type: field.TypeEnum, Enums: []string{"bnb-smart-chain", "polygon", "tron", "polygon-mumbai", "tron-shasta"}},
 		{Name: "tx_hash", Type: field.TypeString, Nullable: true, Size: 70},
-		{Name: "receive_address", Type: field.TypeString},
+		{Name: "receive_address", Type: field.TypeString, Size: 60},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"initiated", "pending", "settled", "cancelled", "failed", "refunded"}, Default: "initiated"},
 		{Name: "last_used", Type: field.TypeTime, Nullable: true},
 		{Name: "api_key_payment_orders", Type: field.TypeUUID, Nullable: true},
+		{Name: "token_payment_orders", Type: field.TypeInt, Nullable: true},
 	}
 	// PaymentOrdersTable holds the schema information for the "payment_orders" table.
 	PaymentOrdersTable = &schema.Table{
@@ -62,8 +78,14 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "payment_orders_api_keys_payment_orders",
-				Columns:    []*schema.Column{PaymentOrdersColumns[11]},
+				Columns:    []*schema.Column{PaymentOrdersColumns[10]},
 				RefColumns: []*schema.Column{APIKeysColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "payment_orders_tokens_payment_orders",
+				Columns:    []*schema.Column{PaymentOrdersColumns[11]},
+				RefColumns: []*schema.Column{TokensColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 		},
@@ -217,6 +239,31 @@ var (
 			},
 		},
 	}
+	// TokensColumns holds the columns for the "tokens" table.
+	TokensColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "symbol", Type: field.TypeString, Size: 10},
+		{Name: "contract_address", Type: field.TypeString, Size: 60},
+		{Name: "decimals", Type: field.TypeInt8},
+		{Name: "is_enabled", Type: field.TypeBool, Default: false},
+		{Name: "network_tokens", Type: field.TypeInt, Nullable: true},
+	}
+	// TokensTable holds the schema information for the "tokens" table.
+	TokensTable = &schema.Table{
+		Name:       "tokens",
+		Columns:    TokensColumns,
+		PrimaryKey: []*schema.Column{TokensColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "tokens_networks_tokens",
+				Columns:    []*schema.Column{TokensColumns[7]},
+				RefColumns: []*schema.Column{NetworksColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+	}
 	// UsersColumns holds the columns for the "users" table.
 	UsersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -237,6 +284,7 @@ var (
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		APIKeysTable,
+		NetworksTable,
 		PaymentOrdersTable,
 		PaymentOrderRecipientsTable,
 		ProviderAvailabilitiesTable,
@@ -244,6 +292,7 @@ var (
 		ProviderOrderTokenAddressesTable,
 		ProviderProfilesTable,
 		ReceiveAddressesTable,
+		TokensTable,
 		UsersTable,
 	}
 )
@@ -251,10 +300,12 @@ var (
 func init() {
 	APIKeysTable.ForeignKeys[0].RefTable = UsersTable
 	PaymentOrdersTable.ForeignKeys[0].RefTable = APIKeysTable
+	PaymentOrdersTable.ForeignKeys[1].RefTable = TokensTable
 	PaymentOrderRecipientsTable.ForeignKeys[0].RefTable = PaymentOrdersTable
 	ProviderAvailabilitiesTable.ForeignKeys[0].RefTable = ProviderProfilesTable
 	ProviderOrderTokensTable.ForeignKeys[0].RefTable = ProviderProfilesTable
 	ProviderOrderTokenAddressesTable.ForeignKeys[0].RefTable = ProviderOrderTokensTable
 	ProviderProfilesTable.ForeignKeys[0].RefTable = APIKeysTable
 	ReceiveAddressesTable.ForeignKeys[0].RefTable = PaymentOrdersTable
+	TokensTable.ForeignKeys[0].RefTable = NetworksTable
 }

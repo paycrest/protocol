@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
+	"github.com/paycrest/paycrest-protocol/ent/network"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorderrecipient"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
@@ -21,6 +22,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/providerordertokenaddress"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
+	"github.com/paycrest/paycrest-protocol/ent/token"
 	"github.com/paycrest/paycrest-protocol/ent/user"
 	"github.com/shopspring/decimal"
 )
@@ -35,6 +37,7 @@ const (
 
 	// Node types.
 	TypeAPIKey                    = "APIKey"
+	TypeNetwork                   = "Network"
 	TypePaymentOrder              = "PaymentOrder"
 	TypePaymentOrderRecipient     = "PaymentOrderRecipient"
 	TypeProviderAvailability      = "ProviderAvailability"
@@ -42,6 +45,7 @@ const (
 	TypeProviderOrderTokenAddress = "ProviderOrderTokenAddress"
 	TypeProviderProfile           = "ProviderProfile"
 	TypeReceiveAddress            = "ReceiveAddress"
+	TypeToken                     = "Token"
 	TypeUser                      = "User"
 )
 
@@ -804,6 +808,731 @@ func (m *APIKeyMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown APIKey edge %s", name)
 }
 
+// NetworkMutation represents an operation that mutates the Network nodes in the graph.
+type NetworkMutation struct {
+	config
+	op            Op
+	typ           string
+	id            *int
+	created_at    *time.Time
+	updated_at    *time.Time
+	chain_id      *int64
+	addchain_id   *int64
+	identifier    *network.Identifier
+	rpc_endpoint  *string
+	is_testnet    *bool
+	clearedFields map[string]struct{}
+	tokens        map[int]struct{}
+	removedtokens map[int]struct{}
+	clearedtokens bool
+	done          bool
+	oldValue      func(context.Context) (*Network, error)
+	predicates    []predicate.Network
+}
+
+var _ ent.Mutation = (*NetworkMutation)(nil)
+
+// networkOption allows management of the mutation configuration using functional options.
+type networkOption func(*NetworkMutation)
+
+// newNetworkMutation creates new mutation for the Network entity.
+func newNetworkMutation(c config, op Op, opts ...networkOption) *NetworkMutation {
+	m := &NetworkMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeNetwork,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withNetworkID sets the ID field of the mutation.
+func withNetworkID(id int) networkOption {
+	return func(m *NetworkMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *Network
+		)
+		m.oldValue = func(ctx context.Context) (*Network, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().Network.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withNetwork sets the old Network of the mutation.
+func withNetwork(node *Network) networkOption {
+	return func(m *NetworkMutation) {
+		m.oldValue = func(context.Context) (*Network, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m NetworkMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m NetworkMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *NetworkMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *NetworkMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().Network.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *NetworkMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *NetworkMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the Network entity.
+// If the Network object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *NetworkMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *NetworkMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *NetworkMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *NetworkMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the Network entity.
+// If the Network object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *NetworkMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *NetworkMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetChainID sets the "chain_id" field.
+func (m *NetworkMutation) SetChainID(i int64) {
+	m.chain_id = &i
+	m.addchain_id = nil
+}
+
+// ChainID returns the value of the "chain_id" field in the mutation.
+func (m *NetworkMutation) ChainID() (r int64, exists bool) {
+	v := m.chain_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldChainID returns the old "chain_id" field's value of the Network entity.
+// If the Network object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *NetworkMutation) OldChainID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldChainID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldChainID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldChainID: %w", err)
+	}
+	return oldValue.ChainID, nil
+}
+
+// AddChainID adds i to the "chain_id" field.
+func (m *NetworkMutation) AddChainID(i int64) {
+	if m.addchain_id != nil {
+		*m.addchain_id += i
+	} else {
+		m.addchain_id = &i
+	}
+}
+
+// AddedChainID returns the value that was added to the "chain_id" field in this mutation.
+func (m *NetworkMutation) AddedChainID() (r int64, exists bool) {
+	v := m.addchain_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetChainID resets all changes to the "chain_id" field.
+func (m *NetworkMutation) ResetChainID() {
+	m.chain_id = nil
+	m.addchain_id = nil
+}
+
+// SetIdentifier sets the "identifier" field.
+func (m *NetworkMutation) SetIdentifier(n network.Identifier) {
+	m.identifier = &n
+}
+
+// Identifier returns the value of the "identifier" field in the mutation.
+func (m *NetworkMutation) Identifier() (r network.Identifier, exists bool) {
+	v := m.identifier
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIdentifier returns the old "identifier" field's value of the Network entity.
+// If the Network object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *NetworkMutation) OldIdentifier(ctx context.Context) (v network.Identifier, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIdentifier is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIdentifier requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIdentifier: %w", err)
+	}
+	return oldValue.Identifier, nil
+}
+
+// ResetIdentifier resets all changes to the "identifier" field.
+func (m *NetworkMutation) ResetIdentifier() {
+	m.identifier = nil
+}
+
+// SetRPCEndpoint sets the "rpc_endpoint" field.
+func (m *NetworkMutation) SetRPCEndpoint(s string) {
+	m.rpc_endpoint = &s
+}
+
+// RPCEndpoint returns the value of the "rpc_endpoint" field in the mutation.
+func (m *NetworkMutation) RPCEndpoint() (r string, exists bool) {
+	v := m.rpc_endpoint
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRPCEndpoint returns the old "rpc_endpoint" field's value of the Network entity.
+// If the Network object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *NetworkMutation) OldRPCEndpoint(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRPCEndpoint is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRPCEndpoint requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRPCEndpoint: %w", err)
+	}
+	return oldValue.RPCEndpoint, nil
+}
+
+// ResetRPCEndpoint resets all changes to the "rpc_endpoint" field.
+func (m *NetworkMutation) ResetRPCEndpoint() {
+	m.rpc_endpoint = nil
+}
+
+// SetIsTestnet sets the "is_testnet" field.
+func (m *NetworkMutation) SetIsTestnet(b bool) {
+	m.is_testnet = &b
+}
+
+// IsTestnet returns the value of the "is_testnet" field in the mutation.
+func (m *NetworkMutation) IsTestnet() (r bool, exists bool) {
+	v := m.is_testnet
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIsTestnet returns the old "is_testnet" field's value of the Network entity.
+// If the Network object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *NetworkMutation) OldIsTestnet(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIsTestnet is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIsTestnet requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIsTestnet: %w", err)
+	}
+	return oldValue.IsTestnet, nil
+}
+
+// ResetIsTestnet resets all changes to the "is_testnet" field.
+func (m *NetworkMutation) ResetIsTestnet() {
+	m.is_testnet = nil
+}
+
+// AddTokenIDs adds the "tokens" edge to the Token entity by ids.
+func (m *NetworkMutation) AddTokenIDs(ids ...int) {
+	if m.tokens == nil {
+		m.tokens = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.tokens[ids[i]] = struct{}{}
+	}
+}
+
+// ClearTokens clears the "tokens" edge to the Token entity.
+func (m *NetworkMutation) ClearTokens() {
+	m.clearedtokens = true
+}
+
+// TokensCleared reports if the "tokens" edge to the Token entity was cleared.
+func (m *NetworkMutation) TokensCleared() bool {
+	return m.clearedtokens
+}
+
+// RemoveTokenIDs removes the "tokens" edge to the Token entity by IDs.
+func (m *NetworkMutation) RemoveTokenIDs(ids ...int) {
+	if m.removedtokens == nil {
+		m.removedtokens = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.tokens, ids[i])
+		m.removedtokens[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedTokens returns the removed IDs of the "tokens" edge to the Token entity.
+func (m *NetworkMutation) RemovedTokensIDs() (ids []int) {
+	for id := range m.removedtokens {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// TokensIDs returns the "tokens" edge IDs in the mutation.
+func (m *NetworkMutation) TokensIDs() (ids []int) {
+	for id := range m.tokens {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetTokens resets all changes to the "tokens" edge.
+func (m *NetworkMutation) ResetTokens() {
+	m.tokens = nil
+	m.clearedtokens = false
+	m.removedtokens = nil
+}
+
+// Where appends a list predicates to the NetworkMutation builder.
+func (m *NetworkMutation) Where(ps ...predicate.Network) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the NetworkMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *NetworkMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.Network, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *NetworkMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *NetworkMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (Network).
+func (m *NetworkMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *NetworkMutation) Fields() []string {
+	fields := make([]string, 0, 6)
+	if m.created_at != nil {
+		fields = append(fields, network.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, network.FieldUpdatedAt)
+	}
+	if m.chain_id != nil {
+		fields = append(fields, network.FieldChainID)
+	}
+	if m.identifier != nil {
+		fields = append(fields, network.FieldIdentifier)
+	}
+	if m.rpc_endpoint != nil {
+		fields = append(fields, network.FieldRPCEndpoint)
+	}
+	if m.is_testnet != nil {
+		fields = append(fields, network.FieldIsTestnet)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *NetworkMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case network.FieldCreatedAt:
+		return m.CreatedAt()
+	case network.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case network.FieldChainID:
+		return m.ChainID()
+	case network.FieldIdentifier:
+		return m.Identifier()
+	case network.FieldRPCEndpoint:
+		return m.RPCEndpoint()
+	case network.FieldIsTestnet:
+		return m.IsTestnet()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *NetworkMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case network.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case network.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case network.FieldChainID:
+		return m.OldChainID(ctx)
+	case network.FieldIdentifier:
+		return m.OldIdentifier(ctx)
+	case network.FieldRPCEndpoint:
+		return m.OldRPCEndpoint(ctx)
+	case network.FieldIsTestnet:
+		return m.OldIsTestnet(ctx)
+	}
+	return nil, fmt.Errorf("unknown Network field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *NetworkMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case network.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case network.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case network.FieldChainID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetChainID(v)
+		return nil
+	case network.FieldIdentifier:
+		v, ok := value.(network.Identifier)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIdentifier(v)
+		return nil
+	case network.FieldRPCEndpoint:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRPCEndpoint(v)
+		return nil
+	case network.FieldIsTestnet:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIsTestnet(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Network field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *NetworkMutation) AddedFields() []string {
+	var fields []string
+	if m.addchain_id != nil {
+		fields = append(fields, network.FieldChainID)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *NetworkMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case network.FieldChainID:
+		return m.AddedChainID()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *NetworkMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case network.FieldChainID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddChainID(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Network numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *NetworkMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *NetworkMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *NetworkMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown Network nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *NetworkMutation) ResetField(name string) error {
+	switch name {
+	case network.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case network.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case network.FieldChainID:
+		m.ResetChainID()
+		return nil
+	case network.FieldIdentifier:
+		m.ResetIdentifier()
+		return nil
+	case network.FieldRPCEndpoint:
+		m.ResetRPCEndpoint()
+		return nil
+	case network.FieldIsTestnet:
+		m.ResetIsTestnet()
+		return nil
+	}
+	return fmt.Errorf("unknown Network field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *NetworkMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.tokens != nil {
+		edges = append(edges, network.EdgeTokens)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *NetworkMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case network.EdgeTokens:
+		ids := make([]ent.Value, 0, len(m.tokens))
+		for id := range m.tokens {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *NetworkMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.removedtokens != nil {
+		edges = append(edges, network.EdgeTokens)
+	}
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *NetworkMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case network.EdgeTokens:
+		ids := make([]ent.Value, 0, len(m.removedtokens))
+		for id := range m.removedtokens {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *NetworkMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.clearedtokens {
+		edges = append(edges, network.EdgeTokens)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *NetworkMutation) EdgeCleared(name string) bool {
+	switch name {
+	case network.EdgeTokens:
+		return m.clearedtokens
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *NetworkMutation) ClearEdge(name string) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown Network unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *NetworkMutation) ResetEdge(name string) error {
+	switch name {
+	case network.EdgeTokens:
+		m.ResetTokens()
+		return nil
+	}
+	return fmt.Errorf("unknown Network edge %s", name)
+}
+
 // PaymentOrderMutation represents an operation that mutates the PaymentOrder nodes in the graph.
 type PaymentOrderMutation struct {
 	config
@@ -812,7 +1541,6 @@ type PaymentOrderMutation struct {
 	id                        *int
 	created_at                *time.Time
 	updated_at                *time.Time
-	token                     *paymentorder.Token
 	amount                    *decimal.Decimal
 	addamount                 *decimal.Decimal
 	amount_paid               *decimal.Decimal
@@ -825,6 +1553,8 @@ type PaymentOrderMutation struct {
 	clearedFields             map[string]struct{}
 	api_key                   *uuid.UUID
 	clearedapi_key            bool
+	token                     *int
+	clearedtoken              bool
 	receive_address_fk        *int
 	clearedreceive_address_fk bool
 	recipient                 *int
@@ -1002,42 +1732,6 @@ func (m *PaymentOrderMutation) OldUpdatedAt(ctx context.Context) (v time.Time, e
 // ResetUpdatedAt resets all changes to the "updated_at" field.
 func (m *PaymentOrderMutation) ResetUpdatedAt() {
 	m.updated_at = nil
-}
-
-// SetToken sets the "token" field.
-func (m *PaymentOrderMutation) SetToken(pa paymentorder.Token) {
-	m.token = &pa
-}
-
-// Token returns the value of the "token" field in the mutation.
-func (m *PaymentOrderMutation) Token() (r paymentorder.Token, exists bool) {
-	v := m.token
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldToken returns the old "token" field's value of the PaymentOrder entity.
-// If the PaymentOrder object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *PaymentOrderMutation) OldToken(ctx context.Context) (v paymentorder.Token, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldToken is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldToken requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldToken: %w", err)
-	}
-	return oldValue.Token, nil
-}
-
-// ResetToken resets all changes to the "token" field.
-func (m *PaymentOrderMutation) ResetToken() {
-	m.token = nil
 }
 
 // SetAmount sets the "amount" field.
@@ -1397,6 +2091,45 @@ func (m *PaymentOrderMutation) ResetAPIKey() {
 	m.clearedapi_key = false
 }
 
+// SetTokenID sets the "token" edge to the Token entity by id.
+func (m *PaymentOrderMutation) SetTokenID(id int) {
+	m.token = &id
+}
+
+// ClearToken clears the "token" edge to the Token entity.
+func (m *PaymentOrderMutation) ClearToken() {
+	m.clearedtoken = true
+}
+
+// TokenCleared reports if the "token" edge to the Token entity was cleared.
+func (m *PaymentOrderMutation) TokenCleared() bool {
+	return m.clearedtoken
+}
+
+// TokenID returns the "token" edge ID in the mutation.
+func (m *PaymentOrderMutation) TokenID() (id int, exists bool) {
+	if m.token != nil {
+		return *m.token, true
+	}
+	return
+}
+
+// TokenIDs returns the "token" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// TokenID instead. It exists only for internal usage by the builders.
+func (m *PaymentOrderMutation) TokenIDs() (ids []int) {
+	if id := m.token; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetToken resets all changes to the "token" edge.
+func (m *PaymentOrderMutation) ResetToken() {
+	m.token = nil
+	m.clearedtoken = false
+}
+
 // SetReceiveAddressFkID sets the "receive_address_fk" edge to the ReceiveAddress entity by id.
 func (m *PaymentOrderMutation) SetReceiveAddressFkID(id int) {
 	m.receive_address_fk = &id
@@ -1509,15 +2242,12 @@ func (m *PaymentOrderMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *PaymentOrderMutation) Fields() []string {
-	fields := make([]string, 0, 10)
+	fields := make([]string, 0, 9)
 	if m.created_at != nil {
 		fields = append(fields, paymentorder.FieldCreatedAt)
 	}
 	if m.updated_at != nil {
 		fields = append(fields, paymentorder.FieldUpdatedAt)
-	}
-	if m.token != nil {
-		fields = append(fields, paymentorder.FieldToken)
 	}
 	if m.amount != nil {
 		fields = append(fields, paymentorder.FieldAmount)
@@ -1552,8 +2282,6 @@ func (m *PaymentOrderMutation) Field(name string) (ent.Value, bool) {
 		return m.CreatedAt()
 	case paymentorder.FieldUpdatedAt:
 		return m.UpdatedAt()
-	case paymentorder.FieldToken:
-		return m.Token()
 	case paymentorder.FieldAmount:
 		return m.Amount()
 	case paymentorder.FieldAmountPaid:
@@ -1581,8 +2309,6 @@ func (m *PaymentOrderMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldCreatedAt(ctx)
 	case paymentorder.FieldUpdatedAt:
 		return m.OldUpdatedAt(ctx)
-	case paymentorder.FieldToken:
-		return m.OldToken(ctx)
 	case paymentorder.FieldAmount:
 		return m.OldAmount(ctx)
 	case paymentorder.FieldAmountPaid:
@@ -1619,13 +2345,6 @@ func (m *PaymentOrderMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetUpdatedAt(v)
-		return nil
-	case paymentorder.FieldToken:
-		v, ok := value.(paymentorder.Token)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetToken(v)
 		return nil
 	case paymentorder.FieldAmount:
 		v, ok := value.(decimal.Decimal)
@@ -1773,9 +2492,6 @@ func (m *PaymentOrderMutation) ResetField(name string) error {
 	case paymentorder.FieldUpdatedAt:
 		m.ResetUpdatedAt()
 		return nil
-	case paymentorder.FieldToken:
-		m.ResetToken()
-		return nil
 	case paymentorder.FieldAmount:
 		m.ResetAmount()
 		return nil
@@ -1803,9 +2519,12 @@ func (m *PaymentOrderMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *PaymentOrderMutation) AddedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	if m.api_key != nil {
 		edges = append(edges, paymentorder.EdgeAPIKey)
+	}
+	if m.token != nil {
+		edges = append(edges, paymentorder.EdgeToken)
 	}
 	if m.receive_address_fk != nil {
 		edges = append(edges, paymentorder.EdgeReceiveAddressFk)
@@ -1824,6 +2543,10 @@ func (m *PaymentOrderMutation) AddedIDs(name string) []ent.Value {
 		if id := m.api_key; id != nil {
 			return []ent.Value{*id}
 		}
+	case paymentorder.EdgeToken:
+		if id := m.token; id != nil {
+			return []ent.Value{*id}
+		}
 	case paymentorder.EdgeReceiveAddressFk:
 		if id := m.receive_address_fk; id != nil {
 			return []ent.Value{*id}
@@ -1838,7 +2561,7 @@ func (m *PaymentOrderMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *PaymentOrderMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	return edges
 }
 
@@ -1850,9 +2573,12 @@ func (m *PaymentOrderMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *PaymentOrderMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	if m.clearedapi_key {
 		edges = append(edges, paymentorder.EdgeAPIKey)
+	}
+	if m.clearedtoken {
+		edges = append(edges, paymentorder.EdgeToken)
 	}
 	if m.clearedreceive_address_fk {
 		edges = append(edges, paymentorder.EdgeReceiveAddressFk)
@@ -1869,6 +2595,8 @@ func (m *PaymentOrderMutation) EdgeCleared(name string) bool {
 	switch name {
 	case paymentorder.EdgeAPIKey:
 		return m.clearedapi_key
+	case paymentorder.EdgeToken:
+		return m.clearedtoken
 	case paymentorder.EdgeReceiveAddressFk:
 		return m.clearedreceive_address_fk
 	case paymentorder.EdgeRecipient:
@@ -1883,6 +2611,9 @@ func (m *PaymentOrderMutation) ClearEdge(name string) error {
 	switch name {
 	case paymentorder.EdgeAPIKey:
 		m.ClearAPIKey()
+		return nil
+	case paymentorder.EdgeToken:
+		m.ClearToken()
 		return nil
 	case paymentorder.EdgeReceiveAddressFk:
 		m.ClearReceiveAddressFk()
@@ -1900,6 +2631,9 @@ func (m *PaymentOrderMutation) ResetEdge(name string) error {
 	switch name {
 	case paymentorder.EdgeAPIKey:
 		m.ResetAPIKey()
+		return nil
+	case paymentorder.EdgeToken:
+		m.ResetToken()
 		return nil
 	case paymentorder.EdgeReceiveAddressFk:
 		m.ResetReceiveAddressFk()
@@ -5958,6 +6692,790 @@ func (m *ReceiveAddressMutation) ResetEdge(name string) error {
 		return nil
 	}
 	return fmt.Errorf("unknown ReceiveAddress edge %s", name)
+}
+
+// TokenMutation represents an operation that mutates the Token nodes in the graph.
+type TokenMutation struct {
+	config
+	op                    Op
+	typ                   string
+	id                    *int
+	created_at            *time.Time
+	updated_at            *time.Time
+	symbol                *string
+	contract_address      *string
+	decimals              *int8
+	adddecimals           *int8
+	is_enabled            *bool
+	clearedFields         map[string]struct{}
+	network               *int
+	clearednetwork        bool
+	payment_orders        map[int]struct{}
+	removedpayment_orders map[int]struct{}
+	clearedpayment_orders bool
+	done                  bool
+	oldValue              func(context.Context) (*Token, error)
+	predicates            []predicate.Token
+}
+
+var _ ent.Mutation = (*TokenMutation)(nil)
+
+// tokenOption allows management of the mutation configuration using functional options.
+type tokenOption func(*TokenMutation)
+
+// newTokenMutation creates new mutation for the Token entity.
+func newTokenMutation(c config, op Op, opts ...tokenOption) *TokenMutation {
+	m := &TokenMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeToken,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withTokenID sets the ID field of the mutation.
+func withTokenID(id int) tokenOption {
+	return func(m *TokenMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *Token
+		)
+		m.oldValue = func(ctx context.Context) (*Token, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().Token.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withToken sets the old Token of the mutation.
+func withToken(node *Token) tokenOption {
+	return func(m *TokenMutation) {
+		m.oldValue = func(context.Context) (*Token, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m TokenMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m TokenMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *TokenMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *TokenMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().Token.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *TokenMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *TokenMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the Token entity.
+// If the Token object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TokenMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *TokenMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *TokenMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *TokenMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the Token entity.
+// If the Token object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TokenMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *TokenMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetSymbol sets the "symbol" field.
+func (m *TokenMutation) SetSymbol(s string) {
+	m.symbol = &s
+}
+
+// Symbol returns the value of the "symbol" field in the mutation.
+func (m *TokenMutation) Symbol() (r string, exists bool) {
+	v := m.symbol
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSymbol returns the old "symbol" field's value of the Token entity.
+// If the Token object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TokenMutation) OldSymbol(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSymbol is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSymbol requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSymbol: %w", err)
+	}
+	return oldValue.Symbol, nil
+}
+
+// ResetSymbol resets all changes to the "symbol" field.
+func (m *TokenMutation) ResetSymbol() {
+	m.symbol = nil
+}
+
+// SetContractAddress sets the "contract_address" field.
+func (m *TokenMutation) SetContractAddress(s string) {
+	m.contract_address = &s
+}
+
+// ContractAddress returns the value of the "contract_address" field in the mutation.
+func (m *TokenMutation) ContractAddress() (r string, exists bool) {
+	v := m.contract_address
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldContractAddress returns the old "contract_address" field's value of the Token entity.
+// If the Token object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TokenMutation) OldContractAddress(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldContractAddress is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldContractAddress requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldContractAddress: %w", err)
+	}
+	return oldValue.ContractAddress, nil
+}
+
+// ResetContractAddress resets all changes to the "contract_address" field.
+func (m *TokenMutation) ResetContractAddress() {
+	m.contract_address = nil
+}
+
+// SetDecimals sets the "decimals" field.
+func (m *TokenMutation) SetDecimals(i int8) {
+	m.decimals = &i
+	m.adddecimals = nil
+}
+
+// Decimals returns the value of the "decimals" field in the mutation.
+func (m *TokenMutation) Decimals() (r int8, exists bool) {
+	v := m.decimals
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDecimals returns the old "decimals" field's value of the Token entity.
+// If the Token object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TokenMutation) OldDecimals(ctx context.Context) (v int8, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDecimals is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDecimals requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDecimals: %w", err)
+	}
+	return oldValue.Decimals, nil
+}
+
+// AddDecimals adds i to the "decimals" field.
+func (m *TokenMutation) AddDecimals(i int8) {
+	if m.adddecimals != nil {
+		*m.adddecimals += i
+	} else {
+		m.adddecimals = &i
+	}
+}
+
+// AddedDecimals returns the value that was added to the "decimals" field in this mutation.
+func (m *TokenMutation) AddedDecimals() (r int8, exists bool) {
+	v := m.adddecimals
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetDecimals resets all changes to the "decimals" field.
+func (m *TokenMutation) ResetDecimals() {
+	m.decimals = nil
+	m.adddecimals = nil
+}
+
+// SetIsEnabled sets the "is_enabled" field.
+func (m *TokenMutation) SetIsEnabled(b bool) {
+	m.is_enabled = &b
+}
+
+// IsEnabled returns the value of the "is_enabled" field in the mutation.
+func (m *TokenMutation) IsEnabled() (r bool, exists bool) {
+	v := m.is_enabled
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIsEnabled returns the old "is_enabled" field's value of the Token entity.
+// If the Token object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TokenMutation) OldIsEnabled(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIsEnabled is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIsEnabled requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIsEnabled: %w", err)
+	}
+	return oldValue.IsEnabled, nil
+}
+
+// ResetIsEnabled resets all changes to the "is_enabled" field.
+func (m *TokenMutation) ResetIsEnabled() {
+	m.is_enabled = nil
+}
+
+// SetNetworkID sets the "network" edge to the Network entity by id.
+func (m *TokenMutation) SetNetworkID(id int) {
+	m.network = &id
+}
+
+// ClearNetwork clears the "network" edge to the Network entity.
+func (m *TokenMutation) ClearNetwork() {
+	m.clearednetwork = true
+}
+
+// NetworkCleared reports if the "network" edge to the Network entity was cleared.
+func (m *TokenMutation) NetworkCleared() bool {
+	return m.clearednetwork
+}
+
+// NetworkID returns the "network" edge ID in the mutation.
+func (m *TokenMutation) NetworkID() (id int, exists bool) {
+	if m.network != nil {
+		return *m.network, true
+	}
+	return
+}
+
+// NetworkIDs returns the "network" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// NetworkID instead. It exists only for internal usage by the builders.
+func (m *TokenMutation) NetworkIDs() (ids []int) {
+	if id := m.network; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetNetwork resets all changes to the "network" edge.
+func (m *TokenMutation) ResetNetwork() {
+	m.network = nil
+	m.clearednetwork = false
+}
+
+// AddPaymentOrderIDs adds the "payment_orders" edge to the PaymentOrder entity by ids.
+func (m *TokenMutation) AddPaymentOrderIDs(ids ...int) {
+	if m.payment_orders == nil {
+		m.payment_orders = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.payment_orders[ids[i]] = struct{}{}
+	}
+}
+
+// ClearPaymentOrders clears the "payment_orders" edge to the PaymentOrder entity.
+func (m *TokenMutation) ClearPaymentOrders() {
+	m.clearedpayment_orders = true
+}
+
+// PaymentOrdersCleared reports if the "payment_orders" edge to the PaymentOrder entity was cleared.
+func (m *TokenMutation) PaymentOrdersCleared() bool {
+	return m.clearedpayment_orders
+}
+
+// RemovePaymentOrderIDs removes the "payment_orders" edge to the PaymentOrder entity by IDs.
+func (m *TokenMutation) RemovePaymentOrderIDs(ids ...int) {
+	if m.removedpayment_orders == nil {
+		m.removedpayment_orders = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.payment_orders, ids[i])
+		m.removedpayment_orders[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedPaymentOrders returns the removed IDs of the "payment_orders" edge to the PaymentOrder entity.
+func (m *TokenMutation) RemovedPaymentOrdersIDs() (ids []int) {
+	for id := range m.removedpayment_orders {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// PaymentOrdersIDs returns the "payment_orders" edge IDs in the mutation.
+func (m *TokenMutation) PaymentOrdersIDs() (ids []int) {
+	for id := range m.payment_orders {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetPaymentOrders resets all changes to the "payment_orders" edge.
+func (m *TokenMutation) ResetPaymentOrders() {
+	m.payment_orders = nil
+	m.clearedpayment_orders = false
+	m.removedpayment_orders = nil
+}
+
+// Where appends a list predicates to the TokenMutation builder.
+func (m *TokenMutation) Where(ps ...predicate.Token) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the TokenMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *TokenMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.Token, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *TokenMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *TokenMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (Token).
+func (m *TokenMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *TokenMutation) Fields() []string {
+	fields := make([]string, 0, 6)
+	if m.created_at != nil {
+		fields = append(fields, token.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, token.FieldUpdatedAt)
+	}
+	if m.symbol != nil {
+		fields = append(fields, token.FieldSymbol)
+	}
+	if m.contract_address != nil {
+		fields = append(fields, token.FieldContractAddress)
+	}
+	if m.decimals != nil {
+		fields = append(fields, token.FieldDecimals)
+	}
+	if m.is_enabled != nil {
+		fields = append(fields, token.FieldIsEnabled)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *TokenMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case token.FieldCreatedAt:
+		return m.CreatedAt()
+	case token.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case token.FieldSymbol:
+		return m.Symbol()
+	case token.FieldContractAddress:
+		return m.ContractAddress()
+	case token.FieldDecimals:
+		return m.Decimals()
+	case token.FieldIsEnabled:
+		return m.IsEnabled()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *TokenMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case token.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case token.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case token.FieldSymbol:
+		return m.OldSymbol(ctx)
+	case token.FieldContractAddress:
+		return m.OldContractAddress(ctx)
+	case token.FieldDecimals:
+		return m.OldDecimals(ctx)
+	case token.FieldIsEnabled:
+		return m.OldIsEnabled(ctx)
+	}
+	return nil, fmt.Errorf("unknown Token field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *TokenMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case token.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case token.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case token.FieldSymbol:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSymbol(v)
+		return nil
+	case token.FieldContractAddress:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetContractAddress(v)
+		return nil
+	case token.FieldDecimals:
+		v, ok := value.(int8)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDecimals(v)
+		return nil
+	case token.FieldIsEnabled:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIsEnabled(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Token field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *TokenMutation) AddedFields() []string {
+	var fields []string
+	if m.adddecimals != nil {
+		fields = append(fields, token.FieldDecimals)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *TokenMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case token.FieldDecimals:
+		return m.AddedDecimals()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *TokenMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case token.FieldDecimals:
+		v, ok := value.(int8)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddDecimals(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Token numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *TokenMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *TokenMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *TokenMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown Token nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *TokenMutation) ResetField(name string) error {
+	switch name {
+	case token.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case token.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case token.FieldSymbol:
+		m.ResetSymbol()
+		return nil
+	case token.FieldContractAddress:
+		m.ResetContractAddress()
+		return nil
+	case token.FieldDecimals:
+		m.ResetDecimals()
+		return nil
+	case token.FieldIsEnabled:
+		m.ResetIsEnabled()
+		return nil
+	}
+	return fmt.Errorf("unknown Token field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *TokenMutation) AddedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.network != nil {
+		edges = append(edges, token.EdgeNetwork)
+	}
+	if m.payment_orders != nil {
+		edges = append(edges, token.EdgePaymentOrders)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *TokenMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case token.EdgeNetwork:
+		if id := m.network; id != nil {
+			return []ent.Value{*id}
+		}
+	case token.EdgePaymentOrders:
+		ids := make([]ent.Value, 0, len(m.payment_orders))
+		for id := range m.payment_orders {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *TokenMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.removedpayment_orders != nil {
+		edges = append(edges, token.EdgePaymentOrders)
+	}
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *TokenMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case token.EdgePaymentOrders:
+		ids := make([]ent.Value, 0, len(m.removedpayment_orders))
+		for id := range m.removedpayment_orders {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *TokenMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.clearednetwork {
+		edges = append(edges, token.EdgeNetwork)
+	}
+	if m.clearedpayment_orders {
+		edges = append(edges, token.EdgePaymentOrders)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *TokenMutation) EdgeCleared(name string) bool {
+	switch name {
+	case token.EdgeNetwork:
+		return m.clearednetwork
+	case token.EdgePaymentOrders:
+		return m.clearedpayment_orders
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *TokenMutation) ClearEdge(name string) error {
+	switch name {
+	case token.EdgeNetwork:
+		m.ClearNetwork()
+		return nil
+	}
+	return fmt.Errorf("unknown Token unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *TokenMutation) ResetEdge(name string) error {
+	switch name {
+	case token.EdgeNetwork:
+		m.ResetNetwork()
+		return nil
+	case token.EdgePaymentOrders:
+		m.ResetPaymentOrders()
+		return nil
+	}
+	return fmt.Errorf("unknown Token edge %s", name)
 }
 
 // UserMutation represents an operation that mutates the User nodes in the graph.
