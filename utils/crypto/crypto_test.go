@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGenerateReceive(t *testing.T) {
+func TestGenerateReceiveAddress(t *testing.T) {
 	// Mock the server config
 	serverConf.HDWalletMnemonic = "media nerve fog identify typical physical aspect doll bar fossil frost because"
 

@@ -16,6 +16,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
+	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
+	"github.com/paycrest/paycrest-protocol/ent/paymentorderrecipient"
 	"github.com/paycrest/paycrest-protocol/ent/provideravailability"
 	"github.com/paycrest/paycrest-protocol/ent/providerordertoken"
 	"github.com/paycrest/paycrest-protocol/ent/providerordertokenaddress"
@@ -31,6 +33,10 @@ type Client struct {
 	Schema *migrate.Schema
 	// APIKey is the client for interacting with the APIKey builders.
 	APIKey *APIKeyClient
+	// PaymentOrder is the client for interacting with the PaymentOrder builders.
+	PaymentOrder *PaymentOrderClient
+	// PaymentOrderRecipient is the client for interacting with the PaymentOrderRecipient builders.
+	PaymentOrderRecipient *PaymentOrderRecipientClient
 	// ProviderAvailability is the client for interacting with the ProviderAvailability builders.
 	ProviderAvailability *ProviderAvailabilityClient
 	// ProviderOrderToken is the client for interacting with the ProviderOrderToken builders.
@@ -57,6 +63,8 @@ func NewClient(opts ...Option) *Client {
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
 	c.APIKey = NewAPIKeyClient(c.config)
+	c.PaymentOrder = NewPaymentOrderClient(c.config)
+	c.PaymentOrderRecipient = NewPaymentOrderRecipientClient(c.config)
 	c.ProviderAvailability = NewProviderAvailabilityClient(c.config)
 	c.ProviderOrderToken = NewProviderOrderTokenClient(c.config)
 	c.ProviderOrderTokenAddress = NewProviderOrderTokenAddressClient(c.config)
@@ -146,6 +154,8 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		ctx:                       ctx,
 		config:                    cfg,
 		APIKey:                    NewAPIKeyClient(cfg),
+		PaymentOrder:              NewPaymentOrderClient(cfg),
+		PaymentOrderRecipient:     NewPaymentOrderRecipientClient(cfg),
 		ProviderAvailability:      NewProviderAvailabilityClient(cfg),
 		ProviderOrderToken:        NewProviderOrderTokenClient(cfg),
 		ProviderOrderTokenAddress: NewProviderOrderTokenAddressClient(cfg),
@@ -172,6 +182,8 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		ctx:                       ctx,
 		config:                    cfg,
 		APIKey:                    NewAPIKeyClient(cfg),
+		PaymentOrder:              NewPaymentOrderClient(cfg),
+		PaymentOrderRecipient:     NewPaymentOrderRecipientClient(cfg),
 		ProviderAvailability:      NewProviderAvailabilityClient(cfg),
 		ProviderOrderToken:        NewProviderOrderTokenClient(cfg),
 		ProviderOrderTokenAddress: NewProviderOrderTokenAddressClient(cfg),
@@ -207,8 +219,9 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.APIKey, c.ProviderAvailability, c.ProviderOrderToken,
-		c.ProviderOrderTokenAddress, c.ProviderProfile, c.ReceiveAddress, c.User,
+		c.APIKey, c.PaymentOrder, c.PaymentOrderRecipient, c.ProviderAvailability,
+		c.ProviderOrderToken, c.ProviderOrderTokenAddress, c.ProviderProfile,
+		c.ReceiveAddress, c.User,
 	} {
 		n.Use(hooks...)
 	}
@@ -218,8 +231,9 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.APIKey, c.ProviderAvailability, c.ProviderOrderToken,
-		c.ProviderOrderTokenAddress, c.ProviderProfile, c.ReceiveAddress, c.User,
+		c.APIKey, c.PaymentOrder, c.PaymentOrderRecipient, c.ProviderAvailability,
+		c.ProviderOrderToken, c.ProviderOrderTokenAddress, c.ProviderProfile,
+		c.ReceiveAddress, c.User,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -230,6 +244,10 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
 	case *APIKeyMutation:
 		return c.APIKey.mutate(ctx, m)
+	case *PaymentOrderMutation:
+		return c.PaymentOrder.mutate(ctx, m)
+	case *PaymentOrderRecipientMutation:
+		return c.PaymentOrderRecipient.mutate(ctx, m)
 	case *ProviderAvailabilityMutation:
 		return c.ProviderAvailability.mutate(ctx, m)
 	case *ProviderOrderTokenMutation:
@@ -364,7 +382,23 @@ func (c *APIKeyClient) QueryProviderProfile(ak *APIKey) *ProviderProfileQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(apikey.Table, apikey.FieldID, id),
 			sqlgraph.To(providerprofile.Table, providerprofile.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, apikey.ProviderProfileTable, apikey.ProviderProfileColumn),
+			sqlgraph.Edge(sqlgraph.O2O, false, apikey.ProviderProfileTable, apikey.ProviderProfileColumn),
+		)
+		fromV = sqlgraph.Neighbors(ak.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryPaymentOrders queries the payment_orders edge of a APIKey.
+func (c *APIKeyClient) QueryPaymentOrders(ak *APIKey) *PaymentOrderQuery {
+	query := (&PaymentOrderClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := ak.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(apikey.Table, apikey.FieldID, id),
+			sqlgraph.To(paymentorder.Table, paymentorder.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, apikey.PaymentOrdersTable, apikey.PaymentOrdersColumn),
 		)
 		fromV = sqlgraph.Neighbors(ak.driver.Dialect(), step)
 		return fromV, nil
@@ -394,6 +428,306 @@ func (c *APIKeyClient) mutate(ctx context.Context, m *APIKeyMutation) (Value, er
 		return (&APIKeyDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown APIKey mutation op: %q", m.Op())
+	}
+}
+
+// PaymentOrderClient is a client for the PaymentOrder schema.
+type PaymentOrderClient struct {
+	config
+}
+
+// NewPaymentOrderClient returns a client for the PaymentOrder from the given config.
+func NewPaymentOrderClient(c config) *PaymentOrderClient {
+	return &PaymentOrderClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `paymentorder.Hooks(f(g(h())))`.
+func (c *PaymentOrderClient) Use(hooks ...Hook) {
+	c.hooks.PaymentOrder = append(c.hooks.PaymentOrder, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `paymentorder.Intercept(f(g(h())))`.
+func (c *PaymentOrderClient) Intercept(interceptors ...Interceptor) {
+	c.inters.PaymentOrder = append(c.inters.PaymentOrder, interceptors...)
+}
+
+// Create returns a builder for creating a PaymentOrder entity.
+func (c *PaymentOrderClient) Create() *PaymentOrderCreate {
+	mutation := newPaymentOrderMutation(c.config, OpCreate)
+	return &PaymentOrderCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of PaymentOrder entities.
+func (c *PaymentOrderClient) CreateBulk(builders ...*PaymentOrderCreate) *PaymentOrderCreateBulk {
+	return &PaymentOrderCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for PaymentOrder.
+func (c *PaymentOrderClient) Update() *PaymentOrderUpdate {
+	mutation := newPaymentOrderMutation(c.config, OpUpdate)
+	return &PaymentOrderUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PaymentOrderClient) UpdateOne(po *PaymentOrder) *PaymentOrderUpdateOne {
+	mutation := newPaymentOrderMutation(c.config, OpUpdateOne, withPaymentOrder(po))
+	return &PaymentOrderUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PaymentOrderClient) UpdateOneID(id int) *PaymentOrderUpdateOne {
+	mutation := newPaymentOrderMutation(c.config, OpUpdateOne, withPaymentOrderID(id))
+	return &PaymentOrderUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for PaymentOrder.
+func (c *PaymentOrderClient) Delete() *PaymentOrderDelete {
+	mutation := newPaymentOrderMutation(c.config, OpDelete)
+	return &PaymentOrderDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PaymentOrderClient) DeleteOne(po *PaymentOrder) *PaymentOrderDeleteOne {
+	return c.DeleteOneID(po.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PaymentOrderClient) DeleteOneID(id int) *PaymentOrderDeleteOne {
+	builder := c.Delete().Where(paymentorder.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PaymentOrderDeleteOne{builder}
+}
+
+// Query returns a query builder for PaymentOrder.
+func (c *PaymentOrderClient) Query() *PaymentOrderQuery {
+	return &PaymentOrderQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePaymentOrder},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a PaymentOrder entity by its id.
+func (c *PaymentOrderClient) Get(ctx context.Context, id int) (*PaymentOrder, error) {
+	return c.Query().Where(paymentorder.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PaymentOrderClient) GetX(ctx context.Context, id int) *PaymentOrder {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryAPIKey queries the api_key edge of a PaymentOrder.
+func (c *PaymentOrderClient) QueryAPIKey(po *PaymentOrder) *APIKeyQuery {
+	query := (&APIKeyClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := po.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(paymentorder.Table, paymentorder.FieldID, id),
+			sqlgraph.To(apikey.Table, apikey.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, paymentorder.APIKeyTable, paymentorder.APIKeyColumn),
+		)
+		fromV = sqlgraph.Neighbors(po.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryReceiveAddressFk queries the receive_address_fk edge of a PaymentOrder.
+func (c *PaymentOrderClient) QueryReceiveAddressFk(po *PaymentOrder) *ReceiveAddressQuery {
+	query := (&ReceiveAddressClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := po.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(paymentorder.Table, paymentorder.FieldID, id),
+			sqlgraph.To(receiveaddress.Table, receiveaddress.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, paymentorder.ReceiveAddressFkTable, paymentorder.ReceiveAddressFkColumn),
+		)
+		fromV = sqlgraph.Neighbors(po.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryRecipient queries the recipient edge of a PaymentOrder.
+func (c *PaymentOrderClient) QueryRecipient(po *PaymentOrder) *PaymentOrderRecipientQuery {
+	query := (&PaymentOrderRecipientClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := po.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(paymentorder.Table, paymentorder.FieldID, id),
+			sqlgraph.To(paymentorderrecipient.Table, paymentorderrecipient.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, paymentorder.RecipientTable, paymentorder.RecipientColumn),
+		)
+		fromV = sqlgraph.Neighbors(po.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *PaymentOrderClient) Hooks() []Hook {
+	return c.hooks.PaymentOrder
+}
+
+// Interceptors returns the client interceptors.
+func (c *PaymentOrderClient) Interceptors() []Interceptor {
+	return c.inters.PaymentOrder
+}
+
+func (c *PaymentOrderClient) mutate(ctx context.Context, m *PaymentOrderMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PaymentOrderCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PaymentOrderUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PaymentOrderUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PaymentOrderDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown PaymentOrder mutation op: %q", m.Op())
+	}
+}
+
+// PaymentOrderRecipientClient is a client for the PaymentOrderRecipient schema.
+type PaymentOrderRecipientClient struct {
+	config
+}
+
+// NewPaymentOrderRecipientClient returns a client for the PaymentOrderRecipient from the given config.
+func NewPaymentOrderRecipientClient(c config) *PaymentOrderRecipientClient {
+	return &PaymentOrderRecipientClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `paymentorderrecipient.Hooks(f(g(h())))`.
+func (c *PaymentOrderRecipientClient) Use(hooks ...Hook) {
+	c.hooks.PaymentOrderRecipient = append(c.hooks.PaymentOrderRecipient, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `paymentorderrecipient.Intercept(f(g(h())))`.
+func (c *PaymentOrderRecipientClient) Intercept(interceptors ...Interceptor) {
+	c.inters.PaymentOrderRecipient = append(c.inters.PaymentOrderRecipient, interceptors...)
+}
+
+// Create returns a builder for creating a PaymentOrderRecipient entity.
+func (c *PaymentOrderRecipientClient) Create() *PaymentOrderRecipientCreate {
+	mutation := newPaymentOrderRecipientMutation(c.config, OpCreate)
+	return &PaymentOrderRecipientCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of PaymentOrderRecipient entities.
+func (c *PaymentOrderRecipientClient) CreateBulk(builders ...*PaymentOrderRecipientCreate) *PaymentOrderRecipientCreateBulk {
+	return &PaymentOrderRecipientCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for PaymentOrderRecipient.
+func (c *PaymentOrderRecipientClient) Update() *PaymentOrderRecipientUpdate {
+	mutation := newPaymentOrderRecipientMutation(c.config, OpUpdate)
+	return &PaymentOrderRecipientUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PaymentOrderRecipientClient) UpdateOne(por *PaymentOrderRecipient) *PaymentOrderRecipientUpdateOne {
+	mutation := newPaymentOrderRecipientMutation(c.config, OpUpdateOne, withPaymentOrderRecipient(por))
+	return &PaymentOrderRecipientUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PaymentOrderRecipientClient) UpdateOneID(id int) *PaymentOrderRecipientUpdateOne {
+	mutation := newPaymentOrderRecipientMutation(c.config, OpUpdateOne, withPaymentOrderRecipientID(id))
+	return &PaymentOrderRecipientUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for PaymentOrderRecipient.
+func (c *PaymentOrderRecipientClient) Delete() *PaymentOrderRecipientDelete {
+	mutation := newPaymentOrderRecipientMutation(c.config, OpDelete)
+	return &PaymentOrderRecipientDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PaymentOrderRecipientClient) DeleteOne(por *PaymentOrderRecipient) *PaymentOrderRecipientDeleteOne {
+	return c.DeleteOneID(por.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PaymentOrderRecipientClient) DeleteOneID(id int) *PaymentOrderRecipientDeleteOne {
+	builder := c.Delete().Where(paymentorderrecipient.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PaymentOrderRecipientDeleteOne{builder}
+}
+
+// Query returns a query builder for PaymentOrderRecipient.
+func (c *PaymentOrderRecipientClient) Query() *PaymentOrderRecipientQuery {
+	return &PaymentOrderRecipientQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePaymentOrderRecipient},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a PaymentOrderRecipient entity by its id.
+func (c *PaymentOrderRecipientClient) Get(ctx context.Context, id int) (*PaymentOrderRecipient, error) {
+	return c.Query().Where(paymentorderrecipient.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PaymentOrderRecipientClient) GetX(ctx context.Context, id int) *PaymentOrderRecipient {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryPaymentOrder queries the payment_order edge of a PaymentOrderRecipient.
+func (c *PaymentOrderRecipientClient) QueryPaymentOrder(por *PaymentOrderRecipient) *PaymentOrderQuery {
+	query := (&PaymentOrderClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := por.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(paymentorderrecipient.Table, paymentorderrecipient.FieldID, id),
+			sqlgraph.To(paymentorder.Table, paymentorder.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, paymentorderrecipient.PaymentOrderTable, paymentorderrecipient.PaymentOrderColumn),
+		)
+		fromV = sqlgraph.Neighbors(por.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *PaymentOrderRecipientClient) Hooks() []Hook {
+	return c.hooks.PaymentOrderRecipient
+}
+
+// Interceptors returns the client interceptors.
+func (c *PaymentOrderRecipientClient) Interceptors() []Interceptor {
+	return c.inters.PaymentOrderRecipient
+}
+
+func (c *PaymentOrderRecipientClient) mutate(ctx context.Context, m *PaymentOrderRecipientMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PaymentOrderRecipientCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PaymentOrderRecipientUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PaymentOrderRecipientUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PaymentOrderRecipientDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown PaymentOrderRecipient mutation op: %q", m.Op())
 	}
 }
 
@@ -498,7 +832,7 @@ func (c *ProviderAvailabilityClient) QueryProvider(pa *ProviderAvailability) *Pr
 		step := sqlgraph.NewStep(
 			sqlgraph.From(provideravailability.Table, provideravailability.FieldID, id),
 			sqlgraph.To(providerprofile.Table, providerprofile.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, provideravailability.ProviderTable, provideravailability.ProviderColumn),
+			sqlgraph.Edge(sqlgraph.O2O, true, provideravailability.ProviderTable, provideravailability.ProviderColumn),
 		)
 		fromV = sqlgraph.Neighbors(pa.driver.Dialect(), step)
 		return fromV, nil
@@ -916,7 +1250,7 @@ func (c *ProviderProfileClient) QueryAPIKey(pp *ProviderProfile) *APIKeyQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(providerprofile.Table, providerprofile.FieldID, id),
 			sqlgraph.To(apikey.Table, apikey.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, providerprofile.APIKeyTable, providerprofile.APIKeyColumn),
+			sqlgraph.Edge(sqlgraph.O2O, true, providerprofile.APIKeyTable, providerprofile.APIKeyColumn),
 		)
 		fromV = sqlgraph.Neighbors(pp.driver.Dialect(), step)
 		return fromV, nil
@@ -948,7 +1282,7 @@ func (c *ProviderProfileClient) QueryAvailability(pp *ProviderProfile) *Provider
 		step := sqlgraph.NewStep(
 			sqlgraph.From(providerprofile.Table, providerprofile.FieldID, id),
 			sqlgraph.To(provideravailability.Table, provideravailability.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, providerprofile.AvailabilityTable, providerprofile.AvailabilityColumn),
+			sqlgraph.Edge(sqlgraph.O2O, false, providerprofile.AvailabilityTable, providerprofile.AvailabilityColumn),
 		)
 		fromV = sqlgraph.Neighbors(pp.driver.Dialect(), step)
 		return fromV, nil
@@ -1072,6 +1406,22 @@ func (c *ReceiveAddressClient) GetX(ctx context.Context, id int) *ReceiveAddress
 		panic(err)
 	}
 	return obj
+}
+
+// QueryPaymentOrder queries the payment_order edge of a ReceiveAddress.
+func (c *ReceiveAddressClient) QueryPaymentOrder(ra *ReceiveAddress) *PaymentOrderQuery {
+	query := (&PaymentOrderClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := ra.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(receiveaddress.Table, receiveaddress.FieldID, id),
+			sqlgraph.To(paymentorder.Table, paymentorder.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, receiveaddress.PaymentOrderTable, receiveaddress.PaymentOrderColumn),
+		)
+		fromV = sqlgraph.Neighbors(ra.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
 }
 
 // Hooks returns the client hooks.
@@ -1237,11 +1587,13 @@ func (c *UserClient) mutate(ctx context.Context, m *UserMutation) (Value, error)
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		APIKey, ProviderAvailability, ProviderOrderToken, ProviderOrderTokenAddress,
-		ProviderProfile, ReceiveAddress, User []ent.Hook
+		APIKey, PaymentOrder, PaymentOrderRecipient, ProviderAvailability,
+		ProviderOrderToken, ProviderOrderTokenAddress, ProviderProfile, ReceiveAddress,
+		User []ent.Hook
 	}
 	inters struct {
-		APIKey, ProviderAvailability, ProviderOrderToken, ProviderOrderTokenAddress,
-		ProviderProfile, ReceiveAddress, User []ent.Interceptor
+		APIKey, PaymentOrder, PaymentOrderRecipient, ProviderAvailability,
+		ProviderOrderToken, ProviderOrderTokenAddress, ProviderProfile, ReceiveAddress,
+		User []ent.Interceptor
 	}
 )

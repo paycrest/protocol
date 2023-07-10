@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
+	"github.com/paycrest/paycrest-protocol/ent/provideravailability"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 )
 
@@ -41,7 +42,7 @@ type ProviderProfileEdges struct {
 	// OrderTokens holds the value of the order_tokens edge.
 	OrderTokens []*ProviderOrderToken `json:"order_tokens,omitempty"`
 	// Availability holds the value of the availability edge.
-	Availability []*ProviderAvailability `json:"availability,omitempty"`
+	Availability *ProviderAvailability `json:"availability,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
 	loadedTypes [3]bool
@@ -70,9 +71,13 @@ func (e ProviderProfileEdges) OrderTokensOrErr() ([]*ProviderOrderToken, error) 
 }
 
 // AvailabilityOrErr returns the Availability value or an error if the edge
-// was not loaded in eager-loading.
-func (e ProviderProfileEdges) AvailabilityOrErr() ([]*ProviderAvailability, error) {
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ProviderProfileEdges) AvailabilityOrErr() (*ProviderAvailability, error) {
 	if e.loadedTypes[2] {
+		if e.Availability == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: provideravailability.Label}
+		}
 		return e.Availability, nil
 	}
 	return nil, &NotLoadedError{edge: "availability"}

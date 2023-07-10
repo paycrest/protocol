@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
+	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 	"github.com/paycrest/paycrest-protocol/ent/user"
 )
@@ -102,19 +103,38 @@ func (akc *APIKeyCreate) SetOwner(u *User) *APIKeyCreate {
 	return akc.SetOwnerID(u.ID)
 }
 
-// AddProviderProfileIDs adds the "provider_profile" edge to the ProviderProfile entity by IDs.
-func (akc *APIKeyCreate) AddProviderProfileIDs(ids ...string) *APIKeyCreate {
-	akc.mutation.AddProviderProfileIDs(ids...)
+// SetProviderProfileID sets the "provider_profile" edge to the ProviderProfile entity by ID.
+func (akc *APIKeyCreate) SetProviderProfileID(id string) *APIKeyCreate {
+	akc.mutation.SetProviderProfileID(id)
 	return akc
 }
 
-// AddProviderProfile adds the "provider_profile" edges to the ProviderProfile entity.
-func (akc *APIKeyCreate) AddProviderProfile(p ...*ProviderProfile) *APIKeyCreate {
-	ids := make([]string, len(p))
+// SetNillableProviderProfileID sets the "provider_profile" edge to the ProviderProfile entity by ID if the given value is not nil.
+func (akc *APIKeyCreate) SetNillableProviderProfileID(id *string) *APIKeyCreate {
+	if id != nil {
+		akc = akc.SetProviderProfileID(*id)
+	}
+	return akc
+}
+
+// SetProviderProfile sets the "provider_profile" edge to the ProviderProfile entity.
+func (akc *APIKeyCreate) SetProviderProfile(p *ProviderProfile) *APIKeyCreate {
+	return akc.SetProviderProfileID(p.ID)
+}
+
+// AddPaymentOrderIDs adds the "payment_orders" edge to the PaymentOrder entity by IDs.
+func (akc *APIKeyCreate) AddPaymentOrderIDs(ids ...int) *APIKeyCreate {
+	akc.mutation.AddPaymentOrderIDs(ids...)
+	return akc
+}
+
+// AddPaymentOrders adds the "payment_orders" edges to the PaymentOrder entity.
+func (akc *APIKeyCreate) AddPaymentOrders(p ...*PaymentOrder) *APIKeyCreate {
+	ids := make([]int, len(p))
 	for i := range p {
 		ids[i] = p[i].ID
 	}
-	return akc.AddProviderProfileIDs(ids...)
+	return akc.AddPaymentOrderIDs(ids...)
 }
 
 // Mutation returns the APIKeyMutation object of the builder.
@@ -267,13 +287,29 @@ func (akc *APIKeyCreate) createSpec() (*APIKey, *sqlgraph.CreateSpec) {
 	}
 	if nodes := akc.mutation.ProviderProfileIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.O2O,
 			Inverse: false,
 			Table:   apikey.ProviderProfileTable,
 			Columns: []string{apikey.ProviderProfileColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(providerprofile.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := akc.mutation.PaymentOrdersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   apikey.PaymentOrdersTable,
+			Columns: []string{apikey.PaymentOrdersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

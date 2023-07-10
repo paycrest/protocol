@@ -253,11 +253,11 @@ func (potc *ProviderOrderTokenCreate) createSpec() (*ProviderOrderToken, *sqlgra
 		_node.ConversionRateType = value
 	}
 	if value, ok := potc.mutation.MaxOrderAmount(); ok {
-		_spec.SetField(providerordertoken.FieldMaxOrderAmount, field.TypeString, value)
+		_spec.SetField(providerordertoken.FieldMaxOrderAmount, field.TypeFloat64, value)
 		_node.MaxOrderAmount = value
 	}
 	if value, ok := potc.mutation.MinOrderAmount(); ok {
-		_spec.SetField(providerordertoken.FieldMinOrderAmount, field.TypeString, value)
+		_spec.SetField(providerordertoken.FieldMinOrderAmount, field.TypeFloat64, value)
 		_node.MinOrderAmount = value
 	}
 	if nodes := potc.mutation.ProviderIDs(); len(nodes) > 0 {

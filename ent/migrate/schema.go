@@ -39,13 +39,65 @@ var (
 			},
 		},
 	}
+	// PaymentOrdersColumns holds the columns for the "payment_orders" table.
+	PaymentOrdersColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "token", Type: field.TypeEnum, Enums: []string{"USDT", "USDC", "BUSD"}},
+		{Name: "amount", Type: field.TypeFloat64},
+		{Name: "amount_paid", Type: field.TypeFloat64},
+		{Name: "network", Type: field.TypeEnum, Enums: []string{"bnb-smart-chain", "polygon", "tron", "polygon-mumbai", "tron-shasta"}},
+		{Name: "tx_hash", Type: field.TypeString, Nullable: true, Size: 70},
+		{Name: "receive_address", Type: field.TypeString},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"initiated", "pending", "settled", "cancelled", "failed", "refunded"}, Default: "initiated"},
+		{Name: "last_used", Type: field.TypeTime, Nullable: true},
+		{Name: "api_key_payment_orders", Type: field.TypeUUID, Nullable: true},
+	}
+	// PaymentOrdersTable holds the schema information for the "payment_orders" table.
+	PaymentOrdersTable = &schema.Table{
+		Name:       "payment_orders",
+		Columns:    PaymentOrdersColumns,
+		PrimaryKey: []*schema.Column{PaymentOrdersColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "payment_orders_api_keys_payment_orders",
+				Columns:    []*schema.Column{PaymentOrdersColumns[11]},
+				RefColumns: []*schema.Column{APIKeysColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+	}
+	// PaymentOrderRecipientsColumns holds the columns for the "payment_order_recipients" table.
+	PaymentOrderRecipientsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "institution", Type: field.TypeString},
+		{Name: "account_identifier", Type: field.TypeString},
+		{Name: "account_name", Type: field.TypeString},
+		{Name: "provider_id", Type: field.TypeString, Nullable: true},
+		{Name: "payment_order_recipient", Type: field.TypeInt, Unique: true},
+	}
+	// PaymentOrderRecipientsTable holds the schema information for the "payment_order_recipients" table.
+	PaymentOrderRecipientsTable = &schema.Table{
+		Name:       "payment_order_recipients",
+		Columns:    PaymentOrderRecipientsColumns,
+		PrimaryKey: []*schema.Column{PaymentOrderRecipientsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "payment_order_recipients_payment_orders_recipient",
+				Columns:    []*schema.Column{PaymentOrderRecipientsColumns[5]},
+				RefColumns: []*schema.Column{PaymentOrdersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+	}
 	// ProviderAvailabilitiesColumns holds the columns for the "provider_availabilities" table.
 	ProviderAvailabilitiesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "cadence", Type: field.TypeEnum, Enums: []string{"always", "weekdays", "weekends"}},
 		{Name: "start_time", Type: field.TypeTime},
 		{Name: "end_time", Type: field.TypeTime},
-		{Name: "provider_profile_availability", Type: field.TypeString, Nullable: true},
+		{Name: "provider_profile_availability", Type: field.TypeString, Unique: true},
 	}
 	// ProviderAvailabilitiesTable holds the schema information for the "provider_availabilities" table.
 	ProviderAvailabilitiesTable = &schema.Table{
@@ -57,7 +109,7 @@ var (
 				Symbol:     "provider_availabilities_provider_profiles_availability",
 				Columns:    []*schema.Column{ProviderAvailabilitiesColumns[4]},
 				RefColumns: []*schema.Column{ProviderProfilesColumns[0]},
-				OnDelete:   schema.SetNull,
+				OnDelete:   schema.NoAction,
 			},
 		},
 	}
@@ -70,8 +122,8 @@ var (
 		{Name: "fixed_conversion_rate", Type: field.TypeFloat64},
 		{Name: "floating_conversion_rate", Type: field.TypeFloat64},
 		{Name: "conversion_rate_type", Type: field.TypeEnum, Enums: []string{"fixed", "floating"}},
-		{Name: "max_order_amount", Type: field.TypeString},
-		{Name: "min_order_amount", Type: field.TypeString},
+		{Name: "max_order_amount", Type: field.TypeFloat64},
+		{Name: "min_order_amount", Type: field.TypeFloat64},
 		{Name: "provider_profile_order_tokens", Type: field.TypeString, Nullable: true},
 	}
 	// ProviderOrderTokensTable holds the schema information for the "provider_order_tokens" table.
@@ -123,7 +175,7 @@ var (
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "trading_name", Type: field.TypeString, Size: 80},
 		{Name: "country", Type: field.TypeString, Size: 80},
-		{Name: "api_key_provider_profile", Type: field.TypeUUID, Nullable: true},
+		{Name: "api_key_provider_profile", Type: field.TypeUUID, Unique: true},
 	}
 	// ProviderProfilesTable holds the schema information for the "provider_profiles" table.
 	ProviderProfilesTable = &schema.Table{
@@ -135,7 +187,7 @@ var (
 				Symbol:     "provider_profiles_api_keys_provider_profile",
 				Columns:    []*schema.Column{ProviderProfilesColumns[5]},
 				RefColumns: []*schema.Column{APIKeysColumns[0]},
-				OnDelete:   schema.SetNull,
+				OnDelete:   schema.NoAction,
 			},
 		},
 	}
@@ -147,13 +199,23 @@ var (
 		{Name: "address", Type: field.TypeString, Unique: true},
 		{Name: "account_index", Type: field.TypeInt},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"unused", "partial", "used", "expired"}, Default: "unused"},
+		{Name: "last_indexed_block", Type: field.TypeInt64, Nullable: true},
 		{Name: "last_used", Type: field.TypeTime, Nullable: true},
+		{Name: "payment_order_receive_address_fk", Type: field.TypeInt, Unique: true, Nullable: true},
 	}
 	// ReceiveAddressesTable holds the schema information for the "receive_addresses" table.
 	ReceiveAddressesTable = &schema.Table{
 		Name:       "receive_addresses",
 		Columns:    ReceiveAddressesColumns,
 		PrimaryKey: []*schema.Column{ReceiveAddressesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "receive_addresses_payment_orders_receive_address_fk",
+				Columns:    []*schema.Column{ReceiveAddressesColumns[8]},
+				RefColumns: []*schema.Column{PaymentOrdersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
 	}
 	// UsersColumns holds the columns for the "users" table.
 	UsersColumns = []*schema.Column{
@@ -175,6 +237,8 @@ var (
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		APIKeysTable,
+		PaymentOrdersTable,
+		PaymentOrderRecipientsTable,
 		ProviderAvailabilitiesTable,
 		ProviderOrderTokensTable,
 		ProviderOrderTokenAddressesTable,
@@ -186,8 +250,11 @@ var (
 
 func init() {
 	APIKeysTable.ForeignKeys[0].RefTable = UsersTable
+	PaymentOrdersTable.ForeignKeys[0].RefTable = APIKeysTable
+	PaymentOrderRecipientsTable.ForeignKeys[0].RefTable = PaymentOrdersTable
 	ProviderAvailabilitiesTable.ForeignKeys[0].RefTable = ProviderProfilesTable
 	ProviderOrderTokensTable.ForeignKeys[0].RefTable = ProviderProfilesTable
 	ProviderOrderTokenAddressesTable.ForeignKeys[0].RefTable = ProviderOrderTokensTable
 	ProviderProfilesTable.ForeignKeys[0].RefTable = APIKeysTable
+	ReceiveAddressesTable.ForeignKeys[0].RefTable = PaymentOrdersTable
 }

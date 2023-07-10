@@ -170,7 +170,7 @@ func HasProvider() predicate.ProviderAvailability {
 	return predicate.ProviderAvailability(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, ProviderTable, ProviderColumn),
+			sqlgraph.Edge(sqlgraph.O2O, true, ProviderTable, ProviderColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})

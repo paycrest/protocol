@@ -304,7 +304,7 @@ func HasProviderProfile() predicate.APIKey {
 	return predicate.APIKey(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, ProviderProfileTable, ProviderProfileColumn),
+			sqlgraph.Edge(sqlgraph.O2O, false, ProviderProfileTable, ProviderProfileColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
@@ -314,6 +314,29 @@ func HasProviderProfile() predicate.APIKey {
 func HasProviderProfileWith(preds ...predicate.ProviderProfile) predicate.APIKey {
 	return predicate.APIKey(func(s *sql.Selector) {
 		step := newProviderProfileStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasPaymentOrders applies the HasEdge predicate on the "payment_orders" edge.
+func HasPaymentOrders() predicate.APIKey {
+	return predicate.APIKey(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, PaymentOrdersTable, PaymentOrdersColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasPaymentOrdersWith applies the HasEdge predicate on the "payment_orders" edge with a given conditions (other predicates).
+func HasPaymentOrdersWith(preds ...predicate.PaymentOrder) predicate.APIKey {
+	return predicate.APIKey(func(s *sql.Selector) {
+		step := newPaymentOrdersStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

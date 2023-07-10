@@ -45,14 +45,6 @@ func (pac *ProviderAvailabilityCreate) SetProviderID(id string) *ProviderAvailab
 	return pac
 }
 
-// SetNillableProviderID sets the "provider" edge to the ProviderProfile entity by ID if the given value is not nil.
-func (pac *ProviderAvailabilityCreate) SetNillableProviderID(id *string) *ProviderAvailabilityCreate {
-	if id != nil {
-		pac = pac.SetProviderID(*id)
-	}
-	return pac
-}
-
 // SetProvider sets the "provider" edge to the ProviderProfile entity.
 func (pac *ProviderAvailabilityCreate) SetProvider(p *ProviderProfile) *ProviderAvailabilityCreate {
 	return pac.SetProviderID(p.ID)
@@ -106,6 +98,9 @@ func (pac *ProviderAvailabilityCreate) check() error {
 	if _, ok := pac.mutation.EndTime(); !ok {
 		return &ValidationError{Name: "end_time", err: errors.New(`ent: missing required field "ProviderAvailability.end_time"`)}
 	}
+	if _, ok := pac.mutation.ProviderID(); !ok {
+		return &ValidationError{Name: "provider", err: errors.New(`ent: missing required edge "ProviderAvailability.provider"`)}
+	}
 	return nil
 }
 
@@ -146,7 +141,7 @@ func (pac *ProviderAvailabilityCreate) createSpec() (*ProviderAvailability, *sql
 	}
 	if nodes := pac.mutation.ProviderIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
+			Rel:     sqlgraph.O2O,
 			Inverse: true,
 			Table:   provideravailability.ProviderTable,
 			Columns: []string{provideravailability.ProviderColumn},

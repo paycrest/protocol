@@ -13,6 +13,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
+	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
+	"github.com/paycrest/paycrest-protocol/ent/paymentorderrecipient"
 	"github.com/paycrest/paycrest-protocol/ent/provideravailability"
 	"github.com/paycrest/paycrest-protocol/ent/providerordertoken"
 	"github.com/paycrest/paycrest-protocol/ent/providerordertokenaddress"
@@ -80,6 +82,8 @@ func checkColumn(table, column string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
 			apikey.Table:                    apikey.ValidColumn,
+			paymentorder.Table:              paymentorder.ValidColumn,
+			paymentorderrecipient.Table:     paymentorderrecipient.ValidColumn,
 			provideravailability.Table:      provideravailability.ValidColumn,
 			providerordertoken.Table:        providerordertoken.ValidColumn,
 			providerordertokenaddress.Table: providerordertokenaddress.ValidColumn,

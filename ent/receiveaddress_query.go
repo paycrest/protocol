@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
 	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
 )
@@ -17,10 +18,12 @@ import (
 // ReceiveAddressQuery is the builder for querying ReceiveAddress entities.
 type ReceiveAddressQuery struct {
 	config
-	ctx        *QueryContext
-	order      []receiveaddress.OrderOption
-	inters     []Interceptor
-	predicates []predicate.ReceiveAddress
+	ctx              *QueryContext
+	order            []receiveaddress.OrderOption
+	inters           []Interceptor
+	predicates       []predicate.ReceiveAddress
+	withPaymentOrder *PaymentOrderQuery
+	withFKs          bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -55,6 +58,28 @@ func (raq *ReceiveAddressQuery) Unique(unique bool) *ReceiveAddressQuery {
 func (raq *ReceiveAddressQuery) Order(o ...receiveaddress.OrderOption) *ReceiveAddressQuery {
 	raq.order = append(raq.order, o...)
 	return raq
+}
+
+// QueryPaymentOrder chains the current query on the "payment_order" edge.
+func (raq *ReceiveAddressQuery) QueryPaymentOrder() *PaymentOrderQuery {
+	query := (&PaymentOrderClient{config: raq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := raq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := raq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(receiveaddress.Table, receiveaddress.FieldID, selector),
+			sqlgraph.To(paymentorder.Table, paymentorder.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, receiveaddress.PaymentOrderTable, receiveaddress.PaymentOrderColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(raq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // First returns the first ReceiveAddress entity from the query.
@@ -244,15 +269,27 @@ func (raq *ReceiveAddressQuery) Clone() *ReceiveAddressQuery {
 		return nil
 	}
 	return &ReceiveAddressQuery{
-		config:     raq.config,
-		ctx:        raq.ctx.Clone(),
-		order:      append([]receiveaddress.OrderOption{}, raq.order...),
-		inters:     append([]Interceptor{}, raq.inters...),
-		predicates: append([]predicate.ReceiveAddress{}, raq.predicates...),
+		config:           raq.config,
+		ctx:              raq.ctx.Clone(),
+		order:            append([]receiveaddress.OrderOption{}, raq.order...),
+		inters:           append([]Interceptor{}, raq.inters...),
+		predicates:       append([]predicate.ReceiveAddress{}, raq.predicates...),
+		withPaymentOrder: raq.withPaymentOrder.Clone(),
 		// clone intermediate query.
 		sql:  raq.sql.Clone(),
 		path: raq.path,
 	}
+}
+
+// WithPaymentOrder tells the query-builder to eager-load the nodes that are connected to
+// the "payment_order" edge. The optional arguments are used to configure the query builder of the edge.
+func (raq *ReceiveAddressQuery) WithPaymentOrder(opts ...func(*PaymentOrderQuery)) *ReceiveAddressQuery {
+	query := (&PaymentOrderClient{config: raq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	raq.withPaymentOrder = query
+	return raq
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -331,15 +368,26 @@ func (raq *ReceiveAddressQuery) prepareQuery(ctx context.Context) error {
 
 func (raq *ReceiveAddressQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*ReceiveAddress, error) {
 	var (
-		nodes = []*ReceiveAddress{}
-		_spec = raq.querySpec()
+		nodes       = []*ReceiveAddress{}
+		withFKs     = raq.withFKs
+		_spec       = raq.querySpec()
+		loadedTypes = [1]bool{
+			raq.withPaymentOrder != nil,
+		}
 	)
+	if raq.withPaymentOrder != nil {
+		withFKs = true
+	}
+	if withFKs {
+		_spec.Node.Columns = append(_spec.Node.Columns, receiveaddress.ForeignKeys...)
+	}
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*ReceiveAddress).scanValues(nil, columns)
 	}
 	_spec.Assign = func(columns []string, values []any) error {
 		node := &ReceiveAddress{config: raq.config}
 		nodes = append(nodes, node)
+		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
 	for i := range hooks {
@@ -351,7 +399,46 @@ func (raq *ReceiveAddressQuery) sqlAll(ctx context.Context, hooks ...queryHook) 
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+	if query := raq.withPaymentOrder; query != nil {
+		if err := raq.loadPaymentOrder(ctx, query, nodes, nil,
+			func(n *ReceiveAddress, e *PaymentOrder) { n.Edges.PaymentOrder = e }); err != nil {
+			return nil, err
+		}
+	}
 	return nodes, nil
+}
+
+func (raq *ReceiveAddressQuery) loadPaymentOrder(ctx context.Context, query *PaymentOrderQuery, nodes []*ReceiveAddress, init func(*ReceiveAddress), assign func(*ReceiveAddress, *PaymentOrder)) error {
+	ids := make([]int, 0, len(nodes))
+	nodeids := make(map[int][]*ReceiveAddress)
+	for i := range nodes {
+		if nodes[i].payment_order_receive_address_fk == nil {
+			continue
+		}
+		fk := *nodes[i].payment_order_receive_address_fk
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(paymentorder.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "payment_order_receive_address_fk" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
 }
 
 func (raq *ReceiveAddressQuery) sqlCount(ctx context.Context) (int, error) {

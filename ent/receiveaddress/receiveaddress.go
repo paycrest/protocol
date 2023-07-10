@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 )
 
 const (
@@ -20,14 +21,25 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// FieldAddress holds the string denoting the address field in the database.
 	FieldAddress = "address"
-	// FieldAccountIndex holds the string denoting the accountindex field in the database.
+	// FieldAccountIndex holds the string denoting the account_index field in the database.
 	FieldAccountIndex = "account_index"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
+	// FieldLastIndexedBlock holds the string denoting the last_indexed_block field in the database.
+	FieldLastIndexedBlock = "last_indexed_block"
 	// FieldLastUsed holds the string denoting the last_used field in the database.
 	FieldLastUsed = "last_used"
+	// EdgePaymentOrder holds the string denoting the payment_order edge name in mutations.
+	EdgePaymentOrder = "payment_order"
 	// Table holds the table name of the receiveaddress in the database.
 	Table = "receive_addresses"
+	// PaymentOrderTable is the table that holds the payment_order relation/edge.
+	PaymentOrderTable = "receive_addresses"
+	// PaymentOrderInverseTable is the table name for the PaymentOrder entity.
+	// It exists in this package in order to avoid circular dependency with the "paymentorder" package.
+	PaymentOrderInverseTable = "payment_orders"
+	// PaymentOrderColumn is the table column denoting the payment_order relation/edge.
+	PaymentOrderColumn = "payment_order_receive_address_fk"
 )
 
 // Columns holds all SQL columns for receiveaddress fields.
@@ -38,13 +50,25 @@ var Columns = []string{
 	FieldAddress,
 	FieldAccountIndex,
 	FieldStatus,
+	FieldLastIndexedBlock,
 	FieldLastUsed,
+}
+
+// ForeignKeys holds the SQL foreign-keys that are owned by the "receive_addresses"
+// table and are not defined as standalone fields in the schema.
+var ForeignKeys = []string{
+	"payment_order_receive_address_fk",
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
+			return true
+		}
+	}
+	for i := range ForeignKeys {
+		if column == ForeignKeys[i] {
 			return true
 		}
 	}
@@ -111,7 +135,7 @@ func ByAddress(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAddress, opts...).ToFunc()
 }
 
-// ByAccountIndex orders the results by the accountIndex field.
+// ByAccountIndex orders the results by the account_index field.
 func ByAccountIndex(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAccountIndex, opts...).ToFunc()
 }
@@ -121,7 +145,26 @@ func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatus, opts...).ToFunc()
 }
 
+// ByLastIndexedBlock orders the results by the last_indexed_block field.
+func ByLastIndexedBlock(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLastIndexedBlock, opts...).ToFunc()
+}
+
 // ByLastUsed orders the results by the last_used field.
 func ByLastUsed(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldLastUsed, opts...).ToFunc()
+}
+
+// ByPaymentOrderField orders the results by payment_order field.
+func ByPaymentOrderField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newPaymentOrderStep(), sql.OrderByField(field, opts...))
+	}
+}
+func newPaymentOrderStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(PaymentOrderInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, true, PaymentOrderTable, PaymentOrderColumn),
+	)
 }

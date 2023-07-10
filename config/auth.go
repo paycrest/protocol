@@ -17,11 +17,13 @@ type AuthConfiguration struct {
 
 // AuthConfig sets the authentication & authorization configurations
 func AuthConfig() (config *AuthConfiguration) {
+	viper.SetDefault("JWT_ACCESS_HOUR_LIFESPAN", 15)
+	viper.SetDefault("JWT_REFRESH_HOUR_LIFESPAN", 24)
 
 	return &AuthConfiguration{
 		Secret:                 viper.GetString("SECRET"),
-		JwtAccessHourLifespan:  time.Duration(15) * time.Minute,
-		JwtRefreshHourLifespan: time.Duration(24) * time.Hour,
+		JwtAccessHourLifespan:  time.Duration(viper.GetInt("JWT_ACCESS_HOUR_LIFESPAN")) * time.Minute,
+		JwtRefreshHourLifespan: time.Duration(viper.GetInt("JWT_REFRESH_HOUR_LIFESPAN")) * time.Hour,
 		HmacTimestampAge:       5,
 	}
 }

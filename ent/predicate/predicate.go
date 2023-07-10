@@ -9,6 +9,12 @@ import (
 // APIKey is the predicate function for apikey builders.
 type APIKey func(*sql.Selector)
 
+// PaymentOrder is the predicate function for paymentorder builders.
+type PaymentOrder func(*sql.Selector)
+
+// PaymentOrderRecipient is the predicate function for paymentorderrecipient builders.
+type PaymentOrderRecipient func(*sql.Selector)
+
 // ProviderAvailability is the predicate function for provideravailability builders.
 type ProviderAvailability func(*sql.Selector)
 

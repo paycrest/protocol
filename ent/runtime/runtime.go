@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
+	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/providerordertoken"
 	"github.com/paycrest/paycrest-protocol/ent/providerordertokenaddress"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
@@ -37,6 +38,25 @@ func init() {
 	apikeyDescID := apikeyFields[0].Descriptor()
 	// apikey.DefaultID holds the default value on creation for the id field.
 	apikey.DefaultID = apikeyDescID.Default.(func() uuid.UUID)
+	paymentorderMixin := schema.PaymentOrder{}.Mixin()
+	paymentorderMixinFields0 := paymentorderMixin[0].Fields()
+	_ = paymentorderMixinFields0
+	paymentorderFields := schema.PaymentOrder{}.Fields()
+	_ = paymentorderFields
+	// paymentorderDescCreatedAt is the schema descriptor for created_at field.
+	paymentorderDescCreatedAt := paymentorderMixinFields0[0].Descriptor()
+	// paymentorder.DefaultCreatedAt holds the default value on creation for the created_at field.
+	paymentorder.DefaultCreatedAt = paymentorderDescCreatedAt.Default.(func() time.Time)
+	// paymentorderDescUpdatedAt is the schema descriptor for updated_at field.
+	paymentorderDescUpdatedAt := paymentorderMixinFields0[1].Descriptor()
+	// paymentorder.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	paymentorder.DefaultUpdatedAt = paymentorderDescUpdatedAt.Default.(func() time.Time)
+	// paymentorder.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	paymentorder.UpdateDefaultUpdatedAt = paymentorderDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// paymentorderDescTxHash is the schema descriptor for tx_hash field.
+	paymentorderDescTxHash := paymentorderFields[4].Descriptor()
+	// paymentorder.TxHashValidator is a validator for the "tx_hash" field. It is called by the builders before save.
+	paymentorder.TxHashValidator = paymentorderDescTxHash.Validators[0].(func(string) error)
 	providerordertokenMixin := schema.ProviderOrderToken{}.Mixin()
 	providerordertokenMixinFields0 := providerordertokenMixin[0].Fields()
 	_ = providerordertokenMixinFields0

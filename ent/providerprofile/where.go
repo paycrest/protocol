@@ -300,7 +300,7 @@ func HasAPIKey() predicate.ProviderProfile {
 	return predicate.ProviderProfile(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, APIKeyTable, APIKeyColumn),
+			sqlgraph.Edge(sqlgraph.O2O, true, APIKeyTable, APIKeyColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
@@ -346,7 +346,7 @@ func HasAvailability() predicate.ProviderProfile {
 	return predicate.ProviderProfile(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, AvailabilityTable, AvailabilityColumn),
+			sqlgraph.Edge(sqlgraph.O2O, false, AvailabilityTable, AvailabilityColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
