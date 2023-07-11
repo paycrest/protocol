@@ -27,7 +27,7 @@ jobs:
           echo "ENV_FILE_PATH=$ENV_FILE_PATH" >> $GITHUB_ENV
 
       - name: Install dependencies
-        run: go mod download
+        run: go mod download && go generate ./...
 
       - name: Build
         run: go build -o paycrest
