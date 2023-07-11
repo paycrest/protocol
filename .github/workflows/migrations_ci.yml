@@ -3,13 +3,13 @@ on:
   # Run whenever code is changed in the master branch,
   push:
     branches:
-      - master
+      - main
   # Run on PRs where something changed under the `ent/migrate/migrations/` directory.
   pull_request:
     paths:
       - 'ent/migrate/migrations/*'
     branches: [ "main" ]
-    
+
 jobs:
   lint:
     services:
