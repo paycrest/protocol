@@ -27,8 +27,8 @@ type IndexerService struct {
 }
 
 // NewIndexerService creates a new instance of IndexerService.
-func NewIndexerService(db *ent.Client) *ReceiveAddressService {
-	return &ReceiveAddressService{
+func NewIndexerService(db *ent.Client) *IndexerService {
+	return &IndexerService{
 		db: db,
 	}
 }
@@ -138,8 +138,8 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, address common.
 
 				if transferEvent.To.Hex() == receiveAddress.Address {
 					// Compare the transferred value with the expected order amount
-					orderAmountInSubUnit := utils.ToSubUnit(paymentOrder.Amount, token.Decimals)
-					var comparisonResult = transferEvent.Value.Cmp(orderAmountInSubUnit)
+					orderAmountInSubunit := utils.ToSubunit(paymentOrder.Amount, token.Decimals)
+					var comparisonResult = transferEvent.Value.Cmp(orderAmountInSubunit)
 
 					if comparisonResult == 0 {
 						// Transfer value equals order amount
@@ -165,7 +165,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, address common.
 					// Update the payment order with amount paid
 					_, err = paymentOrder.
 						Update().
-						SetAmountPaid(paymentOrder.AmountPaid.Add(utils.FromSubUnit(transferEvent.Value, token.Decimals))).
+						SetAmountPaid(paymentOrder.AmountPaid.Add(utils.FromSubunit(transferEvent.Value, token.Decimals))).
 						Save(ctx)
 					if err != nil {
 						return fmt.Errorf("failed to record amount paid: %w", err)
