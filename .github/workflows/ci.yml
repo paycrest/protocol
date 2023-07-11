@@ -34,3 +34,6 @@ jobs:
 
       - name: Run tests with coverage
         run: go test $(go list ./... | grep -v /ent | grep -v /config | grep -v /database | grep -v /routers)  -coverprofile=coverage.out ./...
+
+      - name: Verify all generated ent files are checked in
+        uses: ent/contrib/ci@master
