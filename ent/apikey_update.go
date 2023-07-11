@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
+	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 )
@@ -60,19 +61,38 @@ func (aku *APIKeyUpdate) SetNillableIsActive(b *bool) *APIKeyUpdate {
 	return aku
 }
 
-// AddProviderProfileIDs adds the "provider_profile" edge to the ProviderProfile entity by IDs.
-func (aku *APIKeyUpdate) AddProviderProfileIDs(ids ...string) *APIKeyUpdate {
-	aku.mutation.AddProviderProfileIDs(ids...)
+// SetProviderProfileID sets the "provider_profile" edge to the ProviderProfile entity by ID.
+func (aku *APIKeyUpdate) SetProviderProfileID(id string) *APIKeyUpdate {
+	aku.mutation.SetProviderProfileID(id)
 	return aku
 }
 
-// AddProviderProfile adds the "provider_profile" edges to the ProviderProfile entity.
-func (aku *APIKeyUpdate) AddProviderProfile(p ...*ProviderProfile) *APIKeyUpdate {
-	ids := make([]string, len(p))
+// SetNillableProviderProfileID sets the "provider_profile" edge to the ProviderProfile entity by ID if the given value is not nil.
+func (aku *APIKeyUpdate) SetNillableProviderProfileID(id *string) *APIKeyUpdate {
+	if id != nil {
+		aku = aku.SetProviderProfileID(*id)
+	}
+	return aku
+}
+
+// SetProviderProfile sets the "provider_profile" edge to the ProviderProfile entity.
+func (aku *APIKeyUpdate) SetProviderProfile(p *ProviderProfile) *APIKeyUpdate {
+	return aku.SetProviderProfileID(p.ID)
+}
+
+// AddPaymentOrderIDs adds the "payment_orders" edge to the PaymentOrder entity by IDs.
+func (aku *APIKeyUpdate) AddPaymentOrderIDs(ids ...int) *APIKeyUpdate {
+	aku.mutation.AddPaymentOrderIDs(ids...)
+	return aku
+}
+
+// AddPaymentOrders adds the "payment_orders" edges to the PaymentOrder entity.
+func (aku *APIKeyUpdate) AddPaymentOrders(p ...*PaymentOrder) *APIKeyUpdate {
+	ids := make([]int, len(p))
 	for i := range p {
 		ids[i] = p[i].ID
 	}
-	return aku.AddProviderProfileIDs(ids...)
+	return aku.AddPaymentOrderIDs(ids...)
 }
 
 // Mutation returns the APIKeyMutation object of the builder.
@@ -80,25 +100,31 @@ func (aku *APIKeyUpdate) Mutation() *APIKeyMutation {
 	return aku.mutation
 }
 
-// ClearProviderProfile clears all "provider_profile" edges to the ProviderProfile entity.
+// ClearProviderProfile clears the "provider_profile" edge to the ProviderProfile entity.
 func (aku *APIKeyUpdate) ClearProviderProfile() *APIKeyUpdate {
 	aku.mutation.ClearProviderProfile()
 	return aku
 }
 
-// RemoveProviderProfileIDs removes the "provider_profile" edge to ProviderProfile entities by IDs.
-func (aku *APIKeyUpdate) RemoveProviderProfileIDs(ids ...string) *APIKeyUpdate {
-	aku.mutation.RemoveProviderProfileIDs(ids...)
+// ClearPaymentOrders clears all "payment_orders" edges to the PaymentOrder entity.
+func (aku *APIKeyUpdate) ClearPaymentOrders() *APIKeyUpdate {
+	aku.mutation.ClearPaymentOrders()
 	return aku
 }
 
-// RemoveProviderProfile removes "provider_profile" edges to ProviderProfile entities.
-func (aku *APIKeyUpdate) RemoveProviderProfile(p ...*ProviderProfile) *APIKeyUpdate {
-	ids := make([]string, len(p))
+// RemovePaymentOrderIDs removes the "payment_orders" edge to PaymentOrder entities by IDs.
+func (aku *APIKeyUpdate) RemovePaymentOrderIDs(ids ...int) *APIKeyUpdate {
+	aku.mutation.RemovePaymentOrderIDs(ids...)
+	return aku
+}
+
+// RemovePaymentOrders removes "payment_orders" edges to PaymentOrder entities.
+func (aku *APIKeyUpdate) RemovePaymentOrders(p ...*PaymentOrder) *APIKeyUpdate {
+	ids := make([]int, len(p))
 	for i := range p {
 		ids[i] = p[i].ID
 	}
-	return aku.RemoveProviderProfileIDs(ids...)
+	return aku.RemovePaymentOrderIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -169,7 +195,7 @@ func (aku *APIKeyUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if aku.mutation.ProviderProfileCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.O2O,
 			Inverse: false,
 			Table:   apikey.ProviderProfileTable,
 			Columns: []string{apikey.ProviderProfileColumn},
@@ -180,9 +206,9 @@ func (aku *APIKeyUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := aku.mutation.RemovedProviderProfileIDs(); len(nodes) > 0 && !aku.mutation.ProviderProfileCleared() {
+	if nodes := aku.mutation.ProviderProfileIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.O2O,
 			Inverse: false,
 			Table:   apikey.ProviderProfileTable,
 			Columns: []string{apikey.ProviderProfileColumn},
@@ -194,17 +220,46 @@ func (aku *APIKeyUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if nodes := aku.mutation.ProviderProfileIDs(); len(nodes) > 0 {
+	if aku.mutation.PaymentOrdersCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   apikey.ProviderProfileTable,
-			Columns: []string{apikey.ProviderProfileColumn},
+			Table:   apikey.PaymentOrdersTable,
+			Columns: []string{apikey.PaymentOrdersColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(providerprofile.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := aku.mutation.RemovedPaymentOrdersIDs(); len(nodes) > 0 && !aku.mutation.PaymentOrdersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   apikey.PaymentOrdersTable,
+			Columns: []string{apikey.PaymentOrdersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := aku.mutation.PaymentOrdersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   apikey.PaymentOrdersTable,
+			Columns: []string{apikey.PaymentOrdersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -264,19 +319,38 @@ func (akuo *APIKeyUpdateOne) SetNillableIsActive(b *bool) *APIKeyUpdateOne {
 	return akuo
 }
 
-// AddProviderProfileIDs adds the "provider_profile" edge to the ProviderProfile entity by IDs.
-func (akuo *APIKeyUpdateOne) AddProviderProfileIDs(ids ...string) *APIKeyUpdateOne {
-	akuo.mutation.AddProviderProfileIDs(ids...)
+// SetProviderProfileID sets the "provider_profile" edge to the ProviderProfile entity by ID.
+func (akuo *APIKeyUpdateOne) SetProviderProfileID(id string) *APIKeyUpdateOne {
+	akuo.mutation.SetProviderProfileID(id)
 	return akuo
 }
 
-// AddProviderProfile adds the "provider_profile" edges to the ProviderProfile entity.
-func (akuo *APIKeyUpdateOne) AddProviderProfile(p ...*ProviderProfile) *APIKeyUpdateOne {
-	ids := make([]string, len(p))
+// SetNillableProviderProfileID sets the "provider_profile" edge to the ProviderProfile entity by ID if the given value is not nil.
+func (akuo *APIKeyUpdateOne) SetNillableProviderProfileID(id *string) *APIKeyUpdateOne {
+	if id != nil {
+		akuo = akuo.SetProviderProfileID(*id)
+	}
+	return akuo
+}
+
+// SetProviderProfile sets the "provider_profile" edge to the ProviderProfile entity.
+func (akuo *APIKeyUpdateOne) SetProviderProfile(p *ProviderProfile) *APIKeyUpdateOne {
+	return akuo.SetProviderProfileID(p.ID)
+}
+
+// AddPaymentOrderIDs adds the "payment_orders" edge to the PaymentOrder entity by IDs.
+func (akuo *APIKeyUpdateOne) AddPaymentOrderIDs(ids ...int) *APIKeyUpdateOne {
+	akuo.mutation.AddPaymentOrderIDs(ids...)
+	return akuo
+}
+
+// AddPaymentOrders adds the "payment_orders" edges to the PaymentOrder entity.
+func (akuo *APIKeyUpdateOne) AddPaymentOrders(p ...*PaymentOrder) *APIKeyUpdateOne {
+	ids := make([]int, len(p))
 	for i := range p {
 		ids[i] = p[i].ID
 	}
-	return akuo.AddProviderProfileIDs(ids...)
+	return akuo.AddPaymentOrderIDs(ids...)
 }
 
 // Mutation returns the APIKeyMutation object of the builder.
@@ -284,25 +358,31 @@ func (akuo *APIKeyUpdateOne) Mutation() *APIKeyMutation {
 	return akuo.mutation
 }
 
-// ClearProviderProfile clears all "provider_profile" edges to the ProviderProfile entity.
+// ClearProviderProfile clears the "provider_profile" edge to the ProviderProfile entity.
 func (akuo *APIKeyUpdateOne) ClearProviderProfile() *APIKeyUpdateOne {
 	akuo.mutation.ClearProviderProfile()
 	return akuo
 }
 
-// RemoveProviderProfileIDs removes the "provider_profile" edge to ProviderProfile entities by IDs.
-func (akuo *APIKeyUpdateOne) RemoveProviderProfileIDs(ids ...string) *APIKeyUpdateOne {
-	akuo.mutation.RemoveProviderProfileIDs(ids...)
+// ClearPaymentOrders clears all "payment_orders" edges to the PaymentOrder entity.
+func (akuo *APIKeyUpdateOne) ClearPaymentOrders() *APIKeyUpdateOne {
+	akuo.mutation.ClearPaymentOrders()
 	return akuo
 }
 
-// RemoveProviderProfile removes "provider_profile" edges to ProviderProfile entities.
-func (akuo *APIKeyUpdateOne) RemoveProviderProfile(p ...*ProviderProfile) *APIKeyUpdateOne {
-	ids := make([]string, len(p))
+// RemovePaymentOrderIDs removes the "payment_orders" edge to PaymentOrder entities by IDs.
+func (akuo *APIKeyUpdateOne) RemovePaymentOrderIDs(ids ...int) *APIKeyUpdateOne {
+	akuo.mutation.RemovePaymentOrderIDs(ids...)
+	return akuo
+}
+
+// RemovePaymentOrders removes "payment_orders" edges to PaymentOrder entities.
+func (akuo *APIKeyUpdateOne) RemovePaymentOrders(p ...*PaymentOrder) *APIKeyUpdateOne {
+	ids := make([]int, len(p))
 	for i := range p {
 		ids[i] = p[i].ID
 	}
-	return akuo.RemoveProviderProfileIDs(ids...)
+	return akuo.RemovePaymentOrderIDs(ids...)
 }
 
 // Where appends a list predicates to the APIKeyUpdate builder.
@@ -403,7 +483,7 @@ func (akuo *APIKeyUpdateOne) sqlSave(ctx context.Context) (_node *APIKey, err er
 	}
 	if akuo.mutation.ProviderProfileCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.O2O,
 			Inverse: false,
 			Table:   apikey.ProviderProfileTable,
 			Columns: []string{apikey.ProviderProfileColumn},
@@ -414,9 +494,9 @@ func (akuo *APIKeyUpdateOne) sqlSave(ctx context.Context) (_node *APIKey, err er
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := akuo.mutation.RemovedProviderProfileIDs(); len(nodes) > 0 && !akuo.mutation.ProviderProfileCleared() {
+	if nodes := akuo.mutation.ProviderProfileIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.O2O,
 			Inverse: false,
 			Table:   apikey.ProviderProfileTable,
 			Columns: []string{apikey.ProviderProfileColumn},
@@ -428,17 +508,46 @@ func (akuo *APIKeyUpdateOne) sqlSave(ctx context.Context) (_node *APIKey, err er
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if nodes := akuo.mutation.ProviderProfileIDs(); len(nodes) > 0 {
+	if akuo.mutation.PaymentOrdersCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   apikey.ProviderProfileTable,
-			Columns: []string{apikey.ProviderProfileColumn},
+			Table:   apikey.PaymentOrdersTable,
+			Columns: []string{apikey.PaymentOrdersColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(providerprofile.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := akuo.mutation.RemovedPaymentOrdersIDs(); len(nodes) > 0 && !akuo.mutation.PaymentOrdersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   apikey.PaymentOrdersTable,
+			Columns: []string{apikey.PaymentOrdersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := akuo.mutation.PaymentOrdersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   apikey.PaymentOrdersTable,
+			Columns: []string{apikey.PaymentOrdersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

@@ -14,6 +14,12 @@ type Tx struct {
 	config
 	// APIKey is the client for interacting with the APIKey builders.
 	APIKey *APIKeyClient
+	// Network is the client for interacting with the Network builders.
+	Network *NetworkClient
+	// PaymentOrder is the client for interacting with the PaymentOrder builders.
+	PaymentOrder *PaymentOrderClient
+	// PaymentOrderRecipient is the client for interacting with the PaymentOrderRecipient builders.
+	PaymentOrderRecipient *PaymentOrderRecipientClient
 	// ProviderAvailability is the client for interacting with the ProviderAvailability builders.
 	ProviderAvailability *ProviderAvailabilityClient
 	// ProviderOrderToken is the client for interacting with the ProviderOrderToken builders.
@@ -24,6 +30,8 @@ type Tx struct {
 	ProviderProfile *ProviderProfileClient
 	// ReceiveAddress is the client for interacting with the ReceiveAddress builders.
 	ReceiveAddress *ReceiveAddressClient
+	// Token is the client for interacting with the Token builders.
+	Token *TokenClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
 
@@ -158,11 +166,15 @@ func (tx *Tx) Client() *Client {
 
 func (tx *Tx) init() {
 	tx.APIKey = NewAPIKeyClient(tx.config)
+	tx.Network = NewNetworkClient(tx.config)
+	tx.PaymentOrder = NewPaymentOrderClient(tx.config)
+	tx.PaymentOrderRecipient = NewPaymentOrderRecipientClient(tx.config)
 	tx.ProviderAvailability = NewProviderAvailabilityClient(tx.config)
 	tx.ProviderOrderToken = NewProviderOrderTokenClient(tx.config)
 	tx.ProviderOrderTokenAddress = NewProviderOrderTokenAddressClient(tx.config)
 	tx.ProviderProfile = NewProviderProfileClient(tx.config)
 	tx.ReceiveAddress = NewReceiveAddressClient(tx.config)
+	tx.Token = NewTokenClient(tx.config)
 	tx.User = NewUserClient(tx.config)
 }
 

@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
+	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 	"github.com/paycrest/paycrest-protocol/ent/user"
 )
 
@@ -41,10 +42,12 @@ type APIKeyEdges struct {
 	// Owner holds the value of the owner edge.
 	Owner *User `json:"owner,omitempty"`
 	// ProviderProfile holds the value of the provider_profile edge.
-	ProviderProfile []*ProviderProfile `json:"provider_profile,omitempty"`
+	ProviderProfile *ProviderProfile `json:"provider_profile,omitempty"`
+	// PaymentOrders holds the value of the payment_orders edge.
+	PaymentOrders []*PaymentOrder `json:"payment_orders,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [3]bool
 }
 
 // OwnerOrErr returns the Owner value or an error if the edge
@@ -61,12 +64,25 @@ func (e APIKeyEdges) OwnerOrErr() (*User, error) {
 }
 
 // ProviderProfileOrErr returns the ProviderProfile value or an error if the edge
-// was not loaded in eager-loading.
-func (e APIKeyEdges) ProviderProfileOrErr() ([]*ProviderProfile, error) {
+// was not loaded in eager-loading, or loaded but was not found.
+func (e APIKeyEdges) ProviderProfileOrErr() (*ProviderProfile, error) {
 	if e.loadedTypes[1] {
+		if e.ProviderProfile == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: providerprofile.Label}
+		}
 		return e.ProviderProfile, nil
 	}
 	return nil, &NotLoadedError{edge: "provider_profile"}
+}
+
+// PaymentOrdersOrErr returns the PaymentOrders value or an error if the edge
+// was not loaded in eager-loading.
+func (e APIKeyEdges) PaymentOrdersOrErr() ([]*PaymentOrder, error) {
+	if e.loadedTypes[2] {
+		return e.PaymentOrders, nil
+	}
+	return nil, &NotLoadedError{edge: "payment_orders"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -163,6 +179,11 @@ func (ak *APIKey) QueryOwner() *UserQuery {
 // QueryProviderProfile queries the "provider_profile" edge of the APIKey entity.
 func (ak *APIKey) QueryProviderProfile() *ProviderProfileQuery {
 	return NewAPIKeyClient(ak.config).QueryProviderProfile(ak)
+}
+
+// QueryPaymentOrders queries the "payment_orders" edge of the APIKey entity.
+func (ak *APIKey) QueryPaymentOrders() *PaymentOrderQuery {
+	return NewAPIKeyClient(ak.config).QueryPaymentOrders(ak)
 }
 
 // Update returns a builder for updating this APIKey.

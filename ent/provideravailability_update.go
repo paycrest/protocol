@@ -13,7 +13,6 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
 	"github.com/paycrest/paycrest-protocol/ent/provideravailability"
-	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 )
 
 // ProviderAvailabilityUpdate is the builder for updating ProviderAvailability entities.
@@ -47,34 +46,9 @@ func (pau *ProviderAvailabilityUpdate) SetEndTime(t time.Time) *ProviderAvailabi
 	return pau
 }
 
-// SetProviderID sets the "provider" edge to the ProviderProfile entity by ID.
-func (pau *ProviderAvailabilityUpdate) SetProviderID(id string) *ProviderAvailabilityUpdate {
-	pau.mutation.SetProviderID(id)
-	return pau
-}
-
-// SetNillableProviderID sets the "provider" edge to the ProviderProfile entity by ID if the given value is not nil.
-func (pau *ProviderAvailabilityUpdate) SetNillableProviderID(id *string) *ProviderAvailabilityUpdate {
-	if id != nil {
-		pau = pau.SetProviderID(*id)
-	}
-	return pau
-}
-
-// SetProvider sets the "provider" edge to the ProviderProfile entity.
-func (pau *ProviderAvailabilityUpdate) SetProvider(p *ProviderProfile) *ProviderAvailabilityUpdate {
-	return pau.SetProviderID(p.ID)
-}
-
 // Mutation returns the ProviderAvailabilityMutation object of the builder.
 func (pau *ProviderAvailabilityUpdate) Mutation() *ProviderAvailabilityMutation {
 	return pau.mutation
-}
-
-// ClearProvider clears the "provider" edge to the ProviderProfile entity.
-func (pau *ProviderAvailabilityUpdate) ClearProvider() *ProviderAvailabilityUpdate {
-	pau.mutation.ClearProvider()
-	return pau
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -111,6 +85,9 @@ func (pau *ProviderAvailabilityUpdate) check() error {
 			return &ValidationError{Name: "cadence", err: fmt.Errorf(`ent: validator failed for field "ProviderAvailability.cadence": %w`, err)}
 		}
 	}
+	if _, ok := pau.mutation.ProviderID(); pau.mutation.ProviderCleared() && !ok {
+		return errors.New(`ent: clearing a required unique edge "ProviderAvailability.provider"`)
+	}
 	return nil
 }
 
@@ -134,35 +111,6 @@ func (pau *ProviderAvailabilityUpdate) sqlSave(ctx context.Context) (n int, err 
 	}
 	if value, ok := pau.mutation.EndTime(); ok {
 		_spec.SetField(provideravailability.FieldEndTime, field.TypeTime, value)
-	}
-	if pau.mutation.ProviderCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   provideravailability.ProviderTable,
-			Columns: []string{provideravailability.ProviderColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(providerprofile.FieldID, field.TypeString),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := pau.mutation.ProviderIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   provideravailability.ProviderTable,
-			Columns: []string{provideravailability.ProviderColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(providerprofile.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, pau.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -202,34 +150,9 @@ func (pauo *ProviderAvailabilityUpdateOne) SetEndTime(t time.Time) *ProviderAvai
 	return pauo
 }
 
-// SetProviderID sets the "provider" edge to the ProviderProfile entity by ID.
-func (pauo *ProviderAvailabilityUpdateOne) SetProviderID(id string) *ProviderAvailabilityUpdateOne {
-	pauo.mutation.SetProviderID(id)
-	return pauo
-}
-
-// SetNillableProviderID sets the "provider" edge to the ProviderProfile entity by ID if the given value is not nil.
-func (pauo *ProviderAvailabilityUpdateOne) SetNillableProviderID(id *string) *ProviderAvailabilityUpdateOne {
-	if id != nil {
-		pauo = pauo.SetProviderID(*id)
-	}
-	return pauo
-}
-
-// SetProvider sets the "provider" edge to the ProviderProfile entity.
-func (pauo *ProviderAvailabilityUpdateOne) SetProvider(p *ProviderProfile) *ProviderAvailabilityUpdateOne {
-	return pauo.SetProviderID(p.ID)
-}
-
 // Mutation returns the ProviderAvailabilityMutation object of the builder.
 func (pauo *ProviderAvailabilityUpdateOne) Mutation() *ProviderAvailabilityMutation {
 	return pauo.mutation
-}
-
-// ClearProvider clears the "provider" edge to the ProviderProfile entity.
-func (pauo *ProviderAvailabilityUpdateOne) ClearProvider() *ProviderAvailabilityUpdateOne {
-	pauo.mutation.ClearProvider()
-	return pauo
 }
 
 // Where appends a list predicates to the ProviderAvailabilityUpdate builder.
@@ -279,6 +202,9 @@ func (pauo *ProviderAvailabilityUpdateOne) check() error {
 			return &ValidationError{Name: "cadence", err: fmt.Errorf(`ent: validator failed for field "ProviderAvailability.cadence": %w`, err)}
 		}
 	}
+	if _, ok := pauo.mutation.ProviderID(); pauo.mutation.ProviderCleared() && !ok {
+		return errors.New(`ent: clearing a required unique edge "ProviderAvailability.provider"`)
+	}
 	return nil
 }
 
@@ -319,35 +245,6 @@ func (pauo *ProviderAvailabilityUpdateOne) sqlSave(ctx context.Context) (_node *
 	}
 	if value, ok := pauo.mutation.EndTime(); ok {
 		_spec.SetField(provideravailability.FieldEndTime, field.TypeTime, value)
-	}
-	if pauo.mutation.ProviderCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   provideravailability.ProviderTable,
-			Columns: []string{provideravailability.ProviderColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(providerprofile.FieldID, field.TypeString),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := pauo.mutation.ProviderIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   provideravailability.ProviderTable,
-			Columns: []string{provideravailability.ProviderColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(providerprofile.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &ProviderAvailability{config: pauo.config}
 	_spec.Assign = _node.assignValues

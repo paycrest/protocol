@@ -37,9 +37,11 @@ func (ProviderProfile) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("api_key", APIKey.Type).
 			Ref("provider_profile").
-			Unique(),
+			Unique().
+			Required(),
 		edge.To("order_tokens", ProviderOrderToken.Type),
-		edge.To("availability", ProviderAvailability.Type),
+		edge.To("availability", ProviderAvailability.Type).
+			Unique(),
 	}
 }
 

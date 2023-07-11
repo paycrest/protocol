@@ -326,36 +326,6 @@ func MaxOrderAmountLTE(v decimal.Decimal) predicate.ProviderOrderToken {
 	return predicate.ProviderOrderToken(sql.FieldLTE(FieldMaxOrderAmount, v))
 }
 
-// MaxOrderAmountContains applies the Contains predicate on the "max_order_amount" field.
-func MaxOrderAmountContains(v decimal.Decimal) predicate.ProviderOrderToken {
-	vc := v.String()
-	return predicate.ProviderOrderToken(sql.FieldContains(FieldMaxOrderAmount, vc))
-}
-
-// MaxOrderAmountHasPrefix applies the HasPrefix predicate on the "max_order_amount" field.
-func MaxOrderAmountHasPrefix(v decimal.Decimal) predicate.ProviderOrderToken {
-	vc := v.String()
-	return predicate.ProviderOrderToken(sql.FieldHasPrefix(FieldMaxOrderAmount, vc))
-}
-
-// MaxOrderAmountHasSuffix applies the HasSuffix predicate on the "max_order_amount" field.
-func MaxOrderAmountHasSuffix(v decimal.Decimal) predicate.ProviderOrderToken {
-	vc := v.String()
-	return predicate.ProviderOrderToken(sql.FieldHasSuffix(FieldMaxOrderAmount, vc))
-}
-
-// MaxOrderAmountEqualFold applies the EqualFold predicate on the "max_order_amount" field.
-func MaxOrderAmountEqualFold(v decimal.Decimal) predicate.ProviderOrderToken {
-	vc := v.String()
-	return predicate.ProviderOrderToken(sql.FieldEqualFold(FieldMaxOrderAmount, vc))
-}
-
-// MaxOrderAmountContainsFold applies the ContainsFold predicate on the "max_order_amount" field.
-func MaxOrderAmountContainsFold(v decimal.Decimal) predicate.ProviderOrderToken {
-	vc := v.String()
-	return predicate.ProviderOrderToken(sql.FieldContainsFold(FieldMaxOrderAmount, vc))
-}
-
 // MinOrderAmountEQ applies the EQ predicate on the "min_order_amount" field.
 func MinOrderAmountEQ(v decimal.Decimal) predicate.ProviderOrderToken {
 	return predicate.ProviderOrderToken(sql.FieldEQ(FieldMinOrderAmount, v))
@@ -394,36 +364,6 @@ func MinOrderAmountLT(v decimal.Decimal) predicate.ProviderOrderToken {
 // MinOrderAmountLTE applies the LTE predicate on the "min_order_amount" field.
 func MinOrderAmountLTE(v decimal.Decimal) predicate.ProviderOrderToken {
 	return predicate.ProviderOrderToken(sql.FieldLTE(FieldMinOrderAmount, v))
-}
-
-// MinOrderAmountContains applies the Contains predicate on the "min_order_amount" field.
-func MinOrderAmountContains(v decimal.Decimal) predicate.ProviderOrderToken {
-	vc := v.String()
-	return predicate.ProviderOrderToken(sql.FieldContains(FieldMinOrderAmount, vc))
-}
-
-// MinOrderAmountHasPrefix applies the HasPrefix predicate on the "min_order_amount" field.
-func MinOrderAmountHasPrefix(v decimal.Decimal) predicate.ProviderOrderToken {
-	vc := v.String()
-	return predicate.ProviderOrderToken(sql.FieldHasPrefix(FieldMinOrderAmount, vc))
-}
-
-// MinOrderAmountHasSuffix applies the HasSuffix predicate on the "min_order_amount" field.
-func MinOrderAmountHasSuffix(v decimal.Decimal) predicate.ProviderOrderToken {
-	vc := v.String()
-	return predicate.ProviderOrderToken(sql.FieldHasSuffix(FieldMinOrderAmount, vc))
-}
-
-// MinOrderAmountEqualFold applies the EqualFold predicate on the "min_order_amount" field.
-func MinOrderAmountEqualFold(v decimal.Decimal) predicate.ProviderOrderToken {
-	vc := v.String()
-	return predicate.ProviderOrderToken(sql.FieldEqualFold(FieldMinOrderAmount, vc))
-}
-
-// MinOrderAmountContainsFold applies the ContainsFold predicate on the "min_order_amount" field.
-func MinOrderAmountContainsFold(v decimal.Decimal) predicate.ProviderOrderToken {
-	vc := v.String()
-	return predicate.ProviderOrderToken(sql.FieldContainsFold(FieldMinOrderAmount, vc))
 }
 
 // HasProvider applies the HasEdge predicate on the "provider" edge.

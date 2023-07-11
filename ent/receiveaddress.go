@@ -9,6 +9,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
 )
 
@@ -23,13 +24,41 @@ type ReceiveAddress struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// Address holds the value of the "address" field.
 	Address string `json:"address,omitempty"`
-	// AccountIndex holds the value of the "accountIndex" field.
-	AccountIndex int `json:"accountIndex,omitempty"`
+	// AccountIndex holds the value of the "account_index" field.
+	AccountIndex int `json:"account_index,omitempty"`
 	// Status holds the value of the "status" field.
 	Status receiveaddress.Status `json:"status,omitempty"`
+	// LastIndexedBlock holds the value of the "last_indexed_block" field.
+	LastIndexedBlock int64 `json:"last_indexed_block,omitempty"`
 	// LastUsed holds the value of the "last_used" field.
-	LastUsed     time.Time `json:"last_used,omitempty"`
-	selectValues sql.SelectValues
+	LastUsed time.Time `json:"last_used,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the ReceiveAddressQuery when eager-loading is set.
+	Edges                            ReceiveAddressEdges `json:"edges"`
+	payment_order_receive_address_fk *int
+	selectValues                     sql.SelectValues
+}
+
+// ReceiveAddressEdges holds the relations/edges for other nodes in the graph.
+type ReceiveAddressEdges struct {
+	// PaymentOrder holds the value of the payment_order edge.
+	PaymentOrder *PaymentOrder `json:"payment_order,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+}
+
+// PaymentOrderOrErr returns the PaymentOrder value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ReceiveAddressEdges) PaymentOrderOrErr() (*PaymentOrder, error) {
+	if e.loadedTypes[0] {
+		if e.PaymentOrder == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: paymentorder.Label}
+		}
+		return e.PaymentOrder, nil
+	}
+	return nil, &NotLoadedError{edge: "payment_order"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -37,12 +66,14 @@ func (*ReceiveAddress) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case receiveaddress.FieldID, receiveaddress.FieldAccountIndex:
+		case receiveaddress.FieldID, receiveaddress.FieldAccountIndex, receiveaddress.FieldLastIndexedBlock:
 			values[i] = new(sql.NullInt64)
 		case receiveaddress.FieldAddress, receiveaddress.FieldStatus:
 			values[i] = new(sql.NullString)
 		case receiveaddress.FieldCreatedAt, receiveaddress.FieldUpdatedAt, receiveaddress.FieldLastUsed:
 			values[i] = new(sql.NullTime)
+		case receiveaddress.ForeignKeys[0]: // payment_order_receive_address_fk
+			values[i] = new(sql.NullInt64)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -84,7 +115,7 @@ func (ra *ReceiveAddress) assignValues(columns []string, values []any) error {
 			}
 		case receiveaddress.FieldAccountIndex:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for field accountIndex", values[i])
+				return fmt.Errorf("unexpected type %T for field account_index", values[i])
 			} else if value.Valid {
 				ra.AccountIndex = int(value.Int64)
 			}
@@ -94,11 +125,24 @@ func (ra *ReceiveAddress) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				ra.Status = receiveaddress.Status(value.String)
 			}
+		case receiveaddress.FieldLastIndexedBlock:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field last_indexed_block", values[i])
+			} else if value.Valid {
+				ra.LastIndexedBlock = value.Int64
+			}
 		case receiveaddress.FieldLastUsed:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field last_used", values[i])
 			} else if value.Valid {
 				ra.LastUsed = value.Time
+			}
+		case receiveaddress.ForeignKeys[0]:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for edge-field payment_order_receive_address_fk", value)
+			} else if value.Valid {
+				ra.payment_order_receive_address_fk = new(int)
+				*ra.payment_order_receive_address_fk = int(value.Int64)
 			}
 		default:
 			ra.selectValues.Set(columns[i], values[i])
@@ -111,6 +155,11 @@ func (ra *ReceiveAddress) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (ra *ReceiveAddress) Value(name string) (ent.Value, error) {
 	return ra.selectValues.Get(name)
+}
+
+// QueryPaymentOrder queries the "payment_order" edge of the ReceiveAddress entity.
+func (ra *ReceiveAddress) QueryPaymentOrder() *PaymentOrderQuery {
+	return NewReceiveAddressClient(ra.config).QueryPaymentOrder(ra)
 }
 
 // Update returns a builder for updating this ReceiveAddress.
@@ -145,11 +194,14 @@ func (ra *ReceiveAddress) String() string {
 	builder.WriteString("address=")
 	builder.WriteString(ra.Address)
 	builder.WriteString(", ")
-	builder.WriteString("accountIndex=")
+	builder.WriteString("account_index=")
 	builder.WriteString(fmt.Sprintf("%v", ra.AccountIndex))
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(fmt.Sprintf("%v", ra.Status))
+	builder.WriteString(", ")
+	builder.WriteString("last_indexed_block=")
+	builder.WriteString(fmt.Sprintf("%v", ra.LastIndexedBlock))
 	builder.WriteString(", ")
 	builder.WriteString("last_used=")
 	builder.WriteString(ra.LastUsed.Format(time.ANSIC))

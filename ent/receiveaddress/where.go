@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
 )
 
@@ -69,9 +70,14 @@ func Address(v string) predicate.ReceiveAddress {
 	return predicate.ReceiveAddress(sql.FieldEQ(FieldAddress, v))
 }
 
-// AccountIndex applies equality check predicate on the "accountIndex" field. It's identical to AccountIndexEQ.
+// AccountIndex applies equality check predicate on the "account_index" field. It's identical to AccountIndexEQ.
 func AccountIndex(v int) predicate.ReceiveAddress {
 	return predicate.ReceiveAddress(sql.FieldEQ(FieldAccountIndex, v))
+}
+
+// LastIndexedBlock applies equality check predicate on the "last_indexed_block" field. It's identical to LastIndexedBlockEQ.
+func LastIndexedBlock(v int64) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldEQ(FieldLastIndexedBlock, v))
 }
 
 // LastUsed applies equality check predicate on the "last_used" field. It's identical to LastUsedEQ.
@@ -224,42 +230,42 @@ func AddressContainsFold(v string) predicate.ReceiveAddress {
 	return predicate.ReceiveAddress(sql.FieldContainsFold(FieldAddress, v))
 }
 
-// AccountIndexEQ applies the EQ predicate on the "accountIndex" field.
+// AccountIndexEQ applies the EQ predicate on the "account_index" field.
 func AccountIndexEQ(v int) predicate.ReceiveAddress {
 	return predicate.ReceiveAddress(sql.FieldEQ(FieldAccountIndex, v))
 }
 
-// AccountIndexNEQ applies the NEQ predicate on the "accountIndex" field.
+// AccountIndexNEQ applies the NEQ predicate on the "account_index" field.
 func AccountIndexNEQ(v int) predicate.ReceiveAddress {
 	return predicate.ReceiveAddress(sql.FieldNEQ(FieldAccountIndex, v))
 }
 
-// AccountIndexIn applies the In predicate on the "accountIndex" field.
+// AccountIndexIn applies the In predicate on the "account_index" field.
 func AccountIndexIn(vs ...int) predicate.ReceiveAddress {
 	return predicate.ReceiveAddress(sql.FieldIn(FieldAccountIndex, vs...))
 }
 
-// AccountIndexNotIn applies the NotIn predicate on the "accountIndex" field.
+// AccountIndexNotIn applies the NotIn predicate on the "account_index" field.
 func AccountIndexNotIn(vs ...int) predicate.ReceiveAddress {
 	return predicate.ReceiveAddress(sql.FieldNotIn(FieldAccountIndex, vs...))
 }
 
-// AccountIndexGT applies the GT predicate on the "accountIndex" field.
+// AccountIndexGT applies the GT predicate on the "account_index" field.
 func AccountIndexGT(v int) predicate.ReceiveAddress {
 	return predicate.ReceiveAddress(sql.FieldGT(FieldAccountIndex, v))
 }
 
-// AccountIndexGTE applies the GTE predicate on the "accountIndex" field.
+// AccountIndexGTE applies the GTE predicate on the "account_index" field.
 func AccountIndexGTE(v int) predicate.ReceiveAddress {
 	return predicate.ReceiveAddress(sql.FieldGTE(FieldAccountIndex, v))
 }
 
-// AccountIndexLT applies the LT predicate on the "accountIndex" field.
+// AccountIndexLT applies the LT predicate on the "account_index" field.
 func AccountIndexLT(v int) predicate.ReceiveAddress {
 	return predicate.ReceiveAddress(sql.FieldLT(FieldAccountIndex, v))
 }
 
-// AccountIndexLTE applies the LTE predicate on the "accountIndex" field.
+// AccountIndexLTE applies the LTE predicate on the "account_index" field.
 func AccountIndexLTE(v int) predicate.ReceiveAddress {
 	return predicate.ReceiveAddress(sql.FieldLTE(FieldAccountIndex, v))
 }
@@ -282,6 +288,56 @@ func StatusIn(vs ...Status) predicate.ReceiveAddress {
 // StatusNotIn applies the NotIn predicate on the "status" field.
 func StatusNotIn(vs ...Status) predicate.ReceiveAddress {
 	return predicate.ReceiveAddress(sql.FieldNotIn(FieldStatus, vs...))
+}
+
+// LastIndexedBlockEQ applies the EQ predicate on the "last_indexed_block" field.
+func LastIndexedBlockEQ(v int64) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldEQ(FieldLastIndexedBlock, v))
+}
+
+// LastIndexedBlockNEQ applies the NEQ predicate on the "last_indexed_block" field.
+func LastIndexedBlockNEQ(v int64) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldNEQ(FieldLastIndexedBlock, v))
+}
+
+// LastIndexedBlockIn applies the In predicate on the "last_indexed_block" field.
+func LastIndexedBlockIn(vs ...int64) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldIn(FieldLastIndexedBlock, vs...))
+}
+
+// LastIndexedBlockNotIn applies the NotIn predicate on the "last_indexed_block" field.
+func LastIndexedBlockNotIn(vs ...int64) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldNotIn(FieldLastIndexedBlock, vs...))
+}
+
+// LastIndexedBlockGT applies the GT predicate on the "last_indexed_block" field.
+func LastIndexedBlockGT(v int64) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldGT(FieldLastIndexedBlock, v))
+}
+
+// LastIndexedBlockGTE applies the GTE predicate on the "last_indexed_block" field.
+func LastIndexedBlockGTE(v int64) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldGTE(FieldLastIndexedBlock, v))
+}
+
+// LastIndexedBlockLT applies the LT predicate on the "last_indexed_block" field.
+func LastIndexedBlockLT(v int64) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldLT(FieldLastIndexedBlock, v))
+}
+
+// LastIndexedBlockLTE applies the LTE predicate on the "last_indexed_block" field.
+func LastIndexedBlockLTE(v int64) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldLTE(FieldLastIndexedBlock, v))
+}
+
+// LastIndexedBlockIsNil applies the IsNil predicate on the "last_indexed_block" field.
+func LastIndexedBlockIsNil() predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldIsNull(FieldLastIndexedBlock))
+}
+
+// LastIndexedBlockNotNil applies the NotNil predicate on the "last_indexed_block" field.
+func LastIndexedBlockNotNil() predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldNotNull(FieldLastIndexedBlock))
 }
 
 // LastUsedEQ applies the EQ predicate on the "last_used" field.
@@ -332,6 +388,29 @@ func LastUsedIsNil() predicate.ReceiveAddress {
 // LastUsedNotNil applies the NotNil predicate on the "last_used" field.
 func LastUsedNotNil() predicate.ReceiveAddress {
 	return predicate.ReceiveAddress(sql.FieldNotNull(FieldLastUsed))
+}
+
+// HasPaymentOrder applies the HasEdge predicate on the "payment_order" edge.
+func HasPaymentOrder() predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, PaymentOrderTable, PaymentOrderColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasPaymentOrderWith applies the HasEdge predicate on the "payment_order" edge with a given conditions (other predicates).
+func HasPaymentOrderWith(preds ...predicate.PaymentOrder) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(func(s *sql.Selector) {
+		step := newPaymentOrderStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
 }
 
 // And groups predicates with the AND operator between them.

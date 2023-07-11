@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
 	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
 )
@@ -40,14 +41,14 @@ func (rau *ReceiveAddressUpdate) SetAddress(s string) *ReceiveAddressUpdate {
 	return rau
 }
 
-// SetAccountIndex sets the "accountIndex" field.
+// SetAccountIndex sets the "account_index" field.
 func (rau *ReceiveAddressUpdate) SetAccountIndex(i int) *ReceiveAddressUpdate {
 	rau.mutation.ResetAccountIndex()
 	rau.mutation.SetAccountIndex(i)
 	return rau
 }
 
-// AddAccountIndex adds i to the "accountIndex" field.
+// AddAccountIndex adds i to the "account_index" field.
 func (rau *ReceiveAddressUpdate) AddAccountIndex(i int) *ReceiveAddressUpdate {
 	rau.mutation.AddAccountIndex(i)
 	return rau
@@ -64,6 +65,33 @@ func (rau *ReceiveAddressUpdate) SetNillableStatus(r *receiveaddress.Status) *Re
 	if r != nil {
 		rau.SetStatus(*r)
 	}
+	return rau
+}
+
+// SetLastIndexedBlock sets the "last_indexed_block" field.
+func (rau *ReceiveAddressUpdate) SetLastIndexedBlock(i int64) *ReceiveAddressUpdate {
+	rau.mutation.ResetLastIndexedBlock()
+	rau.mutation.SetLastIndexedBlock(i)
+	return rau
+}
+
+// SetNillableLastIndexedBlock sets the "last_indexed_block" field if the given value is not nil.
+func (rau *ReceiveAddressUpdate) SetNillableLastIndexedBlock(i *int64) *ReceiveAddressUpdate {
+	if i != nil {
+		rau.SetLastIndexedBlock(*i)
+	}
+	return rau
+}
+
+// AddLastIndexedBlock adds i to the "last_indexed_block" field.
+func (rau *ReceiveAddressUpdate) AddLastIndexedBlock(i int64) *ReceiveAddressUpdate {
+	rau.mutation.AddLastIndexedBlock(i)
+	return rau
+}
+
+// ClearLastIndexedBlock clears the value of the "last_indexed_block" field.
+func (rau *ReceiveAddressUpdate) ClearLastIndexedBlock() *ReceiveAddressUpdate {
+	rau.mutation.ClearLastIndexedBlock()
 	return rau
 }
 
@@ -87,9 +115,34 @@ func (rau *ReceiveAddressUpdate) ClearLastUsed() *ReceiveAddressUpdate {
 	return rau
 }
 
+// SetPaymentOrderID sets the "payment_order" edge to the PaymentOrder entity by ID.
+func (rau *ReceiveAddressUpdate) SetPaymentOrderID(id int) *ReceiveAddressUpdate {
+	rau.mutation.SetPaymentOrderID(id)
+	return rau
+}
+
+// SetNillablePaymentOrderID sets the "payment_order" edge to the PaymentOrder entity by ID if the given value is not nil.
+func (rau *ReceiveAddressUpdate) SetNillablePaymentOrderID(id *int) *ReceiveAddressUpdate {
+	if id != nil {
+		rau = rau.SetPaymentOrderID(*id)
+	}
+	return rau
+}
+
+// SetPaymentOrder sets the "payment_order" edge to the PaymentOrder entity.
+func (rau *ReceiveAddressUpdate) SetPaymentOrder(p *PaymentOrder) *ReceiveAddressUpdate {
+	return rau.SetPaymentOrderID(p.ID)
+}
+
 // Mutation returns the ReceiveAddressMutation object of the builder.
 func (rau *ReceiveAddressUpdate) Mutation() *ReceiveAddressMutation {
 	return rau.mutation
+}
+
+// ClearPaymentOrder clears the "payment_order" edge to the PaymentOrder entity.
+func (rau *ReceiveAddressUpdate) ClearPaymentOrder() *ReceiveAddressUpdate {
+	rau.mutation.ClearPaymentOrder()
+	return rau
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -165,11 +218,49 @@ func (rau *ReceiveAddressUpdate) sqlSave(ctx context.Context) (n int, err error)
 	if value, ok := rau.mutation.Status(); ok {
 		_spec.SetField(receiveaddress.FieldStatus, field.TypeEnum, value)
 	}
+	if value, ok := rau.mutation.LastIndexedBlock(); ok {
+		_spec.SetField(receiveaddress.FieldLastIndexedBlock, field.TypeInt64, value)
+	}
+	if value, ok := rau.mutation.AddedLastIndexedBlock(); ok {
+		_spec.AddField(receiveaddress.FieldLastIndexedBlock, field.TypeInt64, value)
+	}
+	if rau.mutation.LastIndexedBlockCleared() {
+		_spec.ClearField(receiveaddress.FieldLastIndexedBlock, field.TypeInt64)
+	}
 	if value, ok := rau.mutation.LastUsed(); ok {
 		_spec.SetField(receiveaddress.FieldLastUsed, field.TypeTime, value)
 	}
 	if rau.mutation.LastUsedCleared() {
 		_spec.ClearField(receiveaddress.FieldLastUsed, field.TypeTime)
+	}
+	if rau.mutation.PaymentOrderCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   receiveaddress.PaymentOrderTable,
+			Columns: []string{receiveaddress.PaymentOrderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := rau.mutation.PaymentOrderIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   receiveaddress.PaymentOrderTable,
+			Columns: []string{receiveaddress.PaymentOrderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, rau.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -203,14 +294,14 @@ func (rauo *ReceiveAddressUpdateOne) SetAddress(s string) *ReceiveAddressUpdateO
 	return rauo
 }
 
-// SetAccountIndex sets the "accountIndex" field.
+// SetAccountIndex sets the "account_index" field.
 func (rauo *ReceiveAddressUpdateOne) SetAccountIndex(i int) *ReceiveAddressUpdateOne {
 	rauo.mutation.ResetAccountIndex()
 	rauo.mutation.SetAccountIndex(i)
 	return rauo
 }
 
-// AddAccountIndex adds i to the "accountIndex" field.
+// AddAccountIndex adds i to the "account_index" field.
 func (rauo *ReceiveAddressUpdateOne) AddAccountIndex(i int) *ReceiveAddressUpdateOne {
 	rauo.mutation.AddAccountIndex(i)
 	return rauo
@@ -227,6 +318,33 @@ func (rauo *ReceiveAddressUpdateOne) SetNillableStatus(r *receiveaddress.Status)
 	if r != nil {
 		rauo.SetStatus(*r)
 	}
+	return rauo
+}
+
+// SetLastIndexedBlock sets the "last_indexed_block" field.
+func (rauo *ReceiveAddressUpdateOne) SetLastIndexedBlock(i int64) *ReceiveAddressUpdateOne {
+	rauo.mutation.ResetLastIndexedBlock()
+	rauo.mutation.SetLastIndexedBlock(i)
+	return rauo
+}
+
+// SetNillableLastIndexedBlock sets the "last_indexed_block" field if the given value is not nil.
+func (rauo *ReceiveAddressUpdateOne) SetNillableLastIndexedBlock(i *int64) *ReceiveAddressUpdateOne {
+	if i != nil {
+		rauo.SetLastIndexedBlock(*i)
+	}
+	return rauo
+}
+
+// AddLastIndexedBlock adds i to the "last_indexed_block" field.
+func (rauo *ReceiveAddressUpdateOne) AddLastIndexedBlock(i int64) *ReceiveAddressUpdateOne {
+	rauo.mutation.AddLastIndexedBlock(i)
+	return rauo
+}
+
+// ClearLastIndexedBlock clears the value of the "last_indexed_block" field.
+func (rauo *ReceiveAddressUpdateOne) ClearLastIndexedBlock() *ReceiveAddressUpdateOne {
+	rauo.mutation.ClearLastIndexedBlock()
 	return rauo
 }
 
@@ -250,9 +368,34 @@ func (rauo *ReceiveAddressUpdateOne) ClearLastUsed() *ReceiveAddressUpdateOne {
 	return rauo
 }
 
+// SetPaymentOrderID sets the "payment_order" edge to the PaymentOrder entity by ID.
+func (rauo *ReceiveAddressUpdateOne) SetPaymentOrderID(id int) *ReceiveAddressUpdateOne {
+	rauo.mutation.SetPaymentOrderID(id)
+	return rauo
+}
+
+// SetNillablePaymentOrderID sets the "payment_order" edge to the PaymentOrder entity by ID if the given value is not nil.
+func (rauo *ReceiveAddressUpdateOne) SetNillablePaymentOrderID(id *int) *ReceiveAddressUpdateOne {
+	if id != nil {
+		rauo = rauo.SetPaymentOrderID(*id)
+	}
+	return rauo
+}
+
+// SetPaymentOrder sets the "payment_order" edge to the PaymentOrder entity.
+func (rauo *ReceiveAddressUpdateOne) SetPaymentOrder(p *PaymentOrder) *ReceiveAddressUpdateOne {
+	return rauo.SetPaymentOrderID(p.ID)
+}
+
 // Mutation returns the ReceiveAddressMutation object of the builder.
 func (rauo *ReceiveAddressUpdateOne) Mutation() *ReceiveAddressMutation {
 	return rauo.mutation
+}
+
+// ClearPaymentOrder clears the "payment_order" edge to the PaymentOrder entity.
+func (rauo *ReceiveAddressUpdateOne) ClearPaymentOrder() *ReceiveAddressUpdateOne {
+	rauo.mutation.ClearPaymentOrder()
+	return rauo
 }
 
 // Where appends a list predicates to the ReceiveAddressUpdate builder.
@@ -358,11 +501,49 @@ func (rauo *ReceiveAddressUpdateOne) sqlSave(ctx context.Context) (_node *Receiv
 	if value, ok := rauo.mutation.Status(); ok {
 		_spec.SetField(receiveaddress.FieldStatus, field.TypeEnum, value)
 	}
+	if value, ok := rauo.mutation.LastIndexedBlock(); ok {
+		_spec.SetField(receiveaddress.FieldLastIndexedBlock, field.TypeInt64, value)
+	}
+	if value, ok := rauo.mutation.AddedLastIndexedBlock(); ok {
+		_spec.AddField(receiveaddress.FieldLastIndexedBlock, field.TypeInt64, value)
+	}
+	if rauo.mutation.LastIndexedBlockCleared() {
+		_spec.ClearField(receiveaddress.FieldLastIndexedBlock, field.TypeInt64)
+	}
 	if value, ok := rauo.mutation.LastUsed(); ok {
 		_spec.SetField(receiveaddress.FieldLastUsed, field.TypeTime, value)
 	}
 	if rauo.mutation.LastUsedCleared() {
 		_spec.ClearField(receiveaddress.FieldLastUsed, field.TypeTime)
+	}
+	if rauo.mutation.PaymentOrderCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   receiveaddress.PaymentOrderTable,
+			Columns: []string{receiveaddress.PaymentOrderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := rauo.mutation.PaymentOrderIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   receiveaddress.PaymentOrderTable,
+			Columns: []string{receiveaddress.PaymentOrderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &ReceiveAddress{config: rauo.config}
 	_spec.Assign = _node.assignValues

@@ -9,6 +9,15 @@ import (
 // APIKey is the predicate function for apikey builders.
 type APIKey func(*sql.Selector)
 
+// Network is the predicate function for network builders.
+type Network func(*sql.Selector)
+
+// PaymentOrder is the predicate function for paymentorder builders.
+type PaymentOrder func(*sql.Selector)
+
+// PaymentOrderRecipient is the predicate function for paymentorderrecipient builders.
+type PaymentOrderRecipient func(*sql.Selector)
+
 // ProviderAvailability is the predicate function for provideravailability builders.
 type ProviderAvailability func(*sql.Selector)
 
@@ -23,6 +32,9 @@ type ProviderProfile func(*sql.Selector)
 
 // ReceiveAddress is the predicate function for receiveaddress builders.
 type ReceiveAddress func(*sql.Selector)
+
+// Token is the predicate function for token builders.
+type Token func(*sql.Selector)
 
 // User is the predicate function for user builders.
 type User func(*sql.Selector)

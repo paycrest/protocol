@@ -10,6 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
 )
 
@@ -54,7 +55,7 @@ func (rac *ReceiveAddressCreate) SetAddress(s string) *ReceiveAddressCreate {
 	return rac
 }
 
-// SetAccountIndex sets the "accountIndex" field.
+// SetAccountIndex sets the "account_index" field.
 func (rac *ReceiveAddressCreate) SetAccountIndex(i int) *ReceiveAddressCreate {
 	rac.mutation.SetAccountIndex(i)
 	return rac
@@ -74,6 +75,20 @@ func (rac *ReceiveAddressCreate) SetNillableStatus(r *receiveaddress.Status) *Re
 	return rac
 }
 
+// SetLastIndexedBlock sets the "last_indexed_block" field.
+func (rac *ReceiveAddressCreate) SetLastIndexedBlock(i int64) *ReceiveAddressCreate {
+	rac.mutation.SetLastIndexedBlock(i)
+	return rac
+}
+
+// SetNillableLastIndexedBlock sets the "last_indexed_block" field if the given value is not nil.
+func (rac *ReceiveAddressCreate) SetNillableLastIndexedBlock(i *int64) *ReceiveAddressCreate {
+	if i != nil {
+		rac.SetLastIndexedBlock(*i)
+	}
+	return rac
+}
+
 // SetLastUsed sets the "last_used" field.
 func (rac *ReceiveAddressCreate) SetLastUsed(t time.Time) *ReceiveAddressCreate {
 	rac.mutation.SetLastUsed(t)
@@ -86,6 +101,25 @@ func (rac *ReceiveAddressCreate) SetNillableLastUsed(t *time.Time) *ReceiveAddre
 		rac.SetLastUsed(*t)
 	}
 	return rac
+}
+
+// SetPaymentOrderID sets the "payment_order" edge to the PaymentOrder entity by ID.
+func (rac *ReceiveAddressCreate) SetPaymentOrderID(id int) *ReceiveAddressCreate {
+	rac.mutation.SetPaymentOrderID(id)
+	return rac
+}
+
+// SetNillablePaymentOrderID sets the "payment_order" edge to the PaymentOrder entity by ID if the given value is not nil.
+func (rac *ReceiveAddressCreate) SetNillablePaymentOrderID(id *int) *ReceiveAddressCreate {
+	if id != nil {
+		rac = rac.SetPaymentOrderID(*id)
+	}
+	return rac
+}
+
+// SetPaymentOrder sets the "payment_order" edge to the PaymentOrder entity.
+func (rac *ReceiveAddressCreate) SetPaymentOrder(p *PaymentOrder) *ReceiveAddressCreate {
+	return rac.SetPaymentOrderID(p.ID)
 }
 
 // Mutation returns the ReceiveAddressMutation object of the builder.
@@ -149,7 +183,7 @@ func (rac *ReceiveAddressCreate) check() error {
 		return &ValidationError{Name: "address", err: errors.New(`ent: missing required field "ReceiveAddress.address"`)}
 	}
 	if _, ok := rac.mutation.AccountIndex(); !ok {
-		return &ValidationError{Name: "accountIndex", err: errors.New(`ent: missing required field "ReceiveAddress.accountIndex"`)}
+		return &ValidationError{Name: "account_index", err: errors.New(`ent: missing required field "ReceiveAddress.account_index"`)}
 	}
 	if _, ok := rac.mutation.Status(); !ok {
 		return &ValidationError{Name: "status", err: errors.New(`ent: missing required field "ReceiveAddress.status"`)}
@@ -205,9 +239,30 @@ func (rac *ReceiveAddressCreate) createSpec() (*ReceiveAddress, *sqlgraph.Create
 		_spec.SetField(receiveaddress.FieldStatus, field.TypeEnum, value)
 		_node.Status = value
 	}
+	if value, ok := rac.mutation.LastIndexedBlock(); ok {
+		_spec.SetField(receiveaddress.FieldLastIndexedBlock, field.TypeInt64, value)
+		_node.LastIndexedBlock = value
+	}
 	if value, ok := rac.mutation.LastUsed(); ok {
 		_spec.SetField(receiveaddress.FieldLastUsed, field.TypeTime, value)
 		_node.LastUsed = value
+	}
+	if nodes := rac.mutation.PaymentOrderIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   receiveaddress.PaymentOrderTable,
+			Columns: []string{receiveaddress.PaymentOrderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.payment_order_receive_address_fk = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

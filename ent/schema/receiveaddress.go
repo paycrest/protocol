@@ -2,6 +2,7 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 )
 
@@ -21,13 +22,18 @@ func (ReceiveAddress) Mixin() []ent.Mixin {
 func (ReceiveAddress) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("address").Unique(),
-		field.Int("accountIndex"),
+		field.Int("account_index"),
 		field.Enum("status").Values("unused", "partial", "used", "expired").Default("unused"),
+		field.Int64("last_indexed_block").Optional(),
 		field.Time("last_used").Optional(),
 	}
 }
 
 // Edges of the ReceiveAddress.
 func (ReceiveAddress) Edges() []ent.Edge {
-	return nil
+	return []ent.Edge{
+		edge.From("payment_order", PaymentOrder.Type).
+			Ref("receive_address_fk").
+			Unique(),
+	}
 }

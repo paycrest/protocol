@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
+	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 	"github.com/paycrest/paycrest-protocol/ent/user"
@@ -27,6 +28,7 @@ type APIKeyQuery struct {
 	predicates          []predicate.APIKey
 	withOwner           *UserQuery
 	withProviderProfile *ProviderProfileQuery
+	withPaymentOrders   *PaymentOrderQuery
 	withFKs             bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -100,7 +102,29 @@ func (akq *APIKeyQuery) QueryProviderProfile() *ProviderProfileQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(apikey.Table, apikey.FieldID, selector),
 			sqlgraph.To(providerprofile.Table, providerprofile.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, apikey.ProviderProfileTable, apikey.ProviderProfileColumn),
+			sqlgraph.Edge(sqlgraph.O2O, false, apikey.ProviderProfileTable, apikey.ProviderProfileColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(akq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryPaymentOrders chains the current query on the "payment_orders" edge.
+func (akq *APIKeyQuery) QueryPaymentOrders() *PaymentOrderQuery {
+	query := (&PaymentOrderClient{config: akq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := akq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := akq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(apikey.Table, apikey.FieldID, selector),
+			sqlgraph.To(paymentorder.Table, paymentorder.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, apikey.PaymentOrdersTable, apikey.PaymentOrdersColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(akq.driver.Dialect(), step)
 		return fromU, nil
@@ -302,6 +326,7 @@ func (akq *APIKeyQuery) Clone() *APIKeyQuery {
 		predicates:          append([]predicate.APIKey{}, akq.predicates...),
 		withOwner:           akq.withOwner.Clone(),
 		withProviderProfile: akq.withProviderProfile.Clone(),
+		withPaymentOrders:   akq.withPaymentOrders.Clone(),
 		// clone intermediate query.
 		sql:  akq.sql.Clone(),
 		path: akq.path,
@@ -327,6 +352,17 @@ func (akq *APIKeyQuery) WithProviderProfile(opts ...func(*ProviderProfileQuery))
 		opt(query)
 	}
 	akq.withProviderProfile = query
+	return akq
+}
+
+// WithPaymentOrders tells the query-builder to eager-load the nodes that are connected to
+// the "payment_orders" edge. The optional arguments are used to configure the query builder of the edge.
+func (akq *APIKeyQuery) WithPaymentOrders(opts ...func(*PaymentOrderQuery)) *APIKeyQuery {
+	query := (&PaymentOrderClient{config: akq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	akq.withPaymentOrders = query
 	return akq
 }
 
@@ -409,9 +445,10 @@ func (akq *APIKeyQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*APIK
 		nodes       = []*APIKey{}
 		withFKs     = akq.withFKs
 		_spec       = akq.querySpec()
-		loadedTypes = [2]bool{
+		loadedTypes = [3]bool{
 			akq.withOwner != nil,
 			akq.withProviderProfile != nil,
+			akq.withPaymentOrders != nil,
 		}
 	)
 	if akq.withOwner != nil {
@@ -445,9 +482,15 @@ func (akq *APIKeyQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*APIK
 		}
 	}
 	if query := akq.withProviderProfile; query != nil {
-		if err := akq.loadProviderProfile(ctx, query, nodes,
-			func(n *APIKey) { n.Edges.ProviderProfile = []*ProviderProfile{} },
-			func(n *APIKey, e *ProviderProfile) { n.Edges.ProviderProfile = append(n.Edges.ProviderProfile, e) }); err != nil {
+		if err := akq.loadProviderProfile(ctx, query, nodes, nil,
+			func(n *APIKey, e *ProviderProfile) { n.Edges.ProviderProfile = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := akq.withPaymentOrders; query != nil {
+		if err := akq.loadPaymentOrders(ctx, query, nodes,
+			func(n *APIKey) { n.Edges.PaymentOrders = []*PaymentOrder{} },
+			func(n *APIKey, e *PaymentOrder) { n.Edges.PaymentOrders = append(n.Edges.PaymentOrders, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -492,9 +535,6 @@ func (akq *APIKeyQuery) loadProviderProfile(ctx context.Context, query *Provider
 	for i := range nodes {
 		fks = append(fks, nodes[i].ID)
 		nodeids[nodes[i].ID] = nodes[i]
-		if init != nil {
-			init(nodes[i])
-		}
 	}
 	query.withFKs = true
 	query.Where(predicate.ProviderProfile(func(s *sql.Selector) {
@@ -512,6 +552,37 @@ func (akq *APIKeyQuery) loadProviderProfile(ctx context.Context, query *Provider
 		node, ok := nodeids[*fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "api_key_provider_profile" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (akq *APIKeyQuery) loadPaymentOrders(ctx context.Context, query *PaymentOrderQuery, nodes []*APIKey, init func(*APIKey), assign func(*APIKey, *PaymentOrder)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*APIKey)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.PaymentOrder(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(apikey.PaymentOrdersColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.api_key_payment_orders
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "api_key_payment_orders" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "api_key_payment_orders" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}
