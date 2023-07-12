@@ -1,4 +1,4 @@
-name: Migrations CI
+name: Ent CI
 on:
   # Run whenever code is changed in the master branch,
   push:
@@ -7,6 +7,7 @@ on:
   # Run on PRs where something changed under the `ent/migrate/migrations/` directory.
   pull_request:
     paths:
+      - 'ent/*'
       - 'ent/migrate/migrations/*'
     branches: [ "main" ]
 
@@ -28,11 +29,18 @@ jobs:
           --health-retries 5
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3.0.1
+      - name: Checkout repository
+        uses: actions/checkout@v3.0.1
+
+      - name: Set up Go
+        uses: actions/setup-go@v3
         with:
-          fetch-depth: 0 # Mandatory unless "latest" is set below.
+          go-version: 1.x
+
       - uses: ariga/atlas-action@v0
         with:
           dir: ent/migrate/migrations
           dir-format: golang-migrate # Or: atlas, goose, dbmate
           dev-url: postgres://postgres:pass@localhost:5432/test?sslmode=disable
+        
+      - uses: ent/contrib/ci@master
