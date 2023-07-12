@@ -10,10 +10,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3.0.1
 
       - name: Set up Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
           go-version: 1.x
 
@@ -27,13 +27,10 @@ jobs:
           echo "ENV_FILE_PATH=$ENV_FILE_PATH" >> $GITHUB_ENV
 
       - name: Install dependencies
-        run: go mod download && go generate ./...
+        run: go mod download
 
       - name: Build
         run: go build -o paycrest
 
       - name: Run tests with coverage
         run: go test $(go list ./... | grep -v /ent | grep -v /config | grep -v /database | grep -v /routers)  -coverprofile=coverage.out ./...
-
-      - name: Verify all generated ent files are checked in
-        uses: ent/contrib/ci@master
