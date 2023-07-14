@@ -21,7 +21,7 @@ func (ctrl *MiscController) GetInstitutionsByCurrency(ctx *gin.Context) {
 	u.APIResponse(ctx, http.StatusOK, "success", "OK", nil)
 }
 
-// GetCryptoRates controller fetches the current market rates for the supported cryptocurrencies
-func (ctrl *MiscController) GetCryptoRates(ctx *gin.Context) {
+// GetTokenRates controller fetches the current market rates for the supported cryptocurrencies
+func (ctrl *MiscController) GetTokenRates(ctx *gin.Context) {
 	u.APIResponse(ctx, http.StatusOK, "success", "OK", nil)
 }

@@ -22,7 +22,7 @@ import (
 type PaymentOrder struct {
 	config `json:"-"`
 	// ID of the ent.
-	ID int `json:"id,omitempty"`
+	ID uuid.UUID `json:"id,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
@@ -35,8 +35,8 @@ type PaymentOrder struct {
 	Network paymentorder.Network `json:"network,omitempty"`
 	// TxHash holds the value of the "tx_hash" field.
 	TxHash string `json:"tx_hash,omitempty"`
-	// ReceiveAddress holds the value of the "receive_address" field.
-	ReceiveAddress string `json:"receive_address,omitempty"`
+	// ReceiveAddressText holds the value of the "receive_address_text" field.
+	ReceiveAddressText string `json:"receive_address_text,omitempty"`
 	// Status holds the value of the "status" field.
 	Status paymentorder.Status `json:"status,omitempty"`
 	// LastUsed holds the value of the "last_used" field.
@@ -55,8 +55,8 @@ type PaymentOrderEdges struct {
 	APIKey *APIKey `json:"api_key,omitempty"`
 	// Token holds the value of the token edge.
 	Token *Token `json:"token,omitempty"`
-	// ReceiveAddressFk holds the value of the receive_address_fk edge.
-	ReceiveAddressFk *ReceiveAddress `json:"receive_address_fk,omitempty"`
+	// ReceiveAddress holds the value of the receive_address edge.
+	ReceiveAddress *ReceiveAddress `json:"receive_address,omitempty"`
 	// Recipient holds the value of the recipient edge.
 	Recipient *PaymentOrderRecipient `json:"recipient,omitempty"`
 	// loadedTypes holds the information for reporting if a
@@ -90,17 +90,17 @@ func (e PaymentOrderEdges) TokenOrErr() (*Token, error) {
 	return nil, &NotLoadedError{edge: "token"}
 }
 
-// ReceiveAddressFkOrErr returns the ReceiveAddressFk value or an error if the edge
+// ReceiveAddressOrErr returns the ReceiveAddress value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
-func (e PaymentOrderEdges) ReceiveAddressFkOrErr() (*ReceiveAddress, error) {
+func (e PaymentOrderEdges) ReceiveAddressOrErr() (*ReceiveAddress, error) {
 	if e.loadedTypes[2] {
-		if e.ReceiveAddressFk == nil {
+		if e.ReceiveAddress == nil {
 			// Edge was loaded but was not found.
 			return nil, &NotFoundError{label: receiveaddress.Label}
 		}
-		return e.ReceiveAddressFk, nil
+		return e.ReceiveAddress, nil
 	}
-	return nil, &NotLoadedError{edge: "receive_address_fk"}
+	return nil, &NotLoadedError{edge: "receive_address"}
 }
 
 // RecipientOrErr returns the Recipient value or an error if the edge
@@ -123,12 +123,12 @@ func (*PaymentOrder) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case paymentorder.FieldAmount, paymentorder.FieldAmountPaid:
 			values[i] = new(decimal.Decimal)
-		case paymentorder.FieldID:
-			values[i] = new(sql.NullInt64)
-		case paymentorder.FieldNetwork, paymentorder.FieldTxHash, paymentorder.FieldReceiveAddress, paymentorder.FieldStatus:
+		case paymentorder.FieldNetwork, paymentorder.FieldTxHash, paymentorder.FieldReceiveAddressText, paymentorder.FieldStatus:
 			values[i] = new(sql.NullString)
 		case paymentorder.FieldCreatedAt, paymentorder.FieldUpdatedAt, paymentorder.FieldLastUsed:
 			values[i] = new(sql.NullTime)
+		case paymentorder.FieldID:
+			values[i] = new(uuid.UUID)
 		case paymentorder.ForeignKeys[0]: // api_key_payment_orders
 			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		case paymentorder.ForeignKeys[1]: // token_payment_orders
@@ -149,11 +149,11 @@ func (po *PaymentOrder) assignValues(columns []string, values []any) error {
 	for i := range columns {
 		switch columns[i] {
 		case paymentorder.FieldID:
-			value, ok := values[i].(*sql.NullInt64)
-			if !ok {
-				return fmt.Errorf("unexpected type %T for field id", value)
+			if value, ok := values[i].(*uuid.UUID); !ok {
+				return fmt.Errorf("unexpected type %T for field id", values[i])
+			} else if value != nil {
+				po.ID = *value
 			}
-			po.ID = int(value.Int64)
 		case paymentorder.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
@@ -190,11 +190,11 @@ func (po *PaymentOrder) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				po.TxHash = value.String
 			}
-		case paymentorder.FieldReceiveAddress:
+		case paymentorder.FieldReceiveAddressText:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field receive_address", values[i])
+				return fmt.Errorf("unexpected type %T for field receive_address_text", values[i])
 			} else if value.Valid {
-				po.ReceiveAddress = value.String
+				po.ReceiveAddressText = value.String
 			}
 		case paymentorder.FieldStatus:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -245,9 +245,9 @@ func (po *PaymentOrder) QueryToken() *TokenQuery {
 	return NewPaymentOrderClient(po.config).QueryToken(po)
 }
 
-// QueryReceiveAddressFk queries the "receive_address_fk" edge of the PaymentOrder entity.
-func (po *PaymentOrder) QueryReceiveAddressFk() *ReceiveAddressQuery {
-	return NewPaymentOrderClient(po.config).QueryReceiveAddressFk(po)
+// QueryReceiveAddress queries the "receive_address" edge of the PaymentOrder entity.
+func (po *PaymentOrder) QueryReceiveAddress() *ReceiveAddressQuery {
+	return NewPaymentOrderClient(po.config).QueryReceiveAddress(po)
 }
 
 // QueryRecipient queries the "recipient" edge of the PaymentOrder entity.
@@ -296,8 +296,8 @@ func (po *PaymentOrder) String() string {
 	builder.WriteString("tx_hash=")
 	builder.WriteString(po.TxHash)
 	builder.WriteString(", ")
-	builder.WriteString("receive_address=")
-	builder.WriteString(po.ReceiveAddress)
+	builder.WriteString("receive_address_text=")
+	builder.WriteString(po.ReceiveAddressText)
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(fmt.Sprintf("%v", po.Status))

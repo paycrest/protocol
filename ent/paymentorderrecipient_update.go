@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorderrecipient"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
@@ -67,7 +68,7 @@ func (poru *PaymentOrderRecipientUpdate) ClearProviderID() *PaymentOrderRecipien
 }
 
 // SetPaymentOrderID sets the "payment_order" edge to the PaymentOrder entity by ID.
-func (poru *PaymentOrderRecipientUpdate) SetPaymentOrderID(id int) *PaymentOrderRecipientUpdate {
+func (poru *PaymentOrderRecipientUpdate) SetPaymentOrderID(id uuid.UUID) *PaymentOrderRecipientUpdate {
 	poru.mutation.SetPaymentOrderID(id)
 	return poru
 }
@@ -158,7 +159,7 @@ func (poru *PaymentOrderRecipientUpdate) sqlSave(ctx context.Context) (n int, er
 			Columns: []string{paymentorderrecipient.PaymentOrderColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -171,7 +172,7 @@ func (poru *PaymentOrderRecipientUpdate) sqlSave(ctx context.Context) (n int, er
 			Columns: []string{paymentorderrecipient.PaymentOrderColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -238,7 +239,7 @@ func (poruo *PaymentOrderRecipientUpdateOne) ClearProviderID() *PaymentOrderReci
 }
 
 // SetPaymentOrderID sets the "payment_order" edge to the PaymentOrder entity by ID.
-func (poruo *PaymentOrderRecipientUpdateOne) SetPaymentOrderID(id int) *PaymentOrderRecipientUpdateOne {
+func (poruo *PaymentOrderRecipientUpdateOne) SetPaymentOrderID(id uuid.UUID) *PaymentOrderRecipientUpdateOne {
 	poruo.mutation.SetPaymentOrderID(id)
 	return poruo
 }
@@ -359,7 +360,7 @@ func (poruo *PaymentOrderRecipientUpdateOne) sqlSave(ctx context.Context) (_node
 			Columns: []string{paymentorderrecipient.PaymentOrderColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -372,7 +373,7 @@ func (poruo *PaymentOrderRecipientUpdateOne) sqlSave(ctx context.Context) (_node
 			Columns: []string{paymentorderrecipient.PaymentOrderColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

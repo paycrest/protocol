@@ -8,6 +8,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/google/uuid"
 )
 
 const (
@@ -27,8 +28,8 @@ const (
 	FieldNetwork = "network"
 	// FieldTxHash holds the string denoting the tx_hash field in the database.
 	FieldTxHash = "tx_hash"
-	// FieldReceiveAddress holds the string denoting the receive_address field in the database.
-	FieldReceiveAddress = "receive_address"
+	// FieldReceiveAddressText holds the string denoting the receive_address_text field in the database.
+	FieldReceiveAddressText = "receive_address_text"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
 	// FieldLastUsed holds the string denoting the last_used field in the database.
@@ -37,8 +38,8 @@ const (
 	EdgeAPIKey = "api_key"
 	// EdgeToken holds the string denoting the token edge name in mutations.
 	EdgeToken = "token"
-	// EdgeReceiveAddressFk holds the string denoting the receive_address_fk edge name in mutations.
-	EdgeReceiveAddressFk = "receive_address_fk"
+	// EdgeReceiveAddress holds the string denoting the receive_address edge name in mutations.
+	EdgeReceiveAddress = "receive_address"
 	// EdgeRecipient holds the string denoting the recipient edge name in mutations.
 	EdgeRecipient = "recipient"
 	// Table holds the table name of the paymentorder in the database.
@@ -57,13 +58,13 @@ const (
 	TokenInverseTable = "tokens"
 	// TokenColumn is the table column denoting the token relation/edge.
 	TokenColumn = "token_payment_orders"
-	// ReceiveAddressFkTable is the table that holds the receive_address_fk relation/edge.
-	ReceiveAddressFkTable = "receive_addresses"
-	// ReceiveAddressFkInverseTable is the table name for the ReceiveAddress entity.
+	// ReceiveAddressTable is the table that holds the receive_address relation/edge.
+	ReceiveAddressTable = "receive_addresses"
+	// ReceiveAddressInverseTable is the table name for the ReceiveAddress entity.
 	// It exists in this package in order to avoid circular dependency with the "receiveaddress" package.
-	ReceiveAddressFkInverseTable = "receive_addresses"
-	// ReceiveAddressFkColumn is the table column denoting the receive_address_fk relation/edge.
-	ReceiveAddressFkColumn = "payment_order_receive_address_fk"
+	ReceiveAddressInverseTable = "receive_addresses"
+	// ReceiveAddressColumn is the table column denoting the receive_address relation/edge.
+	ReceiveAddressColumn = "payment_order_receive_address"
 	// RecipientTable is the table that holds the recipient relation/edge.
 	RecipientTable = "payment_order_recipients"
 	// RecipientInverseTable is the table name for the PaymentOrderRecipient entity.
@@ -82,7 +83,7 @@ var Columns = []string{
 	FieldAmountPaid,
 	FieldNetwork,
 	FieldTxHash,
-	FieldReceiveAddress,
+	FieldReceiveAddressText,
 	FieldStatus,
 	FieldLastUsed,
 }
@@ -118,8 +119,10 @@ var (
 	UpdateDefaultUpdatedAt func() time.Time
 	// TxHashValidator is a validator for the "tx_hash" field. It is called by the builders before save.
 	TxHashValidator func(string) error
-	// ReceiveAddressValidator is a validator for the "receive_address" field. It is called by the builders before save.
-	ReceiveAddressValidator func(string) error
+	// ReceiveAddressTextValidator is a validator for the "receive_address_text" field. It is called by the builders before save.
+	ReceiveAddressTextValidator func(string) error
+	// DefaultID holds the default value on creation for the "id" field.
+	DefaultID func() uuid.UUID
 )
 
 // Network defines the type for the "network" enum field.
@@ -216,9 +219,9 @@ func ByTxHash(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldTxHash, opts...).ToFunc()
 }
 
-// ByReceiveAddress orders the results by the receive_address field.
-func ByReceiveAddress(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldReceiveAddress, opts...).ToFunc()
+// ByReceiveAddressText orders the results by the receive_address_text field.
+func ByReceiveAddressText(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldReceiveAddressText, opts...).ToFunc()
 }
 
 // ByStatus orders the results by the status field.
@@ -245,10 +248,10 @@ func ByTokenField(field string, opts ...sql.OrderTermOption) OrderOption {
 	}
 }
 
-// ByReceiveAddressFkField orders the results by receive_address_fk field.
-func ByReceiveAddressFkField(field string, opts ...sql.OrderTermOption) OrderOption {
+// ByReceiveAddressField orders the results by receive_address field.
+func ByReceiveAddressField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newReceiveAddressFkStep(), sql.OrderByField(field, opts...))
+		sqlgraph.OrderByNeighborTerms(s, newReceiveAddressStep(), sql.OrderByField(field, opts...))
 	}
 }
 
@@ -272,11 +275,11 @@ func newTokenStep() *sqlgraph.Step {
 		sqlgraph.Edge(sqlgraph.M2O, true, TokenTable, TokenColumn),
 	)
 }
-func newReceiveAddressFkStep() *sqlgraph.Step {
+func newReceiveAddressStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(ReceiveAddressFkInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2O, false, ReceiveAddressFkTable, ReceiveAddressFkColumn),
+		sqlgraph.To(ReceiveAddressInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, false, ReceiveAddressTable, ReceiveAddressColumn),
 	)
 }
 func newRecipientStep() *sqlgraph.Step {

@@ -10,6 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
 )
@@ -104,13 +105,13 @@ func (rac *ReceiveAddressCreate) SetNillableLastUsed(t *time.Time) *ReceiveAddre
 }
 
 // SetPaymentOrderID sets the "payment_order" edge to the PaymentOrder entity by ID.
-func (rac *ReceiveAddressCreate) SetPaymentOrderID(id int) *ReceiveAddressCreate {
+func (rac *ReceiveAddressCreate) SetPaymentOrderID(id uuid.UUID) *ReceiveAddressCreate {
 	rac.mutation.SetPaymentOrderID(id)
 	return rac
 }
 
 // SetNillablePaymentOrderID sets the "payment_order" edge to the PaymentOrder entity by ID if the given value is not nil.
-func (rac *ReceiveAddressCreate) SetNillablePaymentOrderID(id *int) *ReceiveAddressCreate {
+func (rac *ReceiveAddressCreate) SetNillablePaymentOrderID(id *uuid.UUID) *ReceiveAddressCreate {
 	if id != nil {
 		rac = rac.SetPaymentOrderID(*id)
 	}
@@ -255,13 +256,13 @@ func (rac *ReceiveAddressCreate) createSpec() (*ReceiveAddress, *sqlgraph.Create
 			Columns: []string{receiveaddress.PaymentOrderColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.payment_order_receive_address_fk = &nodes[0]
+		_node.payment_order_receive_address = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

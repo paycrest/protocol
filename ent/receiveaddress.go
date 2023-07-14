@@ -9,6 +9,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
 )
@@ -34,9 +35,9 @@ type ReceiveAddress struct {
 	LastUsed time.Time `json:"last_used,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ReceiveAddressQuery when eager-loading is set.
-	Edges                            ReceiveAddressEdges `json:"edges"`
-	payment_order_receive_address_fk *int
-	selectValues                     sql.SelectValues
+	Edges                         ReceiveAddressEdges `json:"edges"`
+	payment_order_receive_address *uuid.UUID
+	selectValues                  sql.SelectValues
 }
 
 // ReceiveAddressEdges holds the relations/edges for other nodes in the graph.
@@ -72,8 +73,8 @@ func (*ReceiveAddress) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullString)
 		case receiveaddress.FieldCreatedAt, receiveaddress.FieldUpdatedAt, receiveaddress.FieldLastUsed:
 			values[i] = new(sql.NullTime)
-		case receiveaddress.ForeignKeys[0]: // payment_order_receive_address_fk
-			values[i] = new(sql.NullInt64)
+		case receiveaddress.ForeignKeys[0]: // payment_order_receive_address
+			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -138,11 +139,11 @@ func (ra *ReceiveAddress) assignValues(columns []string, values []any) error {
 				ra.LastUsed = value.Time
 			}
 		case receiveaddress.ForeignKeys[0]:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for edge-field payment_order_receive_address_fk", value)
+			if value, ok := values[i].(*sql.NullScanner); !ok {
+				return fmt.Errorf("unexpected type %T for field payment_order_receive_address", values[i])
 			} else if value.Valid {
-				ra.payment_order_receive_address_fk = new(int)
-				*ra.payment_order_receive_address_fk = int(value.Int64)
+				ra.payment_order_receive_address = new(uuid.UUID)
+				*ra.payment_order_receive_address = *value.S.(*uuid.UUID)
 			}
 		default:
 			ra.selectValues.Set(columns[i], values[i])

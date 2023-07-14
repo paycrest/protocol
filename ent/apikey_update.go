@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
@@ -81,14 +82,14 @@ func (aku *APIKeyUpdate) SetProviderProfile(p *ProviderProfile) *APIKeyUpdate {
 }
 
 // AddPaymentOrderIDs adds the "payment_orders" edge to the PaymentOrder entity by IDs.
-func (aku *APIKeyUpdate) AddPaymentOrderIDs(ids ...int) *APIKeyUpdate {
+func (aku *APIKeyUpdate) AddPaymentOrderIDs(ids ...uuid.UUID) *APIKeyUpdate {
 	aku.mutation.AddPaymentOrderIDs(ids...)
 	return aku
 }
 
 // AddPaymentOrders adds the "payment_orders" edges to the PaymentOrder entity.
 func (aku *APIKeyUpdate) AddPaymentOrders(p ...*PaymentOrder) *APIKeyUpdate {
-	ids := make([]int, len(p))
+	ids := make([]uuid.UUID, len(p))
 	for i := range p {
 		ids[i] = p[i].ID
 	}
@@ -113,14 +114,14 @@ func (aku *APIKeyUpdate) ClearPaymentOrders() *APIKeyUpdate {
 }
 
 // RemovePaymentOrderIDs removes the "payment_orders" edge to PaymentOrder entities by IDs.
-func (aku *APIKeyUpdate) RemovePaymentOrderIDs(ids ...int) *APIKeyUpdate {
+func (aku *APIKeyUpdate) RemovePaymentOrderIDs(ids ...uuid.UUID) *APIKeyUpdate {
 	aku.mutation.RemovePaymentOrderIDs(ids...)
 	return aku
 }
 
 // RemovePaymentOrders removes "payment_orders" edges to PaymentOrder entities.
 func (aku *APIKeyUpdate) RemovePaymentOrders(p ...*PaymentOrder) *APIKeyUpdate {
-	ids := make([]int, len(p))
+	ids := make([]uuid.UUID, len(p))
 	for i := range p {
 		ids[i] = p[i].ID
 	}
@@ -230,7 +231,7 @@ func (aku *APIKeyUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Columns: []string{apikey.PaymentOrdersColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -243,7 +244,7 @@ func (aku *APIKeyUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Columns: []string{apikey.PaymentOrdersColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -259,7 +260,7 @@ func (aku *APIKeyUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Columns: []string{apikey.PaymentOrdersColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -339,14 +340,14 @@ func (akuo *APIKeyUpdateOne) SetProviderProfile(p *ProviderProfile) *APIKeyUpdat
 }
 
 // AddPaymentOrderIDs adds the "payment_orders" edge to the PaymentOrder entity by IDs.
-func (akuo *APIKeyUpdateOne) AddPaymentOrderIDs(ids ...int) *APIKeyUpdateOne {
+func (akuo *APIKeyUpdateOne) AddPaymentOrderIDs(ids ...uuid.UUID) *APIKeyUpdateOne {
 	akuo.mutation.AddPaymentOrderIDs(ids...)
 	return akuo
 }
 
 // AddPaymentOrders adds the "payment_orders" edges to the PaymentOrder entity.
 func (akuo *APIKeyUpdateOne) AddPaymentOrders(p ...*PaymentOrder) *APIKeyUpdateOne {
-	ids := make([]int, len(p))
+	ids := make([]uuid.UUID, len(p))
 	for i := range p {
 		ids[i] = p[i].ID
 	}
@@ -371,14 +372,14 @@ func (akuo *APIKeyUpdateOne) ClearPaymentOrders() *APIKeyUpdateOne {
 }
 
 // RemovePaymentOrderIDs removes the "payment_orders" edge to PaymentOrder entities by IDs.
-func (akuo *APIKeyUpdateOne) RemovePaymentOrderIDs(ids ...int) *APIKeyUpdateOne {
+func (akuo *APIKeyUpdateOne) RemovePaymentOrderIDs(ids ...uuid.UUID) *APIKeyUpdateOne {
 	akuo.mutation.RemovePaymentOrderIDs(ids...)
 	return akuo
 }
 
 // RemovePaymentOrders removes "payment_orders" edges to PaymentOrder entities.
 func (akuo *APIKeyUpdateOne) RemovePaymentOrders(p ...*PaymentOrder) *APIKeyUpdateOne {
-	ids := make([]int, len(p))
+	ids := make([]uuid.UUID, len(p))
 	for i := range p {
 		ids[i] = p[i].ID
 	}
@@ -518,7 +519,7 @@ func (akuo *APIKeyUpdateOne) sqlSave(ctx context.Context) (_node *APIKey, err er
 			Columns: []string{apikey.PaymentOrdersColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -531,7 +532,7 @@ func (akuo *APIKeyUpdateOne) sqlSave(ctx context.Context) (_node *APIKey, err er
 			Columns: []string{apikey.PaymentOrdersColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -547,7 +548,7 @@ func (akuo *APIKeyUpdateOne) sqlSave(ctx context.Context) (_node *APIKey, err er
 			Columns: []string{apikey.PaymentOrdersColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

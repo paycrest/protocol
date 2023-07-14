@@ -14,6 +14,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/paycrest/paycrest-protocol/config"
 	"github.com/paycrest/paycrest-protocol/ent"
+	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
 	"github.com/paycrest/paycrest-protocol/utils"
 	"github.com/paycrest/paycrest-protocol/utils/logger"
@@ -33,24 +34,25 @@ func NewIndexerService(db *ent.Client) *IndexerService {
 	}
 }
 
-// IndexERC20Transfer indexes ERC20 token transfers for a specific address.
-func (s *IndexerService) IndexERC20Transfer(ctx context.Context, address common.Address) error {
+// IndexERC20Transfer indexes ERC20 token transfers for a specific receive address.
+func (s *IndexerService) IndexERC20Transfer(ctx context.Context, receiveAddress *ent.ReceiveAddress, done chan<- bool) error {
 
-	// Fetch receive address from db
-	receiveAddress, err := s.db.ReceiveAddress.
+	// Fetch payment order from db
+	paymentOrder, err := s.db.PaymentOrder.
 		Query().
-		Where(receiveaddress.AddressEQ(address.Hex())).
-		WithPaymentOrder(func(pq *ent.PaymentOrderQuery) { // prefetch payment order, token, and network
-			pq.WithToken(func(tq *ent.TokenQuery) {
-				tq.WithNetwork()
-			})
+		Where(
+			paymentorder.HasReceiveAddressWith(
+				receiveaddress.AddressEQ(receiveAddress.Address),
+			),
+		).
+		WithToken(func(tq *ent.TokenQuery) {
+			tq.WithNetwork()
 		}).
 		Only(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to fetch receive address: %w", err)
+		return fmt.Errorf("failed to fetch payment order: %w", err)
 	}
 
-	paymentOrder := receiveAddress.Edges.PaymentOrder
 	token := paymentOrder.Edges.Token
 
 	client, err := ethclient.Dial(token.Edges.Network.RPCEndpoint)
@@ -105,7 +107,12 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, address common.
 	logTransferSig := []byte("Transfer(address,address,uint256)")
 	logTransferSigHash := crypto.Keccak256Hash(logTransferSig)
 
-	logger.Infof("Indexing transfer logs for %s from Block #%s - #%s", address.Hex(), fromBlock.String(), header.Number.String())
+	logger.Infof(
+		"Indexing transfer logs for %s from Block #%s - #%s",
+		receiveAddress.Address,
+		fromBlock.String(),
+		header.Number.String(),
+	)
 
 	for {
 		// Update the filter parameters
@@ -151,6 +158,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, address common.
 						if err != nil {
 							return fmt.Errorf("failed to update receive address status: %w", err)
 						}
+						done <- true
 					} else if comparisonResult < 0 {
 						// Transfer value is less than order amount
 						_, err = receiveAddress.
@@ -175,7 +183,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, address common.
 						// Refresh the receive address with payment order and compare the amount paid with expected amount,
 						receiveAddress, err = s.db.ReceiveAddress.
 							Query().
-							Where(receiveaddress.AddressEQ(address.String())).
+							Where(receiveaddress.AddressEQ(receiveAddress.Address)).
 							WithPaymentOrder().
 							Only(ctx)
 						if err != nil {
@@ -192,6 +200,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, address common.
 							if err != nil {
 								return fmt.Errorf("failed to update receive address status: %w", err)
 							}
+							done <- true
 						}
 					}
 
@@ -211,6 +220,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, address common.
 					if err != nil {
 						return fmt.Errorf("failed to update receive address status: %w", err)
 					}
+					done <- true
 				}
 			}
 		}

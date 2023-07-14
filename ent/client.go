@@ -627,7 +627,7 @@ func (c *PaymentOrderClient) UpdateOne(po *PaymentOrder) *PaymentOrderUpdateOne 
 }
 
 // UpdateOneID returns an update builder for the given id.
-func (c *PaymentOrderClient) UpdateOneID(id int) *PaymentOrderUpdateOne {
+func (c *PaymentOrderClient) UpdateOneID(id uuid.UUID) *PaymentOrderUpdateOne {
 	mutation := newPaymentOrderMutation(c.config, OpUpdateOne, withPaymentOrderID(id))
 	return &PaymentOrderUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
@@ -644,7 +644,7 @@ func (c *PaymentOrderClient) DeleteOne(po *PaymentOrder) *PaymentOrderDeleteOne 
 }
 
 // DeleteOneID returns a builder for deleting the given entity by its id.
-func (c *PaymentOrderClient) DeleteOneID(id int) *PaymentOrderDeleteOne {
+func (c *PaymentOrderClient) DeleteOneID(id uuid.UUID) *PaymentOrderDeleteOne {
 	builder := c.Delete().Where(paymentorder.ID(id))
 	builder.mutation.id = &id
 	builder.mutation.op = OpDeleteOne
@@ -661,12 +661,12 @@ func (c *PaymentOrderClient) Query() *PaymentOrderQuery {
 }
 
 // Get returns a PaymentOrder entity by its id.
-func (c *PaymentOrderClient) Get(ctx context.Context, id int) (*PaymentOrder, error) {
+func (c *PaymentOrderClient) Get(ctx context.Context, id uuid.UUID) (*PaymentOrder, error) {
 	return c.Query().Where(paymentorder.ID(id)).Only(ctx)
 }
 
 // GetX is like Get, but panics if an error occurs.
-func (c *PaymentOrderClient) GetX(ctx context.Context, id int) *PaymentOrder {
+func (c *PaymentOrderClient) GetX(ctx context.Context, id uuid.UUID) *PaymentOrder {
 	obj, err := c.Get(ctx, id)
 	if err != nil {
 		panic(err)
@@ -706,15 +706,15 @@ func (c *PaymentOrderClient) QueryToken(po *PaymentOrder) *TokenQuery {
 	return query
 }
 
-// QueryReceiveAddressFk queries the receive_address_fk edge of a PaymentOrder.
-func (c *PaymentOrderClient) QueryReceiveAddressFk(po *PaymentOrder) *ReceiveAddressQuery {
+// QueryReceiveAddress queries the receive_address edge of a PaymentOrder.
+func (c *PaymentOrderClient) QueryReceiveAddress(po *PaymentOrder) *ReceiveAddressQuery {
 	query := (&ReceiveAddressClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := po.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(paymentorder.Table, paymentorder.FieldID, id),
 			sqlgraph.To(receiveaddress.Table, receiveaddress.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, paymentorder.ReceiveAddressFkTable, paymentorder.ReceiveAddressFkColumn),
+			sqlgraph.Edge(sqlgraph.O2O, false, paymentorder.ReceiveAddressTable, paymentorder.ReceiveAddressColumn),
 		)
 		fromV = sqlgraph.Neighbors(po.driver.Dialect(), step)
 		return fromV, nil

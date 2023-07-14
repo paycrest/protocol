@@ -86,9 +86,9 @@ func (poc *PaymentOrderCreate) SetNillableTxHash(s *string) *PaymentOrderCreate 
 	return poc
 }
 
-// SetReceiveAddress sets the "receive_address" field.
-func (poc *PaymentOrderCreate) SetReceiveAddress(s string) *PaymentOrderCreate {
-	poc.mutation.SetReceiveAddress(s)
+// SetReceiveAddressText sets the "receive_address_text" field.
+func (poc *PaymentOrderCreate) SetReceiveAddressText(s string) *PaymentOrderCreate {
+	poc.mutation.SetReceiveAddressText(s)
 	return poc
 }
 
@@ -116,6 +116,20 @@ func (poc *PaymentOrderCreate) SetLastUsed(t time.Time) *PaymentOrderCreate {
 func (poc *PaymentOrderCreate) SetNillableLastUsed(t *time.Time) *PaymentOrderCreate {
 	if t != nil {
 		poc.SetLastUsed(*t)
+	}
+	return poc
+}
+
+// SetID sets the "id" field.
+func (poc *PaymentOrderCreate) SetID(u uuid.UUID) *PaymentOrderCreate {
+	poc.mutation.SetID(u)
+	return poc
+}
+
+// SetNillableID sets the "id" field if the given value is not nil.
+func (poc *PaymentOrderCreate) SetNillableID(u *uuid.UUID) *PaymentOrderCreate {
+	if u != nil {
+		poc.SetID(*u)
 	}
 	return poc
 }
@@ -158,23 +172,23 @@ func (poc *PaymentOrderCreate) SetToken(t *Token) *PaymentOrderCreate {
 	return poc.SetTokenID(t.ID)
 }
 
-// SetReceiveAddressFkID sets the "receive_address_fk" edge to the ReceiveAddress entity by ID.
-func (poc *PaymentOrderCreate) SetReceiveAddressFkID(id int) *PaymentOrderCreate {
-	poc.mutation.SetReceiveAddressFkID(id)
+// SetReceiveAddressID sets the "receive_address" edge to the ReceiveAddress entity by ID.
+func (poc *PaymentOrderCreate) SetReceiveAddressID(id int) *PaymentOrderCreate {
+	poc.mutation.SetReceiveAddressID(id)
 	return poc
 }
 
-// SetNillableReceiveAddressFkID sets the "receive_address_fk" edge to the ReceiveAddress entity by ID if the given value is not nil.
-func (poc *PaymentOrderCreate) SetNillableReceiveAddressFkID(id *int) *PaymentOrderCreate {
+// SetNillableReceiveAddressID sets the "receive_address" edge to the ReceiveAddress entity by ID if the given value is not nil.
+func (poc *PaymentOrderCreate) SetNillableReceiveAddressID(id *int) *PaymentOrderCreate {
 	if id != nil {
-		poc = poc.SetReceiveAddressFkID(*id)
+		poc = poc.SetReceiveAddressID(*id)
 	}
 	return poc
 }
 
-// SetReceiveAddressFk sets the "receive_address_fk" edge to the ReceiveAddress entity.
-func (poc *PaymentOrderCreate) SetReceiveAddressFk(r *ReceiveAddress) *PaymentOrderCreate {
-	return poc.SetReceiveAddressFkID(r.ID)
+// SetReceiveAddress sets the "receive_address" edge to the ReceiveAddress entity.
+func (poc *PaymentOrderCreate) SetReceiveAddress(r *ReceiveAddress) *PaymentOrderCreate {
+	return poc.SetReceiveAddressID(r.ID)
 }
 
 // SetRecipientID sets the "recipient" edge to the PaymentOrderRecipient entity by ID.
@@ -243,6 +257,10 @@ func (poc *PaymentOrderCreate) defaults() {
 		v := paymentorder.DefaultStatus
 		poc.mutation.SetStatus(v)
 	}
+	if _, ok := poc.mutation.ID(); !ok {
+		v := paymentorder.DefaultID()
+		poc.mutation.SetID(v)
+	}
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -272,12 +290,12 @@ func (poc *PaymentOrderCreate) check() error {
 			return &ValidationError{Name: "tx_hash", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.tx_hash": %w`, err)}
 		}
 	}
-	if _, ok := poc.mutation.ReceiveAddress(); !ok {
-		return &ValidationError{Name: "receive_address", err: errors.New(`ent: missing required field "PaymentOrder.receive_address"`)}
+	if _, ok := poc.mutation.ReceiveAddressText(); !ok {
+		return &ValidationError{Name: "receive_address_text", err: errors.New(`ent: missing required field "PaymentOrder.receive_address_text"`)}
 	}
-	if v, ok := poc.mutation.ReceiveAddress(); ok {
-		if err := paymentorder.ReceiveAddressValidator(v); err != nil {
-			return &ValidationError{Name: "receive_address", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.receive_address": %w`, err)}
+	if v, ok := poc.mutation.ReceiveAddressText(); ok {
+		if err := paymentorder.ReceiveAddressTextValidator(v); err != nil {
+			return &ValidationError{Name: "receive_address_text", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.receive_address_text": %w`, err)}
 		}
 	}
 	if _, ok := poc.mutation.Status(); !ok {
@@ -302,8 +320,13 @@ func (poc *PaymentOrderCreate) sqlSave(ctx context.Context) (*PaymentOrder, erro
 		}
 		return nil, err
 	}
-	id := _spec.ID.Value.(int64)
-	_node.ID = int(id)
+	if _spec.ID.Value != nil {
+		if id, ok := _spec.ID.Value.(*uuid.UUID); ok {
+			_node.ID = *id
+		} else if err := _node.ID.Scan(_spec.ID.Value); err != nil {
+			return nil, err
+		}
+	}
 	poc.mutation.id = &_node.ID
 	poc.mutation.done = true
 	return _node, nil
@@ -312,8 +335,12 @@ func (poc *PaymentOrderCreate) sqlSave(ctx context.Context) (*PaymentOrder, erro
 func (poc *PaymentOrderCreate) createSpec() (*PaymentOrder, *sqlgraph.CreateSpec) {
 	var (
 		_node = &PaymentOrder{config: poc.config}
-		_spec = sqlgraph.NewCreateSpec(paymentorder.Table, sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeInt))
+		_spec = sqlgraph.NewCreateSpec(paymentorder.Table, sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeUUID))
 	)
+	if id, ok := poc.mutation.ID(); ok {
+		_node.ID = id
+		_spec.ID.Value = &id
+	}
 	if value, ok := poc.mutation.CreatedAt(); ok {
 		_spec.SetField(paymentorder.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
@@ -338,9 +365,9 @@ func (poc *PaymentOrderCreate) createSpec() (*PaymentOrder, *sqlgraph.CreateSpec
 		_spec.SetField(paymentorder.FieldTxHash, field.TypeString, value)
 		_node.TxHash = value
 	}
-	if value, ok := poc.mutation.ReceiveAddress(); ok {
-		_spec.SetField(paymentorder.FieldReceiveAddress, field.TypeString, value)
-		_node.ReceiveAddress = value
+	if value, ok := poc.mutation.ReceiveAddressText(); ok {
+		_spec.SetField(paymentorder.FieldReceiveAddressText, field.TypeString, value)
+		_node.ReceiveAddressText = value
 	}
 	if value, ok := poc.mutation.Status(); ok {
 		_spec.SetField(paymentorder.FieldStatus, field.TypeEnum, value)
@@ -384,12 +411,12 @@ func (poc *PaymentOrderCreate) createSpec() (*PaymentOrder, *sqlgraph.CreateSpec
 		_node.token_payment_orders = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := poc.mutation.ReceiveAddressFkIDs(); len(nodes) > 0 {
+	if nodes := poc.mutation.ReceiveAddressIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
 			Inverse: false,
-			Table:   paymentorder.ReceiveAddressFkTable,
-			Columns: []string{paymentorder.ReceiveAddressFkColumn},
+			Table:   paymentorder.ReceiveAddressTable,
+			Columns: []string{paymentorder.ReceiveAddressColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(receiveaddress.FieldID, field.TypeInt),
@@ -460,10 +487,6 @@ func (pocb *PaymentOrderCreateBulk) Save(ctx context.Context) ([]*PaymentOrder, 
 					return nil, err
 				}
 				mutation.id = &nodes[i].ID
-				if specs[i].ID.Value != nil {
-					id := specs[i].ID.Value.(int64)
-					nodes[i].ID = int(id)
-				}
 				mutation.done = true
 				return nodes[i], nil
 			})

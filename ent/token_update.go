@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/network"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
@@ -95,14 +96,14 @@ func (tu *TokenUpdate) SetNetwork(n *Network) *TokenUpdate {
 }
 
 // AddPaymentOrderIDs adds the "payment_orders" edge to the PaymentOrder entity by IDs.
-func (tu *TokenUpdate) AddPaymentOrderIDs(ids ...int) *TokenUpdate {
+func (tu *TokenUpdate) AddPaymentOrderIDs(ids ...uuid.UUID) *TokenUpdate {
 	tu.mutation.AddPaymentOrderIDs(ids...)
 	return tu
 }
 
 // AddPaymentOrders adds the "payment_orders" edges to the PaymentOrder entity.
 func (tu *TokenUpdate) AddPaymentOrders(p ...*PaymentOrder) *TokenUpdate {
-	ids := make([]int, len(p))
+	ids := make([]uuid.UUID, len(p))
 	for i := range p {
 		ids[i] = p[i].ID
 	}
@@ -127,14 +128,14 @@ func (tu *TokenUpdate) ClearPaymentOrders() *TokenUpdate {
 }
 
 // RemovePaymentOrderIDs removes the "payment_orders" edge to PaymentOrder entities by IDs.
-func (tu *TokenUpdate) RemovePaymentOrderIDs(ids ...int) *TokenUpdate {
+func (tu *TokenUpdate) RemovePaymentOrderIDs(ids ...uuid.UUID) *TokenUpdate {
 	tu.mutation.RemovePaymentOrderIDs(ids...)
 	return tu
 }
 
 // RemovePaymentOrders removes "payment_orders" edges to PaymentOrder entities.
 func (tu *TokenUpdate) RemovePaymentOrders(p ...*PaymentOrder) *TokenUpdate {
-	ids := make([]int, len(p))
+	ids := make([]uuid.UUID, len(p))
 	for i := range p {
 		ids[i] = p[i].ID
 	}
@@ -259,7 +260,7 @@ func (tu *TokenUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Columns: []string{token.PaymentOrdersColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -272,7 +273,7 @@ func (tu *TokenUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Columns: []string{token.PaymentOrdersColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -288,7 +289,7 @@ func (tu *TokenUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Columns: []string{token.PaymentOrdersColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -381,14 +382,14 @@ func (tuo *TokenUpdateOne) SetNetwork(n *Network) *TokenUpdateOne {
 }
 
 // AddPaymentOrderIDs adds the "payment_orders" edge to the PaymentOrder entity by IDs.
-func (tuo *TokenUpdateOne) AddPaymentOrderIDs(ids ...int) *TokenUpdateOne {
+func (tuo *TokenUpdateOne) AddPaymentOrderIDs(ids ...uuid.UUID) *TokenUpdateOne {
 	tuo.mutation.AddPaymentOrderIDs(ids...)
 	return tuo
 }
 
 // AddPaymentOrders adds the "payment_orders" edges to the PaymentOrder entity.
 func (tuo *TokenUpdateOne) AddPaymentOrders(p ...*PaymentOrder) *TokenUpdateOne {
-	ids := make([]int, len(p))
+	ids := make([]uuid.UUID, len(p))
 	for i := range p {
 		ids[i] = p[i].ID
 	}
@@ -413,14 +414,14 @@ func (tuo *TokenUpdateOne) ClearPaymentOrders() *TokenUpdateOne {
 }
 
 // RemovePaymentOrderIDs removes the "payment_orders" edge to PaymentOrder entities by IDs.
-func (tuo *TokenUpdateOne) RemovePaymentOrderIDs(ids ...int) *TokenUpdateOne {
+func (tuo *TokenUpdateOne) RemovePaymentOrderIDs(ids ...uuid.UUID) *TokenUpdateOne {
 	tuo.mutation.RemovePaymentOrderIDs(ids...)
 	return tuo
 }
 
 // RemovePaymentOrders removes "payment_orders" edges to PaymentOrder entities.
 func (tuo *TokenUpdateOne) RemovePaymentOrders(p ...*PaymentOrder) *TokenUpdateOne {
-	ids := make([]int, len(p))
+	ids := make([]uuid.UUID, len(p))
 	for i := range p {
 		ids[i] = p[i].ID
 	}
@@ -575,7 +576,7 @@ func (tuo *TokenUpdateOne) sqlSave(ctx context.Context) (_node *Token, err error
 			Columns: []string{token.PaymentOrdersColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -588,7 +589,7 @@ func (tuo *TokenUpdateOne) sqlSave(ctx context.Context) (_node *Token, err error
 			Columns: []string{token.PaymentOrdersColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -604,7 +605,7 @@ func (tuo *TokenUpdateOne) sqlSave(ctx context.Context) (_node *Token, err error
 			Columns: []string{token.PaymentOrdersColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

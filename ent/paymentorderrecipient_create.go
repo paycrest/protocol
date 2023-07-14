@@ -9,6 +9,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorderrecipient"
 )
@@ -53,7 +54,7 @@ func (porc *PaymentOrderRecipientCreate) SetNillableProviderID(s *string) *Payme
 }
 
 // SetPaymentOrderID sets the "payment_order" edge to the PaymentOrder entity by ID.
-func (porc *PaymentOrderRecipientCreate) SetPaymentOrderID(id int) *PaymentOrderRecipientCreate {
+func (porc *PaymentOrderRecipientCreate) SetPaymentOrderID(id uuid.UUID) *PaymentOrderRecipientCreate {
 	porc.mutation.SetPaymentOrderID(id)
 	return porc
 }
@@ -159,7 +160,7 @@ func (porc *PaymentOrderRecipientCreate) createSpec() (*PaymentOrderRecipient, *
 			Columns: []string{paymentorderrecipient.PaymentOrderColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

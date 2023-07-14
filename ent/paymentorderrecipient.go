@@ -8,6 +8,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorderrecipient"
 )
@@ -28,7 +29,7 @@ type PaymentOrderRecipient struct {
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the PaymentOrderRecipientQuery when eager-loading is set.
 	Edges                   PaymentOrderRecipientEdges `json:"edges"`
-	payment_order_recipient *int
+	payment_order_recipient *uuid.UUID
 	selectValues            sql.SelectValues
 }
 
@@ -64,7 +65,7 @@ func (*PaymentOrderRecipient) scanValues(columns []string) ([]any, error) {
 		case paymentorderrecipient.FieldInstitution, paymentorderrecipient.FieldAccountIdentifier, paymentorderrecipient.FieldAccountName, paymentorderrecipient.FieldProviderID:
 			values[i] = new(sql.NullString)
 		case paymentorderrecipient.ForeignKeys[0]: // payment_order_recipient
-			values[i] = new(sql.NullInt64)
+			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -111,11 +112,11 @@ func (por *PaymentOrderRecipient) assignValues(columns []string, values []any) e
 				por.ProviderID = value.String
 			}
 		case paymentorderrecipient.ForeignKeys[0]:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for edge-field payment_order_recipient", value)
+			if value, ok := values[i].(*sql.NullScanner); !ok {
+				return fmt.Errorf("unexpected type %T for field payment_order_recipient", values[i])
 			} else if value.Valid {
-				por.payment_order_recipient = new(int)
-				*por.payment_order_recipient = int(value.Int64)
+				por.payment_order_recipient = new(uuid.UUID)
+				*por.payment_order_recipient = *value.S.(*uuid.UUID)
 			}
 		default:
 			por.selectValues.Set(columns[i], values[i])

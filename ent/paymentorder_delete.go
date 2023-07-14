@@ -40,7 +40,7 @@ func (pod *PaymentOrderDelete) ExecX(ctx context.Context) int {
 }
 
 func (pod *PaymentOrderDelete) sqlExec(ctx context.Context) (int, error) {
-	_spec := sqlgraph.NewDeleteSpec(paymentorder.Table, sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeInt))
+	_spec := sqlgraph.NewDeleteSpec(paymentorder.Table, sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeUUID))
 	if ps := pod.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
