@@ -33,7 +33,7 @@ func (ReceiveAddress) Fields() []ent.Field {
 func (ReceiveAddress) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("payment_order", PaymentOrder.Type).
-			Ref("receive_address_fk").
+			Ref("receive_address").
 			Unique(),
 	}
 }

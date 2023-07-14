@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
 	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
@@ -409,13 +410,13 @@ func (raq *ReceiveAddressQuery) sqlAll(ctx context.Context, hooks ...queryHook) 
 }
 
 func (raq *ReceiveAddressQuery) loadPaymentOrder(ctx context.Context, query *PaymentOrderQuery, nodes []*ReceiveAddress, init func(*ReceiveAddress), assign func(*ReceiveAddress, *PaymentOrder)) error {
-	ids := make([]int, 0, len(nodes))
-	nodeids := make(map[int][]*ReceiveAddress)
+	ids := make([]uuid.UUID, 0, len(nodes))
+	nodeids := make(map[uuid.UUID][]*ReceiveAddress)
 	for i := range nodes {
-		if nodes[i].payment_order_receive_address_fk == nil {
+		if nodes[i].payment_order_receive_address == nil {
 			continue
 		}
-		fk := *nodes[i].payment_order_receive_address_fk
+		fk := *nodes[i].payment_order_receive_address
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}
@@ -432,7 +433,7 @@ func (raq *ReceiveAddressQuery) loadPaymentOrder(ctx context.Context, query *Pay
 	for _, n := range neighbors {
 		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "payment_order_receive_address_fk" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "payment_order_receive_address" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)

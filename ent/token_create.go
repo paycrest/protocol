@@ -10,6 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/network"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/token"
@@ -102,14 +103,14 @@ func (tc *TokenCreate) SetNetwork(n *Network) *TokenCreate {
 }
 
 // AddPaymentOrderIDs adds the "payment_orders" edge to the PaymentOrder entity by IDs.
-func (tc *TokenCreate) AddPaymentOrderIDs(ids ...int) *TokenCreate {
+func (tc *TokenCreate) AddPaymentOrderIDs(ids ...uuid.UUID) *TokenCreate {
 	tc.mutation.AddPaymentOrderIDs(ids...)
 	return tc
 }
 
 // AddPaymentOrders adds the "payment_orders" edges to the PaymentOrder entity.
 func (tc *TokenCreate) AddPaymentOrders(p ...*PaymentOrder) *TokenCreate {
-	ids := make([]int, len(p))
+	ids := make([]uuid.UUID, len(p))
 	for i := range p {
 		ids[i] = p[i].ID
 	}
@@ -270,7 +271,7 @@ func (tc *TokenCreate) createSpec() (*Token, *sqlgraph.CreateSpec) {
 			Columns: []string{token.PaymentOrdersColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

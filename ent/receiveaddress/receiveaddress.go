@@ -39,7 +39,7 @@ const (
 	// It exists in this package in order to avoid circular dependency with the "paymentorder" package.
 	PaymentOrderInverseTable = "payment_orders"
 	// PaymentOrderColumn is the table column denoting the payment_order relation/edge.
-	PaymentOrderColumn = "payment_order_receive_address_fk"
+	PaymentOrderColumn = "payment_order_receive_address"
 )
 
 // Columns holds all SQL columns for receiveaddress fields.
@@ -57,7 +57,7 @@ var Columns = []string{
 // ForeignKeys holds the SQL foreign-keys that are owned by the "receive_addresses"
 // table and are not defined as standalone fields in the schema.
 var ForeignKeys = []string{
-	"payment_order_receive_address_fk",
+	"payment_order_receive_address",
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
