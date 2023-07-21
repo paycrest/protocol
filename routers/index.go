@@ -38,10 +38,10 @@ func authRoutes(route *gin.Engine) {
 }
 
 func senderRoutes(route *gin.Engine) {
-	var ctrl sender.Controller
+	var ctrl sender.SenderController
 
 	v1 := route.Group("/v1/sender/")
-	// v1.Use(middleware.HMACVerificationMiddleware)
+	v1.Use(middleware.HMACVerificationMiddleware)
 
 	v1.POST("orders/", ctrl.CreatePaymentOrder)
 	v1.GET("orders/:id", ctrl.GetPaymentOrderByID)

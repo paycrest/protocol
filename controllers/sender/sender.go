@@ -15,11 +15,27 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Controller is a controller type for sender endpoints
-type Controller struct{}
+// SenderController is a controller type for sender endpoints
+type SenderController struct {
+	indexerService        *svc.IndexerService
+	receiveAddressService *svc.ReceiveAddressService
+}
+
+// NewSenderController creates a new instance of SenderController
+func NewSenderController(indexer svc.Indexer) *SenderController {
+	var indexerService *svc.IndexerService
+
+	if indexer == nil {
+		indexerService = svc.NewIndexerService(db.Client, indexer)
+	}
+	return &SenderController{
+		indexerService:        indexerService,
+		receiveAddressService: svc.NewReceiveAddressService(db.Client),
+	}
+}
 
 // CreatePaymentOrder controller creates a payment order
-func (ctrl *Controller) CreatePaymentOrder(ctx *gin.Context) {
+func (ctrl *SenderController) CreatePaymentOrder(ctx *gin.Context) {
 	var payload svc.NewPaymentOrderPayload
 
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
@@ -30,9 +46,7 @@ func (ctrl *Controller) CreatePaymentOrder(ctx *gin.Context) {
 	}
 
 	// Generate receive address
-	receiveAddressService := svc.NewReceiveAddressService(db.Client)
-
-	receiveAddress, err := receiveAddressService.GenerateAndSaveAddress(ctx)
+	receiveAddress, err := ctrl.receiveAddressService.GenerateAndSaveAddress(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusInternalServerError, "error",
@@ -42,7 +56,6 @@ func (ctrl *Controller) CreatePaymentOrder(ctx *gin.Context) {
 
 	// Start a go routine to index the receive address
 	done := make(chan bool)
-	indexerService := svc.NewIndexerService(db.Client)
 	go func(ctx *gin.Context, receiveAddress *ent.ReceiveAddress, done chan bool) {
 		for {
 			select {
@@ -51,7 +64,7 @@ func (ctrl *Controller) CreatePaymentOrder(ctx *gin.Context) {
 			default:
 				time.Sleep(2 * time.Minute) // add 2 minutes delay between each indexing operation
 
-				err = indexerService.IndexERC20Transfer(ctx, receiveAddress, done)
+				err = ctrl.indexerService.IndexERC20Transfer(ctx, receiveAddress, done)
 				if err != nil {
 					logger.Errorf("error: %v", err)
 					return
@@ -69,13 +82,14 @@ func (ctrl *Controller) CreatePaymentOrder(ctx *gin.Context) {
 		return
 	}
 
-	// Create payment order recipient
-	recipient, err := tx.PaymentOrderRecipient.
+	// Create payment order
+	paymentOrder, err := tx.PaymentOrder.
 		Create().
-		SetInstitution(payload.Recipient.Institution).
-		SetAccountIdentifier(payload.Recipient.AccountIdentifier).
-		SetAccountName(payload.Recipient.AccountName).
-		SetProviderID(payload.Recipient.ProviderID).
+		SetAmount(payload.Amount).
+		SetAmountPaid(decimal.NewFromInt(0)).
+		SetNetwork(paymentorder.Network(payload.Network)).
+		SetReceiveAddress(receiveAddress).
+		SetReceiveAddressText(receiveAddress.Address).
 		Save(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
@@ -85,15 +99,14 @@ func (ctrl *Controller) CreatePaymentOrder(ctx *gin.Context) {
 		return
 	}
 
-	// Create payment order
-	paymentOrder, err := tx.PaymentOrder.
+	// Create payment order recipient
+	_, err = tx.PaymentOrderRecipient.
 		Create().
-		SetAmount(payload.Amount).
-		SetAmountPaid(decimal.NewFromInt(0)).
-		SetNetwork(paymentorder.Network(payload.Network)).
-		SetReceiveAddress(receiveAddress).
-		SetReceiveAddressText(receiveAddress.Address).
-		SetRecipient(recipient).
+		SetInstitution(payload.Recipient.Institution).
+		SetAccountIdentifier(payload.Recipient.AccountIdentifier).
+		SetAccountName(payload.Recipient.AccountName).
+		SetProviderID(payload.Recipient.ProviderID).
+		SetPaymentOrder(paymentOrder).
 		Save(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
@@ -111,21 +124,23 @@ func (ctrl *Controller) CreatePaymentOrder(ctx *gin.Context) {
 		return
 	}
 
+	paymentOrderAmount, _ := paymentOrder.Amount.Float64()
+
 	u.APIResponse(ctx, http.StatusCreated, "success", "Payment order initiated successfully",
 		&svc.ReceiveAddressResponse{
 			ID:             paymentOrder.ID,
-			Amount:         paymentOrder.Amount,
+			Amount:         paymentOrderAmount,
 			Network:        paymentOrder.Network.String(),
 			ReceiveAddress: paymentOrder.ReceiveAddressText,
 		})
 }
 
 // GetPaymentOrderByID controller fetches a payment order by ID
-func (ctrl *Controller) GetPaymentOrderByID(ctx *gin.Context) {
+func (ctrl *SenderController) GetPaymentOrderByID(ctx *gin.Context) {
 	u.APIResponse(ctx, http.StatusOK, "success", "OK", nil)
 }
 
 // DeletePaymentOrder controller deletes a payment order
-func (ctrl *Controller) DeletePaymentOrder(ctx *gin.Context) {
+func (ctrl *SenderController) DeletePaymentOrder(ctx *gin.Context) {
 	u.APIResponse(ctx, http.StatusOK, "success", "OK", nil)
 }
