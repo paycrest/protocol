@@ -39,7 +39,7 @@ func TestAuth(t *testing.T) {
 	router.POST("/register", ctrl.Register)
 	router.POST("/login", ctrl.Login)
 	router.POST("/refresh", middleware.JWTMiddleware, ctrl.RefreshJWT)
-	router.POST("/api-keys", middleware.JWTMiddleware, ctrl.GenerateAPIKey)
+	router.POST("/api-keys", middleware.JWTMiddleware, ctrl.CreateAPIKey)
 	router.GET("/api-keys", middleware.JWTMiddleware, ctrl.ListAPIKeys)
 	router.DELETE("/api-keys/:id", middleware.JWTMiddleware, ctrl.DeleteAPIKey)
 
@@ -303,11 +303,11 @@ func TestAuth(t *testing.T) {
 		})
 	})
 
-	t.Run("GenerateAPIKey", func(t *testing.T) {
+	t.Run("CreateAPIKey", func(t *testing.T) {
 		accessToken, _ := token.GenerateAccessJWT(userID)
 
 		t.Run("with a valid scope", func(t *testing.T) {
-			payload := svc.GenerateAPIKeyPayload{
+			payload := svc.CreateAPIKeyPayload{
 				Name:  "Test API Key",
 				Scope: "sender",
 			}
@@ -346,7 +346,7 @@ func TestAuth(t *testing.T) {
 		})
 
 		t.Run("with an invalid scope", func(t *testing.T) {
-			payload := svc.GenerateAPIKeyPayload{
+			payload := svc.CreateAPIKeyPayload{
 				Name:  "Test API Key",
 				Scope: "bad-scope",
 			}

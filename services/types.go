@@ -52,8 +52,8 @@ type RefreshResponse struct {
 	AccessToken string `json:"accessToken"`
 }
 
-// GenerateAPIKeyPayload is the payload for the generate API key endpoint
-type GenerateAPIKeyPayload struct {
+// CreateAPIKeyPayload is the payload for the generate API key endpoint
+type CreateAPIKeyPayload struct {
 	Name  string       `json:"name" binding:"required"`
 	Scope apikey.Scope `json:"scope" binding:"required,oneof=sender provider tx_validator"`
 }
@@ -83,7 +83,7 @@ type PaymentOrderRecipient struct {
 	ProviderID        string `json:"providerId"`
 }
 
-// NewPaymentOrder is the payload for the create payment order endpoint
+// NewPaymentOrderPayload is the payload for the create payment order endpoint
 type NewPaymentOrderPayload struct {
 	Amount    decimal.Decimal       `json:"amount" binding:"required"`
 	Token     string                `json:"token" binding:"required"`
@@ -93,8 +93,8 @@ type NewPaymentOrderPayload struct {
 
 // ReceiveAddressResponse is the response type for a receive address
 type ReceiveAddressResponse struct {
-	ID             uuid.UUID       `json:"id"`
-	Amount         decimal.Decimal `json:"amount"`
-	Network        string          `json:"network"`
-	ReceiveAddress string          `json:"receiveAddress"`
+	ID             uuid.UUID `json:"id"`
+	Amount         float64   `json:"amount"`
+	Network        string    `json:"network"`
+	ReceiveAddress string    `json:"receiveAddress"`
 }
