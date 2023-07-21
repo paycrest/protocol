@@ -24,7 +24,7 @@ func PerformRequest(t *testing.T, method string, path string, payload interface{
 	return res, nil
 }
 
-// GetRequest returns a new http.Request with the given method, path, and payload
+// getRequest returns a new http.Request with the given method, path, and payload
 func getRequest(t *testing.T, method string, path string, payload interface{}, router *gin.Engine) (*http.Request, error) {
 	body, err := json.Marshal(payload)
 	if err != nil {

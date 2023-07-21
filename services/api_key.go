@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent"
+	"github.com/paycrest/paycrest-protocol/ent/user"
 	"github.com/paycrest/paycrest-protocol/utils/crypto"
 	"github.com/paycrest/paycrest-protocol/utils/token"
 )
@@ -24,7 +25,7 @@ func NewAPIKeyService(db *ent.Client) *APIKeyService {
 }
 
 // GenerateAPIKey generates a new API key for the user.
-func (s *APIKeyService) GenerateAPIKey(ctx context.Context, userID uuid.UUID, payload GenerateAPIKeyPayload) (*ent.APIKey, string, error) {
+func (s *APIKeyService) GenerateAPIKey(ctx context.Context, userID uuid.UUID, payload CreateAPIKeyPayload) (*ent.APIKey, string, error) {
 	// Generate a new secret key
 	secretKey, err := token.GeneratePrivateKey()
 	if err != nil {
@@ -41,7 +42,10 @@ func (s *APIKeyService) GenerateAPIKey(ctx context.Context, userID uuid.UUID, pa
 	encodedSecret := base64.StdEncoding.EncodeToString(encryptedSecret)
 
 	// Fetch the User entity from the database using the userID value
-	user, err := s.db.User.Get(ctx, userID)
+	user, err := s.db.User.
+		Query().
+		Where(user.IDEQ(userID)).
+		Only(ctx)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to fetch user: %w", err)
 	}
