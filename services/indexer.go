@@ -22,15 +22,22 @@ import (
 
 var conf = config.OrderConfig()
 
+// Indexer is an interface for indexing blockchain data to the database.
+type Indexer interface {
+	IndexERC20Transfer(ctx context.Context, receiveAddress *ent.ReceiveAddress, done chan<- bool) error
+}
+
 // IndexerService performs blockchain to database extract, transform, load (ETL) operations.
 type IndexerService struct {
-	db *ent.Client
+	db      *ent.Client
+	indexer Indexer
 }
 
 // NewIndexerService creates a new instance of IndexerService.
-func NewIndexerService(db *ent.Client) *IndexerService {
+func NewIndexerService(db *ent.Client, indexer Indexer) *IndexerService {
 	return &IndexerService{
-		db: db,
+		db:      db,
+		indexer: indexer,
 	}
 }
 
