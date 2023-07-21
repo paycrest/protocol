@@ -16,6 +16,8 @@ import (
 )
 
 // SenderController is a controller type for sender endpoints
+//
+//nolint:golint
 type SenderController struct {
 	indexerService        *svc.IndexerService
 	receiveAddressService *svc.ReceiveAddressService
