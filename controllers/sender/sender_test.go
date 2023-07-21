@@ -112,7 +112,6 @@ func TestSender(t *testing.T) {
 		}
 
 		res, err := test.PerformRequest(t, "POST", "/orders", payload, headers, router)
-		time.Sleep(1 * time.Second)
 		assert.NoError(t, err)
 
 		// Assert the response body
@@ -134,10 +133,14 @@ func TestSender(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Query the database for the payment order
-		_, err = db.Client.PaymentOrder.
+		paymentOrder, err := db.Client.PaymentOrder.
 			Query().
 			Where(paymentorder.IDEQ(paymentOrderUUID)).
+			WithRecipient().
 			Only(context.Background())
 		assert.NoError(t, err)
+
+		assert.NotNil(t, paymentOrder.Edges.Recipient)
+		assert.Equal(t, paymentOrder.Edges.Recipient.AccountIdentifier, payload["recipient"].(map[string]interface{})["accountIdentifier"])
 	})
 }
