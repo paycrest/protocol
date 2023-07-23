@@ -7,52 +7,53 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
 	"github.com/shopspring/decimal"
 )
 
 // ID filters vertices based on their ID field.
-func ID(id int) predicate.PaymentOrder {
+func ID(id uuid.UUID) predicate.PaymentOrder {
 	return predicate.PaymentOrder(sql.FieldEQ(FieldID, id))
 }
 
 // IDEQ applies the EQ predicate on the ID field.
-func IDEQ(id int) predicate.PaymentOrder {
+func IDEQ(id uuid.UUID) predicate.PaymentOrder {
 	return predicate.PaymentOrder(sql.FieldEQ(FieldID, id))
 }
 
 // IDNEQ applies the NEQ predicate on the ID field.
-func IDNEQ(id int) predicate.PaymentOrder {
+func IDNEQ(id uuid.UUID) predicate.PaymentOrder {
 	return predicate.PaymentOrder(sql.FieldNEQ(FieldID, id))
 }
 
 // IDIn applies the In predicate on the ID field.
-func IDIn(ids ...int) predicate.PaymentOrder {
+func IDIn(ids ...uuid.UUID) predicate.PaymentOrder {
 	return predicate.PaymentOrder(sql.FieldIn(FieldID, ids...))
 }
 
 // IDNotIn applies the NotIn predicate on the ID field.
-func IDNotIn(ids ...int) predicate.PaymentOrder {
+func IDNotIn(ids ...uuid.UUID) predicate.PaymentOrder {
 	return predicate.PaymentOrder(sql.FieldNotIn(FieldID, ids...))
 }
 
 // IDGT applies the GT predicate on the ID field.
-func IDGT(id int) predicate.PaymentOrder {
+func IDGT(id uuid.UUID) predicate.PaymentOrder {
 	return predicate.PaymentOrder(sql.FieldGT(FieldID, id))
 }
 
 // IDGTE applies the GTE predicate on the ID field.
-func IDGTE(id int) predicate.PaymentOrder {
+func IDGTE(id uuid.UUID) predicate.PaymentOrder {
 	return predicate.PaymentOrder(sql.FieldGTE(FieldID, id))
 }
 
 // IDLT applies the LT predicate on the ID field.
-func IDLT(id int) predicate.PaymentOrder {
+func IDLT(id uuid.UUID) predicate.PaymentOrder {
 	return predicate.PaymentOrder(sql.FieldLT(FieldID, id))
 }
 
 // IDLTE applies the LTE predicate on the ID field.
-func IDLTE(id int) predicate.PaymentOrder {
+func IDLTE(id uuid.UUID) predicate.PaymentOrder {
 	return predicate.PaymentOrder(sql.FieldLTE(FieldID, id))
 }
 
@@ -81,9 +82,9 @@ func TxHash(v string) predicate.PaymentOrder {
 	return predicate.PaymentOrder(sql.FieldEQ(FieldTxHash, v))
 }
 
-// ReceiveAddress applies equality check predicate on the "receive_address" field. It's identical to ReceiveAddressEQ.
-func ReceiveAddress(v string) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldEQ(FieldReceiveAddress, v))
+// ReceiveAddressText applies equality check predicate on the "receive_address_text" field. It's identical to ReceiveAddressTextEQ.
+func ReceiveAddressText(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldEQ(FieldReceiveAddressText, v))
 }
 
 // LastUsed applies equality check predicate on the "last_used" field. It's identical to LastUsedEQ.
@@ -346,69 +347,69 @@ func TxHashContainsFold(v string) predicate.PaymentOrder {
 	return predicate.PaymentOrder(sql.FieldContainsFold(FieldTxHash, v))
 }
 
-// ReceiveAddressEQ applies the EQ predicate on the "receive_address" field.
-func ReceiveAddressEQ(v string) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldEQ(FieldReceiveAddress, v))
+// ReceiveAddressTextEQ applies the EQ predicate on the "receive_address_text" field.
+func ReceiveAddressTextEQ(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldEQ(FieldReceiveAddressText, v))
 }
 
-// ReceiveAddressNEQ applies the NEQ predicate on the "receive_address" field.
-func ReceiveAddressNEQ(v string) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldNEQ(FieldReceiveAddress, v))
+// ReceiveAddressTextNEQ applies the NEQ predicate on the "receive_address_text" field.
+func ReceiveAddressTextNEQ(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldNEQ(FieldReceiveAddressText, v))
 }
 
-// ReceiveAddressIn applies the In predicate on the "receive_address" field.
-func ReceiveAddressIn(vs ...string) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldIn(FieldReceiveAddress, vs...))
+// ReceiveAddressTextIn applies the In predicate on the "receive_address_text" field.
+func ReceiveAddressTextIn(vs ...string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldIn(FieldReceiveAddressText, vs...))
 }
 
-// ReceiveAddressNotIn applies the NotIn predicate on the "receive_address" field.
-func ReceiveAddressNotIn(vs ...string) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldNotIn(FieldReceiveAddress, vs...))
+// ReceiveAddressTextNotIn applies the NotIn predicate on the "receive_address_text" field.
+func ReceiveAddressTextNotIn(vs ...string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldNotIn(FieldReceiveAddressText, vs...))
 }
 
-// ReceiveAddressGT applies the GT predicate on the "receive_address" field.
-func ReceiveAddressGT(v string) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldGT(FieldReceiveAddress, v))
+// ReceiveAddressTextGT applies the GT predicate on the "receive_address_text" field.
+func ReceiveAddressTextGT(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldGT(FieldReceiveAddressText, v))
 }
 
-// ReceiveAddressGTE applies the GTE predicate on the "receive_address" field.
-func ReceiveAddressGTE(v string) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldGTE(FieldReceiveAddress, v))
+// ReceiveAddressTextGTE applies the GTE predicate on the "receive_address_text" field.
+func ReceiveAddressTextGTE(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldGTE(FieldReceiveAddressText, v))
 }
 
-// ReceiveAddressLT applies the LT predicate on the "receive_address" field.
-func ReceiveAddressLT(v string) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldLT(FieldReceiveAddress, v))
+// ReceiveAddressTextLT applies the LT predicate on the "receive_address_text" field.
+func ReceiveAddressTextLT(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldLT(FieldReceiveAddressText, v))
 }
 
-// ReceiveAddressLTE applies the LTE predicate on the "receive_address" field.
-func ReceiveAddressLTE(v string) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldLTE(FieldReceiveAddress, v))
+// ReceiveAddressTextLTE applies the LTE predicate on the "receive_address_text" field.
+func ReceiveAddressTextLTE(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldLTE(FieldReceiveAddressText, v))
 }
 
-// ReceiveAddressContains applies the Contains predicate on the "receive_address" field.
-func ReceiveAddressContains(v string) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldContains(FieldReceiveAddress, v))
+// ReceiveAddressTextContains applies the Contains predicate on the "receive_address_text" field.
+func ReceiveAddressTextContains(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldContains(FieldReceiveAddressText, v))
 }
 
-// ReceiveAddressHasPrefix applies the HasPrefix predicate on the "receive_address" field.
-func ReceiveAddressHasPrefix(v string) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldHasPrefix(FieldReceiveAddress, v))
+// ReceiveAddressTextHasPrefix applies the HasPrefix predicate on the "receive_address_text" field.
+func ReceiveAddressTextHasPrefix(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldHasPrefix(FieldReceiveAddressText, v))
 }
 
-// ReceiveAddressHasSuffix applies the HasSuffix predicate on the "receive_address" field.
-func ReceiveAddressHasSuffix(v string) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldHasSuffix(FieldReceiveAddress, v))
+// ReceiveAddressTextHasSuffix applies the HasSuffix predicate on the "receive_address_text" field.
+func ReceiveAddressTextHasSuffix(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldHasSuffix(FieldReceiveAddressText, v))
 }
 
-// ReceiveAddressEqualFold applies the EqualFold predicate on the "receive_address" field.
-func ReceiveAddressEqualFold(v string) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldEqualFold(FieldReceiveAddress, v))
+// ReceiveAddressTextEqualFold applies the EqualFold predicate on the "receive_address_text" field.
+func ReceiveAddressTextEqualFold(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldEqualFold(FieldReceiveAddressText, v))
 }
 
-// ReceiveAddressContainsFold applies the ContainsFold predicate on the "receive_address" field.
-func ReceiveAddressContainsFold(v string) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldContainsFold(FieldReceiveAddress, v))
+// ReceiveAddressTextContainsFold applies the ContainsFold predicate on the "receive_address_text" field.
+func ReceiveAddressTextContainsFold(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldContainsFold(FieldReceiveAddressText, v))
 }
 
 // StatusEQ applies the EQ predicate on the "status" field.
@@ -527,21 +528,21 @@ func HasTokenWith(preds ...predicate.Token) predicate.PaymentOrder {
 	})
 }
 
-// HasReceiveAddressFk applies the HasEdge predicate on the "receive_address_fk" edge.
-func HasReceiveAddressFk() predicate.PaymentOrder {
+// HasReceiveAddress applies the HasEdge predicate on the "receive_address" edge.
+func HasReceiveAddress() predicate.PaymentOrder {
 	return predicate.PaymentOrder(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, ReceiveAddressFkTable, ReceiveAddressFkColumn),
+			sqlgraph.Edge(sqlgraph.O2O, false, ReceiveAddressTable, ReceiveAddressColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasReceiveAddressFkWith applies the HasEdge predicate on the "receive_address_fk" edge with a given conditions (other predicates).
-func HasReceiveAddressFkWith(preds ...predicate.ReceiveAddress) predicate.PaymentOrder {
+// HasReceiveAddressWith applies the HasEdge predicate on the "receive_address" edge with a given conditions (other predicates).
+func HasReceiveAddressWith(preds ...predicate.ReceiveAddress) predicate.PaymentOrder {
 	return predicate.PaymentOrder(func(s *sql.Selector) {
-		step := newReceiveAddressFkStep()
+		step := newReceiveAddressStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

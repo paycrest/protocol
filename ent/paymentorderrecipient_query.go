@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorderrecipient"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
@@ -409,8 +410,8 @@ func (porq *PaymentOrderRecipientQuery) sqlAll(ctx context.Context, hooks ...que
 }
 
 func (porq *PaymentOrderRecipientQuery) loadPaymentOrder(ctx context.Context, query *PaymentOrderQuery, nodes []*PaymentOrderRecipient, init func(*PaymentOrderRecipient), assign func(*PaymentOrderRecipient, *PaymentOrder)) error {
-	ids := make([]int, 0, len(nodes))
-	nodeids := make(map[int][]*PaymentOrderRecipient)
+	ids := make([]uuid.UUID, 0, len(nodes))
+	nodeids := make(map[uuid.UUID][]*PaymentOrderRecipient)
 	for i := range nodes {
 		if nodes[i].payment_order_recipient == nil {
 			continue

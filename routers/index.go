@@ -32,20 +32,20 @@ func authRoutes(route *gin.Engine) {
 	v1.POST("register/", ctrl.Register)
 	v1.POST("login/", ctrl.Login)
 	v1.POST("refresh/", middleware.JWTMiddleware, ctrl.RefreshJWT)
-	v1.POST("api-keys/", middleware.JWTMiddleware, ctrl.GenerateAPIKey)
+	v1.POST("api-keys/", middleware.JWTMiddleware, ctrl.CreateAPIKey)
 	v1.GET("api-keys/", middleware.JWTMiddleware, ctrl.ListAPIKeys)
 	v1.DELETE("api-keys/:id", middleware.JWTMiddleware, ctrl.DeleteAPIKey)
 }
 
 func senderRoutes(route *gin.Engine) {
-	var ctrl sender.Controller
+	var ctrl sender.SenderController
 
 	v1 := route.Group("/v1/sender/")
-	// v1.Use(middleware.HMACVerificationMiddleware)
+	v1.Use(middleware.HMACVerificationMiddleware)
 
-	v1.POST("orders/", ctrl.CreateOrder)
-	v1.GET("orders/:id", ctrl.GetOrderByID)
-	v1.DELETE("orders/:id", ctrl.DeleteOrder)
+	v1.POST("orders/", ctrl.CreatePaymentOrder)
+	v1.GET("orders/:id", ctrl.GetPaymentOrderByID)
+	v1.DELETE("orders/:id", ctrl.DeletePaymentOrder)
 }
 
 func providerRoutes(route *gin.Engine) {
@@ -65,5 +65,5 @@ func miscRoutes(route *gin.Engine) {
 	v1 := route.Group("/v1/misc/")
 	v1.GET("currencies/", ctrl.GetOrders)
 	v1.GET("institutions/:currencyCode", ctrl.GetOrders)
-	v1.GET("rates/:crypto", ctrl.GetOrders)
+	v1.GET("rates/:token", ctrl.GetOrders)
 }

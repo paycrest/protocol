@@ -65,8 +65,8 @@ type APIKeyMutation struct {
 	clearedowner            bool
 	provider_profile        *string
 	clearedprovider_profile bool
-	payment_orders          map[int]struct{}
-	removedpayment_orders   map[int]struct{}
+	payment_orders          map[uuid.UUID]struct{}
+	removedpayment_orders   map[uuid.UUID]struct{}
 	clearedpayment_orders   bool
 	done                    bool
 	oldValue                func(context.Context) (*APIKey, error)
@@ -436,9 +436,9 @@ func (m *APIKeyMutation) ResetProviderProfile() {
 }
 
 // AddPaymentOrderIDs adds the "payment_orders" edge to the PaymentOrder entity by ids.
-func (m *APIKeyMutation) AddPaymentOrderIDs(ids ...int) {
+func (m *APIKeyMutation) AddPaymentOrderIDs(ids ...uuid.UUID) {
 	if m.payment_orders == nil {
-		m.payment_orders = make(map[int]struct{})
+		m.payment_orders = make(map[uuid.UUID]struct{})
 	}
 	for i := range ids {
 		m.payment_orders[ids[i]] = struct{}{}
@@ -456,9 +456,9 @@ func (m *APIKeyMutation) PaymentOrdersCleared() bool {
 }
 
 // RemovePaymentOrderIDs removes the "payment_orders" edge to the PaymentOrder entity by IDs.
-func (m *APIKeyMutation) RemovePaymentOrderIDs(ids ...int) {
+func (m *APIKeyMutation) RemovePaymentOrderIDs(ids ...uuid.UUID) {
 	if m.removedpayment_orders == nil {
-		m.removedpayment_orders = make(map[int]struct{})
+		m.removedpayment_orders = make(map[uuid.UUID]struct{})
 	}
 	for i := range ids {
 		delete(m.payment_orders, ids[i])
@@ -467,7 +467,7 @@ func (m *APIKeyMutation) RemovePaymentOrderIDs(ids ...int) {
 }
 
 // RemovedPaymentOrders returns the removed IDs of the "payment_orders" edge to the PaymentOrder entity.
-func (m *APIKeyMutation) RemovedPaymentOrdersIDs() (ids []int) {
+func (m *APIKeyMutation) RemovedPaymentOrdersIDs() (ids []uuid.UUID) {
 	for id := range m.removedpayment_orders {
 		ids = append(ids, id)
 	}
@@ -475,7 +475,7 @@ func (m *APIKeyMutation) RemovedPaymentOrdersIDs() (ids []int) {
 }
 
 // PaymentOrdersIDs returns the "payment_orders" edge IDs in the mutation.
-func (m *APIKeyMutation) PaymentOrdersIDs() (ids []int) {
+func (m *APIKeyMutation) PaymentOrdersIDs() (ids []uuid.UUID) {
 	for id := range m.payment_orders {
 		ids = append(ids, id)
 	}
@@ -1536,32 +1536,32 @@ func (m *NetworkMutation) ResetEdge(name string) error {
 // PaymentOrderMutation represents an operation that mutates the PaymentOrder nodes in the graph.
 type PaymentOrderMutation struct {
 	config
-	op                        Op
-	typ                       string
-	id                        *int
-	created_at                *time.Time
-	updated_at                *time.Time
-	amount                    *decimal.Decimal
-	addamount                 *decimal.Decimal
-	amount_paid               *decimal.Decimal
-	addamount_paid            *decimal.Decimal
-	network                   *paymentorder.Network
-	tx_hash                   *string
-	receive_address           *string
-	status                    *paymentorder.Status
-	last_used                 *time.Time
-	clearedFields             map[string]struct{}
-	api_key                   *uuid.UUID
-	clearedapi_key            bool
-	token                     *int
-	clearedtoken              bool
-	receive_address_fk        *int
-	clearedreceive_address_fk bool
-	recipient                 *int
-	clearedrecipient          bool
-	done                      bool
-	oldValue                  func(context.Context) (*PaymentOrder, error)
-	predicates                []predicate.PaymentOrder
+	op                     Op
+	typ                    string
+	id                     *uuid.UUID
+	created_at             *time.Time
+	updated_at             *time.Time
+	amount                 *decimal.Decimal
+	addamount              *decimal.Decimal
+	amount_paid            *decimal.Decimal
+	addamount_paid         *decimal.Decimal
+	network                *paymentorder.Network
+	tx_hash                *string
+	receive_address_text   *string
+	status                 *paymentorder.Status
+	last_used              *time.Time
+	clearedFields          map[string]struct{}
+	api_key                *uuid.UUID
+	clearedapi_key         bool
+	token                  *int
+	clearedtoken           bool
+	receive_address        *int
+	clearedreceive_address bool
+	recipient              *int
+	clearedrecipient       bool
+	done                   bool
+	oldValue               func(context.Context) (*PaymentOrder, error)
+	predicates             []predicate.PaymentOrder
 }
 
 var _ ent.Mutation = (*PaymentOrderMutation)(nil)
@@ -1584,7 +1584,7 @@ func newPaymentOrderMutation(c config, op Op, opts ...paymentorderOption) *Payme
 }
 
 // withPaymentOrderID sets the ID field of the mutation.
-func withPaymentOrderID(id int) paymentorderOption {
+func withPaymentOrderID(id uuid.UUID) paymentorderOption {
 	return func(m *PaymentOrderMutation) {
 		var (
 			err   error
@@ -1634,9 +1634,15 @@ func (m PaymentOrderMutation) Tx() (*Tx, error) {
 	return tx, nil
 }
 
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of PaymentOrder entities.
+func (m *PaymentOrderMutation) SetID(id uuid.UUID) {
+	m.id = &id
+}
+
 // ID returns the ID value in the mutation. Note that the ID is only available
 // if it was provided to the builder or after it was returned from the database.
-func (m *PaymentOrderMutation) ID() (id int, exists bool) {
+func (m *PaymentOrderMutation) ID() (id uuid.UUID, exists bool) {
 	if m.id == nil {
 		return
 	}
@@ -1647,12 +1653,12 @@ func (m *PaymentOrderMutation) ID() (id int, exists bool) {
 // That means, if the mutation is applied within a transaction with an isolation level such
 // as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
 // or updated by the mutation.
-func (m *PaymentOrderMutation) IDs(ctx context.Context) ([]int, error) {
+func (m *PaymentOrderMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
 	switch {
 	case m.op.Is(OpUpdateOne | OpDeleteOne):
 		id, exists := m.ID()
 		if exists {
-			return []int{id}, nil
+			return []uuid.UUID{id}, nil
 		}
 		fallthrough
 	case m.op.Is(OpUpdate | OpDelete):
@@ -1931,40 +1937,40 @@ func (m *PaymentOrderMutation) ResetTxHash() {
 	delete(m.clearedFields, paymentorder.FieldTxHash)
 }
 
-// SetReceiveAddress sets the "receive_address" field.
-func (m *PaymentOrderMutation) SetReceiveAddress(s string) {
-	m.receive_address = &s
+// SetReceiveAddressText sets the "receive_address_text" field.
+func (m *PaymentOrderMutation) SetReceiveAddressText(s string) {
+	m.receive_address_text = &s
 }
 
-// ReceiveAddress returns the value of the "receive_address" field in the mutation.
-func (m *PaymentOrderMutation) ReceiveAddress() (r string, exists bool) {
-	v := m.receive_address
+// ReceiveAddressText returns the value of the "receive_address_text" field in the mutation.
+func (m *PaymentOrderMutation) ReceiveAddressText() (r string, exists bool) {
+	v := m.receive_address_text
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldReceiveAddress returns the old "receive_address" field's value of the PaymentOrder entity.
+// OldReceiveAddressText returns the old "receive_address_text" field's value of the PaymentOrder entity.
 // If the PaymentOrder object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *PaymentOrderMutation) OldReceiveAddress(ctx context.Context) (v string, err error) {
+func (m *PaymentOrderMutation) OldReceiveAddressText(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldReceiveAddress is only allowed on UpdateOne operations")
+		return v, errors.New("OldReceiveAddressText is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldReceiveAddress requires an ID field in the mutation")
+		return v, errors.New("OldReceiveAddressText requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldReceiveAddress: %w", err)
+		return v, fmt.Errorf("querying old value for OldReceiveAddressText: %w", err)
 	}
-	return oldValue.ReceiveAddress, nil
+	return oldValue.ReceiveAddressText, nil
 }
 
-// ResetReceiveAddress resets all changes to the "receive_address" field.
-func (m *PaymentOrderMutation) ResetReceiveAddress() {
-	m.receive_address = nil
+// ResetReceiveAddressText resets all changes to the "receive_address_text" field.
+func (m *PaymentOrderMutation) ResetReceiveAddressText() {
+	m.receive_address_text = nil
 }
 
 // SetStatus sets the "status" field.
@@ -2130,43 +2136,43 @@ func (m *PaymentOrderMutation) ResetToken() {
 	m.clearedtoken = false
 }
 
-// SetReceiveAddressFkID sets the "receive_address_fk" edge to the ReceiveAddress entity by id.
-func (m *PaymentOrderMutation) SetReceiveAddressFkID(id int) {
-	m.receive_address_fk = &id
+// SetReceiveAddressID sets the "receive_address" edge to the ReceiveAddress entity by id.
+func (m *PaymentOrderMutation) SetReceiveAddressID(id int) {
+	m.receive_address = &id
 }
 
-// ClearReceiveAddressFk clears the "receive_address_fk" edge to the ReceiveAddress entity.
-func (m *PaymentOrderMutation) ClearReceiveAddressFk() {
-	m.clearedreceive_address_fk = true
+// ClearReceiveAddress clears the "receive_address" edge to the ReceiveAddress entity.
+func (m *PaymentOrderMutation) ClearReceiveAddress() {
+	m.clearedreceive_address = true
 }
 
-// ReceiveAddressFkCleared reports if the "receive_address_fk" edge to the ReceiveAddress entity was cleared.
-func (m *PaymentOrderMutation) ReceiveAddressFkCleared() bool {
-	return m.clearedreceive_address_fk
+// ReceiveAddressCleared reports if the "receive_address" edge to the ReceiveAddress entity was cleared.
+func (m *PaymentOrderMutation) ReceiveAddressCleared() bool {
+	return m.clearedreceive_address
 }
 
-// ReceiveAddressFkID returns the "receive_address_fk" edge ID in the mutation.
-func (m *PaymentOrderMutation) ReceiveAddressFkID() (id int, exists bool) {
-	if m.receive_address_fk != nil {
-		return *m.receive_address_fk, true
+// ReceiveAddressID returns the "receive_address" edge ID in the mutation.
+func (m *PaymentOrderMutation) ReceiveAddressID() (id int, exists bool) {
+	if m.receive_address != nil {
+		return *m.receive_address, true
 	}
 	return
 }
 
-// ReceiveAddressFkIDs returns the "receive_address_fk" edge IDs in the mutation.
+// ReceiveAddressIDs returns the "receive_address" edge IDs in the mutation.
 // Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// ReceiveAddressFkID instead. It exists only for internal usage by the builders.
-func (m *PaymentOrderMutation) ReceiveAddressFkIDs() (ids []int) {
-	if id := m.receive_address_fk; id != nil {
+// ReceiveAddressID instead. It exists only for internal usage by the builders.
+func (m *PaymentOrderMutation) ReceiveAddressIDs() (ids []int) {
+	if id := m.receive_address; id != nil {
 		ids = append(ids, *id)
 	}
 	return
 }
 
-// ResetReceiveAddressFk resets all changes to the "receive_address_fk" edge.
-func (m *PaymentOrderMutation) ResetReceiveAddressFk() {
-	m.receive_address_fk = nil
-	m.clearedreceive_address_fk = false
+// ResetReceiveAddress resets all changes to the "receive_address" edge.
+func (m *PaymentOrderMutation) ResetReceiveAddress() {
+	m.receive_address = nil
+	m.clearedreceive_address = false
 }
 
 // SetRecipientID sets the "recipient" edge to the PaymentOrderRecipient entity by id.
@@ -2261,8 +2267,8 @@ func (m *PaymentOrderMutation) Fields() []string {
 	if m.tx_hash != nil {
 		fields = append(fields, paymentorder.FieldTxHash)
 	}
-	if m.receive_address != nil {
-		fields = append(fields, paymentorder.FieldReceiveAddress)
+	if m.receive_address_text != nil {
+		fields = append(fields, paymentorder.FieldReceiveAddressText)
 	}
 	if m.status != nil {
 		fields = append(fields, paymentorder.FieldStatus)
@@ -2290,8 +2296,8 @@ func (m *PaymentOrderMutation) Field(name string) (ent.Value, bool) {
 		return m.Network()
 	case paymentorder.FieldTxHash:
 		return m.TxHash()
-	case paymentorder.FieldReceiveAddress:
-		return m.ReceiveAddress()
+	case paymentorder.FieldReceiveAddressText:
+		return m.ReceiveAddressText()
 	case paymentorder.FieldStatus:
 		return m.Status()
 	case paymentorder.FieldLastUsed:
@@ -2317,8 +2323,8 @@ func (m *PaymentOrderMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldNetwork(ctx)
 	case paymentorder.FieldTxHash:
 		return m.OldTxHash(ctx)
-	case paymentorder.FieldReceiveAddress:
-		return m.OldReceiveAddress(ctx)
+	case paymentorder.FieldReceiveAddressText:
+		return m.OldReceiveAddressText(ctx)
 	case paymentorder.FieldStatus:
 		return m.OldStatus(ctx)
 	case paymentorder.FieldLastUsed:
@@ -2374,12 +2380,12 @@ func (m *PaymentOrderMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetTxHash(v)
 		return nil
-	case paymentorder.FieldReceiveAddress:
+	case paymentorder.FieldReceiveAddressText:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetReceiveAddress(v)
+		m.SetReceiveAddressText(v)
 		return nil
 	case paymentorder.FieldStatus:
 		v, ok := value.(paymentorder.Status)
@@ -2504,8 +2510,8 @@ func (m *PaymentOrderMutation) ResetField(name string) error {
 	case paymentorder.FieldTxHash:
 		m.ResetTxHash()
 		return nil
-	case paymentorder.FieldReceiveAddress:
-		m.ResetReceiveAddress()
+	case paymentorder.FieldReceiveAddressText:
+		m.ResetReceiveAddressText()
 		return nil
 	case paymentorder.FieldStatus:
 		m.ResetStatus()
@@ -2526,8 +2532,8 @@ func (m *PaymentOrderMutation) AddedEdges() []string {
 	if m.token != nil {
 		edges = append(edges, paymentorder.EdgeToken)
 	}
-	if m.receive_address_fk != nil {
-		edges = append(edges, paymentorder.EdgeReceiveAddressFk)
+	if m.receive_address != nil {
+		edges = append(edges, paymentorder.EdgeReceiveAddress)
 	}
 	if m.recipient != nil {
 		edges = append(edges, paymentorder.EdgeRecipient)
@@ -2547,8 +2553,8 @@ func (m *PaymentOrderMutation) AddedIDs(name string) []ent.Value {
 		if id := m.token; id != nil {
 			return []ent.Value{*id}
 		}
-	case paymentorder.EdgeReceiveAddressFk:
-		if id := m.receive_address_fk; id != nil {
+	case paymentorder.EdgeReceiveAddress:
+		if id := m.receive_address; id != nil {
 			return []ent.Value{*id}
 		}
 	case paymentorder.EdgeRecipient:
@@ -2580,8 +2586,8 @@ func (m *PaymentOrderMutation) ClearedEdges() []string {
 	if m.clearedtoken {
 		edges = append(edges, paymentorder.EdgeToken)
 	}
-	if m.clearedreceive_address_fk {
-		edges = append(edges, paymentorder.EdgeReceiveAddressFk)
+	if m.clearedreceive_address {
+		edges = append(edges, paymentorder.EdgeReceiveAddress)
 	}
 	if m.clearedrecipient {
 		edges = append(edges, paymentorder.EdgeRecipient)
@@ -2597,8 +2603,8 @@ func (m *PaymentOrderMutation) EdgeCleared(name string) bool {
 		return m.clearedapi_key
 	case paymentorder.EdgeToken:
 		return m.clearedtoken
-	case paymentorder.EdgeReceiveAddressFk:
-		return m.clearedreceive_address_fk
+	case paymentorder.EdgeReceiveAddress:
+		return m.clearedreceive_address
 	case paymentorder.EdgeRecipient:
 		return m.clearedrecipient
 	}
@@ -2615,8 +2621,8 @@ func (m *PaymentOrderMutation) ClearEdge(name string) error {
 	case paymentorder.EdgeToken:
 		m.ClearToken()
 		return nil
-	case paymentorder.EdgeReceiveAddressFk:
-		m.ClearReceiveAddressFk()
+	case paymentorder.EdgeReceiveAddress:
+		m.ClearReceiveAddress()
 		return nil
 	case paymentorder.EdgeRecipient:
 		m.ClearRecipient()
@@ -2635,8 +2641,8 @@ func (m *PaymentOrderMutation) ResetEdge(name string) error {
 	case paymentorder.EdgeToken:
 		m.ResetToken()
 		return nil
-	case paymentorder.EdgeReceiveAddressFk:
-		m.ResetReceiveAddressFk()
+	case paymentorder.EdgeReceiveAddress:
+		m.ResetReceiveAddress()
 		return nil
 	case paymentorder.EdgeRecipient:
 		m.ResetRecipient()
@@ -2656,7 +2662,7 @@ type PaymentOrderRecipientMutation struct {
 	account_name         *string
 	provider_id          *string
 	clearedFields        map[string]struct{}
-	payment_order        *int
+	payment_order        *uuid.UUID
 	clearedpayment_order bool
 	done                 bool
 	oldValue             func(context.Context) (*PaymentOrderRecipient, error)
@@ -2919,7 +2925,7 @@ func (m *PaymentOrderRecipientMutation) ResetProviderID() {
 }
 
 // SetPaymentOrderID sets the "payment_order" edge to the PaymentOrder entity by id.
-func (m *PaymentOrderRecipientMutation) SetPaymentOrderID(id int) {
+func (m *PaymentOrderRecipientMutation) SetPaymentOrderID(id uuid.UUID) {
 	m.payment_order = &id
 }
 
@@ -2934,7 +2940,7 @@ func (m *PaymentOrderRecipientMutation) PaymentOrderCleared() bool {
 }
 
 // PaymentOrderID returns the "payment_order" edge ID in the mutation.
-func (m *PaymentOrderRecipientMutation) PaymentOrderID() (id int, exists bool) {
+func (m *PaymentOrderRecipientMutation) PaymentOrderID() (id uuid.UUID, exists bool) {
 	if m.payment_order != nil {
 		return *m.payment_order, true
 	}
@@ -2944,7 +2950,7 @@ func (m *PaymentOrderRecipientMutation) PaymentOrderID() (id int, exists bool) {
 // PaymentOrderIDs returns the "payment_order" edge IDs in the mutation.
 // Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
 // PaymentOrderID instead. It exists only for internal usage by the builders.
-func (m *PaymentOrderRecipientMutation) PaymentOrderIDs() (ids []int) {
+func (m *PaymentOrderRecipientMutation) PaymentOrderIDs() (ids []uuid.UUID) {
 	if id := m.payment_order; id != nil {
 		ids = append(ids, *id)
 	}
@@ -5882,7 +5888,7 @@ type ReceiveAddressMutation struct {
 	addlast_indexed_block *int64
 	last_used             *time.Time
 	clearedFields         map[string]struct{}
-	payment_order         *int
+	payment_order         *uuid.UUID
 	clearedpayment_order  bool
 	done                  bool
 	oldValue              func(context.Context) (*ReceiveAddress, error)
@@ -6307,7 +6313,7 @@ func (m *ReceiveAddressMutation) ResetLastUsed() {
 }
 
 // SetPaymentOrderID sets the "payment_order" edge to the PaymentOrder entity by id.
-func (m *ReceiveAddressMutation) SetPaymentOrderID(id int) {
+func (m *ReceiveAddressMutation) SetPaymentOrderID(id uuid.UUID) {
 	m.payment_order = &id
 }
 
@@ -6322,7 +6328,7 @@ func (m *ReceiveAddressMutation) PaymentOrderCleared() bool {
 }
 
 // PaymentOrderID returns the "payment_order" edge ID in the mutation.
-func (m *ReceiveAddressMutation) PaymentOrderID() (id int, exists bool) {
+func (m *ReceiveAddressMutation) PaymentOrderID() (id uuid.UUID, exists bool) {
 	if m.payment_order != nil {
 		return *m.payment_order, true
 	}
@@ -6332,7 +6338,7 @@ func (m *ReceiveAddressMutation) PaymentOrderID() (id int, exists bool) {
 // PaymentOrderIDs returns the "payment_order" edge IDs in the mutation.
 // Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
 // PaymentOrderID instead. It exists only for internal usage by the builders.
-func (m *ReceiveAddressMutation) PaymentOrderIDs() (ids []int) {
+func (m *ReceiveAddressMutation) PaymentOrderIDs() (ids []uuid.UUID) {
 	if id := m.payment_order; id != nil {
 		ids = append(ids, *id)
 	}
@@ -6710,8 +6716,8 @@ type TokenMutation struct {
 	clearedFields         map[string]struct{}
 	network               *int
 	clearednetwork        bool
-	payment_orders        map[int]struct{}
-	removedpayment_orders map[int]struct{}
+	payment_orders        map[uuid.UUID]struct{}
+	removedpayment_orders map[uuid.UUID]struct{}
 	clearedpayment_orders bool
 	done                  bool
 	oldValue              func(context.Context) (*Token, error)
@@ -7092,9 +7098,9 @@ func (m *TokenMutation) ResetNetwork() {
 }
 
 // AddPaymentOrderIDs adds the "payment_orders" edge to the PaymentOrder entity by ids.
-func (m *TokenMutation) AddPaymentOrderIDs(ids ...int) {
+func (m *TokenMutation) AddPaymentOrderIDs(ids ...uuid.UUID) {
 	if m.payment_orders == nil {
-		m.payment_orders = make(map[int]struct{})
+		m.payment_orders = make(map[uuid.UUID]struct{})
 	}
 	for i := range ids {
 		m.payment_orders[ids[i]] = struct{}{}
@@ -7112,9 +7118,9 @@ func (m *TokenMutation) PaymentOrdersCleared() bool {
 }
 
 // RemovePaymentOrderIDs removes the "payment_orders" edge to the PaymentOrder entity by IDs.
-func (m *TokenMutation) RemovePaymentOrderIDs(ids ...int) {
+func (m *TokenMutation) RemovePaymentOrderIDs(ids ...uuid.UUID) {
 	if m.removedpayment_orders == nil {
-		m.removedpayment_orders = make(map[int]struct{})
+		m.removedpayment_orders = make(map[uuid.UUID]struct{})
 	}
 	for i := range ids {
 		delete(m.payment_orders, ids[i])
@@ -7123,7 +7129,7 @@ func (m *TokenMutation) RemovePaymentOrderIDs(ids ...int) {
 }
 
 // RemovedPaymentOrders returns the removed IDs of the "payment_orders" edge to the PaymentOrder entity.
-func (m *TokenMutation) RemovedPaymentOrdersIDs() (ids []int) {
+func (m *TokenMutation) RemovedPaymentOrdersIDs() (ids []uuid.UUID) {
 	for id := range m.removedpayment_orders {
 		ids = append(ids, id)
 	}
@@ -7131,7 +7137,7 @@ func (m *TokenMutation) RemovedPaymentOrdersIDs() (ids []int) {
 }
 
 // PaymentOrdersIDs returns the "payment_orders" edge IDs in the mutation.
-func (m *TokenMutation) PaymentOrdersIDs() (ids []int) {
+func (m *TokenMutation) PaymentOrdersIDs() (ids []uuid.UUID) {
 	for id := range m.payment_orders {
 		ids = append(ids, id)
 	}

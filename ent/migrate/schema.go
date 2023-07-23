@@ -57,14 +57,14 @@ var (
 	}
 	// PaymentOrdersColumns holds the columns for the "payment_orders" table.
 	PaymentOrdersColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "id", Type: field.TypeUUID},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "amount", Type: field.TypeFloat64},
 		{Name: "amount_paid", Type: field.TypeFloat64},
 		{Name: "network", Type: field.TypeEnum, Enums: []string{"bnb-smart-chain", "polygon", "tron", "polygon-mumbai", "tron-shasta"}},
 		{Name: "tx_hash", Type: field.TypeString, Nullable: true, Size: 70},
-		{Name: "receive_address", Type: field.TypeString, Size: 60},
+		{Name: "receive_address_text", Type: field.TypeString, Size: 60},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"initiated", "pending", "settled", "cancelled", "failed", "refunded"}, Default: "initiated"},
 		{Name: "last_used", Type: field.TypeTime, Nullable: true},
 		{Name: "api_key_payment_orders", Type: field.TypeUUID, Nullable: true},
@@ -97,7 +97,7 @@ var (
 		{Name: "account_identifier", Type: field.TypeString},
 		{Name: "account_name", Type: field.TypeString},
 		{Name: "provider_id", Type: field.TypeString, Nullable: true},
-		{Name: "payment_order_recipient", Type: field.TypeInt, Unique: true},
+		{Name: "payment_order_recipient", Type: field.TypeUUID, Unique: true},
 	}
 	// PaymentOrderRecipientsTable holds the schema information for the "payment_order_recipients" table.
 	PaymentOrderRecipientsTable = &schema.Table{
@@ -223,7 +223,7 @@ var (
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"unused", "partial", "used", "expired"}, Default: "unused"},
 		{Name: "last_indexed_block", Type: field.TypeInt64, Nullable: true},
 		{Name: "last_used", Type: field.TypeTime, Nullable: true},
-		{Name: "payment_order_receive_address_fk", Type: field.TypeInt, Unique: true, Nullable: true},
+		{Name: "payment_order_receive_address", Type: field.TypeUUID, Unique: true, Nullable: true},
 	}
 	// ReceiveAddressesTable holds the schema information for the "receive_addresses" table.
 	ReceiveAddressesTable = &schema.Table{
@@ -232,7 +232,7 @@ var (
 		PrimaryKey: []*schema.Column{ReceiveAddressesColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "receive_addresses_payment_orders_receive_address_fk",
+				Symbol:     "receive_addresses_payment_orders_receive_address",
 				Columns:    []*schema.Column{ReceiveAddressesColumns[8]},
 				RefColumns: []*schema.Column{PaymentOrdersColumns[0]},
 				OnDelete:   schema.SetNull,
