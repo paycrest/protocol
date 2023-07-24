@@ -56,12 +56,6 @@ func (rac *ReceiveAddressCreate) SetAddress(s string) *ReceiveAddressCreate {
 	return rac
 }
 
-// SetAccountIndex sets the "account_index" field.
-func (rac *ReceiveAddressCreate) SetAccountIndex(i int) *ReceiveAddressCreate {
-	rac.mutation.SetAccountIndex(i)
-	return rac
-}
-
 // SetStatus sets the "status" field.
 func (rac *ReceiveAddressCreate) SetStatus(r receiveaddress.Status) *ReceiveAddressCreate {
 	rac.mutation.SetStatus(r)
@@ -183,9 +177,6 @@ func (rac *ReceiveAddressCreate) check() error {
 	if _, ok := rac.mutation.Address(); !ok {
 		return &ValidationError{Name: "address", err: errors.New(`ent: missing required field "ReceiveAddress.address"`)}
 	}
-	if _, ok := rac.mutation.AccountIndex(); !ok {
-		return &ValidationError{Name: "account_index", err: errors.New(`ent: missing required field "ReceiveAddress.account_index"`)}
-	}
 	if _, ok := rac.mutation.Status(); !ok {
 		return &ValidationError{Name: "status", err: errors.New(`ent: missing required field "ReceiveAddress.status"`)}
 	}
@@ -231,10 +222,6 @@ func (rac *ReceiveAddressCreate) createSpec() (*ReceiveAddress, *sqlgraph.Create
 	if value, ok := rac.mutation.Address(); ok {
 		_spec.SetField(receiveaddress.FieldAddress, field.TypeString, value)
 		_node.Address = value
-	}
-	if value, ok := rac.mutation.AccountIndex(); ok {
-		_spec.SetField(receiveaddress.FieldAccountIndex, field.TypeInt, value)
-		_node.AccountIndex = value
 	}
 	if value, ok := rac.mutation.Status(); ok {
 		_spec.SetField(receiveaddress.FieldStatus, field.TypeEnum, value)

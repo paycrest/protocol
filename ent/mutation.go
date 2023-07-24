@@ -5881,8 +5881,6 @@ type ReceiveAddressMutation struct {
 	created_at            *time.Time
 	updated_at            *time.Time
 	address               *string
-	account_index         *int
-	addaccount_index      *int
 	status                *receiveaddress.Status
 	last_indexed_block    *int64
 	addlast_indexed_block *int64
@@ -6099,62 +6097,6 @@ func (m *ReceiveAddressMutation) OldAddress(ctx context.Context) (v string, err 
 // ResetAddress resets all changes to the "address" field.
 func (m *ReceiveAddressMutation) ResetAddress() {
 	m.address = nil
-}
-
-// SetAccountIndex sets the "account_index" field.
-func (m *ReceiveAddressMutation) SetAccountIndex(i int) {
-	m.account_index = &i
-	m.addaccount_index = nil
-}
-
-// AccountIndex returns the value of the "account_index" field in the mutation.
-func (m *ReceiveAddressMutation) AccountIndex() (r int, exists bool) {
-	v := m.account_index
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldAccountIndex returns the old "account_index" field's value of the ReceiveAddress entity.
-// If the ReceiveAddress object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ReceiveAddressMutation) OldAccountIndex(ctx context.Context) (v int, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldAccountIndex is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldAccountIndex requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldAccountIndex: %w", err)
-	}
-	return oldValue.AccountIndex, nil
-}
-
-// AddAccountIndex adds i to the "account_index" field.
-func (m *ReceiveAddressMutation) AddAccountIndex(i int) {
-	if m.addaccount_index != nil {
-		*m.addaccount_index += i
-	} else {
-		m.addaccount_index = &i
-	}
-}
-
-// AddedAccountIndex returns the value that was added to the "account_index" field in this mutation.
-func (m *ReceiveAddressMutation) AddedAccountIndex() (r int, exists bool) {
-	v := m.addaccount_index
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// ResetAccountIndex resets all changes to the "account_index" field.
-func (m *ReceiveAddressMutation) ResetAccountIndex() {
-	m.account_index = nil
-	m.addaccount_index = nil
 }
 
 // SetStatus sets the "status" field.
@@ -6385,7 +6327,7 @@ func (m *ReceiveAddressMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ReceiveAddressMutation) Fields() []string {
-	fields := make([]string, 0, 7)
+	fields := make([]string, 0, 6)
 	if m.created_at != nil {
 		fields = append(fields, receiveaddress.FieldCreatedAt)
 	}
@@ -6394,9 +6336,6 @@ func (m *ReceiveAddressMutation) Fields() []string {
 	}
 	if m.address != nil {
 		fields = append(fields, receiveaddress.FieldAddress)
-	}
-	if m.account_index != nil {
-		fields = append(fields, receiveaddress.FieldAccountIndex)
 	}
 	if m.status != nil {
 		fields = append(fields, receiveaddress.FieldStatus)
@@ -6421,8 +6360,6 @@ func (m *ReceiveAddressMutation) Field(name string) (ent.Value, bool) {
 		return m.UpdatedAt()
 	case receiveaddress.FieldAddress:
 		return m.Address()
-	case receiveaddress.FieldAccountIndex:
-		return m.AccountIndex()
 	case receiveaddress.FieldStatus:
 		return m.Status()
 	case receiveaddress.FieldLastIndexedBlock:
@@ -6444,8 +6381,6 @@ func (m *ReceiveAddressMutation) OldField(ctx context.Context, name string) (ent
 		return m.OldUpdatedAt(ctx)
 	case receiveaddress.FieldAddress:
 		return m.OldAddress(ctx)
-	case receiveaddress.FieldAccountIndex:
-		return m.OldAccountIndex(ctx)
 	case receiveaddress.FieldStatus:
 		return m.OldStatus(ctx)
 	case receiveaddress.FieldLastIndexedBlock:
@@ -6482,13 +6417,6 @@ func (m *ReceiveAddressMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetAddress(v)
 		return nil
-	case receiveaddress.FieldAccountIndex:
-		v, ok := value.(int)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetAccountIndex(v)
-		return nil
 	case receiveaddress.FieldStatus:
 		v, ok := value.(receiveaddress.Status)
 		if !ok {
@@ -6518,9 +6446,6 @@ func (m *ReceiveAddressMutation) SetField(name string, value ent.Value) error {
 // this mutation.
 func (m *ReceiveAddressMutation) AddedFields() []string {
 	var fields []string
-	if m.addaccount_index != nil {
-		fields = append(fields, receiveaddress.FieldAccountIndex)
-	}
 	if m.addlast_indexed_block != nil {
 		fields = append(fields, receiveaddress.FieldLastIndexedBlock)
 	}
@@ -6532,8 +6457,6 @@ func (m *ReceiveAddressMutation) AddedFields() []string {
 // was not set, or was not defined in the schema.
 func (m *ReceiveAddressMutation) AddedField(name string) (ent.Value, bool) {
 	switch name {
-	case receiveaddress.FieldAccountIndex:
-		return m.AddedAccountIndex()
 	case receiveaddress.FieldLastIndexedBlock:
 		return m.AddedLastIndexedBlock()
 	}
@@ -6545,13 +6468,6 @@ func (m *ReceiveAddressMutation) AddedField(name string) (ent.Value, bool) {
 // type.
 func (m *ReceiveAddressMutation) AddField(name string, value ent.Value) error {
 	switch name {
-	case receiveaddress.FieldAccountIndex:
-		v, ok := value.(int)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.AddAccountIndex(v)
-		return nil
 	case receiveaddress.FieldLastIndexedBlock:
 		v, ok := value.(int64)
 		if !ok {
@@ -6609,9 +6525,6 @@ func (m *ReceiveAddressMutation) ResetField(name string) error {
 		return nil
 	case receiveaddress.FieldAddress:
 		m.ResetAddress()
-		return nil
-	case receiveaddress.FieldAccountIndex:
-		m.ResetAccountIndex()
 		return nil
 	case receiveaddress.FieldStatus:
 		m.ResetStatus()

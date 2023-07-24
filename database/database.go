@@ -1,10 +1,12 @@
 package database
 
 import (
+	"context"
 	"log"
 
 	"entgo.io/ent/dialect"
 	"github.com/paycrest/paycrest-protocol/ent"
+	"github.com/paycrest/paycrest-protocol/ent/migrate"
 	_ "github.com/paycrest/paycrest-protocol/ent/runtime" // ent runtime
 
 	_ "github.com/lib/pq" // postgres driver
@@ -14,12 +16,12 @@ var (
 	// Client holds the database connection
 	Client *ent.Client
 	// Err holds database connection error
-	Err    error
+	Err error
 )
 
 // DBConnection create database connection
 func DBConnection(DSN string) error {
-	// Create an ent.Client for postgresql database.	
+	// Create an ent.Client for postgresql database.
 	client, err := ent.Open(dialect.Postgres, DSN)
 	if err != nil {
 		Err = err
@@ -28,9 +30,9 @@ func DBConnection(DSN string) error {
 	}
 
 	// Run the auto migration tool.
-	// if err := client.Schema.Create(context.Background(), migrate.WithGlobalUniqueID(true)); err != nil {
-	// 	return err
-	// }
+	if err := client.Schema.Create(context.Background(), migrate.WithGlobalUniqueID(true)); err != nil {
+		return err
+	}
 
 	Client = client
 

@@ -109,7 +109,7 @@ var (
 				Symbol:     "payment_order_recipients_payment_orders_recipient",
 				Columns:    []*schema.Column{PaymentOrderRecipientsColumns[5]},
 				RefColumns: []*schema.Column{PaymentOrdersColumns[0]},
-				OnDelete:   schema.NoAction,
+				OnDelete:   schema.Cascade,
 			},
 		},
 	}
@@ -209,7 +209,7 @@ var (
 				Symbol:     "provider_profiles_api_keys_provider_profile",
 				Columns:    []*schema.Column{ProviderProfilesColumns[5]},
 				RefColumns: []*schema.Column{APIKeysColumns[0]},
-				OnDelete:   schema.NoAction,
+				OnDelete:   schema.Cascade,
 			},
 		},
 	}
@@ -219,7 +219,6 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "address", Type: field.TypeString, Unique: true},
-		{Name: "account_index", Type: field.TypeInt},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"unused", "partial", "used", "expired"}, Default: "unused"},
 		{Name: "last_indexed_block", Type: field.TypeInt64, Nullable: true},
 		{Name: "last_used", Type: field.TypeTime, Nullable: true},
@@ -233,7 +232,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "receive_addresses_payment_orders_receive_address",
-				Columns:    []*schema.Column{ReceiveAddressesColumns[8]},
+				Columns:    []*schema.Column{ReceiveAddressesColumns[7]},
 				RefColumns: []*schema.Column{PaymentOrdersColumns[0]},
 				OnDelete:   schema.SetNull,
 			},

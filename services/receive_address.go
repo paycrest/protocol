@@ -2,45 +2,71 @@ package services
 
 import (
 	"context"
+	"crypto/sha256"
 	"fmt"
+	"math/big"
 
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/ethclient"
+	db "github.com/paycrest/paycrest-protocol/database"
 	"github.com/paycrest/paycrest-protocol/ent"
 	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
-	"github.com/paycrest/paycrest-protocol/utils/crypto"
+	"github.com/paycrest/paycrest-protocol/services/contracts"
+	cryptoUtils "github.com/paycrest/paycrest-protocol/utils/crypto"
 )
 
 // ReceiveAddressService provides functionality related to managing receive addresses
-type ReceiveAddressService struct {
-	db *ent.Client
-}
+type ReceiveAddressService struct{}
 
 // NewReceiveAddressService creates a new instance of ReceiveAddressService.
-func NewReceiveAddressService(db *ent.Client) *ReceiveAddressService {
-	return &ReceiveAddressService{
-		db: db,
-	}
+func NewReceiveAddressService() *ReceiveAddressService {
+	return &ReceiveAddressService{}
 }
 
-// GenerateAndSaveAddress function generates a new address for a user
-func (s *ReceiveAddressService) GenerateAndSaveAddress(ctx context.Context) (*ent.ReceiveAddress, error) {
-	count, err := s.db.ReceiveAddress.
-		Query().
-		Count(ctx)
+// CreateSmartAccount function generates and saves a new EIP-4337 smart contract account address
+func (s *ReceiveAddressService) CreateSmartAccount(ctx context.Context) (*ent.ReceiveAddress, error) {
+
+	// Connect to RPC endpoint
+	client, err := ethclient.Dial("https://mainnet.infura.io/v3/4818dbcee84d4651a832894818bd4534")
 	if err != nil {
-		return nil, fmt.Errorf("failed to query receive addresses: %w", err)
+		return nil, fmt.Errorf("failed to connect to RPC client: %w", err)
 	}
 
-	// accountIndex = number of receive addresses in DB + 1
-	accountIndex := count + 1
-	address, _, err := crypto.GenerateReceiveAddress(accountIndex)
+	// Initialize contract factory
+	// https://github.com/eth-infinitism/account-abstraction/blob/develop/contracts/samples/SimpleAccountFactory.sol
+	factoryAddress := common.HexToAddress("0x9406Cc6185a346906296840746125a0E44976454")
+
+	simpleAccountFactory, err := contracts.NewSimpleAccountFactory(factoryAddress, client)
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate receive address: %w", err)
+		return nil, fmt.Errorf("failed to initialize factory contract: %w", err)
 	}
 
-	receiveAddress, err := s.db.ReceiveAddress.
+	// Get master private key
+	ownerAddress, ownerPrivateKeyHex, _ := cryptoUtils.GenerateAccountFromIndex(0)
+
+	// Decode private key
+	ownerPrivateKeyBytes, err := hexutil.Decode(ownerPrivateKeyHex)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode private key: %w", err)
+	}
+
+	// Use SHA-256 to generate the salt
+	hash := sha256.Sum256(ownerPrivateKeyBytes)
+
+	// Create a new big.Int from the hash
+	salt := new(big.Int).SetBytes(hash[:])
+
+	// Generate address
+	address, err := simpleAccountFactory.GetAddress(nil, common.HexToAddress(ownerAddress), salt)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate address: %w", err)
+	}
+
+	// Save address in db
+	receiveAddress, err := db.Client.ReceiveAddress.
 		Create().
-		SetAddress(address).
-		SetAccountIndex(accountIndex).
+		SetAddress(address.Hex()).
 		SetStatus(receiveaddress.StatusUnused).
 		Save(ctx)
 	if err != nil {

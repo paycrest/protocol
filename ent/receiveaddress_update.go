@@ -42,19 +42,6 @@ func (rau *ReceiveAddressUpdate) SetAddress(s string) *ReceiveAddressUpdate {
 	return rau
 }
 
-// SetAccountIndex sets the "account_index" field.
-func (rau *ReceiveAddressUpdate) SetAccountIndex(i int) *ReceiveAddressUpdate {
-	rau.mutation.ResetAccountIndex()
-	rau.mutation.SetAccountIndex(i)
-	return rau
-}
-
-// AddAccountIndex adds i to the "account_index" field.
-func (rau *ReceiveAddressUpdate) AddAccountIndex(i int) *ReceiveAddressUpdate {
-	rau.mutation.AddAccountIndex(i)
-	return rau
-}
-
 // SetStatus sets the "status" field.
 func (rau *ReceiveAddressUpdate) SetStatus(r receiveaddress.Status) *ReceiveAddressUpdate {
 	rau.mutation.SetStatus(r)
@@ -210,12 +197,6 @@ func (rau *ReceiveAddressUpdate) sqlSave(ctx context.Context) (n int, err error)
 	if value, ok := rau.mutation.Address(); ok {
 		_spec.SetField(receiveaddress.FieldAddress, field.TypeString, value)
 	}
-	if value, ok := rau.mutation.AccountIndex(); ok {
-		_spec.SetField(receiveaddress.FieldAccountIndex, field.TypeInt, value)
-	}
-	if value, ok := rau.mutation.AddedAccountIndex(); ok {
-		_spec.AddField(receiveaddress.FieldAccountIndex, field.TypeInt, value)
-	}
 	if value, ok := rau.mutation.Status(); ok {
 		_spec.SetField(receiveaddress.FieldStatus, field.TypeEnum, value)
 	}
@@ -292,19 +273,6 @@ func (rauo *ReceiveAddressUpdateOne) SetUpdatedAt(t time.Time) *ReceiveAddressUp
 // SetAddress sets the "address" field.
 func (rauo *ReceiveAddressUpdateOne) SetAddress(s string) *ReceiveAddressUpdateOne {
 	rauo.mutation.SetAddress(s)
-	return rauo
-}
-
-// SetAccountIndex sets the "account_index" field.
-func (rauo *ReceiveAddressUpdateOne) SetAccountIndex(i int) *ReceiveAddressUpdateOne {
-	rauo.mutation.ResetAccountIndex()
-	rauo.mutation.SetAccountIndex(i)
-	return rauo
-}
-
-// AddAccountIndex adds i to the "account_index" field.
-func (rauo *ReceiveAddressUpdateOne) AddAccountIndex(i int) *ReceiveAddressUpdateOne {
-	rauo.mutation.AddAccountIndex(i)
 	return rauo
 }
 
@@ -492,12 +460,6 @@ func (rauo *ReceiveAddressUpdateOne) sqlSave(ctx context.Context) (_node *Receiv
 	}
 	if value, ok := rauo.mutation.Address(); ok {
 		_spec.SetField(receiveaddress.FieldAddress, field.TypeString, value)
-	}
-	if value, ok := rauo.mutation.AccountIndex(); ok {
-		_spec.SetField(receiveaddress.FieldAccountIndex, field.TypeInt, value)
-	}
-	if value, ok := rauo.mutation.AddedAccountIndex(); ok {
-		_spec.AddField(receiveaddress.FieldAccountIndex, field.TypeInt, value)
 	}
 	if value, ok := rauo.mutation.Status(); ok {
 		_spec.SetField(receiveaddress.FieldStatus, field.TypeEnum, value)

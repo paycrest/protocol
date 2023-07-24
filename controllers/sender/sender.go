@@ -26,11 +26,11 @@ func NewSenderController(indexer svc.Indexer) *SenderController {
 	var indexerService *svc.IndexerService
 
 	if indexer == nil {
-		indexerService = svc.NewIndexerService(db.Client, indexer)
+		indexerService = svc.NewIndexerService(indexer)
 	}
 	return &SenderController{
 		indexerService:        indexerService,
-		receiveAddressService: svc.NewReceiveAddressService(db.Client),
+		receiveAddressService: svc.NewReceiveAddressService(),
 	}
 }
 
@@ -46,7 +46,7 @@ func (ctrl *SenderController) CreatePaymentOrder(ctx *gin.Context) {
 	}
 
 	// Generate receive address
-	receiveAddress, err := ctrl.receiveAddressService.GenerateAndSaveAddress(ctx)
+	receiveAddress, err := ctrl.receiveAddressService.CreateSmartAccount(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusInternalServerError, "error",
