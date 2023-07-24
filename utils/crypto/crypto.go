@@ -62,8 +62,8 @@ func Decrypt(ciphertext []byte) ([]byte, error) {
 	return ciphertext, nil
 }
 
-// GenerateReceiveAddress generates a crypto wallet account from HD wallet mnemonic
-func GenerateReceiveAddress(accountIndex int) (string, string, error) {
+// GenerateAccountFromIndex generates a crypto wallet account from HD wallet mnemonic
+func GenerateAccountFromIndex(accountIndex int) (string, string, error) {
 	//added code to test generate addrress
 	mnemonic := serverConf.HDWalletMnemonic
 

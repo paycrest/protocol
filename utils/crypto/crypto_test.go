@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGenerateReceiveAddress(t *testing.T) {
+func TestCreateEOA(t *testing.T) {
 	// Mock the server config
 	serverConf.HDWalletMnemonic = "media nerve fog identify typical physical aspect doll bar fossil frost because"
 
@@ -14,10 +14,10 @@ func TestGenerateReceiveAddress(t *testing.T) {
 	expectedAccountIndex := 1
 	expectedAddress := "0xc60F0aDe1483fa6A355f32E0d3406127C49d4d7f"
 
-	// Call the GenerateReceiveAddress Function
-	address,privateKey, err := GenerateReceiveAddress(expectedAccountIndex)
+	// Call the GenerateAccountFromIndex Function
+	address, privateKey, err := GenerateAccountFromIndex(expectedAccountIndex)
 
-	// error checker 
+	// error checker
 	assert.NoError(t, err, "unexpected error")
 
 	// Assert the generated address
