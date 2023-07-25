@@ -13,6 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/paycrest/paycrest-protocol/config"
+	db "github.com/paycrest/paycrest-protocol/database"
 	"github.com/paycrest/paycrest-protocol/ent"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
@@ -29,14 +30,12 @@ type Indexer interface {
 
 // IndexerService performs blockchain to database extract, transform, load (ETL) operations.
 type IndexerService struct {
-	db      *ent.Client
 	indexer Indexer
 }
 
 // NewIndexerService creates a new instance of IndexerService.
-func NewIndexerService(db *ent.Client, indexer Indexer) *IndexerService {
+func NewIndexerService(indexer Indexer) *IndexerService {
 	return &IndexerService{
-		db:      db,
 		indexer: indexer,
 	}
 }
@@ -45,7 +44,7 @@ func NewIndexerService(db *ent.Client, indexer Indexer) *IndexerService {
 func (s *IndexerService) IndexERC20Transfer(ctx context.Context, receiveAddress *ent.ReceiveAddress, done chan<- bool) error {
 
 	// Fetch payment order from db
-	paymentOrder, err := s.db.PaymentOrder.
+	paymentOrder, err := db.Client.PaymentOrder.
 		Query().
 		Where(
 			paymentorder.HasReceiveAddressWith(
@@ -188,7 +187,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, receiveAddress 
 
 					if receiveAddress.Status == receiveaddress.StatusPartial {
 						// Refresh the receive address with payment order and compare the amount paid with expected amount,
-						receiveAddress, err = s.db.ReceiveAddress.
+						receiveAddress, err = db.Client.ReceiveAddress.
 							Query().
 							Where(receiveaddress.AddressEQ(receiveAddress.Address)).
 							WithPaymentOrder().

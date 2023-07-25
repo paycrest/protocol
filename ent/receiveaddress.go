@@ -25,8 +25,6 @@ type ReceiveAddress struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// Address holds the value of the "address" field.
 	Address string `json:"address,omitempty"`
-	// AccountIndex holds the value of the "account_index" field.
-	AccountIndex int `json:"account_index,omitempty"`
 	// Status holds the value of the "status" field.
 	Status receiveaddress.Status `json:"status,omitempty"`
 	// LastIndexedBlock holds the value of the "last_indexed_block" field.
@@ -67,7 +65,7 @@ func (*ReceiveAddress) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case receiveaddress.FieldID, receiveaddress.FieldAccountIndex, receiveaddress.FieldLastIndexedBlock:
+		case receiveaddress.FieldID, receiveaddress.FieldLastIndexedBlock:
 			values[i] = new(sql.NullInt64)
 		case receiveaddress.FieldAddress, receiveaddress.FieldStatus:
 			values[i] = new(sql.NullString)
@@ -113,12 +111,6 @@ func (ra *ReceiveAddress) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field address", values[i])
 			} else if value.Valid {
 				ra.Address = value.String
-			}
-		case receiveaddress.FieldAccountIndex:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for field account_index", values[i])
-			} else if value.Valid {
-				ra.AccountIndex = int(value.Int64)
 			}
 		case receiveaddress.FieldStatus:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -194,9 +186,6 @@ func (ra *ReceiveAddress) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("address=")
 	builder.WriteString(ra.Address)
-	builder.WriteString(", ")
-	builder.WriteString("account_index=")
-	builder.WriteString(fmt.Sprintf("%v", ra.AccountIndex))
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(fmt.Sprintf("%v", ra.Status))

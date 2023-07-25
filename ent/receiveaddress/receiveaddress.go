@@ -21,8 +21,6 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// FieldAddress holds the string denoting the address field in the database.
 	FieldAddress = "address"
-	// FieldAccountIndex holds the string denoting the account_index field in the database.
-	FieldAccountIndex = "account_index"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
 	// FieldLastIndexedBlock holds the string denoting the last_indexed_block field in the database.
@@ -48,7 +46,6 @@ var Columns = []string{
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldAddress,
-	FieldAccountIndex,
 	FieldStatus,
 	FieldLastIndexedBlock,
 	FieldLastUsed,
@@ -133,11 +130,6 @@ func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByAddress orders the results by the address field.
 func ByAddress(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAddress, opts...).ToFunc()
-}
-
-// ByAccountIndex orders the results by the account_index field.
-func ByAccountIndex(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldAccountIndex, opts...).ToFunc()
 }
 
 // ByStatus orders the results by the status field.

@@ -70,11 +70,6 @@ func Address(v string) predicate.ReceiveAddress {
 	return predicate.ReceiveAddress(sql.FieldEQ(FieldAddress, v))
 }
 
-// AccountIndex applies equality check predicate on the "account_index" field. It's identical to AccountIndexEQ.
-func AccountIndex(v int) predicate.ReceiveAddress {
-	return predicate.ReceiveAddress(sql.FieldEQ(FieldAccountIndex, v))
-}
-
 // LastIndexedBlock applies equality check predicate on the "last_indexed_block" field. It's identical to LastIndexedBlockEQ.
 func LastIndexedBlock(v int64) predicate.ReceiveAddress {
 	return predicate.ReceiveAddress(sql.FieldEQ(FieldLastIndexedBlock, v))
@@ -228,46 +223,6 @@ func AddressEqualFold(v string) predicate.ReceiveAddress {
 // AddressContainsFold applies the ContainsFold predicate on the "address" field.
 func AddressContainsFold(v string) predicate.ReceiveAddress {
 	return predicate.ReceiveAddress(sql.FieldContainsFold(FieldAddress, v))
-}
-
-// AccountIndexEQ applies the EQ predicate on the "account_index" field.
-func AccountIndexEQ(v int) predicate.ReceiveAddress {
-	return predicate.ReceiveAddress(sql.FieldEQ(FieldAccountIndex, v))
-}
-
-// AccountIndexNEQ applies the NEQ predicate on the "account_index" field.
-func AccountIndexNEQ(v int) predicate.ReceiveAddress {
-	return predicate.ReceiveAddress(sql.FieldNEQ(FieldAccountIndex, v))
-}
-
-// AccountIndexIn applies the In predicate on the "account_index" field.
-func AccountIndexIn(vs ...int) predicate.ReceiveAddress {
-	return predicate.ReceiveAddress(sql.FieldIn(FieldAccountIndex, vs...))
-}
-
-// AccountIndexNotIn applies the NotIn predicate on the "account_index" field.
-func AccountIndexNotIn(vs ...int) predicate.ReceiveAddress {
-	return predicate.ReceiveAddress(sql.FieldNotIn(FieldAccountIndex, vs...))
-}
-
-// AccountIndexGT applies the GT predicate on the "account_index" field.
-func AccountIndexGT(v int) predicate.ReceiveAddress {
-	return predicate.ReceiveAddress(sql.FieldGT(FieldAccountIndex, v))
-}
-
-// AccountIndexGTE applies the GTE predicate on the "account_index" field.
-func AccountIndexGTE(v int) predicate.ReceiveAddress {
-	return predicate.ReceiveAddress(sql.FieldGTE(FieldAccountIndex, v))
-}
-
-// AccountIndexLT applies the LT predicate on the "account_index" field.
-func AccountIndexLT(v int) predicate.ReceiveAddress {
-	return predicate.ReceiveAddress(sql.FieldLT(FieldAccountIndex, v))
-}
-
-// AccountIndexLTE applies the LTE predicate on the "account_index" field.
-func AccountIndexLTE(v int) predicate.ReceiveAddress {
-	return predicate.ReceiveAddress(sql.FieldLTE(FieldAccountIndex, v))
 }
 
 // StatusEQ applies the EQ predicate on the "status" field.

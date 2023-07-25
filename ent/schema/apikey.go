@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -42,8 +43,10 @@ func (APIKey) Edges() []ent.Edge {
 			Unique().
 			Immutable(),
 		edge.To("provider_profile", ProviderProfile.Type).
-			Unique(),
-		edge.To("payment_orders", PaymentOrder.Type),
+			Unique().
+			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("payment_orders", PaymentOrder.Type).
+			Annotations(entsql.OnDelete(entsql.SetNull)),
 	}
 }
 

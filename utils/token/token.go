@@ -7,7 +7,6 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"time"
 
@@ -67,13 +66,13 @@ func ValidateJWT(tokenString string) (jwt.MapClaims, error) {
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok || !token.Valid {
-		return nil, errors.New("invalid token")
+		return nil, fmt.Errorf("invalid token")
 	}
 
 	// Check if token is expired
 	expirationTime := time.Unix(int64(claims["exp"].(float64)), 0)
 	if time.Now().After(expirationTime) {
-		return nil, errors.New("token has expired")
+		return nil, fmt.Errorf("token has expired")
 	}
 
 	return claims, nil
