@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/google/uuid"
 	db "github.com/paycrest/paycrest-protocol/database"
 	"github.com/paycrest/paycrest-protocol/ent"
 	"github.com/paycrest/paycrest-protocol/ent/token"
@@ -154,7 +155,50 @@ func (ctrl *SenderController) CreatePaymentOrder(ctx *gin.Context) {
 
 // GetPaymentOrderByID controller fetches a payment order by ID
 func (ctrl *SenderController) GetPaymentOrderByID(ctx *gin.Context) {
-	u.APIResponse(ctx, http.StatusOK, "success", "OK", nil)
+	// Get order ID from the URL
+	orderID := ctx.Param("id")
+
+	// Connvert order ID to UUID
+	id, err := uuid.Parse(orderID)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusBadRequest, "error",
+			"Invalid order ID", err.Error())
+		return
+	}
+
+	// Fetch payment order from the database
+	paymentOrder, err := db.Client.PaymentOrder.
+		Query().
+		Where(paymentorder.ID(id)).
+		WithRecipient().
+		First(ctx)
+
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusNotFound, "error",
+			"Payment order not found", err.Error())
+		return
+	}
+
+	paymentOrderAmount, _ := paymentOrder.Amount.Float64()
+
+	u.APIResponse(ctx, http.StatusOK, "success", "The order has been successfully retrieved",
+		&svc.PaymentOrderResponse{
+			ID:      paymentOrder.ID,
+			Amount:  paymentOrderAmount,
+			Network: paymentOrder.Network.String(),
+			Recipient: svc.PaymentOrderRecipient{
+				Institution:       paymentOrder.Edges.Recipient.Institution,
+				AccountIdentifier: paymentOrder.Edges.Recipient.AccountIdentifier,
+				AccountName:       paymentOrder.Edges.Recipient.AccountName,
+				ProviderID:        paymentOrder.Edges.Recipient.ProviderID,
+			},
+			CreatedAt: paymentOrder.CreatedAt,
+			UpdatedAt: paymentOrder.UpdatedAt,
+			TxHash:    paymentOrder.TxHash,
+			Status:    paymentOrder.Status.String(),
+		})
 }
 
 // DeletePaymentOrder controller deletes a payment order
