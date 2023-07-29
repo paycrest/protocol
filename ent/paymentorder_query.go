@@ -23,15 +23,15 @@ import (
 // PaymentOrderQuery is the builder for querying PaymentOrder entities.
 type PaymentOrderQuery struct {
 	config
-	ctx                  *QueryContext
-	order                []paymentorder.OrderOption
-	inters               []Interceptor
-	predicates           []predicate.PaymentOrder
-	withAPIKey           *APIKeyQuery
-	withToken            *TokenQuery
-	withReceiveAddressFk *ReceiveAddressQuery
-	withRecipient        *PaymentOrderRecipientQuery
-	withFKs              bool
+	ctx                *QueryContext
+	order              []paymentorder.OrderOption
+	inters             []Interceptor
+	predicates         []predicate.PaymentOrder
+	withAPIKey         *APIKeyQuery
+	withToken          *TokenQuery
+	withReceiveAddress *ReceiveAddressQuery
+	withRecipient      *PaymentOrderRecipientQuery
+	withFKs            bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -112,8 +112,8 @@ func (poq *PaymentOrderQuery) QueryToken() *TokenQuery {
 	return query
 }
 
-// QueryReceiveAddressFk chains the current query on the "receive_address_fk" edge.
-func (poq *PaymentOrderQuery) QueryReceiveAddressFk() *ReceiveAddressQuery {
+// QueryReceiveAddress chains the current query on the "receive_address" edge.
+func (poq *PaymentOrderQuery) QueryReceiveAddress() *ReceiveAddressQuery {
 	query := (&ReceiveAddressClient{config: poq.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := poq.prepareQuery(ctx); err != nil {
@@ -126,7 +126,7 @@ func (poq *PaymentOrderQuery) QueryReceiveAddressFk() *ReceiveAddressQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(paymentorder.Table, paymentorder.FieldID, selector),
 			sqlgraph.To(receiveaddress.Table, receiveaddress.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, paymentorder.ReceiveAddressFkTable, paymentorder.ReceiveAddressFkColumn),
+			sqlgraph.Edge(sqlgraph.O2O, false, paymentorder.ReceiveAddressTable, paymentorder.ReceiveAddressColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(poq.driver.Dialect(), step)
 		return fromU, nil
@@ -180,8 +180,8 @@ func (poq *PaymentOrderQuery) FirstX(ctx context.Context) *PaymentOrder {
 
 // FirstID returns the first PaymentOrder ID from the query.
 // Returns a *NotFoundError when no PaymentOrder ID was found.
-func (poq *PaymentOrderQuery) FirstID(ctx context.Context) (id int, err error) {
-	var ids []int
+func (poq *PaymentOrderQuery) FirstID(ctx context.Context) (id uuid.UUID, err error) {
+	var ids []uuid.UUID
 	if ids, err = poq.Limit(1).IDs(setContextOp(ctx, poq.ctx, "FirstID")); err != nil {
 		return
 	}
@@ -193,7 +193,7 @@ func (poq *PaymentOrderQuery) FirstID(ctx context.Context) (id int, err error) {
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (poq *PaymentOrderQuery) FirstIDX(ctx context.Context) int {
+func (poq *PaymentOrderQuery) FirstIDX(ctx context.Context) uuid.UUID {
 	id, err := poq.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -231,8 +231,8 @@ func (poq *PaymentOrderQuery) OnlyX(ctx context.Context) *PaymentOrder {
 // OnlyID is like Only, but returns the only PaymentOrder ID in the query.
 // Returns a *NotSingularError when more than one PaymentOrder ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (poq *PaymentOrderQuery) OnlyID(ctx context.Context) (id int, err error) {
-	var ids []int
+func (poq *PaymentOrderQuery) OnlyID(ctx context.Context) (id uuid.UUID, err error) {
+	var ids []uuid.UUID
 	if ids, err = poq.Limit(2).IDs(setContextOp(ctx, poq.ctx, "OnlyID")); err != nil {
 		return
 	}
@@ -248,7 +248,7 @@ func (poq *PaymentOrderQuery) OnlyID(ctx context.Context) (id int, err error) {
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (poq *PaymentOrderQuery) OnlyIDX(ctx context.Context) int {
+func (poq *PaymentOrderQuery) OnlyIDX(ctx context.Context) uuid.UUID {
 	id, err := poq.OnlyID(ctx)
 	if err != nil {
 		panic(err)
@@ -276,7 +276,7 @@ func (poq *PaymentOrderQuery) AllX(ctx context.Context) []*PaymentOrder {
 }
 
 // IDs executes the query and returns a list of PaymentOrder IDs.
-func (poq *PaymentOrderQuery) IDs(ctx context.Context) (ids []int, err error) {
+func (poq *PaymentOrderQuery) IDs(ctx context.Context) (ids []uuid.UUID, err error) {
 	if poq.ctx.Unique == nil && poq.path != nil {
 		poq.Unique(true)
 	}
@@ -288,7 +288,7 @@ func (poq *PaymentOrderQuery) IDs(ctx context.Context) (ids []int, err error) {
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (poq *PaymentOrderQuery) IDsX(ctx context.Context) []int {
+func (poq *PaymentOrderQuery) IDsX(ctx context.Context) []uuid.UUID {
 	ids, err := poq.IDs(ctx)
 	if err != nil {
 		panic(err)
@@ -343,15 +343,15 @@ func (poq *PaymentOrderQuery) Clone() *PaymentOrderQuery {
 		return nil
 	}
 	return &PaymentOrderQuery{
-		config:               poq.config,
-		ctx:                  poq.ctx.Clone(),
-		order:                append([]paymentorder.OrderOption{}, poq.order...),
-		inters:               append([]Interceptor{}, poq.inters...),
-		predicates:           append([]predicate.PaymentOrder{}, poq.predicates...),
-		withAPIKey:           poq.withAPIKey.Clone(),
-		withToken:            poq.withToken.Clone(),
-		withReceiveAddressFk: poq.withReceiveAddressFk.Clone(),
-		withRecipient:        poq.withRecipient.Clone(),
+		config:             poq.config,
+		ctx:                poq.ctx.Clone(),
+		order:              append([]paymentorder.OrderOption{}, poq.order...),
+		inters:             append([]Interceptor{}, poq.inters...),
+		predicates:         append([]predicate.PaymentOrder{}, poq.predicates...),
+		withAPIKey:         poq.withAPIKey.Clone(),
+		withToken:          poq.withToken.Clone(),
+		withReceiveAddress: poq.withReceiveAddress.Clone(),
+		withRecipient:      poq.withRecipient.Clone(),
 		// clone intermediate query.
 		sql:  poq.sql.Clone(),
 		path: poq.path,
@@ -380,14 +380,14 @@ func (poq *PaymentOrderQuery) WithToken(opts ...func(*TokenQuery)) *PaymentOrder
 	return poq
 }
 
-// WithReceiveAddressFk tells the query-builder to eager-load the nodes that are connected to
-// the "receive_address_fk" edge. The optional arguments are used to configure the query builder of the edge.
-func (poq *PaymentOrderQuery) WithReceiveAddressFk(opts ...func(*ReceiveAddressQuery)) *PaymentOrderQuery {
+// WithReceiveAddress tells the query-builder to eager-load the nodes that are connected to
+// the "receive_address" edge. The optional arguments are used to configure the query builder of the edge.
+func (poq *PaymentOrderQuery) WithReceiveAddress(opts ...func(*ReceiveAddressQuery)) *PaymentOrderQuery {
 	query := (&ReceiveAddressClient{config: poq.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	poq.withReceiveAddressFk = query
+	poq.withReceiveAddress = query
 	return poq
 }
 
@@ -484,7 +484,7 @@ func (poq *PaymentOrderQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([
 		loadedTypes = [4]bool{
 			poq.withAPIKey != nil,
 			poq.withToken != nil,
-			poq.withReceiveAddressFk != nil,
+			poq.withReceiveAddress != nil,
 			poq.withRecipient != nil,
 		}
 	)
@@ -524,9 +524,9 @@ func (poq *PaymentOrderQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([
 			return nil, err
 		}
 	}
-	if query := poq.withReceiveAddressFk; query != nil {
-		if err := poq.loadReceiveAddressFk(ctx, query, nodes, nil,
-			func(n *PaymentOrder, e *ReceiveAddress) { n.Edges.ReceiveAddressFk = e }); err != nil {
+	if query := poq.withReceiveAddress; query != nil {
+		if err := poq.loadReceiveAddress(ctx, query, nodes, nil,
+			func(n *PaymentOrder, e *ReceiveAddress) { n.Edges.ReceiveAddress = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -603,29 +603,29 @@ func (poq *PaymentOrderQuery) loadToken(ctx context.Context, query *TokenQuery, 
 	}
 	return nil
 }
-func (poq *PaymentOrderQuery) loadReceiveAddressFk(ctx context.Context, query *ReceiveAddressQuery, nodes []*PaymentOrder, init func(*PaymentOrder), assign func(*PaymentOrder, *ReceiveAddress)) error {
+func (poq *PaymentOrderQuery) loadReceiveAddress(ctx context.Context, query *ReceiveAddressQuery, nodes []*PaymentOrder, init func(*PaymentOrder), assign func(*PaymentOrder, *ReceiveAddress)) error {
 	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[int]*PaymentOrder)
+	nodeids := make(map[uuid.UUID]*PaymentOrder)
 	for i := range nodes {
 		fks = append(fks, nodes[i].ID)
 		nodeids[nodes[i].ID] = nodes[i]
 	}
 	query.withFKs = true
 	query.Where(predicate.ReceiveAddress(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(paymentorder.ReceiveAddressFkColumn), fks...))
+		s.Where(sql.InValues(s.C(paymentorder.ReceiveAddressColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.payment_order_receive_address_fk
+		fk := n.payment_order_receive_address
 		if fk == nil {
-			return fmt.Errorf(`foreign-key "payment_order_receive_address_fk" is nil for node %v`, n.ID)
+			return fmt.Errorf(`foreign-key "payment_order_receive_address" is nil for node %v`, n.ID)
 		}
 		node, ok := nodeids[*fk]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "payment_order_receive_address_fk" returned %v for node %v`, *fk, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "payment_order_receive_address" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}
@@ -633,7 +633,7 @@ func (poq *PaymentOrderQuery) loadReceiveAddressFk(ctx context.Context, query *R
 }
 func (poq *PaymentOrderQuery) loadRecipient(ctx context.Context, query *PaymentOrderRecipientQuery, nodes []*PaymentOrder, init func(*PaymentOrder), assign func(*PaymentOrder, *PaymentOrderRecipient)) error {
 	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[int]*PaymentOrder)
+	nodeids := make(map[uuid.UUID]*PaymentOrder)
 	for i := range nodes {
 		fks = append(fks, nodes[i].ID)
 		nodeids[nodes[i].ID] = nodes[i]
@@ -670,7 +670,7 @@ func (poq *PaymentOrderQuery) sqlCount(ctx context.Context) (int, error) {
 }
 
 func (poq *PaymentOrderQuery) querySpec() *sqlgraph.QuerySpec {
-	_spec := sqlgraph.NewQuerySpec(paymentorder.Table, paymentorder.Columns, sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeInt))
+	_spec := sqlgraph.NewQuerySpec(paymentorder.Table, paymentorder.Columns, sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeUUID))
 	_spec.From = poq.sql
 	if unique := poq.ctx.Unique; unique != nil {
 		_spec.Unique = *unique

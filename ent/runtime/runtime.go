@@ -71,13 +71,17 @@ func init() {
 	// paymentorder.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	paymentorder.UpdateDefaultUpdatedAt = paymentorderDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// paymentorderDescTxHash is the schema descriptor for tx_hash field.
-	paymentorderDescTxHash := paymentorderFields[3].Descriptor()
+	paymentorderDescTxHash := paymentorderFields[4].Descriptor()
 	// paymentorder.TxHashValidator is a validator for the "tx_hash" field. It is called by the builders before save.
 	paymentorder.TxHashValidator = paymentorderDescTxHash.Validators[0].(func(string) error)
-	// paymentorderDescReceiveAddress is the schema descriptor for receive_address field.
-	paymentorderDescReceiveAddress := paymentorderFields[4].Descriptor()
-	// paymentorder.ReceiveAddressValidator is a validator for the "receive_address" field. It is called by the builders before save.
-	paymentorder.ReceiveAddressValidator = paymentorderDescReceiveAddress.Validators[0].(func(string) error)
+	// paymentorderDescReceiveAddressText is the schema descriptor for receive_address_text field.
+	paymentorderDescReceiveAddressText := paymentorderFields[5].Descriptor()
+	// paymentorder.ReceiveAddressTextValidator is a validator for the "receive_address_text" field. It is called by the builders before save.
+	paymentorder.ReceiveAddressTextValidator = paymentorderDescReceiveAddressText.Validators[0].(func(string) error)
+	// paymentorderDescID is the schema descriptor for id field.
+	paymentorderDescID := paymentorderFields[0].Descriptor()
+	// paymentorder.DefaultID holds the default value on creation for the id field.
+	paymentorder.DefaultID = paymentorderDescID.Default.(func() uuid.UUID)
 	providerordertokenMixin := schema.ProviderOrderToken{}.Mixin()
 	providerordertokenMixinFields0 := providerordertokenMixin[0].Fields()
 	_ = providerordertokenMixinFields0

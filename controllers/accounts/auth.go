@@ -19,7 +19,16 @@ import (
 )
 
 // AuthController is the controller type for the auth endpoints
-type AuthController struct{}
+type AuthController struct {
+	// apiKeyService *svc.APIKeyService
+}
+
+// NewAuthController creates a new instance of AuthController with injected services
+// func NewAuthController() *AuthController {
+// 	return &AuthController{
+// 		apiKeyService: svc.NewAPIKeyService(db.Client),
+// 	}
+// }
 
 // Register controller validates the payload and creates a new user.
 // It hashes the password provided by the user.
@@ -64,18 +73,19 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 
 	// Create a provider API Key and profile in the background
 	// TODO: Replace provider with a UUID environment variable
-	if appID := ctx.GetHeader("X-App-ID"); appID == "provider" {
-		apiKeyService := svc.NewAPIKeyService(db.Client)
-
-		apiKeyInput := svc.GenerateAPIKeyPayload{
+	if appID := ctx.GetHeader("X-APP-ID"); appID == "provider" {
+		apiKeyInput := svc.CreateAPIKeyPayload{
 			Name:  payload.TradingName + " API Key",
 			Scope: apikey.ScopeProvider,
 		}
 
 		// Generate the API key using the service
+		apiKeyService := svc.NewAPIKeyService(db.Client)
 		apiKey, _, err := apiKeyService.GenerateAPIKey(ctx, user.ID, apiKeyInput)
 		if err != nil {
 			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error",
+				"Failed to create new user", err.Error())
 			return
 		}
 
@@ -89,6 +99,8 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 
 		if err != nil {
 			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error",
+				"Failed to create new user", err.Error())
 			return
 		}
 	}
@@ -182,8 +194,8 @@ func (ctrl *AuthController) RefreshJWT(ctx *gin.Context) {
 	})
 }
 
-// GenerateAPIKey controller generates a new API key pair for the user.
-func (ctrl *AuthController) GenerateAPIKey(ctx *gin.Context) {
+// CreateAPIKey controller creates a new API key pair for the user.
+func (ctrl *AuthController) CreateAPIKey(ctx *gin.Context) {
 	// Get the user ID from the context
 	userIDString, _ := ctx.Get("user_id")
 
@@ -195,7 +207,7 @@ func (ctrl *AuthController) GenerateAPIKey(ctx *gin.Context) {
 		return
 	}
 
-	var payload svc.GenerateAPIKeyPayload
+	var payload svc.CreateAPIKeyPayload
 
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		logger.Errorf("error: %v", err)
@@ -203,10 +215,8 @@ func (ctrl *AuthController) GenerateAPIKey(ctx *gin.Context) {
 		return
 	}
 
-	// Create a new instance of APIKeyService
-	apiKeyService := svc.NewAPIKeyService(db.Client)
-
 	// Generate the API key using the service
+	apiKeyService := svc.NewAPIKeyService(db.Client)
 	apiKey, secretKey, err := apiKeyService.GenerateAPIKey(ctx, userID, payload)
 	if err != nil {
 		logger.Errorf("error: %v", err)

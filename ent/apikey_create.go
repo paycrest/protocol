@@ -123,14 +123,14 @@ func (akc *APIKeyCreate) SetProviderProfile(p *ProviderProfile) *APIKeyCreate {
 }
 
 // AddPaymentOrderIDs adds the "payment_orders" edge to the PaymentOrder entity by IDs.
-func (akc *APIKeyCreate) AddPaymentOrderIDs(ids ...int) *APIKeyCreate {
+func (akc *APIKeyCreate) AddPaymentOrderIDs(ids ...uuid.UUID) *APIKeyCreate {
 	akc.mutation.AddPaymentOrderIDs(ids...)
 	return akc
 }
 
 // AddPaymentOrders adds the "payment_orders" edges to the PaymentOrder entity.
 func (akc *APIKeyCreate) AddPaymentOrders(p ...*PaymentOrder) *APIKeyCreate {
-	ids := make([]int, len(p))
+	ids := make([]uuid.UUID, len(p))
 	for i := range p {
 		ids[i] = p[i].ID
 	}
@@ -309,7 +309,7 @@ func (akc *APIKeyCreate) createSpec() (*APIKey, *sqlgraph.CreateSpec) {
 			Columns: []string{apikey.PaymentOrdersColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

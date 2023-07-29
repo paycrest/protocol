@@ -21,8 +21,6 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// FieldAddress holds the string denoting the address field in the database.
 	FieldAddress = "address"
-	// FieldAccountIndex holds the string denoting the account_index field in the database.
-	FieldAccountIndex = "account_index"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
 	// FieldLastIndexedBlock holds the string denoting the last_indexed_block field in the database.
@@ -39,7 +37,7 @@ const (
 	// It exists in this package in order to avoid circular dependency with the "paymentorder" package.
 	PaymentOrderInverseTable = "payment_orders"
 	// PaymentOrderColumn is the table column denoting the payment_order relation/edge.
-	PaymentOrderColumn = "payment_order_receive_address_fk"
+	PaymentOrderColumn = "payment_order_receive_address"
 )
 
 // Columns holds all SQL columns for receiveaddress fields.
@@ -48,7 +46,6 @@ var Columns = []string{
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldAddress,
-	FieldAccountIndex,
 	FieldStatus,
 	FieldLastIndexedBlock,
 	FieldLastUsed,
@@ -57,7 +54,7 @@ var Columns = []string{
 // ForeignKeys holds the SQL foreign-keys that are owned by the "receive_addresses"
 // table and are not defined as standalone fields in the schema.
 var ForeignKeys = []string{
-	"payment_order_receive_address_fk",
+	"payment_order_receive_address",
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -133,11 +130,6 @@ func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByAddress orders the results by the address field.
 func ByAddress(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAddress, opts...).ToFunc()
-}
-
-// ByAccountIndex orders the results by the account_index field.
-func ByAccountIndex(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldAccountIndex, opts...).ToFunc()
 }
 
 // ByStatus orders the results by the status field.

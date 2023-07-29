@@ -111,7 +111,7 @@ func HMACVerificationMiddleware(c *gin.Context) {
 	var conf = config.AuthConfig()
 
 	// Check if the timestamp is within the acceptable window
-	if (time.Now().Unix() - int64(timestamp)) > (conf.HmacTimestampAge * 60) {
+	if time.Now().Unix()-int64(timestamp) > int64(conf.HmacTimestampAge.Seconds()) {
 		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid timestamp", nil)
 		c.Abort()
 		return

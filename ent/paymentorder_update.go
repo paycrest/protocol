@@ -92,9 +92,9 @@ func (pou *PaymentOrderUpdate) ClearTxHash() *PaymentOrderUpdate {
 	return pou
 }
 
-// SetReceiveAddress sets the "receive_address" field.
-func (pou *PaymentOrderUpdate) SetReceiveAddress(s string) *PaymentOrderUpdate {
-	pou.mutation.SetReceiveAddress(s)
+// SetReceiveAddressText sets the "receive_address_text" field.
+func (pou *PaymentOrderUpdate) SetReceiveAddressText(s string) *PaymentOrderUpdate {
+	pou.mutation.SetReceiveAddressText(s)
 	return pou
 }
 
@@ -170,23 +170,23 @@ func (pou *PaymentOrderUpdate) SetToken(t *Token) *PaymentOrderUpdate {
 	return pou.SetTokenID(t.ID)
 }
 
-// SetReceiveAddressFkID sets the "receive_address_fk" edge to the ReceiveAddress entity by ID.
-func (pou *PaymentOrderUpdate) SetReceiveAddressFkID(id int) *PaymentOrderUpdate {
-	pou.mutation.SetReceiveAddressFkID(id)
+// SetReceiveAddressID sets the "receive_address" edge to the ReceiveAddress entity by ID.
+func (pou *PaymentOrderUpdate) SetReceiveAddressID(id int) *PaymentOrderUpdate {
+	pou.mutation.SetReceiveAddressID(id)
 	return pou
 }
 
-// SetNillableReceiveAddressFkID sets the "receive_address_fk" edge to the ReceiveAddress entity by ID if the given value is not nil.
-func (pou *PaymentOrderUpdate) SetNillableReceiveAddressFkID(id *int) *PaymentOrderUpdate {
+// SetNillableReceiveAddressID sets the "receive_address" edge to the ReceiveAddress entity by ID if the given value is not nil.
+func (pou *PaymentOrderUpdate) SetNillableReceiveAddressID(id *int) *PaymentOrderUpdate {
 	if id != nil {
-		pou = pou.SetReceiveAddressFkID(*id)
+		pou = pou.SetReceiveAddressID(*id)
 	}
 	return pou
 }
 
-// SetReceiveAddressFk sets the "receive_address_fk" edge to the ReceiveAddress entity.
-func (pou *PaymentOrderUpdate) SetReceiveAddressFk(r *ReceiveAddress) *PaymentOrderUpdate {
-	return pou.SetReceiveAddressFkID(r.ID)
+// SetReceiveAddress sets the "receive_address" edge to the ReceiveAddress entity.
+func (pou *PaymentOrderUpdate) SetReceiveAddress(r *ReceiveAddress) *PaymentOrderUpdate {
+	return pou.SetReceiveAddressID(r.ID)
 }
 
 // SetRecipientID sets the "recipient" edge to the PaymentOrderRecipient entity by ID.
@@ -225,9 +225,9 @@ func (pou *PaymentOrderUpdate) ClearToken() *PaymentOrderUpdate {
 	return pou
 }
 
-// ClearReceiveAddressFk clears the "receive_address_fk" edge to the ReceiveAddress entity.
-func (pou *PaymentOrderUpdate) ClearReceiveAddressFk() *PaymentOrderUpdate {
-	pou.mutation.ClearReceiveAddressFk()
+// ClearReceiveAddress clears the "receive_address" edge to the ReceiveAddress entity.
+func (pou *PaymentOrderUpdate) ClearReceiveAddress() *PaymentOrderUpdate {
+	pou.mutation.ClearReceiveAddress()
 	return pou
 }
 
@@ -285,9 +285,9 @@ func (pou *PaymentOrderUpdate) check() error {
 			return &ValidationError{Name: "tx_hash", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.tx_hash": %w`, err)}
 		}
 	}
-	if v, ok := pou.mutation.ReceiveAddress(); ok {
-		if err := paymentorder.ReceiveAddressValidator(v); err != nil {
-			return &ValidationError{Name: "receive_address", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.receive_address": %w`, err)}
+	if v, ok := pou.mutation.ReceiveAddressText(); ok {
+		if err := paymentorder.ReceiveAddressTextValidator(v); err != nil {
+			return &ValidationError{Name: "receive_address_text", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.receive_address_text": %w`, err)}
 		}
 	}
 	if v, ok := pou.mutation.Status(); ok {
@@ -302,7 +302,7 @@ func (pou *PaymentOrderUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if err := pou.check(); err != nil {
 		return n, err
 	}
-	_spec := sqlgraph.NewUpdateSpec(paymentorder.Table, paymentorder.Columns, sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeInt))
+	_spec := sqlgraph.NewUpdateSpec(paymentorder.Table, paymentorder.Columns, sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeUUID))
 	if ps := pou.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
@@ -334,8 +334,8 @@ func (pou *PaymentOrderUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if pou.mutation.TxHashCleared() {
 		_spec.ClearField(paymentorder.FieldTxHash, field.TypeString)
 	}
-	if value, ok := pou.mutation.ReceiveAddress(); ok {
-		_spec.SetField(paymentorder.FieldReceiveAddress, field.TypeString, value)
+	if value, ok := pou.mutation.ReceiveAddressText(); ok {
+		_spec.SetField(paymentorder.FieldReceiveAddressText, field.TypeString, value)
 	}
 	if value, ok := pou.mutation.Status(); ok {
 		_spec.SetField(paymentorder.FieldStatus, field.TypeEnum, value)
@@ -404,12 +404,12 @@ func (pou *PaymentOrderUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if pou.mutation.ReceiveAddressFkCleared() {
+	if pou.mutation.ReceiveAddressCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
 			Inverse: false,
-			Table:   paymentorder.ReceiveAddressFkTable,
-			Columns: []string{paymentorder.ReceiveAddressFkColumn},
+			Table:   paymentorder.ReceiveAddressTable,
+			Columns: []string{paymentorder.ReceiveAddressColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(receiveaddress.FieldID, field.TypeInt),
@@ -417,12 +417,12 @@ func (pou *PaymentOrderUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := pou.mutation.ReceiveAddressFkIDs(); len(nodes) > 0 {
+	if nodes := pou.mutation.ReceiveAddressIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
 			Inverse: false,
-			Table:   paymentorder.ReceiveAddressFkTable,
-			Columns: []string{paymentorder.ReceiveAddressFkColumn},
+			Table:   paymentorder.ReceiveAddressTable,
+			Columns: []string{paymentorder.ReceiveAddressColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(receiveaddress.FieldID, field.TypeInt),
@@ -540,9 +540,9 @@ func (pouo *PaymentOrderUpdateOne) ClearTxHash() *PaymentOrderUpdateOne {
 	return pouo
 }
 
-// SetReceiveAddress sets the "receive_address" field.
-func (pouo *PaymentOrderUpdateOne) SetReceiveAddress(s string) *PaymentOrderUpdateOne {
-	pouo.mutation.SetReceiveAddress(s)
+// SetReceiveAddressText sets the "receive_address_text" field.
+func (pouo *PaymentOrderUpdateOne) SetReceiveAddressText(s string) *PaymentOrderUpdateOne {
+	pouo.mutation.SetReceiveAddressText(s)
 	return pouo
 }
 
@@ -618,23 +618,23 @@ func (pouo *PaymentOrderUpdateOne) SetToken(t *Token) *PaymentOrderUpdateOne {
 	return pouo.SetTokenID(t.ID)
 }
 
-// SetReceiveAddressFkID sets the "receive_address_fk" edge to the ReceiveAddress entity by ID.
-func (pouo *PaymentOrderUpdateOne) SetReceiveAddressFkID(id int) *PaymentOrderUpdateOne {
-	pouo.mutation.SetReceiveAddressFkID(id)
+// SetReceiveAddressID sets the "receive_address" edge to the ReceiveAddress entity by ID.
+func (pouo *PaymentOrderUpdateOne) SetReceiveAddressID(id int) *PaymentOrderUpdateOne {
+	pouo.mutation.SetReceiveAddressID(id)
 	return pouo
 }
 
-// SetNillableReceiveAddressFkID sets the "receive_address_fk" edge to the ReceiveAddress entity by ID if the given value is not nil.
-func (pouo *PaymentOrderUpdateOne) SetNillableReceiveAddressFkID(id *int) *PaymentOrderUpdateOne {
+// SetNillableReceiveAddressID sets the "receive_address" edge to the ReceiveAddress entity by ID if the given value is not nil.
+func (pouo *PaymentOrderUpdateOne) SetNillableReceiveAddressID(id *int) *PaymentOrderUpdateOne {
 	if id != nil {
-		pouo = pouo.SetReceiveAddressFkID(*id)
+		pouo = pouo.SetReceiveAddressID(*id)
 	}
 	return pouo
 }
 
-// SetReceiveAddressFk sets the "receive_address_fk" edge to the ReceiveAddress entity.
-func (pouo *PaymentOrderUpdateOne) SetReceiveAddressFk(r *ReceiveAddress) *PaymentOrderUpdateOne {
-	return pouo.SetReceiveAddressFkID(r.ID)
+// SetReceiveAddress sets the "receive_address" edge to the ReceiveAddress entity.
+func (pouo *PaymentOrderUpdateOne) SetReceiveAddress(r *ReceiveAddress) *PaymentOrderUpdateOne {
+	return pouo.SetReceiveAddressID(r.ID)
 }
 
 // SetRecipientID sets the "recipient" edge to the PaymentOrderRecipient entity by ID.
@@ -673,9 +673,9 @@ func (pouo *PaymentOrderUpdateOne) ClearToken() *PaymentOrderUpdateOne {
 	return pouo
 }
 
-// ClearReceiveAddressFk clears the "receive_address_fk" edge to the ReceiveAddress entity.
-func (pouo *PaymentOrderUpdateOne) ClearReceiveAddressFk() *PaymentOrderUpdateOne {
-	pouo.mutation.ClearReceiveAddressFk()
+// ClearReceiveAddress clears the "receive_address" edge to the ReceiveAddress entity.
+func (pouo *PaymentOrderUpdateOne) ClearReceiveAddress() *PaymentOrderUpdateOne {
+	pouo.mutation.ClearReceiveAddress()
 	return pouo
 }
 
@@ -746,9 +746,9 @@ func (pouo *PaymentOrderUpdateOne) check() error {
 			return &ValidationError{Name: "tx_hash", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.tx_hash": %w`, err)}
 		}
 	}
-	if v, ok := pouo.mutation.ReceiveAddress(); ok {
-		if err := paymentorder.ReceiveAddressValidator(v); err != nil {
-			return &ValidationError{Name: "receive_address", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.receive_address": %w`, err)}
+	if v, ok := pouo.mutation.ReceiveAddressText(); ok {
+		if err := paymentorder.ReceiveAddressTextValidator(v); err != nil {
+			return &ValidationError{Name: "receive_address_text", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.receive_address_text": %w`, err)}
 		}
 	}
 	if v, ok := pouo.mutation.Status(); ok {
@@ -763,7 +763,7 @@ func (pouo *PaymentOrderUpdateOne) sqlSave(ctx context.Context) (_node *PaymentO
 	if err := pouo.check(); err != nil {
 		return _node, err
 	}
-	_spec := sqlgraph.NewUpdateSpec(paymentorder.Table, paymentorder.Columns, sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeInt))
+	_spec := sqlgraph.NewUpdateSpec(paymentorder.Table, paymentorder.Columns, sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeUUID))
 	id, ok := pouo.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`ent: missing "PaymentOrder.id" for update`)}
@@ -812,8 +812,8 @@ func (pouo *PaymentOrderUpdateOne) sqlSave(ctx context.Context) (_node *PaymentO
 	if pouo.mutation.TxHashCleared() {
 		_spec.ClearField(paymentorder.FieldTxHash, field.TypeString)
 	}
-	if value, ok := pouo.mutation.ReceiveAddress(); ok {
-		_spec.SetField(paymentorder.FieldReceiveAddress, field.TypeString, value)
+	if value, ok := pouo.mutation.ReceiveAddressText(); ok {
+		_spec.SetField(paymentorder.FieldReceiveAddressText, field.TypeString, value)
 	}
 	if value, ok := pouo.mutation.Status(); ok {
 		_spec.SetField(paymentorder.FieldStatus, field.TypeEnum, value)
@@ -882,12 +882,12 @@ func (pouo *PaymentOrderUpdateOne) sqlSave(ctx context.Context) (_node *PaymentO
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if pouo.mutation.ReceiveAddressFkCleared() {
+	if pouo.mutation.ReceiveAddressCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
 			Inverse: false,
-			Table:   paymentorder.ReceiveAddressFkTable,
-			Columns: []string{paymentorder.ReceiveAddressFkColumn},
+			Table:   paymentorder.ReceiveAddressTable,
+			Columns: []string{paymentorder.ReceiveAddressColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(receiveaddress.FieldID, field.TypeInt),
@@ -895,12 +895,12 @@ func (pouo *PaymentOrderUpdateOne) sqlSave(ctx context.Context) (_node *PaymentO
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := pouo.mutation.ReceiveAddressFkIDs(); len(nodes) > 0 {
+	if nodes := pouo.mutation.ReceiveAddressIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
 			Inverse: false,
-			Table:   paymentorder.ReceiveAddressFkTable,
-			Columns: []string{paymentorder.ReceiveAddressFkColumn},
+			Table:   paymentorder.ReceiveAddressTable,
+			Columns: []string{paymentorder.ReceiveAddressColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(receiveaddress.FieldID, field.TypeInt),

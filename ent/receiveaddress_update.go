@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
 	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
@@ -38,19 +39,6 @@ func (rau *ReceiveAddressUpdate) SetUpdatedAt(t time.Time) *ReceiveAddressUpdate
 // SetAddress sets the "address" field.
 func (rau *ReceiveAddressUpdate) SetAddress(s string) *ReceiveAddressUpdate {
 	rau.mutation.SetAddress(s)
-	return rau
-}
-
-// SetAccountIndex sets the "account_index" field.
-func (rau *ReceiveAddressUpdate) SetAccountIndex(i int) *ReceiveAddressUpdate {
-	rau.mutation.ResetAccountIndex()
-	rau.mutation.SetAccountIndex(i)
-	return rau
-}
-
-// AddAccountIndex adds i to the "account_index" field.
-func (rau *ReceiveAddressUpdate) AddAccountIndex(i int) *ReceiveAddressUpdate {
-	rau.mutation.AddAccountIndex(i)
 	return rau
 }
 
@@ -116,13 +104,13 @@ func (rau *ReceiveAddressUpdate) ClearLastUsed() *ReceiveAddressUpdate {
 }
 
 // SetPaymentOrderID sets the "payment_order" edge to the PaymentOrder entity by ID.
-func (rau *ReceiveAddressUpdate) SetPaymentOrderID(id int) *ReceiveAddressUpdate {
+func (rau *ReceiveAddressUpdate) SetPaymentOrderID(id uuid.UUID) *ReceiveAddressUpdate {
 	rau.mutation.SetPaymentOrderID(id)
 	return rau
 }
 
 // SetNillablePaymentOrderID sets the "payment_order" edge to the PaymentOrder entity by ID if the given value is not nil.
-func (rau *ReceiveAddressUpdate) SetNillablePaymentOrderID(id *int) *ReceiveAddressUpdate {
+func (rau *ReceiveAddressUpdate) SetNillablePaymentOrderID(id *uuid.UUID) *ReceiveAddressUpdate {
 	if id != nil {
 		rau = rau.SetPaymentOrderID(*id)
 	}
@@ -209,12 +197,6 @@ func (rau *ReceiveAddressUpdate) sqlSave(ctx context.Context) (n int, err error)
 	if value, ok := rau.mutation.Address(); ok {
 		_spec.SetField(receiveaddress.FieldAddress, field.TypeString, value)
 	}
-	if value, ok := rau.mutation.AccountIndex(); ok {
-		_spec.SetField(receiveaddress.FieldAccountIndex, field.TypeInt, value)
-	}
-	if value, ok := rau.mutation.AddedAccountIndex(); ok {
-		_spec.AddField(receiveaddress.FieldAccountIndex, field.TypeInt, value)
-	}
 	if value, ok := rau.mutation.Status(); ok {
 		_spec.SetField(receiveaddress.FieldStatus, field.TypeEnum, value)
 	}
@@ -241,7 +223,7 @@ func (rau *ReceiveAddressUpdate) sqlSave(ctx context.Context) (n int, err error)
 			Columns: []string{receiveaddress.PaymentOrderColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -254,7 +236,7 @@ func (rau *ReceiveAddressUpdate) sqlSave(ctx context.Context) (n int, err error)
 			Columns: []string{receiveaddress.PaymentOrderColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -291,19 +273,6 @@ func (rauo *ReceiveAddressUpdateOne) SetUpdatedAt(t time.Time) *ReceiveAddressUp
 // SetAddress sets the "address" field.
 func (rauo *ReceiveAddressUpdateOne) SetAddress(s string) *ReceiveAddressUpdateOne {
 	rauo.mutation.SetAddress(s)
-	return rauo
-}
-
-// SetAccountIndex sets the "account_index" field.
-func (rauo *ReceiveAddressUpdateOne) SetAccountIndex(i int) *ReceiveAddressUpdateOne {
-	rauo.mutation.ResetAccountIndex()
-	rauo.mutation.SetAccountIndex(i)
-	return rauo
-}
-
-// AddAccountIndex adds i to the "account_index" field.
-func (rauo *ReceiveAddressUpdateOne) AddAccountIndex(i int) *ReceiveAddressUpdateOne {
-	rauo.mutation.AddAccountIndex(i)
 	return rauo
 }
 
@@ -369,13 +338,13 @@ func (rauo *ReceiveAddressUpdateOne) ClearLastUsed() *ReceiveAddressUpdateOne {
 }
 
 // SetPaymentOrderID sets the "payment_order" edge to the PaymentOrder entity by ID.
-func (rauo *ReceiveAddressUpdateOne) SetPaymentOrderID(id int) *ReceiveAddressUpdateOne {
+func (rauo *ReceiveAddressUpdateOne) SetPaymentOrderID(id uuid.UUID) *ReceiveAddressUpdateOne {
 	rauo.mutation.SetPaymentOrderID(id)
 	return rauo
 }
 
 // SetNillablePaymentOrderID sets the "payment_order" edge to the PaymentOrder entity by ID if the given value is not nil.
-func (rauo *ReceiveAddressUpdateOne) SetNillablePaymentOrderID(id *int) *ReceiveAddressUpdateOne {
+func (rauo *ReceiveAddressUpdateOne) SetNillablePaymentOrderID(id *uuid.UUID) *ReceiveAddressUpdateOne {
 	if id != nil {
 		rauo = rauo.SetPaymentOrderID(*id)
 	}
@@ -492,12 +461,6 @@ func (rauo *ReceiveAddressUpdateOne) sqlSave(ctx context.Context) (_node *Receiv
 	if value, ok := rauo.mutation.Address(); ok {
 		_spec.SetField(receiveaddress.FieldAddress, field.TypeString, value)
 	}
-	if value, ok := rauo.mutation.AccountIndex(); ok {
-		_spec.SetField(receiveaddress.FieldAccountIndex, field.TypeInt, value)
-	}
-	if value, ok := rauo.mutation.AddedAccountIndex(); ok {
-		_spec.AddField(receiveaddress.FieldAccountIndex, field.TypeInt, value)
-	}
 	if value, ok := rauo.mutation.Status(); ok {
 		_spec.SetField(receiveaddress.FieldStatus, field.TypeEnum, value)
 	}
@@ -524,7 +487,7 @@ func (rauo *ReceiveAddressUpdateOne) sqlSave(ctx context.Context) (_node *Receiv
 			Columns: []string{receiveaddress.PaymentOrderColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -537,7 +500,7 @@ func (rauo *ReceiveAddressUpdateOne) sqlSave(ctx context.Context) (_node *Receiv
 			Columns: []string{receiveaddress.PaymentOrderColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

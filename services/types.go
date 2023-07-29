@@ -7,6 +7,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
+	"github.com/shopspring/decimal"
 )
 
 // RegisterPayload is the payload for the register endpoint
@@ -51,8 +52,8 @@ type RefreshResponse struct {
 	AccessToken string `json:"accessToken"`
 }
 
-// GenerateAPIKeyPayload is the payload for the generate API key endpoint
-type GenerateAPIKeyPayload struct {
+// CreateAPIKeyPayload is the payload for the generate API key endpoint
+type CreateAPIKeyPayload struct {
 	Name  string       `json:"name" binding:"required"`
 	Scope apikey.Scope `json:"scope" binding:"required,oneof=sender provider tx_validator"`
 }
@@ -72,4 +73,28 @@ type ERC20Transfer struct {
 	From  common.Address
 	To    common.Address
 	Value *big.Int
+}
+
+// PaymentOrderRecipient describes a payment order recipient
+type PaymentOrderRecipient struct {
+	Institution       string `json:"institution" binding:"required"`
+	AccountIdentifier string `json:"accountIdentifier" binding:"required"`
+	AccountName       string `json:"accountName" binding:"required"`
+	ProviderID        string `json:"providerId"`
+}
+
+// NewPaymentOrderPayload is the payload for the create payment order endpoint
+type NewPaymentOrderPayload struct {
+	Amount    decimal.Decimal       `json:"amount" binding:"required"`
+	Token     string                `json:"token" binding:"required"`
+	Network   string                `json:"network" binding:"required"`
+	Recipient PaymentOrderRecipient `json:"recipient" binding:"required"`
+}
+
+// ReceiveAddressResponse is the response type for a receive address
+type ReceiveAddressResponse struct {
+	ID             uuid.UUID `json:"id"`
+	Amount         float64   `json:"amount"`
+	Network        string    `json:"network"`
+	ReceiveAddress string    `json:"receiveAddress"`
 }

@@ -2,8 +2,10 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 )
 
@@ -22,6 +24,8 @@ func (PaymentOrder) Mixin() []ent.Mixin {
 // Fields of the PaymentOrder.
 func (PaymentOrder) Fields() []ent.Field {
 	return []ent.Field{
+		field.UUID("id", uuid.UUID{}).
+			Default(uuid.New),
 		field.Float("amount").
 			GoType(decimal.Decimal{}),
 		field.Float("amount_paid").
@@ -31,7 +35,8 @@ func (PaymentOrder) Fields() []ent.Field {
 		field.String("tx_hash").
 			MaxLen(70).
 			Optional(),
-		field.String("receive_address").MaxLen(60),
+		field.String("receive_address_text").
+			MaxLen(60),
 		field.Enum("status").
 			Values("initiated", "pending", "settled", "cancelled", "failed", "refunded").
 			Default("initiated"),
@@ -48,9 +53,11 @@ func (PaymentOrder) Edges() []ent.Edge {
 		edge.From("token", Token.Type).
 			Ref("payment_orders").
 			Unique(),
-		edge.To("receive_address_fk", ReceiveAddress.Type).
-			Unique(),
+		edge.To("receive_address", ReceiveAddress.Type).
+			Unique().
+			Annotations(entsql.OnDelete(entsql.SetNull)),
 		edge.To("recipient", PaymentOrderRecipient.Type).
-			Unique(),
+			Unique().
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }
