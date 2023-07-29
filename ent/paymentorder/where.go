@@ -252,26 +252,6 @@ func AmountPaidLTE(v decimal.Decimal) predicate.PaymentOrder {
 	return predicate.PaymentOrder(sql.FieldLTE(FieldAmountPaid, v))
 }
 
-// NetworkEQ applies the EQ predicate on the "network" field.
-func NetworkEQ(v Network) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldEQ(FieldNetwork, v))
-}
-
-// NetworkNEQ applies the NEQ predicate on the "network" field.
-func NetworkNEQ(v Network) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldNEQ(FieldNetwork, v))
-}
-
-// NetworkIn applies the In predicate on the "network" field.
-func NetworkIn(vs ...Network) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldIn(FieldNetwork, vs...))
-}
-
-// NetworkNotIn applies the NotIn predicate on the "network" field.
-func NetworkNotIn(vs ...Network) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldNotIn(FieldNetwork, vs...))
-}
-
 // TxHashEQ applies the EQ predicate on the "tx_hash" field.
 func TxHashEQ(v string) predicate.PaymentOrder {
 	return predicate.PaymentOrder(sql.FieldEQ(FieldTxHash, v))
