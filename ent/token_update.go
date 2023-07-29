@@ -82,6 +82,14 @@ func (tu *TokenUpdate) SetNetworkID(id int) *TokenUpdate {
 	return tu
 }
 
+// SetNillableNetworkID sets the "network" edge to the Network entity by ID if the given value is not nil.
+func (tu *TokenUpdate) SetNillableNetworkID(id *int) *TokenUpdate {
+	if id != nil {
+		tu = tu.SetNetworkID(*id)
+	}
+	return tu
+}
+
 // SetNetwork sets the "network" edge to the Network entity.
 func (tu *TokenUpdate) SetNetwork(n *Network) *TokenUpdate {
 	return tu.SetNetworkID(n.ID)
@@ -181,9 +189,6 @@ func (tu *TokenUpdate) check() error {
 		if err := token.ContractAddressValidator(v); err != nil {
 			return &ValidationError{Name: "contract_address", err: fmt.Errorf(`ent: validator failed for field "Token.contract_address": %w`, err)}
 		}
-	}
-	if _, ok := tu.mutation.NetworkID(); tu.mutation.NetworkCleared() && !ok {
-		return errors.New(`ent: clearing a required unique edge "Token.network"`)
 	}
 	return nil
 }
@@ -363,6 +368,14 @@ func (tuo *TokenUpdateOne) SetNetworkID(id int) *TokenUpdateOne {
 	return tuo
 }
 
+// SetNillableNetworkID sets the "network" edge to the Network entity by ID if the given value is not nil.
+func (tuo *TokenUpdateOne) SetNillableNetworkID(id *int) *TokenUpdateOne {
+	if id != nil {
+		tuo = tuo.SetNetworkID(*id)
+	}
+	return tuo
+}
+
 // SetNetwork sets the "network" edge to the Network entity.
 func (tuo *TokenUpdateOne) SetNetwork(n *Network) *TokenUpdateOne {
 	return tuo.SetNetworkID(n.ID)
@@ -475,9 +488,6 @@ func (tuo *TokenUpdateOne) check() error {
 		if err := token.ContractAddressValidator(v); err != nil {
 			return &ValidationError{Name: "contract_address", err: fmt.Errorf(`ent: validator failed for field "Token.contract_address": %w`, err)}
 		}
-	}
-	if _, ok := tuo.mutation.NetworkID(); tuo.mutation.NetworkCleared() && !ok {
-		return errors.New(`ent: clearing a required unique edge "Token.network"`)
 	}
 	return nil
 }

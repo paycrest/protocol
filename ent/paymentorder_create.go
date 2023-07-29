@@ -66,6 +66,12 @@ func (poc *PaymentOrderCreate) SetAmountPaid(d decimal.Decimal) *PaymentOrderCre
 	return poc
 }
 
+// SetNetwork sets the "network" field.
+func (poc *PaymentOrderCreate) SetNetwork(pa paymentorder.Network) *PaymentOrderCreate {
+	poc.mutation.SetNetwork(pa)
+	return poc
+}
+
 // SetTxHash sets the "tx_hash" field.
 func (poc *PaymentOrderCreate) SetTxHash(s string) *PaymentOrderCreate {
 	poc.mutation.SetTxHash(s)
@@ -150,6 +156,14 @@ func (poc *PaymentOrderCreate) SetAPIKey(a *APIKey) *PaymentOrderCreate {
 // SetTokenID sets the "token" edge to the Token entity by ID.
 func (poc *PaymentOrderCreate) SetTokenID(id int) *PaymentOrderCreate {
 	poc.mutation.SetTokenID(id)
+	return poc
+}
+
+// SetNillableTokenID sets the "token" edge to the Token entity by ID if the given value is not nil.
+func (poc *PaymentOrderCreate) SetNillableTokenID(id *int) *PaymentOrderCreate {
+	if id != nil {
+		poc = poc.SetTokenID(*id)
+	}
 	return poc
 }
 
@@ -263,6 +277,14 @@ func (poc *PaymentOrderCreate) check() error {
 	if _, ok := poc.mutation.AmountPaid(); !ok {
 		return &ValidationError{Name: "amount_paid", err: errors.New(`ent: missing required field "PaymentOrder.amount_paid"`)}
 	}
+	if _, ok := poc.mutation.Network(); !ok {
+		return &ValidationError{Name: "network", err: errors.New(`ent: missing required field "PaymentOrder.network"`)}
+	}
+	if v, ok := poc.mutation.Network(); ok {
+		if err := paymentorder.NetworkValidator(v); err != nil {
+			return &ValidationError{Name: "network", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.network": %w`, err)}
+		}
+	}
 	if v, ok := poc.mutation.TxHash(); ok {
 		if err := paymentorder.TxHashValidator(v); err != nil {
 			return &ValidationError{Name: "tx_hash", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.tx_hash": %w`, err)}
@@ -283,9 +305,6 @@ func (poc *PaymentOrderCreate) check() error {
 		if err := paymentorder.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.status": %w`, err)}
 		}
-	}
-	if _, ok := poc.mutation.TokenID(); !ok {
-		return &ValidationError{Name: "token", err: errors.New(`ent: missing required edge "PaymentOrder.token"`)}
 	}
 	return nil
 }
@@ -337,6 +356,10 @@ func (poc *PaymentOrderCreate) createSpec() (*PaymentOrder, *sqlgraph.CreateSpec
 	if value, ok := poc.mutation.AmountPaid(); ok {
 		_spec.SetField(paymentorder.FieldAmountPaid, field.TypeFloat64, value)
 		_node.AmountPaid = value
+	}
+	if value, ok := poc.mutation.Network(); ok {
+		_spec.SetField(paymentorder.FieldNetwork, field.TypeEnum, value)
+		_node.Network = value
 	}
 	if value, ok := poc.mutation.TxHash(); ok {
 		_spec.SetField(paymentorder.FieldTxHash, field.TypeString, value)

@@ -24,6 +24,8 @@ const (
 	FieldAmount = "amount"
 	// FieldAmountPaid holds the string denoting the amount_paid field in the database.
 	FieldAmountPaid = "amount_paid"
+	// FieldNetwork holds the string denoting the network field in the database.
+	FieldNetwork = "network"
 	// FieldTxHash holds the string denoting the tx_hash field in the database.
 	FieldTxHash = "tx_hash"
 	// FieldReceiveAddressText holds the string denoting the receive_address_text field in the database.
@@ -79,6 +81,7 @@ var Columns = []string{
 	FieldUpdatedAt,
 	FieldAmount,
 	FieldAmountPaid,
+	FieldNetwork,
 	FieldTxHash,
 	FieldReceiveAddressText,
 	FieldStatus,
@@ -121,6 +124,32 @@ var (
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() uuid.UUID
 )
+
+// Network defines the type for the "network" enum field.
+type Network string
+
+// Network values.
+const (
+	NetworkBnbSmartChain Network = "bnb-smart-chain"
+	NetworkPolygon       Network = "polygon"
+	NetworkTron          Network = "tron"
+	NetworkPolygonMumbai Network = "polygon-mumbai"
+	NetworkTronShasta    Network = "tron-shasta"
+)
+
+func (n Network) String() string {
+	return string(n)
+}
+
+// NetworkValidator is a validator for the "network" field enum values. It is called by the builders before save.
+func NetworkValidator(n Network) error {
+	switch n {
+	case NetworkBnbSmartChain, NetworkPolygon, NetworkTron, NetworkPolygonMumbai, NetworkTronShasta:
+		return nil
+	default:
+		return fmt.Errorf("paymentorder: invalid enum value for network field: %q", n)
+	}
+}
 
 // Status defines the type for the "status" enum field.
 type Status string
@@ -178,6 +207,11 @@ func ByAmount(opts ...sql.OrderTermOption) OrderOption {
 // ByAmountPaid orders the results by the amount_paid field.
 func ByAmountPaid(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAmountPaid, opts...).ToFunc()
+}
+
+// ByNetwork orders the results by the network field.
+func ByNetwork(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldNetwork, opts...).ToFunc()
 }
 
 // ByTxHash orders the results by the tx_hash field.

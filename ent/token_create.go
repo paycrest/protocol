@@ -89,6 +89,14 @@ func (tc *TokenCreate) SetNetworkID(id int) *TokenCreate {
 	return tc
 }
 
+// SetNillableNetworkID sets the "network" edge to the Network entity by ID if the given value is not nil.
+func (tc *TokenCreate) SetNillableNetworkID(id *int) *TokenCreate {
+	if id != nil {
+		tc = tc.SetNetworkID(*id)
+	}
+	return tc
+}
+
 // SetNetwork sets the "network" edge to the Network entity.
 func (tc *TokenCreate) SetNetwork(n *Network) *TokenCreate {
 	return tc.SetNetworkID(n.ID)
@@ -187,9 +195,6 @@ func (tc *TokenCreate) check() error {
 	}
 	if _, ok := tc.mutation.IsEnabled(); !ok {
 		return &ValidationError{Name: "is_enabled", err: errors.New(`ent: missing required field "Token.is_enabled"`)}
-	}
-	if _, ok := tc.mutation.NetworkID(); !ok {
-		return &ValidationError{Name: "network", err: errors.New(`ent: missing required edge "Token.network"`)}
 	}
 	return nil
 }

@@ -13,12 +13,10 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent"
 	"github.com/paycrest/paycrest-protocol/routers/middleware"
 	"github.com/paycrest/paycrest-protocol/services"
-	"github.com/paycrest/paycrest-protocol/types"
 	"github.com/paycrest/paycrest-protocol/utils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/paycrest/paycrest-protocol/ent/enttest"
-	"github.com/paycrest/paycrest-protocol/ent/network"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/utils/test"
 	"github.com/paycrest/paycrest-protocol/utils/token"
@@ -32,21 +30,22 @@ type MockIndexerService struct {
 }
 
 // IndexERC20Transfer mocks the IndexERC20Transfer method
-func (m *MockIndexerService) IndexERC20Transfer(ctx context.Context, client types.RPCClient, receiveAddress *ent.ReceiveAddress, done chan<- bool) error {
+func (m *MockIndexerService) IndexERC20Transfer(ctx context.Context, receiveAddress *ent.ReceiveAddress, done chan<- bool) error {
+	// Call through to mock object's AssertCalled
+	// args := m.Called(ctx, receiveAddress, done)
 	done <- true
 	return nil
 }
 
 var testCtx = struct {
 	user         *ent.User
-	token        *ent.Token
 	apiKey       *ent.APIKey
 	apiKeySecret string
 }{}
 
-func setup() error {
+func setup(client *ent.Client) error {
 	// Set up test data
-	user, err := test.CreateTestUser(nil)
+	user, err := test.CreateTestUser(db.Client, nil)
 	if err != nil {
 		return err
 	}
@@ -56,7 +55,7 @@ func setup() error {
 	apiKey, secretKey, err := apiKeyService.GenerateAPIKey(
 		context.Background(),
 		user.ID,
-		types.CreateAPIKeyPayload{
+		services.CreateAPIKeyPayload{
 			Name:  "name",
 			Scope: "sender",
 		})
@@ -64,19 +63,6 @@ func setup() error {
 	if err != nil {
 		return err
 	}
-
-	// Set up test blockchain client
-	backend, err := test.NewSimulatedBlockchain()
-	if err != nil {
-		return err
-	}
-
-	// Create a test token
-	token, err := test.CreateTestToken(backend, nil)
-	if err != nil {
-		return err
-	}
-	testCtx.token = token
 
 	testCtx.apiKeySecret = secretKey
 
@@ -92,7 +78,7 @@ func TestSender(t *testing.T) {
 	db.Client = client
 
 	// Setup test data
-	err := setup()
+	err := setup(db.Client)
 	assert.NoError(t, err)
 
 	// Set up test routers
@@ -107,17 +93,10 @@ func TestSender(t *testing.T) {
 	router.POST("/orders", ctrl.CreatePaymentOrder)
 
 	t.Run("CreatePaymentOrder", func(t *testing.T) {
-		// Fetch network from db
-		network, err := db.Client.Network.
-			Query().
-			Where(network.IdentifierEQ("polygon-mumbai")).
-			Only(context.Background())
-		assert.NoError(t, err)
-
 		payload := map[string]interface{}{
 			"amount":  100.0,
-			"token":   testCtx.token.Symbol,
-			"network": network.Identifier.String(),
+			"token":   "USDT",
+			"network": "bnb-smart-chain",
 			"recipient": map[string]interface{}{
 				"institution":       "First Bank Nigeria PLC",
 				"accountIdentifier": "1234567890",

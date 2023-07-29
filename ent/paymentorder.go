@@ -31,6 +31,8 @@ type PaymentOrder struct {
 	Amount decimal.Decimal `json:"amount,omitempty"`
 	// AmountPaid holds the value of the "amount_paid" field.
 	AmountPaid decimal.Decimal `json:"amount_paid,omitempty"`
+	// Network holds the value of the "network" field.
+	Network paymentorder.Network `json:"network,omitempty"`
 	// TxHash holds the value of the "tx_hash" field.
 	TxHash string `json:"tx_hash,omitempty"`
 	// ReceiveAddressText holds the value of the "receive_address_text" field.
@@ -121,7 +123,7 @@ func (*PaymentOrder) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case paymentorder.FieldAmount, paymentorder.FieldAmountPaid:
 			values[i] = new(decimal.Decimal)
-		case paymentorder.FieldTxHash, paymentorder.FieldReceiveAddressText, paymentorder.FieldStatus:
+		case paymentorder.FieldNetwork, paymentorder.FieldTxHash, paymentorder.FieldReceiveAddressText, paymentorder.FieldStatus:
 			values[i] = new(sql.NullString)
 		case paymentorder.FieldCreatedAt, paymentorder.FieldUpdatedAt, paymentorder.FieldLastUsed:
 			values[i] = new(sql.NullTime)
@@ -175,6 +177,12 @@ func (po *PaymentOrder) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field amount_paid", values[i])
 			} else if value != nil {
 				po.AmountPaid = *value
+			}
+		case paymentorder.FieldNetwork:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field network", values[i])
+			} else if value.Valid {
+				po.Network = paymentorder.Network(value.String)
 			}
 		case paymentorder.FieldTxHash:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -281,6 +289,9 @@ func (po *PaymentOrder) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("amount_paid=")
 	builder.WriteString(fmt.Sprintf("%v", po.AmountPaid))
+	builder.WriteString(", ")
+	builder.WriteString("network=")
+	builder.WriteString(fmt.Sprintf("%v", po.Network))
 	builder.WriteString(", ")
 	builder.WriteString("tx_hash=")
 	builder.WriteString(po.TxHash)

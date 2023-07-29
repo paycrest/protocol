@@ -12,7 +12,6 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/user"
 	svc "github.com/paycrest/paycrest-protocol/services"
-	"github.com/paycrest/paycrest-protocol/types"
 	u "github.com/paycrest/paycrest-protocol/utils"
 	"github.com/paycrest/paycrest-protocol/utils/crypto"
 	"github.com/paycrest/paycrest-protocol/utils/logger"
@@ -35,7 +34,7 @@ type AuthController struct {
 // It hashes the password provided by the user.
 // It also sends an email to verify the user's email address.
 func (ctrl *AuthController) Register(ctx *gin.Context) {
-	var payload types.RegisterPayload
+	var payload svc.RegisterPayload
 
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		logger.Errorf("error: %v", err)
@@ -75,7 +74,7 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 	// Create a provider API Key and profile in the background
 	// TODO: Replace provider with a UUID environment variable
 	if appID := ctx.GetHeader("X-APP-ID"); appID == "provider" {
-		apiKeyInput := types.CreateAPIKeyPayload{
+		apiKeyInput := svc.CreateAPIKeyPayload{
 			Name:  payload.TradingName + " API Key",
 			Scope: apikey.ScopeProvider,
 		}
@@ -109,7 +108,7 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 	// TODO: Send email to verify the user's email address
 
 	u.APIResponse(ctx, http.StatusCreated, "success", "User created successfully",
-		&types.RegisterResponse{
+		&svc.RegisterResponse{
 			ID:        user.ID,
 			CreatedAt: user.CreatedAt,
 			UpdatedAt: user.UpdatedAt,
@@ -121,7 +120,7 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 
 // Login controller validates the payload and creates a new user.
 func (ctrl *AuthController) Login(ctx *gin.Context) {
-	var payload types.LoginPayload
+	var payload svc.LoginPayload
 
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		logger.Errorf("error: %v", err)
@@ -158,7 +157,7 @@ func (ctrl *AuthController) Login(ctx *gin.Context) {
 		return
 	}
 
-	u.APIResponse(ctx, http.StatusOK, "success", "Successfully logged in", &types.LoginResponse{
+	u.APIResponse(ctx, http.StatusOK, "success", "Successfully logged in", &svc.LoginResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 	})
@@ -166,7 +165,7 @@ func (ctrl *AuthController) Login(ctx *gin.Context) {
 
 // RefreshJWT controller returns a new access token given a valid refresh token.
 func (ctrl *AuthController) RefreshJWT(ctx *gin.Context) {
-	var payload types.RefreshJWTPayload
+	var payload svc.RefreshJWTPayload
 
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		u.APIResponse(ctx, http.StatusBadRequest, "error",
@@ -190,7 +189,7 @@ func (ctrl *AuthController) RefreshJWT(ctx *gin.Context) {
 	}
 
 	// Return the new access token
-	u.APIResponse(ctx, http.StatusOK, "success", "Successfully refreshed access token", &types.RefreshResponse{
+	u.APIResponse(ctx, http.StatusOK, "success", "Successfully refreshed access token", &svc.RefreshResponse{
 		AccessToken: accessToken,
 	})
 }
@@ -208,7 +207,7 @@ func (ctrl *AuthController) CreateAPIKey(ctx *gin.Context) {
 		return
 	}
 
-	var payload types.CreateAPIKeyPayload
+	var payload svc.CreateAPIKeyPayload
 
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		logger.Errorf("error: %v", err)
@@ -226,7 +225,7 @@ func (ctrl *AuthController) CreateAPIKey(ctx *gin.Context) {
 	}
 
 	// Return the newly generated API key
-	u.APIResponse(ctx, http.StatusCreated, "success", "Successfully generated API key", &types.APIKeyResponse{
+	u.APIResponse(ctx, http.StatusCreated, "success", "Successfully generated API key", &svc.APIKeyResponse{
 		ID:        apiKey.ID,
 		Name:      apiKey.Name,
 		Scope:     apiKey.Scope,
@@ -262,7 +261,7 @@ func (ctrl *AuthController) ListAPIKeys(ctx *gin.Context) {
 	}
 
 	// Create APIKeyResponse objects without the Pair field
-	apiKeyResponses := make([]types.APIKeyResponse, len(apiKeys))
+	apiKeyResponses := make([]svc.APIKeyResponse, len(apiKeys))
 	for i, apiKey := range apiKeys {
 		// Decode the stored secret key to bytes
 		decodedSecret, err := base64.StdEncoding.DecodeString(apiKey.Secret)
@@ -279,7 +278,7 @@ func (ctrl *AuthController) ListAPIKeys(ctx *gin.Context) {
 			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to decrypt API key", err.Error())
 			return
 		}
-		apiKeyResponses[i] = types.APIKeyResponse{
+		apiKeyResponses[i] = svc.APIKeyResponse{
 			ID:        apiKey.ID,
 			CreatedAt: apiKey.CreatedAt,
 			Name:      apiKey.Name,
