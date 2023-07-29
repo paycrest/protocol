@@ -132,3 +132,14 @@ type ReceiveAddressResponse struct {
 	Network        string    `json:"network"`
 	ReceiveAddress string    `json:"receiveAddress"`
 }
+
+type PaymentOrderResponse struct {
+	ID        uuid.UUID             `json:"id"`
+	Amount    float64               `json:"amount"`
+	Network   string                `json:"network"`
+	Recipient PaymentOrderRecipient `json:"recipient"`
+	CreatedAt time.Time             `json:"createdAt"`
+	UpdatedAt time.Time             `json:"updatedAt"`
+	TxHash    string                `json:"txHash"`
+	Status    string                `json:"status"`
+}
