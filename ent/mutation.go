@@ -1545,7 +1545,6 @@ type PaymentOrderMutation struct {
 	addamount              *decimal.Decimal
 	amount_paid            *decimal.Decimal
 	addamount_paid         *decimal.Decimal
-	network                *paymentorder.Network
 	tx_hash                *string
 	receive_address_text   *string
 	status                 *paymentorder.Status
@@ -1850,42 +1849,6 @@ func (m *PaymentOrderMutation) AddedAmountPaid() (r decimal.Decimal, exists bool
 func (m *PaymentOrderMutation) ResetAmountPaid() {
 	m.amount_paid = nil
 	m.addamount_paid = nil
-}
-
-// SetNetwork sets the "network" field.
-func (m *PaymentOrderMutation) SetNetwork(pa paymentorder.Network) {
-	m.network = &pa
-}
-
-// Network returns the value of the "network" field in the mutation.
-func (m *PaymentOrderMutation) Network() (r paymentorder.Network, exists bool) {
-	v := m.network
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldNetwork returns the old "network" field's value of the PaymentOrder entity.
-// If the PaymentOrder object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *PaymentOrderMutation) OldNetwork(ctx context.Context) (v paymentorder.Network, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldNetwork is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldNetwork requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldNetwork: %w", err)
-	}
-	return oldValue.Network, nil
-}
-
-// ResetNetwork resets all changes to the "network" field.
-func (m *PaymentOrderMutation) ResetNetwork() {
-	m.network = nil
 }
 
 // SetTxHash sets the "tx_hash" field.
@@ -2248,7 +2211,7 @@ func (m *PaymentOrderMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *PaymentOrderMutation) Fields() []string {
-	fields := make([]string, 0, 9)
+	fields := make([]string, 0, 8)
 	if m.created_at != nil {
 		fields = append(fields, paymentorder.FieldCreatedAt)
 	}
@@ -2260,9 +2223,6 @@ func (m *PaymentOrderMutation) Fields() []string {
 	}
 	if m.amount_paid != nil {
 		fields = append(fields, paymentorder.FieldAmountPaid)
-	}
-	if m.network != nil {
-		fields = append(fields, paymentorder.FieldNetwork)
 	}
 	if m.tx_hash != nil {
 		fields = append(fields, paymentorder.FieldTxHash)
@@ -2292,8 +2252,6 @@ func (m *PaymentOrderMutation) Field(name string) (ent.Value, bool) {
 		return m.Amount()
 	case paymentorder.FieldAmountPaid:
 		return m.AmountPaid()
-	case paymentorder.FieldNetwork:
-		return m.Network()
 	case paymentorder.FieldTxHash:
 		return m.TxHash()
 	case paymentorder.FieldReceiveAddressText:
@@ -2319,8 +2277,6 @@ func (m *PaymentOrderMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldAmount(ctx)
 	case paymentorder.FieldAmountPaid:
 		return m.OldAmountPaid(ctx)
-	case paymentorder.FieldNetwork:
-		return m.OldNetwork(ctx)
 	case paymentorder.FieldTxHash:
 		return m.OldTxHash(ctx)
 	case paymentorder.FieldReceiveAddressText:
@@ -2365,13 +2321,6 @@ func (m *PaymentOrderMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetAmountPaid(v)
-		return nil
-	case paymentorder.FieldNetwork:
-		v, ok := value.(paymentorder.Network)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetNetwork(v)
 		return nil
 	case paymentorder.FieldTxHash:
 		v, ok := value.(string)
@@ -2503,9 +2452,6 @@ func (m *PaymentOrderMutation) ResetField(name string) error {
 		return nil
 	case paymentorder.FieldAmountPaid:
 		m.ResetAmountPaid()
-		return nil
-	case paymentorder.FieldNetwork:
-		m.ResetNetwork()
 		return nil
 	case paymentorder.FieldTxHash:
 		m.ResetTxHash()

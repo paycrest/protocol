@@ -30,8 +30,6 @@ func (PaymentOrder) Fields() []ent.Field {
 			GoType(decimal.Decimal{}),
 		field.Float("amount_paid").
 			GoType(decimal.Decimal{}),
-		field.Enum("network").
-			Values("bnb-smart-chain", "polygon", "tron", "polygon-mumbai", "tron-shasta"),
 		field.String("tx_hash").
 			MaxLen(70).
 			Optional(),
@@ -52,7 +50,8 @@ func (PaymentOrder) Edges() []ent.Edge {
 			Unique(),
 		edge.From("token", Token.Type).
 			Ref("payment_orders").
-			Unique(),
+			Unique().
+			Required(),
 		edge.To("receive_address", ReceiveAddress.Type).
 			Unique().
 			Annotations(entsql.OnDelete(entsql.SetNull)),

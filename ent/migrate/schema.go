@@ -62,13 +62,12 @@ var (
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "amount", Type: field.TypeFloat64},
 		{Name: "amount_paid", Type: field.TypeFloat64},
-		{Name: "network", Type: field.TypeEnum, Enums: []string{"bnb-smart-chain", "polygon", "tron", "polygon-mumbai", "tron-shasta"}},
 		{Name: "tx_hash", Type: field.TypeString, Nullable: true, Size: 70},
 		{Name: "receive_address_text", Type: field.TypeString, Size: 60},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"initiated", "pending", "settled", "cancelled", "failed", "refunded"}, Default: "initiated"},
 		{Name: "last_used", Type: field.TypeTime, Nullable: true},
 		{Name: "api_key_payment_orders", Type: field.TypeUUID, Nullable: true},
-		{Name: "token_payment_orders", Type: field.TypeInt, Nullable: true},
+		{Name: "token_payment_orders", Type: field.TypeInt},
 	}
 	// PaymentOrdersTable holds the schema information for the "payment_orders" table.
 	PaymentOrdersTable = &schema.Table{
@@ -78,15 +77,15 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "payment_orders_api_keys_payment_orders",
-				Columns:    []*schema.Column{PaymentOrdersColumns[10]},
+				Columns:    []*schema.Column{PaymentOrdersColumns[9]},
 				RefColumns: []*schema.Column{APIKeysColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "payment_orders_tokens_payment_orders",
-				Columns:    []*schema.Column{PaymentOrdersColumns[11]},
+				Columns:    []*schema.Column{PaymentOrdersColumns[10]},
 				RefColumns: []*schema.Column{TokensColumns[0]},
-				OnDelete:   schema.SetNull,
+				OnDelete:   schema.NoAction,
 			},
 		},
 	}
@@ -247,7 +246,7 @@ var (
 		{Name: "contract_address", Type: field.TypeString, Size: 60},
 		{Name: "decimals", Type: field.TypeInt8},
 		{Name: "is_enabled", Type: field.TypeBool, Default: false},
-		{Name: "network_tokens", Type: field.TypeInt, Nullable: true},
+		{Name: "network_tokens", Type: field.TypeInt},
 	}
 	// TokensTable holds the schema information for the "tokens" table.
 	TokensTable = &schema.Table{
@@ -259,7 +258,7 @@ var (
 				Symbol:     "tokens_networks_tokens",
 				Columns:    []*schema.Column{TokensColumns[7]},
 				RefColumns: []*schema.Column{NetworksColumns[0]},
-				OnDelete:   schema.SetNull,
+				OnDelete:   schema.NoAction,
 			},
 		},
 	}

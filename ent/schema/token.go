@@ -33,6 +33,7 @@ func (Token) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("network", Network.Type).
 			Ref("tokens").
+			Required().
 			Unique(),
 		edge.To("payment_orders", PaymentOrder.Type),
 	}

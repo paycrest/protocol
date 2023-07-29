@@ -66,12 +66,6 @@ func (pou *PaymentOrderUpdate) AddAmountPaid(d decimal.Decimal) *PaymentOrderUpd
 	return pou
 }
 
-// SetNetwork sets the "network" field.
-func (pou *PaymentOrderUpdate) SetNetwork(pa paymentorder.Network) *PaymentOrderUpdate {
-	pou.mutation.SetNetwork(pa)
-	return pou
-}
-
 // SetTxHash sets the "tx_hash" field.
 func (pou *PaymentOrderUpdate) SetTxHash(s string) *PaymentOrderUpdate {
 	pou.mutation.SetTxHash(s)
@@ -154,14 +148,6 @@ func (pou *PaymentOrderUpdate) SetAPIKey(a *APIKey) *PaymentOrderUpdate {
 // SetTokenID sets the "token" edge to the Token entity by ID.
 func (pou *PaymentOrderUpdate) SetTokenID(id int) *PaymentOrderUpdate {
 	pou.mutation.SetTokenID(id)
-	return pou
-}
-
-// SetNillableTokenID sets the "token" edge to the Token entity by ID if the given value is not nil.
-func (pou *PaymentOrderUpdate) SetNillableTokenID(id *int) *PaymentOrderUpdate {
-	if id != nil {
-		pou = pou.SetTokenID(*id)
-	}
 	return pou
 }
 
@@ -275,11 +261,6 @@ func (pou *PaymentOrderUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (pou *PaymentOrderUpdate) check() error {
-	if v, ok := pou.mutation.Network(); ok {
-		if err := paymentorder.NetworkValidator(v); err != nil {
-			return &ValidationError{Name: "network", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.network": %w`, err)}
-		}
-	}
 	if v, ok := pou.mutation.TxHash(); ok {
 		if err := paymentorder.TxHashValidator(v); err != nil {
 			return &ValidationError{Name: "tx_hash", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.tx_hash": %w`, err)}
@@ -294,6 +275,9 @@ func (pou *PaymentOrderUpdate) check() error {
 		if err := paymentorder.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.status": %w`, err)}
 		}
+	}
+	if _, ok := pou.mutation.TokenID(); pou.mutation.TokenCleared() && !ok {
+		return errors.New(`ent: clearing a required unique edge "PaymentOrder.token"`)
 	}
 	return nil
 }
@@ -324,9 +308,6 @@ func (pou *PaymentOrderUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if value, ok := pou.mutation.AddedAmountPaid(); ok {
 		_spec.AddField(paymentorder.FieldAmountPaid, field.TypeFloat64, value)
-	}
-	if value, ok := pou.mutation.Network(); ok {
-		_spec.SetField(paymentorder.FieldNetwork, field.TypeEnum, value)
 	}
 	if value, ok := pou.mutation.TxHash(); ok {
 		_spec.SetField(paymentorder.FieldTxHash, field.TypeString, value)
@@ -514,12 +495,6 @@ func (pouo *PaymentOrderUpdateOne) AddAmountPaid(d decimal.Decimal) *PaymentOrde
 	return pouo
 }
 
-// SetNetwork sets the "network" field.
-func (pouo *PaymentOrderUpdateOne) SetNetwork(pa paymentorder.Network) *PaymentOrderUpdateOne {
-	pouo.mutation.SetNetwork(pa)
-	return pouo
-}
-
 // SetTxHash sets the "tx_hash" field.
 func (pouo *PaymentOrderUpdateOne) SetTxHash(s string) *PaymentOrderUpdateOne {
 	pouo.mutation.SetTxHash(s)
@@ -602,14 +577,6 @@ func (pouo *PaymentOrderUpdateOne) SetAPIKey(a *APIKey) *PaymentOrderUpdateOne {
 // SetTokenID sets the "token" edge to the Token entity by ID.
 func (pouo *PaymentOrderUpdateOne) SetTokenID(id int) *PaymentOrderUpdateOne {
 	pouo.mutation.SetTokenID(id)
-	return pouo
-}
-
-// SetNillableTokenID sets the "token" edge to the Token entity by ID if the given value is not nil.
-func (pouo *PaymentOrderUpdateOne) SetNillableTokenID(id *int) *PaymentOrderUpdateOne {
-	if id != nil {
-		pouo = pouo.SetTokenID(*id)
-	}
 	return pouo
 }
 
@@ -736,11 +703,6 @@ func (pouo *PaymentOrderUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (pouo *PaymentOrderUpdateOne) check() error {
-	if v, ok := pouo.mutation.Network(); ok {
-		if err := paymentorder.NetworkValidator(v); err != nil {
-			return &ValidationError{Name: "network", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.network": %w`, err)}
-		}
-	}
 	if v, ok := pouo.mutation.TxHash(); ok {
 		if err := paymentorder.TxHashValidator(v); err != nil {
 			return &ValidationError{Name: "tx_hash", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.tx_hash": %w`, err)}
@@ -755,6 +717,9 @@ func (pouo *PaymentOrderUpdateOne) check() error {
 		if err := paymentorder.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.status": %w`, err)}
 		}
+	}
+	if _, ok := pouo.mutation.TokenID(); pouo.mutation.TokenCleared() && !ok {
+		return errors.New(`ent: clearing a required unique edge "PaymentOrder.token"`)
 	}
 	return nil
 }
@@ -802,9 +767,6 @@ func (pouo *PaymentOrderUpdateOne) sqlSave(ctx context.Context) (_node *PaymentO
 	}
 	if value, ok := pouo.mutation.AddedAmountPaid(); ok {
 		_spec.AddField(paymentorder.FieldAmountPaid, field.TypeFloat64, value)
-	}
-	if value, ok := pouo.mutation.Network(); ok {
-		_spec.SetField(paymentorder.FieldNetwork, field.TypeEnum, value)
 	}
 	if value, ok := pouo.mutation.TxHash(); ok {
 		_spec.SetField(paymentorder.FieldTxHash, field.TypeString, value)
