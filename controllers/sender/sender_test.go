@@ -21,7 +21,6 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/enttest"
 	"github.com/paycrest/paycrest-protocol/ent/network"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
-	"github.com/paycrest/paycrest-protocol/utils/logger"
 	"github.com/paycrest/paycrest-protocol/utils/test"
 	"github.com/paycrest/paycrest-protocol/utils/token"
 	"github.com/stretchr/testify/assert"
@@ -109,7 +108,7 @@ func TestSender(t *testing.T) {
 	router.POST("/orders", ctrl.CreatePaymentOrder)
 	router.GET("/orders/:id", ctrl.GetPaymentOrderByID)
 	router.DELETE("/orders/:id", ctrl.DeletePaymentOrder)
-	
+
 	var paymentOrderUUID uuid.UUID
 
 	t.Run("CreatePaymentOrder", func(t *testing.T) {
@@ -159,7 +158,6 @@ func TestSender(t *testing.T) {
 		paymentOrderUUID, err = uuid.Parse(data["id"].(string))
 		assert.NoError(t, err)
 
-		logger.Errorf(fmt.Sprintf("paymentOrderUUID: %s", paymentOrderUUID))
 		// Query the database for the payment order
 		paymentOrder, err := db.Client.PaymentOrder.
 			Query().
@@ -183,7 +181,6 @@ func TestSender(t *testing.T) {
 			"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
 		}
 
-		logger.Errorf(fmt.Sprintf("/orders/%s", paymentOrderUUID))
 		res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/orders/%s", paymentOrderUUID), payload, headers, router)
 		assert.NoError(t, err)
 
@@ -215,7 +212,7 @@ func TestSender(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Assert the response body
-		assert.Equal(t, http.StatusOK, res.Code)
+		assert.Equal(t, http.StatusNoContent, res.Code)
 
 		var response utils.Response
 		err = json.Unmarshal(res.Body.Bytes(), &response)
@@ -229,13 +226,10 @@ func TestSender(t *testing.T) {
 		paymentOrder, err := db.Client.PaymentOrder.
 			Query().
 			Where(paymentorder.IDEQ(paymentOrderUUID)).
-			WithRecipient().
 			Only(context.Background())
 		assert.Error(t, err)
 		assert.Nil(t, paymentOrder)
 
 	})
-
-		
 
 }
