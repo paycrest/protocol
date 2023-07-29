@@ -1,48 +1,14 @@
-package types
+package services
 
 import (
-	"context"
 	"math/big"
 	"time"
 
-	ethereum "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/shopspring/decimal"
 )
-
-// RPCClient is an interface for interacting with the blockchain.
-type RPCClient interface {
-	FilterLogs(ctx context.Context, q ethereum.FilterQuery) ([]types.Log, error)
-	HeaderByNumber(ctx context.Context, number *big.Int) (*types.Header, error)
-	PendingNonceAt(ctx context.Context, account common.Address) (uint64, error)
-	SuggestGasPrice(ctx context.Context) (*big.Int, error)
-	Commit() common.Hash
-}
-
-// Custom type that implements RPCClient
-type ethRPC struct {
-	*ethclient.Client
-}
-
-// Implements Commit() method
-func (e *ethRPC) Commit() common.Hash {
-	return common.Hash{} // no-op
-}
-
-// Helper function to create client
-func NewEthClient(endpoint string) (RPCClient, error) {
-
-	ethClient, err := ethclient.Dial(endpoint)
-	if err != nil {
-		return nil, err
-	}
-
-	return &ethRPC{ethClient}, nil
-}
 
 // RegisterPayload is the payload for the register endpoint
 type RegisterPayload struct {
