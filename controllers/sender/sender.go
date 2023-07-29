@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	db "github.com/paycrest/paycrest-protocol/database"
 	"github.com/paycrest/paycrest-protocol/ent"
+	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/token"
 	svc "github.com/paycrest/paycrest-protocol/services"
 	"github.com/paycrest/paycrest-protocol/types"
@@ -172,6 +173,9 @@ func (ctrl *SenderController) GetPaymentOrderByID(ctx *gin.Context) {
 		Query().
 		Where(paymentorder.ID(id)).
 		WithRecipient().
+		WithToken(func(tq *ent.TokenQuery) {
+			tq.WithNetwork()
+		}).
 		First(ctx)
 
 	if err != nil {
@@ -184,11 +188,11 @@ func (ctrl *SenderController) GetPaymentOrderByID(ctx *gin.Context) {
 	paymentOrderAmount, _ := paymentOrder.Amount.Float64()
 
 	u.APIResponse(ctx, http.StatusOK, "success", "The order has been successfully retrieved",
-		&svc.PaymentOrderResponse{
+		&types.PaymentOrderResponse{
 			ID:      paymentOrder.ID,
 			Amount:  paymentOrderAmount,
-			Network: paymentOrder.Network.String(),
-			Recipient: svc.PaymentOrderRecipient{
+			Network: paymentOrder.Edges.Token.Edges.Network.String(),
+			Recipient: types.PaymentOrderRecipient{
 				Institution:       paymentOrder.Edges.Recipient.Institution,
 				AccountIdentifier: paymentOrder.Edges.Recipient.AccountIdentifier,
 				AccountName:       paymentOrder.Edges.Recipient.AccountName,
@@ -206,7 +210,7 @@ func (ctrl *SenderController) DeletePaymentOrder(ctx *gin.Context) {
 	// Get order ID from the URL
 	orderID := ctx.Param("id")
 
-	// Connvert order ID to UUID
+	// Convert order ID to UUID
 	id, err := uuid.Parse(orderID)
 	if err != nil {
 		logger.Errorf("error: %v", err)
@@ -227,5 +231,5 @@ func (ctrl *SenderController) DeletePaymentOrder(ctx *gin.Context) {
 		return
 	}
 
-	u.APIResponse(ctx, http.StatusOK, "success", "Payment order deleted successfully", nil)
+	u.APIResponse(ctx, http.StatusNoContent, "success", "Payment order deleted successfully", nil)
 }

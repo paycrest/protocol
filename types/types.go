@@ -143,3 +143,4 @@ type PaymentOrderResponse struct {
 	TxHash    string                `json:"txHash"`
 	Status    string                `json:"status"`
 }
+
