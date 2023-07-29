@@ -53,11 +53,14 @@ func setup() error {
 	// Fund receive address
 	amount := big.NewInt(0)
 	amount.SetString("10000000000000000000", 10)
-	test.FundAddressWithTestToken(
+	err = test.FundAddressWithTestToken(
 		common.HexToAddress(token.ContractAddress),
 		amount,
 		common.HexToAddress(receiveAddress.Address),
 	)
+	if err != nil {
+		return err
+	}
 
 	// Create a payment order
 	paymentOrder, err := db.Client.PaymentOrder.

@@ -214,14 +214,6 @@ func TestSender(t *testing.T) {
 		// Assert the response body
 		assert.Equal(t, http.StatusNoContent, res.Code)
 
-		var response utils.Response
-		err = json.Unmarshal(res.Body.Bytes(), &response)
-		assert.NoError(t, err)
-		assert.Equal(t, "Payment order deleted successfully", response.Message)
-		data, ok := response.Data.(map[string]interface{})
-		assert.False(t, ok, "response.Data is of not type map[string]interface{}")
-		assert.Nil(t, data, "response.Data is nil")
-
 		// Query the database for the payment order
 		paymentOrder, err := db.Client.PaymentOrder.
 			Query().
@@ -229,7 +221,5 @@ func TestSender(t *testing.T) {
 			Only(context.Background())
 		assert.Error(t, err)
 		assert.Nil(t, paymentOrder)
-
 	})
-
 }
