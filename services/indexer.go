@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"math"
 	"math/big"
 	"strings"
 	"time"
@@ -80,19 +81,23 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 	// number of blocks = receive address validity period in seconds / blocktime
 	numOfBlocks := int64(conf.ReceiveAddressValidity.Seconds() / 2)
 
-	var fromBlock *big.Int
+	var fromBlock int64
 
 	if receiveAddress.LastIndexedBlock > 0 {
 		// Continue indexing from last indexed block if the last process failed
-		fromBlock = big.NewInt(receiveAddress.LastIndexedBlock + 1)
+		fromBlock = receiveAddress.LastIndexedBlock + 1
 	} else {
-		fromBlock = big.NewInt(header.Number.Int64() - numOfBlocks + 1)
+		fromBlock = int64(math.Max(float64(header.Number.Int64()-numOfBlocks+1), 0))
 	}
+
+	_ = fromBlock
+
+	fromBlockBig := big.NewInt(17800412)
 
 	// Query event logs of the token contract starting from the oldest block
 	// within the receive address validity period
 	query := ethereum.FilterQuery{
-		FromBlock: fromBlock,
+		FromBlock: fromBlockBig,
 		ToBlock:   header.Number,
 		Addresses: []common.Address{
 			common.HexToAddress(paymentOrder.Edges.Token.ContractAddress),
@@ -108,6 +113,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 
 	// Get Transfer event signature hash
 	contractAbi, err := abi.JSON(strings.NewReader(ERC20ABI))
+
 	if err != nil {
 		return fmt.Errorf("failed to parse ABI: %w", err)
 	}
@@ -118,7 +124,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 	logger.Infof(
 		"Indexing transfer logs for %s from Block #%s - #%s",
 		receiveAddress.Address,
-		fromBlock.String(),
+		fromBlockBig.String(),
 		header.Number.String(),
 	)
 
@@ -166,7 +172,11 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 						if err != nil {
 							return fmt.Errorf("failed to update receive address status: %w", err)
 						}
-						done <- true
+						if done != nil {
+							done <- true
+						} else {
+							return nil
+						}
 					} else if comparisonResult < 0 {
 						// Transfer value is less than order amount
 						_, err = receiveAddress.
@@ -208,7 +218,9 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 							if err != nil {
 								return fmt.Errorf("failed to update receive address status: %w", err)
 							}
-							done <- true
+							if done != nil {
+								done <- true
+							}
 						}
 					}
 
@@ -216,7 +228,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 				}
 
 				// Check if receive address validity period has passed
-				timeAgo := time.Now().Add(conf.ReceiveAddressValidity)
+				timeAgo := time.Now().Add(-conf.ReceiveAddressValidity)
 				amountNotPaidInFull := (receiveAddress.Status == receiveaddress.StatusPartial || receiveAddress.Status == receiveaddress.StatusUnused)
 
 				if receiveAddress.CreatedAt.Before(timeAgo) && amountNotPaidInFull {
@@ -228,7 +240,11 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 					if err != nil {
 						return fmt.Errorf("failed to update receive address status: %w", err)
 					}
-					done <- true
+					if done != nil {
+						done <- true
+					} else {
+						return nil
+					}
 				}
 			}
 		}

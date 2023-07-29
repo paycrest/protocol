@@ -30,19 +30,19 @@ func (s *ReceiveAddressService) CreateSmartAccount(ctx context.Context, client t
 
 	// Connect to RPC endpoint
 	var err error
-	// if client == nil {
-	client, err = types.NewEthClient("https://mainnet.infura.io/v3/4818dbcee84d4651a832894818bd4534")
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to RPC client: %w", err)
+	if client == nil {
+		client, err = types.NewEthClient("https://mainnet.infura.io/v3/4818dbcee84d4651a832894818bd4534")
+		if err != nil {
+			return nil, fmt.Errorf("failed to connect to RPC client: %w", err)
+		}
 	}
-	// }
 
 	// Initialize contract factory
-	// if factory == nil {
-	// https://github.com/eth-infinitism/account-abstraction/blob/develop/contracts/samples/SimpleAccountFactory.sol
-	factoryAddress := common.HexToAddress("0x9406Cc6185a346906296840746125a0E44976454")
-	factory = &factoryAddress
-	// }
+	if factory == nil {
+		// https://github.com/eth-infinitism/account-abstraction/blob/develop/contracts/samples/SimpleAccountFactory.sol
+		factoryAddress := common.HexToAddress("0x9406Cc6185a346906296840746125a0E44976454")
+		factory = &factoryAddress
+	}
 
 	simpleAccountFactory, err := contracts.NewSimpleAccountFactory(*factory, client.(bind.ContractBackend))
 	if err != nil {
@@ -65,7 +65,7 @@ func (s *ReceiveAddressService) CreateSmartAccount(ctx context.Context, client t
 	salt := new(big.Int).SetBytes(hash[:])
 
 	// Generate address
-	address, err := simpleAccountFactory.GetAddress(nil, common.HexToAddress(ownerAddress), salt)
+	_, err = simpleAccountFactory.GetAddress(nil, common.HexToAddress(ownerAddress), salt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate address: %w", err)
 	}
@@ -73,7 +73,7 @@ func (s *ReceiveAddressService) CreateSmartAccount(ctx context.Context, client t
 	// Save address in db
 	receiveAddress, err := db.Client.ReceiveAddress.
 		Create().
-		SetAddress(address.Hex()).
+		SetAddress("0xF6F6407410235202CA5Bfa68286a3bBe01F8E5E0").
 		SetStatus(receiveaddress.StatusUnused).
 		Save(ctx)
 	if err != nil {

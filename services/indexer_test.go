@@ -2,14 +2,13 @@ package services
 
 import (
 	"context"
-	"math/big"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/common"
 	_ "github.com/mattn/go-sqlite3"
 	db "github.com/paycrest/paycrest-protocol/database"
 	"github.com/paycrest/paycrest-protocol/ent"
 	"github.com/paycrest/paycrest-protocol/ent/enttest"
+	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
 	"github.com/paycrest/paycrest-protocol/types"
 	"github.com/paycrest/paycrest-protocol/utils/test"
 	"github.com/shopspring/decimal"
@@ -31,41 +30,52 @@ func setup() error {
 	}
 	testCtx.rpcClient = backend
 
+	// TODO: replace this implementation with the simulated blockchain
+	// We're currently using this tx for testing:
+	// https://etherscan.io/tx/0xd5fb7204066619f207e8d2c87493cdd1edbdd9ec21ab647f95d45faa2ed540cb
+
 	// Create a test token
-	token, err := test.CreateTestToken(backend, nil)
+	token, err := test.CreateTestToken(
+		backend,
+		map[string]interface{}{
+			"symbol":           "USDT",
+			"contract_address": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+			"decimals":         6,
+			"networkRPC":       "https://mainnet.infura.io/v3/4818dbcee84d4651a832894818bd4534",
+		})
 	if err != nil {
 		return err
 	}
 
 	// Create receive address
-	receiveAddressFactory, err := test.DeployEIP4337FactoryContract(backend)
-	if err != nil {
-		return err
-	}
+	// receiveAddressFactory, err := test.DeployEIP4337FactoryContract(backend)
+	// if err != nil {
+	// 	return err
+	// }
 	receiveAddressService := NewReceiveAddressService()
 	receiveAddress, err := receiveAddressService.CreateSmartAccount(
-		context.Background(), backend, receiveAddressFactory)
+		context.Background(), nil, nil)
 	if err != nil {
 		return err
 	}
 	testCtx.receiveAddress = receiveAddress
 
 	// Fund receive address
-	amount := big.NewInt(0)
-	amount.SetString("10000000000000000000", 10)
-	err = test.FundAddressWithTestToken(
-		common.HexToAddress(token.ContractAddress),
-		amount,
-		common.HexToAddress(receiveAddress.Address),
-	)
-	if err != nil {
-		return err
-	}
+	amount := decimal.NewFromInt(2990)
+	// err = test.FundAddressWithTestToken(
+	// 	backend,
+	// 	common.HexToAddress(token.ContractAddress),
+	// 	amount,
+	// 	common.HexToAddress(receiveAddress.Address),
+	// )
+	// if err != nil {
+	// 	return err
+	// }
 
 	// Create a payment order
 	paymentOrder, err := db.Client.PaymentOrder.
 		Create().
-		SetAmount(decimal.NewFromBigInt(amount, 1)).
+		SetAmount(amount).
 		SetAmountPaid(decimal.NewFromInt(0)).
 		SetToken(token).
 		SetReceiveAddress(receiveAddress).
@@ -93,18 +103,18 @@ func TestIndexer(t *testing.T) {
 	err := setup()
 	assert.NoError(t, err)
 
-	// // Index ERC20 transfers for the receive address
-	// done := make(chan bool)
-	// err = testCtx.indexer.IndexERC20Transfer(context.Background(), testCtx.rpcClient, testCtx.receiveAddress, done)
-	// assert.NoError(t, err)
+	// Index ERC20 transfers for the receive address
+	err = testCtx.indexer.IndexERC20Transfer(context.Background(), nil, testCtx.receiveAddress, nil)
+	assert.NoError(t, err)
 
-	// // Fetch receiveAddress from db
-	// receiveAddress, err := db.Client.ReceiveAddress.
-	// 	Query().
-	// 	Where(receiveaddress.AddressEQ(testCtx.receiveAddress.Address)).
-	// 	Only(context.Background())
-	// assert.NoError(t, err)
+	// Fetch receiveAddress from db
+	receiveAddress, err := db.Client.ReceiveAddress.
+		Query().
+		Where(receiveaddress.AddressEQ(testCtx.receiveAddress.Address)).
+		Only(context.Background())
+	assert.NoError(t, err)
 
-	// // Assert state changes after indexing
-	// assert.Equal(t, receiveaddress.StatusUsed, receiveAddress.Status)
+	// Assert state changes after indexing
+	assert.Equal(t, receiveaddress.StatusUsed, receiveAddress.Status)
+
 }
