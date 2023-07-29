@@ -6,8 +6,9 @@ import (
 
 	db "github.com/paycrest/paycrest-protocol/database"
 	"github.com/paycrest/paycrest-protocol/ent"
-	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
+	"github.com/paycrest/paycrest-protocol/ent/token"
 	svc "github.com/paycrest/paycrest-protocol/services"
+	"github.com/paycrest/paycrest-protocol/types"
 	u "github.com/paycrest/paycrest-protocol/utils"
 	"github.com/paycrest/paycrest-protocol/utils/logger"
 	"github.com/shopspring/decimal"
@@ -25,9 +26,12 @@ type SenderController struct {
 func NewSenderController(indexer svc.Indexer) *SenderController {
 	var indexerService *svc.IndexerService
 
-	if indexer == nil {
+	if indexer != nil {
 		indexerService = svc.NewIndexerService(indexer)
+	} else {
+		indexerService = svc.NewIndexerService(nil)
 	}
+
 	return &SenderController{
 		indexerService:        indexerService,
 		receiveAddressService: svc.NewReceiveAddressService(),
@@ -36,7 +40,7 @@ func NewSenderController(indexer svc.Indexer) *SenderController {
 
 // CreatePaymentOrder controller creates a payment order
 func (ctrl *SenderController) CreatePaymentOrder(ctx *gin.Context) {
-	var payload svc.NewPaymentOrderPayload
+	var payload types.NewPaymentOrderPayload
 
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		logger.Errorf("error: %v", err)
@@ -46,7 +50,7 @@ func (ctrl *SenderController) CreatePaymentOrder(ctx *gin.Context) {
 	}
 
 	// Generate receive address
-	receiveAddress, err := ctrl.receiveAddressService.CreateSmartAccount(ctx)
+	receiveAddress, err := ctrl.receiveAddressService.CreateSmartAccount(ctx, nil, nil)
 	if err != nil {
 		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusInternalServerError, "error",
@@ -64,7 +68,7 @@ func (ctrl *SenderController) CreatePaymentOrder(ctx *gin.Context) {
 			default:
 				time.Sleep(2 * time.Minute) // add 2 minutes delay between each indexing operation
 
-				err = ctrl.indexerService.IndexERC20Transfer(ctx, receiveAddress, done)
+				err = ctrl.indexerService.IndexERC20Transfer(ctx, nil, receiveAddress, done)
 				if err != nil {
 					logger.Errorf("error: %v", err)
 					return
@@ -72,6 +76,19 @@ func (ctrl *SenderController) CreatePaymentOrder(ctx *gin.Context) {
 			}
 		}
 	}(ctx, receiveAddress, done)
+
+	// Get token from DB
+	token, err := db.Client.Token.
+		Query().
+		Where(token.SymbolEQ(payload.Token)).
+		WithNetwork().
+		Only(ctx)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusBadRequest, "error",
+			"Provided crypto token is not supported", err.Error())
+		return
+	}
 
 	// Create payment order and recipient in a transaction
 	tx, err := db.Client.Tx(ctx)
@@ -87,7 +104,7 @@ func (ctrl *SenderController) CreatePaymentOrder(ctx *gin.Context) {
 		Create().
 		SetAmount(payload.Amount).
 		SetAmountPaid(decimal.NewFromInt(0)).
-		SetNetwork(paymentorder.Network(payload.Network)).
+		SetToken(token).
 		SetReceiveAddress(receiveAddress).
 		SetReceiveAddressText(receiveAddress.Address).
 		Save(ctx)
@@ -127,10 +144,10 @@ func (ctrl *SenderController) CreatePaymentOrder(ctx *gin.Context) {
 	paymentOrderAmount, _ := paymentOrder.Amount.Float64()
 
 	u.APIResponse(ctx, http.StatusCreated, "success", "Payment order initiated successfully",
-		&svc.ReceiveAddressResponse{
+		&types.ReceiveAddressResponse{
 			ID:             paymentOrder.ID,
 			Amount:         paymentOrderAmount,
-			Network:        paymentOrder.Network.String(),
+			Network:        token.Edges.Network.Identifier.String(),
 			ReceiveAddress: paymentOrder.ReceiveAddressText,
 		})
 }

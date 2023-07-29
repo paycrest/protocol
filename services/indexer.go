@@ -11,12 +11,12 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/paycrest/paycrest-protocol/config"
 	db "github.com/paycrest/paycrest-protocol/database"
 	"github.com/paycrest/paycrest-protocol/ent"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
+	"github.com/paycrest/paycrest-protocol/types"
 	"github.com/paycrest/paycrest-protocol/utils"
 	"github.com/paycrest/paycrest-protocol/utils/logger"
 )
@@ -25,7 +25,7 @@ var conf = config.OrderConfig()
 
 // Indexer is an interface for indexing blockchain data to the database.
 type Indexer interface {
-	IndexERC20Transfer(ctx context.Context, receiveAddress *ent.ReceiveAddress, done chan<- bool) error
+	IndexERC20Transfer(ctx context.Context, client types.RPCClient, receiveAddress *ent.ReceiveAddress, done chan<- bool) error
 }
 
 // IndexerService performs blockchain to database extract, transform, load (ETL) operations.
@@ -41,7 +41,7 @@ func NewIndexerService(indexer Indexer) *IndexerService {
 }
 
 // IndexERC20Transfer indexes ERC20 token transfers for a specific receive address.
-func (s *IndexerService) IndexERC20Transfer(ctx context.Context, receiveAddress *ent.ReceiveAddress, done chan<- bool) error {
+func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RPCClient, receiveAddress *ent.ReceiveAddress, done chan<- bool) error {
 
 	// Fetch payment order from db
 	paymentOrder, err := db.Client.PaymentOrder.
@@ -61,9 +61,11 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, receiveAddress 
 
 	token := paymentOrder.Edges.Token
 
-	client, err := ethclient.Dial(token.Edges.Network.RPCEndpoint)
-	if err != nil {
-		return fmt.Errorf("failed to dial RPC: %w", err)
+	if client == nil {
+		client, err = types.NewEthClient(token.Edges.Network.RPCEndpoint)
+		if err != nil {
+			return fmt.Errorf("failed to connect to RPC client: %w", err)
+		}
 	}
 
 	// Fetch current block header
@@ -139,7 +141,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, receiveAddress 
 		for _, vLog := range logs {
 			switch vLog.Topics[0].Hex() {
 			case logTransferSigHash.Hex():
-				var transferEvent ERC20Transfer
+				var transferEvent types.ERC20Transfer
 
 				err := contractAbi.UnpackIntoInterface(&transferEvent, "Transfer", vLog.Data)
 				if err != nil {
