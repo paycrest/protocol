@@ -3,6 +3,7 @@ package sender
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"testing"
 	"time"
@@ -20,6 +21,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/enttest"
 	"github.com/paycrest/paycrest-protocol/ent/network"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
+	"github.com/paycrest/paycrest-protocol/utils/logger"
 	"github.com/paycrest/paycrest-protocol/utils/test"
 	"github.com/paycrest/paycrest-protocol/utils/token"
 	"github.com/stretchr/testify/assert"
@@ -105,6 +107,10 @@ func TestSender(t *testing.T) {
 	// Create a new instance of the SenderController with the mock service
 	ctrl := NewSenderController(mockIndexerService)
 	router.POST("/orders", ctrl.CreatePaymentOrder)
+	router.GET("/orders/:id", ctrl.GetPaymentOrderByID)
+	router.DELETE("/orders/:id", ctrl.DeletePaymentOrder)
+	
+	var paymentOrderUUID uuid.UUID
 
 	t.Run("CreatePaymentOrder", func(t *testing.T) {
 		// Fetch network from db
@@ -150,9 +156,10 @@ func TestSender(t *testing.T) {
 		assert.Equal(t, data["network"], payload["network"])
 
 		// Parse the payment order ID string to uuid.UUID
-		paymentOrderUUID, err := uuid.Parse(data["id"].(string))
+		paymentOrderUUID, err = uuid.Parse(data["id"].(string))
 		assert.NoError(t, err)
 
+		logger.Errorf(fmt.Sprintf("paymentOrderUUID: %s", paymentOrderUUID))
 		// Query the database for the payment order
 		paymentOrder, err := db.Client.PaymentOrder.
 			Query().
@@ -164,4 +171,71 @@ func TestSender(t *testing.T) {
 		assert.NotNil(t, paymentOrder.Edges.Recipient)
 		assert.Equal(t, paymentOrder.Edges.Recipient.AccountIdentifier, payload["recipient"].(map[string]interface{})["accountIdentifier"])
 	})
+
+	t.Run("GetPaymentOrder", func(t *testing.T) {
+		var payload = map[string]interface{}{
+			"timestamp": time.Now().Unix(),
+		}
+
+		signature := token.GenerateHMACSignature(payload, testCtx.apiKeySecret)
+
+		headers := map[string]string{
+			"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
+		}
+
+		logger.Errorf(fmt.Sprintf("/orders/%s", paymentOrderUUID))
+		res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/orders/%s", paymentOrderUUID), payload, headers, router)
+		assert.NoError(t, err)
+
+		// Assert the response body
+		assert.Equal(t, http.StatusOK, res.Code)
+
+		var response utils.Response
+		err = json.Unmarshal(res.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.Equal(t, "The order has been successfully retrieved", response.Message)
+		data, ok := response.Data.(map[string]interface{})
+		assert.True(t, ok, "response.Data is of not type map[string]interface{}")
+		assert.NotNil(t, data, "response.Data is nil")
+
+	})
+
+	t.Run("DeletePaymentOrder", func(t *testing.T) {
+		var payload = map[string]interface{}{
+			"timestamp": time.Now().Unix(),
+		}
+
+		signature := token.GenerateHMACSignature(payload, testCtx.apiKeySecret)
+
+		headers := map[string]string{
+			"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
+		}
+
+		res, err := test.PerformRequest(t, "DELETE", fmt.Sprintf("/orders/%s", paymentOrderUUID), payload, headers, router)
+		assert.NoError(t, err)
+
+		// Assert the response body
+		assert.Equal(t, http.StatusOK, res.Code)
+
+		var response utils.Response
+		err = json.Unmarshal(res.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.Equal(t, "Payment order deleted successfully", response.Message)
+		data, ok := response.Data.(map[string]interface{})
+		assert.False(t, ok, "response.Data is of not type map[string]interface{}")
+		assert.Nil(t, data, "response.Data is nil")
+
+		// Query the database for the payment order
+		paymentOrder, err := db.Client.PaymentOrder.
+			Query().
+			Where(paymentorder.IDEQ(paymentOrderUUID)).
+			WithRecipient().
+			Only(context.Background())
+		assert.Error(t, err)
+		assert.Nil(t, paymentOrder)
+
+	})
+
+		
+
 }

@@ -203,5 +203,29 @@ func (ctrl *SenderController) GetPaymentOrderByID(ctx *gin.Context) {
 
 // DeletePaymentOrder controller deletes a payment order
 func (ctrl *SenderController) DeletePaymentOrder(ctx *gin.Context) {
-	u.APIResponse(ctx, http.StatusOK, "success", "OK", nil)
+	// Get order ID from the URL
+	orderID := ctx.Param("id")
+
+	// Connvert order ID to UUID
+	id, err := uuid.Parse(orderID)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusBadRequest, "error",
+			"Invalid order ID", err.Error())
+		return
+	}
+
+	// Delete payment order from the database
+	err = db.Client.PaymentOrder.
+		DeleteOneID(id).
+		Exec(ctx)
+
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusNotFound, "error",
+			"Payment order not found", err.Error())
+		return
+	}
+
+	u.APIResponse(ctx, http.StatusOK, "success", "Payment order deleted successfully", nil)
 }
