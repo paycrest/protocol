@@ -12,30 +12,16 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core"
-	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/paycrest/paycrest-protocol/types"
 	cryptoUtils "github.com/paycrest/paycrest-protocol/utils/crypto"
+	"github.com/shopspring/decimal"
 
 	"github.com/paycrest/paycrest-protocol/services/contracts"
 )
 
-// SimulatedBackend extends the backends.SimulatedBackend struct.
-type SimulatedBackend struct {
-	*backends.SimulatedBackend
-}
-
-// SendTransaction sends a transaction to the simulated backend and commits the state.
-func (s *SimulatedBackend) SendTransaction(ctx context.Context, tx *ethTypes.Transaction) error {
-	if err := s.SimulatedBackend.SendTransaction(ctx, tx); err != nil {
-		return err
-	}
-	s.Commit()
-	return nil
-}
-
 // NewSimulatedBlockchain creates a new instance of SimulatedBackend and returns it.
-func NewSimulatedBlockchain() (*SimulatedBackend, error) {
+func NewSimulatedBlockchain() (*backends.SimulatedBackend, error) {
 	// Generate a private key for the simulated blockchain
 	_, privateKey, _ := getMasterAccount()
 
@@ -61,7 +47,7 @@ func NewSimulatedBlockchain() (*SimulatedBackend, error) {
 	blockGasLimit := uint64(4712388)
 
 	// Create a new simulated backend using the genesis allocation and block gas limit
-	client := &SimulatedBackend{backends.NewSimulatedBackend(genesisAlloc, blockGasLimit)}
+	client := backends.NewSimulatedBackend(genesisAlloc, blockGasLimit)
 
 	client.Commit()
 
@@ -112,28 +98,12 @@ func DeployEIP4337FactoryContract(client types.RPCClient) (*common.Address, erro
 }
 
 // FundAddressWithTestToken funds an amount of a test ERC20 token from the owner account
-func FundAddressWithTestToken(token common.Address, amount *big.Int, address common.Address) error {
-	// Create a new simulated blockchain
-	backend, err := NewSimulatedBlockchain()
-	if err != nil {
-		return err
-	}
-
-	// Get master private key
-	_, privateKeyHex, _ := cryptoUtils.GenerateAccountFromIndex(0)
-
-	privateKeyBytes, err := hexutil.Decode(privateKeyHex)
-	if err != nil {
-		return err
-	}
-
-	privateKey, err := crypto.ToECDSA(privateKeyBytes)
-	if err != nil {
-		return err
-	}
+func FundAddressWithTestToken(client types.RPCClient, token common.Address, amount decimal.Decimal, address common.Address) error {
+	// Get master account
+	_, privateKey, _ := getMasterAccount()
 
 	// Create a new instance of the TestToken contract
-	testToken, err := contracts.NewTestToken(token, backend)
+	testToken, err := contracts.NewTestToken(token, client.(bind.ContractBackend))
 	if err != nil {
 		return err
 	}
@@ -141,12 +111,12 @@ func FundAddressWithTestToken(token common.Address, amount *big.Int, address com
 	auth, _ := bind.NewKeyedTransactorWithChainID(privateKey, big.NewInt(1337))
 
 	// Transfer test token to the address
-	tx, err := testToken.Transfer(auth, address, amount)
+	tx, err := testToken.Transfer(auth, address, amount.BigInt())
 	if err != nil {
 		return err
 	}
 
-	receipt, err := bind.WaitMined(context.Background(), backend, tx)
+	receipt, err := bind.WaitMined(context.Background(), client.(bind.DeployBackend), tx)
 	if err != nil {
 		return err
 	}

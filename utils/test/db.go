@@ -38,7 +38,7 @@ func CreateTestUser(overrides map[string]string) (*ent.User, error) {
 }
 
 // CreateTestToken creates a test token with default or custom values
-func CreateTestToken(client types.RPCClient, overrides map[string]string) (*ent.Token, error) {
+func CreateTestToken(client types.RPCClient, overrides map[string]interface{}) (*ent.Token, error) {
 
 	// Deploy ERC20 token contract
 	tokenAddress, err := DeployERC20Contract(client)
@@ -51,6 +51,7 @@ func CreateTestToken(client types.RPCClient, overrides map[string]string) (*ent.
 		"symbol":           "TST",
 		"contract_address": tokenAddress.Hex(),
 		"decimals":         18,
+		"networkRPC":       "http://localhost:8545",
 		"is_enabled":       true,
 	}
 
@@ -64,7 +65,7 @@ func CreateTestToken(client types.RPCClient, overrides map[string]string) (*ent.
 		Create().
 		SetIdentifier("polygon-mumbai").
 		SetChainID(1337).
-		SetRPCEndpoint("http://localhost:8545").
+		SetRPCEndpoint(payload["networkRPC"].(string)).
 		SetIsTestnet(true).
 		Save(context.Background())
 	if err != nil {
