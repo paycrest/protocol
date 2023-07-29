@@ -65,10 +65,14 @@ We welcome contributions to the Paycrest Protocol! To get started, follow these 
 ```bash
 $ git clone https://github.com/your-username/paycrest-protocol.git
 ```
+3. Setup the precommit hook by running 
+```bash
+sh init.sh
+```
 
-3. Make changes to the codebase and commit them.
+4. Make changes to the codebase and commit them.
 
-4. Push your changes to your forked repository:
+5. Push your changes to your forked repository:
 ```bash
 $ git push origin main
 ```
