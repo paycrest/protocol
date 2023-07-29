@@ -6,13 +6,14 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/ethclient"
 	db "github.com/paycrest/paycrest-protocol/database"
 	"github.com/paycrest/paycrest-protocol/ent"
 	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
 	"github.com/paycrest/paycrest-protocol/services/contracts"
+	"github.com/paycrest/paycrest-protocol/types"
 	cryptoUtils "github.com/paycrest/paycrest-protocol/utils/crypto"
 )
 
@@ -25,19 +26,25 @@ func NewReceiveAddressService() *ReceiveAddressService {
 }
 
 // CreateSmartAccount function generates and saves a new EIP-4337 smart contract account address
-func (s *ReceiveAddressService) CreateSmartAccount(ctx context.Context) (*ent.ReceiveAddress, error) {
+func (s *ReceiveAddressService) CreateSmartAccount(ctx context.Context, client types.RPCClient, factory *common.Address) (*ent.ReceiveAddress, error) {
 
 	// Connect to RPC endpoint
-	client, err := ethclient.Dial("https://mainnet.infura.io/v3/4818dbcee84d4651a832894818bd4534")
+	var err error
+	// if client == nil {
+	client, err = types.NewEthClient("https://mainnet.infura.io/v3/4818dbcee84d4651a832894818bd4534")
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to RPC client: %w", err)
 	}
+	// }
 
 	// Initialize contract factory
+	// if factory == nil {
 	// https://github.com/eth-infinitism/account-abstraction/blob/develop/contracts/samples/SimpleAccountFactory.sol
 	factoryAddress := common.HexToAddress("0x9406Cc6185a346906296840746125a0E44976454")
+	factory = &factoryAddress
+	// }
 
-	simpleAccountFactory, err := contracts.NewSimpleAccountFactory(factoryAddress, client)
+	simpleAccountFactory, err := contracts.NewSimpleAccountFactory(*factory, client.(bind.ContractBackend))
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize factory contract: %w", err)
 	}
