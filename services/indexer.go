@@ -90,9 +90,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 		fromBlock = int64(math.Max(float64(header.Number.Int64()-numOfBlocks+1), 0))
 	}
 
-	_ = fromBlock
-
-	fromBlockBig := big.NewInt(17800412)
+	fromBlockBig := big.NewInt(fromBlock)
 
 	// Query event logs of the token contract starting from the oldest block
 	// within the receive address validity period
