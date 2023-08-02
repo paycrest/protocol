@@ -45,7 +45,6 @@ func senderRoutes(route *gin.Engine) {
 
 	v1.POST("orders/", ctrl.CreatePaymentOrder)
 	v1.GET("orders/:id", ctrl.GetPaymentOrderByID)
-	v1.DELETE("orders/:id", ctrl.DeletePaymentOrder)
 }
 
 func providerRoutes(route *gin.Engine) {
