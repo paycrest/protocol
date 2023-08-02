@@ -107,7 +107,6 @@ func TestSender(t *testing.T) {
 	ctrl := NewSenderController(mockIndexerService)
 	router.POST("/orders", ctrl.CreatePaymentOrder)
 	router.GET("/orders/:id", ctrl.GetPaymentOrderByID)
-	router.DELETE("/orders/:id", ctrl.DeletePaymentOrder)
 
 	var paymentOrderUUID uuid.UUID
 
@@ -195,31 +194,5 @@ func TestSender(t *testing.T) {
 		assert.True(t, ok, "response.Data is of not type map[string]interface{}")
 		assert.NotNil(t, data, "response.Data is nil")
 
-	})
-
-	t.Run("DeletePaymentOrder", func(t *testing.T) {
-		var payload = map[string]interface{}{
-			"timestamp": time.Now().Unix(),
-		}
-
-		signature := token.GenerateHMACSignature(payload, testCtx.apiKeySecret)
-
-		headers := map[string]string{
-			"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
-		}
-
-		res, err := test.PerformRequest(t, "DELETE", fmt.Sprintf("/orders/%s", paymentOrderUUID), payload, headers, router)
-		assert.NoError(t, err)
-
-		// Assert the response body
-		assert.Equal(t, http.StatusNoContent, res.Code)
-
-		// Query the database for the payment order
-		paymentOrder, err := db.Client.PaymentOrder.
-			Query().
-			Where(paymentorder.IDEQ(paymentOrderUUID)).
-			Only(context.Background())
-		assert.Error(t, err)
-		assert.Nil(t, paymentOrder)
 	})
 }
