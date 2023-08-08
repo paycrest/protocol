@@ -1,8 +1,15 @@
 package utils
 
 import (
+	"bytes"
+	"crypto/ecdsa"
+	"encoding/hex"
 	"math/big"
 
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/crypto"
+	cryptoUtils "github.com/paycrest/paycrest-protocol/utils/crypto"
 	"github.com/shopspring/decimal"
 )
 
@@ -42,4 +49,67 @@ func FromSubunit(amountInSubunit *big.Int, decimals int8) decimal.Decimal {
 	result, _ := f.Quo(fSubunit.SetInt(amountInSubunit), divisor).Float64()
 
 	return decimal.NewFromFloat(result)
+}
+
+// StringToByte32 converts string to [32]byte
+func StringTo32Byte(s string) [32]byte {
+
+	buf := []byte(s)
+
+	// Pad or truncate
+	if len(buf) < 32 {
+		padded := make([]byte, 32)
+		copy(padded, buf)
+		buf = padded
+	} else if len(buf) > 32 {
+		buf = buf[:32]
+	}
+
+	// Hex encode and decode
+	hexStr := hex.EncodeToString(buf)
+	bytesBytes, _ := hex.DecodeString(hexStr)
+
+	var result [32]byte
+	copy(result[:], bytesBytes)
+
+	return result
+}
+
+// Byte32ToString converts [32]byte to string
+func Byte32ToString(b [32]byte) string {
+
+	// Copy byte array into slice
+	buf := make([]byte, 32)
+	copy(buf, b[:])
+
+	// Truncate trailing zeros
+	buf = bytes.TrimRight(buf, "\x00")
+
+	// Hex encode and decode
+	hexStr := hex.EncodeToString(buf)
+	strBytes, _ := hex.DecodeString(hexStr)
+
+	return string(strBytes)
+}
+
+// GetMasterAccount returns the master account address and private key.
+func GetMasterAccount() (*common.Address, *ecdsa.PrivateKey, error) {
+	fromAddress, privateKeyHex, err := cryptoUtils.GenerateAccountFromIndex(0)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	address := common.HexToAddress(fromAddress)
+
+	privateKeyBytes, err := hexutil.Decode(privateKeyHex)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	privateKey, err := crypto.ToECDSA(privateKeyBytes)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return &address, privateKey, nil
 }

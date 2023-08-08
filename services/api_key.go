@@ -34,7 +34,7 @@ func (s *APIKeyService) GenerateAPIKey(ctx context.Context, userID uuid.UUID, pa
 	}
 
 	// Encrypt the secret key
-	encryptedSecret, err := crypto.Encrypt([]byte(secretKey))
+	encryptedSecret, err := crypto.EncryptPlain([]byte(secretKey))
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to encrypt API key: %w", err)
 	}
