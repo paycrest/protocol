@@ -151,7 +151,7 @@ func HMACVerificationMiddleware(c *gin.Context) {
 	}
 
 	// Decrypt the decoded secret
-	decryptedSecret, err := crypto.Decrypt(decodedSecret)
+	decryptedSecret, err := crypto.DecryptPlain(decodedSecret)
 	if err != nil {
 		logger.Errorf("error: %v", err)
 		u.APIResponse(c, http.StatusInternalServerError, "error", "Failed to decrypt API key", err.Error())

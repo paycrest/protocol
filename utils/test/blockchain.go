@@ -2,7 +2,6 @@ package test
 
 import (
 	"context"
-	"crypto/ecdsa"
 	"fmt"
 
 	"math/big"
@@ -10,11 +9,9 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/paycrest/paycrest-protocol/types"
-	cryptoUtils "github.com/paycrest/paycrest-protocol/utils/crypto"
+	"github.com/paycrest/paycrest-protocol/utils"
 	"github.com/shopspring/decimal"
 
 	"github.com/paycrest/paycrest-protocol/services/contracts"
@@ -23,7 +20,7 @@ import (
 // NewSimulatedBlockchain creates a new instance of SimulatedBackend and returns it.
 func NewSimulatedBlockchain() (*backends.SimulatedBackend, error) {
 	// Generate a private key for the simulated blockchain
-	_, privateKey, _ := getMasterAccount()
+	_, privateKey, _ := utils.GetMasterAccount()
 
 	// Create a new transactor using the generated private key
 	auth, err := bind.NewKeyedTransactorWithChainID(privateKey, big.NewInt(1337))
@@ -100,7 +97,7 @@ func DeployEIP4337FactoryContract(client types.RPCClient) (*common.Address, erro
 // FundAddressWithTestToken funds an amount of a test ERC20 token from the owner account
 func FundAddressWithTestToken(client types.RPCClient, token common.Address, amount decimal.Decimal, address common.Address) error {
 	// Get master account
-	_, privateKey, _ := getMasterAccount()
+	_, privateKey, _ := utils.GetMasterAccount()
 
 	// Create a new instance of the TestToken contract
 	testToken, err := contracts.NewTestToken(token, client.(bind.ContractBackend))
@@ -129,7 +126,7 @@ func FundAddressWithTestToken(client types.RPCClient, token common.Address, amou
 // prepareDeployment prepares the deployment of a contract.
 func prepareDeployment(client types.RPCClient) (*bind.TransactOpts, error) {
 	// Get master account
-	fromAddress, privateKey, _ := getMasterAccount()
+	fromAddress, privateKey, _ := utils.GetMasterAccount()
 
 	// Configure the transaction
 	ctx := context.Background()
@@ -152,26 +149,4 @@ func prepareDeployment(client types.RPCClient) (*bind.TransactOpts, error) {
 	auth.GasPrice = gasPrice
 
 	return auth, nil
-}
-
-// getMasterAccount returns the master account address and private key.
-func getMasterAccount() (*common.Address, *ecdsa.PrivateKey, error) {
-	fromAddress, privateKeyHex, err := cryptoUtils.GenerateAccountFromIndex(0)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	address := common.HexToAddress(fromAddress)
-
-	privateKeyBytes, err := hexutil.Decode(privateKeyHex)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	privateKey, err := crypto.ToECDSA(privateKeyBytes)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return &address, privateKey, nil
 }

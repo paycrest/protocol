@@ -4,6 +4,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"encoding/json"
 	"fmt"
 	"io"
 
@@ -23,43 +24,92 @@ func CheckPasswordHash(password, hash string) bool {
 	return err == nil
 }
 
-// Encrypt is a function to encrypt plaintext using AES encryption algorithm
-func Encrypt(plaintext []byte) ([]byte, error) {
+// EncryptPlain encrypts plaintext using AES encryption algorithm with Galois Counter Mode
+func EncryptPlain(plaintext []byte) ([]byte, error) {
 	block, err := aes.NewCipher([]byte(authConf.Secret))
 	if err != nil {
 		return nil, err
 	}
 
-	ciphertext := make([]byte, aes.BlockSize+len(plaintext))
-	iv := ciphertext[:aes.BlockSize]
-	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
+	// Create GCM with 12 byte nonce
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
 		return nil, err
 	}
 
-	stream := cipher.NewCFBEncrypter(block, iv)
-	stream.XORKeyStream(ciphertext[aes.BlockSize:], plaintext)
+	// Generate random nonce
+	nonce := make([]byte, gcm.NonceSize())
+	if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
+		return nil, err
+	}
+
+	// Encrypt and append nonce
+	ciphertext := gcm.Seal(nonce, nonce, plaintext, nil)
 
 	return ciphertext, nil
 }
 
-// Decrypt is a function to decrypt ciphertext using AES encryption algorithm
-func Decrypt(ciphertext []byte) ([]byte, error) {
+// DecryptPlain decrypts ciphertext using AES encryption algorithm with Galois Counter Mode
+func DecryptPlain(ciphertext []byte) ([]byte, error) {
+
 	block, err := aes.NewCipher([]byte(authConf.Secret))
 	if err != nil {
 		return nil, err
 	}
 
-	if len(ciphertext) < aes.BlockSize {
-		return nil, fmt.Errorf("ciphertext too short")
+	// Create GCM with nonce
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, err
 	}
 
-	iv := ciphertext[:aes.BlockSize]
-	ciphertext = ciphertext[aes.BlockSize:]
+	// Parse nonce from ciphertext
+	nonce, ciphertext := ciphertext[:gcm.NonceSize()], ciphertext[gcm.NonceSize():]
 
-	stream := cipher.NewCFBDecrypter(block, iv)
-	stream.XORKeyStream(ciphertext, ciphertext)
+	// Decrypt and return plaintext
+	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return plaintext, nil
+}
+
+// EncryptJSON encrypts JSON serializable data using AES encryption algorithm with Galois Counter Mode
+func EncryptJSON(data interface{}) ([]byte, error) {
+
+	// Encode data to JSON
+	plaintext, err := json.Marshal(data)
+	if err != nil {
+		return nil, err
+	}
+
+	// Encrypt as normal
+	ciphertext, err := EncryptPlain(plaintext)
+	if err != nil {
+		return nil, err
+	}
 
 	return ciphertext, nil
+}
+
+// DecryptJSON decrypts JSON serializable data using AES encryption algorithm with Galois Counter Mode
+func DecryptJSON(ciphertext []byte) (interface{}, error) {
+
+	// Decrypt as normal
+	plaintext, err := DecryptPlain(ciphertext)
+	if err != nil {
+		return nil, err
+	}
+
+	// Decode JSON back to dynamic type
+	var data interface{}
+	if err := json.Unmarshal(plaintext, &data); err != nil {
+		return nil, err
+	}
+
+	return data, nil
+
 }
 
 // GenerateAccountFromIndex generates a crypto wallet account from HD wallet mnemonic
