@@ -2,7 +2,6 @@ package sender
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/google/uuid"
 	db "github.com/paycrest/paycrest-protocol/database"
@@ -22,6 +21,7 @@ import (
 type SenderController struct {
 	indexerService        *svc.IndexerService
 	receiveAddressService *svc.ReceiveAddressService
+	orderService          *svc.OrderService
 }
 
 // NewSenderController creates a new instance of SenderController
@@ -37,6 +37,7 @@ func NewSenderController(indexer svc.Indexer) *SenderController {
 	return &SenderController{
 		indexerService:        indexerService,
 		receiveAddressService: svc.NewReceiveAddressService(),
+		orderService:          svc.NewOrderService(),
 	}
 }
 
@@ -59,25 +60,6 @@ func (ctrl *SenderController) CreatePaymentOrder(ctx *gin.Context) {
 			"Failed to initiate payment order", err.Error())
 		return
 	}
-
-	// Start a go routine to index the receive address
-	done := make(chan bool)
-	go func(ctx *gin.Context, receiveAddress *ent.ReceiveAddress, done chan bool) {
-		for {
-			select {
-			case <-done:
-				return
-			default:
-				time.Sleep(2 * time.Minute) // add 2 minutes delay between each indexing operation
-
-				err = ctrl.indexerService.IndexERC20Transfer(ctx, nil, receiveAddress, done)
-				if err != nil {
-					logger.Errorf("error: %v", err)
-					return
-				}
-			}
-		}
-	}(ctx, receiveAddress, done)
 
 	// Get token from DB
 	token, err := db.Client.Token.
@@ -142,6 +124,43 @@ func (ctrl *SenderController) CreatePaymentOrder(ctx *gin.Context) {
 			"Failed to initiate payment order", err.Error())
 		return
 	}
+
+	// Start a go routine to index the receive address
+	done := make(chan bool)
+	go func(ctx *gin.Context, receiveAddress *ent.ReceiveAddress, done chan bool) {
+		for {
+			select {
+			case <-done:
+				// Create order on-chain
+				order, err := db.Client.PaymentOrder.
+					Query().
+					Where(paymentorder.IDEQ(paymentOrder.ID)).
+					WithToken(func(tq *ent.TokenQuery) {
+						tq.WithNetwork()
+					}).
+					Only(ctx)
+
+				if err != nil {
+					logger.Errorf("error: %v", err)
+				}
+
+				err = ctrl.orderService.CreateOrder(ctx, nil, order)
+				if err != nil {
+					logger.Errorf("error: %v", err)
+				}
+
+				return
+			default:
+				// time.Sleep(2 * time.Minute) // add 2 minutes delay between each indexing operation
+
+				err = ctrl.indexerService.IndexERC20Transfer(ctx, nil, receiveAddress, done)
+				if err != nil {
+					logger.Errorf("error: %v", err)
+					return
+				}
+			}
+		}
+	}(ctx, receiveAddress, done)
 
 	paymentOrderAmount, _ := paymentOrder.Amount.Float64()
 
