@@ -273,7 +273,7 @@ func (ctrl *AuthController) ListAPIKeys(ctx *gin.Context) {
 		}
 
 		// Decrypt the decoded secret
-		decryptedSecret, err := crypto.Decrypt(decodedSecret)
+		decryptedSecret, err := crypto.DecryptPlain(decodedSecret)
 		if err != nil {
 			logger.Errorf("error: %v", err)
 			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to decrypt API key", err.Error())
