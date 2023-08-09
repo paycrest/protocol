@@ -22,8 +22,6 @@ import (
 	"github.com/paycrest/paycrest-protocol/utils/logger"
 )
 
-var conf = config.OrderConfig()
-
 // Indexer is an interface for indexing blockchain data to the database.
 type Indexer interface {
 	IndexERC20Transfer(ctx context.Context, client types.RPCClient, receiveAddress *ent.ReceiveAddress, done chan<- bool) error
@@ -43,6 +41,7 @@ func NewIndexerService(indexer Indexer) *IndexerService {
 
 // IndexERC20Transfer indexes ERC20 token transfers for a specific receive address.
 func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RPCClient, receiveAddress *ent.ReceiveAddress, done chan<- bool) error {
+	var conf = config.OrderConfig()
 
 	// Fetch payment order from db
 	paymentOrder, err := db.Client.PaymentOrder.
