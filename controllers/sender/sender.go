@@ -132,19 +132,7 @@ func (ctrl *SenderController) CreatePaymentOrder(ctx *gin.Context) {
 			select {
 			case <-done:
 				// Create order on-chain
-				order, err := db.Client.PaymentOrder.
-					Query().
-					Where(paymentorder.IDEQ(paymentOrder.ID)).
-					WithToken(func(tq *ent.TokenQuery) {
-						tq.WithNetwork()
-					}).
-					Only(ctx)
-
-				if err != nil {
-					logger.Errorf("error: %v", err)
-				}
-
-				err = ctrl.orderService.CreateOrder(ctx, nil, order)
+				err = ctrl.orderService.CreateOrder(ctx, nil, paymentOrder.ID)
 				if err != nil {
 					logger.Errorf("error: %v", err)
 				}
