@@ -14,6 +14,7 @@ type OrderConfiguration struct {
 	PaycrestOrderContractAddress common.Address
 	BundlerRPCURL                string
 	PaymasterURL                 string
+	EntryPointContractAddress    common.Address
 }
 
 // OrderConfig sets the order configuration
@@ -25,6 +26,7 @@ func OrderConfig() *OrderConfiguration {
 		PaycrestOrderContractAddress: common.HexToAddress(viper.GetString("PAYCREST_ORDER_CONTRACT_ADDRESS")),
 		BundlerRPCURL:                viper.GetString("BUNDLER_RPC_URL"),
 		PaymasterURL:                 viper.GetString("PAYMASTER_URL"),
+		EntryPointContractAddress:    common.HexToAddress(viper.GetString("ENTRY_POINT_CONTRACT_ADDRESS")),
 	}
 }
 
