@@ -21,7 +21,6 @@ type RPCClient interface {
 	PendingNonceAt(ctx context.Context, account common.Address) (uint64, error)
 	SuggestGasPrice(ctx context.Context) (*big.Int, error)
 	EstimateGas(ctx context.Context, call ethereum.CallMsg) (gas uint64, err error)
-	// NetworkID(ctx context.Context) (*big.Int, error)
 	Commit() common.Hash
 }
 
@@ -145,4 +144,3 @@ type PaymentOrderResponse struct {
 	TxHash    string                `json:"txHash"`
 	Status    string                `json:"status"`
 }
-
