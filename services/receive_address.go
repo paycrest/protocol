@@ -2,13 +2,12 @@ package services
 
 import (
 	"context"
-	"crypto/sha256"
+	"crypto/rand"
 	"fmt"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	db "github.com/paycrest/paycrest-protocol/database"
 	"github.com/paycrest/paycrest-protocol/ent"
 	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
@@ -49,20 +48,17 @@ func (s *ReceiveAddressService) CreateSmartAccount(ctx context.Context, client t
 		return nil, fmt.Errorf("failed to initialize factory contract: %w", err)
 	}
 
-	// Get master private key
-	ownerAddress, ownerPrivateKeyHex, _ := cryptoUtils.GenerateAccountFromIndex(0)
+	// Get master account
+	ownerAddress, _, _ := cryptoUtils.GenerateAccountFromIndex(0)
 
-	// Decode private key
-	ownerPrivateKeyBytes, err := hexutil.Decode(ownerPrivateKeyHex)
+	nonce := make([]byte, 32)
+	_, err = rand.Read(nonce)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decode private key: %w", err)
+		return nil, err
 	}
 
-	// Use SHA-256 to generate the salt
-	hash := sha256.Sum256(ownerPrivateKeyBytes)
-
 	// Create a new big.Int from the hash
-	salt := new(big.Int).SetBytes(hash[:])
+	salt := new(big.Int).SetBytes(nonce)
 
 	// Generate address
 	address, err := simpleAccountFactory.GetAddress(nil, common.HexToAddress(ownerAddress), salt)
