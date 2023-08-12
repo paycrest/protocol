@@ -16,10 +16,12 @@ import (
 	"github.com/paycrest/paycrest-protocol/config"
 	db "github.com/paycrest/paycrest-protocol/database"
 	"github.com/paycrest/paycrest-protocol/ent"
+
 	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/types"
 	"github.com/paycrest/paycrest-protocol/utils"
 	cryptoUtils "github.com/paycrest/paycrest-protocol/utils/crypto"
+	"github.com/stackup-wallet/stackup-bundler/pkg/userop"
 )
 
 // OrderService provides functionality related to on-chain interactions for payment orders
@@ -34,21 +36,6 @@ type CreateOrderParams struct {
 	Rate               *big.Int
 	InstitutionCode    [32]byte
 	MessageHash        string
-}
-
-// UserOperation represents an EIP-4337 style transaction for a smart contract account.
-type UserOperation struct {
-	Sender               common.Address `json:"sender"               mapstructure:"sender"               validate:"required"`
-	Nonce                *big.Int       `json:"nonce"                mapstructure:"nonce"                validate:"required"`
-	InitCode             []byte         `json:"initCode"             mapstructure:"initCode"             validate:"required"`
-	CallData             []byte         `json:"callData"             mapstructure:"callData"             validate:"required"`
-	CallGasLimit         *big.Int       `json:"callGasLimit"         mapstructure:"callGasLimit"         validate:"required"`
-	VerificationGasLimit *big.Int       `json:"verificationGasLimit" mapstructure:"verificationGasLimit" validate:"required"`
-	PreVerificationGas   *big.Int       `json:"preVerificationGas"   mapstructure:"preVerificationGas"   validate:"required"`
-	MaxFeePerGas         *big.Int       `json:"maxFeePerGas"         mapstructure:"maxFeePerGas"         validate:"required"`
-	MaxPriorityFeePerGas *big.Int       `json:"maxPriorityFeePerGas" mapstructure:"maxPriorityFeePerGas" validate:"required"`
-	PaymasterAndData     []byte         `json:"paymasterAndData"     mapstructure:"paymasterAndData"     validate:"required"`
-	Signature            []byte         `json:"signature"            mapstructure:"signature"            validate:"required"`
 }
 
 var conf = config.OrderConfig()
@@ -87,7 +74,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, client types.RPCClient, 
 	fromAddress, privateKey, _ := utils.GetMasterAccount()
 
 	// Initialize user operation with defaults
-	userOperation := &UserOperation{
+	userOperation := &userop.UserOperation{
 		Sender:               common.HexToAddress(order.Edges.ReceiveAddress.Address),
 		Nonce:                big.NewInt(0),
 		InitCode:             common.FromHex("0x"),
@@ -128,7 +115,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, client types.RPCClient, 
 	}
 
 	// Create calldata
-	calldata, err := s.callData(order)
+	calldata, err := s.executeBatchCallData(order)
 	if err != nil {
 		return fmt.Errorf("failed to create calldata: %w", err)
 	}
@@ -147,7 +134,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, client types.RPCClient, 
 	userOperation.MaxPriorityFeePerGas = big.NewInt(0).Mul(gasPrice, big.NewInt(110)) // 110%
 
 	// Sign user operation
-	userOpHash := s.getUserOpHash(userOperation, big.NewInt(order.Edges.Token.Edges.Network.ChainID))
+	userOpHash := userOperation.GetUserOpHash(conf.EntryPointContractAddress, big.NewInt(order.Edges.Token.Edges.Network.ChainID)).Hex()
 
 	signature, err := crypto.Sign([]byte(userOpHash), privateKey)
 	if err != nil {
@@ -156,7 +143,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, client types.RPCClient, 
 	userOperation.Signature = signature
 
 	// Send user operation
-	userOpHash, err = s.sendUserOperation(userOperation)
+	_, err = s.sendUserOperation(userOperation)
 	if err != nil {
 		return fmt.Errorf("failed to send user operation: %w", err)
 	}
@@ -173,8 +160,8 @@ func (s *OrderService) CreateOrder(ctx context.Context, client types.RPCClient, 
 	return nil
 }
 
-// callData creates the calldata for the user operation
-func (s *OrderService) callData(order *ent.PaymentOrder) ([]byte, error) {
+// executeBatchCallData creates the calldata for the execute batch method in the smart account.
+func (s *OrderService) executeBatchCallData(order *ent.PaymentOrder) ([]byte, error) {
 	// Create approve data
 	approveData, err := s.approveCallData(conf.PaycrestOrderContractAddress, order.Amount.BigInt())
 	if err != nil {
@@ -206,12 +193,12 @@ func (s *OrderService) callData(order *ent.PaymentOrder) ([]byte, error) {
 		return nil, fmt.Errorf("failed to create execute ABI: %w", err)
 	}
 
-	calldata, err := executeBatchABI.Pack("executeBatch", calls)
+	executeBatchCallData, err := executeBatchABI.Pack("executeBatch", calls)
 	if err != nil {
 		return nil, fmt.Errorf("failed to pack execute ABI: %w", err)
 	}
 
-	return calldata, nil
+	return executeBatchCallData, nil
 }
 
 // approveCallData creates the data for the ERC20 approve method
@@ -317,7 +304,7 @@ func (s *OrderService) encryptOrderRecipient(recipient *ent.PaymentOrderRecipien
 
 // sponsorUserOperation sponsors the user operation
 // ref: https://docs.stackup.sh/docs/paymaster-api-rpc-methods#pm_sponsoruseroperation
-func (s *OrderService) sponsorUserOperation(userOp *UserOperation) error {
+func (s *OrderService) sponsorUserOperation(userOp *userop.UserOperation) error {
 	client, err := rpc.Dial(conf.PaymasterURL)
 	if err != nil {
 		return fmt.Errorf("failed to connect to RPC client: %w", err)
@@ -358,55 +345,8 @@ func (s *OrderService) sponsorUserOperation(userOp *UserOperation) error {
 	return nil
 }
 
-// packForSignature packs the user operation for signature
-// ref: https://docs.stackup.sh/docs/erc-4337-useroperation-hash-guide
-func (s *OrderService) packForSignature(userOp *UserOperation) []byte {
-	var (
-		address, _ = abi.NewType("address", "", nil)
-		uint256, _ = abi.NewType("uint256", "", nil)
-		bytes32, _ = abi.NewType("bytes32", "", nil)
-	)
-
-	args := abi.Arguments{
-		{Name: "sender", Type: address},
-		{Name: "nonce", Type: uint256},
-		{Name: "hashInitCode", Type: bytes32},
-		{Name: "hashCallData", Type: bytes32},
-		{Name: "callGasLimit", Type: uint256},
-		{Name: "verificationGasLimit", Type: uint256},
-		{Name: "preVerificationGas", Type: uint256},
-		{Name: "maxFeePerGas", Type: uint256},
-		{Name: "maxPriorityFeePerGas", Type: uint256},
-		{Name: "hashPaymasterAndData", Type: bytes32},
-	}
-	packed, _ := args.Pack(
-		userOp.Sender,
-		userOp.Nonce,
-		crypto.Keccak256Hash(userOp.InitCode),
-		crypto.Keccak256Hash(userOp.CallData),
-		userOp.CallGasLimit,
-		userOp.VerificationGasLimit,
-		userOp.PreVerificationGas,
-		userOp.MaxFeePerGas,
-		userOp.MaxPriorityFeePerGas,
-		crypto.Keccak256Hash(userOp.PaymasterAndData),
-	)
-
-	return packed
-}
-
-// getUserOpHash returns the user operation hash
-// ref: https://docs.stackup.sh/docs/erc-4337-useroperation-hash-guide
-func (s *OrderService) getUserOpHash(userOp *UserOperation, chainID *big.Int) string {
-	return crypto.Keccak256Hash(
-		crypto.Keccak256(s.packForSignature(userOp)),
-		common.LeftPadBytes(conf.EntryPointContractAddress.Bytes(), 32),
-		common.LeftPadBytes(chainID.Bytes(), 32),
-	).String()
-}
-
 // sendUserOperation sends the user operation
-func (s *OrderService) sendUserOperation(userOp *UserOperation) (string, error) {
+func (s *OrderService) sendUserOperation(userOp *userop.UserOperation) (string, error) {
 	client, err := rpc.Dial(conf.BundlerRPCURL)
 	if err != nil {
 		return "", fmt.Errorf("failed to connect to RPC client: %w", err)

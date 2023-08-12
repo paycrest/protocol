@@ -142,6 +142,8 @@ func HMACVerificationMiddleware(c *gin.Context) {
 		return
 	}
 
+	c.Set("api_key", apiKey)
+
 	// Decode the stored secret key to bytes
 	decodedSecret, err := base64.StdEncoding.DecodeString(apiKey.Secret)
 	if err != nil {
