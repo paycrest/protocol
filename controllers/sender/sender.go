@@ -84,8 +84,34 @@ func (ctrl *SenderController) CreatePaymentOrder(ctx *gin.Context) {
 	}
 
 	// Create payment order
+	apiKey, _ := ctx.Get("api_key")
+
+	// apiKeyUUID, err := uuid.Parse(publicKey)
+	// if err != nil {
+	// 	logger.Errorf("error parsing API key ID: %v", err)
+	// 	u.APIResponse(c, http.StatusBadRequest, "error", "Invalid API key ID", nil)
+	// 	c.Abort()
+	// 	return
+	// }
+
+	// apiKey, err := db.Client.APIKey.
+	// 	Query().
+	// 	Where(apikey.IDEQ(apiKeyUUID)).
+	// 	Only(c)
+	// if err != nil {
+	// 	if ent.IsNotFound(err) {
+	// 		u.APIResponse(c, http.StatusNotFound, "error", "API key not found", nil)
+	// 	} else {
+	// 		logger.Errorf("error: %v", err)
+	// 		u.APIResponse(c, http.StatusInternalServerError, "error", "Failed to fetch API key", err.Error())
+	// 	}
+	// 	c.Abort()
+	// 	return
+	// }
+
 	paymentOrder, err := tx.PaymentOrder.
 		Create().
+		SetAPIKey(apiKey.(*ent.APIKey)).
 		SetAmount(payload.Amount).
 		SetAmountPaid(decimal.NewFromInt(0)).
 		SetToken(token).
