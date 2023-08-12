@@ -188,3 +188,42 @@ func HMACVerificationMiddleware(c *gin.Context) {
 	// Continue to the next middleware
 	c.Next()
 }
+
+// OnlySenderMiddleware is a middleware that checks if the API key scope is sender.
+func OnlySenderMiddleware(c *gin.Context) {
+	apiKey, ok := c.Get("api_key")
+
+	if ok && apiKey.(*ent.APIKey).Scope != apikey.ScopeSender {
+		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid API key scope", nil)
+		c.Abort()
+		return
+	}
+
+	c.Next()
+}
+
+// OnlyProviderMiddleware is a middleware that checks if the API key scope is provider.
+func OnlyProviderMiddleware(c *gin.Context) {
+	apiKey, ok := c.Get("api_key")
+
+	if ok &&  apiKey.(*ent.APIKey).Scope != apikey.ScopeProvider {
+		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid API key scope", nil)
+		c.Abort()
+		return
+	}
+
+	c.Next()
+}
+
+// OnlyValidatorMiddleware is a middleware that checks if the API key scope is validator.
+func OnlyValidatorMiddleware(c *gin.Context) {
+	apiKey, ok := c.Get("api_key")
+
+	if ok &&  apiKey.(*ent.APIKey).Scope != apikey.ScopeTxValidator {
+		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid API key scope", nil)
+		c.Abort()
+		return
+	}
+
+	c.Next()
+}

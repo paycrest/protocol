@@ -21,15 +21,15 @@ import (
 
 // AuthController is the controller type for the auth endpoints
 type AuthController struct {
-	// apiKeyService *svc.APIKeyService
+	apiKeyService *svc.APIKeyService
 }
 
 // NewAuthController creates a new instance of AuthController with injected services
-// func NewAuthController() *AuthController {
-// 	return &AuthController{
-// 		apiKeyService: svc.NewAPIKeyService(db.Client),
-// 	}
-// }
+func NewAuthController() *AuthController {
+	return &AuthController{
+		apiKeyService: svc.NewAPIKeyService(),
+	}
+}
 
 // Register controller validates the payload and creates a new user.
 // It hashes the password provided by the user.
@@ -81,8 +81,7 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 		}
 
 		// Generate the API key using the service
-		apiKeyService := svc.NewAPIKeyService(db.Client)
-		apiKey, _, err := apiKeyService.GenerateAPIKey(ctx, user.ID, apiKeyInput)
+		apiKey, _, err := ctrl.apiKeyService.GenerateAPIKey(ctx, user.ID, apiKeyInput)
 		if err != nil {
 			logger.Errorf("error: %v", err)
 			u.APIResponse(ctx, http.StatusInternalServerError, "error",
@@ -217,8 +216,7 @@ func (ctrl *AuthController) CreateAPIKey(ctx *gin.Context) {
 	}
 
 	// Generate the API key using the service
-	apiKeyService := svc.NewAPIKeyService(db.Client)
-	apiKey, secretKey, err := apiKeyService.GenerateAPIKey(ctx, userID, payload)
+	apiKey, secretKey, err := ctrl.apiKeyService.GenerateAPIKey(ctx, userID, payload)
 	if err != nil {
 		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to generate API key", err.Error())
