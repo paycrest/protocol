@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	db "github.com/paycrest/paycrest-protocol/database"
 	"github.com/paycrest/paycrest-protocol/ent"
 	"github.com/paycrest/paycrest-protocol/ent/user"
 	"github.com/paycrest/paycrest-protocol/types"
@@ -14,15 +15,11 @@ import (
 )
 
 // APIKeyService provides functionality related to API keys.
-type APIKeyService struct {
-	db *ent.Client
-}
+type APIKeyService struct{}
 
 // NewAPIKeyService creates a new instance of APIKeyService.
-func NewAPIKeyService(db *ent.Client) *APIKeyService {
-	return &APIKeyService{
-		db: db,
-	}
+func NewAPIKeyService() *APIKeyService {
+	return &APIKeyService{}
 }
 
 // GenerateAPIKey generates a new API key for the user.
@@ -43,7 +40,7 @@ func (s *APIKeyService) GenerateAPIKey(ctx context.Context, userID uuid.UUID, pa
 	encodedSecret := base64.StdEncoding.EncodeToString(encryptedSecret)
 
 	// Fetch the User entity from the database using the userID value
-	user, err := s.db.User.
+	user, err := db.Client.User.
 		Query().
 		Where(user.IDEQ(userID)).
 		Only(ctx)
@@ -52,7 +49,7 @@ func (s *APIKeyService) GenerateAPIKey(ctx context.Context, userID uuid.UUID, pa
 	}
 
 	// Create a new APIKey entity
-	apiKey, err := s.db.APIKey.
+	apiKey, err := db.Client.APIKey.
 		Create().
 		SetName(payload.Name).
 		SetScope(payload.Scope).
