@@ -115,7 +115,7 @@ func TestIndexer(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Index ERC20 transfers for the receive address
-	err = testCtx.indexer.IndexERC20Transfer(context.Background(), nil, testCtx.receiveAddress, nil)
+	_, err = testCtx.indexer.IndexERC20Transfer(context.Background(), nil, testCtx.receiveAddress)
 	assert.NoError(t, err)
 
 	// Fetch receiveAddress from db
