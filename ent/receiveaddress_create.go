@@ -98,6 +98,20 @@ func (rac *ReceiveAddressCreate) SetNillableLastUsed(t *time.Time) *ReceiveAddre
 	return rac
 }
 
+// SetValidUntil sets the "valid_until" field.
+func (rac *ReceiveAddressCreate) SetValidUntil(t time.Time) *ReceiveAddressCreate {
+	rac.mutation.SetValidUntil(t)
+	return rac
+}
+
+// SetNillableValidUntil sets the "valid_until" field if the given value is not nil.
+func (rac *ReceiveAddressCreate) SetNillableValidUntil(t *time.Time) *ReceiveAddressCreate {
+	if t != nil {
+		rac.SetValidUntil(*t)
+	}
+	return rac
+}
+
 // SetPaymentOrderID sets the "payment_order" edge to the PaymentOrder entity by ID.
 func (rac *ReceiveAddressCreate) SetPaymentOrderID(id uuid.UUID) *ReceiveAddressCreate {
 	rac.mutation.SetPaymentOrderID(id)
@@ -234,6 +248,10 @@ func (rac *ReceiveAddressCreate) createSpec() (*ReceiveAddress, *sqlgraph.Create
 	if value, ok := rac.mutation.LastUsed(); ok {
 		_spec.SetField(receiveaddress.FieldLastUsed, field.TypeTime, value)
 		_node.LastUsed = value
+	}
+	if value, ok := rac.mutation.ValidUntil(); ok {
+		_spec.SetField(receiveaddress.FieldValidUntil, field.TypeTime, value)
+		_node.ValidUntil = value
 	}
 	if nodes := rac.mutation.PaymentOrderIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

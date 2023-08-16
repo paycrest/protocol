@@ -5831,6 +5831,7 @@ type ReceiveAddressMutation struct {
 	last_indexed_block    *int64
 	addlast_indexed_block *int64
 	last_used             *time.Time
+	valid_until           *time.Time
 	clearedFields         map[string]struct{}
 	payment_order         *uuid.UUID
 	clearedpayment_order  bool
@@ -6200,6 +6201,55 @@ func (m *ReceiveAddressMutation) ResetLastUsed() {
 	delete(m.clearedFields, receiveaddress.FieldLastUsed)
 }
 
+// SetValidUntil sets the "valid_until" field.
+func (m *ReceiveAddressMutation) SetValidUntil(t time.Time) {
+	m.valid_until = &t
+}
+
+// ValidUntil returns the value of the "valid_until" field in the mutation.
+func (m *ReceiveAddressMutation) ValidUntil() (r time.Time, exists bool) {
+	v := m.valid_until
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldValidUntil returns the old "valid_until" field's value of the ReceiveAddress entity.
+// If the ReceiveAddress object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReceiveAddressMutation) OldValidUntil(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldValidUntil is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldValidUntil requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldValidUntil: %w", err)
+	}
+	return oldValue.ValidUntil, nil
+}
+
+// ClearValidUntil clears the value of the "valid_until" field.
+func (m *ReceiveAddressMutation) ClearValidUntil() {
+	m.valid_until = nil
+	m.clearedFields[receiveaddress.FieldValidUntil] = struct{}{}
+}
+
+// ValidUntilCleared returns if the "valid_until" field was cleared in this mutation.
+func (m *ReceiveAddressMutation) ValidUntilCleared() bool {
+	_, ok := m.clearedFields[receiveaddress.FieldValidUntil]
+	return ok
+}
+
+// ResetValidUntil resets all changes to the "valid_until" field.
+func (m *ReceiveAddressMutation) ResetValidUntil() {
+	m.valid_until = nil
+	delete(m.clearedFields, receiveaddress.FieldValidUntil)
+}
+
 // SetPaymentOrderID sets the "payment_order" edge to the PaymentOrder entity by id.
 func (m *ReceiveAddressMutation) SetPaymentOrderID(id uuid.UUID) {
 	m.payment_order = &id
@@ -6273,7 +6323,7 @@ func (m *ReceiveAddressMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ReceiveAddressMutation) Fields() []string {
-	fields := make([]string, 0, 6)
+	fields := make([]string, 0, 7)
 	if m.created_at != nil {
 		fields = append(fields, receiveaddress.FieldCreatedAt)
 	}
@@ -6291,6 +6341,9 @@ func (m *ReceiveAddressMutation) Fields() []string {
 	}
 	if m.last_used != nil {
 		fields = append(fields, receiveaddress.FieldLastUsed)
+	}
+	if m.valid_until != nil {
+		fields = append(fields, receiveaddress.FieldValidUntil)
 	}
 	return fields
 }
@@ -6312,6 +6365,8 @@ func (m *ReceiveAddressMutation) Field(name string) (ent.Value, bool) {
 		return m.LastIndexedBlock()
 	case receiveaddress.FieldLastUsed:
 		return m.LastUsed()
+	case receiveaddress.FieldValidUntil:
+		return m.ValidUntil()
 	}
 	return nil, false
 }
@@ -6333,6 +6388,8 @@ func (m *ReceiveAddressMutation) OldField(ctx context.Context, name string) (ent
 		return m.OldLastIndexedBlock(ctx)
 	case receiveaddress.FieldLastUsed:
 		return m.OldLastUsed(ctx)
+	case receiveaddress.FieldValidUntil:
+		return m.OldValidUntil(ctx)
 	}
 	return nil, fmt.Errorf("unknown ReceiveAddress field %s", name)
 }
@@ -6383,6 +6440,13 @@ func (m *ReceiveAddressMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetLastUsed(v)
+		return nil
+	case receiveaddress.FieldValidUntil:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetValidUntil(v)
 		return nil
 	}
 	return fmt.Errorf("unknown ReceiveAddress field %s", name)
@@ -6435,6 +6499,9 @@ func (m *ReceiveAddressMutation) ClearedFields() []string {
 	if m.FieldCleared(receiveaddress.FieldLastUsed) {
 		fields = append(fields, receiveaddress.FieldLastUsed)
 	}
+	if m.FieldCleared(receiveaddress.FieldValidUntil) {
+		fields = append(fields, receiveaddress.FieldValidUntil)
+	}
 	return fields
 }
 
@@ -6454,6 +6521,9 @@ func (m *ReceiveAddressMutation) ClearField(name string) error {
 		return nil
 	case receiveaddress.FieldLastUsed:
 		m.ClearLastUsed()
+		return nil
+	case receiveaddress.FieldValidUntil:
+		m.ClearValidUntil()
 		return nil
 	}
 	return fmt.Errorf("unknown ReceiveAddress nullable field %s", name)
@@ -6480,6 +6550,9 @@ func (m *ReceiveAddressMutation) ResetField(name string) error {
 		return nil
 	case receiveaddress.FieldLastUsed:
 		m.ResetLastUsed()
+		return nil
+	case receiveaddress.FieldValidUntil:
+		m.ResetValidUntil()
 		return nil
 	}
 	return fmt.Errorf("unknown ReceiveAddress field %s", name)

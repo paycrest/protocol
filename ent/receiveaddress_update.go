@@ -103,6 +103,26 @@ func (rau *ReceiveAddressUpdate) ClearLastUsed() *ReceiveAddressUpdate {
 	return rau
 }
 
+// SetValidUntil sets the "valid_until" field.
+func (rau *ReceiveAddressUpdate) SetValidUntil(t time.Time) *ReceiveAddressUpdate {
+	rau.mutation.SetValidUntil(t)
+	return rau
+}
+
+// SetNillableValidUntil sets the "valid_until" field if the given value is not nil.
+func (rau *ReceiveAddressUpdate) SetNillableValidUntil(t *time.Time) *ReceiveAddressUpdate {
+	if t != nil {
+		rau.SetValidUntil(*t)
+	}
+	return rau
+}
+
+// ClearValidUntil clears the value of the "valid_until" field.
+func (rau *ReceiveAddressUpdate) ClearValidUntil() *ReceiveAddressUpdate {
+	rau.mutation.ClearValidUntil()
+	return rau
+}
+
 // SetPaymentOrderID sets the "payment_order" edge to the PaymentOrder entity by ID.
 func (rau *ReceiveAddressUpdate) SetPaymentOrderID(id uuid.UUID) *ReceiveAddressUpdate {
 	rau.mutation.SetPaymentOrderID(id)
@@ -214,6 +234,12 @@ func (rau *ReceiveAddressUpdate) sqlSave(ctx context.Context) (n int, err error)
 	}
 	if rau.mutation.LastUsedCleared() {
 		_spec.ClearField(receiveaddress.FieldLastUsed, field.TypeTime)
+	}
+	if value, ok := rau.mutation.ValidUntil(); ok {
+		_spec.SetField(receiveaddress.FieldValidUntil, field.TypeTime, value)
+	}
+	if rau.mutation.ValidUntilCleared() {
+		_spec.ClearField(receiveaddress.FieldValidUntil, field.TypeTime)
 	}
 	if rau.mutation.PaymentOrderCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -334,6 +360,26 @@ func (rauo *ReceiveAddressUpdateOne) SetNillableLastUsed(t *time.Time) *ReceiveA
 // ClearLastUsed clears the value of the "last_used" field.
 func (rauo *ReceiveAddressUpdateOne) ClearLastUsed() *ReceiveAddressUpdateOne {
 	rauo.mutation.ClearLastUsed()
+	return rauo
+}
+
+// SetValidUntil sets the "valid_until" field.
+func (rauo *ReceiveAddressUpdateOne) SetValidUntil(t time.Time) *ReceiveAddressUpdateOne {
+	rauo.mutation.SetValidUntil(t)
+	return rauo
+}
+
+// SetNillableValidUntil sets the "valid_until" field if the given value is not nil.
+func (rauo *ReceiveAddressUpdateOne) SetNillableValidUntil(t *time.Time) *ReceiveAddressUpdateOne {
+	if t != nil {
+		rauo.SetValidUntil(*t)
+	}
+	return rauo
+}
+
+// ClearValidUntil clears the value of the "valid_until" field.
+func (rauo *ReceiveAddressUpdateOne) ClearValidUntil() *ReceiveAddressUpdateOne {
+	rauo.mutation.ClearValidUntil()
 	return rauo
 }
 
@@ -478,6 +524,12 @@ func (rauo *ReceiveAddressUpdateOne) sqlSave(ctx context.Context) (_node *Receiv
 	}
 	if rauo.mutation.LastUsedCleared() {
 		_spec.ClearField(receiveaddress.FieldLastUsed, field.TypeTime)
+	}
+	if value, ok := rauo.mutation.ValidUntil(); ok {
+		_spec.SetField(receiveaddress.FieldValidUntil, field.TypeTime, value)
+	}
+	if rauo.mutation.ValidUntilCleared() {
+		_spec.ClearField(receiveaddress.FieldValidUntil, field.TypeTime)
 	}
 	if rauo.mutation.PaymentOrderCleared() {
 		edge := &sqlgraph.EdgeSpec{

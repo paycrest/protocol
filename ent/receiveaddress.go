@@ -31,6 +31,8 @@ type ReceiveAddress struct {
 	LastIndexedBlock int64 `json:"last_indexed_block,omitempty"`
 	// LastUsed holds the value of the "last_used" field.
 	LastUsed time.Time `json:"last_used,omitempty"`
+	// ValidUntil holds the value of the "valid_until" field.
+	ValidUntil time.Time `json:"valid_until,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ReceiveAddressQuery when eager-loading is set.
 	Edges                         ReceiveAddressEdges `json:"edges"`
@@ -69,7 +71,7 @@ func (*ReceiveAddress) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullInt64)
 		case receiveaddress.FieldAddress, receiveaddress.FieldStatus:
 			values[i] = new(sql.NullString)
-		case receiveaddress.FieldCreatedAt, receiveaddress.FieldUpdatedAt, receiveaddress.FieldLastUsed:
+		case receiveaddress.FieldCreatedAt, receiveaddress.FieldUpdatedAt, receiveaddress.FieldLastUsed, receiveaddress.FieldValidUntil:
 			values[i] = new(sql.NullTime)
 		case receiveaddress.ForeignKeys[0]: // payment_order_receive_address
 			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
@@ -129,6 +131,12 @@ func (ra *ReceiveAddress) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field last_used", values[i])
 			} else if value.Valid {
 				ra.LastUsed = value.Time
+			}
+		case receiveaddress.FieldValidUntil:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field valid_until", values[i])
+			} else if value.Valid {
+				ra.ValidUntil = value.Time
 			}
 		case receiveaddress.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullScanner); !ok {
@@ -195,6 +203,9 @@ func (ra *ReceiveAddress) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("last_used=")
 	builder.WriteString(ra.LastUsed.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("valid_until=")
+	builder.WriteString(ra.ValidUntil.Format(time.ANSIC))
 	builder.WriteByte(')')
 	return builder.String()
 }
