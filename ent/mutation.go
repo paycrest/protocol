@@ -5827,6 +5827,7 @@ type ReceiveAddressMutation struct {
 	created_at            *time.Time
 	updated_at            *time.Time
 	address               *string
+	salt                  *[]byte
 	status                *receiveaddress.Status
 	last_indexed_block    *int64
 	addlast_indexed_block *int64
@@ -6044,6 +6045,42 @@ func (m *ReceiveAddressMutation) OldAddress(ctx context.Context) (v string, err 
 // ResetAddress resets all changes to the "address" field.
 func (m *ReceiveAddressMutation) ResetAddress() {
 	m.address = nil
+}
+
+// SetSalt sets the "salt" field.
+func (m *ReceiveAddressMutation) SetSalt(b []byte) {
+	m.salt = &b
+}
+
+// Salt returns the value of the "salt" field in the mutation.
+func (m *ReceiveAddressMutation) Salt() (r []byte, exists bool) {
+	v := m.salt
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSalt returns the old "salt" field's value of the ReceiveAddress entity.
+// If the ReceiveAddress object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReceiveAddressMutation) OldSalt(ctx context.Context) (v []byte, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSalt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSalt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSalt: %w", err)
+	}
+	return oldValue.Salt, nil
+}
+
+// ResetSalt resets all changes to the "salt" field.
+func (m *ReceiveAddressMutation) ResetSalt() {
+	m.salt = nil
 }
 
 // SetStatus sets the "status" field.
@@ -6323,7 +6360,7 @@ func (m *ReceiveAddressMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ReceiveAddressMutation) Fields() []string {
-	fields := make([]string, 0, 7)
+	fields := make([]string, 0, 8)
 	if m.created_at != nil {
 		fields = append(fields, receiveaddress.FieldCreatedAt)
 	}
@@ -6332,6 +6369,9 @@ func (m *ReceiveAddressMutation) Fields() []string {
 	}
 	if m.address != nil {
 		fields = append(fields, receiveaddress.FieldAddress)
+	}
+	if m.salt != nil {
+		fields = append(fields, receiveaddress.FieldSalt)
 	}
 	if m.status != nil {
 		fields = append(fields, receiveaddress.FieldStatus)
@@ -6359,6 +6399,8 @@ func (m *ReceiveAddressMutation) Field(name string) (ent.Value, bool) {
 		return m.UpdatedAt()
 	case receiveaddress.FieldAddress:
 		return m.Address()
+	case receiveaddress.FieldSalt:
+		return m.Salt()
 	case receiveaddress.FieldStatus:
 		return m.Status()
 	case receiveaddress.FieldLastIndexedBlock:
@@ -6382,6 +6424,8 @@ func (m *ReceiveAddressMutation) OldField(ctx context.Context, name string) (ent
 		return m.OldUpdatedAt(ctx)
 	case receiveaddress.FieldAddress:
 		return m.OldAddress(ctx)
+	case receiveaddress.FieldSalt:
+		return m.OldSalt(ctx)
 	case receiveaddress.FieldStatus:
 		return m.OldStatus(ctx)
 	case receiveaddress.FieldLastIndexedBlock:
@@ -6419,6 +6463,13 @@ func (m *ReceiveAddressMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetAddress(v)
+		return nil
+	case receiveaddress.FieldSalt:
+		v, ok := value.([]byte)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSalt(v)
 		return nil
 	case receiveaddress.FieldStatus:
 		v, ok := value.(receiveaddress.Status)
@@ -6541,6 +6592,9 @@ func (m *ReceiveAddressMutation) ResetField(name string) error {
 		return nil
 	case receiveaddress.FieldAddress:
 		m.ResetAddress()
+		return nil
+	case receiveaddress.FieldSalt:
+		m.ResetSalt()
 		return nil
 	case receiveaddress.FieldStatus:
 		m.ResetStatus()

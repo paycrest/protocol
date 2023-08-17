@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	db "github.com/paycrest/paycrest-protocol/database"
 	"github.com/paycrest/paycrest-protocol/ent"
+	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/token"
 	svc "github.com/paycrest/paycrest-protocol/services"
@@ -84,34 +85,33 @@ func (ctrl *SenderController) CreatePaymentOrder(ctx *gin.Context) {
 	}
 
 	// Create payment order
-	apiKey, _ := ctx.Get("api_key")
+	// apiKey, _ := ctx.Get("api_key")
 
-	// apiKeyUUID, err := uuid.Parse(publicKey)
-	// if err != nil {
-	// 	logger.Errorf("error parsing API key ID: %v", err)
-	// 	u.APIResponse(c, http.StatusBadRequest, "error", "Invalid API key ID", nil)
-	// 	c.Abort()
-	// 	return
-	// }
+	apiKeyUUID, err := uuid.Parse("9e763cae-d55f-4772-ae35-f681d0867cc3")
+	if err != nil {
+		logger.Errorf("error parsing API key ID: %v", err)
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid API key ID", nil)
+		return
+	}
 
-	// apiKey, err := db.Client.APIKey.
-	// 	Query().
-	// 	Where(apikey.IDEQ(apiKeyUUID)).
-	// 	Only(c)
-	// if err != nil {
-	// 	if ent.IsNotFound(err) {
-	// 		u.APIResponse(c, http.StatusNotFound, "error", "API key not found", nil)
-	// 	} else {
-	// 		logger.Errorf("error: %v", err)
-	// 		u.APIResponse(c, http.StatusInternalServerError, "error", "Failed to fetch API key", err.Error())
-	// 	}
-	// 	c.Abort()
-	// 	return
-	// }
+	apiKey, err := db.Client.APIKey.
+		Query().
+		Where(apikey.IDEQ(apiKeyUUID)).
+		Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			u.APIResponse(ctx, http.StatusNotFound, "error", "API key not found", nil)
+		} else {
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch API key", err.Error())
+		}
+		return
+	}
 
 	paymentOrder, err := tx.PaymentOrder.
 		Create().
-		SetAPIKey(apiKey.(*ent.APIKey)).
+		// SetAPIKey(apiKey.(*ent.APIKey)).
+		SetAPIKey(apiKey).
 		SetAmount(payload.Amount).
 		SetAmountPaid(decimal.NewFromInt(0)).
 		SetToken(token).
@@ -151,30 +151,8 @@ func (ctrl *SenderController) CreatePaymentOrder(ctx *gin.Context) {
 		return
 	}
 
-	// Start a go routine to index the receive address
-	done := make(chan bool)
-	go func(ctx *gin.Context, receiveAddress *ent.ReceiveAddress, done chan bool) {
-		for {
-			select {
-			case <-done:
-				// Create order on-chain
-				err = ctrl.orderService.CreateOrder(ctx, nil, paymentOrder.ID)
-				if err != nil {
-					logger.Errorf("error: %v", err)
-				}
-
-				return
-			default:
-				// time.Sleep(2 * time.Minute) // add 2 minutes delay between each indexing operation
-
-				err = ctrl.indexerService.IndexERC20Transfer(ctx, nil, receiveAddress, done)
-				if err != nil {
-					logger.Errorf("error: %v", err)
-					return
-				}
-			}
-		}
-	}(ctx, receiveAddress, done)
+	// Start a background process to index token transfers to the receive address
+	go ctrl.indexerService.RunIndexERC20Transfer(ctx, receiveAddress)
 
 	paymentOrderAmount, _ := paymentOrder.Amount.Float64()
 
@@ -192,7 +170,7 @@ func (ctrl *SenderController) GetPaymentOrderByID(ctx *gin.Context) {
 	// Get order ID from the URL
 	orderID := ctx.Param("id")
 
-	// Connvert order ID to UUID
+	// Convert order ID to UUID
 	id, err := uuid.Parse(orderID)
 	if err != nil {
 		logger.Errorf("error: %v", err)

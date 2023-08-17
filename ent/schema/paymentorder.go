@@ -47,7 +47,8 @@ func (PaymentOrder) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("api_key", APIKey.Type).
 			Ref("payment_orders").
-			Unique(),
+			Unique().
+			Required(),
 		edge.From("token", Token.Type).
 			Ref("payment_orders").
 			Unique().

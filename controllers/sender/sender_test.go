@@ -53,7 +53,7 @@ func setup() error {
 	}
 	testCtx.user = user
 
-	apiKeyService := services.NewAPIKeyService(db.Client)
+	apiKeyService := services.NewAPIKeyService()
 	apiKey, secretKey, err := apiKeyService.GenerateAPIKey(
 		context.Background(),
 		user.ID,
@@ -99,6 +99,7 @@ func TestSender(t *testing.T) {
 	// Set up test routers
 	router := gin.New()
 	router.Use(middleware.HMACVerificationMiddleware)
+	router.Use(middleware.OnlySenderMiddleware)
 
 	// Create a mock instance of the IndexerService
 	mockIndexerService := &MockIndexerService{}

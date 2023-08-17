@@ -261,6 +261,15 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 		time.Sleep(1 * time.Second)
 	}
 
+	// Update last indexed block number
+	_, err = receiveAddress.
+		Update().
+		SetLastIndexedBlock(header.Number.Int64()).
+		Save(ctx)
+	if err != nil {
+		return false, fmt.Errorf("failed to update receive address last indexed block: %w", err)
+	}
+
 	return false, nil
 }
 

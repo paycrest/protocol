@@ -66,10 +66,16 @@ func (s *ReceiveAddressService) CreateSmartAccount(ctx context.Context, client t
 		return nil, fmt.Errorf("failed to generate address: %w", err)
 	}
 
+	saltEncrypted, err := cryptoUtils.EncryptPlain([]byte(salt.String()))
+	if err != nil {
+		return nil, fmt.Errorf("failed to encrypt salt: %w", err)
+	}
+
 	// Save address in db
 	receiveAddress, err := db.Client.ReceiveAddress.
 		Create().
 		SetAddress(address.Hex()).
+		SetSalt(saltEncrypted).
 		SetStatus(receiveaddress.StatusUnused).
 		Save(ctx)
 	if err != nil {

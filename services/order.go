@@ -7,7 +7,6 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -16,6 +15,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/config"
 	db "github.com/paycrest/paycrest-protocol/database"
 	"github.com/paycrest/paycrest-protocol/ent"
+	"github.com/paycrest/paycrest-protocol/services/contracts"
 
 	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/types"
@@ -39,6 +39,7 @@ type CreateOrderParams struct {
 }
 
 var conf = config.OrderConfig()
+var fromAddress, privateKey, _ = utils.GetMasterAccount()
 
 // NewOrderService creates a new instance of OrderService.
 func NewOrderService() *OrderService {
@@ -71,25 +72,23 @@ func (s *OrderService) CreateOrder(ctx context.Context, client types.RPCClient, 
 		}
 	}
 
-	fromAddress, privateKey, _ := utils.GetMasterAccount()
-
 	// Initialize user operation with defaults
 	userOperation := &userop.UserOperation{
 		Sender:               common.HexToAddress(order.Edges.ReceiveAddress.Address),
 		Nonce:                big.NewInt(0),
 		InitCode:             common.FromHex("0x"),
 		CallData:             common.FromHex("0x"),
-		CallGasLimit:         big.NewInt(0),
-		VerificationGasLimit: big.NewInt(0),
-		PreVerificationGas:   big.NewInt(0),
-		MaxFeePerGas:         big.NewInt(0),
-		MaxPriorityFeePerGas: big.NewInt(0),
+		CallGasLimit:         big.NewInt(350000),
+		VerificationGasLimit: big.NewInt(300000),
+		PreVerificationGas:   big.NewInt(100000),
+		MaxFeePerGas:         big.NewInt(50000),
+		MaxPriorityFeePerGas: big.NewInt(1000),
 		PaymasterAndData:     common.FromHex("0x"),
-		Signature:            common.FromHex("0x"),
+		Signature:            common.FromHex("0xa925dcc5e5131636e244d4405334c25f034ebdd85c0cb12e8cdb13c15249c2d466d0bade18e2cafd3513497f7f968dcbb63e519acd9b76dcae7acd61f11aa8421b"),
 	}
 
 	// Get nonce
-	nonce, err := client.PendingNonceAt(ctx, *fromAddress)
+	nonce, err := client.PendingNonceAt(ctx, userOperation.Sender)
 	if err != nil {
 		return fmt.Errorf("failed to get nonce: %w", err)
 	}
@@ -103,7 +102,13 @@ func (s *OrderService) CreateOrder(ctx context.Context, client types.RPCClient, 
 
 	if len(code) == 0 {
 		// address does not exist yet
-		createAccountCallData, err := s.createAccountCallData(*fromAddress, big.NewInt(0))
+		saltDecrypted, err := cryptoUtils.DecryptPlain(order.Edges.ReceiveAddress.Salt)
+		if err != nil {
+			return fmt.Errorf("failed to decrypt salt: %w", err)
+		}
+		salt, _ := new(big.Int).SetString(string(saltDecrypted), 10)
+
+		createAccountCallData, err := s.createAccountCallData(*fromAddress, salt)
 		if err != nil {
 			return fmt.Errorf("failed to create init code: %w", err)
 		}
@@ -123,10 +128,10 @@ func (s *OrderService) CreateOrder(ctx context.Context, client types.RPCClient, 
 
 	// Sponsor user operation.
 	// This will populate the following fields in userOperation: PaymasterAndData, PreVerificationGas, VerificationGasLimit, CallGasLimit
-	err = s.sponsorUserOperation(userOperation)
-	if err != nil {
-		return fmt.Errorf("failed to sponsor user operation: %w", err)
-	}
+	// err = s.sponsorUserOperation(userOperation)
+	// if err != nil {
+	// 	return fmt.Errorf("failed to sponsor user operation: %w", err)
+	// }
 
 	// Set gas fees
 	gasPrice, _ := client.SuggestGasPrice(ctx)
@@ -134,13 +139,18 @@ func (s *OrderService) CreateOrder(ctx context.Context, client types.RPCClient, 
 	userOperation.MaxPriorityFeePerGas = big.NewInt(0).Mul(gasPrice, big.NewInt(110)) // 110%
 
 	// Sign user operation
-	userOpHash := userOperation.GetUserOpHash(conf.EntryPointContractAddress, big.NewInt(order.Edges.Token.Edges.Network.ChainID)).Hex()
+	userOpHash := userOperation.GetUserOpHash(conf.EntryPointContractAddress, big.NewInt(order.Edges.Token.Edges.Network.ChainID))
 
-	signature, err := crypto.Sign([]byte(userOpHash), privateKey)
+	signature, err := crypto.Sign(userOpHash.Bytes(), privateKey)
 	if err != nil {
 		return fmt.Errorf("failed to sign user operation: %w", err)
 	}
 	userOperation.Signature = signature
+
+	// err = s.estimateUserOperationGas(userOperation)
+	// if err != nil {
+	// 	return fmt.Errorf("failed to estimate user operation gas: %w", err)
+	// }
 
 	// Send user operation
 	_, err = s.sendUserOperation(userOperation)
@@ -150,7 +160,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, client types.RPCClient, 
 
 	// update payment order with userOpHash
 	_, err = order.Update().
-		SetTxHash(userOpHash).
+		SetTxHash(userOpHash.Hex()).
 		SetStatus(paymentorder.StatusPending).
 		Save(ctx)
 	if err != nil {
@@ -162,10 +172,22 @@ func (s *OrderService) CreateOrder(ctx context.Context, client types.RPCClient, 
 
 // executeBatchCallData creates the calldata for the execute batch method in the smart account.
 func (s *OrderService) executeBatchCallData(order *ent.PaymentOrder) ([]byte, error) {
-	// Create approve data
-	approveData, err := s.approveCallData(conf.PaycrestOrderContractAddress, order.Amount.BigInt())
+	// Create approve data for paycrest order contract
+	approvePaycrestData, err := s.approveCallData(conf.PaycrestOrderContractAddress, order.Amount.BigInt())
 	if err != nil {
-		return nil, fmt.Errorf("failed to create approve calldata: %w", err)
+		return nil, fmt.Errorf("failed to create paycrest approve calldata: %w", err)
+	}
+
+    // Fetch paymaster account
+    paymasterAccount, err := s.getPaymasterAccount()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get paymaster account: %w", err)
+	}
+
+    // Create approve data for paymaster contract
+	approvePaymasterData, err := s.approveCallData(common.HexToAddress(paymasterAccount), order.Amount.BigInt())
+	if err != nil {
+		return nil, fmt.Errorf("failed to create paymaster approve calldata : %w", err)
 	}
 
 	// Create createOrder data
@@ -174,26 +196,17 @@ func (s *OrderService) executeBatchCallData(order *ent.PaymentOrder) ([]byte, er
 		return nil, fmt.Errorf("failed to create createOrder calldata: %w", err)
 	}
 
-	// Create executeBatch data
-	calls := []ethereum.CallMsg{
-		{
-			To:    &conf.PaycrestOrderContractAddress,
-			Value: big.NewInt(0),
-			Data:  approveData,
-		},
-		{
-			To:    &conf.PaycrestOrderContractAddress,
-			Value: big.NewInt(0),
-			Data:  createOrderData,
-		},
-	}
-
-	executeBatchABI, err := abi.JSON(strings.NewReader("executeBatch(address[],uint256[],bytes[])"))
+	simpleAccountABI, err := abi.JSON(strings.NewReader(contracts.SimpleAccountMetaData.ABI))
 	if err != nil {
-		return nil, fmt.Errorf("failed to create execute ABI: %w", err)
+		return nil, fmt.Errorf("failed to parse smart account ABI: %w", err)
 	}
 
-	executeBatchCallData, err := executeBatchABI.Pack("executeBatch", calls)
+	executeBatchCallData, err := simpleAccountABI.Pack(
+		"executeBatch",
+		[]common.Address{conf.PaycrestOrderContractAddress, conf.PaycrestOrderContractAddress},
+		// []*big.Int{big.NewInt(0), big.NewInt(0)},
+		[][]byte{approvePaymasterData, approvePaycrestData, createOrderData},
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to pack execute ABI: %w", err)
 	}
@@ -203,20 +216,14 @@ func (s *OrderService) executeBatchCallData(order *ent.PaymentOrder) ([]byte, er
 
 // approveCallData creates the data for the ERC20 approve method
 func (s *OrderService) approveCallData(spender common.Address, amount *big.Int) ([]byte, error) {
-	// Define params
-	params := struct {
-		Spender common.Address
-		Amount  *big.Int
-	}{spender, amount}
-
 	// Create ABI
-	approveABI, err := abi.JSON(strings.NewReader("approve(address,uint256)"))
+	erc20ABI, err := abi.JSON(strings.NewReader(contracts.TestTokenMetaData.ABI))
 	if err != nil {
-		return nil, fmt.Errorf("failed to create approve ABI: %w", err)
+		return nil, fmt.Errorf("failed to parse erc20 ABI: %w", err)
 	}
 
 	// Create calldata
-	calldata, err := approveABI.Pack("approve", params)
+	calldata, err := erc20ABI.Pack("approve", spender, amount)
 	if err != nil {
 		return nil, fmt.Errorf("failed to pack approve ABI: %w", err)
 	}
@@ -226,8 +233,6 @@ func (s *OrderService) approveCallData(spender common.Address, amount *big.Int) 
 
 // createOrderCallData creates the data for the createOrder method
 func (s *OrderService) createOrderCallData(order *ent.PaymentOrder) ([]byte, error) {
-	fromAddress, _, _ := utils.GetMasterAccount()
-
 	// Encrypt recipient details
 	encryptedOrderRecipient, err := s.encryptOrderRecipient(order.Edges.Recipient)
 	if err != nil {
@@ -247,13 +252,23 @@ func (s *OrderService) createOrderCallData(order *ent.PaymentOrder) ([]byte, err
 	}
 
 	// Create ABI
-	createOrderABI, err := abi.JSON(strings.NewReader("createOrder(address,uint256,address,address,uint256,uint96,bytes32,string)"))
+	paycrestOrderABI, err := abi.JSON(strings.NewReader(contracts.PaycrestOrderMetaData.ABI))
 	if err != nil {
-		return nil, fmt.Errorf("failed to create createOrder ABI: %w", err)
+		return nil, fmt.Errorf("failed to parse PaycrestOrder ABI: %w", err)
 	}
 
 	// Generate call data
-	data, err := createOrderABI.Pack("createOrder", params)
+	data, err := paycrestOrderABI.Pack(
+		"createOrder",
+		params.Token,
+		params.Amount,
+		params.RefundAddress,
+		params.SenderFeeRecipient,
+		params.SenderFee,
+		params.Rate,
+		params.InstitutionCode,
+		params.MessageHash,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to pack createOrder ABI: %w", err)
 	}
@@ -262,21 +277,15 @@ func (s *OrderService) createOrderCallData(order *ent.PaymentOrder) ([]byte, err
 }
 
 // createAccountCallData creates the data for the createAccount method
-func (s *OrderService) createAccountCallData(address common.Address, salt *big.Int) ([]byte, error) {
-	// Define params
-	params := struct {
-		Address common.Address
-		Salt    *big.Int
-	}{address, salt}
-
+func (s *OrderService) createAccountCallData(owner common.Address, salt *big.Int) ([]byte, error) {
 	// Create ABI
-	createAccountABI, err := abi.JSON(strings.NewReader("createAccount(address,uint256)"))
+	accountFactoryABI, err := abi.JSON(strings.NewReader(contracts.SimpleAccountFactoryMetaData.ABI))
 	if err != nil {
-		return nil, fmt.Errorf("failed to create createAccount ABI: %w", err)
+		return nil, fmt.Errorf("failed to parse account factory ABI: %w", err)
 	}
 
 	// Create calldata
-	calldata, err := createAccountABI.Pack("createAccount", params)
+	calldata, err := accountFactoryABI.Pack("createAccount", owner, salt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to pack createAccount ABI: %w", err)
 	}
@@ -290,8 +299,9 @@ func (s *OrderService) encryptOrderRecipient(recipient *ent.PaymentOrderRecipien
 		AccountIdentifier string
 		AccountName       string
 		Institution       string
+		ProviderID        string
 	}{
-		recipient.AccountIdentifier, recipient.AccountName, recipient.Institution,
+		recipient.AccountIdentifier, recipient.AccountName, recipient.Institution, recipient.ProviderID,
 	}
 
 	messageCipher, err := cryptoUtils.EncryptJSON(message)
@@ -300,6 +310,31 @@ func (s *OrderService) encryptOrderRecipient(recipient *ent.PaymentOrderRecipien
 	}
 
 	return fmt.Sprintf("0x%x", messageCipher), nil
+}
+
+func (s *OrderService) getPaymasterAccount() (string, error) {
+	client, err := rpc.Dial(conf.PaymasterURL)
+	if err != nil {
+		return "", fmt.Errorf("failed to connect to RPC client: %w", err)
+	}
+
+	requestParams := []interface{}{
+		conf.EntryPointContractAddress.Hex(),
+	}
+
+	var result json.RawMessage
+	err = client.Call(&result, "pm_accounts", requestParams...)
+	if err != nil {
+		return "", fmt.Errorf("RPC error: %w", err)
+	}
+
+	var response []string
+	err = json.Unmarshal(result, &response)
+	if err != nil {
+		return "", fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+
+	return response[0], nil
 }
 
 // sponsorUserOperation sponsors the user operation
@@ -314,7 +349,8 @@ func (s *OrderService) sponsorUserOperation(userOp *userop.UserOperation) error 
 		userOp,
 		conf.EntryPointContractAddress.Hex(),
 		map[string]interface{}{
-			"type": "payg",
+			"type":  "erc20token",
+			"token": "0x3870419Ba2BBf0127060bCB37f69A1b1C090992B",
 		},
 	}
 
@@ -370,4 +406,42 @@ func (s *OrderService) sendUserOperation(userOp *userop.UserOperation) (string, 
 	}
 
 	return userOpHash, nil
+}
+
+func (s *OrderService) estimateUserOperationGas(userOp *userop.UserOperation) error {
+	client, err := rpc.Dial(conf.BundlerRPCURL)
+	if err != nil {
+		return fmt.Errorf("failed to connect to RPC client: %w", err)
+	}
+
+	requestParams := []interface{}{
+		userOp,
+		conf.EntryPointContractAddress.Hex(),
+	}
+
+	var result json.RawMessage
+	err = client.Call(&result, "eth_estimateUserOperationGas", requestParams...)
+	if err != nil {
+		return fmt.Errorf("RPC error: %w", err)
+	}
+
+	type Response struct {
+		PreVerificationGas   *big.Int
+		VerificationGasLimit *big.Int
+		CallGasLimit         *big.Int
+	}
+
+	var response Response
+	err = json.Unmarshal(result, &response)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+
+	fmt.Println(response)
+
+	userOp.CallGasLimit = response.CallGasLimit
+	userOp.VerificationGasLimit = response.VerificationGasLimit
+	userOp.PreVerificationGas = response.PreVerificationGas
+
+	return nil
 }

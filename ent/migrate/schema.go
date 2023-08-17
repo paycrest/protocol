@@ -66,7 +66,7 @@ var (
 		{Name: "receive_address_text", Type: field.TypeString, Size: 60},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"initiated", "pending", "settled", "cancelled", "failed", "refunded"}, Default: "initiated"},
 		{Name: "last_used", Type: field.TypeTime, Nullable: true},
-		{Name: "api_key_payment_orders", Type: field.TypeUUID, Nullable: true},
+		{Name: "api_key_payment_orders", Type: field.TypeUUID},
 		{Name: "token_payment_orders", Type: field.TypeInt},
 	}
 	// PaymentOrdersTable holds the schema information for the "payment_orders" table.
@@ -218,9 +218,11 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "address", Type: field.TypeString, Unique: true},
+		{Name: "salt", Type: field.TypeBytes, Unique: true},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"unused", "partial", "used", "expired"}, Default: "unused"},
 		{Name: "last_indexed_block", Type: field.TypeInt64, Nullable: true},
 		{Name: "last_used", Type: field.TypeTime, Nullable: true},
+		{Name: "valid_until", Type: field.TypeTime, Nullable: true},
 		{Name: "payment_order_receive_address", Type: field.TypeUUID, Unique: true, Nullable: true},
 	}
 	// ReceiveAddressesTable holds the schema information for the "receive_addresses" table.
@@ -231,7 +233,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "receive_addresses_payment_orders_receive_address",
-				Columns:    []*schema.Column{ReceiveAddressesColumns[7]},
+				Columns:    []*schema.Column{ReceiveAddressesColumns[9]},
 				RefColumns: []*schema.Column{PaymentOrdersColumns[0]},
 				OnDelete:   schema.SetNull,
 			},

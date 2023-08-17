@@ -70,6 +70,11 @@ func Address(v string) predicate.ReceiveAddress {
 	return predicate.ReceiveAddress(sql.FieldEQ(FieldAddress, v))
 }
 
+// Salt applies equality check predicate on the "salt" field. It's identical to SaltEQ.
+func Salt(v []byte) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldEQ(FieldSalt, v))
+}
+
 // LastIndexedBlock applies equality check predicate on the "last_indexed_block" field. It's identical to LastIndexedBlockEQ.
 func LastIndexedBlock(v int64) predicate.ReceiveAddress {
 	return predicate.ReceiveAddress(sql.FieldEQ(FieldLastIndexedBlock, v))
@@ -78,6 +83,11 @@ func LastIndexedBlock(v int64) predicate.ReceiveAddress {
 // LastUsed applies equality check predicate on the "last_used" field. It's identical to LastUsedEQ.
 func LastUsed(v time.Time) predicate.ReceiveAddress {
 	return predicate.ReceiveAddress(sql.FieldEQ(FieldLastUsed, v))
+}
+
+// ValidUntil applies equality check predicate on the "valid_until" field. It's identical to ValidUntilEQ.
+func ValidUntil(v time.Time) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldEQ(FieldValidUntil, v))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
@@ -225,6 +235,46 @@ func AddressContainsFold(v string) predicate.ReceiveAddress {
 	return predicate.ReceiveAddress(sql.FieldContainsFold(FieldAddress, v))
 }
 
+// SaltEQ applies the EQ predicate on the "salt" field.
+func SaltEQ(v []byte) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldEQ(FieldSalt, v))
+}
+
+// SaltNEQ applies the NEQ predicate on the "salt" field.
+func SaltNEQ(v []byte) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldNEQ(FieldSalt, v))
+}
+
+// SaltIn applies the In predicate on the "salt" field.
+func SaltIn(vs ...[]byte) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldIn(FieldSalt, vs...))
+}
+
+// SaltNotIn applies the NotIn predicate on the "salt" field.
+func SaltNotIn(vs ...[]byte) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldNotIn(FieldSalt, vs...))
+}
+
+// SaltGT applies the GT predicate on the "salt" field.
+func SaltGT(v []byte) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldGT(FieldSalt, v))
+}
+
+// SaltGTE applies the GTE predicate on the "salt" field.
+func SaltGTE(v []byte) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldGTE(FieldSalt, v))
+}
+
+// SaltLT applies the LT predicate on the "salt" field.
+func SaltLT(v []byte) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldLT(FieldSalt, v))
+}
+
+// SaltLTE applies the LTE predicate on the "salt" field.
+func SaltLTE(v []byte) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldLTE(FieldSalt, v))
+}
+
 // StatusEQ applies the EQ predicate on the "status" field.
 func StatusEQ(v Status) predicate.ReceiveAddress {
 	return predicate.ReceiveAddress(sql.FieldEQ(FieldStatus, v))
@@ -343,6 +393,56 @@ func LastUsedIsNil() predicate.ReceiveAddress {
 // LastUsedNotNil applies the NotNil predicate on the "last_used" field.
 func LastUsedNotNil() predicate.ReceiveAddress {
 	return predicate.ReceiveAddress(sql.FieldNotNull(FieldLastUsed))
+}
+
+// ValidUntilEQ applies the EQ predicate on the "valid_until" field.
+func ValidUntilEQ(v time.Time) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldEQ(FieldValidUntil, v))
+}
+
+// ValidUntilNEQ applies the NEQ predicate on the "valid_until" field.
+func ValidUntilNEQ(v time.Time) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldNEQ(FieldValidUntil, v))
+}
+
+// ValidUntilIn applies the In predicate on the "valid_until" field.
+func ValidUntilIn(vs ...time.Time) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldIn(FieldValidUntil, vs...))
+}
+
+// ValidUntilNotIn applies the NotIn predicate on the "valid_until" field.
+func ValidUntilNotIn(vs ...time.Time) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldNotIn(FieldValidUntil, vs...))
+}
+
+// ValidUntilGT applies the GT predicate on the "valid_until" field.
+func ValidUntilGT(v time.Time) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldGT(FieldValidUntil, v))
+}
+
+// ValidUntilGTE applies the GTE predicate on the "valid_until" field.
+func ValidUntilGTE(v time.Time) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldGTE(FieldValidUntil, v))
+}
+
+// ValidUntilLT applies the LT predicate on the "valid_until" field.
+func ValidUntilLT(v time.Time) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldLT(FieldValidUntil, v))
+}
+
+// ValidUntilLTE applies the LTE predicate on the "valid_until" field.
+func ValidUntilLTE(v time.Time) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldLTE(FieldValidUntil, v))
+}
+
+// ValidUntilIsNil applies the IsNil predicate on the "valid_until" field.
+func ValidUntilIsNil() predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldIsNull(FieldValidUntil))
+}
+
+// ValidUntilNotNil applies the NotNil predicate on the "valid_until" field.
+func ValidUntilNotNil() predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldNotNull(FieldValidUntil))
 }
 
 // HasPaymentOrder applies the HasEdge predicate on the "payment_order" edge.
