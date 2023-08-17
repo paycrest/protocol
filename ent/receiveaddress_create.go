@@ -56,6 +56,12 @@ func (rac *ReceiveAddressCreate) SetAddress(s string) *ReceiveAddressCreate {
 	return rac
 }
 
+// SetSalt sets the "salt" field.
+func (rac *ReceiveAddressCreate) SetSalt(b []byte) *ReceiveAddressCreate {
+	rac.mutation.SetSalt(b)
+	return rac
+}
+
 // SetStatus sets the "status" field.
 func (rac *ReceiveAddressCreate) SetStatus(r receiveaddress.Status) *ReceiveAddressCreate {
 	rac.mutation.SetStatus(r)
@@ -191,6 +197,9 @@ func (rac *ReceiveAddressCreate) check() error {
 	if _, ok := rac.mutation.Address(); !ok {
 		return &ValidationError{Name: "address", err: errors.New(`ent: missing required field "ReceiveAddress.address"`)}
 	}
+	if _, ok := rac.mutation.Salt(); !ok {
+		return &ValidationError{Name: "salt", err: errors.New(`ent: missing required field "ReceiveAddress.salt"`)}
+	}
 	if _, ok := rac.mutation.Status(); !ok {
 		return &ValidationError{Name: "status", err: errors.New(`ent: missing required field "ReceiveAddress.status"`)}
 	}
@@ -236,6 +245,10 @@ func (rac *ReceiveAddressCreate) createSpec() (*ReceiveAddress, *sqlgraph.Create
 	if value, ok := rac.mutation.Address(); ok {
 		_spec.SetField(receiveaddress.FieldAddress, field.TypeString, value)
 		_node.Address = value
+	}
+	if value, ok := rac.mutation.Salt(); ok {
+		_spec.SetField(receiveaddress.FieldSalt, field.TypeBytes, value)
+		_node.Salt = value
 	}
 	if value, ok := rac.mutation.Status(); ok {
 		_spec.SetField(receiveaddress.FieldStatus, field.TypeEnum, value)

@@ -83,9 +83,28 @@ func setup() error {
 	// 	return err
 	// }
 
+	// Create a test api key
+	user, err := test.CreateTestUser(nil)
+	if err != nil {
+		return err
+	}
+
+	apiKeyService := NewAPIKeyService()
+	apiKey, _, err := apiKeyService.GenerateAPIKey(
+		context.Background(),
+		user.ID,
+		types.CreateAPIKeyPayload{
+			Name:  "name",
+			Scope: "sender",
+		})
+	if err != nil {
+		return err
+	}
+
 	// Create a payment order
 	paymentOrder, err := db.Client.PaymentOrder.
 		Create().
+		SetAPIKey(apiKey).
 		SetAmount(amount).
 		SetAmountPaid(decimal.NewFromInt(0)).
 		SetToken(token).

@@ -134,14 +134,6 @@ func (poc *PaymentOrderCreate) SetAPIKeyID(id uuid.UUID) *PaymentOrderCreate {
 	return poc
 }
 
-// SetNillableAPIKeyID sets the "api_key" edge to the APIKey entity by ID if the given value is not nil.
-func (poc *PaymentOrderCreate) SetNillableAPIKeyID(id *uuid.UUID) *PaymentOrderCreate {
-	if id != nil {
-		poc = poc.SetAPIKeyID(*id)
-	}
-	return poc
-}
-
 // SetAPIKey sets the "api_key" edge to the APIKey entity.
 func (poc *PaymentOrderCreate) SetAPIKey(a *APIKey) *PaymentOrderCreate {
 	return poc.SetAPIKeyID(a.ID)
@@ -283,6 +275,9 @@ func (poc *PaymentOrderCreate) check() error {
 		if err := paymentorder.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.status": %w`, err)}
 		}
+	}
+	if _, ok := poc.mutation.APIKeyID(); !ok {
+		return &ValidationError{Name: "api_key", err: errors.New(`ent: missing required edge "PaymentOrder.api_key"`)}
 	}
 	if _, ok := poc.mutation.TokenID(); !ok {
 		return &ValidationError{Name: "token", err: errors.New(`ent: missing required edge "PaymentOrder.token"`)}

@@ -21,12 +21,16 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// FieldAddress holds the string denoting the address field in the database.
 	FieldAddress = "address"
+	// FieldSalt holds the string denoting the salt field in the database.
+	FieldSalt = "salt"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
 	// FieldLastIndexedBlock holds the string denoting the last_indexed_block field in the database.
 	FieldLastIndexedBlock = "last_indexed_block"
 	// FieldLastUsed holds the string denoting the last_used field in the database.
 	FieldLastUsed = "last_used"
+	// FieldValidUntil holds the string denoting the valid_until field in the database.
+	FieldValidUntil = "valid_until"
 	// EdgePaymentOrder holds the string denoting the payment_order edge name in mutations.
 	EdgePaymentOrder = "payment_order"
 	// Table holds the table name of the receiveaddress in the database.
@@ -46,9 +50,11 @@ var Columns = []string{
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldAddress,
+	FieldSalt,
 	FieldStatus,
 	FieldLastIndexedBlock,
 	FieldLastUsed,
+	FieldValidUntil,
 }
 
 // ForeignKeys holds the SQL foreign-keys that are owned by the "receive_addresses"
@@ -145,6 +151,11 @@ func ByLastIndexedBlock(opts ...sql.OrderTermOption) OrderOption {
 // ByLastUsed orders the results by the last_used field.
 func ByLastUsed(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldLastUsed, opts...).ToFunc()
+}
+
+// ByValidUntil orders the results by the valid_until field.
+func ByValidUntil(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldValidUntil, opts...).ToFunc()
 }
 
 // ByPaymentOrderField orders the results by payment_order field.

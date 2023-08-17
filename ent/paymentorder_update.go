@@ -132,14 +132,6 @@ func (pou *PaymentOrderUpdate) SetAPIKeyID(id uuid.UUID) *PaymentOrderUpdate {
 	return pou
 }
 
-// SetNillableAPIKeyID sets the "api_key" edge to the APIKey entity by ID if the given value is not nil.
-func (pou *PaymentOrderUpdate) SetNillableAPIKeyID(id *uuid.UUID) *PaymentOrderUpdate {
-	if id != nil {
-		pou = pou.SetAPIKeyID(*id)
-	}
-	return pou
-}
-
 // SetAPIKey sets the "api_key" edge to the APIKey entity.
 func (pou *PaymentOrderUpdate) SetAPIKey(a *APIKey) *PaymentOrderUpdate {
 	return pou.SetAPIKeyID(a.ID)
@@ -275,6 +267,9 @@ func (pou *PaymentOrderUpdate) check() error {
 		if err := paymentorder.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.status": %w`, err)}
 		}
+	}
+	if _, ok := pou.mutation.APIKeyID(); pou.mutation.APIKeyCleared() && !ok {
+		return errors.New(`ent: clearing a required unique edge "PaymentOrder.api_key"`)
 	}
 	if _, ok := pou.mutation.TokenID(); pou.mutation.TokenCleared() && !ok {
 		return errors.New(`ent: clearing a required unique edge "PaymentOrder.token"`)
@@ -561,14 +556,6 @@ func (pouo *PaymentOrderUpdateOne) SetAPIKeyID(id uuid.UUID) *PaymentOrderUpdate
 	return pouo
 }
 
-// SetNillableAPIKeyID sets the "api_key" edge to the APIKey entity by ID if the given value is not nil.
-func (pouo *PaymentOrderUpdateOne) SetNillableAPIKeyID(id *uuid.UUID) *PaymentOrderUpdateOne {
-	if id != nil {
-		pouo = pouo.SetAPIKeyID(*id)
-	}
-	return pouo
-}
-
 // SetAPIKey sets the "api_key" edge to the APIKey entity.
 func (pouo *PaymentOrderUpdateOne) SetAPIKey(a *APIKey) *PaymentOrderUpdateOne {
 	return pouo.SetAPIKeyID(a.ID)
@@ -717,6 +704,9 @@ func (pouo *PaymentOrderUpdateOne) check() error {
 		if err := paymentorder.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.status": %w`, err)}
 		}
+	}
+	if _, ok := pouo.mutation.APIKeyID(); pouo.mutation.APIKeyCleared() && !ok {
+		return errors.New(`ent: clearing a required unique edge "PaymentOrder.api_key"`)
 	}
 	if _, ok := pouo.mutation.TokenID(); pouo.mutation.TokenCleared() && !ok {
 		return errors.New(`ent: clearing a required unique edge "PaymentOrder.token"`)

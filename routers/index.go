@@ -41,7 +41,8 @@ func senderRoutes(route *gin.Engine) {
 	var ctrl sender.SenderController
 
 	v1 := route.Group("/v1/sender/")
-	v1.Use(middleware.HMACVerificationMiddleware)
+	// v1.Use(middleware.HMACVerificationMiddleware)
+	v1.Use(middleware.OnlySenderMiddleware)
 
 	v1.POST("orders/", ctrl.CreatePaymentOrder)
 	v1.GET("orders/:id", ctrl.GetPaymentOrderByID)
@@ -51,6 +52,9 @@ func providerRoutes(route *gin.Engine) {
 	var ctrl controllers.ProviderController
 
 	v1 := route.Group("/v1/provider/")
+	v1.Use(middleware.HMACVerificationMiddleware)
+	v1.Use(middleware.OnlyProviderMiddleware)
+
 	v1.GET("orders/", ctrl.GetOrders)
 	v1.POST("orders/:id/accept", ctrl.AcceptOrder)
 	v1.POST("orders/:id/decline", ctrl.DeclineOrder)

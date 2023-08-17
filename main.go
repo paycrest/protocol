@@ -35,6 +35,11 @@ func main() {
 		logger.Fatalf("continueIndexing error: %s", err)
 	}
 
+	// Start processing orders
+	if err := ProcessOrders(); err != nil {
+		logger.Fatalf("processOrders error; %s", err)
+	}
+
 	// Run the server
 	router := routers.Routes()
 
