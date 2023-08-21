@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/ecdsa"
 	"encoding/hex"
+	"fmt"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -92,6 +93,14 @@ func Byte32ToString(b [32]byte) string {
 	return string(strBytes)
 }
 
+// BigMin returns the minimum value between two big numbers
+func BigMin(x, y *big.Int) *big.Int {
+	if x.Cmp(y) < 0 {
+		return x
+	}
+	return y
+}
+
 // GetMasterAccount returns the master account address and private key.
 func GetMasterAccount() (*common.Address, *ecdsa.PrivateKey, error) {
 	fromAddress, privateKeyHex, err := cryptoUtils.GenerateAccountFromIndex(0)
@@ -112,4 +121,17 @@ func GetMasterAccount() (*common.Address, *ecdsa.PrivateKey, error) {
 	}
 
 	return &address, privateKey, nil
+}
+
+// PersonalSign is an equivalent of ethers.personal_sign for signing ethereum messages
+// Ref: https://github.com/etaaa/Golang-Ethereum-Personal-Sign/blob/main/main.go
+func PersonalSign(message string, privateKey *ecdsa.PrivateKey) ([]byte, error) {
+	fullMessage := fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(message), message)
+	hash := crypto.Keccak256Hash([]byte(fullMessage))
+	signatureBytes, err := crypto.Sign(hash.Bytes(), privateKey)
+	if err != nil {
+		return nil, err
+	}
+	signatureBytes[64] += 27
+	return signatureBytes, nil
 }

@@ -5,9 +5,11 @@ import (
 	"crypto/rand"
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/paycrest/paycrest-protocol/config"
 	db "github.com/paycrest/paycrest-protocol/database"
 	"github.com/paycrest/paycrest-protocol/ent"
 	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
@@ -72,11 +74,13 @@ func (s *ReceiveAddressService) CreateSmartAccount(ctx context.Context, client t
 	}
 
 	// Save address in db
+	conf := config.OrderConfig()
 	receiveAddress, err := db.Client.ReceiveAddress.
 		Create().
 		SetAddress(address.Hex()).
 		SetSalt(saltEncrypted).
 		SetStatus(receiveaddress.StatusUnused).
+		SetValidUntil(time.Now().Add(conf.ReceiveAddressValidity)).
 		Save(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to save address: %w", err)

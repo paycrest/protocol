@@ -104,7 +104,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 	// Fetch logs in block batches.
 	// This is important because client.FilterLogs function has a limit of 10k results
 	// TODO: explain why batchsize of 500 was chosen
-	currentBlockBatchSize := 500
+	currentBlockBatchSize := 200
 	currentBlockNumber := query.FromBlock
 	finalBlockNumber := query.ToBlock
 
@@ -119,21 +119,18 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 	logTransferSigHash := crypto.Keccak256Hash(logTransferSig)
 
 	logger.Infof(
-		"\nIndexing transfer logs for %s from Block #%s - #%s\n\n",
+		"Indexing transfer logs for %s from Block #%s - #%s",
 		receiveAddress.Address,
 		fromBlockBig.String(),
-		header.Number.String(),
+		finalBlockNumber.String(),
 	)
 
 	for {
 		// Update the filter parameters
 		query.FromBlock = currentBlockNumber
-		query.ToBlock = big.NewInt(currentBlockNumber.Int64() + int64(currentBlockBatchSize-1))
 
-		// Check if we have reached the final block number
-		if query.ToBlock.Cmp(finalBlockNumber) > 0 {
-			break
-		}
+		batchEnd := big.NewInt(currentBlockNumber.Int64() + int64(currentBlockBatchSize-1))
+		query.ToBlock = utils.BigMin(batchEnd, finalBlockNumber)
 
 		// Fetch logs for the current batch
 		logs, err := client.FilterLogs(ctx, query)
@@ -245,13 +242,19 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 			}
 		}
 
-		// Update last indexed block number
+		// Update last indexed block
 		_, err = receiveAddress.
 			Update().
 			SetLastIndexedBlock(query.ToBlock.Int64()).
 			Save(ctx)
+
 		if err != nil {
 			return false, fmt.Errorf("failed to update receive address last indexed block: %w", err)
+		}
+
+		// Check if we have reached the final block number
+		if batchEnd.Cmp(finalBlockNumber) >= 0 {
+			break
 		}
 
 		// Update the current block number for the next batch
@@ -261,15 +264,6 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 		time.Sleep(1 * time.Second)
 	}
 
-	// Update last indexed block number
-	_, err = receiveAddress.
-		Update().
-		SetLastIndexedBlock(header.Number.Int64()).
-		Save(ctx)
-	if err != nil {
-		return false, fmt.Errorf("failed to update receive address last indexed block: %w", err)
-	}
-
 	return false, nil
 }
 
@@ -277,7 +271,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 // it loops indefinitely until the address expires or a transfer is found
 func (s *IndexerService) RunIndexERC20Transfer(ctx context.Context, receiveAddress *ent.ReceiveAddress) {
 	for {
-		// time.Sleep(2 * time.Minute) // add 2 minutes delay between each indexing operation
+		time.Sleep(2 * time.Minute) // add 2 minutes delay between each indexing operation
 
 		ok, err := s.IndexERC20Transfer(ctx, nil, receiveAddress)
 		if err != nil {

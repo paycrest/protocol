@@ -7,6 +7,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/config"
 	"github.com/paycrest/paycrest-protocol/database"
 	"github.com/paycrest/paycrest-protocol/routers"
+	"github.com/paycrest/paycrest-protocol/tasks"
 	"github.com/paycrest/paycrest-protocol/utils/logger"
 )
 
@@ -31,12 +32,12 @@ func main() {
 	}
 
 	// Start indexer
-	if err := ContinueIndexing(); err != nil {
+	if err := tasks.ContinueIndexing(); err != nil {
 		logger.Fatalf("continueIndexing error: %s", err)
 	}
 
 	// Start processing orders
-	if err := ProcessOrders(); err != nil {
+	if err := tasks.ProcessOrders(); err != nil {
 		logger.Fatalf("processOrders error; %s", err)
 	}
 

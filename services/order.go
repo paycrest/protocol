@@ -9,7 +9,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/config"
@@ -88,7 +87,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, client types.RPCClient, 
 	}
 
 	// Get nonce
-	nonce, err := client.PendingNonceAt(ctx, userOperation.Sender)
+	nonce, err := client.PendingNonceAt(ctx, *fromAddress)
 	if err != nil {
 		return fmt.Errorf("failed to get nonce: %w", err)
 	}
@@ -128,10 +127,10 @@ func (s *OrderService) CreateOrder(ctx context.Context, client types.RPCClient, 
 
 	// Sponsor user operation.
 	// This will populate the following fields in userOperation: PaymasterAndData, PreVerificationGas, VerificationGasLimit, CallGasLimit
-	// err = s.sponsorUserOperation(userOperation)
-	// if err != nil {
-	// 	return fmt.Errorf("failed to sponsor user operation: %w", err)
-	// }
+	err = s.sponsorUserOperation(userOperation)
+	if err != nil {
+		return fmt.Errorf("failed to sponsor user operation: %w", err)
+	}
 
 	// Set gas fees
 	gasPrice, _ := client.SuggestGasPrice(ctx)
@@ -141,7 +140,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, client types.RPCClient, 
 	// Sign user operation
 	userOpHash := userOperation.GetUserOpHash(conf.EntryPointContractAddress, big.NewInt(order.Edges.Token.Edges.Network.ChainID))
 
-	signature, err := crypto.Sign(userOpHash.Bytes(), privateKey)
+	signature, err := utils.PersonalSign(string(userOpHash[:]), privateKey)
 	if err != nil {
 		return fmt.Errorf("failed to sign user operation: %w", err)
 	}
@@ -178,13 +177,13 @@ func (s *OrderService) executeBatchCallData(order *ent.PaymentOrder) ([]byte, er
 		return nil, fmt.Errorf("failed to create paycrest approve calldata: %w", err)
 	}
 
-    // Fetch paymaster account
-    paymasterAccount, err := s.getPaymasterAccount()
+	// Fetch paymaster account
+	paymasterAccount, err := s.getPaymasterAccount()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get paymaster account: %w", err)
 	}
 
-    // Create approve data for paymaster contract
+	// Create approve data for paymaster contract
 	approvePaymasterData, err := s.approveCallData(common.HexToAddress(paymasterAccount), order.Amount.BigInt())
 	if err != nil {
 		return nil, fmt.Errorf("failed to create paymaster approve calldata : %w", err)
@@ -436,8 +435,6 @@ func (s *OrderService) estimateUserOperationGas(userOp *userop.UserOperation) er
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal response: %w", err)
 	}
-
-	fmt.Println(response)
 
 	userOp.CallGasLimit = response.CallGasLimit
 	userOp.VerificationGasLimit = response.VerificationGasLimit
