@@ -1,4 +1,4 @@
-package main
+package tasks
 
 import (
 	"context"
@@ -62,7 +62,7 @@ func ProcessOrders() error {
 		go func() {
 			err := orderService.CreateOrder(ctx, nil, order.ID)
 			if err != nil {
-				logger.Errorf("error: %v", err)
+				logger.Errorf("process orders task => %v\n", err)
 			}
 		}()
 	}
