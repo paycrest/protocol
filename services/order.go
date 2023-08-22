@@ -146,11 +146,6 @@ func (s *OrderService) CreateOrder(ctx context.Context, client types.RPCClient, 
 	}
 	userOperation.Signature = signature
 
-	// err = s.estimateUserOperationGas(userOperation)
-	// if err != nil {
-	// 	return fmt.Errorf("failed to estimate user operation gas: %w", err)
-	// }
-
 	// Send user operation
 	_, err = s.sendUserOperation(userOperation)
 	if err != nil {
@@ -405,40 +400,4 @@ func (s *OrderService) sendUserOperation(userOp *userop.UserOperation) (string, 
 	}
 
 	return userOpHash, nil
-}
-
-func (s *OrderService) estimateUserOperationGas(userOp *userop.UserOperation) error {
-	client, err := rpc.Dial(conf.BundlerRPCURL)
-	if err != nil {
-		return fmt.Errorf("failed to connect to RPC client: %w", err)
-	}
-
-	requestParams := []interface{}{
-		userOp,
-		conf.EntryPointContractAddress.Hex(),
-	}
-
-	var result json.RawMessage
-	err = client.Call(&result, "eth_estimateUserOperationGas", requestParams...)
-	if err != nil {
-		return fmt.Errorf("RPC error: %w", err)
-	}
-
-	type Response struct {
-		PreVerificationGas   *big.Int
-		VerificationGasLimit *big.Int
-		CallGasLimit         *big.Int
-	}
-
-	var response Response
-	err = json.Unmarshal(result, &response)
-	if err != nil {
-		return fmt.Errorf("failed to unmarshal response: %w", err)
-	}
-
-	userOp.CallGasLimit = response.CallGasLimit
-	userOp.VerificationGasLimit = response.VerificationGasLimit
-	userOp.PreVerificationGas = response.PreVerificationGas
-
-	return nil
 }

@@ -4,11 +4,11 @@ on:
   push:
     branches:
       - main
-  # Run on PRs where something changed under the `ent/migrate/migrations/` directory.
+  # Run on PRs where something changed under the `ent/` or `ent/migrate/migrations/` directory.
   pull_request:
     paths:
       - 'ent/*'
-      - 'ent/migrate/migrations/*'
+      # - 'ent/migrate/migrations/*'
     branches: [ "main" ]
 
 jobs:
@@ -37,10 +37,10 @@ jobs:
         with:
           go-version: 1.x
 
-      - uses: ariga/atlas-action@v0
-        with:
-          dir: ent/migrate/migrations
-          dir-format: golang-migrate # Or: atlas, goose, dbmate
-          dev-url: postgres://postgres:pass@localhost:5432/test?sslmode=disable
+      # - uses: ariga/atlas-action@v0
+      #   with:
+      #     dir: ent/migrate/migrations
+      #     dir-format: golang-migrate # Or: atlas, goose, dbmate
+      #     dev-url: postgres://postgres:pass@localhost:5432/test?sslmode=disable
         
       - uses: ent/contrib/ci@master
