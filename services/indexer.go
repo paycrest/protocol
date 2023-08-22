@@ -103,7 +103,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 
 	// Fetch logs in block batches.
 	// This is important because client.FilterLogs function has a limit of 10k results
-	// TODO: explain why batchsize of 500 was chosen
+	// TODO: explain why batchsize of 200 was chosen
 	currentBlockBatchSize := 200
 	currentBlockNumber := query.FromBlock
 	finalBlockNumber := query.ToBlock

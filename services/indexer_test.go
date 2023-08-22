@@ -63,6 +63,7 @@ func setup() error {
 	receiveAddress, err := db.Client.ReceiveAddress.
 		Create().
 		SetAddress("0xF6F6407410235202CA5Bfa68286a3bBe01F8E5E0").
+		SetSalt([]byte("random salt")).
 		SetStatus(receiveaddress.StatusUnused).
 		SetLastIndexedBlock(17800411). // our target test block with usdt transfer is 17800412
 		Save(context.Background())
