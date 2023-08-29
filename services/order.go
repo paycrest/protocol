@@ -11,7 +11,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/google/uuid"
-	"github.com/paycrest/paycrest-protocol/config"
 	db "github.com/paycrest/paycrest-protocol/database"
 	"github.com/paycrest/paycrest-protocol/ent"
 	"github.com/paycrest/paycrest-protocol/services/contracts"
@@ -37,7 +36,6 @@ type CreateOrderParams struct {
 	MessageHash        string
 }
 
-var conf = config.OrderConfig()
 var fromAddress, privateKey, _ = utils.GetMasterAccount()
 
 // NewOrderService creates a new instance of OrderService.
@@ -138,7 +136,10 @@ func (s *OrderService) CreateOrder(ctx context.Context, client types.RPCClient, 
 	userOperation.MaxPriorityFeePerGas = big.NewInt(0).Mul(gasPrice, big.NewInt(110)) // 110%
 
 	// Sign user operation
-	userOpHash := userOperation.GetUserOpHash(conf.EntryPointContractAddress, big.NewInt(order.Edges.Token.Edges.Network.ChainID))
+	userOpHash := userOperation.GetUserOpHash(
+		OrderConf.EntryPointContractAddress,
+		big.NewInt(order.Edges.Token.Edges.Network.ChainID),
+	)
 
 	signature, err := utils.PersonalSign(string(userOpHash[:]), privateKey)
 	if err != nil {
@@ -167,7 +168,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, client types.RPCClient, 
 // executeBatchCallData creates the calldata for the execute batch method in the smart account.
 func (s *OrderService) executeBatchCallData(order *ent.PaymentOrder) ([]byte, error) {
 	// Create approve data for paycrest order contract
-	approvePaycrestData, err := s.approveCallData(conf.PaycrestOrderContractAddress, order.Amount.BigInt())
+	approvePaycrestData, err := s.approveCallData(OrderConf.PaycrestOrderContractAddress, order.Amount.BigInt())
 	if err != nil {
 		return nil, fmt.Errorf("failed to create paycrest approve calldata: %w", err)
 	}
@@ -197,7 +198,7 @@ func (s *OrderService) executeBatchCallData(order *ent.PaymentOrder) ([]byte, er
 
 	executeBatchCallData, err := simpleAccountABI.Pack(
 		"executeBatch",
-		[]common.Address{conf.PaycrestOrderContractAddress, conf.PaycrestOrderContractAddress},
+		[]common.Address{OrderConf.PaycrestOrderContractAddress, OrderConf.PaycrestOrderContractAddress},
 		// []*big.Int{big.NewInt(0), big.NewInt(0)},
 		[][]byte{approvePaymasterData, approvePaycrestData, createOrderData},
 	)
@@ -240,7 +241,7 @@ func (s *OrderService) createOrderCallData(order *ent.PaymentOrder) ([]byte, err
 		RefundAddress:      *fromAddress,
 		SenderFeeRecipient: *fromAddress,
 		SenderFee:          big.NewInt(0),
-		Rate:               big.NewInt(0),
+		Rate:               big.NewInt(0), // TODO: fetch actual market rate
 		InstitutionCode:    utils.StringTo32Byte(order.Edges.Recipient.Institution),
 		MessageHash:        encryptedOrderRecipient,
 	}
@@ -256,11 +257,11 @@ func (s *OrderService) createOrderCallData(order *ent.PaymentOrder) ([]byte, err
 		"createOrder",
 		params.Token,
 		params.Amount,
-		params.RefundAddress,
+		params.InstitutionCode,
+		params.Rate,
 		params.SenderFeeRecipient,
 		params.SenderFee,
-		params.Rate,
-		params.InstitutionCode,
+		params.RefundAddress,
 		params.MessageHash,
 	)
 	if err != nil {
@@ -307,13 +308,13 @@ func (s *OrderService) encryptOrderRecipient(recipient *ent.PaymentOrderRecipien
 }
 
 func (s *OrderService) getPaymasterAccount() (string, error) {
-	client, err := rpc.Dial(conf.PaymasterURL)
+	client, err := rpc.Dial(OrderConf.PaymasterURL)
 	if err != nil {
 		return "", fmt.Errorf("failed to connect to RPC client: %w", err)
 	}
 
 	requestParams := []interface{}{
-		conf.EntryPointContractAddress.Hex(),
+		OrderConf.EntryPointContractAddress.Hex(),
 	}
 
 	var result json.RawMessage
@@ -334,14 +335,14 @@ func (s *OrderService) getPaymasterAccount() (string, error) {
 // sponsorUserOperation sponsors the user operation
 // ref: https://docs.stackup.sh/docs/paymaster-api-rpc-methods#pm_sponsoruseroperation
 func (s *OrderService) sponsorUserOperation(userOp *userop.UserOperation) error {
-	client, err := rpc.Dial(conf.PaymasterURL)
+	client, err := rpc.Dial(OrderConf.PaymasterURL)
 	if err != nil {
 		return fmt.Errorf("failed to connect to RPC client: %w", err)
 	}
 
 	requestParams := []interface{}{
 		userOp,
-		conf.EntryPointContractAddress.Hex(),
+		OrderConf.EntryPointContractAddress.Hex(),
 		map[string]interface{}{
 			"type":  "erc20token",
 			"token": "0x3870419Ba2BBf0127060bCB37f69A1b1C090992B",
@@ -377,14 +378,14 @@ func (s *OrderService) sponsorUserOperation(userOp *userop.UserOperation) error 
 
 // sendUserOperation sends the user operation
 func (s *OrderService) sendUserOperation(userOp *userop.UserOperation) (string, error) {
-	client, err := rpc.Dial(conf.BundlerRPCURL)
+	client, err := rpc.Dial(OrderConf.BundlerRPCURL)
 	if err != nil {
 		return "", fmt.Errorf("failed to connect to RPC client: %w", err)
 	}
 
 	requestParams := []interface{}{
 		userOp,
-		conf.EntryPointContractAddress.Hex(),
+		OrderConf.EntryPointContractAddress.Hex(),
 	}
 
 	var result json.RawMessage
