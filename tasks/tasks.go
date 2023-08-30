@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/paycrest/paycrest-protocol/database"
+	"github.com/paycrest/paycrest-protocol/ent"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
 	"github.com/paycrest/paycrest-protocol/services"
@@ -13,7 +14,9 @@ import (
 // ContinueIndexing continues indexing
 func ContinueIndexing() error {
 	ctx := context.Background()
+	indexerService := services.NewIndexerService(nil)
 
+	// Start ERC20 transfer indexing
 	addresses, err := database.GetClient().ReceiveAddress.
 		Query().
 		Where(
@@ -27,10 +30,24 @@ func ContinueIndexing() error {
 	}
 
 	for _, receiveAddress := range addresses {
-		indexerService := services.NewIndexerService(nil)
 		receiveAddress := receiveAddress
 
 		go indexerService.RunIndexERC20Transfer(ctx, receiveAddress)
+	}
+
+	// Start indexing on-chain payment order deposits
+	networks, err := database.GetClient().Network.Query().All(ctx)
+	if err != nil {
+		return err
+	}
+
+	for _, network := range networks {
+		go func(network *ent.Network) {
+			err := indexerService.IndexOrderDeposits(ctx, nil, network)
+			if err != nil {
+				logger.Errorf("process order deposits task => %v\n", err)
+			}
+		}(network)
 	}
 
 	return nil
@@ -55,17 +72,17 @@ func ProcessOrders() error {
 		return err
 	}
 
-	for _, order := range orders {
-		orderService := services.NewOrderService()
-		order := order
+	go func() {
+		for _, order := range orders {
+			orderService := services.NewOrderService()
+			order := order
 
-		go func() {
 			err := orderService.CreateOrder(ctx, nil, order.ID)
 			if err != nil {
 				logger.Errorf("process orders task => %v\n", err)
 			}
-		}()
-	}
+		}
+	}()
 
 	return nil
 }

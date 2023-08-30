@@ -391,6 +391,29 @@ func HasPaymentOrdersWith(preds ...predicate.PaymentOrder) predicate.Token {
 	})
 }
 
+// HasLockPaymentOrders applies the HasEdge predicate on the "lock_payment_orders" edge.
+func HasLockPaymentOrders() predicate.Token {
+	return predicate.Token(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, LockPaymentOrdersTable, LockPaymentOrdersColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasLockPaymentOrdersWith applies the HasEdge predicate on the "lock_payment_orders" edge with a given conditions (other predicates).
+func HasLockPaymentOrdersWith(preds ...predicate.LockPaymentOrder) predicate.Token {
+	return predicate.Token(func(s *sql.Selector) {
+		step := newLockPaymentOrdersStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.Token) predicate.Token {
 	return predicate.Token(func(s *sql.Selector) {

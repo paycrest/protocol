@@ -41,6 +41,8 @@ func main() {
 		logger.Fatalf("processOrders error; %s", err)
 	}
 
+
+
 	// Run the server
 	router := routers.Routes()
 

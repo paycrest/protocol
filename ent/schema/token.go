@@ -2,6 +2,7 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 )
@@ -35,6 +36,9 @@ func (Token) Edges() []ent.Edge {
 			Ref("tokens").
 			Required().
 			Unique(),
-		edge.To("payment_orders", PaymentOrder.Type),
+		edge.To("payment_orders", PaymentOrder.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("lock_payment_orders", LockPaymentOrder.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }

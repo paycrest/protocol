@@ -43,9 +43,11 @@ type TokenEdges struct {
 	Network *Network `json:"network,omitempty"`
 	// PaymentOrders holds the value of the payment_orders edge.
 	PaymentOrders []*PaymentOrder `json:"payment_orders,omitempty"`
+	// LockPaymentOrders holds the value of the lock_payment_orders edge.
+	LockPaymentOrders []*LockPaymentOrder `json:"lock_payment_orders,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [3]bool
 }
 
 // NetworkOrErr returns the Network value or an error if the edge
@@ -68,6 +70,15 @@ func (e TokenEdges) PaymentOrdersOrErr() ([]*PaymentOrder, error) {
 		return e.PaymentOrders, nil
 	}
 	return nil, &NotLoadedError{edge: "payment_orders"}
+}
+
+// LockPaymentOrdersOrErr returns the LockPaymentOrders value or an error if the edge
+// was not loaded in eager-loading.
+func (e TokenEdges) LockPaymentOrdersOrErr() ([]*LockPaymentOrder, error) {
+	if e.loadedTypes[2] {
+		return e.LockPaymentOrders, nil
+	}
+	return nil, &NotLoadedError{edge: "lock_payment_orders"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -170,6 +181,11 @@ func (t *Token) QueryNetwork() *NetworkQuery {
 // QueryPaymentOrders queries the "payment_orders" edge of the Token entity.
 func (t *Token) QueryPaymentOrders() *PaymentOrderQuery {
 	return NewTokenClient(t.config).QueryPaymentOrders(t)
+}
+
+// QueryLockPaymentOrders queries the "lock_payment_orders" edge of the Token entity.
+func (t *Token) QueryLockPaymentOrders() *LockPaymentOrderQuery {
+	return NewTokenClient(t.config).QueryLockPaymentOrders(t)
 }
 
 // Update returns a builder for updating this Token.

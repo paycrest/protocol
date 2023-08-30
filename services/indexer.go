@@ -2,6 +2,8 @@ package services
 
 import (
 	"context"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"math"
 	"math/big"
@@ -10,17 +12,30 @@ import (
 
 	ethereum "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/paycrest/paycrest-protocol/config"
 	db "github.com/paycrest/paycrest-protocol/database"
 	"github.com/paycrest/paycrest-protocol/ent"
+	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
+	networkent "github.com/paycrest/paycrest-protocol/ent/network"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
+	"github.com/paycrest/paycrest-protocol/ent/token"
+	"github.com/paycrest/paycrest-protocol/services/contracts"
 	"github.com/paycrest/paycrest-protocol/types"
 	"github.com/paycrest/paycrest-protocol/utils"
+	cryptoUtils "github.com/paycrest/paycrest-protocol/utils/crypto"
 	"github.com/paycrest/paycrest-protocol/utils/logger"
+	"github.com/shopspring/decimal"
 )
+
+type orderRecipient struct {
+	AccountIdentifier string
+	AccountName       string
+	Institution       string
+	ProviderID        string
+}
 
 // Indexer is an interface for indexing blockchain data to the database.
 type Indexer interface {
@@ -41,7 +56,6 @@ func NewIndexerService(indexer Indexer) *IndexerService {
 
 // IndexERC20Transfer indexes ERC20 token transfers for a specific receive address.
 func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RPCClient, receiveAddress *ent.ReceiveAddress) (ok bool, err error) {
-	var conf = config.OrderConfig()
 
 	// Fetch payment order from db
 	paymentOrder, err := db.Client.PaymentOrder.
@@ -78,7 +92,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 	// Layer 2 networks have the shortest blocktimes e.g Polygon, Tron etc. are < 5 seconds
 	// We assume a blocktime of 2s for the largest number of blocks to scan.
 	// number of blocks = receive address validity period in seconds / blocktime
-	numOfBlocks := int64(conf.ReceiveAddressValidity.Seconds() / 2)
+	numOfBlocks := int64(OrderConf.ReceiveAddressValidity.Seconds() / 2)
 
 	var fromBlock int64
 
@@ -110,7 +124,6 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 
 	// Get Transfer event signature hash
 	contractAbi, err := abi.JSON(strings.NewReader(ERC20ABI))
-
 	if err != nil {
 		return false, fmt.Errorf("failed to parse ABI: %w", err)
 	}
@@ -223,7 +236,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 				if validUntilIsFarGone {
 					_, err = receiveAddress.
 						Update().
-						SetValidUntil(time.Now().Add(conf.ReceiveAddressValidity)).
+						SetValidUntil(time.Now().Add(OrderConf.ReceiveAddressValidity)).
 						Save(ctx)
 					if err != nil {
 						return false, fmt.Errorf("failed to update receive address valid until: %w", err)
@@ -265,6 +278,169 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 	}
 
 	return false, nil
+}
+
+// IndexOrderDeposit indexes deposits to the order contract for a specific network.
+func (s *IndexerService) IndexOrderDeposits(ctx context.Context, client types.RPCClient, network *ent.Network) error {
+	// Get the last lock payment order from db
+	result, err := db.Client.LockPaymentOrder.
+		Query().
+		Where(
+			lockpaymentorder.HasTokenWith(
+				token.HasNetworkWith(
+					networkent.IDEQ(network.ID),
+				),
+			),
+		).
+		Order(ent.Desc(lockpaymentorder.FieldBlockNumber)).
+		Limit(1).
+		All(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to fetch lock payment order: %w", err)
+	}
+
+	// Connect to RPC endpoint
+	if client == nil {
+		client, err = types.NewEthClient(network.RPCEndpoint)
+		if err != nil {
+			return fmt.Errorf("failed to connect to RPC client: %w", err)
+		}
+	}
+
+	// Fetch current block header
+	header, err := client.HeaderByNumber(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("failed to fetch current block number: %w", err)
+	}
+
+	// Initialize contract filterer
+	filterer, err := contracts.NewPaycrestOrderFilterer(OrderConf.PaycrestOrderContractAddress, client)
+	if err != nil {
+		return fmt.Errorf("failed to create filterer: %w", err)
+	}
+
+	if len(result) == 0 {
+		logs := make(chan *contracts.PaycrestOrderDeposit)
+
+		sub, err := filterer.WatchDeposit(&bind.WatchOpts{
+			Start: nil,
+		}, logs, nil, nil, nil)
+		if err != nil {
+			return fmt.Errorf("failed to watch deposit events: %w", err)
+		}
+
+		defer sub.Unsubscribe()
+
+		logger.Infof("Listening for Deposit events...\n")
+
+		for {
+			select {
+			case log := <-logs:
+				err := s.saveLockPaymentOrder(ctx, network, log)
+				if err != nil {
+					logger.Errorf("failed to save lock payment order: %v", err)
+					continue
+				}
+			case err := <-sub.Err():
+				logger.Errorf("failed to parse deposit event: %v", err)
+				continue
+			}
+		}
+	} else {
+		lockPaymentOrder := result[0]
+
+		// Filter logs from the last lock payment order block number
+		toBlock := header.Number.Uint64()
+		opts := &bind.FilterOpts{
+			Start: uint64(lockPaymentOrder.BlockNumber),
+			End:   &toBlock,
+		}
+
+		// Fetch logs
+		iter, err := filterer.FilterDeposit(opts, nil, nil, nil)
+		if err != nil {
+			return fmt.Errorf("failed to fetch logs: %w", err)
+		}
+
+		// Iterate over logs
+		for iter.Next() {
+			err := s.saveLockPaymentOrder(ctx, network, iter.Event)
+			if err != nil {
+				logger.Errorf("failed to save lock payment order: %v", err)
+				continue
+			}
+		}
+	}
+
+	return nil
+}
+
+// getOrderRecipientFromMessageHash decrypts the message hash and returns the order recipient
+func (s *IndexerService) getOrderRecipientFromMessageHash(messageHash string) (*orderRecipient, error) {
+	messageCipher, err := hex.DecodeString(strings.TrimPrefix(messageHash, "0x"))
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode message hash: %w", err)
+	}
+
+	message, err := cryptoUtils.DecryptJSON(messageCipher)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decrypt message hash: %w", err)
+	}
+
+	messageBytes, err := json.Marshal(message)
+	if err != nil {
+		return nil, err
+	}
+
+	var recipient *orderRecipient
+	if err := json.Unmarshal(messageBytes, &recipient); err != nil {
+		return nil, fmt.Errorf("%w", err)
+	}
+
+	return recipient, nil
+}
+
+// saveLockPaymentOrder saves a lock payment order in the database
+func (s *IndexerService) saveLockPaymentOrder(ctx context.Context, network *ent.Network, deposit *contracts.PaycrestOrderDeposit) error {
+	// Get token from db
+	token, err := db.Client.Token.
+		Query().
+		Where(
+			token.ContractAddressEQ(deposit.Token.Hex()),
+			token.HasNetworkWith(
+				networkent.IDEQ(network.ID),
+			),
+		).
+		Only(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to fetch token: %w", err)
+	}
+
+	// Get order recipient from message hash
+	recipient, err := s.getOrderRecipientFromMessageHash(deposit.MessageHash)
+	if err != nil {
+		return fmt.Errorf("failed to decrypt message hash: %w", err)
+	}
+
+	// Create lock payment order in db
+	_, err = db.Client.LockPaymentOrder.
+		Create().
+		SetToken(token).
+		SetOrderID(fmt.Sprintf("0x%v", hex.EncodeToString(deposit.OrderId[:]))).
+		SetAmount(utils.FromSubunit(deposit.Amount, token.Decimals)).
+		SetAmountPaid(decimal.NewFromInt(0)).
+		SetRate(decimal.NewFromBigInt(deposit.Rate, 0)).
+		SetBlockNumber(int64(deposit.Raw.BlockNumber)).
+		SetInstitution(utils.Byte32ToString(deposit.InstitutionCode)).
+		SetAccountIdentifier(recipient.AccountIdentifier).
+		SetAccountName(recipient.AccountName).
+		SetProviderID(recipient.ProviderID).
+		Save(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to create lock payment order: %w", err)
+	}
+
+	return nil
 }
 
 // RunIndexERC20Transfer runs the indexer service for a receive address

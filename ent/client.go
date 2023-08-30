@@ -16,6 +16,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
+	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/network"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorderrecipient"
@@ -35,6 +36,8 @@ type Client struct {
 	Schema *migrate.Schema
 	// APIKey is the client for interacting with the APIKey builders.
 	APIKey *APIKeyClient
+	// LockPaymentOrder is the client for interacting with the LockPaymentOrder builders.
+	LockPaymentOrder *LockPaymentOrderClient
 	// Network is the client for interacting with the Network builders.
 	Network *NetworkClient
 	// PaymentOrder is the client for interacting with the PaymentOrder builders.
@@ -69,6 +72,7 @@ func NewClient(opts ...Option) *Client {
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
 	c.APIKey = NewAPIKeyClient(c.config)
+	c.LockPaymentOrder = NewLockPaymentOrderClient(c.config)
 	c.Network = NewNetworkClient(c.config)
 	c.PaymentOrder = NewPaymentOrderClient(c.config)
 	c.PaymentOrderRecipient = NewPaymentOrderRecipientClient(c.config)
@@ -162,6 +166,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		ctx:                       ctx,
 		config:                    cfg,
 		APIKey:                    NewAPIKeyClient(cfg),
+		LockPaymentOrder:          NewLockPaymentOrderClient(cfg),
 		Network:                   NewNetworkClient(cfg),
 		PaymentOrder:              NewPaymentOrderClient(cfg),
 		PaymentOrderRecipient:     NewPaymentOrderRecipientClient(cfg),
@@ -192,6 +197,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		ctx:                       ctx,
 		config:                    cfg,
 		APIKey:                    NewAPIKeyClient(cfg),
+		LockPaymentOrder:          NewLockPaymentOrderClient(cfg),
 		Network:                   NewNetworkClient(cfg),
 		PaymentOrder:              NewPaymentOrderClient(cfg),
 		PaymentOrderRecipient:     NewPaymentOrderRecipientClient(cfg),
@@ -231,9 +237,10 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.APIKey, c.Network, c.PaymentOrder, c.PaymentOrderRecipient,
-		c.ProviderAvailability, c.ProviderOrderToken, c.ProviderOrderTokenAddress,
-		c.ProviderProfile, c.ReceiveAddress, c.Token, c.User,
+		c.APIKey, c.LockPaymentOrder, c.Network, c.PaymentOrder,
+		c.PaymentOrderRecipient, c.ProviderAvailability, c.ProviderOrderToken,
+		c.ProviderOrderTokenAddress, c.ProviderProfile, c.ReceiveAddress, c.Token,
+		c.User,
 	} {
 		n.Use(hooks...)
 	}
@@ -243,9 +250,10 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.APIKey, c.Network, c.PaymentOrder, c.PaymentOrderRecipient,
-		c.ProviderAvailability, c.ProviderOrderToken, c.ProviderOrderTokenAddress,
-		c.ProviderProfile, c.ReceiveAddress, c.Token, c.User,
+		c.APIKey, c.LockPaymentOrder, c.Network, c.PaymentOrder,
+		c.PaymentOrderRecipient, c.ProviderAvailability, c.ProviderOrderToken,
+		c.ProviderOrderTokenAddress, c.ProviderProfile, c.ReceiveAddress, c.Token,
+		c.User,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -256,6 +264,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
 	case *APIKeyMutation:
 		return c.APIKey.mutate(ctx, m)
+	case *LockPaymentOrderMutation:
+		return c.LockPaymentOrder.mutate(ctx, m)
 	case *NetworkMutation:
 		return c.Network.mutate(ctx, m)
 	case *PaymentOrderMutation:
@@ -444,6 +454,140 @@ func (c *APIKeyClient) mutate(ctx context.Context, m *APIKeyMutation) (Value, er
 		return (&APIKeyDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown APIKey mutation op: %q", m.Op())
+	}
+}
+
+// LockPaymentOrderClient is a client for the LockPaymentOrder schema.
+type LockPaymentOrderClient struct {
+	config
+}
+
+// NewLockPaymentOrderClient returns a client for the LockPaymentOrder from the given config.
+func NewLockPaymentOrderClient(c config) *LockPaymentOrderClient {
+	return &LockPaymentOrderClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `lockpaymentorder.Hooks(f(g(h())))`.
+func (c *LockPaymentOrderClient) Use(hooks ...Hook) {
+	c.hooks.LockPaymentOrder = append(c.hooks.LockPaymentOrder, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `lockpaymentorder.Intercept(f(g(h())))`.
+func (c *LockPaymentOrderClient) Intercept(interceptors ...Interceptor) {
+	c.inters.LockPaymentOrder = append(c.inters.LockPaymentOrder, interceptors...)
+}
+
+// Create returns a builder for creating a LockPaymentOrder entity.
+func (c *LockPaymentOrderClient) Create() *LockPaymentOrderCreate {
+	mutation := newLockPaymentOrderMutation(c.config, OpCreate)
+	return &LockPaymentOrderCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of LockPaymentOrder entities.
+func (c *LockPaymentOrderClient) CreateBulk(builders ...*LockPaymentOrderCreate) *LockPaymentOrderCreateBulk {
+	return &LockPaymentOrderCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for LockPaymentOrder.
+func (c *LockPaymentOrderClient) Update() *LockPaymentOrderUpdate {
+	mutation := newLockPaymentOrderMutation(c.config, OpUpdate)
+	return &LockPaymentOrderUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *LockPaymentOrderClient) UpdateOne(lpo *LockPaymentOrder) *LockPaymentOrderUpdateOne {
+	mutation := newLockPaymentOrderMutation(c.config, OpUpdateOne, withLockPaymentOrder(lpo))
+	return &LockPaymentOrderUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *LockPaymentOrderClient) UpdateOneID(id uuid.UUID) *LockPaymentOrderUpdateOne {
+	mutation := newLockPaymentOrderMutation(c.config, OpUpdateOne, withLockPaymentOrderID(id))
+	return &LockPaymentOrderUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for LockPaymentOrder.
+func (c *LockPaymentOrderClient) Delete() *LockPaymentOrderDelete {
+	mutation := newLockPaymentOrderMutation(c.config, OpDelete)
+	return &LockPaymentOrderDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *LockPaymentOrderClient) DeleteOne(lpo *LockPaymentOrder) *LockPaymentOrderDeleteOne {
+	return c.DeleteOneID(lpo.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *LockPaymentOrderClient) DeleteOneID(id uuid.UUID) *LockPaymentOrderDeleteOne {
+	builder := c.Delete().Where(lockpaymentorder.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &LockPaymentOrderDeleteOne{builder}
+}
+
+// Query returns a query builder for LockPaymentOrder.
+func (c *LockPaymentOrderClient) Query() *LockPaymentOrderQuery {
+	return &LockPaymentOrderQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeLockPaymentOrder},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a LockPaymentOrder entity by its id.
+func (c *LockPaymentOrderClient) Get(ctx context.Context, id uuid.UUID) (*LockPaymentOrder, error) {
+	return c.Query().Where(lockpaymentorder.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *LockPaymentOrderClient) GetX(ctx context.Context, id uuid.UUID) *LockPaymentOrder {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryToken queries the token edge of a LockPaymentOrder.
+func (c *LockPaymentOrderClient) QueryToken(lpo *LockPaymentOrder) *TokenQuery {
+	query := (&TokenClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := lpo.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(lockpaymentorder.Table, lockpaymentorder.FieldID, id),
+			sqlgraph.To(token.Table, token.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, lockpaymentorder.TokenTable, lockpaymentorder.TokenColumn),
+		)
+		fromV = sqlgraph.Neighbors(lpo.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *LockPaymentOrderClient) Hooks() []Hook {
+	return c.hooks.LockPaymentOrder
+}
+
+// Interceptors returns the client interceptors.
+func (c *LockPaymentOrderClient) Interceptors() []Interceptor {
+	return c.inters.LockPaymentOrder
+}
+
+func (c *LockPaymentOrderClient) mutate(ctx context.Context, m *LockPaymentOrderMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&LockPaymentOrderCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&LockPaymentOrderUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&LockPaymentOrderUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&LockPaymentOrderDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown LockPaymentOrder mutation op: %q", m.Op())
 	}
 }
 
@@ -1740,6 +1884,22 @@ func (c *TokenClient) QueryPaymentOrders(t *Token) *PaymentOrderQuery {
 	return query
 }
 
+// QueryLockPaymentOrders queries the lock_payment_orders edge of a Token.
+func (c *TokenClient) QueryLockPaymentOrders(t *Token) *LockPaymentOrderQuery {
+	query := (&LockPaymentOrderClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := t.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(token.Table, token.FieldID, id),
+			sqlgraph.To(lockpaymentorder.Table, lockpaymentorder.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, token.LockPaymentOrdersTable, token.LockPaymentOrdersColumn),
+		)
+		fromV = sqlgraph.Neighbors(t.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *TokenClient) Hooks() []Hook {
 	return c.hooks.Token
@@ -1903,13 +2063,13 @@ func (c *UserClient) mutate(ctx context.Context, m *UserMutation) (Value, error)
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		APIKey, Network, PaymentOrder, PaymentOrderRecipient, ProviderAvailability,
-		ProviderOrderToken, ProviderOrderTokenAddress, ProviderProfile, ReceiveAddress,
-		Token, User []ent.Hook
+		APIKey, LockPaymentOrder, Network, PaymentOrder, PaymentOrderRecipient,
+		ProviderAvailability, ProviderOrderToken, ProviderOrderTokenAddress,
+		ProviderProfile, ReceiveAddress, Token, User []ent.Hook
 	}
 	inters struct {
-		APIKey, Network, PaymentOrder, PaymentOrderRecipient, ProviderAvailability,
-		ProviderOrderToken, ProviderOrderTokenAddress, ProviderProfile, ReceiveAddress,
-		Token, User []ent.Interceptor
+		APIKey, LockPaymentOrder, Network, PaymentOrder, PaymentOrderRecipient,
+		ProviderAvailability, ProviderOrderToken, ProviderOrderTokenAddress,
+		ProviderProfile, ReceiveAddress, Token, User []ent.Interceptor
 	}
 )

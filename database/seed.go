@@ -32,7 +32,7 @@ func SeedDatabase() error {
 		Create().
 		SetIdentifier(network.IdentifierPolygonMumbai).
 		SetChainID(80001).
-		SetRPCEndpoint("https://polygon-mumbai.infura.io/v3/4458cf4d1689497b9a38b1d6bbf05e78").
+		SetRPCEndpoint("wss://polygon-mumbai.infura.io/ws/v3/4458cf4d1689497b9a38b1d6bbf05e78").
 		SetIsTestnet(true).
 		Save(context.Background())
 	if err != nil {
