@@ -36,6 +36,7 @@ func ContinueIndexing() error {
 	}
 
 	// Start indexing on-chain payment order deposits
+	// TODO: query networks based on the development environment: prod == mainnet, sandbox == testnet
 	networks, err := database.GetClient().Network.Query().All(ctx)
 	if err != nil {
 		return err

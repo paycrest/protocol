@@ -282,6 +282,55 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 
 // IndexOrderDeposit indexes deposits to the order contract for a specific network.
 func (s *IndexerService) IndexOrderDeposits(ctx context.Context, client types.RPCClient, network *ent.Network) error {
+	var err error
+
+	// Connect to RPC endpoint
+	if client == nil {
+		client, err = types.NewEthClient(network.RPCEndpoint)
+		if err != nil {
+			return fmt.Errorf("failed to connect to RPC client: %w", err)
+		}
+	}
+
+	// Initialize contract filterer
+	filterer, err := contracts.NewPaycrestOrderFilterer(OrderConf.PaycrestOrderContractAddress, client)
+	if err != nil {
+		return fmt.Errorf("failed to create filterer: %w", err)
+	}
+
+	go s.indexMissingBlocks(ctx, client, filterer, network)
+
+	// Start listening for deposit events
+	logs := make(chan *contracts.PaycrestOrderDeposit)
+
+	sub, err := filterer.WatchDeposit(&bind.WatchOpts{
+		Start: nil,
+	}, logs, nil, nil, nil)
+	if err != nil {
+		return fmt.Errorf("failed to watch deposit events: %w", err)
+	}
+
+	defer sub.Unsubscribe()
+
+	logger.Infof("Listening for Deposit events...\n")
+
+	for {
+		select {
+		case log := <-logs:
+			err := s.saveLockPaymentOrder(ctx, network, log)
+			if err != nil {
+				logger.Errorf("failed to save lock payment order: %v", err)
+				continue
+			}
+		case err := <-sub.Err():
+			logger.Errorf("failed to parse deposit event: %v", err)
+			continue
+		}
+	}
+}
+
+// indexMissingBlocks indexes missing blocks from the last lock payment order block number
+func (s *IndexerService) indexMissingBlocks(ctx context.Context, client types.RPCClient, filterer *contracts.PaycrestOrderFilterer, network *ent.Network) {
 	// Get the last lock payment order from db
 	result, err := db.Client.LockPaymentOrder.
 		Query().
@@ -296,57 +345,16 @@ func (s *IndexerService) IndexOrderDeposits(ctx context.Context, client types.RP
 		Limit(1).
 		All(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to fetch lock payment order: %w", err)
-	}
-
-	// Connect to RPC endpoint
-	if client == nil {
-		client, err = types.NewEthClient(network.RPCEndpoint)
-		if err != nil {
-			return fmt.Errorf("failed to connect to RPC client: %w", err)
-		}
+		logger.Errorf("failed to fetch lock payment order: %v", err)
 	}
 
 	// Fetch current block header
 	header, err := client.HeaderByNumber(ctx, nil)
 	if err != nil {
-		return fmt.Errorf("failed to fetch current block number: %w", err)
+		logger.Errorf("failed to fetch current block number: %v", err)
 	}
 
-	// Initialize contract filterer
-	filterer, err := contracts.NewPaycrestOrderFilterer(OrderConf.PaycrestOrderContractAddress, client)
-	if err != nil {
-		return fmt.Errorf("failed to create filterer: %w", err)
-	}
-
-	if len(result) == 0 {
-		logs := make(chan *contracts.PaycrestOrderDeposit)
-
-		sub, err := filterer.WatchDeposit(&bind.WatchOpts{
-			Start: nil,
-		}, logs, nil, nil, nil)
-		if err != nil {
-			return fmt.Errorf("failed to watch deposit events: %w", err)
-		}
-
-		defer sub.Unsubscribe()
-
-		logger.Infof("Listening for Deposit events...\n")
-
-		for {
-			select {
-			case log := <-logs:
-				err := s.saveLockPaymentOrder(ctx, network, log)
-				if err != nil {
-					logger.Errorf("failed to save lock payment order: %v", err)
-					continue
-				}
-			case err := <-sub.Err():
-				logger.Errorf("failed to parse deposit event: %v", err)
-				continue
-			}
-		}
-	} else {
+	if len(result) > 0 {
 		lockPaymentOrder := result[0]
 
 		// Filter logs from the last lock payment order block number
@@ -359,7 +367,7 @@ func (s *IndexerService) IndexOrderDeposits(ctx context.Context, client types.RP
 		// Fetch logs
 		iter, err := filterer.FilterDeposit(opts, nil, nil, nil)
 		if err != nil {
-			return fmt.Errorf("failed to fetch logs: %w", err)
+			logger.Errorf("failed to fetch logs: %v", err)
 		}
 
 		// Iterate over logs
@@ -371,8 +379,6 @@ func (s *IndexerService) IndexOrderDeposits(ctx context.Context, client types.RP
 			}
 		}
 	}
-
-	return nil
 }
 
 // getOrderRecipientFromMessageHash decrypts the message hash and returns the order recipient
