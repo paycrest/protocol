@@ -9,6 +9,9 @@ import (
 // APIKey is the predicate function for apikey builders.
 type APIKey func(*sql.Selector)
 
+// LockPaymentOrder is the predicate function for lockpaymentorder builders.
+type LockPaymentOrder func(*sql.Selector)
+
 // Network is the predicate function for network builders.
 type Network func(*sql.Selector)
 

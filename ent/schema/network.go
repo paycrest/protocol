@@ -2,6 +2,7 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 )
@@ -32,6 +33,7 @@ func (Network) Fields() []ent.Field {
 // Edges of the Network.
 func (Network) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.To("tokens", Token.Type),
+		edge.To("tokens", Token.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }

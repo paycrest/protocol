@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
+	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/network"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/providerordertoken"
@@ -40,6 +41,29 @@ func init() {
 	apikeyDescID := apikeyFields[0].Descriptor()
 	// apikey.DefaultID holds the default value on creation for the id field.
 	apikey.DefaultID = apikeyDescID.Default.(func() uuid.UUID)
+	lockpaymentorderMixin := schema.LockPaymentOrder{}.Mixin()
+	lockpaymentorderMixinFields0 := lockpaymentorderMixin[0].Fields()
+	_ = lockpaymentorderMixinFields0
+	lockpaymentorderFields := schema.LockPaymentOrder{}.Fields()
+	_ = lockpaymentorderFields
+	// lockpaymentorderDescCreatedAt is the schema descriptor for created_at field.
+	lockpaymentorderDescCreatedAt := lockpaymentorderMixinFields0[0].Descriptor()
+	// lockpaymentorder.DefaultCreatedAt holds the default value on creation for the created_at field.
+	lockpaymentorder.DefaultCreatedAt = lockpaymentorderDescCreatedAt.Default.(func() time.Time)
+	// lockpaymentorderDescUpdatedAt is the schema descriptor for updated_at field.
+	lockpaymentorderDescUpdatedAt := lockpaymentorderMixinFields0[1].Descriptor()
+	// lockpaymentorder.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	lockpaymentorder.DefaultUpdatedAt = lockpaymentorderDescUpdatedAt.Default.(func() time.Time)
+	// lockpaymentorder.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	lockpaymentorder.UpdateDefaultUpdatedAt = lockpaymentorderDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// lockpaymentorderDescTxHash is the schema descriptor for tx_hash field.
+	lockpaymentorderDescTxHash := lockpaymentorderFields[5].Descriptor()
+	// lockpaymentorder.TxHashValidator is a validator for the "tx_hash" field. It is called by the builders before save.
+	lockpaymentorder.TxHashValidator = lockpaymentorderDescTxHash.Validators[0].(func(string) error)
+	// lockpaymentorderDescID is the schema descriptor for id field.
+	lockpaymentorderDescID := lockpaymentorderFields[0].Descriptor()
+	// lockpaymentorder.DefaultID holds the default value on creation for the id field.
+	lockpaymentorder.DefaultID = lockpaymentorderDescID.Default.(func() uuid.UUID)
 	networkMixin := schema.Network{}.Mixin()
 	networkMixinFields0 := networkMixin[0].Fields()
 	_ = networkMixinFields0

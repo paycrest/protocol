@@ -1,9 +1,7 @@
 package utils
 
 import (
-	"bytes"
 	"crypto/ecdsa"
-	"encoding/hex"
 	"fmt"
 	"math/big"
 
@@ -66,31 +64,41 @@ func StringTo32Byte(s string) [32]byte {
 		buf = buf[:32]
 	}
 
-	// Hex encode and decode
-	hexStr := hex.EncodeToString(buf)
-	bytesBytes, _ := hex.DecodeString(hexStr)
-
 	var result [32]byte
-	copy(result[:], bytesBytes)
+	copy(result[:], buf)
 
 	return result
 }
 
 // Byte32ToString converts [32]byte to string
+// func Byte32ToString(b [32]byte) string {
+
+// 	// Copy byte array into slice
+// 	buf := make([]byte, 32)
+// 	copy(buf, b[:])
+
+// 	// Truncate trailing zeros
+// 	buf = bytes.TrimRight(buf, "\x00")
+
+//		return string(buf)
+//	}
 func Byte32ToString(b [32]byte) string {
 
-	// Copy byte array into slice
-	buf := make([]byte, 32)
-	copy(buf, b[:])
+	// Find first null index if any
+	nullIndex := -1
+	for i, x := range b {
+		if x == 0 {
+			nullIndex = i
+			break
+		}
+	}
 
-	// Truncate trailing zeros
-	buf = bytes.TrimRight(buf, "\x00")
-
-	// Hex encode and decode
-	hexStr := hex.EncodeToString(buf)
-	strBytes, _ := hex.DecodeString(hexStr)
-
-	return string(strBytes)
+	// Slice at first null or return full 32 bytes
+	if nullIndex >= 0 {
+		return string(b[:nullIndex])
+	} else {
+		return string(b[:])
+	}
 }
 
 // BigMin returns the minimum value between two big numbers

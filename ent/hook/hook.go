@@ -21,6 +21,18 @@ func (f APIKeyFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, erro
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.APIKeyMutation", m)
 }
 
+// The LockPaymentOrderFunc type is an adapter to allow the use of ordinary
+// function as LockPaymentOrder mutator.
+type LockPaymentOrderFunc func(context.Context, *ent.LockPaymentOrderMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f LockPaymentOrderFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.LockPaymentOrderMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.LockPaymentOrderMutation", m)
+}
+
 // The NetworkFunc type is an adapter to allow the use of ordinary
 // function as Network mutator.
 type NetworkFunc func(context.Context, *ent.NetworkMutation) (ent.Value, error)

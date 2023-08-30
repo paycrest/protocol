@@ -39,6 +39,38 @@ var (
 			},
 		},
 	}
+	// LockPaymentOrdersColumns holds the columns for the "lock_payment_orders" table.
+	LockPaymentOrdersColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "order_id", Type: field.TypeString, Unique: true},
+		{Name: "amount", Type: field.TypeFloat64},
+		{Name: "amount_paid", Type: field.TypeFloat64},
+		{Name: "rate", Type: field.TypeFloat64},
+		{Name: "tx_hash", Type: field.TypeString, Nullable: true, Size: 70},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"pending", "processing", "cancelled", "fulfilled", "validated", "settled"}, Default: "pending"},
+		{Name: "block_number", Type: field.TypeInt64},
+		{Name: "institution", Type: field.TypeString},
+		{Name: "account_identifier", Type: field.TypeString},
+		{Name: "account_name", Type: field.TypeString},
+		{Name: "provider_id", Type: field.TypeString, Nullable: true},
+		{Name: "token_lock_payment_orders", Type: field.TypeInt},
+	}
+	// LockPaymentOrdersTable holds the schema information for the "lock_payment_orders" table.
+	LockPaymentOrdersTable = &schema.Table{
+		Name:       "lock_payment_orders",
+		Columns:    LockPaymentOrdersColumns,
+		PrimaryKey: []*schema.Column{LockPaymentOrdersColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "lock_payment_orders_tokens_lock_payment_orders",
+				Columns:    []*schema.Column{LockPaymentOrdersColumns[14]},
+				RefColumns: []*schema.Column{TokensColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+	}
 	// NetworksColumns holds the columns for the "networks" table.
 	NetworksColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -85,7 +117,7 @@ var (
 				Symbol:     "payment_orders_tokens_payment_orders",
 				Columns:    []*schema.Column{PaymentOrdersColumns[10]},
 				RefColumns: []*schema.Column{TokensColumns[0]},
-				OnDelete:   schema.NoAction,
+				OnDelete:   schema.Cascade,
 			},
 		},
 	}
@@ -260,7 +292,7 @@ var (
 				Symbol:     "tokens_networks_tokens",
 				Columns:    []*schema.Column{TokensColumns[7]},
 				RefColumns: []*schema.Column{NetworksColumns[0]},
-				OnDelete:   schema.NoAction,
+				OnDelete:   schema.Cascade,
 			},
 		},
 	}
@@ -284,6 +316,7 @@ var (
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		APIKeysTable,
+		LockPaymentOrdersTable,
 		NetworksTable,
 		PaymentOrdersTable,
 		PaymentOrderRecipientsTable,
@@ -299,6 +332,7 @@ var (
 
 func init() {
 	APIKeysTable.ForeignKeys[0].RefTable = UsersTable
+	LockPaymentOrdersTable.ForeignKeys[0].RefTable = TokensTable
 	PaymentOrdersTable.ForeignKeys[0].RefTable = APIKeysTable
 	PaymentOrdersTable.ForeignKeys[1].RefTable = TokensTable
 	PaymentOrderRecipientsTable.ForeignKeys[0].RefTable = PaymentOrdersTable
