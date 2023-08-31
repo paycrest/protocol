@@ -24,6 +24,8 @@ const (
 	FieldCountry = "country"
 	// EdgeAPIKey holds the string denoting the api_key edge name in mutations.
 	EdgeAPIKey = "api_key"
+	// EdgeProvisionBuckets holds the string denoting the provision_buckets edge name in mutations.
+	EdgeProvisionBuckets = "provision_buckets"
 	// EdgeOrderTokens holds the string denoting the order_tokens edge name in mutations.
 	EdgeOrderTokens = "order_tokens"
 	// EdgeAvailability holds the string denoting the availability edge name in mutations.
@@ -37,6 +39,11 @@ const (
 	APIKeyInverseTable = "api_keys"
 	// APIKeyColumn is the table column denoting the api_key relation/edge.
 	APIKeyColumn = "api_key_provider_profile"
+	// ProvisionBucketsTable is the table that holds the provision_buckets relation/edge. The primary key declared below.
+	ProvisionBucketsTable = "provision_bucket_provider_profiles"
+	// ProvisionBucketsInverseTable is the table name for the ProvisionBucket entity.
+	// It exists in this package in order to avoid circular dependency with the "provisionbucket" package.
+	ProvisionBucketsInverseTable = "provision_buckets"
 	// OrderTokensTable is the table that holds the order_tokens relation/edge.
 	OrderTokensTable = "provider_order_tokens"
 	// OrderTokensInverseTable is the table name for the ProviderOrderToken entity.
@@ -67,6 +74,12 @@ var Columns = []string{
 var ForeignKeys = []string{
 	"api_key_provider_profile",
 }
+
+var (
+	// ProvisionBucketsPrimaryKey and ProvisionBucketsColumn2 are the table columns denoting the
+	// primary key for the provision_buckets relation (M2M).
+	ProvisionBucketsPrimaryKey = []string{"provision_bucket_id", "provider_profile_id"}
+)
 
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
@@ -133,6 +146,20 @@ func ByAPIKeyField(field string, opts ...sql.OrderTermOption) OrderOption {
 	}
 }
 
+// ByProvisionBucketsCount orders the results by provision_buckets count.
+func ByProvisionBucketsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newProvisionBucketsStep(), opts...)
+	}
+}
+
+// ByProvisionBuckets orders the results by provision_buckets terms.
+func ByProvisionBuckets(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newProvisionBucketsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
 // ByOrderTokensCount orders the results by order_tokens count.
 func ByOrderTokensCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -158,6 +185,13 @@ func newAPIKeyStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(APIKeyInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2O, true, APIKeyTable, APIKeyColumn),
+	)
+}
+func newProvisionBucketsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ProvisionBucketsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2M, true, ProvisionBucketsTable, ProvisionBucketsPrimaryKey...),
 	)
 }
 func newOrderTokensStep() *sqlgraph.Step {

@@ -20,6 +20,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
 	networkent "github.com/paycrest/paycrest-protocol/ent/network"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
+	"github.com/paycrest/paycrest-protocol/ent/provisionbucket"
 	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
 	"github.com/paycrest/paycrest-protocol/ent/token"
 	"github.com/paycrest/paycrest-protocol/services/contracts"
@@ -428,12 +429,19 @@ func (s *IndexerService) saveLockPaymentOrder(ctx context.Context, network *ent.
 		return fmt.Errorf("failed to decrypt message hash: %w", err)
 	}
 
+	// Get provision bucket
+	amountInDecimals := utils.FromSubunit(deposit.Amount, token.Decimals)
+	provisionBucket, err := s.getProvisionBucket(ctx, nil, amountInDecimals, deposit.InstitutionCode)
+	if err != nil {
+		return fmt.Errorf("failed to fetch provision bucket: %w", err)
+	}
+
 	// Create lock payment order in db
 	_, err = db.Client.LockPaymentOrder.
 		Create().
 		SetToken(token).
 		SetOrderID(fmt.Sprintf("0x%v", hex.EncodeToString(deposit.OrderId[:]))).
-		SetAmount(utils.FromSubunit(deposit.Amount, token.Decimals)).
+		SetAmount(amountInDecimals).
 		SetAmountPaid(decimal.NewFromInt(0)).
 		SetRate(decimal.NewFromBigInt(deposit.Rate, 0)).
 		SetBlockNumber(int64(deposit.Raw.BlockNumber)).
@@ -441,12 +449,40 @@ func (s *IndexerService) saveLockPaymentOrder(ctx context.Context, network *ent.
 		SetAccountIdentifier(recipient.AccountIdentifier).
 		SetAccountName(recipient.AccountName).
 		SetProviderID(recipient.ProviderID).
+		SetProvisionBucket(provisionBucket).
 		Save(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to create lock payment order: %w", err)
 	}
 
 	return nil
+}
+
+// getProvisionBucket returns the provision bucket for a lock payment order
+func (s *IndexerService) getProvisionBucket(ctx context.Context, client types.RPCClient, amount decimal.Decimal, institutionCode [32]byte) (*ent.ProvisionBucket, error) {
+	instance, err := contracts.NewPaycrestOrder(OrderConf.PaycrestOrderContractAddress, client.(bind.ContractBackend))
+	if err != nil {
+		return nil, err
+	}
+
+	institution, err := instance.GetSupportedInstitutionName(nil, institutionCode)
+	if err != nil {
+		return nil, err
+	}
+
+	provisionBucket, err := db.Client.ProvisionBucket.
+		Query().
+		Where(
+			provisionbucket.MaxAmountGTE(amount),
+			provisionbucket.MinAmountLTE(amount),
+			provisionbucket.CurrencyEQ(utils.Byte32ToString(institution.Currency)),
+		).
+		Only(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return provisionBucket, nil
 }
 
 // RunIndexERC20Transfer runs the indexer service for a receive address

@@ -39,6 +39,8 @@ func (ProviderProfile) Edges() []ent.Edge {
 			Ref("provider_profile").
 			Unique().
 			Required(),
+		edge.From("provision_buckets", ProvisionBucket.Type).
+			Ref("provider_profiles"),
 		edge.To("order_tokens", ProviderOrderToken.Type),
 		edge.To("availability", ProviderAvailability.Type).
 			Unique(),

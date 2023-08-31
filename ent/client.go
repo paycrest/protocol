@@ -24,6 +24,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/providerordertoken"
 	"github.com/paycrest/paycrest-protocol/ent/providerordertokenaddress"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
+	"github.com/paycrest/paycrest-protocol/ent/provisionbucket"
 	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
 	"github.com/paycrest/paycrest-protocol/ent/token"
 	"github.com/paycrest/paycrest-protocol/ent/user"
@@ -52,6 +53,8 @@ type Client struct {
 	ProviderOrderTokenAddress *ProviderOrderTokenAddressClient
 	// ProviderProfile is the client for interacting with the ProviderProfile builders.
 	ProviderProfile *ProviderProfileClient
+	// ProvisionBucket is the client for interacting with the ProvisionBucket builders.
+	ProvisionBucket *ProvisionBucketClient
 	// ReceiveAddress is the client for interacting with the ReceiveAddress builders.
 	ReceiveAddress *ReceiveAddressClient
 	// Token is the client for interacting with the Token builders.
@@ -80,6 +83,7 @@ func (c *Client) init() {
 	c.ProviderOrderToken = NewProviderOrderTokenClient(c.config)
 	c.ProviderOrderTokenAddress = NewProviderOrderTokenAddressClient(c.config)
 	c.ProviderProfile = NewProviderProfileClient(c.config)
+	c.ProvisionBucket = NewProvisionBucketClient(c.config)
 	c.ReceiveAddress = NewReceiveAddressClient(c.config)
 	c.Token = NewTokenClient(c.config)
 	c.User = NewUserClient(c.config)
@@ -174,6 +178,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		ProviderOrderToken:        NewProviderOrderTokenClient(cfg),
 		ProviderOrderTokenAddress: NewProviderOrderTokenAddressClient(cfg),
 		ProviderProfile:           NewProviderProfileClient(cfg),
+		ProvisionBucket:           NewProvisionBucketClient(cfg),
 		ReceiveAddress:            NewReceiveAddressClient(cfg),
 		Token:                     NewTokenClient(cfg),
 		User:                      NewUserClient(cfg),
@@ -205,6 +210,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		ProviderOrderToken:        NewProviderOrderTokenClient(cfg),
 		ProviderOrderTokenAddress: NewProviderOrderTokenAddressClient(cfg),
 		ProviderProfile:           NewProviderProfileClient(cfg),
+		ProvisionBucket:           NewProvisionBucketClient(cfg),
 		ReceiveAddress:            NewReceiveAddressClient(cfg),
 		Token:                     NewTokenClient(cfg),
 		User:                      NewUserClient(cfg),
@@ -239,8 +245,8 @@ func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
 		c.APIKey, c.LockPaymentOrder, c.Network, c.PaymentOrder,
 		c.PaymentOrderRecipient, c.ProviderAvailability, c.ProviderOrderToken,
-		c.ProviderOrderTokenAddress, c.ProviderProfile, c.ReceiveAddress, c.Token,
-		c.User,
+		c.ProviderOrderTokenAddress, c.ProviderProfile, c.ProvisionBucket,
+		c.ReceiveAddress, c.Token, c.User,
 	} {
 		n.Use(hooks...)
 	}
@@ -252,8 +258,8 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
 		c.APIKey, c.LockPaymentOrder, c.Network, c.PaymentOrder,
 		c.PaymentOrderRecipient, c.ProviderAvailability, c.ProviderOrderToken,
-		c.ProviderOrderTokenAddress, c.ProviderProfile, c.ReceiveAddress, c.Token,
-		c.User,
+		c.ProviderOrderTokenAddress, c.ProviderProfile, c.ProvisionBucket,
+		c.ReceiveAddress, c.Token, c.User,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -280,6 +286,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.ProviderOrderTokenAddress.mutate(ctx, m)
 	case *ProviderProfileMutation:
 		return c.ProviderProfile.mutate(ctx, m)
+	case *ProvisionBucketMutation:
+		return c.ProvisionBucket.mutate(ctx, m)
 	case *ReceiveAddressMutation:
 		return c.ReceiveAddress.mutate(ctx, m)
 	case *TokenMutation:
@@ -559,6 +567,22 @@ func (c *LockPaymentOrderClient) QueryToken(lpo *LockPaymentOrder) *TokenQuery {
 			sqlgraph.From(lockpaymentorder.Table, lockpaymentorder.FieldID, id),
 			sqlgraph.To(token.Table, token.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, lockpaymentorder.TokenTable, lockpaymentorder.TokenColumn),
+		)
+		fromV = sqlgraph.Neighbors(lpo.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryProvisionBucket queries the provision_bucket edge of a LockPaymentOrder.
+func (c *LockPaymentOrderClient) QueryProvisionBucket(lpo *LockPaymentOrder) *ProvisionBucketQuery {
+	query := (&ProvisionBucketClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := lpo.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(lockpaymentorder.Table, lockpaymentorder.FieldID, id),
+			sqlgraph.To(provisionbucket.Table, provisionbucket.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, lockpaymentorder.ProvisionBucketTable, lockpaymentorder.ProvisionBucketColumn),
 		)
 		fromV = sqlgraph.Neighbors(lpo.driver.Dialect(), step)
 		return fromV, nil
@@ -1568,6 +1592,22 @@ func (c *ProviderProfileClient) QueryAPIKey(pp *ProviderProfile) *APIKeyQuery {
 	return query
 }
 
+// QueryProvisionBuckets queries the provision_buckets edge of a ProviderProfile.
+func (c *ProviderProfileClient) QueryProvisionBuckets(pp *ProviderProfile) *ProvisionBucketQuery {
+	query := (&ProvisionBucketClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := pp.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(providerprofile.Table, providerprofile.FieldID, id),
+			sqlgraph.To(provisionbucket.Table, provisionbucket.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, true, providerprofile.ProvisionBucketsTable, providerprofile.ProvisionBucketsPrimaryKey...),
+		)
+		fromV = sqlgraph.Neighbors(pp.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QueryOrderTokens queries the order_tokens edge of a ProviderProfile.
 func (c *ProviderProfileClient) QueryOrderTokens(pp *ProviderProfile) *ProviderOrderTokenQuery {
 	query := (&ProviderOrderTokenClient{config: c.config}).Query()
@@ -1622,6 +1662,156 @@ func (c *ProviderProfileClient) mutate(ctx context.Context, m *ProviderProfileMu
 		return (&ProviderProfileDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown ProviderProfile mutation op: %q", m.Op())
+	}
+}
+
+// ProvisionBucketClient is a client for the ProvisionBucket schema.
+type ProvisionBucketClient struct {
+	config
+}
+
+// NewProvisionBucketClient returns a client for the ProvisionBucket from the given config.
+func NewProvisionBucketClient(c config) *ProvisionBucketClient {
+	return &ProvisionBucketClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `provisionbucket.Hooks(f(g(h())))`.
+func (c *ProvisionBucketClient) Use(hooks ...Hook) {
+	c.hooks.ProvisionBucket = append(c.hooks.ProvisionBucket, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `provisionbucket.Intercept(f(g(h())))`.
+func (c *ProvisionBucketClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ProvisionBucket = append(c.inters.ProvisionBucket, interceptors...)
+}
+
+// Create returns a builder for creating a ProvisionBucket entity.
+func (c *ProvisionBucketClient) Create() *ProvisionBucketCreate {
+	mutation := newProvisionBucketMutation(c.config, OpCreate)
+	return &ProvisionBucketCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ProvisionBucket entities.
+func (c *ProvisionBucketClient) CreateBulk(builders ...*ProvisionBucketCreate) *ProvisionBucketCreateBulk {
+	return &ProvisionBucketCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ProvisionBucket.
+func (c *ProvisionBucketClient) Update() *ProvisionBucketUpdate {
+	mutation := newProvisionBucketMutation(c.config, OpUpdate)
+	return &ProvisionBucketUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ProvisionBucketClient) UpdateOne(pb *ProvisionBucket) *ProvisionBucketUpdateOne {
+	mutation := newProvisionBucketMutation(c.config, OpUpdateOne, withProvisionBucket(pb))
+	return &ProvisionBucketUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ProvisionBucketClient) UpdateOneID(id int) *ProvisionBucketUpdateOne {
+	mutation := newProvisionBucketMutation(c.config, OpUpdateOne, withProvisionBucketID(id))
+	return &ProvisionBucketUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ProvisionBucket.
+func (c *ProvisionBucketClient) Delete() *ProvisionBucketDelete {
+	mutation := newProvisionBucketMutation(c.config, OpDelete)
+	return &ProvisionBucketDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ProvisionBucketClient) DeleteOne(pb *ProvisionBucket) *ProvisionBucketDeleteOne {
+	return c.DeleteOneID(pb.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ProvisionBucketClient) DeleteOneID(id int) *ProvisionBucketDeleteOne {
+	builder := c.Delete().Where(provisionbucket.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ProvisionBucketDeleteOne{builder}
+}
+
+// Query returns a query builder for ProvisionBucket.
+func (c *ProvisionBucketClient) Query() *ProvisionBucketQuery {
+	return &ProvisionBucketQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeProvisionBucket},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ProvisionBucket entity by its id.
+func (c *ProvisionBucketClient) Get(ctx context.Context, id int) (*ProvisionBucket, error) {
+	return c.Query().Where(provisionbucket.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ProvisionBucketClient) GetX(ctx context.Context, id int) *ProvisionBucket {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryLockPaymentOrders queries the lock_payment_orders edge of a ProvisionBucket.
+func (c *ProvisionBucketClient) QueryLockPaymentOrders(pb *ProvisionBucket) *LockPaymentOrderQuery {
+	query := (&LockPaymentOrderClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := pb.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(provisionbucket.Table, provisionbucket.FieldID, id),
+			sqlgraph.To(lockpaymentorder.Table, lockpaymentorder.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, provisionbucket.LockPaymentOrdersTable, provisionbucket.LockPaymentOrdersColumn),
+		)
+		fromV = sqlgraph.Neighbors(pb.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryProviderProfiles queries the provider_profiles edge of a ProvisionBucket.
+func (c *ProvisionBucketClient) QueryProviderProfiles(pb *ProvisionBucket) *ProviderProfileQuery {
+	query := (&ProviderProfileClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := pb.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(provisionbucket.Table, provisionbucket.FieldID, id),
+			sqlgraph.To(providerprofile.Table, providerprofile.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, false, provisionbucket.ProviderProfilesTable, provisionbucket.ProviderProfilesPrimaryKey...),
+		)
+		fromV = sqlgraph.Neighbors(pb.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *ProvisionBucketClient) Hooks() []Hook {
+	return c.hooks.ProvisionBucket
+}
+
+// Interceptors returns the client interceptors.
+func (c *ProvisionBucketClient) Interceptors() []Interceptor {
+	return c.inters.ProvisionBucket
+}
+
+func (c *ProvisionBucketClient) mutate(ctx context.Context, m *ProvisionBucketMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ProvisionBucketCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ProvisionBucketUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ProvisionBucketUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ProvisionBucketDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown ProvisionBucket mutation op: %q", m.Op())
 	}
 }
 
@@ -2065,11 +2255,11 @@ type (
 	hooks struct {
 		APIKey, LockPaymentOrder, Network, PaymentOrder, PaymentOrderRecipient,
 		ProviderAvailability, ProviderOrderToken, ProviderOrderTokenAddress,
-		ProviderProfile, ReceiveAddress, Token, User []ent.Hook
+		ProviderProfile, ProvisionBucket, ReceiveAddress, Token, User []ent.Hook
 	}
 	inters struct {
 		APIKey, LockPaymentOrder, Network, PaymentOrder, PaymentOrderRecipient,
 		ProviderAvailability, ProviderOrderToken, ProviderOrderTokenAddress,
-		ProviderProfile, ReceiveAddress, Token, User []ent.Interceptor
+		ProviderProfile, ProvisionBucket, ReceiveAddress, Token, User []ent.Interceptor
 	}
 )

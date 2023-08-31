@@ -61,11 +61,9 @@ func ProcessOrders() error {
 	orders, err := database.GetClient().PaymentOrder.
 		Query().
 		Where(
-			paymentorder.And(
-				paymentorder.StatusEQ(paymentorder.StatusInitiated),
-				paymentorder.HasReceiveAddressWith(
-					receiveaddress.StatusEQ(receiveaddress.StatusUsed),
-				),
+			paymentorder.StatusEQ(paymentorder.StatusInitiated),
+			paymentorder.HasReceiveAddressWith(
+				receiveaddress.StatusEQ(receiveaddress.StatusUsed),
 			),
 		).
 		All(ctx)

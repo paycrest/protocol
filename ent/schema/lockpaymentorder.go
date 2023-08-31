@@ -55,5 +55,9 @@ func (LockPaymentOrder) Edges() []ent.Edge {
 			Ref("lock_payment_orders").
 			Unique().
 			Required(),
+		edge.From("provision_bucket", ProvisionBucket.Type).
+			Ref("lock_payment_orders").
+			Unique().
+			Required(),
 	}
 }
