@@ -44,6 +44,8 @@ const (
 	FieldProviderID = "provider_id"
 	// EdgeToken holds the string denoting the token edge name in mutations.
 	EdgeToken = "token"
+	// EdgeProvisionBucket holds the string denoting the provision_bucket edge name in mutations.
+	EdgeProvisionBucket = "provision_bucket"
 	// Table holds the table name of the lockpaymentorder in the database.
 	Table = "lock_payment_orders"
 	// TokenTable is the table that holds the token relation/edge.
@@ -53,6 +55,13 @@ const (
 	TokenInverseTable = "tokens"
 	// TokenColumn is the table column denoting the token relation/edge.
 	TokenColumn = "token_lock_payment_orders"
+	// ProvisionBucketTable is the table that holds the provision_bucket relation/edge.
+	ProvisionBucketTable = "lock_payment_orders"
+	// ProvisionBucketInverseTable is the table name for the ProvisionBucket entity.
+	// It exists in this package in order to avoid circular dependency with the "provisionbucket" package.
+	ProvisionBucketInverseTable = "provision_buckets"
+	// ProvisionBucketColumn is the table column denoting the provision_bucket relation/edge.
+	ProvisionBucketColumn = "provision_bucket_lock_payment_orders"
 )
 
 // Columns holds all SQL columns for lockpaymentorder fields.
@@ -76,6 +85,7 @@ var Columns = []string{
 // ForeignKeys holds the SQL foreign-keys that are owned by the "lock_payment_orders"
 // table and are not defined as standalone fields in the schema.
 var ForeignKeys = []string{
+	"provision_bucket_lock_payment_orders",
 	"token_lock_payment_orders",
 }
 
@@ -216,10 +226,24 @@ func ByTokenField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newTokenStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// ByProvisionBucketField orders the results by provision_bucket field.
+func ByProvisionBucketField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newProvisionBucketStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newTokenStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(TokenInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, TokenTable, TokenColumn),
+	)
+}
+func newProvisionBucketStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ProvisionBucketInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, ProvisionBucketTable, ProvisionBucketColumn),
 	)
 }

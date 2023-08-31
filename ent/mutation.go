@@ -22,6 +22,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/providerordertoken"
 	"github.com/paycrest/paycrest-protocol/ent/providerordertokenaddress"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
+	"github.com/paycrest/paycrest-protocol/ent/provisionbucket"
 	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
 	"github.com/paycrest/paycrest-protocol/ent/token"
 	"github.com/paycrest/paycrest-protocol/ent/user"
@@ -46,6 +47,7 @@ const (
 	TypeProviderOrderToken        = "ProviderOrderToken"
 	TypeProviderOrderTokenAddress = "ProviderOrderTokenAddress"
 	TypeProviderProfile           = "ProviderProfile"
+	TypeProvisionBucket           = "ProvisionBucket"
 	TypeReceiveAddress            = "ReceiveAddress"
 	TypeToken                     = "Token"
 	TypeUser                      = "User"
@@ -813,32 +815,34 @@ func (m *APIKeyMutation) ResetEdge(name string) error {
 // LockPaymentOrderMutation represents an operation that mutates the LockPaymentOrder nodes in the graph.
 type LockPaymentOrderMutation struct {
 	config
-	op                 Op
-	typ                string
-	id                 *uuid.UUID
-	created_at         *time.Time
-	updated_at         *time.Time
-	order_id           *string
-	amount             *decimal.Decimal
-	addamount          *decimal.Decimal
-	amount_paid        *decimal.Decimal
-	addamount_paid     *decimal.Decimal
-	rate               *decimal.Decimal
-	addrate            *decimal.Decimal
-	tx_hash            *string
-	status             *lockpaymentorder.Status
-	block_number       *int64
-	addblock_number    *int64
-	institution        *string
-	account_identifier *string
-	account_name       *string
-	provider_id        *string
-	clearedFields      map[string]struct{}
-	token              *int
-	clearedtoken       bool
-	done               bool
-	oldValue           func(context.Context) (*LockPaymentOrder, error)
-	predicates         []predicate.LockPaymentOrder
+	op                      Op
+	typ                     string
+	id                      *uuid.UUID
+	created_at              *time.Time
+	updated_at              *time.Time
+	order_id                *string
+	amount                  *decimal.Decimal
+	addamount               *decimal.Decimal
+	amount_paid             *decimal.Decimal
+	addamount_paid          *decimal.Decimal
+	rate                    *decimal.Decimal
+	addrate                 *decimal.Decimal
+	tx_hash                 *string
+	status                  *lockpaymentorder.Status
+	block_number            *int64
+	addblock_number         *int64
+	institution             *string
+	account_identifier      *string
+	account_name            *string
+	provider_id             *string
+	clearedFields           map[string]struct{}
+	token                   *int
+	clearedtoken            bool
+	provision_bucket        *int
+	clearedprovision_bucket bool
+	done                    bool
+	oldValue                func(context.Context) (*LockPaymentOrder, error)
+	predicates              []predicate.LockPaymentOrder
 }
 
 var _ ent.Mutation = (*LockPaymentOrderMutation)(nil)
@@ -1558,6 +1562,45 @@ func (m *LockPaymentOrderMutation) ResetToken() {
 	m.clearedtoken = false
 }
 
+// SetProvisionBucketID sets the "provision_bucket" edge to the ProvisionBucket entity by id.
+func (m *LockPaymentOrderMutation) SetProvisionBucketID(id int) {
+	m.provision_bucket = &id
+}
+
+// ClearProvisionBucket clears the "provision_bucket" edge to the ProvisionBucket entity.
+func (m *LockPaymentOrderMutation) ClearProvisionBucket() {
+	m.clearedprovision_bucket = true
+}
+
+// ProvisionBucketCleared reports if the "provision_bucket" edge to the ProvisionBucket entity was cleared.
+func (m *LockPaymentOrderMutation) ProvisionBucketCleared() bool {
+	return m.clearedprovision_bucket
+}
+
+// ProvisionBucketID returns the "provision_bucket" edge ID in the mutation.
+func (m *LockPaymentOrderMutation) ProvisionBucketID() (id int, exists bool) {
+	if m.provision_bucket != nil {
+		return *m.provision_bucket, true
+	}
+	return
+}
+
+// ProvisionBucketIDs returns the "provision_bucket" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// ProvisionBucketID instead. It exists only for internal usage by the builders.
+func (m *LockPaymentOrderMutation) ProvisionBucketIDs() (ids []int) {
+	if id := m.provision_bucket; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetProvisionBucket resets all changes to the "provision_bucket" edge.
+func (m *LockPaymentOrderMutation) ResetProvisionBucket() {
+	m.provision_bucket = nil
+	m.clearedprovision_bucket = false
+}
+
 // Where appends a list predicates to the LockPaymentOrderMutation builder.
 func (m *LockPaymentOrderMutation) Where(ps ...predicate.LockPaymentOrder) {
 	m.predicates = append(m.predicates, ps...)
@@ -1961,9 +2004,12 @@ func (m *LockPaymentOrderMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *LockPaymentOrderMutation) AddedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.token != nil {
 		edges = append(edges, lockpaymentorder.EdgeToken)
+	}
+	if m.provision_bucket != nil {
+		edges = append(edges, lockpaymentorder.EdgeProvisionBucket)
 	}
 	return edges
 }
@@ -1976,13 +2022,17 @@ func (m *LockPaymentOrderMutation) AddedIDs(name string) []ent.Value {
 		if id := m.token; id != nil {
 			return []ent.Value{*id}
 		}
+	case lockpaymentorder.EdgeProvisionBucket:
+		if id := m.provision_bucket; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *LockPaymentOrderMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	return edges
 }
 
@@ -1994,9 +2044,12 @@ func (m *LockPaymentOrderMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *LockPaymentOrderMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.clearedtoken {
 		edges = append(edges, lockpaymentorder.EdgeToken)
+	}
+	if m.clearedprovision_bucket {
+		edges = append(edges, lockpaymentorder.EdgeProvisionBucket)
 	}
 	return edges
 }
@@ -2007,6 +2060,8 @@ func (m *LockPaymentOrderMutation) EdgeCleared(name string) bool {
 	switch name {
 	case lockpaymentorder.EdgeToken:
 		return m.clearedtoken
+	case lockpaymentorder.EdgeProvisionBucket:
+		return m.clearedprovision_bucket
 	}
 	return false
 }
@@ -2018,6 +2073,9 @@ func (m *LockPaymentOrderMutation) ClearEdge(name string) error {
 	case lockpaymentorder.EdgeToken:
 		m.ClearToken()
 		return nil
+	case lockpaymentorder.EdgeProvisionBucket:
+		m.ClearProvisionBucket()
+		return nil
 	}
 	return fmt.Errorf("unknown LockPaymentOrder unique edge %s", name)
 }
@@ -2028,6 +2086,9 @@ func (m *LockPaymentOrderMutation) ResetEdge(name string) error {
 	switch name {
 	case lockpaymentorder.EdgeToken:
 		m.ResetToken()
+		return nil
+	case lockpaymentorder.EdgeProvisionBucket:
+		m.ResetProvisionBucket()
 		return nil
 	}
 	return fmt.Errorf("unknown LockPaymentOrder edge %s", name)
@@ -6341,24 +6402,27 @@ func (m *ProviderOrderTokenAddressMutation) ResetEdge(name string) error {
 // ProviderProfileMutation represents an operation that mutates the ProviderProfile nodes in the graph.
 type ProviderProfileMutation struct {
 	config
-	op                  Op
-	typ                 string
-	id                  *string
-	created_at          *time.Time
-	updated_at          *time.Time
-	trading_name        *string
-	country             *string
-	clearedFields       map[string]struct{}
-	api_key             *uuid.UUID
-	clearedapi_key      bool
-	order_tokens        map[int]struct{}
-	removedorder_tokens map[int]struct{}
-	clearedorder_tokens bool
-	availability        *int
-	clearedavailability bool
-	done                bool
-	oldValue            func(context.Context) (*ProviderProfile, error)
-	predicates          []predicate.ProviderProfile
+	op                       Op
+	typ                      string
+	id                       *string
+	created_at               *time.Time
+	updated_at               *time.Time
+	trading_name             *string
+	country                  *string
+	clearedFields            map[string]struct{}
+	api_key                  *uuid.UUID
+	clearedapi_key           bool
+	provision_buckets        map[int]struct{}
+	removedprovision_buckets map[int]struct{}
+	clearedprovision_buckets bool
+	order_tokens             map[int]struct{}
+	removedorder_tokens      map[int]struct{}
+	clearedorder_tokens      bool
+	availability             *int
+	clearedavailability      bool
+	done                     bool
+	oldValue                 func(context.Context) (*ProviderProfile, error)
+	predicates               []predicate.ProviderProfile
 }
 
 var _ ent.Mutation = (*ProviderProfileMutation)(nil)
@@ -6648,6 +6712,60 @@ func (m *ProviderProfileMutation) ResetAPIKey() {
 	m.clearedapi_key = false
 }
 
+// AddProvisionBucketIDs adds the "provision_buckets" edge to the ProvisionBucket entity by ids.
+func (m *ProviderProfileMutation) AddProvisionBucketIDs(ids ...int) {
+	if m.provision_buckets == nil {
+		m.provision_buckets = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.provision_buckets[ids[i]] = struct{}{}
+	}
+}
+
+// ClearProvisionBuckets clears the "provision_buckets" edge to the ProvisionBucket entity.
+func (m *ProviderProfileMutation) ClearProvisionBuckets() {
+	m.clearedprovision_buckets = true
+}
+
+// ProvisionBucketsCleared reports if the "provision_buckets" edge to the ProvisionBucket entity was cleared.
+func (m *ProviderProfileMutation) ProvisionBucketsCleared() bool {
+	return m.clearedprovision_buckets
+}
+
+// RemoveProvisionBucketIDs removes the "provision_buckets" edge to the ProvisionBucket entity by IDs.
+func (m *ProviderProfileMutation) RemoveProvisionBucketIDs(ids ...int) {
+	if m.removedprovision_buckets == nil {
+		m.removedprovision_buckets = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.provision_buckets, ids[i])
+		m.removedprovision_buckets[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedProvisionBuckets returns the removed IDs of the "provision_buckets" edge to the ProvisionBucket entity.
+func (m *ProviderProfileMutation) RemovedProvisionBucketsIDs() (ids []int) {
+	for id := range m.removedprovision_buckets {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ProvisionBucketsIDs returns the "provision_buckets" edge IDs in the mutation.
+func (m *ProviderProfileMutation) ProvisionBucketsIDs() (ids []int) {
+	for id := range m.provision_buckets {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetProvisionBuckets resets all changes to the "provision_buckets" edge.
+func (m *ProviderProfileMutation) ResetProvisionBuckets() {
+	m.provision_buckets = nil
+	m.clearedprovision_buckets = false
+	m.removedprovision_buckets = nil
+}
+
 // AddOrderTokenIDs adds the "order_tokens" edge to the ProviderOrderToken entity by ids.
 func (m *ProviderProfileMutation) AddOrderTokenIDs(ids ...int) {
 	if m.order_tokens == nil {
@@ -6925,9 +7043,12 @@ func (m *ProviderProfileMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ProviderProfileMutation) AddedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	if m.api_key != nil {
 		edges = append(edges, providerprofile.EdgeAPIKey)
+	}
+	if m.provision_buckets != nil {
+		edges = append(edges, providerprofile.EdgeProvisionBuckets)
 	}
 	if m.order_tokens != nil {
 		edges = append(edges, providerprofile.EdgeOrderTokens)
@@ -6946,6 +7067,12 @@ func (m *ProviderProfileMutation) AddedIDs(name string) []ent.Value {
 		if id := m.api_key; id != nil {
 			return []ent.Value{*id}
 		}
+	case providerprofile.EdgeProvisionBuckets:
+		ids := make([]ent.Value, 0, len(m.provision_buckets))
+		for id := range m.provision_buckets {
+			ids = append(ids, id)
+		}
+		return ids
 	case providerprofile.EdgeOrderTokens:
 		ids := make([]ent.Value, 0, len(m.order_tokens))
 		for id := range m.order_tokens {
@@ -6962,7 +7089,10 @@ func (m *ProviderProfileMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *ProviderProfileMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
+	if m.removedprovision_buckets != nil {
+		edges = append(edges, providerprofile.EdgeProvisionBuckets)
+	}
 	if m.removedorder_tokens != nil {
 		edges = append(edges, providerprofile.EdgeOrderTokens)
 	}
@@ -6973,6 +7103,12 @@ func (m *ProviderProfileMutation) RemovedEdges() []string {
 // the given name in this mutation.
 func (m *ProviderProfileMutation) RemovedIDs(name string) []ent.Value {
 	switch name {
+	case providerprofile.EdgeProvisionBuckets:
+		ids := make([]ent.Value, 0, len(m.removedprovision_buckets))
+		for id := range m.removedprovision_buckets {
+			ids = append(ids, id)
+		}
+		return ids
 	case providerprofile.EdgeOrderTokens:
 		ids := make([]ent.Value, 0, len(m.removedorder_tokens))
 		for id := range m.removedorder_tokens {
@@ -6985,9 +7121,12 @@ func (m *ProviderProfileMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ProviderProfileMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	if m.clearedapi_key {
 		edges = append(edges, providerprofile.EdgeAPIKey)
+	}
+	if m.clearedprovision_buckets {
+		edges = append(edges, providerprofile.EdgeProvisionBuckets)
 	}
 	if m.clearedorder_tokens {
 		edges = append(edges, providerprofile.EdgeOrderTokens)
@@ -7004,6 +7143,8 @@ func (m *ProviderProfileMutation) EdgeCleared(name string) bool {
 	switch name {
 	case providerprofile.EdgeAPIKey:
 		return m.clearedapi_key
+	case providerprofile.EdgeProvisionBuckets:
+		return m.clearedprovision_buckets
 	case providerprofile.EdgeOrderTokens:
 		return m.clearedorder_tokens
 	case providerprofile.EdgeAvailability:
@@ -7033,6 +7174,9 @@ func (m *ProviderProfileMutation) ResetEdge(name string) error {
 	case providerprofile.EdgeAPIKey:
 		m.ResetAPIKey()
 		return nil
+	case providerprofile.EdgeProvisionBuckets:
+		m.ResetProvisionBuckets()
+		return nil
 	case providerprofile.EdgeOrderTokens:
 		m.ResetOrderTokens()
 		return nil
@@ -7041,6 +7185,739 @@ func (m *ProviderProfileMutation) ResetEdge(name string) error {
 		return nil
 	}
 	return fmt.Errorf("unknown ProviderProfile edge %s", name)
+}
+
+// ProvisionBucketMutation represents an operation that mutates the ProvisionBucket nodes in the graph.
+type ProvisionBucketMutation struct {
+	config
+	op                         Op
+	typ                        string
+	id                         *int
+	min_amount                 *decimal.Decimal
+	addmin_amount              *decimal.Decimal
+	max_amount                 *decimal.Decimal
+	addmax_amount              *decimal.Decimal
+	currency                   *string
+	created_at                 *time.Time
+	clearedFields              map[string]struct{}
+	lock_payment_orders        map[uuid.UUID]struct{}
+	removedlock_payment_orders map[uuid.UUID]struct{}
+	clearedlock_payment_orders bool
+	provider_profiles          map[string]struct{}
+	removedprovider_profiles   map[string]struct{}
+	clearedprovider_profiles   bool
+	done                       bool
+	oldValue                   func(context.Context) (*ProvisionBucket, error)
+	predicates                 []predicate.ProvisionBucket
+}
+
+var _ ent.Mutation = (*ProvisionBucketMutation)(nil)
+
+// provisionbucketOption allows management of the mutation configuration using functional options.
+type provisionbucketOption func(*ProvisionBucketMutation)
+
+// newProvisionBucketMutation creates new mutation for the ProvisionBucket entity.
+func newProvisionBucketMutation(c config, op Op, opts ...provisionbucketOption) *ProvisionBucketMutation {
+	m := &ProvisionBucketMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeProvisionBucket,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withProvisionBucketID sets the ID field of the mutation.
+func withProvisionBucketID(id int) provisionbucketOption {
+	return func(m *ProvisionBucketMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *ProvisionBucket
+		)
+		m.oldValue = func(ctx context.Context) (*ProvisionBucket, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().ProvisionBucket.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withProvisionBucket sets the old ProvisionBucket of the mutation.
+func withProvisionBucket(node *ProvisionBucket) provisionbucketOption {
+	return func(m *ProvisionBucketMutation) {
+		m.oldValue = func(context.Context) (*ProvisionBucket, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m ProvisionBucketMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m ProvisionBucketMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *ProvisionBucketMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *ProvisionBucketMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().ProvisionBucket.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetMinAmount sets the "min_amount" field.
+func (m *ProvisionBucketMutation) SetMinAmount(d decimal.Decimal) {
+	m.min_amount = &d
+	m.addmin_amount = nil
+}
+
+// MinAmount returns the value of the "min_amount" field in the mutation.
+func (m *ProvisionBucketMutation) MinAmount() (r decimal.Decimal, exists bool) {
+	v := m.min_amount
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMinAmount returns the old "min_amount" field's value of the ProvisionBucket entity.
+// If the ProvisionBucket object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProvisionBucketMutation) OldMinAmount(ctx context.Context) (v decimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMinAmount is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMinAmount requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMinAmount: %w", err)
+	}
+	return oldValue.MinAmount, nil
+}
+
+// AddMinAmount adds d to the "min_amount" field.
+func (m *ProvisionBucketMutation) AddMinAmount(d decimal.Decimal) {
+	if m.addmin_amount != nil {
+		*m.addmin_amount = m.addmin_amount.Add(d)
+	} else {
+		m.addmin_amount = &d
+	}
+}
+
+// AddedMinAmount returns the value that was added to the "min_amount" field in this mutation.
+func (m *ProvisionBucketMutation) AddedMinAmount() (r decimal.Decimal, exists bool) {
+	v := m.addmin_amount
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetMinAmount resets all changes to the "min_amount" field.
+func (m *ProvisionBucketMutation) ResetMinAmount() {
+	m.min_amount = nil
+	m.addmin_amount = nil
+}
+
+// SetMaxAmount sets the "max_amount" field.
+func (m *ProvisionBucketMutation) SetMaxAmount(d decimal.Decimal) {
+	m.max_amount = &d
+	m.addmax_amount = nil
+}
+
+// MaxAmount returns the value of the "max_amount" field in the mutation.
+func (m *ProvisionBucketMutation) MaxAmount() (r decimal.Decimal, exists bool) {
+	v := m.max_amount
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMaxAmount returns the old "max_amount" field's value of the ProvisionBucket entity.
+// If the ProvisionBucket object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProvisionBucketMutation) OldMaxAmount(ctx context.Context) (v decimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMaxAmount is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMaxAmount requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMaxAmount: %w", err)
+	}
+	return oldValue.MaxAmount, nil
+}
+
+// AddMaxAmount adds d to the "max_amount" field.
+func (m *ProvisionBucketMutation) AddMaxAmount(d decimal.Decimal) {
+	if m.addmax_amount != nil {
+		*m.addmax_amount = m.addmax_amount.Add(d)
+	} else {
+		m.addmax_amount = &d
+	}
+}
+
+// AddedMaxAmount returns the value that was added to the "max_amount" field in this mutation.
+func (m *ProvisionBucketMutation) AddedMaxAmount() (r decimal.Decimal, exists bool) {
+	v := m.addmax_amount
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetMaxAmount resets all changes to the "max_amount" field.
+func (m *ProvisionBucketMutation) ResetMaxAmount() {
+	m.max_amount = nil
+	m.addmax_amount = nil
+}
+
+// SetCurrency sets the "currency" field.
+func (m *ProvisionBucketMutation) SetCurrency(s string) {
+	m.currency = &s
+}
+
+// Currency returns the value of the "currency" field in the mutation.
+func (m *ProvisionBucketMutation) Currency() (r string, exists bool) {
+	v := m.currency
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCurrency returns the old "currency" field's value of the ProvisionBucket entity.
+// If the ProvisionBucket object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProvisionBucketMutation) OldCurrency(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCurrency is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCurrency requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCurrency: %w", err)
+	}
+	return oldValue.Currency, nil
+}
+
+// ResetCurrency resets all changes to the "currency" field.
+func (m *ProvisionBucketMutation) ResetCurrency() {
+	m.currency = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *ProvisionBucketMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *ProvisionBucketMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the ProvisionBucket entity.
+// If the ProvisionBucket object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProvisionBucketMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *ProvisionBucketMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// AddLockPaymentOrderIDs adds the "lock_payment_orders" edge to the LockPaymentOrder entity by ids.
+func (m *ProvisionBucketMutation) AddLockPaymentOrderIDs(ids ...uuid.UUID) {
+	if m.lock_payment_orders == nil {
+		m.lock_payment_orders = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		m.lock_payment_orders[ids[i]] = struct{}{}
+	}
+}
+
+// ClearLockPaymentOrders clears the "lock_payment_orders" edge to the LockPaymentOrder entity.
+func (m *ProvisionBucketMutation) ClearLockPaymentOrders() {
+	m.clearedlock_payment_orders = true
+}
+
+// LockPaymentOrdersCleared reports if the "lock_payment_orders" edge to the LockPaymentOrder entity was cleared.
+func (m *ProvisionBucketMutation) LockPaymentOrdersCleared() bool {
+	return m.clearedlock_payment_orders
+}
+
+// RemoveLockPaymentOrderIDs removes the "lock_payment_orders" edge to the LockPaymentOrder entity by IDs.
+func (m *ProvisionBucketMutation) RemoveLockPaymentOrderIDs(ids ...uuid.UUID) {
+	if m.removedlock_payment_orders == nil {
+		m.removedlock_payment_orders = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		delete(m.lock_payment_orders, ids[i])
+		m.removedlock_payment_orders[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedLockPaymentOrders returns the removed IDs of the "lock_payment_orders" edge to the LockPaymentOrder entity.
+func (m *ProvisionBucketMutation) RemovedLockPaymentOrdersIDs() (ids []uuid.UUID) {
+	for id := range m.removedlock_payment_orders {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// LockPaymentOrdersIDs returns the "lock_payment_orders" edge IDs in the mutation.
+func (m *ProvisionBucketMutation) LockPaymentOrdersIDs() (ids []uuid.UUID) {
+	for id := range m.lock_payment_orders {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetLockPaymentOrders resets all changes to the "lock_payment_orders" edge.
+func (m *ProvisionBucketMutation) ResetLockPaymentOrders() {
+	m.lock_payment_orders = nil
+	m.clearedlock_payment_orders = false
+	m.removedlock_payment_orders = nil
+}
+
+// AddProviderProfileIDs adds the "provider_profiles" edge to the ProviderProfile entity by ids.
+func (m *ProvisionBucketMutation) AddProviderProfileIDs(ids ...string) {
+	if m.provider_profiles == nil {
+		m.provider_profiles = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.provider_profiles[ids[i]] = struct{}{}
+	}
+}
+
+// ClearProviderProfiles clears the "provider_profiles" edge to the ProviderProfile entity.
+func (m *ProvisionBucketMutation) ClearProviderProfiles() {
+	m.clearedprovider_profiles = true
+}
+
+// ProviderProfilesCleared reports if the "provider_profiles" edge to the ProviderProfile entity was cleared.
+func (m *ProvisionBucketMutation) ProviderProfilesCleared() bool {
+	return m.clearedprovider_profiles
+}
+
+// RemoveProviderProfileIDs removes the "provider_profiles" edge to the ProviderProfile entity by IDs.
+func (m *ProvisionBucketMutation) RemoveProviderProfileIDs(ids ...string) {
+	if m.removedprovider_profiles == nil {
+		m.removedprovider_profiles = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.provider_profiles, ids[i])
+		m.removedprovider_profiles[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedProviderProfiles returns the removed IDs of the "provider_profiles" edge to the ProviderProfile entity.
+func (m *ProvisionBucketMutation) RemovedProviderProfilesIDs() (ids []string) {
+	for id := range m.removedprovider_profiles {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ProviderProfilesIDs returns the "provider_profiles" edge IDs in the mutation.
+func (m *ProvisionBucketMutation) ProviderProfilesIDs() (ids []string) {
+	for id := range m.provider_profiles {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetProviderProfiles resets all changes to the "provider_profiles" edge.
+func (m *ProvisionBucketMutation) ResetProviderProfiles() {
+	m.provider_profiles = nil
+	m.clearedprovider_profiles = false
+	m.removedprovider_profiles = nil
+}
+
+// Where appends a list predicates to the ProvisionBucketMutation builder.
+func (m *ProvisionBucketMutation) Where(ps ...predicate.ProvisionBucket) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the ProvisionBucketMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *ProvisionBucketMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.ProvisionBucket, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *ProvisionBucketMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *ProvisionBucketMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (ProvisionBucket).
+func (m *ProvisionBucketMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *ProvisionBucketMutation) Fields() []string {
+	fields := make([]string, 0, 4)
+	if m.min_amount != nil {
+		fields = append(fields, provisionbucket.FieldMinAmount)
+	}
+	if m.max_amount != nil {
+		fields = append(fields, provisionbucket.FieldMaxAmount)
+	}
+	if m.currency != nil {
+		fields = append(fields, provisionbucket.FieldCurrency)
+	}
+	if m.created_at != nil {
+		fields = append(fields, provisionbucket.FieldCreatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *ProvisionBucketMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case provisionbucket.FieldMinAmount:
+		return m.MinAmount()
+	case provisionbucket.FieldMaxAmount:
+		return m.MaxAmount()
+	case provisionbucket.FieldCurrency:
+		return m.Currency()
+	case provisionbucket.FieldCreatedAt:
+		return m.CreatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *ProvisionBucketMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case provisionbucket.FieldMinAmount:
+		return m.OldMinAmount(ctx)
+	case provisionbucket.FieldMaxAmount:
+		return m.OldMaxAmount(ctx)
+	case provisionbucket.FieldCurrency:
+		return m.OldCurrency(ctx)
+	case provisionbucket.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown ProvisionBucket field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ProvisionBucketMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case provisionbucket.FieldMinAmount:
+		v, ok := value.(decimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMinAmount(v)
+		return nil
+	case provisionbucket.FieldMaxAmount:
+		v, ok := value.(decimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMaxAmount(v)
+		return nil
+	case provisionbucket.FieldCurrency:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCurrency(v)
+		return nil
+	case provisionbucket.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ProvisionBucket field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *ProvisionBucketMutation) AddedFields() []string {
+	var fields []string
+	if m.addmin_amount != nil {
+		fields = append(fields, provisionbucket.FieldMinAmount)
+	}
+	if m.addmax_amount != nil {
+		fields = append(fields, provisionbucket.FieldMaxAmount)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *ProvisionBucketMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case provisionbucket.FieldMinAmount:
+		return m.AddedMinAmount()
+	case provisionbucket.FieldMaxAmount:
+		return m.AddedMaxAmount()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ProvisionBucketMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case provisionbucket.FieldMinAmount:
+		v, ok := value.(decimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddMinAmount(v)
+		return nil
+	case provisionbucket.FieldMaxAmount:
+		v, ok := value.(decimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddMaxAmount(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ProvisionBucket numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *ProvisionBucketMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *ProvisionBucketMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *ProvisionBucketMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown ProvisionBucket nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *ProvisionBucketMutation) ResetField(name string) error {
+	switch name {
+	case provisionbucket.FieldMinAmount:
+		m.ResetMinAmount()
+		return nil
+	case provisionbucket.FieldMaxAmount:
+		m.ResetMaxAmount()
+		return nil
+	case provisionbucket.FieldCurrency:
+		m.ResetCurrency()
+		return nil
+	case provisionbucket.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown ProvisionBucket field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *ProvisionBucketMutation) AddedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.lock_payment_orders != nil {
+		edges = append(edges, provisionbucket.EdgeLockPaymentOrders)
+	}
+	if m.provider_profiles != nil {
+		edges = append(edges, provisionbucket.EdgeProviderProfiles)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *ProvisionBucketMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case provisionbucket.EdgeLockPaymentOrders:
+		ids := make([]ent.Value, 0, len(m.lock_payment_orders))
+		for id := range m.lock_payment_orders {
+			ids = append(ids, id)
+		}
+		return ids
+	case provisionbucket.EdgeProviderProfiles:
+		ids := make([]ent.Value, 0, len(m.provider_profiles))
+		for id := range m.provider_profiles {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *ProvisionBucketMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.removedlock_payment_orders != nil {
+		edges = append(edges, provisionbucket.EdgeLockPaymentOrders)
+	}
+	if m.removedprovider_profiles != nil {
+		edges = append(edges, provisionbucket.EdgeProviderProfiles)
+	}
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *ProvisionBucketMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case provisionbucket.EdgeLockPaymentOrders:
+		ids := make([]ent.Value, 0, len(m.removedlock_payment_orders))
+		for id := range m.removedlock_payment_orders {
+			ids = append(ids, id)
+		}
+		return ids
+	case provisionbucket.EdgeProviderProfiles:
+		ids := make([]ent.Value, 0, len(m.removedprovider_profiles))
+		for id := range m.removedprovider_profiles {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *ProvisionBucketMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.clearedlock_payment_orders {
+		edges = append(edges, provisionbucket.EdgeLockPaymentOrders)
+	}
+	if m.clearedprovider_profiles {
+		edges = append(edges, provisionbucket.EdgeProviderProfiles)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *ProvisionBucketMutation) EdgeCleared(name string) bool {
+	switch name {
+	case provisionbucket.EdgeLockPaymentOrders:
+		return m.clearedlock_payment_orders
+	case provisionbucket.EdgeProviderProfiles:
+		return m.clearedprovider_profiles
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *ProvisionBucketMutation) ClearEdge(name string) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown ProvisionBucket unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *ProvisionBucketMutation) ResetEdge(name string) error {
+	switch name {
+	case provisionbucket.EdgeLockPaymentOrders:
+		m.ResetLockPaymentOrders()
+		return nil
+	case provisionbucket.EdgeProviderProfiles:
+		m.ResetProviderProfiles()
+		return nil
+	}
+	return fmt.Errorf("unknown ProvisionBucket edge %s", name)
 }
 
 // ReceiveAddressMutation represents an operation that mutates the ReceiveAddress nodes in the graph.

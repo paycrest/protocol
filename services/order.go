@@ -248,7 +248,7 @@ func (s *OrderService) createOrderCallData(order *ent.PaymentOrder) ([]byte, err
 	params := &CreateOrderParams{
 		Token:              common.HexToAddress(order.Edges.Token.ContractAddress),
 		Amount:             utils.ToSubunit(order.Amount, order.Edges.Token.Decimals),
-		InstitutionCode:    utils.StringTo32Byte(order.Edges.Recipient.Institution),
+		InstitutionCode:    utils.StringToByte32(order.Edges.Recipient.Institution),
 		Rate:               big.NewInt(930), // TODO: fetch actual market rate from aggregator
 		SenderFeeRecipient: *fromAddress,    // TODO: fetch this from the sender profile
 		SenderFee:          big.NewInt(0),   // TODO: fetch this from the sender profile

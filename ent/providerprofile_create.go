@@ -15,6 +15,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/provideravailability"
 	"github.com/paycrest/paycrest-protocol/ent/providerordertoken"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
+	"github.com/paycrest/paycrest-protocol/ent/provisionbucket"
 )
 
 // ProviderProfileCreate is the builder for creating a ProviderProfile entity.
@@ -87,6 +88,21 @@ func (ppc *ProviderProfileCreate) SetAPIKeyID(id uuid.UUID) *ProviderProfileCrea
 // SetAPIKey sets the "api_key" edge to the APIKey entity.
 func (ppc *ProviderProfileCreate) SetAPIKey(a *APIKey) *ProviderProfileCreate {
 	return ppc.SetAPIKeyID(a.ID)
+}
+
+// AddProvisionBucketIDs adds the "provision_buckets" edge to the ProvisionBucket entity by IDs.
+func (ppc *ProviderProfileCreate) AddProvisionBucketIDs(ids ...int) *ProviderProfileCreate {
+	ppc.mutation.AddProvisionBucketIDs(ids...)
+	return ppc
+}
+
+// AddProvisionBuckets adds the "provision_buckets" edges to the ProvisionBucket entity.
+func (ppc *ProviderProfileCreate) AddProvisionBuckets(p ...*ProvisionBucket) *ProviderProfileCreate {
+	ids := make([]int, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return ppc.AddProvisionBucketIDs(ids...)
 }
 
 // AddOrderTokenIDs adds the "order_tokens" edge to the ProviderOrderToken entity by IDs.
@@ -265,6 +281,22 @@ func (ppc *ProviderProfileCreate) createSpec() (*ProviderProfile, *sqlgraph.Crea
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.api_key_provider_profile = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := ppc.mutation.ProvisionBucketsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   providerprofile.ProvisionBucketsTable,
+			Columns: providerprofile.ProvisionBucketsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(provisionbucket.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := ppc.mutation.OrderTokensIDs(); len(nodes) > 0 {

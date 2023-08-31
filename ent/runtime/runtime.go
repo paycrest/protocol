@@ -13,6 +13,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/providerordertoken"
 	"github.com/paycrest/paycrest-protocol/ent/providerordertokenaddress"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
+	"github.com/paycrest/paycrest-protocol/ent/provisionbucket"
 	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
 	"github.com/paycrest/paycrest-protocol/ent/schema"
 	"github.com/paycrest/paycrest-protocol/ent/token"
@@ -154,6 +155,16 @@ func init() {
 	providerprofileDescID := providerprofileFields[0].Descriptor()
 	// providerprofile.DefaultID holds the default value on creation for the id field.
 	providerprofile.DefaultID = providerprofileDescID.Default.(func() string)
+	provisionbucketFields := schema.ProvisionBucket{}.Fields()
+	_ = provisionbucketFields
+	// provisionbucketDescCurrency is the schema descriptor for currency field.
+	provisionbucketDescCurrency := provisionbucketFields[2].Descriptor()
+	// provisionbucket.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
+	provisionbucket.CurrencyValidator = provisionbucketDescCurrency.Validators[0].(func(string) error)
+	// provisionbucketDescCreatedAt is the schema descriptor for created_at field.
+	provisionbucketDescCreatedAt := provisionbucketFields[3].Descriptor()
+	// provisionbucket.DefaultCreatedAt holds the default value on creation for the created_at field.
+	provisionbucket.DefaultCreatedAt = provisionbucketDescCreatedAt.Default.(func() time.Time)
 	receiveaddressMixin := schema.ReceiveAddress{}.Mixin()
 	receiveaddressMixinFields0 := receiveaddressMixin[0].Fields()
 	_ = receiveaddressMixinFields0

@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
+	"github.com/paycrest/paycrest-protocol/ent/provisionbucket"
 	"github.com/paycrest/paycrest-protocol/ent/token"
 	"github.com/shopspring/decimal"
 )
@@ -166,6 +167,17 @@ func (lpoc *LockPaymentOrderCreate) SetToken(t *Token) *LockPaymentOrderCreate {
 	return lpoc.SetTokenID(t.ID)
 }
 
+// SetProvisionBucketID sets the "provision_bucket" edge to the ProvisionBucket entity by ID.
+func (lpoc *LockPaymentOrderCreate) SetProvisionBucketID(id int) *LockPaymentOrderCreate {
+	lpoc.mutation.SetProvisionBucketID(id)
+	return lpoc
+}
+
+// SetProvisionBucket sets the "provision_bucket" edge to the ProvisionBucket entity.
+func (lpoc *LockPaymentOrderCreate) SetProvisionBucket(p *ProvisionBucket) *LockPaymentOrderCreate {
+	return lpoc.SetProvisionBucketID(p.ID)
+}
+
 // Mutation returns the LockPaymentOrderMutation object of the builder.
 func (lpoc *LockPaymentOrderCreate) Mutation() *LockPaymentOrderMutation {
 	return lpoc.mutation
@@ -266,6 +278,9 @@ func (lpoc *LockPaymentOrderCreate) check() error {
 	}
 	if _, ok := lpoc.mutation.TokenID(); !ok {
 		return &ValidationError{Name: "token", err: errors.New(`ent: missing required edge "LockPaymentOrder.token"`)}
+	}
+	if _, ok := lpoc.mutation.ProvisionBucketID(); !ok {
+		return &ValidationError{Name: "provision_bucket", err: errors.New(`ent: missing required edge "LockPaymentOrder.provision_bucket"`)}
 	}
 	return nil
 }
@@ -369,6 +384,23 @@ func (lpoc *LockPaymentOrderCreate) createSpec() (*LockPaymentOrder, *sqlgraph.C
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.token_lock_payment_orders = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := lpoc.mutation.ProvisionBucketIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   lockpaymentorder.ProvisionBucketTable,
+			Columns: []string{lockpaymentorder.ProvisionBucketColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(provisionbucket.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.provision_bucket_lock_payment_orders = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

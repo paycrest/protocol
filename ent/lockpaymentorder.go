@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
+	"github.com/paycrest/paycrest-protocol/ent/provisionbucket"
 	"github.com/paycrest/paycrest-protocol/ent/token"
 	"github.com/shopspring/decimal"
 )
@@ -48,18 +49,21 @@ type LockPaymentOrder struct {
 	ProviderID string `json:"provider_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the LockPaymentOrderQuery when eager-loading is set.
-	Edges                     LockPaymentOrderEdges `json:"edges"`
-	token_lock_payment_orders *int
-	selectValues              sql.SelectValues
+	Edges                                LockPaymentOrderEdges `json:"edges"`
+	provision_bucket_lock_payment_orders *int
+	token_lock_payment_orders            *int
+	selectValues                         sql.SelectValues
 }
 
 // LockPaymentOrderEdges holds the relations/edges for other nodes in the graph.
 type LockPaymentOrderEdges struct {
 	// Token holds the value of the token edge.
 	Token *Token `json:"token,omitempty"`
+	// ProvisionBucket holds the value of the provision_bucket edge.
+	ProvisionBucket *ProvisionBucket `json:"provision_bucket,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
 }
 
 // TokenOrErr returns the Token value or an error if the edge
@@ -73,6 +77,19 @@ func (e LockPaymentOrderEdges) TokenOrErr() (*Token, error) {
 		return e.Token, nil
 	}
 	return nil, &NotLoadedError{edge: "token"}
+}
+
+// ProvisionBucketOrErr returns the ProvisionBucket value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e LockPaymentOrderEdges) ProvisionBucketOrErr() (*ProvisionBucket, error) {
+	if e.loadedTypes[1] {
+		if e.ProvisionBucket == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: provisionbucket.Label}
+		}
+		return e.ProvisionBucket, nil
+	}
+	return nil, &NotLoadedError{edge: "provision_bucket"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -90,7 +107,9 @@ func (*LockPaymentOrder) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullTime)
 		case lockpaymentorder.FieldID:
 			values[i] = new(uuid.UUID)
-		case lockpaymentorder.ForeignKeys[0]: // token_lock_payment_orders
+		case lockpaymentorder.ForeignKeys[0]: // provision_bucket_lock_payment_orders
+			values[i] = new(sql.NullInt64)
+		case lockpaymentorder.ForeignKeys[1]: // token_lock_payment_orders
 			values[i] = new(sql.NullInt64)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -193,6 +212,13 @@ func (lpo *LockPaymentOrder) assignValues(columns []string, values []any) error 
 			}
 		case lockpaymentorder.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for edge-field provision_bucket_lock_payment_orders", value)
+			} else if value.Valid {
+				lpo.provision_bucket_lock_payment_orders = new(int)
+				*lpo.provision_bucket_lock_payment_orders = int(value.Int64)
+			}
+		case lockpaymentorder.ForeignKeys[1]:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for edge-field token_lock_payment_orders", value)
 			} else if value.Valid {
 				lpo.token_lock_payment_orders = new(int)
@@ -214,6 +240,11 @@ func (lpo *LockPaymentOrder) Value(name string) (ent.Value, error) {
 // QueryToken queries the "token" edge of the LockPaymentOrder entity.
 func (lpo *LockPaymentOrder) QueryToken() *TokenQuery {
 	return NewLockPaymentOrderClient(lpo.config).QueryToken(lpo)
+}
+
+// QueryProvisionBucket queries the "provision_bucket" edge of the LockPaymentOrder entity.
+func (lpo *LockPaymentOrder) QueryProvisionBucket() *ProvisionBucketQuery {
+	return NewLockPaymentOrderClient(lpo.config).QueryProvisionBucket(lpo)
 }
 
 // Update returns a builder for updating this LockPaymentOrder.

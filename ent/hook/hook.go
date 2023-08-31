@@ -117,6 +117,18 @@ func (f ProviderProfileFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Va
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ProviderProfileMutation", m)
 }
 
+// The ProvisionBucketFunc type is an adapter to allow the use of ordinary
+// function as ProvisionBucket mutator.
+type ProvisionBucketFunc func(context.Context, *ent.ProvisionBucketMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ProvisionBucketFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ProvisionBucketMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ProvisionBucketMutation", m)
+}
+
 // The ReceiveAddressFunc type is an adapter to allow the use of ordinary
 // function as ReceiveAddress mutator.
 type ReceiveAddressFunc func(context.Context, *ent.ReceiveAddressMutation) (ent.Value, error)

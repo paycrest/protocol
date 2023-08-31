@@ -51,7 +51,7 @@ func FromSubunit(amountInSubunit *big.Int, decimals int8) decimal.Decimal {
 }
 
 // StringToByte32 converts string to [32]byte
-func StringTo32Byte(s string) [32]byte {
+func StringToByte32(s string) [32]byte {
 	var result [32]byte
 
 	// Convert the input string to bytes

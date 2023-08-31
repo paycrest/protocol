@@ -17,6 +17,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/provideravailability"
 	"github.com/paycrest/paycrest-protocol/ent/providerordertoken"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
+	"github.com/paycrest/paycrest-protocol/ent/provisionbucket"
 )
 
 // ProviderProfileUpdate is the builder for updating ProviderProfile entities.
@@ -59,6 +60,21 @@ func (ppu *ProviderProfileUpdate) SetAPIKeyID(id uuid.UUID) *ProviderProfileUpda
 // SetAPIKey sets the "api_key" edge to the APIKey entity.
 func (ppu *ProviderProfileUpdate) SetAPIKey(a *APIKey) *ProviderProfileUpdate {
 	return ppu.SetAPIKeyID(a.ID)
+}
+
+// AddProvisionBucketIDs adds the "provision_buckets" edge to the ProvisionBucket entity by IDs.
+func (ppu *ProviderProfileUpdate) AddProvisionBucketIDs(ids ...int) *ProviderProfileUpdate {
+	ppu.mutation.AddProvisionBucketIDs(ids...)
+	return ppu
+}
+
+// AddProvisionBuckets adds the "provision_buckets" edges to the ProvisionBucket entity.
+func (ppu *ProviderProfileUpdate) AddProvisionBuckets(p ...*ProvisionBucket) *ProviderProfileUpdate {
+	ids := make([]int, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return ppu.AddProvisionBucketIDs(ids...)
 }
 
 // AddOrderTokenIDs adds the "order_tokens" edge to the ProviderOrderToken entity by IDs.
@@ -104,6 +120,27 @@ func (ppu *ProviderProfileUpdate) Mutation() *ProviderProfileMutation {
 func (ppu *ProviderProfileUpdate) ClearAPIKey() *ProviderProfileUpdate {
 	ppu.mutation.ClearAPIKey()
 	return ppu
+}
+
+// ClearProvisionBuckets clears all "provision_buckets" edges to the ProvisionBucket entity.
+func (ppu *ProviderProfileUpdate) ClearProvisionBuckets() *ProviderProfileUpdate {
+	ppu.mutation.ClearProvisionBuckets()
+	return ppu
+}
+
+// RemoveProvisionBucketIDs removes the "provision_buckets" edge to ProvisionBucket entities by IDs.
+func (ppu *ProviderProfileUpdate) RemoveProvisionBucketIDs(ids ...int) *ProviderProfileUpdate {
+	ppu.mutation.RemoveProvisionBucketIDs(ids...)
+	return ppu
+}
+
+// RemoveProvisionBuckets removes "provision_buckets" edges to ProvisionBucket entities.
+func (ppu *ProviderProfileUpdate) RemoveProvisionBuckets(p ...*ProvisionBucket) *ProviderProfileUpdate {
+	ids := make([]int, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return ppu.RemoveProvisionBucketIDs(ids...)
 }
 
 // ClearOrderTokens clears all "order_tokens" edges to the ProviderOrderToken entity.
@@ -237,6 +274,51 @@ func (ppu *ProviderProfileUpdate) sqlSave(ctx context.Context) (n int, err error
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if ppu.mutation.ProvisionBucketsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   providerprofile.ProvisionBucketsTable,
+			Columns: providerprofile.ProvisionBucketsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(provisionbucket.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ppu.mutation.RemovedProvisionBucketsIDs(); len(nodes) > 0 && !ppu.mutation.ProvisionBucketsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   providerprofile.ProvisionBucketsTable,
+			Columns: providerprofile.ProvisionBucketsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(provisionbucket.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ppu.mutation.ProvisionBucketsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   providerprofile.ProvisionBucketsTable,
+			Columns: providerprofile.ProvisionBucketsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(provisionbucket.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if ppu.mutation.OrderTokensCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
@@ -360,6 +442,21 @@ func (ppuo *ProviderProfileUpdateOne) SetAPIKey(a *APIKey) *ProviderProfileUpdat
 	return ppuo.SetAPIKeyID(a.ID)
 }
 
+// AddProvisionBucketIDs adds the "provision_buckets" edge to the ProvisionBucket entity by IDs.
+func (ppuo *ProviderProfileUpdateOne) AddProvisionBucketIDs(ids ...int) *ProviderProfileUpdateOne {
+	ppuo.mutation.AddProvisionBucketIDs(ids...)
+	return ppuo
+}
+
+// AddProvisionBuckets adds the "provision_buckets" edges to the ProvisionBucket entity.
+func (ppuo *ProviderProfileUpdateOne) AddProvisionBuckets(p ...*ProvisionBucket) *ProviderProfileUpdateOne {
+	ids := make([]int, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return ppuo.AddProvisionBucketIDs(ids...)
+}
+
 // AddOrderTokenIDs adds the "order_tokens" edge to the ProviderOrderToken entity by IDs.
 func (ppuo *ProviderProfileUpdateOne) AddOrderTokenIDs(ids ...int) *ProviderProfileUpdateOne {
 	ppuo.mutation.AddOrderTokenIDs(ids...)
@@ -403,6 +500,27 @@ func (ppuo *ProviderProfileUpdateOne) Mutation() *ProviderProfileMutation {
 func (ppuo *ProviderProfileUpdateOne) ClearAPIKey() *ProviderProfileUpdateOne {
 	ppuo.mutation.ClearAPIKey()
 	return ppuo
+}
+
+// ClearProvisionBuckets clears all "provision_buckets" edges to the ProvisionBucket entity.
+func (ppuo *ProviderProfileUpdateOne) ClearProvisionBuckets() *ProviderProfileUpdateOne {
+	ppuo.mutation.ClearProvisionBuckets()
+	return ppuo
+}
+
+// RemoveProvisionBucketIDs removes the "provision_buckets" edge to ProvisionBucket entities by IDs.
+func (ppuo *ProviderProfileUpdateOne) RemoveProvisionBucketIDs(ids ...int) *ProviderProfileUpdateOne {
+	ppuo.mutation.RemoveProvisionBucketIDs(ids...)
+	return ppuo
+}
+
+// RemoveProvisionBuckets removes "provision_buckets" edges to ProvisionBucket entities.
+func (ppuo *ProviderProfileUpdateOne) RemoveProvisionBuckets(p ...*ProvisionBucket) *ProviderProfileUpdateOne {
+	ids := make([]int, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return ppuo.RemoveProvisionBucketIDs(ids...)
 }
 
 // ClearOrderTokens clears all "order_tokens" edges to the ProviderOrderToken entity.
@@ -559,6 +677,51 @@ func (ppuo *ProviderProfileUpdateOne) sqlSave(ctx context.Context) (_node *Provi
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if ppuo.mutation.ProvisionBucketsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   providerprofile.ProvisionBucketsTable,
+			Columns: providerprofile.ProvisionBucketsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(provisionbucket.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ppuo.mutation.RemovedProvisionBucketsIDs(); len(nodes) > 0 && !ppuo.mutation.ProvisionBucketsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   providerprofile.ProvisionBucketsTable,
+			Columns: providerprofile.ProvisionBucketsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(provisionbucket.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ppuo.mutation.ProvisionBucketsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   providerprofile.ProvisionBucketsTable,
+			Columns: providerprofile.ProvisionBucketsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(provisionbucket.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

@@ -39,13 +39,15 @@ type ProviderProfile struct {
 type ProviderProfileEdges struct {
 	// APIKey holds the value of the api_key edge.
 	APIKey *APIKey `json:"api_key,omitempty"`
+	// ProvisionBuckets holds the value of the provision_buckets edge.
+	ProvisionBuckets []*ProvisionBucket `json:"provision_buckets,omitempty"`
 	// OrderTokens holds the value of the order_tokens edge.
 	OrderTokens []*ProviderOrderToken `json:"order_tokens,omitempty"`
 	// Availability holds the value of the availability edge.
 	Availability *ProviderAvailability `json:"availability,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [4]bool
 }
 
 // APIKeyOrErr returns the APIKey value or an error if the edge
@@ -61,10 +63,19 @@ func (e ProviderProfileEdges) APIKeyOrErr() (*APIKey, error) {
 	return nil, &NotLoadedError{edge: "api_key"}
 }
 
+// ProvisionBucketsOrErr returns the ProvisionBuckets value or an error if the edge
+// was not loaded in eager-loading.
+func (e ProviderProfileEdges) ProvisionBucketsOrErr() ([]*ProvisionBucket, error) {
+	if e.loadedTypes[1] {
+		return e.ProvisionBuckets, nil
+	}
+	return nil, &NotLoadedError{edge: "provision_buckets"}
+}
+
 // OrderTokensOrErr returns the OrderTokens value or an error if the edge
 // was not loaded in eager-loading.
 func (e ProviderProfileEdges) OrderTokensOrErr() ([]*ProviderOrderToken, error) {
-	if e.loadedTypes[1] {
+	if e.loadedTypes[2] {
 		return e.OrderTokens, nil
 	}
 	return nil, &NotLoadedError{edge: "order_tokens"}
@@ -73,7 +84,7 @@ func (e ProviderProfileEdges) OrderTokensOrErr() ([]*ProviderOrderToken, error) 
 // AvailabilityOrErr returns the Availability value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e ProviderProfileEdges) AvailabilityOrErr() (*ProviderAvailability, error) {
-	if e.loadedTypes[2] {
+	if e.loadedTypes[3] {
 		if e.Availability == nil {
 			// Edge was loaded but was not found.
 			return nil, &NotFoundError{label: provideravailability.Label}
@@ -162,6 +173,11 @@ func (pp *ProviderProfile) Value(name string) (ent.Value, error) {
 // QueryAPIKey queries the "api_key" edge of the ProviderProfile entity.
 func (pp *ProviderProfile) QueryAPIKey() *APIKeyQuery {
 	return NewProviderProfileClient(pp.config).QueryAPIKey(pp)
+}
+
+// QueryProvisionBuckets queries the "provision_buckets" edge of the ProviderProfile entity.
+func (pp *ProviderProfile) QueryProvisionBuckets() *ProvisionBucketQuery {
+	return NewProviderProfileClient(pp.config).QueryProvisionBuckets(pp)
 }
 
 // QueryOrderTokens queries the "order_tokens" edge of the ProviderProfile entity.

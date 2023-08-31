@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
+	"github.com/paycrest/paycrest-protocol/ent/provisionbucket"
 	"github.com/paycrest/paycrest-protocol/ent/token"
 	"github.com/shopspring/decimal"
 )
@@ -177,6 +178,17 @@ func (lpou *LockPaymentOrderUpdate) SetToken(t *Token) *LockPaymentOrderUpdate {
 	return lpou.SetTokenID(t.ID)
 }
 
+// SetProvisionBucketID sets the "provision_bucket" edge to the ProvisionBucket entity by ID.
+func (lpou *LockPaymentOrderUpdate) SetProvisionBucketID(id int) *LockPaymentOrderUpdate {
+	lpou.mutation.SetProvisionBucketID(id)
+	return lpou
+}
+
+// SetProvisionBucket sets the "provision_bucket" edge to the ProvisionBucket entity.
+func (lpou *LockPaymentOrderUpdate) SetProvisionBucket(p *ProvisionBucket) *LockPaymentOrderUpdate {
+	return lpou.SetProvisionBucketID(p.ID)
+}
+
 // Mutation returns the LockPaymentOrderMutation object of the builder.
 func (lpou *LockPaymentOrderUpdate) Mutation() *LockPaymentOrderMutation {
 	return lpou.mutation
@@ -185,6 +197,12 @@ func (lpou *LockPaymentOrderUpdate) Mutation() *LockPaymentOrderMutation {
 // ClearToken clears the "token" edge to the Token entity.
 func (lpou *LockPaymentOrderUpdate) ClearToken() *LockPaymentOrderUpdate {
 	lpou.mutation.ClearToken()
+	return lpou
+}
+
+// ClearProvisionBucket clears the "provision_bucket" edge to the ProvisionBucket entity.
+func (lpou *LockPaymentOrderUpdate) ClearProvisionBucket() *LockPaymentOrderUpdate {
+	lpou.mutation.ClearProvisionBucket()
 	return lpou
 }
 
@@ -238,6 +256,9 @@ func (lpou *LockPaymentOrderUpdate) check() error {
 	}
 	if _, ok := lpou.mutation.TokenID(); lpou.mutation.TokenCleared() && !ok {
 		return errors.New(`ent: clearing a required unique edge "LockPaymentOrder.token"`)
+	}
+	if _, ok := lpou.mutation.ProvisionBucketID(); lpou.mutation.ProvisionBucketCleared() && !ok {
+		return errors.New(`ent: clearing a required unique edge "LockPaymentOrder.provision_bucket"`)
 	}
 	return nil
 }
@@ -330,6 +351,35 @@ func (lpou *LockPaymentOrderUpdate) sqlSave(ctx context.Context) (n int, err err
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(token.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if lpou.mutation.ProvisionBucketCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   lockpaymentorder.ProvisionBucketTable,
+			Columns: []string{lockpaymentorder.ProvisionBucketColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(provisionbucket.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := lpou.mutation.ProvisionBucketIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   lockpaymentorder.ProvisionBucketTable,
+			Columns: []string{lockpaymentorder.ProvisionBucketColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(provisionbucket.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -504,6 +554,17 @@ func (lpouo *LockPaymentOrderUpdateOne) SetToken(t *Token) *LockPaymentOrderUpda
 	return lpouo.SetTokenID(t.ID)
 }
 
+// SetProvisionBucketID sets the "provision_bucket" edge to the ProvisionBucket entity by ID.
+func (lpouo *LockPaymentOrderUpdateOne) SetProvisionBucketID(id int) *LockPaymentOrderUpdateOne {
+	lpouo.mutation.SetProvisionBucketID(id)
+	return lpouo
+}
+
+// SetProvisionBucket sets the "provision_bucket" edge to the ProvisionBucket entity.
+func (lpouo *LockPaymentOrderUpdateOne) SetProvisionBucket(p *ProvisionBucket) *LockPaymentOrderUpdateOne {
+	return lpouo.SetProvisionBucketID(p.ID)
+}
+
 // Mutation returns the LockPaymentOrderMutation object of the builder.
 func (lpouo *LockPaymentOrderUpdateOne) Mutation() *LockPaymentOrderMutation {
 	return lpouo.mutation
@@ -512,6 +573,12 @@ func (lpouo *LockPaymentOrderUpdateOne) Mutation() *LockPaymentOrderMutation {
 // ClearToken clears the "token" edge to the Token entity.
 func (lpouo *LockPaymentOrderUpdateOne) ClearToken() *LockPaymentOrderUpdateOne {
 	lpouo.mutation.ClearToken()
+	return lpouo
+}
+
+// ClearProvisionBucket clears the "provision_bucket" edge to the ProvisionBucket entity.
+func (lpouo *LockPaymentOrderUpdateOne) ClearProvisionBucket() *LockPaymentOrderUpdateOne {
+	lpouo.mutation.ClearProvisionBucket()
 	return lpouo
 }
 
@@ -578,6 +645,9 @@ func (lpouo *LockPaymentOrderUpdateOne) check() error {
 	}
 	if _, ok := lpouo.mutation.TokenID(); lpouo.mutation.TokenCleared() && !ok {
 		return errors.New(`ent: clearing a required unique edge "LockPaymentOrder.token"`)
+	}
+	if _, ok := lpouo.mutation.ProvisionBucketID(); lpouo.mutation.ProvisionBucketCleared() && !ok {
+		return errors.New(`ent: clearing a required unique edge "LockPaymentOrder.provision_bucket"`)
 	}
 	return nil
 }
@@ -687,6 +757,35 @@ func (lpouo *LockPaymentOrderUpdateOne) sqlSave(ctx context.Context) (_node *Loc
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(token.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if lpouo.mutation.ProvisionBucketCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   lockpaymentorder.ProvisionBucketTable,
+			Columns: []string{lockpaymentorder.ProvisionBucketColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(provisionbucket.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := lpouo.mutation.ProvisionBucketIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   lockpaymentorder.ProvisionBucketTable,
+			Columns: []string{lockpaymentorder.ProvisionBucketColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(provisionbucket.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

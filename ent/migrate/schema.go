@@ -55,6 +55,7 @@ var (
 		{Name: "account_identifier", Type: field.TypeString},
 		{Name: "account_name", Type: field.TypeString},
 		{Name: "provider_id", Type: field.TypeString, Nullable: true},
+		{Name: "provision_bucket_lock_payment_orders", Type: field.TypeInt},
 		{Name: "token_lock_payment_orders", Type: field.TypeInt},
 	}
 	// LockPaymentOrdersTable holds the schema information for the "lock_payment_orders" table.
@@ -64,8 +65,14 @@ var (
 		PrimaryKey: []*schema.Column{LockPaymentOrdersColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "lock_payment_orders_tokens_lock_payment_orders",
+				Symbol:     "lock_payment_orders_provision_buckets_lock_payment_orders",
 				Columns:    []*schema.Column{LockPaymentOrdersColumns[14]},
+				RefColumns: []*schema.Column{ProvisionBucketsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "lock_payment_orders_tokens_lock_payment_orders",
+				Columns:    []*schema.Column{LockPaymentOrdersColumns[15]},
 				RefColumns: []*schema.Column{TokensColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
@@ -244,6 +251,20 @@ var (
 			},
 		},
 	}
+	// ProvisionBucketsColumns holds the columns for the "provision_buckets" table.
+	ProvisionBucketsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "min_amount", Type: field.TypeFloat64},
+		{Name: "max_amount", Type: field.TypeFloat64},
+		{Name: "currency", Type: field.TypeString, Size: 3},
+		{Name: "created_at", Type: field.TypeTime},
+	}
+	// ProvisionBucketsTable holds the schema information for the "provision_buckets" table.
+	ProvisionBucketsTable = &schema.Table{
+		Name:       "provision_buckets",
+		Columns:    ProvisionBucketsColumns,
+		PrimaryKey: []*schema.Column{ProvisionBucketsColumns[0]},
+	}
 	// ReceiveAddressesColumns holds the columns for the "receive_addresses" table.
 	ReceiveAddressesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -313,6 +334,31 @@ var (
 		Columns:    UsersColumns,
 		PrimaryKey: []*schema.Column{UsersColumns[0]},
 	}
+	// ProvisionBucketProviderProfilesColumns holds the columns for the "provision_bucket_provider_profiles" table.
+	ProvisionBucketProviderProfilesColumns = []*schema.Column{
+		{Name: "provision_bucket_id", Type: field.TypeInt},
+		{Name: "provider_profile_id", Type: field.TypeString},
+	}
+	// ProvisionBucketProviderProfilesTable holds the schema information for the "provision_bucket_provider_profiles" table.
+	ProvisionBucketProviderProfilesTable = &schema.Table{
+		Name:       "provision_bucket_provider_profiles",
+		Columns:    ProvisionBucketProviderProfilesColumns,
+		PrimaryKey: []*schema.Column{ProvisionBucketProviderProfilesColumns[0], ProvisionBucketProviderProfilesColumns[1]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "provision_bucket_provider_profiles_provision_bucket_id",
+				Columns:    []*schema.Column{ProvisionBucketProviderProfilesColumns[0]},
+				RefColumns: []*schema.Column{ProvisionBucketsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "provision_bucket_provider_profiles_provider_profile_id",
+				Columns:    []*schema.Column{ProvisionBucketProviderProfilesColumns[1]},
+				RefColumns: []*schema.Column{ProviderProfilesColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		APIKeysTable,
@@ -324,15 +370,18 @@ var (
 		ProviderOrderTokensTable,
 		ProviderOrderTokenAddressesTable,
 		ProviderProfilesTable,
+		ProvisionBucketsTable,
 		ReceiveAddressesTable,
 		TokensTable,
 		UsersTable,
+		ProvisionBucketProviderProfilesTable,
 	}
 )
 
 func init() {
 	APIKeysTable.ForeignKeys[0].RefTable = UsersTable
-	LockPaymentOrdersTable.ForeignKeys[0].RefTable = TokensTable
+	LockPaymentOrdersTable.ForeignKeys[0].RefTable = ProvisionBucketsTable
+	LockPaymentOrdersTable.ForeignKeys[1].RefTable = TokensTable
 	PaymentOrdersTable.ForeignKeys[0].RefTable = APIKeysTable
 	PaymentOrdersTable.ForeignKeys[1].RefTable = TokensTable
 	PaymentOrderRecipientsTable.ForeignKeys[0].RefTable = PaymentOrdersTable
@@ -342,4 +391,6 @@ func init() {
 	ProviderProfilesTable.ForeignKeys[0].RefTable = APIKeysTable
 	ReceiveAddressesTable.ForeignKeys[0].RefTable = PaymentOrdersTable
 	TokensTable.ForeignKeys[0].RefTable = NetworksTable
+	ProvisionBucketProviderProfilesTable.ForeignKeys[0].RefTable = ProvisionBucketsTable
+	ProvisionBucketProviderProfilesTable.ForeignKeys[1].RefTable = ProviderProfilesTable
 }

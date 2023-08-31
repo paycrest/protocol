@@ -17,19 +17,21 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/provideravailability"
 	"github.com/paycrest/paycrest-protocol/ent/providerordertoken"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
+	"github.com/paycrest/paycrest-protocol/ent/provisionbucket"
 )
 
 // ProviderProfileQuery is the builder for querying ProviderProfile entities.
 type ProviderProfileQuery struct {
 	config
-	ctx              *QueryContext
-	order            []providerprofile.OrderOption
-	inters           []Interceptor
-	predicates       []predicate.ProviderProfile
-	withAPIKey       *APIKeyQuery
-	withOrderTokens  *ProviderOrderTokenQuery
-	withAvailability *ProviderAvailabilityQuery
-	withFKs          bool
+	ctx                  *QueryContext
+	order                []providerprofile.OrderOption
+	inters               []Interceptor
+	predicates           []predicate.ProviderProfile
+	withAPIKey           *APIKeyQuery
+	withProvisionBuckets *ProvisionBucketQuery
+	withOrderTokens      *ProviderOrderTokenQuery
+	withAvailability     *ProviderAvailabilityQuery
+	withFKs              bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -81,6 +83,28 @@ func (ppq *ProviderProfileQuery) QueryAPIKey() *APIKeyQuery {
 			sqlgraph.From(providerprofile.Table, providerprofile.FieldID, selector),
 			sqlgraph.To(apikey.Table, apikey.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, true, providerprofile.APIKeyTable, providerprofile.APIKeyColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(ppq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryProvisionBuckets chains the current query on the "provision_buckets" edge.
+func (ppq *ProviderProfileQuery) QueryProvisionBuckets() *ProvisionBucketQuery {
+	query := (&ProvisionBucketClient{config: ppq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := ppq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := ppq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(providerprofile.Table, providerprofile.FieldID, selector),
+			sqlgraph.To(provisionbucket.Table, provisionbucket.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, true, providerprofile.ProvisionBucketsTable, providerprofile.ProvisionBucketsPrimaryKey...),
 		)
 		fromU = sqlgraph.SetNeighbors(ppq.driver.Dialect(), step)
 		return fromU, nil
@@ -319,14 +343,15 @@ func (ppq *ProviderProfileQuery) Clone() *ProviderProfileQuery {
 		return nil
 	}
 	return &ProviderProfileQuery{
-		config:           ppq.config,
-		ctx:              ppq.ctx.Clone(),
-		order:            append([]providerprofile.OrderOption{}, ppq.order...),
-		inters:           append([]Interceptor{}, ppq.inters...),
-		predicates:       append([]predicate.ProviderProfile{}, ppq.predicates...),
-		withAPIKey:       ppq.withAPIKey.Clone(),
-		withOrderTokens:  ppq.withOrderTokens.Clone(),
-		withAvailability: ppq.withAvailability.Clone(),
+		config:               ppq.config,
+		ctx:                  ppq.ctx.Clone(),
+		order:                append([]providerprofile.OrderOption{}, ppq.order...),
+		inters:               append([]Interceptor{}, ppq.inters...),
+		predicates:           append([]predicate.ProviderProfile{}, ppq.predicates...),
+		withAPIKey:           ppq.withAPIKey.Clone(),
+		withProvisionBuckets: ppq.withProvisionBuckets.Clone(),
+		withOrderTokens:      ppq.withOrderTokens.Clone(),
+		withAvailability:     ppq.withAvailability.Clone(),
 		// clone intermediate query.
 		sql:  ppq.sql.Clone(),
 		path: ppq.path,
@@ -341,6 +366,17 @@ func (ppq *ProviderProfileQuery) WithAPIKey(opts ...func(*APIKeyQuery)) *Provide
 		opt(query)
 	}
 	ppq.withAPIKey = query
+	return ppq
+}
+
+// WithProvisionBuckets tells the query-builder to eager-load the nodes that are connected to
+// the "provision_buckets" edge. The optional arguments are used to configure the query builder of the edge.
+func (ppq *ProviderProfileQuery) WithProvisionBuckets(opts ...func(*ProvisionBucketQuery)) *ProviderProfileQuery {
+	query := (&ProvisionBucketClient{config: ppq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	ppq.withProvisionBuckets = query
 	return ppq
 }
 
@@ -445,8 +481,9 @@ func (ppq *ProviderProfileQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 		nodes       = []*ProviderProfile{}
 		withFKs     = ppq.withFKs
 		_spec       = ppq.querySpec()
-		loadedTypes = [3]bool{
+		loadedTypes = [4]bool{
 			ppq.withAPIKey != nil,
+			ppq.withProvisionBuckets != nil,
 			ppq.withOrderTokens != nil,
 			ppq.withAvailability != nil,
 		}
@@ -478,6 +515,15 @@ func (ppq *ProviderProfileQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 	if query := ppq.withAPIKey; query != nil {
 		if err := ppq.loadAPIKey(ctx, query, nodes, nil,
 			func(n *ProviderProfile, e *APIKey) { n.Edges.APIKey = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := ppq.withProvisionBuckets; query != nil {
+		if err := ppq.loadProvisionBuckets(ctx, query, nodes,
+			func(n *ProviderProfile) { n.Edges.ProvisionBuckets = []*ProvisionBucket{} },
+			func(n *ProviderProfile, e *ProvisionBucket) {
+				n.Edges.ProvisionBuckets = append(n.Edges.ProvisionBuckets, e)
+			}); err != nil {
 			return nil, err
 		}
 	}
@@ -525,6 +571,67 @@ func (ppq *ProviderProfileQuery) loadAPIKey(ctx context.Context, query *APIKeyQu
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
+func (ppq *ProviderProfileQuery) loadProvisionBuckets(ctx context.Context, query *ProvisionBucketQuery, nodes []*ProviderProfile, init func(*ProviderProfile), assign func(*ProviderProfile, *ProvisionBucket)) error {
+	edgeIDs := make([]driver.Value, len(nodes))
+	byID := make(map[string]*ProviderProfile)
+	nids := make(map[int]map[*ProviderProfile]struct{})
+	for i, node := range nodes {
+		edgeIDs[i] = node.ID
+		byID[node.ID] = node
+		if init != nil {
+			init(node)
+		}
+	}
+	query.Where(func(s *sql.Selector) {
+		joinT := sql.Table(providerprofile.ProvisionBucketsTable)
+		s.Join(joinT).On(s.C(provisionbucket.FieldID), joinT.C(providerprofile.ProvisionBucketsPrimaryKey[0]))
+		s.Where(sql.InValues(joinT.C(providerprofile.ProvisionBucketsPrimaryKey[1]), edgeIDs...))
+		columns := s.SelectedColumns()
+		s.Select(joinT.C(providerprofile.ProvisionBucketsPrimaryKey[1]))
+		s.AppendSelect(columns...)
+		s.SetDistinct(false)
+	})
+	if err := query.prepareQuery(ctx); err != nil {
+		return err
+	}
+	qr := QuerierFunc(func(ctx context.Context, q Query) (Value, error) {
+		return query.sqlAll(ctx, func(_ context.Context, spec *sqlgraph.QuerySpec) {
+			assign := spec.Assign
+			values := spec.ScanValues
+			spec.ScanValues = func(columns []string) ([]any, error) {
+				values, err := values(columns[1:])
+				if err != nil {
+					return nil, err
+				}
+				return append([]any{new(sql.NullString)}, values...), nil
+			}
+			spec.Assign = func(columns []string, values []any) error {
+				outValue := values[0].(*sql.NullString).String
+				inValue := int(values[1].(*sql.NullInt64).Int64)
+				if nids[inValue] == nil {
+					nids[inValue] = map[*ProviderProfile]struct{}{byID[outValue]: {}}
+					return assign(columns[1:], values[1:])
+				}
+				nids[inValue][byID[outValue]] = struct{}{}
+				return nil
+			}
+		})
+	})
+	neighbors, err := withInterceptors[[]*ProvisionBucket](ctx, query, qr, query.inters)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected "provision_buckets" node returned %v`, n.ID)
+		}
+		for kn := range nodes {
+			assign(kn, n)
 		}
 	}
 	return nil

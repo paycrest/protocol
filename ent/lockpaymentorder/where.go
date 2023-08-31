@@ -810,6 +810,29 @@ func HasTokenWith(preds ...predicate.Token) predicate.LockPaymentOrder {
 	})
 }
 
+// HasProvisionBucket applies the HasEdge predicate on the "provision_bucket" edge.
+func HasProvisionBucket() predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, ProvisionBucketTable, ProvisionBucketColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasProvisionBucketWith applies the HasEdge predicate on the "provision_bucket" edge with a given conditions (other predicates).
+func HasProvisionBucketWith(preds ...predicate.ProvisionBucket) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(func(s *sql.Selector) {
+		step := newProvisionBucketStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.LockPaymentOrder) predicate.LockPaymentOrder {
 	return predicate.LockPaymentOrder(func(s *sql.Selector) {

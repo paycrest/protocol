@@ -13,18 +13,20 @@ import (
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
+	"github.com/paycrest/paycrest-protocol/ent/provisionbucket"
 	"github.com/paycrest/paycrest-protocol/ent/token"
 )
 
 // LockPaymentOrderQuery is the builder for querying LockPaymentOrder entities.
 type LockPaymentOrderQuery struct {
 	config
-	ctx        *QueryContext
-	order      []lockpaymentorder.OrderOption
-	inters     []Interceptor
-	predicates []predicate.LockPaymentOrder
-	withToken  *TokenQuery
-	withFKs    bool
+	ctx                 *QueryContext
+	order               []lockpaymentorder.OrderOption
+	inters              []Interceptor
+	predicates          []predicate.LockPaymentOrder
+	withToken           *TokenQuery
+	withProvisionBucket *ProvisionBucketQuery
+	withFKs             bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -76,6 +78,28 @@ func (lpoq *LockPaymentOrderQuery) QueryToken() *TokenQuery {
 			sqlgraph.From(lockpaymentorder.Table, lockpaymentorder.FieldID, selector),
 			sqlgraph.To(token.Table, token.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, lockpaymentorder.TokenTable, lockpaymentorder.TokenColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(lpoq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryProvisionBucket chains the current query on the "provision_bucket" edge.
+func (lpoq *LockPaymentOrderQuery) QueryProvisionBucket() *ProvisionBucketQuery {
+	query := (&ProvisionBucketClient{config: lpoq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := lpoq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := lpoq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(lockpaymentorder.Table, lockpaymentorder.FieldID, selector),
+			sqlgraph.To(provisionbucket.Table, provisionbucket.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, lockpaymentorder.ProvisionBucketTable, lockpaymentorder.ProvisionBucketColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(lpoq.driver.Dialect(), step)
 		return fromU, nil
@@ -270,12 +294,13 @@ func (lpoq *LockPaymentOrderQuery) Clone() *LockPaymentOrderQuery {
 		return nil
 	}
 	return &LockPaymentOrderQuery{
-		config:     lpoq.config,
-		ctx:        lpoq.ctx.Clone(),
-		order:      append([]lockpaymentorder.OrderOption{}, lpoq.order...),
-		inters:     append([]Interceptor{}, lpoq.inters...),
-		predicates: append([]predicate.LockPaymentOrder{}, lpoq.predicates...),
-		withToken:  lpoq.withToken.Clone(),
+		config:              lpoq.config,
+		ctx:                 lpoq.ctx.Clone(),
+		order:               append([]lockpaymentorder.OrderOption{}, lpoq.order...),
+		inters:              append([]Interceptor{}, lpoq.inters...),
+		predicates:          append([]predicate.LockPaymentOrder{}, lpoq.predicates...),
+		withToken:           lpoq.withToken.Clone(),
+		withProvisionBucket: lpoq.withProvisionBucket.Clone(),
 		// clone intermediate query.
 		sql:  lpoq.sql.Clone(),
 		path: lpoq.path,
@@ -290,6 +315,17 @@ func (lpoq *LockPaymentOrderQuery) WithToken(opts ...func(*TokenQuery)) *LockPay
 		opt(query)
 	}
 	lpoq.withToken = query
+	return lpoq
+}
+
+// WithProvisionBucket tells the query-builder to eager-load the nodes that are connected to
+// the "provision_bucket" edge. The optional arguments are used to configure the query builder of the edge.
+func (lpoq *LockPaymentOrderQuery) WithProvisionBucket(opts ...func(*ProvisionBucketQuery)) *LockPaymentOrderQuery {
+	query := (&ProvisionBucketClient{config: lpoq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	lpoq.withProvisionBucket = query
 	return lpoq
 }
 
@@ -372,11 +408,12 @@ func (lpoq *LockPaymentOrderQuery) sqlAll(ctx context.Context, hooks ...queryHoo
 		nodes       = []*LockPaymentOrder{}
 		withFKs     = lpoq.withFKs
 		_spec       = lpoq.querySpec()
-		loadedTypes = [1]bool{
+		loadedTypes = [2]bool{
 			lpoq.withToken != nil,
+			lpoq.withProvisionBucket != nil,
 		}
 	)
-	if lpoq.withToken != nil {
+	if lpoq.withToken != nil || lpoq.withProvisionBucket != nil {
 		withFKs = true
 	}
 	if withFKs {
@@ -403,6 +440,12 @@ func (lpoq *LockPaymentOrderQuery) sqlAll(ctx context.Context, hooks ...queryHoo
 	if query := lpoq.withToken; query != nil {
 		if err := lpoq.loadToken(ctx, query, nodes, nil,
 			func(n *LockPaymentOrder, e *Token) { n.Edges.Token = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := lpoq.withProvisionBucket; query != nil {
+		if err := lpoq.loadProvisionBucket(ctx, query, nodes, nil,
+			func(n *LockPaymentOrder, e *ProvisionBucket) { n.Edges.ProvisionBucket = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -434,6 +477,38 @@ func (lpoq *LockPaymentOrderQuery) loadToken(ctx context.Context, query *TokenQu
 		nodes, ok := nodeids[n.ID]
 		if !ok {
 			return fmt.Errorf(`unexpected foreign-key "token_lock_payment_orders" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
+func (lpoq *LockPaymentOrderQuery) loadProvisionBucket(ctx context.Context, query *ProvisionBucketQuery, nodes []*LockPaymentOrder, init func(*LockPaymentOrder), assign func(*LockPaymentOrder, *ProvisionBucket)) error {
+	ids := make([]int, 0, len(nodes))
+	nodeids := make(map[int][]*LockPaymentOrder)
+	for i := range nodes {
+		if nodes[i].provision_bucket_lock_payment_orders == nil {
+			continue
+		}
+		fk := *nodes[i].provision_bucket_lock_payment_orders
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(provisionbucket.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "provision_bucket_lock_payment_orders" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
