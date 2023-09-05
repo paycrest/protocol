@@ -52,20 +52,13 @@ func FromSubunit(amountInSubunit *big.Int, decimals int8) decimal.Decimal {
 
 // StringToByte32 converts string to [32]byte
 func StringTo32Byte(s string) [32]byte {
-
-	buf := []byte(s)
-
-	// Pad or truncate
-	if len(buf) < 32 {
-		padded := make([]byte, 32)
-		copy(padded, buf)
-		buf = padded
-	} else if len(buf) > 32 {
-		buf = buf[:32]
-	}
-
 	var result [32]byte
-	copy(result[:], buf)
+
+	// Convert the input string to bytes
+	inputBytes := []byte(s)
+
+	// Copy the input bytes into the result array, limiting to 32 bytes
+	copy(result[:], inputBytes)
 
 	return result
 }

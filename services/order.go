@@ -28,11 +28,11 @@ type OrderService struct{}
 type CreateOrderParams struct {
 	Token              common.Address
 	Amount             *big.Int
-	RefundAddress      common.Address
+	InstitutionCode    [32]byte
+	Rate               *big.Int
 	SenderFeeRecipient common.Address
 	SenderFee          *big.Int
-	Rate               *big.Int
-	InstitutionCode    [32]byte
+	RefundAddress      common.Address
 	MessageHash        string
 }
 
@@ -174,13 +174,13 @@ func (s *OrderService) executeBatchCallData(order *ent.PaymentOrder) ([]byte, er
 	}
 
 	// Fetch paymaster account
-	paymasterAccount, err := s.getPaymasterAccount()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get paymaster account: %w", err)
-	}
+	// paymasterAccount, err := s.getPaymasterAccount()
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to get paymaster account: %w", err)
+	// }
 
 	// Create approve data for paymaster contract
-	approvePaymasterData, err := s.approveCallData(common.HexToAddress(paymasterAccount), order.Amount.BigInt())
+	approvePaymasterData, err := s.approveCallData(common.HexToAddress("0xE93ECa6595fe94091DC1af46aaC2A8b5D7990770"), order.Amount.BigInt())
 	if err != nil {
 		return nil, fmt.Errorf("failed to create paymaster approve calldata : %w", err)
 	}
@@ -198,7 +198,11 @@ func (s *OrderService) executeBatchCallData(order *ent.PaymentOrder) ([]byte, er
 
 	executeBatchCallData, err := simpleAccountABI.Pack(
 		"executeBatch",
-		[]common.Address{OrderConf.PaycrestOrderContractAddress, OrderConf.PaycrestOrderContractAddress},
+		[]common.Address{
+			common.HexToAddress("0x3870419Ba2BBf0127060bCB37f69A1b1C090992B"), // TODO: replace with production token address or config
+			common.HexToAddress("0x3870419Ba2BBf0127060bCB37f69A1b1C090992B"),
+			OrderConf.PaycrestOrderContractAddress,
+		},
 		// []*big.Int{big.NewInt(0), big.NewInt(0)},
 		[][]byte{approvePaymasterData, approvePaycrestData, createOrderData},
 	)
@@ -238,11 +242,11 @@ func (s *OrderService) createOrderCallData(order *ent.PaymentOrder) ([]byte, err
 	params := &CreateOrderParams{
 		Token:              common.HexToAddress(order.Edges.Token.ContractAddress),
 		Amount:             order.Amount.BigInt(),
-		RefundAddress:      *fromAddress,    // TODO: fetch this from the sender profile
+		InstitutionCode:    utils.StringTo32Byte(order.Edges.Recipient.Institution),
+		Rate:               big.NewInt(930), // TODO: fetch actual market rate from aggregator
 		SenderFeeRecipient: *fromAddress,    // TODO: fetch this from the sender profile
 		SenderFee:          big.NewInt(0),   // TODO: fetch this from the sender profile
-		Rate:               big.NewInt(930), // TODO: fetch actual market rate from aggregator
-		InstitutionCode:    utils.StringTo32Byte(order.Edges.Recipient.Institution),
+		RefundAddress:      *fromAddress,    // TODO: fetch this from the sender profile
 		MessageHash:        encryptedOrderRecipient,
 	}
 
@@ -349,11 +353,16 @@ func (s *OrderService) sponsorUserOperation(userOp *userop.UserOperation) error 
 		},
 	}
 
+	op, _ := userOp.MarshalJSON()
+	fmt.Println(string(op))
+
 	var result json.RawMessage
 	err = client.Call(&result, "pm_sponsorUserOperation", requestParams...)
 	if err != nil {
 		return fmt.Errorf("RPC error: %w", err)
 	}
+
+	// fmt.Println(result)
 
 	type Response struct {
 		PaymasterAndData     []byte
