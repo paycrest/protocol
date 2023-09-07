@@ -37,12 +37,42 @@ docker-compose up -d
 
 **Without docker**
 *(Ensure you have PostgreSQL 13 or higher installed and running with a database created and the credentials updated in the .env file.)*
+
+```bash
+# Tap brew core repository. Might take some time.
+brew tap homebrew/core
+
+# Install PostgreSQL via homebrew
+brew install postgresql
+
+# start postgresql service
+brew services start postgresql
+```
+
+Setup database
+
+```bash
+createdb paycrest
+createuser postgres
+
+# connect to paycrest database
+psql paycrest
+
+# enable extended display
+\x
+
+```
+
 ```bash
 # install go dependencies
 go mod download
 
 # install Air for live reloading
 curl -sSfL https://raw.githubusercontent.com/cosmtrek/air/master/install.sh | sh -s
+
+# Or 
+
+go install github.com/cosmtrek/air@latest
 
 # start server
 air -v
