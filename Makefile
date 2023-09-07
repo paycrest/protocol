@@ -16,3 +16,18 @@ build:
 
 clean:
 	docker-compose down -v
+
+psql:
+	psql paycrest
+
+gen-ent:
+	go run -mod=mod entgo.io/ent/cmd/ent generate ./ent/schema/
+
+run: gen-ent
+	air
+
+test:
+	go test -v ./...
+
+test-coverage:
+	go test $(go list ./... | grep -v /ent | grep -v /config | grep -v /database | grep -v /routers)  -coverprofile=coverage.out ./...
