@@ -5,7 +5,9 @@ import (
 	"flag"
 	"fmt"
 
+	"github.com/paycrest/paycrest-protocol/ent"
 	"github.com/paycrest/paycrest-protocol/ent/network"
+	"github.com/shopspring/decimal"
 )
 
 func SeedAll() error {
@@ -26,6 +28,7 @@ func SeedAll() error {
 
 func SeedDatabase() error {
 	client := GetClient()
+	ctx := context.Background()
 
 	// Seed Network
 	network, err := client.Network.
@@ -34,7 +37,7 @@ func SeedDatabase() error {
 		SetChainID(80001).
 		SetRPCEndpoint("wss://polygon-mumbai.infura.io/ws/v3/4458cf4d1689497b9a38b1d6bbf05e78").
 		SetIsTestnet(true).
-		Save(context.Background())
+		Save(ctx)
 	if err != nil {
 		return fmt.Errorf("failed seeding network: %w", err)
 	}
@@ -47,9 +50,59 @@ func SeedDatabase() error {
 		SetDecimals(18).
 		SetNetwork(network).
 		SetIsEnabled(true).
-		Save(context.Background())
+		Save(ctx)
 	if err != nil {
 		return fmt.Errorf("failed seeding token: %w", err)
+	}
+
+	// Seed Provision Buckets
+	for _, currency := range []string{"NGN", "KES"} {
+		sampleBuckets := make([]*ent.ProvisionBucketCreate, 0, 6)
+
+		// Add sample provision buckets.
+		sampleBuckets = append(sampleBuckets, client.ProvisionBucket.
+			Create().
+			SetMinAmount(decimal.NewFromFloat(20000001.00)).
+			SetMaxAmount(decimal.NewFromFloat(100000000.00)).
+			SetCurrency(currency),
+		)
+		sampleBuckets = append(sampleBuckets, client.ProvisionBucket.
+			Create().
+			SetMinAmount(decimal.NewFromFloat(5000001.00)).
+			SetMaxAmount(decimal.NewFromFloat(20000000.00)).
+			SetCurrency(currency),
+		)
+		sampleBuckets = append(sampleBuckets, client.ProvisionBucket.
+			Create().
+			SetMinAmount(decimal.NewFromFloat(2000001.00)).
+			SetMaxAmount(decimal.NewFromFloat(5000000.00)).
+			SetCurrency(currency),
+		)
+		sampleBuckets = append(sampleBuckets, client.ProvisionBucket.
+			Create().
+			SetMinAmount(decimal.NewFromFloat(500001.00)).
+			SetMaxAmount(decimal.NewFromFloat(2000000.00)).
+			SetCurrency(currency),
+		)
+		sampleBuckets = append(sampleBuckets, client.ProvisionBucket.
+			Create().
+			SetMinAmount(decimal.NewFromFloat(50001.00)).
+			SetMaxAmount(decimal.NewFromFloat(500000.00)).
+			SetCurrency(currency),
+		)
+		sampleBuckets = append(sampleBuckets, client.ProvisionBucket.
+			Create().
+			SetMinAmount(decimal.NewFromFloat(1000.00)).
+			SetMaxAmount(decimal.NewFromFloat(50000.00)).
+			SetCurrency(currency),
+		)
+
+		_, err := client.ProvisionBucket.
+			CreateBulk(sampleBuckets...).
+			Save(ctx)
+		if err != nil {
+			return fmt.Errorf("failed seeding provision buckets: %w", err)
+		}
 	}
 
 	return nil
