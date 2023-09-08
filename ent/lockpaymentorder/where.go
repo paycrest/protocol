@@ -77,11 +77,6 @@ func Amount(v decimal.Decimal) predicate.LockPaymentOrder {
 	return predicate.LockPaymentOrder(sql.FieldEQ(FieldAmount, v))
 }
 
-// AmountPaid applies equality check predicate on the "amount_paid" field. It's identical to AmountPaidEQ.
-func AmountPaid(v decimal.Decimal) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldEQ(FieldAmountPaid, v))
-}
-
 // Rate applies equality check predicate on the "rate" field. It's identical to RateEQ.
 func Rate(v decimal.Decimal) predicate.LockPaymentOrder {
 	return predicate.LockPaymentOrder(sql.FieldEQ(FieldRate, v))
@@ -300,46 +295,6 @@ func AmountLT(v decimal.Decimal) predicate.LockPaymentOrder {
 // AmountLTE applies the LTE predicate on the "amount" field.
 func AmountLTE(v decimal.Decimal) predicate.LockPaymentOrder {
 	return predicate.LockPaymentOrder(sql.FieldLTE(FieldAmount, v))
-}
-
-// AmountPaidEQ applies the EQ predicate on the "amount_paid" field.
-func AmountPaidEQ(v decimal.Decimal) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldEQ(FieldAmountPaid, v))
-}
-
-// AmountPaidNEQ applies the NEQ predicate on the "amount_paid" field.
-func AmountPaidNEQ(v decimal.Decimal) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldNEQ(FieldAmountPaid, v))
-}
-
-// AmountPaidIn applies the In predicate on the "amount_paid" field.
-func AmountPaidIn(vs ...decimal.Decimal) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldIn(FieldAmountPaid, vs...))
-}
-
-// AmountPaidNotIn applies the NotIn predicate on the "amount_paid" field.
-func AmountPaidNotIn(vs ...decimal.Decimal) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldNotIn(FieldAmountPaid, vs...))
-}
-
-// AmountPaidGT applies the GT predicate on the "amount_paid" field.
-func AmountPaidGT(v decimal.Decimal) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldGT(FieldAmountPaid, v))
-}
-
-// AmountPaidGTE applies the GTE predicate on the "amount_paid" field.
-func AmountPaidGTE(v decimal.Decimal) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldGTE(FieldAmountPaid, v))
-}
-
-// AmountPaidLT applies the LT predicate on the "amount_paid" field.
-func AmountPaidLT(v decimal.Decimal) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldLT(FieldAmountPaid, v))
-}
-
-// AmountPaidLTE applies the LTE predicate on the "amount_paid" field.
-func AmountPaidLTE(v decimal.Decimal) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldLTE(FieldAmountPaid, v))
 }
 
 // RateEQ applies the EQ predicate on the "rate" field.

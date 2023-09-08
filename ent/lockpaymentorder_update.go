@@ -56,19 +56,6 @@ func (lpou *LockPaymentOrderUpdate) AddAmount(d decimal.Decimal) *LockPaymentOrd
 	return lpou
 }
 
-// SetAmountPaid sets the "amount_paid" field.
-func (lpou *LockPaymentOrderUpdate) SetAmountPaid(d decimal.Decimal) *LockPaymentOrderUpdate {
-	lpou.mutation.ResetAmountPaid()
-	lpou.mutation.SetAmountPaid(d)
-	return lpou
-}
-
-// AddAmountPaid adds d to the "amount_paid" field.
-func (lpou *LockPaymentOrderUpdate) AddAmountPaid(d decimal.Decimal) *LockPaymentOrderUpdate {
-	lpou.mutation.AddAmountPaid(d)
-	return lpou
-}
-
 // SetRate sets the "rate" field.
 func (lpou *LockPaymentOrderUpdate) SetRate(d decimal.Decimal) *LockPaymentOrderUpdate {
 	lpou.mutation.ResetRate()
@@ -184,6 +171,14 @@ func (lpou *LockPaymentOrderUpdate) SetProvisionBucketID(id int) *LockPaymentOrd
 	return lpou
 }
 
+// SetNillableProvisionBucketID sets the "provision_bucket" edge to the ProvisionBucket entity by ID if the given value is not nil.
+func (lpou *LockPaymentOrderUpdate) SetNillableProvisionBucketID(id *int) *LockPaymentOrderUpdate {
+	if id != nil {
+		lpou = lpou.SetProvisionBucketID(*id)
+	}
+	return lpou
+}
+
 // SetProvisionBucket sets the "provision_bucket" edge to the ProvisionBucket entity.
 func (lpou *LockPaymentOrderUpdate) SetProvisionBucket(p *ProvisionBucket) *LockPaymentOrderUpdate {
 	return lpou.SetProvisionBucketID(p.ID)
@@ -257,9 +252,6 @@ func (lpou *LockPaymentOrderUpdate) check() error {
 	if _, ok := lpou.mutation.TokenID(); lpou.mutation.TokenCleared() && !ok {
 		return errors.New(`ent: clearing a required unique edge "LockPaymentOrder.token"`)
 	}
-	if _, ok := lpou.mutation.ProvisionBucketID(); lpou.mutation.ProvisionBucketCleared() && !ok {
-		return errors.New(`ent: clearing a required unique edge "LockPaymentOrder.provision_bucket"`)
-	}
 	return nil
 }
 
@@ -286,12 +278,6 @@ func (lpou *LockPaymentOrderUpdate) sqlSave(ctx context.Context) (n int, err err
 	}
 	if value, ok := lpou.mutation.AddedAmount(); ok {
 		_spec.AddField(lockpaymentorder.FieldAmount, field.TypeFloat64, value)
-	}
-	if value, ok := lpou.mutation.AmountPaid(); ok {
-		_spec.SetField(lockpaymentorder.FieldAmountPaid, field.TypeFloat64, value)
-	}
-	if value, ok := lpou.mutation.AddedAmountPaid(); ok {
-		_spec.AddField(lockpaymentorder.FieldAmountPaid, field.TypeFloat64, value)
 	}
 	if value, ok := lpou.mutation.Rate(); ok {
 		_spec.SetField(lockpaymentorder.FieldRate, field.TypeFloat64, value)
@@ -432,19 +418,6 @@ func (lpouo *LockPaymentOrderUpdateOne) AddAmount(d decimal.Decimal) *LockPaymen
 	return lpouo
 }
 
-// SetAmountPaid sets the "amount_paid" field.
-func (lpouo *LockPaymentOrderUpdateOne) SetAmountPaid(d decimal.Decimal) *LockPaymentOrderUpdateOne {
-	lpouo.mutation.ResetAmountPaid()
-	lpouo.mutation.SetAmountPaid(d)
-	return lpouo
-}
-
-// AddAmountPaid adds d to the "amount_paid" field.
-func (lpouo *LockPaymentOrderUpdateOne) AddAmountPaid(d decimal.Decimal) *LockPaymentOrderUpdateOne {
-	lpouo.mutation.AddAmountPaid(d)
-	return lpouo
-}
-
 // SetRate sets the "rate" field.
 func (lpouo *LockPaymentOrderUpdateOne) SetRate(d decimal.Decimal) *LockPaymentOrderUpdateOne {
 	lpouo.mutation.ResetRate()
@@ -560,6 +533,14 @@ func (lpouo *LockPaymentOrderUpdateOne) SetProvisionBucketID(id int) *LockPaymen
 	return lpouo
 }
 
+// SetNillableProvisionBucketID sets the "provision_bucket" edge to the ProvisionBucket entity by ID if the given value is not nil.
+func (lpouo *LockPaymentOrderUpdateOne) SetNillableProvisionBucketID(id *int) *LockPaymentOrderUpdateOne {
+	if id != nil {
+		lpouo = lpouo.SetProvisionBucketID(*id)
+	}
+	return lpouo
+}
+
 // SetProvisionBucket sets the "provision_bucket" edge to the ProvisionBucket entity.
 func (lpouo *LockPaymentOrderUpdateOne) SetProvisionBucket(p *ProvisionBucket) *LockPaymentOrderUpdateOne {
 	return lpouo.SetProvisionBucketID(p.ID)
@@ -646,9 +627,6 @@ func (lpouo *LockPaymentOrderUpdateOne) check() error {
 	if _, ok := lpouo.mutation.TokenID(); lpouo.mutation.TokenCleared() && !ok {
 		return errors.New(`ent: clearing a required unique edge "LockPaymentOrder.token"`)
 	}
-	if _, ok := lpouo.mutation.ProvisionBucketID(); lpouo.mutation.ProvisionBucketCleared() && !ok {
-		return errors.New(`ent: clearing a required unique edge "LockPaymentOrder.provision_bucket"`)
-	}
 	return nil
 }
 
@@ -692,12 +670,6 @@ func (lpouo *LockPaymentOrderUpdateOne) sqlSave(ctx context.Context) (_node *Loc
 	}
 	if value, ok := lpouo.mutation.AddedAmount(); ok {
 		_spec.AddField(lockpaymentorder.FieldAmount, field.TypeFloat64, value)
-	}
-	if value, ok := lpouo.mutation.AmountPaid(); ok {
-		_spec.SetField(lockpaymentorder.FieldAmountPaid, field.TypeFloat64, value)
-	}
-	if value, ok := lpouo.mutation.AddedAmountPaid(); ok {
-		_spec.AddField(lockpaymentorder.FieldAmountPaid, field.TypeFloat64, value)
 	}
 	if value, ok := lpouo.mutation.Rate(); ok {
 		_spec.SetField(lockpaymentorder.FieldRate, field.TypeFloat64, value)

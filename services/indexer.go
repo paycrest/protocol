@@ -294,6 +294,45 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 	return false, nil
 }
 
+// RunIndexERC20Transfer runs the indexer service for a receive address
+// it loops indefinitely until the address expires or a transfer is found
+func (s *IndexerService) RunIndexERC20Transfer(ctx context.Context, receiveAddress *ent.ReceiveAddress) {
+	for {
+		time.Sleep(2 * time.Minute) // add 2 minutes delay between each indexing operation
+
+		ok, err := s.IndexERC20Transfer(ctx, nil, receiveAddress)
+		if err != nil {
+			logger.Errorf("failed to index erc20 transfer: %v", err)
+			return
+		}
+
+		// Refresh the receive address with payment order
+		receiveAddress, err = db.Client.ReceiveAddress.
+			Query().
+			Where(receiveaddress.AddressEQ(receiveAddress.Address)).
+			WithPaymentOrder().
+			Only(ctx)
+		if err != nil {
+			logger.Errorf("failed to refresh receive address: %v", err)
+			return
+		}
+
+		if ok {
+			if receiveAddress.Status == receiveaddress.StatusUsed {
+				// Create order on-chain
+				orderService := NewOrderService()
+				err = orderService.CreateOrder(ctx, nil, receiveAddress.Edges.PaymentOrder.ID)
+				if err != nil {
+					logger.Errorf("failed to create order on-chain: %v", err)
+				}
+			}
+
+			// Address is expired, stop indexing
+			return
+		}
+	}
+}
+
 // IndexOrderDeposit indexes deposits to the order contract for a specific network.
 func (s *IndexerService) IndexOrderDeposits(ctx context.Context, client types.RPCClient, network *ent.Network) error {
 	var err error
@@ -644,43 +683,4 @@ func (s *IndexerService) splitLockPaymentOrder(ctx context.Context, lockPaymentO
 	}
 
 	return nil
-}
-
-// RunIndexERC20Transfer runs the indexer service for a receive address
-// it loops indefinitely until the address expires or a transfer is found
-func (s *IndexerService) RunIndexERC20Transfer(ctx context.Context, receiveAddress *ent.ReceiveAddress) {
-	for {
-		time.Sleep(2 * time.Minute) // add 2 minutes delay between each indexing operation
-
-		ok, err := s.IndexERC20Transfer(ctx, nil, receiveAddress)
-		if err != nil {
-			logger.Errorf("failed to index erc20 transfer: %v", err)
-			return
-		}
-
-		// Refresh the receive address with payment order
-		receiveAddress, err = db.Client.ReceiveAddress.
-			Query().
-			Where(receiveaddress.AddressEQ(receiveAddress.Address)).
-			WithPaymentOrder().
-			Only(ctx)
-		if err != nil {
-			logger.Errorf("failed to refresh receive address: %v", err)
-			return
-		}
-
-		if ok {
-			if receiveAddress.Status == receiveaddress.StatusUsed {
-				// Create order on-chain
-				orderService := NewOrderService()
-				err = orderService.CreateOrder(ctx, nil, receiveAddress.Edges.PaymentOrder.ID)
-				if err != nil {
-					logger.Errorf("failed to create order on-chain: %v", err)
-				}
-			}
-
-			// Address is expired, stop indexing
-			return
-		}
-	}
 }

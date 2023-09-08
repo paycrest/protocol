@@ -64,12 +64,6 @@ func (lpoc *LockPaymentOrderCreate) SetAmount(d decimal.Decimal) *LockPaymentOrd
 	return lpoc
 }
 
-// SetAmountPaid sets the "amount_paid" field.
-func (lpoc *LockPaymentOrderCreate) SetAmountPaid(d decimal.Decimal) *LockPaymentOrderCreate {
-	lpoc.mutation.SetAmountPaid(d)
-	return lpoc
-}
-
 // SetRate sets the "rate" field.
 func (lpoc *LockPaymentOrderCreate) SetRate(d decimal.Decimal) *LockPaymentOrderCreate {
 	lpoc.mutation.SetRate(d)
@@ -173,6 +167,14 @@ func (lpoc *LockPaymentOrderCreate) SetProvisionBucketID(id int) *LockPaymentOrd
 	return lpoc
 }
 
+// SetNillableProvisionBucketID sets the "provision_bucket" edge to the ProvisionBucket entity by ID if the given value is not nil.
+func (lpoc *LockPaymentOrderCreate) SetNillableProvisionBucketID(id *int) *LockPaymentOrderCreate {
+	if id != nil {
+		lpoc = lpoc.SetProvisionBucketID(*id)
+	}
+	return lpoc
+}
+
 // SetProvisionBucket sets the "provision_bucket" edge to the ProvisionBucket entity.
 func (lpoc *LockPaymentOrderCreate) SetProvisionBucket(p *ProvisionBucket) *LockPaymentOrderCreate {
 	return lpoc.SetProvisionBucketID(p.ID)
@@ -245,9 +247,6 @@ func (lpoc *LockPaymentOrderCreate) check() error {
 	if _, ok := lpoc.mutation.Amount(); !ok {
 		return &ValidationError{Name: "amount", err: errors.New(`ent: missing required field "LockPaymentOrder.amount"`)}
 	}
-	if _, ok := lpoc.mutation.AmountPaid(); !ok {
-		return &ValidationError{Name: "amount_paid", err: errors.New(`ent: missing required field "LockPaymentOrder.amount_paid"`)}
-	}
 	if _, ok := lpoc.mutation.Rate(); !ok {
 		return &ValidationError{Name: "rate", err: errors.New(`ent: missing required field "LockPaymentOrder.rate"`)}
 	}
@@ -278,9 +277,6 @@ func (lpoc *LockPaymentOrderCreate) check() error {
 	}
 	if _, ok := lpoc.mutation.TokenID(); !ok {
 		return &ValidationError{Name: "token", err: errors.New(`ent: missing required edge "LockPaymentOrder.token"`)}
-	}
-	if _, ok := lpoc.mutation.ProvisionBucketID(); !ok {
-		return &ValidationError{Name: "provision_bucket", err: errors.New(`ent: missing required edge "LockPaymentOrder.provision_bucket"`)}
 	}
 	return nil
 }
@@ -332,10 +328,6 @@ func (lpoc *LockPaymentOrderCreate) createSpec() (*LockPaymentOrder, *sqlgraph.C
 	if value, ok := lpoc.mutation.Amount(); ok {
 		_spec.SetField(lockpaymentorder.FieldAmount, field.TypeFloat64, value)
 		_node.Amount = value
-	}
-	if value, ok := lpoc.mutation.AmountPaid(); ok {
-		_spec.SetField(lockpaymentorder.FieldAmountPaid, field.TypeFloat64, value)
-		_node.AmountPaid = value
 	}
 	if value, ok := lpoc.mutation.Rate(); ok {
 		_spec.SetField(lockpaymentorder.FieldRate, field.TypeFloat64, value)
