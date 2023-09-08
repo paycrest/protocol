@@ -38,6 +38,19 @@ type orderRecipient struct {
 	ProviderID        string
 }
 
+type lockPaymentOrderFields struct {
+	Token             *ent.Token
+	OrderID           string
+	Amount            decimal.Decimal
+	Rate              decimal.Decimal
+	BlockNumber       int64
+	Institution       string
+	AccountIdentifier string
+	AccountName       string
+	ProviderID        string
+	ProvisionBucket   *ent.ProvisionBucket
+}
+
 // Indexer is an interface for indexing blockchain data to the database.
 type Indexer interface {
 	IndexERC20Transfer(ctx context.Context, client types.RPCClient, receiveAddress *ent.ReceiveAddress, done chan<- bool) error
@@ -318,7 +331,7 @@ func (s *IndexerService) IndexOrderDeposits(ctx context.Context, client types.RP
 	for {
 		select {
 		case log := <-logs:
-			err := s.saveLockPaymentOrder(ctx, network, log)
+			err := s.saveLockPaymentOrder(ctx, client, network, log)
 			if err != nil {
 				logger.Errorf("failed to save lock payment order: %v", err)
 				continue
@@ -373,7 +386,7 @@ func (s *IndexerService) indexMissingBlocks(ctx context.Context, client types.RP
 
 		// Iterate over logs
 		for iter.Next() {
-			err := s.saveLockPaymentOrder(ctx, network, iter.Event)
+			err := s.saveLockPaymentOrder(ctx, client, network, iter.Event)
 			if err != nil {
 				logger.Errorf("failed to save lock payment order: %v", err)
 				continue
@@ -408,7 +421,7 @@ func (s *IndexerService) getOrderRecipientFromMessageHash(messageHash string) (*
 }
 
 // saveLockPaymentOrder saves a lock payment order in the database
-func (s *IndexerService) saveLockPaymentOrder(ctx context.Context, network *ent.Network, deposit *contracts.PaycrestOrderDeposit) error {
+func (s *IndexerService) saveLockPaymentOrder(ctx context.Context, client types.RPCClient, network *ent.Network, deposit *contracts.PaycrestOrderDeposit) error {
 	// Get token from db
 	token, err := db.Client.Token.
 		Query().
@@ -431,35 +444,83 @@ func (s *IndexerService) saveLockPaymentOrder(ctx context.Context, network *ent.
 
 	// Get provision bucket
 	amountInDecimals := utils.FromSubunit(deposit.Amount, token.Decimals)
-	provisionBucket, err := s.getProvisionBucket(ctx, nil, amountInDecimals, deposit.InstitutionCode)
+	institution, err := s.getInstitutionByCode(ctx, client, deposit.InstitutionCode)
+	if err != nil {
+		return fmt.Errorf("failed to fetch institution: %w", err)
+	}
+
+	provisionBucket, err := s.getProvisionBucket(
+		ctx, nil, amountInDecimals, utils.Byte32ToString(institution.Currency),
+	)
 	if err != nil {
 		return fmt.Errorf("failed to fetch provision bucket: %w", err)
 	}
 
-	// Create lock payment order in db
-	_, err = db.Client.LockPaymentOrder.
-		Create().
-		SetToken(token).
-		SetOrderID(fmt.Sprintf("0x%v", hex.EncodeToString(deposit.OrderId[:]))).
-		SetAmount(amountInDecimals).
-		SetAmountPaid(decimal.NewFromInt(0)).
-		SetRate(decimal.NewFromBigInt(deposit.Rate, 0)).
-		SetBlockNumber(int64(deposit.Raw.BlockNumber)).
-		SetInstitution(utils.Byte32ToString(deposit.InstitutionCode)).
-		SetAccountIdentifier(recipient.AccountIdentifier).
-		SetAccountName(recipient.AccountName).
-		SetProviderID(recipient.ProviderID).
-		SetProvisionBucket(provisionBucket).
-		Save(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to create lock payment order: %w", err)
+	// Create lock payment order fields
+	lockPaymentOrder := lockPaymentOrderFields{
+		Token:             token,
+		OrderID:           fmt.Sprintf("0x%v", hex.EncodeToString(deposit.OrderId[:])),
+		Amount:            amountInDecimals,
+		Rate:              decimal.NewFromBigInt(deposit.Rate, 0),
+		BlockNumber:       int64(deposit.Raw.BlockNumber),
+		Institution:       utils.Byte32ToString(deposit.InstitutionCode),
+		AccountIdentifier: recipient.AccountIdentifier,
+		AccountName:       recipient.AccountName,
+		ProviderID:        recipient.ProviderID,
+		ProvisionBucket:   provisionBucket,
+	}
+
+	if provisionBucket == nil {
+		// Split lock payment order into multiple orders
+		err := s.splitLockPaymentOrder(
+			ctx, lockPaymentOrder, utils.Byte32ToString(institution.Currency),
+		)
+		if err != nil {
+			return fmt.Errorf("failed to split lock payment order: %w", err)
+		}
+	} else {
+		// Create lock payment order in db
+		_, err := db.Client.LockPaymentOrder.
+			Create().
+			SetToken(lockPaymentOrder.Token).
+			SetOrderID(lockPaymentOrder.OrderID).
+			SetAmount(lockPaymentOrder.Amount).
+			SetRate(lockPaymentOrder.Rate).
+			SetBlockNumber(lockPaymentOrder.BlockNumber).
+			SetInstitution(lockPaymentOrder.Institution).
+			SetAccountIdentifier(lockPaymentOrder.AccountIdentifier).
+			SetAccountName(lockPaymentOrder.AccountName).
+			SetProviderID(lockPaymentOrder.ProviderID).
+			SetProvisionBucket(lockPaymentOrder.ProvisionBucket).
+			Save(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to create lock payment order: %w", err)
+		}
 	}
 
 	return nil
 }
 
 // getProvisionBucket returns the provision bucket for a lock payment order
-func (s *IndexerService) getProvisionBucket(ctx context.Context, client types.RPCClient, amount decimal.Decimal, institutionCode [32]byte) (*ent.ProvisionBucket, error) {
+func (s *IndexerService) getProvisionBucket(ctx context.Context, client types.RPCClient, amount decimal.Decimal, currency string) (*ent.ProvisionBucket, error) {
+	provisionBucket, err := db.Client.ProvisionBucket.
+		Query().
+		Where(
+			provisionbucket.MaxAmountGTE(amount),
+			provisionbucket.MinAmountLTE(amount),
+			provisionbucket.CurrencyEQ(currency),
+		).
+		Only(ctx)
+	if err != nil {
+		logger.Errorf("failed to fetch provision bucket: %v", err)
+		return nil, err
+	}
+
+	return provisionBucket, nil
+}
+
+// getInstitutionByCode returns the institution for a given institution code
+func (s *IndexerService) getInstitutionByCode(ctx context.Context, client types.RPCClient, institutionCode [32]byte) (*contracts.PaycrestSettingManagerInstitutionByCode, error) {
 	instance, err := contracts.NewPaycrestOrder(OrderConf.PaycrestOrderContractAddress, client.(bind.ContractBackend))
 	if err != nil {
 		return nil, err
@@ -470,19 +531,119 @@ func (s *IndexerService) getProvisionBucket(ctx context.Context, client types.RP
 		return nil, err
 	}
 
-	provisionBucket, err := db.Client.ProvisionBucket.
+	return &institution, nil
+}
+
+// splitLockPaymentOrder splits a lock payment order into multiple orders
+func (s *IndexerService) splitLockPaymentOrder(ctx context.Context, lockPaymentOrder lockPaymentOrderFields, currency string) error {
+	buckets, err := db.Client.ProvisionBucket.
 		Query().
-		Where(
-			provisionbucket.MaxAmountGTE(amount),
-			provisionbucket.MinAmountLTE(amount),
-			provisionbucket.CurrencyEQ(utils.Byte32ToString(institution.Currency)),
-		).
-		Only(ctx)
+		Where(provisionbucket.CurrencyEQ(currency)).
+		WithProviderProfiles().
+		Order(ent.Desc(provisionbucket.FieldMaxAmount)).
+		All(ctx)
 	if err != nil {
-		return nil, err
+		logger.Errorf("failed to fetch provision buckets: %v", err)
+		return err
 	}
 
-	return provisionBucket, nil
+	amountToSplit := lockPaymentOrder.Amount // e.g 100,000
+
+	tx, err := db.Client.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+
+	for _, bucket := range buckets {
+		// Get the number of providers in the bucket
+		bucketSize := int64(len(bucket.Edges.ProviderProfiles))
+
+		// Calculate the bucket capacity: max amount * number of providers
+		bucketMaxAmountInToken := bucket.MaxAmount.Div(lockPaymentOrder.Rate)
+		numberOfAllocations := amountToSplit.Div(bucketMaxAmountInToken).IntPart() // e.g 100000 / 10000 = 10, TODO: verify integer conversion
+
+		var trips int64
+
+		if bucketSize >= numberOfAllocations {
+			trips = numberOfAllocations // e.g 10
+		} else {
+			trips = bucketSize // e.g 2
+		}
+
+		// Create a slice to hold the LockPaymentOrder entities for this bucket
+		lockOrders := make([]*ent.LockPaymentOrderCreate, 0, trips)
+
+		for i := int64(0); i < trips; i++ {
+			lockOrder := tx.LockPaymentOrder.
+				Create().
+				SetToken(lockPaymentOrder.Token).
+				SetOrderID(lockPaymentOrder.OrderID).
+				SetAmount(bucketMaxAmountInToken).
+				SetRate(lockPaymentOrder.Rate).
+				SetBlockNumber(lockPaymentOrder.BlockNumber).
+				SetInstitution(lockPaymentOrder.Institution).
+				SetAccountIdentifier(lockPaymentOrder.AccountIdentifier).
+				SetAccountName(lockPaymentOrder.AccountName).
+				SetProviderID(lockPaymentOrder.ProviderID).
+				SetProvisionBucket(bucket)
+			lockOrders = append(lockOrders, lockOrder)
+		}
+
+		// Batch insert all LockPaymentOrder entities for this bucket in a single transaction
+		_, err := tx.LockPaymentOrder.
+			CreateBulk(lockOrders...).
+			Save(ctx)
+		if err != nil {
+			logger.Errorf("failed to create lock payment orders in bulk: %v", err)
+			_ = tx.Rollback()
+			return err
+		}
+
+		amountToSplit = amountToSplit.Sub(bucketMaxAmountInToken.Mul(decimal.NewFromInt(trips)))
+	}
+
+	largestBucket := buckets[0]
+
+	if amountToSplit.LessThan(largestBucket.MaxAmount) {
+		bucket, err := s.getProvisionBucket(ctx, nil, amountToSplit, currency)
+		if err != nil {
+			return err
+		}
+
+		_, err = tx.LockPaymentOrder.
+			Create().
+			SetToken(lockPaymentOrder.Token).
+			SetOrderID(lockPaymentOrder.OrderID).
+			SetAmount(amountToSplit).
+			SetRate(lockPaymentOrder.Rate).
+			SetBlockNumber(lockPaymentOrder.BlockNumber).
+			SetInstitution(lockPaymentOrder.Institution).
+			SetAccountIdentifier(lockPaymentOrder.AccountIdentifier).
+			SetAccountName(lockPaymentOrder.AccountName).
+			SetProviderID(lockPaymentOrder.ProviderID).
+			SetProvisionBucket(bucket).
+			Save(ctx)
+		if err != nil {
+			logger.Errorf("failed to create lock payment order: %v", err)
+			_ = tx.Rollback()
+			return err
+		}
+	} else {
+		// TODO: figure out how to handle this case, currently it recursively splits the amount
+		lockPaymentOrder.Amount = amountToSplit
+		err := s.splitLockPaymentOrder(ctx, lockPaymentOrder, currency)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Commit the transaction if everything succeeded
+	if err := tx.Commit(); err != nil {
+		logger.Errorf("failed to split lock payment order: %v", err)
+		return err
+	}
+
+	return nil
 }
 
 // RunIndexERC20Transfer runs the indexer service for a receive address

@@ -177,14 +177,15 @@ func (s *OrderService) executeBatchCallData(order *ent.PaymentOrder) ([]byte, er
 	}
 
 	// Fetch paymaster account
-	// paymasterAccount, err := s.getPaymasterAccount()
-	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to get paymaster account: %w", err)
-	// }
+	paymasterAccount, err := s.getPaymasterAccount()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get paymaster account: %w", err)
+	}
 
 	// Create approve data for paymaster contract
 	approvePaymasterData, err := s.approveCallData(
-		common.HexToAddress("0xE93ECa6595fe94091DC1af46aaC2A8b5D7990770"),
+		// common.HexToAddress("0xE93ECa6595fe94091DC1af46aaC2A8b5D7990770"),
+		common.HexToAddress(paymasterAccount),
 		utils.ToSubunit(order.Amount, order.Edges.Token.Decimals),
 	)
 	if err != nil {

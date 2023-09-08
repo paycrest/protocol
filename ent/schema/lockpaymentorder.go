@@ -25,11 +25,8 @@ func (LockPaymentOrder) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
 			Default(uuid.New),
-		field.String("order_id").
-			Unique(),
+		field.String("order_id"),
 		field.Float("amount").
-			GoType(decimal.Decimal{}),
-		field.Float("amount_paid").
 			GoType(decimal.Decimal{}),
 		field.Float("rate").
 			GoType(decimal.Decimal{}),
@@ -57,7 +54,6 @@ func (LockPaymentOrder) Edges() []ent.Edge {
 			Required(),
 		edge.From("provision_bucket", ProvisionBucket.Type).
 			Ref("lock_payment_orders").
-			Unique().
-			Required(),
+			Unique(),
 	}
 }
