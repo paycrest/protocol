@@ -29,8 +29,6 @@ type LockPaymentOrder struct {
 	OrderID string `json:"order_id,omitempty"`
 	// Amount holds the value of the "amount" field.
 	Amount decimal.Decimal `json:"amount,omitempty"`
-	// AmountPaid holds the value of the "amount_paid" field.
-	AmountPaid decimal.Decimal `json:"amount_paid,omitempty"`
 	// Rate holds the value of the "rate" field.
 	Rate decimal.Decimal `json:"rate,omitempty"`
 	// TxHash holds the value of the "tx_hash" field.
@@ -97,7 +95,7 @@ func (*LockPaymentOrder) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case lockpaymentorder.FieldAmount, lockpaymentorder.FieldAmountPaid, lockpaymentorder.FieldRate:
+		case lockpaymentorder.FieldAmount, lockpaymentorder.FieldRate:
 			values[i] = new(decimal.Decimal)
 		case lockpaymentorder.FieldBlockNumber:
 			values[i] = new(sql.NullInt64)
@@ -155,12 +153,6 @@ func (lpo *LockPaymentOrder) assignValues(columns []string, values []any) error 
 				return fmt.Errorf("unexpected type %T for field amount", values[i])
 			} else if value != nil {
 				lpo.Amount = *value
-			}
-		case lockpaymentorder.FieldAmountPaid:
-			if value, ok := values[i].(*decimal.Decimal); !ok {
-				return fmt.Errorf("unexpected type %T for field amount_paid", values[i])
-			} else if value != nil {
-				lpo.AmountPaid = *value
 			}
 		case lockpaymentorder.FieldRate:
 			if value, ok := values[i].(*decimal.Decimal); !ok {
@@ -281,9 +273,6 @@ func (lpo *LockPaymentOrder) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("amount=")
 	builder.WriteString(fmt.Sprintf("%v", lpo.Amount))
-	builder.WriteString(", ")
-	builder.WriteString("amount_paid=")
-	builder.WriteString(fmt.Sprintf("%v", lpo.AmountPaid))
 	builder.WriteString(", ")
 	builder.WriteString("rate=")
 	builder.WriteString(fmt.Sprintf("%v", lpo.Rate))

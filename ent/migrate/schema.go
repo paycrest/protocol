@@ -44,9 +44,8 @@ var (
 		{Name: "id", Type: field.TypeUUID},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
-		{Name: "order_id", Type: field.TypeString, Unique: true},
+		{Name: "order_id", Type: field.TypeString},
 		{Name: "amount", Type: field.TypeFloat64},
-		{Name: "amount_paid", Type: field.TypeFloat64},
 		{Name: "rate", Type: field.TypeFloat64},
 		{Name: "tx_hash", Type: field.TypeString, Nullable: true, Size: 70},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"pending", "processing", "cancelled", "fulfilled", "validated", "settled"}, Default: "pending"},
@@ -55,7 +54,7 @@ var (
 		{Name: "account_identifier", Type: field.TypeString},
 		{Name: "account_name", Type: field.TypeString},
 		{Name: "provider_id", Type: field.TypeString, Nullable: true},
-		{Name: "provision_bucket_lock_payment_orders", Type: field.TypeInt},
+		{Name: "provision_bucket_lock_payment_orders", Type: field.TypeInt, Nullable: true},
 		{Name: "token_lock_payment_orders", Type: field.TypeInt},
 	}
 	// LockPaymentOrdersTable holds the schema information for the "lock_payment_orders" table.
@@ -66,13 +65,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "lock_payment_orders_provision_buckets_lock_payment_orders",
-				Columns:    []*schema.Column{LockPaymentOrdersColumns[14]},
+				Columns:    []*schema.Column{LockPaymentOrdersColumns[13]},
 				RefColumns: []*schema.Column{ProvisionBucketsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "lock_payment_orders_tokens_lock_payment_orders",
-				Columns:    []*schema.Column{LockPaymentOrdersColumns[15]},
+				Columns:    []*schema.Column{LockPaymentOrdersColumns[14]},
 				RefColumns: []*schema.Column{TokensColumns[0]},
 				OnDelete:   schema.Cascade,
 			},

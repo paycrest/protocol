@@ -823,8 +823,6 @@ type LockPaymentOrderMutation struct {
 	order_id                *string
 	amount                  *decimal.Decimal
 	addamount               *decimal.Decimal
-	amount_paid             *decimal.Decimal
-	addamount_paid          *decimal.Decimal
 	rate                    *decimal.Decimal
 	addrate                 *decimal.Decimal
 	tx_hash                 *string
@@ -1111,62 +1109,6 @@ func (m *LockPaymentOrderMutation) AddedAmount() (r decimal.Decimal, exists bool
 func (m *LockPaymentOrderMutation) ResetAmount() {
 	m.amount = nil
 	m.addamount = nil
-}
-
-// SetAmountPaid sets the "amount_paid" field.
-func (m *LockPaymentOrderMutation) SetAmountPaid(d decimal.Decimal) {
-	m.amount_paid = &d
-	m.addamount_paid = nil
-}
-
-// AmountPaid returns the value of the "amount_paid" field in the mutation.
-func (m *LockPaymentOrderMutation) AmountPaid() (r decimal.Decimal, exists bool) {
-	v := m.amount_paid
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldAmountPaid returns the old "amount_paid" field's value of the LockPaymentOrder entity.
-// If the LockPaymentOrder object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *LockPaymentOrderMutation) OldAmountPaid(ctx context.Context) (v decimal.Decimal, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldAmountPaid is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldAmountPaid requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldAmountPaid: %w", err)
-	}
-	return oldValue.AmountPaid, nil
-}
-
-// AddAmountPaid adds d to the "amount_paid" field.
-func (m *LockPaymentOrderMutation) AddAmountPaid(d decimal.Decimal) {
-	if m.addamount_paid != nil {
-		*m.addamount_paid = m.addamount_paid.Add(d)
-	} else {
-		m.addamount_paid = &d
-	}
-}
-
-// AddedAmountPaid returns the value that was added to the "amount_paid" field in this mutation.
-func (m *LockPaymentOrderMutation) AddedAmountPaid() (r decimal.Decimal, exists bool) {
-	v := m.addamount_paid
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// ResetAmountPaid resets all changes to the "amount_paid" field.
-func (m *LockPaymentOrderMutation) ResetAmountPaid() {
-	m.amount_paid = nil
-	m.addamount_paid = nil
 }
 
 // SetRate sets the "rate" field.
@@ -1635,7 +1577,7 @@ func (m *LockPaymentOrderMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *LockPaymentOrderMutation) Fields() []string {
-	fields := make([]string, 0, 13)
+	fields := make([]string, 0, 12)
 	if m.created_at != nil {
 		fields = append(fields, lockpaymentorder.FieldCreatedAt)
 	}
@@ -1647,9 +1589,6 @@ func (m *LockPaymentOrderMutation) Fields() []string {
 	}
 	if m.amount != nil {
 		fields = append(fields, lockpaymentorder.FieldAmount)
-	}
-	if m.amount_paid != nil {
-		fields = append(fields, lockpaymentorder.FieldAmountPaid)
 	}
 	if m.rate != nil {
 		fields = append(fields, lockpaymentorder.FieldRate)
@@ -1691,8 +1630,6 @@ func (m *LockPaymentOrderMutation) Field(name string) (ent.Value, bool) {
 		return m.OrderID()
 	case lockpaymentorder.FieldAmount:
 		return m.Amount()
-	case lockpaymentorder.FieldAmountPaid:
-		return m.AmountPaid()
 	case lockpaymentorder.FieldRate:
 		return m.Rate()
 	case lockpaymentorder.FieldTxHash:
@@ -1726,8 +1663,6 @@ func (m *LockPaymentOrderMutation) OldField(ctx context.Context, name string) (e
 		return m.OldOrderID(ctx)
 	case lockpaymentorder.FieldAmount:
 		return m.OldAmount(ctx)
-	case lockpaymentorder.FieldAmountPaid:
-		return m.OldAmountPaid(ctx)
 	case lockpaymentorder.FieldRate:
 		return m.OldRate(ctx)
 	case lockpaymentorder.FieldTxHash:
@@ -1780,13 +1715,6 @@ func (m *LockPaymentOrderMutation) SetField(name string, value ent.Value) error 
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetAmount(v)
-		return nil
-	case lockpaymentorder.FieldAmountPaid:
-		v, ok := value.(decimal.Decimal)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetAmountPaid(v)
 		return nil
 	case lockpaymentorder.FieldRate:
 		v, ok := value.(decimal.Decimal)
@@ -1855,9 +1783,6 @@ func (m *LockPaymentOrderMutation) AddedFields() []string {
 	if m.addamount != nil {
 		fields = append(fields, lockpaymentorder.FieldAmount)
 	}
-	if m.addamount_paid != nil {
-		fields = append(fields, lockpaymentorder.FieldAmountPaid)
-	}
 	if m.addrate != nil {
 		fields = append(fields, lockpaymentorder.FieldRate)
 	}
@@ -1874,8 +1799,6 @@ func (m *LockPaymentOrderMutation) AddedField(name string) (ent.Value, bool) {
 	switch name {
 	case lockpaymentorder.FieldAmount:
 		return m.AddedAmount()
-	case lockpaymentorder.FieldAmountPaid:
-		return m.AddedAmountPaid()
 	case lockpaymentorder.FieldRate:
 		return m.AddedRate()
 	case lockpaymentorder.FieldBlockNumber:
@@ -1895,13 +1818,6 @@ func (m *LockPaymentOrderMutation) AddField(name string, value ent.Value) error 
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.AddAmount(v)
-		return nil
-	case lockpaymentorder.FieldAmountPaid:
-		v, ok := value.(decimal.Decimal)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.AddAmountPaid(v)
 		return nil
 	case lockpaymentorder.FieldRate:
 		v, ok := value.(decimal.Decimal)
@@ -1970,9 +1886,6 @@ func (m *LockPaymentOrderMutation) ResetField(name string) error {
 		return nil
 	case lockpaymentorder.FieldAmount:
 		m.ResetAmount()
-		return nil
-	case lockpaymentorder.FieldAmountPaid:
-		m.ResetAmountPaid()
 		return nil
 	case lockpaymentorder.FieldRate:
 		m.ResetRate()

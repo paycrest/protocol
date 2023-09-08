@@ -24,8 +24,6 @@ const (
 	FieldOrderID = "order_id"
 	// FieldAmount holds the string denoting the amount field in the database.
 	FieldAmount = "amount"
-	// FieldAmountPaid holds the string denoting the amount_paid field in the database.
-	FieldAmountPaid = "amount_paid"
 	// FieldRate holds the string denoting the rate field in the database.
 	FieldRate = "rate"
 	// FieldTxHash holds the string denoting the tx_hash field in the database.
@@ -71,7 +69,6 @@ var Columns = []string{
 	FieldUpdatedAt,
 	FieldOrderID,
 	FieldAmount,
-	FieldAmountPaid,
 	FieldRate,
 	FieldTxHash,
 	FieldStatus,
@@ -173,11 +170,6 @@ func ByOrderID(opts ...sql.OrderTermOption) OrderOption {
 // ByAmount orders the results by the amount field.
 func ByAmount(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAmount, opts...).ToFunc()
-}
-
-// ByAmountPaid orders the results by the amount_paid field.
-func ByAmountPaid(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldAmountPaid, opts...).ToFunc()
 }
 
 // ByRate orders the results by the rate field.
