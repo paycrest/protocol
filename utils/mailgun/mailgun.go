@@ -9,25 +9,42 @@ import (
 	"github.com/paycrest/paycrest-protocol/config"
 )
 
-var mailgunConf = config.MailGunConfig()
+var (
+	mailgunConf = config.MailGunConfig()
 
-type MailGunResponse struct {
-	Message string `json:"message"`
-	ID      string `json:"id"`
+	mailer mailgunv3.Mailgun
+)
+
+// NewMailGun initialize mailgunv3.Mailgun and can be used to initialize a mocked Mailgun interface.
+func NewMailGun(m mailgunv3.Mailgun) {
+	if _, ok := m.(mailgunv3.Mailgun); ok {
+		mailer = m
+		return
+	}
+
+	mailer = mailgunv3.NewMailgun(mailgunConf.Domain, mailgunConf.ApiKey)
 }
 
-func sendMessage(from, subject, text, to string) (MailGunResponse, error) {
-	mg := mailgunv3.NewMailgun(mailgunConf.Domain, mailgunConf.ApiKey)
-	message := mg.NewMessage(from, subject, text, to)
+// MailGunResponse is the mailgunv3.Send response struct
+type MailGunResponse struct {
+	Message string `json:"message"`
+	Id      string `json:"id"`
+}
+
+// SendVerificationEmail performs the actions for sending a verification token to the user email.
+func SendVerificationEmail(token, email string) (MailGunResponse, error) {
+	// initialize
+	NewMailGun(mailer)
+
+	from := "Paycrest <no-reply@paycrest.io>"
+	subject := "Your Paycrest Email Verification Token"
+	// TODO: add custom HTML email verification template.
+	text := fmt.Sprintf("Verification Token: %s", token)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
 
-	m, id, err := mg.Send(ctx, message)
+	message, id, err := mailer.Send(ctx, mailer.NewMessage(from, subject, text, email))
 
-	return MailGunResponse{ID: id, Message: m}, err
-}
-
-func SendVerificationEmail(token, to string) (MailGunResponse, error) {
-	return sendMessage("Paycrest <no-reply@paycrest.io>", "Your Paycrest Email Verification Token", fmt.Sprintf("Verification Token: %s", token), to)
+	return MailGunResponse{Id: id, Message: message}, err
 }
