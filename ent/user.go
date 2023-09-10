@@ -42,9 +42,11 @@ type User struct {
 type UserEdges struct {
 	// APIKeys holds the value of the api_keys edge.
 	APIKeys []*APIKey `json:"api_keys,omitempty"`
+	// VerificationToken holds the value of the verification_token edge.
+	VerificationToken []*VerificationToken `json:"verification_token,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
 }
 
 // APIKeysOrErr returns the APIKeys value or an error if the edge
@@ -54,6 +56,15 @@ func (e UserEdges) APIKeysOrErr() ([]*APIKey, error) {
 		return e.APIKeys, nil
 	}
 	return nil, &NotLoadedError{edge: "api_keys"}
+}
+
+// VerificationTokenOrErr returns the VerificationToken value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) VerificationTokenOrErr() ([]*VerificationToken, error) {
+	if e.loadedTypes[1] {
+		return e.VerificationToken, nil
+	}
+	return nil, &NotLoadedError{edge: "verification_token"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -148,6 +159,11 @@ func (u *User) Value(name string) (ent.Value, error) {
 // QueryAPIKeys queries the "api_keys" edge of the User entity.
 func (u *User) QueryAPIKeys() *APIKeyQuery {
 	return NewUserClient(u.config).QueryAPIKeys(u)
+}
+
+// QueryVerificationToken queries the "verification_token" edge of the User entity.
+func (u *User) QueryVerificationToken() *VerificationTokenQuery {
+	return NewUserClient(u.config).QueryVerificationToken(u)
 }
 
 // Update returns a builder for updating this User.

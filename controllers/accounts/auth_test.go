@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jarcoal/httpmock"
 	_ "github.com/mattn/go-sqlite3"
 	db "github.com/paycrest/paycrest-protocol/database"
 	"github.com/paycrest/paycrest-protocol/routers/middleware"
@@ -27,6 +28,17 @@ import (
 )
 
 func TestAuth(t *testing.T) {
+	// setup httpmock
+	httpmock.Activate()
+	defer httpmock.Deactivate()
+
+	// register mock response
+	httpmock.RegisterResponder("POST", "https://api.mailgun.net/v3/sandbox9c66b379b78d43d2b1533bf2a09a5325.mailgun.org/messages",
+		func(r *http.Request) (*http.Response, error) {
+			return httpmock.NewBytesResponse(200, []byte(`{"id": "01", "message": "Sent"}`)), nil
+		},
+	)
+
 	// Set up test database client
 	client := enttest.Open(t, "sqlite3", "file:ent?mode=memory&_fk=1")
 	defer client.Close()

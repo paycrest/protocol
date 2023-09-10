@@ -325,13 +325,36 @@ var (
 		{Name: "last_name", Type: field.TypeString, Size: 80},
 		{Name: "email", Type: field.TypeString, Unique: true},
 		{Name: "password", Type: field.TypeString},
-		{Name: "is_verified", Type: field.TypeBool, Default: true},
+		{Name: "is_verified", Type: field.TypeBool, Default: false},
 	}
 	// UsersTable holds the schema information for the "users" table.
 	UsersTable = &schema.Table{
 		Name:       "users",
 		Columns:    UsersColumns,
 		PrimaryKey: []*schema.Column{UsersColumns[0]},
+	}
+	// VerificationTokensColumns holds the columns for the "verification_tokens" table.
+	VerificationTokensColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "token", Type: field.TypeString},
+		{Name: "scope", Type: field.TypeEnum, Enums: []string{"verification"}},
+		{Name: "user_verification_token", Type: field.TypeUUID, Nullable: true},
+	}
+	// VerificationTokensTable holds the schema information for the "verification_tokens" table.
+	VerificationTokensTable = &schema.Table{
+		Name:       "verification_tokens",
+		Columns:    VerificationTokensColumns,
+		PrimaryKey: []*schema.Column{VerificationTokensColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "verification_tokens_users_verification_token",
+				Columns:    []*schema.Column{VerificationTokensColumns[5]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
 	}
 	// ProvisionBucketProviderProfilesColumns holds the columns for the "provision_bucket_provider_profiles" table.
 	ProvisionBucketProviderProfilesColumns = []*schema.Column{
@@ -373,6 +396,7 @@ var (
 		ReceiveAddressesTable,
 		TokensTable,
 		UsersTable,
+		VerificationTokensTable,
 		ProvisionBucketProviderProfilesTable,
 	}
 )
@@ -390,6 +414,7 @@ func init() {
 	ProviderProfilesTable.ForeignKeys[0].RefTable = APIKeysTable
 	ReceiveAddressesTable.ForeignKeys[0].RefTable = PaymentOrdersTable
 	TokensTable.ForeignKeys[0].RefTable = NetworksTable
+	VerificationTokensTable.ForeignKeys[0].RefTable = UsersTable
 	ProvisionBucketProviderProfilesTable.ForeignKeys[0].RefTable = ProvisionBucketsTable
 	ProvisionBucketProviderProfilesTable.ForeignKeys[1].RefTable = ProviderProfilesTable
 }

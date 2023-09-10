@@ -32,6 +32,8 @@ const (
 	FieldIsVerified = "is_verified"
 	// EdgeAPIKeys holds the string denoting the api_keys edge name in mutations.
 	EdgeAPIKeys = "api_keys"
+	// EdgeVerificationToken holds the string denoting the verification_token edge name in mutations.
+	EdgeVerificationToken = "verification_token"
 	// Table holds the table name of the user in the database.
 	Table = "users"
 	// APIKeysTable is the table that holds the api_keys relation/edge.
@@ -41,6 +43,13 @@ const (
 	APIKeysInverseTable = "api_keys"
 	// APIKeysColumn is the table column denoting the api_keys relation/edge.
 	APIKeysColumn = "user_api_keys"
+	// VerificationTokenTable is the table that holds the verification_token relation/edge.
+	VerificationTokenTable = "verification_tokens"
+	// VerificationTokenInverseTable is the table name for the VerificationToken entity.
+	// It exists in this package in order to avoid circular dependency with the "verificationtoken" package.
+	VerificationTokenInverseTable = "verification_tokens"
+	// VerificationTokenColumn is the table column denoting the verification_token relation/edge.
+	VerificationTokenColumn = "user_verification_token"
 )
 
 // Columns holds all SQL columns for user fields.
@@ -144,10 +153,31 @@ func ByAPIKeys(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newAPIKeysStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByVerificationTokenCount orders the results by verification_token count.
+func ByVerificationTokenCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newVerificationTokenStep(), opts...)
+	}
+}
+
+// ByVerificationToken orders the results by verification_token terms.
+func ByVerificationToken(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newVerificationTokenStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newAPIKeysStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(APIKeysInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, APIKeysTable, APIKeysColumn),
+	)
+}
+func newVerificationTokenStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(VerificationTokenInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, VerificationTokenTable, VerificationTokenColumn),
 	)
 }

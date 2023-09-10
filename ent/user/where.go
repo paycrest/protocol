@@ -464,6 +464,29 @@ func HasAPIKeysWith(preds ...predicate.APIKey) predicate.User {
 	})
 }
 
+// HasVerificationToken applies the HasEdge predicate on the "verification_token" edge.
+func HasVerificationToken() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, VerificationTokenTable, VerificationTokenColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasVerificationTokenWith applies the HasEdge predicate on the "verification_token" edge with a given conditions (other predicates).
+func HasVerificationTokenWith(preds ...predicate.VerificationToken) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := newVerificationTokenStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.User) predicate.User {
 	return predicate.User(func(s *sql.Selector) {
