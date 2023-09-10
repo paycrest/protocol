@@ -160,6 +160,11 @@ func (ctrl *AuthController) Login(ctx *gin.Context) {
 		return
 	}
 
+  if !user.IsVerified {
+    u.APIResponse(ctx, http.StatusUnauthorized, "error", "Email confirmation required", "User email has not been confirmed, a confirmation code has been sent to your email")
+    return
+  }
+
 	// Generate JWT pair
 	accessToken, refreshToken, err := token.GeneratePairJWT(user.ID.String())
 
@@ -356,4 +361,34 @@ func (ctrl *AuthController) DeleteAPIKey(ctx *gin.Context) {
 
 	// Return a success response
 	u.APIResponse(ctx, http.StatusNoContent, "success", "API key deleted successfully", nil)
+}
+
+// ConfirmEmail controller validates the payload and confirm the users email.
+func (ctrl *AuthController) ConfirmEmail(ctx *gin.Context) {
+	var payload types.ConfirmEmailPayload
+
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusBadRequest, "error",
+			"Failed to validate payload", u.GetErrorData(err))
+		return
+	}
+
+	// Fetch verificationtoken
+	verificationtoken, vtErr := db.Client.VerificationToken.Query().Where(verificationtoken.TokenEQ(payload.Token)).Only(ctx)
+	user, queryOwnerErr := verificationtoken.QueryOwner().Only(ctx)
+	if vtErr != nil || queryOwnerErr != nil {
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Verification Token invalid", vtErr.Error())
+		return
+	}
+
+	// Update User IsVerified to true
+	_, setIfVerifiedErr := user.Update().SetIsVerified(true).Save(ctx)
+	if setIfVerifiedErr != nil {
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to verify user email", setIfVerifiedErr.Error())
+		return
+	}
+
+	// Return a success response
+	u.APIResponse(ctx, http.StatusOK, "success", "User Email confirmed", nil)
 }

@@ -146,3 +146,8 @@ type PaymentOrderResponse struct {
 	TxHash    string                `json:"txHash"`
 	Status    string                `json:"status"`
 }
+
+// ConfirmEmailPayload is the payload for the confirmEmail endpoint
+type ConfirmEmailPayload struct {
+	Token string `json:"token" binding:"required"`
+}

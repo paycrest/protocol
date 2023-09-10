@@ -50,6 +50,7 @@ func TestAuth(t *testing.T) {
 	ctrl := &AuthController{}
 	router.POST("/register", ctrl.Register)
 	router.POST("/login", ctrl.Login)
+	router.POST("/confirm-account", ctrl.ConfirmEmail)
 	router.POST("/refresh", middleware.JWTMiddleware, ctrl.RefreshJWT)
 	router.POST("/api-keys", middleware.JWTMiddleware, ctrl.CreateAPIKey)
 	router.GET("/api-keys", middleware.JWTMiddleware, ctrl.ListAPIKeys)
@@ -200,6 +201,38 @@ func TestAuth(t *testing.T) {
 			assert.Equal(t, "Email", errorMap["field"].(string))
 			assert.Contains(t, errorMap, "message")
 			assert.Equal(t, "Must be a valid email address", errorMap["message"].(string))
+		})
+	})
+
+	t.Run("ConfirmEmail", func(t *testing.T) {
+		// fetch user
+		user, fetchUserErr := db.Client.User.Query().Where(user.IDEQ(uuid.MustParse(userID))).Only(context.Background())
+		assert.NoError(t, fetchUserErr, "failed to fetch user by userID")
+
+		// generate verificationToken
+		verificationtoken, vtErr := user.QueryVerificationToken().Only(context.Background())
+		assert.NoError(t, vtErr)
+
+		t.Run("confirm user email", func(t *testing.T) {
+			// Test user email confirmation-token
+			payload := types.ConfirmEmailPayload{
+				Token: verificationtoken.Token,
+			}
+
+			res, err := test.PerformRequest(t, "POST", "/confirm-account", payload, nil, router)
+			assert.NoError(t, err)
+
+			// Assert the response body
+			assert.Equal(t, http.StatusOK, res.Code)
+
+			var response utils.Response
+			err = json.Unmarshal(res.Body.Bytes(), &response)
+			assert.NoError(t, err)
+			assert.Nil(t, response.Data)
+
+			updateUser, uErr := verificationtoken.QueryOwner().Only(context.Background())
+			assert.NoError(t, uErr)
+			assert.Equal(t, true, updateUser.IsVerified)
 		})
 	})
 
