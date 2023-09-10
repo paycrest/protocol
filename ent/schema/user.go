@@ -35,7 +35,7 @@ func (User) Fields() []ent.Field {
 			Unique(),
 		field.String("password").Sensitive(),
 		field.Bool("is_verified").
-			Default(true),
+			Default(false),
 	}
 }
 
@@ -43,6 +43,7 @@ func (User) Fields() []ent.Field {
 func (User) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("api_keys", APIKey.Type),
+		edge.To("verification_token", VerificationToken.Type),
 	}
 }
 
