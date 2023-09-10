@@ -18,6 +18,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/schema"
 	"github.com/paycrest/paycrest-protocol/ent/token"
 	"github.com/paycrest/paycrest-protocol/ent/user"
+	"github.com/paycrest/paycrest-protocol/ent/verificationtoken"
 )
 
 // The init function reads all schema descriptors with runtime code
@@ -240,6 +241,27 @@ func init() {
 	userDescID := userFields[0].Descriptor()
 	// user.DefaultID holds the default value on creation for the id field.
 	user.DefaultID = userDescID.Default.(func() uuid.UUID)
+	verificationtokenMixin := schema.VerificationToken{}.Mixin()
+	verificationtokenHooks := schema.VerificationToken{}.Hooks()
+	verificationtoken.Hooks[0] = verificationtokenHooks[0]
+	verificationtokenMixinFields0 := verificationtokenMixin[0].Fields()
+	_ = verificationtokenMixinFields0
+	verificationtokenFields := schema.VerificationToken{}.Fields()
+	_ = verificationtokenFields
+	// verificationtokenDescCreatedAt is the schema descriptor for created_at field.
+	verificationtokenDescCreatedAt := verificationtokenMixinFields0[0].Descriptor()
+	// verificationtoken.DefaultCreatedAt holds the default value on creation for the created_at field.
+	verificationtoken.DefaultCreatedAt = verificationtokenDescCreatedAt.Default.(func() time.Time)
+	// verificationtokenDescUpdatedAt is the schema descriptor for updated_at field.
+	verificationtokenDescUpdatedAt := verificationtokenMixinFields0[1].Descriptor()
+	// verificationtoken.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	verificationtoken.DefaultUpdatedAt = verificationtokenDescUpdatedAt.Default.(func() time.Time)
+	// verificationtoken.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	verificationtoken.UpdateDefaultUpdatedAt = verificationtokenDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// verificationtokenDescID is the schema descriptor for id field.
+	verificationtokenDescID := verificationtokenFields[0].Descriptor()
+	// verificationtoken.DefaultID holds the default value on creation for the id field.
+	verificationtoken.DefaultID = verificationtokenDescID.Default.(func() uuid.UUID)
 }
 
 const (

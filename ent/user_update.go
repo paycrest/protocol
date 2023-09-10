@@ -15,6 +15,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
 	"github.com/paycrest/paycrest-protocol/ent/user"
+	"github.com/paycrest/paycrest-protocol/ent/verificationtoken"
 )
 
 // UserUpdate is the builder for updating User entities.
@@ -89,6 +90,21 @@ func (uu *UserUpdate) AddAPIKeys(a ...*APIKey) *UserUpdate {
 	return uu.AddAPIKeyIDs(ids...)
 }
 
+// AddVerificationTokenIDs adds the "verification_token" edge to the VerificationToken entity by IDs.
+func (uu *UserUpdate) AddVerificationTokenIDs(ids ...uuid.UUID) *UserUpdate {
+	uu.mutation.AddVerificationTokenIDs(ids...)
+	return uu
+}
+
+// AddVerificationToken adds the "verification_token" edges to the VerificationToken entity.
+func (uu *UserUpdate) AddVerificationToken(v ...*VerificationToken) *UserUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return uu.AddVerificationTokenIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (uu *UserUpdate) Mutation() *UserMutation {
 	return uu.mutation
@@ -113,6 +129,27 @@ func (uu *UserUpdate) RemoveAPIKeys(a ...*APIKey) *UserUpdate {
 		ids[i] = a[i].ID
 	}
 	return uu.RemoveAPIKeyIDs(ids...)
+}
+
+// ClearVerificationToken clears all "verification_token" edges to the VerificationToken entity.
+func (uu *UserUpdate) ClearVerificationToken() *UserUpdate {
+	uu.mutation.ClearVerificationToken()
+	return uu
+}
+
+// RemoveVerificationTokenIDs removes the "verification_token" edge to VerificationToken entities by IDs.
+func (uu *UserUpdate) RemoveVerificationTokenIDs(ids ...uuid.UUID) *UserUpdate {
+	uu.mutation.RemoveVerificationTokenIDs(ids...)
+	return uu
+}
+
+// RemoveVerificationToken removes "verification_token" edges to VerificationToken entities.
+func (uu *UserUpdate) RemoveVerificationToken(v ...*VerificationToken) *UserUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return uu.RemoveVerificationTokenIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -247,6 +284,51 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if uu.mutation.VerificationTokenCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.VerificationTokenTable,
+			Columns: []string{user.VerificationTokenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(verificationtoken.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.RemovedVerificationTokenIDs(); len(nodes) > 0 && !uu.mutation.VerificationTokenCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.VerificationTokenTable,
+			Columns: []string{user.VerificationTokenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(verificationtoken.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.VerificationTokenIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.VerificationTokenTable,
+			Columns: []string{user.VerificationTokenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(verificationtoken.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, uu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{user.Label}
@@ -326,6 +408,21 @@ func (uuo *UserUpdateOne) AddAPIKeys(a ...*APIKey) *UserUpdateOne {
 	return uuo.AddAPIKeyIDs(ids...)
 }
 
+// AddVerificationTokenIDs adds the "verification_token" edge to the VerificationToken entity by IDs.
+func (uuo *UserUpdateOne) AddVerificationTokenIDs(ids ...uuid.UUID) *UserUpdateOne {
+	uuo.mutation.AddVerificationTokenIDs(ids...)
+	return uuo
+}
+
+// AddVerificationToken adds the "verification_token" edges to the VerificationToken entity.
+func (uuo *UserUpdateOne) AddVerificationToken(v ...*VerificationToken) *UserUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return uuo.AddVerificationTokenIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (uuo *UserUpdateOne) Mutation() *UserMutation {
 	return uuo.mutation
@@ -350,6 +447,27 @@ func (uuo *UserUpdateOne) RemoveAPIKeys(a ...*APIKey) *UserUpdateOne {
 		ids[i] = a[i].ID
 	}
 	return uuo.RemoveAPIKeyIDs(ids...)
+}
+
+// ClearVerificationToken clears all "verification_token" edges to the VerificationToken entity.
+func (uuo *UserUpdateOne) ClearVerificationToken() *UserUpdateOne {
+	uuo.mutation.ClearVerificationToken()
+	return uuo
+}
+
+// RemoveVerificationTokenIDs removes the "verification_token" edge to VerificationToken entities by IDs.
+func (uuo *UserUpdateOne) RemoveVerificationTokenIDs(ids ...uuid.UUID) *UserUpdateOne {
+	uuo.mutation.RemoveVerificationTokenIDs(ids...)
+	return uuo
+}
+
+// RemoveVerificationToken removes "verification_token" edges to VerificationToken entities.
+func (uuo *UserUpdateOne) RemoveVerificationToken(v ...*VerificationToken) *UserUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return uuo.RemoveVerificationTokenIDs(ids...)
 }
 
 // Where appends a list predicates to the UserUpdate builder.
@@ -507,6 +625,51 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if uuo.mutation.VerificationTokenCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.VerificationTokenTable,
+			Columns: []string{user.VerificationTokenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(verificationtoken.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.RemovedVerificationTokenIDs(); len(nodes) > 0 && !uuo.mutation.VerificationTokenCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.VerificationTokenTable,
+			Columns: []string{user.VerificationTokenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(verificationtoken.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.VerificationTokenIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.VerificationTokenTable,
+			Columns: []string{user.VerificationTokenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(verificationtoken.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

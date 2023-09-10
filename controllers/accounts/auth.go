@@ -11,11 +11,13 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/user"
+	"github.com/paycrest/paycrest-protocol/ent/verificationtoken"
 	svc "github.com/paycrest/paycrest-protocol/services"
 	"github.com/paycrest/paycrest-protocol/types"
 	u "github.com/paycrest/paycrest-protocol/utils"
 	"github.com/paycrest/paycrest-protocol/utils/crypto"
 	"github.com/paycrest/paycrest-protocol/utils/logger"
+	"github.com/paycrest/paycrest-protocol/utils/mailgun"
 	"github.com/paycrest/paycrest-protocol/utils/token"
 )
 
@@ -72,6 +74,14 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 		return
 	}
 
+	verificationToken, err := db.Client.VerificationToken.Create().SetOwner(user).SetScope(verificationtoken.ScopeVerification).Save(ctx)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error",
+			"Failed to send user verification token", err.Error())
+		return
+	}
+
 	// Create a provider API Key and profile in the background
 	// TODO: Replace provider with a UUID environment variable
 	if appID := ctx.GetHeader("X-APP-ID"); appID == "provider" {
@@ -105,7 +115,11 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 		}
 	}
 
-	// TODO: Send email to verify the user's email address
+	if _, err := mailgun.SendVerificationEmail(verificationToken.Token, user.Email); err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Created a user, but failed to send verification token", err.Error())
+		return
+	}
 
 	u.APIResponse(ctx, http.StatusCreated, "success", "User created successfully",
 		&types.RegisterResponse{

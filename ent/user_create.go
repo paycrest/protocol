@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/user"
+	"github.com/paycrest/paycrest-protocol/ent/verificationtoken"
 )
 
 // UserCreate is the builder for creating a User entity.
@@ -115,6 +116,21 @@ func (uc *UserCreate) AddAPIKeys(a ...*APIKey) *UserCreate {
 		ids[i] = a[i].ID
 	}
 	return uc.AddAPIKeyIDs(ids...)
+}
+
+// AddVerificationTokenIDs adds the "verification_token" edge to the VerificationToken entity by IDs.
+func (uc *UserCreate) AddVerificationTokenIDs(ids ...uuid.UUID) *UserCreate {
+	uc.mutation.AddVerificationTokenIDs(ids...)
+	return uc
+}
+
+// AddVerificationToken adds the "verification_token" edges to the VerificationToken entity.
+func (uc *UserCreate) AddVerificationToken(v ...*VerificationToken) *UserCreate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return uc.AddVerificationTokenIDs(ids...)
 }
 
 // Mutation returns the UserMutation object of the builder.
@@ -287,6 +303,22 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := uc.mutation.VerificationTokenIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.VerificationTokenTable,
+			Columns: []string{user.VerificationTokenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(verificationtoken.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

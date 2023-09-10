@@ -28,6 +28,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
 	"github.com/paycrest/paycrest-protocol/ent/token"
 	"github.com/paycrest/paycrest-protocol/ent/user"
+	"github.com/paycrest/paycrest-protocol/ent/verificationtoken"
 )
 
 // Client is the client that holds all ent builders.
@@ -61,6 +62,8 @@ type Client struct {
 	Token *TokenClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
+	// VerificationToken is the client for interacting with the VerificationToken builders.
+	VerificationToken *VerificationTokenClient
 }
 
 // NewClient creates a new client configured with the given options.
@@ -87,6 +90,7 @@ func (c *Client) init() {
 	c.ReceiveAddress = NewReceiveAddressClient(c.config)
 	c.Token = NewTokenClient(c.config)
 	c.User = NewUserClient(c.config)
+	c.VerificationToken = NewVerificationTokenClient(c.config)
 }
 
 type (
@@ -182,6 +186,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		ReceiveAddress:            NewReceiveAddressClient(cfg),
 		Token:                     NewTokenClient(cfg),
 		User:                      NewUserClient(cfg),
+		VerificationToken:         NewVerificationTokenClient(cfg),
 	}, nil
 }
 
@@ -214,6 +219,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		ReceiveAddress:            NewReceiveAddressClient(cfg),
 		Token:                     NewTokenClient(cfg),
 		User:                      NewUserClient(cfg),
+		VerificationToken:         NewVerificationTokenClient(cfg),
 	}, nil
 }
 
@@ -246,7 +252,7 @@ func (c *Client) Use(hooks ...Hook) {
 		c.APIKey, c.LockPaymentOrder, c.Network, c.PaymentOrder,
 		c.PaymentOrderRecipient, c.ProviderAvailability, c.ProviderOrderToken,
 		c.ProviderOrderTokenAddress, c.ProviderProfile, c.ProvisionBucket,
-		c.ReceiveAddress, c.Token, c.User,
+		c.ReceiveAddress, c.Token, c.User, c.VerificationToken,
 	} {
 		n.Use(hooks...)
 	}
@@ -259,7 +265,7 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.APIKey, c.LockPaymentOrder, c.Network, c.PaymentOrder,
 		c.PaymentOrderRecipient, c.ProviderAvailability, c.ProviderOrderToken,
 		c.ProviderOrderTokenAddress, c.ProviderProfile, c.ProvisionBucket,
-		c.ReceiveAddress, c.Token, c.User,
+		c.ReceiveAddress, c.Token, c.User, c.VerificationToken,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -294,6 +300,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Token.mutate(ctx, m)
 	case *UserMutation:
 		return c.User.mutate(ctx, m)
+	case *VerificationTokenMutation:
+		return c.VerificationToken.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
 	}
@@ -2224,6 +2232,22 @@ func (c *UserClient) QueryAPIKeys(u *User) *APIKeyQuery {
 	return query
 }
 
+// QueryVerificationToken queries the verification_token edge of a User.
+func (c *UserClient) QueryVerificationToken(u *User) *VerificationTokenQuery {
+	query := (&VerificationTokenClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := u.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(verificationtoken.Table, verificationtoken.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.VerificationTokenTable, user.VerificationTokenColumn),
+		)
+		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *UserClient) Hooks() []Hook {
 	hooks := c.hooks.User
@@ -2250,16 +2274,153 @@ func (c *UserClient) mutate(ctx context.Context, m *UserMutation) (Value, error)
 	}
 }
 
+// VerificationTokenClient is a client for the VerificationToken schema.
+type VerificationTokenClient struct {
+	config
+}
+
+// NewVerificationTokenClient returns a client for the VerificationToken from the given config.
+func NewVerificationTokenClient(c config) *VerificationTokenClient {
+	return &VerificationTokenClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `verificationtoken.Hooks(f(g(h())))`.
+func (c *VerificationTokenClient) Use(hooks ...Hook) {
+	c.hooks.VerificationToken = append(c.hooks.VerificationToken, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `verificationtoken.Intercept(f(g(h())))`.
+func (c *VerificationTokenClient) Intercept(interceptors ...Interceptor) {
+	c.inters.VerificationToken = append(c.inters.VerificationToken, interceptors...)
+}
+
+// Create returns a builder for creating a VerificationToken entity.
+func (c *VerificationTokenClient) Create() *VerificationTokenCreate {
+	mutation := newVerificationTokenMutation(c.config, OpCreate)
+	return &VerificationTokenCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of VerificationToken entities.
+func (c *VerificationTokenClient) CreateBulk(builders ...*VerificationTokenCreate) *VerificationTokenCreateBulk {
+	return &VerificationTokenCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for VerificationToken.
+func (c *VerificationTokenClient) Update() *VerificationTokenUpdate {
+	mutation := newVerificationTokenMutation(c.config, OpUpdate)
+	return &VerificationTokenUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *VerificationTokenClient) UpdateOne(vt *VerificationToken) *VerificationTokenUpdateOne {
+	mutation := newVerificationTokenMutation(c.config, OpUpdateOne, withVerificationToken(vt))
+	return &VerificationTokenUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *VerificationTokenClient) UpdateOneID(id uuid.UUID) *VerificationTokenUpdateOne {
+	mutation := newVerificationTokenMutation(c.config, OpUpdateOne, withVerificationTokenID(id))
+	return &VerificationTokenUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for VerificationToken.
+func (c *VerificationTokenClient) Delete() *VerificationTokenDelete {
+	mutation := newVerificationTokenMutation(c.config, OpDelete)
+	return &VerificationTokenDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *VerificationTokenClient) DeleteOne(vt *VerificationToken) *VerificationTokenDeleteOne {
+	return c.DeleteOneID(vt.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *VerificationTokenClient) DeleteOneID(id uuid.UUID) *VerificationTokenDeleteOne {
+	builder := c.Delete().Where(verificationtoken.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &VerificationTokenDeleteOne{builder}
+}
+
+// Query returns a query builder for VerificationToken.
+func (c *VerificationTokenClient) Query() *VerificationTokenQuery {
+	return &VerificationTokenQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeVerificationToken},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a VerificationToken entity by its id.
+func (c *VerificationTokenClient) Get(ctx context.Context, id uuid.UUID) (*VerificationToken, error) {
+	return c.Query().Where(verificationtoken.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *VerificationTokenClient) GetX(ctx context.Context, id uuid.UUID) *VerificationToken {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryOwner queries the owner edge of a VerificationToken.
+func (c *VerificationTokenClient) QueryOwner(vt *VerificationToken) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := vt.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(verificationtoken.Table, verificationtoken.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, verificationtoken.OwnerTable, verificationtoken.OwnerColumn),
+		)
+		fromV = sqlgraph.Neighbors(vt.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *VerificationTokenClient) Hooks() []Hook {
+	hooks := c.hooks.VerificationToken
+	return append(hooks[:len(hooks):len(hooks)], verificationtoken.Hooks[:]...)
+}
+
+// Interceptors returns the client interceptors.
+func (c *VerificationTokenClient) Interceptors() []Interceptor {
+	return c.inters.VerificationToken
+}
+
+func (c *VerificationTokenClient) mutate(ctx context.Context, m *VerificationTokenMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&VerificationTokenCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&VerificationTokenUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&VerificationTokenUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&VerificationTokenDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown VerificationToken mutation op: %q", m.Op())
+	}
+}
+
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
 		APIKey, LockPaymentOrder, Network, PaymentOrder, PaymentOrderRecipient,
 		ProviderAvailability, ProviderOrderToken, ProviderOrderTokenAddress,
-		ProviderProfile, ProvisionBucket, ReceiveAddress, Token, User []ent.Hook
+		ProviderProfile, ProvisionBucket, ReceiveAddress, Token, User,
+		VerificationToken []ent.Hook
 	}
 	inters struct {
 		APIKey, LockPaymentOrder, Network, PaymentOrder, PaymentOrderRecipient,
 		ProviderAvailability, ProviderOrderToken, ProviderOrderTokenAddress,
-		ProviderProfile, ProvisionBucket, ReceiveAddress, Token, User []ent.Interceptor
+		ProviderProfile, ProvisionBucket, ReceiveAddress, Token, User,
+		VerificationToken []ent.Interceptor
 	}
 )

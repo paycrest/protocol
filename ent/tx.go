@@ -38,6 +38,8 @@ type Tx struct {
 	Token *TokenClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
+	// VerificationToken is the client for interacting with the VerificationToken builders.
+	VerificationToken *VerificationTokenClient
 
 	// lazily loaded.
 	client     *Client
@@ -182,6 +184,7 @@ func (tx *Tx) init() {
 	tx.ReceiveAddress = NewReceiveAddressClient(tx.config)
 	tx.Token = NewTokenClient(tx.config)
 	tx.User = NewUserClient(tx.config)
+	tx.VerificationToken = NewVerificationTokenClient(tx.config)
 }
 
 // txDriver wraps the given dialect.Tx with a nop dialect.Driver implementation.
