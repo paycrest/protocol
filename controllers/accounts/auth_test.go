@@ -14,6 +14,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	db "github.com/paycrest/paycrest-protocol/database"
 	"github.com/paycrest/paycrest-protocol/routers/middleware"
+	svc "github.com/paycrest/paycrest-protocol/services"
 	"github.com/paycrest/paycrest-protocol/types"
 
 	"github.com/gin-gonic/gin"
@@ -47,7 +48,7 @@ func TestAuth(t *testing.T) {
 
 	// Set up test routers
 	router := gin.New()
-	ctrl := &AuthController{}
+	ctrl := &AuthController{emailService: svc.NewEmailService(svc.SENDGRID_MAIL_PROVIDER)}
 	router.POST("/register", ctrl.Register)
 	router.POST("/login", ctrl.Login)
 	router.POST("/confirm-account", ctrl.ConfirmEmail)

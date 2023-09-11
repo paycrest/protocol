@@ -151,3 +151,17 @@ type PaymentOrderResponse struct {
 type ConfirmEmailPayload struct {
 	Token string `json:"token" binding:"required"`
 }
+
+// SendEmailPayload is content of a email request.
+type SendEmailPayload struct {
+	FromAddress string
+	ToAddress   string
+	Subject     string
+	Body        string
+}
+
+// SendEmailResponse is the mailgunv3.Send response struct
+type SendEmailResponse struct {
+	Message string `json:"message"`
+	Id      string `json:"id"`
+}
