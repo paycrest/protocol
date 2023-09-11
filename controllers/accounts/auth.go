@@ -17,19 +17,20 @@ import (
 	u "github.com/paycrest/paycrest-protocol/utils"
 	"github.com/paycrest/paycrest-protocol/utils/crypto"
 	"github.com/paycrest/paycrest-protocol/utils/logger"
-	"github.com/paycrest/paycrest-protocol/utils/mailgun"
 	"github.com/paycrest/paycrest-protocol/utils/token"
 )
 
 // AuthController is the controller type for the auth endpoints
 type AuthController struct {
 	apiKeyService *svc.APIKeyService
+	emailService  *svc.EmailService
 }
 
 // NewAuthController creates a new instance of AuthController with injected services
 func NewAuthController() *AuthController {
 	return &AuthController{
 		apiKeyService: svc.NewAPIKeyService(),
+		emailService:  svc.NewEmailService(svc.MAILGUN_MAIL_PROVIDER),
 	}
 }
 
@@ -77,9 +78,12 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 	verificationToken, err := db.Client.VerificationToken.Create().SetOwner(user).SetScope(verificationtoken.ScopeVerification).Save(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusInternalServerError, "error",
-			"Failed to send user verification token", err.Error())
-		return
+	}
+
+	if verificationToken != nil {
+		if _, err := ctrl.emailService.SendVerificationEmail(ctx, verificationToken.Token, user.Email); err != nil {
+			logger.Errorf("error: %v", err)
+		}
 	}
 
 	// Create a provider API Key and profile in the background
@@ -113,12 +117,6 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 				"Failed to create new user", err.Error())
 			return
 		}
-	}
-
-	if _, err := mailgun.SendVerificationEmail(verificationToken.Token, user.Email); err != nil {
-		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Created a user, but failed to send verification token", err.Error())
-		return
 	}
 
 	u.APIResponse(ctx, http.StatusCreated, "success", "User created successfully",
@@ -159,11 +157,6 @@ func (ctrl *AuthController) Login(ctx *gin.Context) {
 		)
 		return
 	}
-
-  if !user.IsVerified {
-    u.APIResponse(ctx, http.StatusUnauthorized, "error", "Email confirmation required", "User email has not been confirmed, a confirmation code has been sent to your email")
-    return
-  }
 
 	// Generate JWT pair
 	accessToken, refreshToken, err := token.GeneratePairJWT(user.ID.String())
