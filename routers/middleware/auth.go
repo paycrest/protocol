@@ -12,9 +12,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/config"
-	db "github.com/paycrest/paycrest-protocol/database"
 	"github.com/paycrest/paycrest-protocol/ent"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
+	db "github.com/paycrest/paycrest-protocol/storage"
 	u "github.com/paycrest/paycrest-protocol/utils"
 	"github.com/paycrest/paycrest-protocol/utils/crypto"
 	"github.com/paycrest/paycrest-protocol/utils/logger"
@@ -206,7 +206,7 @@ func OnlySenderMiddleware(c *gin.Context) {
 func OnlyProviderMiddleware(c *gin.Context) {
 	apiKey, ok := c.Get("api_key")
 
-	if ok &&  apiKey.(*ent.APIKey).Scope != apikey.ScopeProvider {
+	if ok && apiKey.(*ent.APIKey).Scope != apikey.ScopeProvider {
 		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid API key scope", nil)
 		c.Abort()
 		return
@@ -219,7 +219,7 @@ func OnlyProviderMiddleware(c *gin.Context) {
 func OnlyValidatorMiddleware(c *gin.Context) {
 	apiKey, ok := c.Get("api_key")
 
-	if ok &&  apiKey.(*ent.APIKey).Scope != apikey.ScopeTxValidator {
+	if ok && apiKey.(*ent.APIKey).Scope != apikey.ScopeTxValidator {
 		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid API key scope", nil)
 		c.Abort()
 		return

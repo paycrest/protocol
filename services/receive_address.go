@@ -9,10 +9,10 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	db "github.com/paycrest/paycrest-protocol/database"
 	"github.com/paycrest/paycrest-protocol/ent"
 	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
 	"github.com/paycrest/paycrest-protocol/services/contracts"
+	db "github.com/paycrest/paycrest-protocol/storage"
 	"github.com/paycrest/paycrest-protocol/types"
 	cryptoUtils "github.com/paycrest/paycrest-protocol/utils/crypto"
 )

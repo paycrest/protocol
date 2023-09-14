@@ -12,9 +12,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/jarcoal/httpmock"
 	_ "github.com/mattn/go-sqlite3"
-	db "github.com/paycrest/paycrest-protocol/database"
 	"github.com/paycrest/paycrest-protocol/routers/middleware"
 	svc "github.com/paycrest/paycrest-protocol/services"
+	db "github.com/paycrest/paycrest-protocol/storage"
 	"github.com/paycrest/paycrest-protocol/types"
 
 	"github.com/gin-gonic/gin"

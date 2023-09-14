@@ -14,6 +14,16 @@ services:
       - ./tmp/db:/var/lib/postgresql/data/
     restart: always
 
+  redis:
+    container_name: paycrest_redis
+    image: redis:7.2-alpine
+    environment:
+      - REDIS_DB=0
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    ports:
+      - ${REDIS_PORT}:6379
+    restart: always
+
   server:
     container_name: paycrest_server
     build:
