@@ -22,6 +22,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/enttest"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 	"github.com/paycrest/paycrest-protocol/ent/user"
+	"github.com/paycrest/paycrest-protocol/ent/verificationtoken"
 	"github.com/paycrest/paycrest-protocol/utils"
 	"github.com/paycrest/paycrest-protocol/utils/test"
 	"github.com/paycrest/paycrest-protocol/utils/token"
@@ -52,6 +53,7 @@ func TestAuth(t *testing.T) {
 	router.POST("/register", ctrl.Register)
 	router.POST("/login", ctrl.Login)
 	router.POST("/confirm-account", ctrl.ConfirmEmail)
+	router.POST("/resend-token", ctrl.ResendVerificationToken)
 	router.POST("/refresh", middleware.JWTMiddleware, ctrl.RefreshJWT)
 	router.POST("/api-keys", middleware.JWTMiddleware, ctrl.CreateAPIKey)
 	router.GET("/api-keys", middleware.JWTMiddleware, ctrl.ListAPIKeys)
@@ -513,6 +515,33 @@ func TestAuth(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Equal(t, "error", response.Status)
 			assert.Equal(t, "Invalid API key ID", response.Message)
+		})
+	})
+
+	t.Run("ResendVerificationToken", func(t *testing.T) {
+		// fetch user
+		user, fetchUserErr := db.Client.User.Query().Where(user.IDEQ(uuid.MustParse(userID))).Only(context.Background())
+		assert.NoError(t, fetchUserErr, "failed to fetch user by userID")
+
+		_, err := user.Update().SetIsVerified(false).Save(context.Background())
+		assert.NoError(t, err, "failed to set isVerified to false")
+
+		t.Run("verification token should be resent", func(t *testing.T) {
+			// construct resend verification token payload
+			payload := types.ResendVerificationTokenPayload{
+				Scope: verificationtoken.ScopeVerification.String(),
+				Email: user.Email,
+			}
+
+			res, err := test.PerformRequest(t, "POST", "/resend-token", payload, nil, router)
+			assert.NoError(t, err)
+
+			// Assert the response body
+			assert.Equal(t, http.StatusOK, res.Code)
+
+      // verificationtokens should be two
+      amount := user.QueryVerificationToken().CountX(context.Background())
+      assert.Equal(t, 2, amount)
 		})
 	})
 }
