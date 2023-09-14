@@ -18,8 +18,8 @@ type DatabaseConfiguration struct {
 	LogMode  bool
 }
 
-// DBConfiguration sets the database configuration
-func DBConfiguration() (DSN string) {
+// DBConfig sets the database configuration
+func DBConfig() (DSN string) {
 	DbName := viper.GetString("DB_NAME")
 	DbUser := viper.GetString("DB_USER")
 	DbPassword := viper.GetString("DB_PASSWORD")

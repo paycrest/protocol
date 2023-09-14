@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/paycrest/paycrest-protocol/config"
-	"github.com/paycrest/paycrest-protocol/database"
 	"github.com/paycrest/paycrest-protocol/routers"
+	"github.com/paycrest/paycrest-protocol/storage"
 	"github.com/paycrest/paycrest-protocol/tasks"
 	"github.com/paycrest/paycrest-protocol/utils/logger"
 )
@@ -18,17 +18,22 @@ func main() {
 	time.Local = loc
 
 	// Connect to the database
-	DSN := config.DBConfiguration()
+	DSN := config.DBConfig()
 
-	if err := database.DBConnection(DSN); err != nil {
+	if err := storage.DBConnection(DSN); err != nil {
 		logger.Fatalf("database DBConnection error: %s", err)
 	}
 
-	defer database.GetClient().Close()
+	defer storage.GetClient().Close()
 
 	// Seed the database
-	if err := database.SeedAll(); err != nil {
+	if err := storage.SeedAll(); err != nil {
 		logger.Fatalf("database SeedAll error: %s", err)
+	}
+
+	// Initialize Redis
+	if err := storage.InitializeRedis(); err != nil {
+		logger.Fatalf("Redis initialization error: %s", err)
 	}
 
 	// Start indexer

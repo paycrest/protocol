@@ -4,8 +4,8 @@ import (
 	"context"
 	"strings"
 
-	db "github.com/paycrest/paycrest-protocol/database"
 	"github.com/paycrest/paycrest-protocol/ent"
+	db "github.com/paycrest/paycrest-protocol/storage"
 	"github.com/paycrest/paycrest-protocol/types"
 )
 
