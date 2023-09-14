@@ -30,6 +30,8 @@ const (
 	EdgeOrderTokens = "order_tokens"
 	// EdgeAvailability holds the string denoting the availability edge name in mutations.
 	EdgeAvailability = "availability"
+	// EdgeProviderRating holds the string denoting the provider_rating edge name in mutations.
+	EdgeProviderRating = "provider_rating"
 	// Table holds the table name of the providerprofile in the database.
 	Table = "provider_profiles"
 	// APIKeyTable is the table that holds the api_key relation/edge.
@@ -58,6 +60,13 @@ const (
 	AvailabilityInverseTable = "provider_availabilities"
 	// AvailabilityColumn is the table column denoting the availability relation/edge.
 	AvailabilityColumn = "provider_profile_availability"
+	// ProviderRatingTable is the table that holds the provider_rating relation/edge.
+	ProviderRatingTable = "provider_ratings"
+	// ProviderRatingInverseTable is the table name for the ProviderRating entity.
+	// It exists in this package in order to avoid circular dependency with the "providerrating" package.
+	ProviderRatingInverseTable = "provider_ratings"
+	// ProviderRatingColumn is the table column denoting the provider_rating relation/edge.
+	ProviderRatingColumn = "provider_profile_provider_rating"
 )
 
 // Columns holds all SQL columns for providerprofile fields.
@@ -180,6 +189,13 @@ func ByAvailabilityField(field string, opts ...sql.OrderTermOption) OrderOption 
 		sqlgraph.OrderByNeighborTerms(s, newAvailabilityStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// ByProviderRatingField orders the results by provider_rating field.
+func ByProviderRatingField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newProviderRatingStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newAPIKeyStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -206,5 +222,12 @@ func newAvailabilityStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(AvailabilityInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2O, false, AvailabilityTable, AvailabilityColumn),
+	)
+}
+func newProviderRatingStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ProviderRatingInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, false, ProviderRatingTable, ProviderRatingColumn),
 	)
 }

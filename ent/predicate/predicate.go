@@ -33,6 +33,9 @@ type ProviderOrderTokenAddress func(*sql.Selector)
 // ProviderProfile is the predicate function for providerprofile builders.
 type ProviderProfile func(*sql.Selector)
 
+// ProviderRating is the predicate function for providerrating builders.
+type ProviderRating func(*sql.Selector)
+
 // ProvisionBucket is the predicate function for provisionbucket builders.
 type ProvisionBucket func(*sql.Selector)
 

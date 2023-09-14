@@ -24,6 +24,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/providerordertoken"
 	"github.com/paycrest/paycrest-protocol/ent/providerordertokenaddress"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
+	"github.com/paycrest/paycrest-protocol/ent/providerrating"
 	"github.com/paycrest/paycrest-protocol/ent/provisionbucket"
 	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
 	"github.com/paycrest/paycrest-protocol/ent/token"
@@ -54,6 +55,8 @@ type Client struct {
 	ProviderOrderTokenAddress *ProviderOrderTokenAddressClient
 	// ProviderProfile is the client for interacting with the ProviderProfile builders.
 	ProviderProfile *ProviderProfileClient
+	// ProviderRating is the client for interacting with the ProviderRating builders.
+	ProviderRating *ProviderRatingClient
 	// ProvisionBucket is the client for interacting with the ProvisionBucket builders.
 	ProvisionBucket *ProvisionBucketClient
 	// ReceiveAddress is the client for interacting with the ReceiveAddress builders.
@@ -86,6 +89,7 @@ func (c *Client) init() {
 	c.ProviderOrderToken = NewProviderOrderTokenClient(c.config)
 	c.ProviderOrderTokenAddress = NewProviderOrderTokenAddressClient(c.config)
 	c.ProviderProfile = NewProviderProfileClient(c.config)
+	c.ProviderRating = NewProviderRatingClient(c.config)
 	c.ProvisionBucket = NewProvisionBucketClient(c.config)
 	c.ReceiveAddress = NewReceiveAddressClient(c.config)
 	c.Token = NewTokenClient(c.config)
@@ -182,6 +186,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		ProviderOrderToken:        NewProviderOrderTokenClient(cfg),
 		ProviderOrderTokenAddress: NewProviderOrderTokenAddressClient(cfg),
 		ProviderProfile:           NewProviderProfileClient(cfg),
+		ProviderRating:            NewProviderRatingClient(cfg),
 		ProvisionBucket:           NewProvisionBucketClient(cfg),
 		ReceiveAddress:            NewReceiveAddressClient(cfg),
 		Token:                     NewTokenClient(cfg),
@@ -215,6 +220,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		ProviderOrderToken:        NewProviderOrderTokenClient(cfg),
 		ProviderOrderTokenAddress: NewProviderOrderTokenAddressClient(cfg),
 		ProviderProfile:           NewProviderProfileClient(cfg),
+		ProviderRating:            NewProviderRatingClient(cfg),
 		ProvisionBucket:           NewProvisionBucketClient(cfg),
 		ReceiveAddress:            NewReceiveAddressClient(cfg),
 		Token:                     NewTokenClient(cfg),
@@ -251,8 +257,8 @@ func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
 		c.APIKey, c.LockPaymentOrder, c.Network, c.PaymentOrder,
 		c.PaymentOrderRecipient, c.ProviderAvailability, c.ProviderOrderToken,
-		c.ProviderOrderTokenAddress, c.ProviderProfile, c.ProvisionBucket,
-		c.ReceiveAddress, c.Token, c.User, c.VerificationToken,
+		c.ProviderOrderTokenAddress, c.ProviderProfile, c.ProviderRating,
+		c.ProvisionBucket, c.ReceiveAddress, c.Token, c.User, c.VerificationToken,
 	} {
 		n.Use(hooks...)
 	}
@@ -264,8 +270,8 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
 		c.APIKey, c.LockPaymentOrder, c.Network, c.PaymentOrder,
 		c.PaymentOrderRecipient, c.ProviderAvailability, c.ProviderOrderToken,
-		c.ProviderOrderTokenAddress, c.ProviderProfile, c.ProvisionBucket,
-		c.ReceiveAddress, c.Token, c.User, c.VerificationToken,
+		c.ProviderOrderTokenAddress, c.ProviderProfile, c.ProviderRating,
+		c.ProvisionBucket, c.ReceiveAddress, c.Token, c.User, c.VerificationToken,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -292,6 +298,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.ProviderOrderTokenAddress.mutate(ctx, m)
 	case *ProviderProfileMutation:
 		return c.ProviderProfile.mutate(ctx, m)
+	case *ProviderRatingMutation:
+		return c.ProviderRating.mutate(ctx, m)
 	case *ProvisionBucketMutation:
 		return c.ProvisionBucket.mutate(ctx, m)
 	case *ReceiveAddressMutation:
@@ -1648,6 +1656,22 @@ func (c *ProviderProfileClient) QueryAvailability(pp *ProviderProfile) *Provider
 	return query
 }
 
+// QueryProviderRating queries the provider_rating edge of a ProviderProfile.
+func (c *ProviderProfileClient) QueryProviderRating(pp *ProviderProfile) *ProviderRatingQuery {
+	query := (&ProviderRatingClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := pp.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(providerprofile.Table, providerprofile.FieldID, id),
+			sqlgraph.To(providerrating.Table, providerrating.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, providerprofile.ProviderRatingTable, providerprofile.ProviderRatingColumn),
+		)
+		fromV = sqlgraph.Neighbors(pp.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *ProviderProfileClient) Hooks() []Hook {
 	return c.hooks.ProviderProfile
@@ -1670,6 +1694,140 @@ func (c *ProviderProfileClient) mutate(ctx context.Context, m *ProviderProfileMu
 		return (&ProviderProfileDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown ProviderProfile mutation op: %q", m.Op())
+	}
+}
+
+// ProviderRatingClient is a client for the ProviderRating schema.
+type ProviderRatingClient struct {
+	config
+}
+
+// NewProviderRatingClient returns a client for the ProviderRating from the given config.
+func NewProviderRatingClient(c config) *ProviderRatingClient {
+	return &ProviderRatingClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `providerrating.Hooks(f(g(h())))`.
+func (c *ProviderRatingClient) Use(hooks ...Hook) {
+	c.hooks.ProviderRating = append(c.hooks.ProviderRating, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `providerrating.Intercept(f(g(h())))`.
+func (c *ProviderRatingClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ProviderRating = append(c.inters.ProviderRating, interceptors...)
+}
+
+// Create returns a builder for creating a ProviderRating entity.
+func (c *ProviderRatingClient) Create() *ProviderRatingCreate {
+	mutation := newProviderRatingMutation(c.config, OpCreate)
+	return &ProviderRatingCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ProviderRating entities.
+func (c *ProviderRatingClient) CreateBulk(builders ...*ProviderRatingCreate) *ProviderRatingCreateBulk {
+	return &ProviderRatingCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ProviderRating.
+func (c *ProviderRatingClient) Update() *ProviderRatingUpdate {
+	mutation := newProviderRatingMutation(c.config, OpUpdate)
+	return &ProviderRatingUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ProviderRatingClient) UpdateOne(pr *ProviderRating) *ProviderRatingUpdateOne {
+	mutation := newProviderRatingMutation(c.config, OpUpdateOne, withProviderRating(pr))
+	return &ProviderRatingUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ProviderRatingClient) UpdateOneID(id int) *ProviderRatingUpdateOne {
+	mutation := newProviderRatingMutation(c.config, OpUpdateOne, withProviderRatingID(id))
+	return &ProviderRatingUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ProviderRating.
+func (c *ProviderRatingClient) Delete() *ProviderRatingDelete {
+	mutation := newProviderRatingMutation(c.config, OpDelete)
+	return &ProviderRatingDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ProviderRatingClient) DeleteOne(pr *ProviderRating) *ProviderRatingDeleteOne {
+	return c.DeleteOneID(pr.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ProviderRatingClient) DeleteOneID(id int) *ProviderRatingDeleteOne {
+	builder := c.Delete().Where(providerrating.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ProviderRatingDeleteOne{builder}
+}
+
+// Query returns a query builder for ProviderRating.
+func (c *ProviderRatingClient) Query() *ProviderRatingQuery {
+	return &ProviderRatingQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeProviderRating},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ProviderRating entity by its id.
+func (c *ProviderRatingClient) Get(ctx context.Context, id int) (*ProviderRating, error) {
+	return c.Query().Where(providerrating.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ProviderRatingClient) GetX(ctx context.Context, id int) *ProviderRating {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryProviderProfile queries the provider_profile edge of a ProviderRating.
+func (c *ProviderRatingClient) QueryProviderProfile(pr *ProviderRating) *ProviderProfileQuery {
+	query := (&ProviderProfileClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := pr.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(providerrating.Table, providerrating.FieldID, id),
+			sqlgraph.To(providerprofile.Table, providerprofile.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, providerrating.ProviderProfileTable, providerrating.ProviderProfileColumn),
+		)
+		fromV = sqlgraph.Neighbors(pr.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *ProviderRatingClient) Hooks() []Hook {
+	return c.hooks.ProviderRating
+}
+
+// Interceptors returns the client interceptors.
+func (c *ProviderRatingClient) Interceptors() []Interceptor {
+	return c.inters.ProviderRating
+}
+
+func (c *ProviderRatingClient) mutate(ctx context.Context, m *ProviderRatingMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ProviderRatingCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ProviderRatingUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ProviderRatingUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ProviderRatingDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown ProviderRating mutation op: %q", m.Op())
 	}
 }
 
@@ -2414,13 +2572,13 @@ type (
 	hooks struct {
 		APIKey, LockPaymentOrder, Network, PaymentOrder, PaymentOrderRecipient,
 		ProviderAvailability, ProviderOrderToken, ProviderOrderTokenAddress,
-		ProviderProfile, ProvisionBucket, ReceiveAddress, Token, User,
+		ProviderProfile, ProviderRating, ProvisionBucket, ReceiveAddress, Token, User,
 		VerificationToken []ent.Hook
 	}
 	inters struct {
 		APIKey, LockPaymentOrder, Network, PaymentOrder, PaymentOrderRecipient,
 		ProviderAvailability, ProviderOrderToken, ProviderOrderTokenAddress,
-		ProviderProfile, ProvisionBucket, ReceiveAddress, Token, User,
+		ProviderProfile, ProviderRating, ProvisionBucket, ReceiveAddress, Token, User,
 		VerificationToken []ent.Interceptor
 	}
 )

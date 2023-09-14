@@ -387,6 +387,29 @@ func HasAvailabilityWith(preds ...predicate.ProviderAvailability) predicate.Prov
 	})
 }
 
+// HasProviderRating applies the HasEdge predicate on the "provider_rating" edge.
+func HasProviderRating() predicate.ProviderProfile {
+	return predicate.ProviderProfile(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, ProviderRatingTable, ProviderRatingColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasProviderRatingWith applies the HasEdge predicate on the "provider_rating" edge with a given conditions (other predicates).
+func HasProviderRatingWith(preds ...predicate.ProviderRating) predicate.ProviderProfile {
+	return predicate.ProviderProfile(func(s *sql.Selector) {
+		step := newProviderRatingStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.ProviderProfile) predicate.ProviderProfile {
 	return predicate.ProviderProfile(func(s *sql.Selector) {

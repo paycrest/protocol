@@ -22,6 +22,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/providerordertoken"
 	"github.com/paycrest/paycrest-protocol/ent/providerordertokenaddress"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
+	"github.com/paycrest/paycrest-protocol/ent/providerrating"
 	"github.com/paycrest/paycrest-protocol/ent/provisionbucket"
 	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
 	"github.com/paycrest/paycrest-protocol/ent/token"
@@ -48,6 +49,7 @@ const (
 	TypeProviderOrderToken        = "ProviderOrderToken"
 	TypeProviderOrderTokenAddress = "ProviderOrderTokenAddress"
 	TypeProviderProfile           = "ProviderProfile"
+	TypeProviderRating            = "ProviderRating"
 	TypeProvisionBucket           = "ProvisionBucket"
 	TypeReceiveAddress            = "ReceiveAddress"
 	TypeToken                     = "Token"
@@ -6335,6 +6337,8 @@ type ProviderProfileMutation struct {
 	clearedorder_tokens      bool
 	availability             *int
 	clearedavailability      bool
+	provider_rating          *int
+	clearedprovider_rating   bool
 	done                     bool
 	oldValue                 func(context.Context) (*ProviderProfile, error)
 	predicates               []predicate.ProviderProfile
@@ -6774,6 +6778,45 @@ func (m *ProviderProfileMutation) ResetAvailability() {
 	m.clearedavailability = false
 }
 
+// SetProviderRatingID sets the "provider_rating" edge to the ProviderRating entity by id.
+func (m *ProviderProfileMutation) SetProviderRatingID(id int) {
+	m.provider_rating = &id
+}
+
+// ClearProviderRating clears the "provider_rating" edge to the ProviderRating entity.
+func (m *ProviderProfileMutation) ClearProviderRating() {
+	m.clearedprovider_rating = true
+}
+
+// ProviderRatingCleared reports if the "provider_rating" edge to the ProviderRating entity was cleared.
+func (m *ProviderProfileMutation) ProviderRatingCleared() bool {
+	return m.clearedprovider_rating
+}
+
+// ProviderRatingID returns the "provider_rating" edge ID in the mutation.
+func (m *ProviderProfileMutation) ProviderRatingID() (id int, exists bool) {
+	if m.provider_rating != nil {
+		return *m.provider_rating, true
+	}
+	return
+}
+
+// ProviderRatingIDs returns the "provider_rating" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// ProviderRatingID instead. It exists only for internal usage by the builders.
+func (m *ProviderProfileMutation) ProviderRatingIDs() (ids []int) {
+	if id := m.provider_rating; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetProviderRating resets all changes to the "provider_rating" edge.
+func (m *ProviderProfileMutation) ResetProviderRating() {
+	m.provider_rating = nil
+	m.clearedprovider_rating = false
+}
+
 // Where appends a list predicates to the ProviderProfileMutation builder.
 func (m *ProviderProfileMutation) Where(ps ...predicate.ProviderProfile) {
 	m.predicates = append(m.predicates, ps...)
@@ -6958,7 +7001,7 @@ func (m *ProviderProfileMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ProviderProfileMutation) AddedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 5)
 	if m.api_key != nil {
 		edges = append(edges, providerprofile.EdgeAPIKey)
 	}
@@ -6970,6 +7013,9 @@ func (m *ProviderProfileMutation) AddedEdges() []string {
 	}
 	if m.availability != nil {
 		edges = append(edges, providerprofile.EdgeAvailability)
+	}
+	if m.provider_rating != nil {
+		edges = append(edges, providerprofile.EdgeProviderRating)
 	}
 	return edges
 }
@@ -6998,13 +7044,17 @@ func (m *ProviderProfileMutation) AddedIDs(name string) []ent.Value {
 		if id := m.availability; id != nil {
 			return []ent.Value{*id}
 		}
+	case providerprofile.EdgeProviderRating:
+		if id := m.provider_rating; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *ProviderProfileMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 5)
 	if m.removedprovision_buckets != nil {
 		edges = append(edges, providerprofile.EdgeProvisionBuckets)
 	}
@@ -7036,7 +7086,7 @@ func (m *ProviderProfileMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ProviderProfileMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 5)
 	if m.clearedapi_key {
 		edges = append(edges, providerprofile.EdgeAPIKey)
 	}
@@ -7048,6 +7098,9 @@ func (m *ProviderProfileMutation) ClearedEdges() []string {
 	}
 	if m.clearedavailability {
 		edges = append(edges, providerprofile.EdgeAvailability)
+	}
+	if m.clearedprovider_rating {
+		edges = append(edges, providerprofile.EdgeProviderRating)
 	}
 	return edges
 }
@@ -7064,6 +7117,8 @@ func (m *ProviderProfileMutation) EdgeCleared(name string) bool {
 		return m.clearedorder_tokens
 	case providerprofile.EdgeAvailability:
 		return m.clearedavailability
+	case providerprofile.EdgeProviderRating:
+		return m.clearedprovider_rating
 	}
 	return false
 }
@@ -7077,6 +7132,9 @@ func (m *ProviderProfileMutation) ClearEdge(name string) error {
 		return nil
 	case providerprofile.EdgeAvailability:
 		m.ClearAvailability()
+		return nil
+	case providerprofile.EdgeProviderRating:
+		m.ClearProviderRating()
 		return nil
 	}
 	return fmt.Errorf("unknown ProviderProfile unique edge %s", name)
@@ -7098,8 +7156,548 @@ func (m *ProviderProfileMutation) ResetEdge(name string) error {
 	case providerprofile.EdgeAvailability:
 		m.ResetAvailability()
 		return nil
+	case providerprofile.EdgeProviderRating:
+		m.ResetProviderRating()
+		return nil
 	}
 	return fmt.Errorf("unknown ProviderProfile edge %s", name)
+}
+
+// ProviderRatingMutation represents an operation that mutates the ProviderRating nodes in the graph.
+type ProviderRatingMutation struct {
+	config
+	op                      Op
+	typ                     string
+	id                      *int
+	created_at              *time.Time
+	updated_at              *time.Time
+	trust_score             *decimal.Decimal
+	addtrust_score          *decimal.Decimal
+	clearedFields           map[string]struct{}
+	provider_profile        *string
+	clearedprovider_profile bool
+	done                    bool
+	oldValue                func(context.Context) (*ProviderRating, error)
+	predicates              []predicate.ProviderRating
+}
+
+var _ ent.Mutation = (*ProviderRatingMutation)(nil)
+
+// providerratingOption allows management of the mutation configuration using functional options.
+type providerratingOption func(*ProviderRatingMutation)
+
+// newProviderRatingMutation creates new mutation for the ProviderRating entity.
+func newProviderRatingMutation(c config, op Op, opts ...providerratingOption) *ProviderRatingMutation {
+	m := &ProviderRatingMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeProviderRating,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withProviderRatingID sets the ID field of the mutation.
+func withProviderRatingID(id int) providerratingOption {
+	return func(m *ProviderRatingMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *ProviderRating
+		)
+		m.oldValue = func(ctx context.Context) (*ProviderRating, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().ProviderRating.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withProviderRating sets the old ProviderRating of the mutation.
+func withProviderRating(node *ProviderRating) providerratingOption {
+	return func(m *ProviderRatingMutation) {
+		m.oldValue = func(context.Context) (*ProviderRating, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m ProviderRatingMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m ProviderRatingMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *ProviderRatingMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *ProviderRatingMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().ProviderRating.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *ProviderRatingMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *ProviderRatingMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the ProviderRating entity.
+// If the ProviderRating object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderRatingMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *ProviderRatingMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *ProviderRatingMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *ProviderRatingMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the ProviderRating entity.
+// If the ProviderRating object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderRatingMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *ProviderRatingMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetTrustScore sets the "trust_score" field.
+func (m *ProviderRatingMutation) SetTrustScore(d decimal.Decimal) {
+	m.trust_score = &d
+	m.addtrust_score = nil
+}
+
+// TrustScore returns the value of the "trust_score" field in the mutation.
+func (m *ProviderRatingMutation) TrustScore() (r decimal.Decimal, exists bool) {
+	v := m.trust_score
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTrustScore returns the old "trust_score" field's value of the ProviderRating entity.
+// If the ProviderRating object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderRatingMutation) OldTrustScore(ctx context.Context) (v decimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTrustScore is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTrustScore requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTrustScore: %w", err)
+	}
+	return oldValue.TrustScore, nil
+}
+
+// AddTrustScore adds d to the "trust_score" field.
+func (m *ProviderRatingMutation) AddTrustScore(d decimal.Decimal) {
+	if m.addtrust_score != nil {
+		*m.addtrust_score = m.addtrust_score.Add(d)
+	} else {
+		m.addtrust_score = &d
+	}
+}
+
+// AddedTrustScore returns the value that was added to the "trust_score" field in this mutation.
+func (m *ProviderRatingMutation) AddedTrustScore() (r decimal.Decimal, exists bool) {
+	v := m.addtrust_score
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetTrustScore resets all changes to the "trust_score" field.
+func (m *ProviderRatingMutation) ResetTrustScore() {
+	m.trust_score = nil
+	m.addtrust_score = nil
+}
+
+// SetProviderProfileID sets the "provider_profile" edge to the ProviderProfile entity by id.
+func (m *ProviderRatingMutation) SetProviderProfileID(id string) {
+	m.provider_profile = &id
+}
+
+// ClearProviderProfile clears the "provider_profile" edge to the ProviderProfile entity.
+func (m *ProviderRatingMutation) ClearProviderProfile() {
+	m.clearedprovider_profile = true
+}
+
+// ProviderProfileCleared reports if the "provider_profile" edge to the ProviderProfile entity was cleared.
+func (m *ProviderRatingMutation) ProviderProfileCleared() bool {
+	return m.clearedprovider_profile
+}
+
+// ProviderProfileID returns the "provider_profile" edge ID in the mutation.
+func (m *ProviderRatingMutation) ProviderProfileID() (id string, exists bool) {
+	if m.provider_profile != nil {
+		return *m.provider_profile, true
+	}
+	return
+}
+
+// ProviderProfileIDs returns the "provider_profile" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// ProviderProfileID instead. It exists only for internal usage by the builders.
+func (m *ProviderRatingMutation) ProviderProfileIDs() (ids []string) {
+	if id := m.provider_profile; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetProviderProfile resets all changes to the "provider_profile" edge.
+func (m *ProviderRatingMutation) ResetProviderProfile() {
+	m.provider_profile = nil
+	m.clearedprovider_profile = false
+}
+
+// Where appends a list predicates to the ProviderRatingMutation builder.
+func (m *ProviderRatingMutation) Where(ps ...predicate.ProviderRating) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the ProviderRatingMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *ProviderRatingMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.ProviderRating, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *ProviderRatingMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *ProviderRatingMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (ProviderRating).
+func (m *ProviderRatingMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *ProviderRatingMutation) Fields() []string {
+	fields := make([]string, 0, 3)
+	if m.created_at != nil {
+		fields = append(fields, providerrating.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, providerrating.FieldUpdatedAt)
+	}
+	if m.trust_score != nil {
+		fields = append(fields, providerrating.FieldTrustScore)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *ProviderRatingMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case providerrating.FieldCreatedAt:
+		return m.CreatedAt()
+	case providerrating.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case providerrating.FieldTrustScore:
+		return m.TrustScore()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *ProviderRatingMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case providerrating.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case providerrating.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case providerrating.FieldTrustScore:
+		return m.OldTrustScore(ctx)
+	}
+	return nil, fmt.Errorf("unknown ProviderRating field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ProviderRatingMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case providerrating.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case providerrating.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case providerrating.FieldTrustScore:
+		v, ok := value.(decimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTrustScore(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ProviderRating field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *ProviderRatingMutation) AddedFields() []string {
+	var fields []string
+	if m.addtrust_score != nil {
+		fields = append(fields, providerrating.FieldTrustScore)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *ProviderRatingMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case providerrating.FieldTrustScore:
+		return m.AddedTrustScore()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ProviderRatingMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case providerrating.FieldTrustScore:
+		v, ok := value.(decimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddTrustScore(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ProviderRating numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *ProviderRatingMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *ProviderRatingMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *ProviderRatingMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown ProviderRating nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *ProviderRatingMutation) ResetField(name string) error {
+	switch name {
+	case providerrating.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case providerrating.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case providerrating.FieldTrustScore:
+		m.ResetTrustScore()
+		return nil
+	}
+	return fmt.Errorf("unknown ProviderRating field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *ProviderRatingMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.provider_profile != nil {
+		edges = append(edges, providerrating.EdgeProviderProfile)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *ProviderRatingMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case providerrating.EdgeProviderProfile:
+		if id := m.provider_profile; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *ProviderRatingMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *ProviderRatingMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *ProviderRatingMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.clearedprovider_profile {
+		edges = append(edges, providerrating.EdgeProviderProfile)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *ProviderRatingMutation) EdgeCleared(name string) bool {
+	switch name {
+	case providerrating.EdgeProviderProfile:
+		return m.clearedprovider_profile
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *ProviderRatingMutation) ClearEdge(name string) error {
+	switch name {
+	case providerrating.EdgeProviderProfile:
+		m.ClearProviderProfile()
+		return nil
+	}
+	return fmt.Errorf("unknown ProviderRating unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *ProviderRatingMutation) ResetEdge(name string) error {
+	switch name {
+	case providerrating.EdgeProviderProfile:
+		m.ResetProviderProfile()
+		return nil
+	}
+	return fmt.Errorf("unknown ProviderRating edge %s", name)
 }
 
 // ProvisionBucketMutation represents an operation that mutates the ProvisionBucket nodes in the graph.

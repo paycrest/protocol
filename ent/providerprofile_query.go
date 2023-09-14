@@ -17,6 +17,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/provideravailability"
 	"github.com/paycrest/paycrest-protocol/ent/providerordertoken"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
+	"github.com/paycrest/paycrest-protocol/ent/providerrating"
 	"github.com/paycrest/paycrest-protocol/ent/provisionbucket"
 )
 
@@ -31,6 +32,7 @@ type ProviderProfileQuery struct {
 	withProvisionBuckets *ProvisionBucketQuery
 	withOrderTokens      *ProviderOrderTokenQuery
 	withAvailability     *ProviderAvailabilityQuery
+	withProviderRating   *ProviderRatingQuery
 	withFKs              bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -149,6 +151,28 @@ func (ppq *ProviderProfileQuery) QueryAvailability() *ProviderAvailabilityQuery 
 			sqlgraph.From(providerprofile.Table, providerprofile.FieldID, selector),
 			sqlgraph.To(provideravailability.Table, provideravailability.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, false, providerprofile.AvailabilityTable, providerprofile.AvailabilityColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(ppq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryProviderRating chains the current query on the "provider_rating" edge.
+func (ppq *ProviderProfileQuery) QueryProviderRating() *ProviderRatingQuery {
+	query := (&ProviderRatingClient{config: ppq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := ppq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := ppq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(providerprofile.Table, providerprofile.FieldID, selector),
+			sqlgraph.To(providerrating.Table, providerrating.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, providerprofile.ProviderRatingTable, providerprofile.ProviderRatingColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(ppq.driver.Dialect(), step)
 		return fromU, nil
@@ -352,6 +376,7 @@ func (ppq *ProviderProfileQuery) Clone() *ProviderProfileQuery {
 		withProvisionBuckets: ppq.withProvisionBuckets.Clone(),
 		withOrderTokens:      ppq.withOrderTokens.Clone(),
 		withAvailability:     ppq.withAvailability.Clone(),
+		withProviderRating:   ppq.withProviderRating.Clone(),
 		// clone intermediate query.
 		sql:  ppq.sql.Clone(),
 		path: ppq.path,
@@ -399,6 +424,17 @@ func (ppq *ProviderProfileQuery) WithAvailability(opts ...func(*ProviderAvailabi
 		opt(query)
 	}
 	ppq.withAvailability = query
+	return ppq
+}
+
+// WithProviderRating tells the query-builder to eager-load the nodes that are connected to
+// the "provider_rating" edge. The optional arguments are used to configure the query builder of the edge.
+func (ppq *ProviderProfileQuery) WithProviderRating(opts ...func(*ProviderRatingQuery)) *ProviderProfileQuery {
+	query := (&ProviderRatingClient{config: ppq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	ppq.withProviderRating = query
 	return ppq
 }
 
@@ -481,11 +517,12 @@ func (ppq *ProviderProfileQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 		nodes       = []*ProviderProfile{}
 		withFKs     = ppq.withFKs
 		_spec       = ppq.querySpec()
-		loadedTypes = [4]bool{
+		loadedTypes = [5]bool{
 			ppq.withAPIKey != nil,
 			ppq.withProvisionBuckets != nil,
 			ppq.withOrderTokens != nil,
 			ppq.withAvailability != nil,
+			ppq.withProviderRating != nil,
 		}
 	)
 	if ppq.withAPIKey != nil {
@@ -537,6 +574,12 @@ func (ppq *ProviderProfileQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 	if query := ppq.withAvailability; query != nil {
 		if err := ppq.loadAvailability(ctx, query, nodes, nil,
 			func(n *ProviderProfile, e *ProviderAvailability) { n.Edges.Availability = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := ppq.withProviderRating; query != nil {
+		if err := ppq.loadProviderRating(ctx, query, nodes, nil,
+			func(n *ProviderProfile, e *ProviderRating) { n.Edges.ProviderRating = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -690,6 +733,34 @@ func (ppq *ProviderProfileQuery) loadAvailability(ctx context.Context, query *Pr
 		node, ok := nodeids[*fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "provider_profile_availability" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (ppq *ProviderProfileQuery) loadProviderRating(ctx context.Context, query *ProviderRatingQuery, nodes []*ProviderProfile, init func(*ProviderProfile), assign func(*ProviderProfile, *ProviderRating)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*ProviderProfile)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+	}
+	query.withFKs = true
+	query.Where(predicate.ProviderRating(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(providerprofile.ProviderRatingColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.provider_profile_provider_rating
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "provider_profile_provider_rating" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "provider_profile_provider_rating" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}

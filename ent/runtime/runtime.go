@@ -13,6 +13,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/providerordertoken"
 	"github.com/paycrest/paycrest-protocol/ent/providerordertokenaddress"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
+	"github.com/paycrest/paycrest-protocol/ent/providerrating"
 	"github.com/paycrest/paycrest-protocol/ent/provisionbucket"
 	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
 	"github.com/paycrest/paycrest-protocol/ent/schema"
@@ -156,6 +157,21 @@ func init() {
 	providerprofileDescID := providerprofileFields[0].Descriptor()
 	// providerprofile.DefaultID holds the default value on creation for the id field.
 	providerprofile.DefaultID = providerprofileDescID.Default.(func() string)
+	providerratingMixin := schema.ProviderRating{}.Mixin()
+	providerratingMixinFields0 := providerratingMixin[0].Fields()
+	_ = providerratingMixinFields0
+	providerratingFields := schema.ProviderRating{}.Fields()
+	_ = providerratingFields
+	// providerratingDescCreatedAt is the schema descriptor for created_at field.
+	providerratingDescCreatedAt := providerratingMixinFields0[0].Descriptor()
+	// providerrating.DefaultCreatedAt holds the default value on creation for the created_at field.
+	providerrating.DefaultCreatedAt = providerratingDescCreatedAt.Default.(func() time.Time)
+	// providerratingDescUpdatedAt is the schema descriptor for updated_at field.
+	providerratingDescUpdatedAt := providerratingMixinFields0[1].Descriptor()
+	// providerrating.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	providerrating.DefaultUpdatedAt = providerratingDescUpdatedAt.Default.(func() time.Time)
+	// providerrating.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	providerrating.UpdateDefaultUpdatedAt = providerratingDescUpdatedAt.UpdateDefault.(func() time.Time)
 	provisionbucketFields := schema.ProvisionBucket{}.Fields()
 	_ = provisionbucketFields
 	// provisionbucketDescCurrency is the schema descriptor for currency field.

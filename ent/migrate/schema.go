@@ -250,6 +250,28 @@ var (
 			},
 		},
 	}
+	// ProviderRatingsColumns holds the columns for the "provider_ratings" table.
+	ProviderRatingsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "trust_score", Type: field.TypeFloat64},
+		{Name: "provider_profile_provider_rating", Type: field.TypeString, Unique: true},
+	}
+	// ProviderRatingsTable holds the schema information for the "provider_ratings" table.
+	ProviderRatingsTable = &schema.Table{
+		Name:       "provider_ratings",
+		Columns:    ProviderRatingsColumns,
+		PrimaryKey: []*schema.Column{ProviderRatingsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "provider_ratings_provider_profiles_provider_rating",
+				Columns:    []*schema.Column{ProviderRatingsColumns[4]},
+				RefColumns: []*schema.Column{ProviderProfilesColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+	}
 	// ProvisionBucketsColumns holds the columns for the "provision_buckets" table.
 	ProvisionBucketsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -392,6 +414,7 @@ var (
 		ProviderOrderTokensTable,
 		ProviderOrderTokenAddressesTable,
 		ProviderProfilesTable,
+		ProviderRatingsTable,
 		ProvisionBucketsTable,
 		ReceiveAddressesTable,
 		TokensTable,
@@ -412,6 +435,7 @@ func init() {
 	ProviderOrderTokensTable.ForeignKeys[0].RefTable = ProviderProfilesTable
 	ProviderOrderTokenAddressesTable.ForeignKeys[0].RefTable = ProviderOrderTokensTable
 	ProviderProfilesTable.ForeignKeys[0].RefTable = APIKeysTable
+	ProviderRatingsTable.ForeignKeys[0].RefTable = ProviderProfilesTable
 	ReceiveAddressesTable.ForeignKeys[0].RefTable = PaymentOrdersTable
 	TokensTable.ForeignKeys[0].RefTable = NetworksTable
 	VerificationTokensTable.ForeignKeys[0].RefTable = UsersTable
