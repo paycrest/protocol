@@ -14,7 +14,7 @@ type Configuration struct {
 	Database DatabaseConfiguration
 	Auth     AuthConfiguration
 	Order    OrderConfiguration
-	email    EmailConfiguration
+	Email    EmailConfiguration
 }
 
 // SetupConfig configuration
