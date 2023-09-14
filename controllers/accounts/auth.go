@@ -385,3 +385,36 @@ func (ctrl *AuthController) ConfirmEmail(ctx *gin.Context) {
 	// Return a success response
 	u.APIResponse(ctx, http.StatusOK, "success", "User Email confirmed", nil)
 }
+
+// ResendVerificationToken controller resends the verification token to the users email.
+func (ctrl *AuthController) ResendVerificationToken(ctx *gin.Context) {
+	var payload types.ResendVerificationTokenPayload
+
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusBadRequest, "error",
+			"Failed to validate payload", u.GetErrorData(err))
+		return
+	}
+
+	// Fetch User account.
+	user, userErr := db.Client.User.Query().Where(user.EmailEQ(payload.Email)).Only(ctx)
+	if userErr != nil {
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid credential", "email mismatched")
+	}
+
+	// Generate VerificationToken.
+	verificationtoken, vtErr := db.Client.VerificationToken.Create().SetOwner(user).SetScope(verificationtoken.Scope(payload.Scope)).Save(ctx)
+	if vtErr != nil {
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Generate Verification Token", vtErr.Error())
+		return
+	}
+
+	if _, err := ctrl.emailService.SendVerificationEmail(ctx, verificationtoken.Token, user.Email); err != nil {
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Send Verification Email", vtErr.Error())
+		return
+	}
+
+	// Return a success response
+	u.APIResponse(ctx, http.StatusOK, "success", "Verification token has been sent to your email", nil)
+}
