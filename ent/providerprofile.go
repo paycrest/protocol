@@ -13,6 +13,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/provideravailability"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
+	"github.com/paycrest/paycrest-protocol/ent/providerrating"
 )
 
 // ProviderProfile is the model entity for the ProviderProfile schema.
@@ -45,9 +46,11 @@ type ProviderProfileEdges struct {
 	OrderTokens []*ProviderOrderToken `json:"order_tokens,omitempty"`
 	// Availability holds the value of the availability edge.
 	Availability *ProviderAvailability `json:"availability,omitempty"`
+	// ProviderRating holds the value of the provider_rating edge.
+	ProviderRating *ProviderRating `json:"provider_rating,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [4]bool
+	loadedTypes [5]bool
 }
 
 // APIKeyOrErr returns the APIKey value or an error if the edge
@@ -92,6 +95,19 @@ func (e ProviderProfileEdges) AvailabilityOrErr() (*ProviderAvailability, error)
 		return e.Availability, nil
 	}
 	return nil, &NotLoadedError{edge: "availability"}
+}
+
+// ProviderRatingOrErr returns the ProviderRating value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ProviderProfileEdges) ProviderRatingOrErr() (*ProviderRating, error) {
+	if e.loadedTypes[4] {
+		if e.ProviderRating == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: providerrating.Label}
+		}
+		return e.ProviderRating, nil
+	}
+	return nil, &NotLoadedError{edge: "provider_rating"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -188,6 +204,11 @@ func (pp *ProviderProfile) QueryOrderTokens() *ProviderOrderTokenQuery {
 // QueryAvailability queries the "availability" edge of the ProviderProfile entity.
 func (pp *ProviderProfile) QueryAvailability() *ProviderAvailabilityQuery {
 	return NewProviderProfileClient(pp.config).QueryAvailability(pp)
+}
+
+// QueryProviderRating queries the "provider_rating" edge of the ProviderProfile entity.
+func (pp *ProviderProfile) QueryProviderRating() *ProviderRatingQuery {
+	return NewProviderProfileClient(pp.config).QueryProviderRating(pp)
 }
 
 // Update returns a builder for updating this ProviderProfile.

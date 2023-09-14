@@ -17,6 +17,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/provideravailability"
 	"github.com/paycrest/paycrest-protocol/ent/providerordertoken"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
+	"github.com/paycrest/paycrest-protocol/ent/providerrating"
 	"github.com/paycrest/paycrest-protocol/ent/provisionbucket"
 )
 
@@ -111,6 +112,25 @@ func (ppu *ProviderProfileUpdate) SetAvailability(p *ProviderAvailability) *Prov
 	return ppu.SetAvailabilityID(p.ID)
 }
 
+// SetProviderRatingID sets the "provider_rating" edge to the ProviderRating entity by ID.
+func (ppu *ProviderProfileUpdate) SetProviderRatingID(id int) *ProviderProfileUpdate {
+	ppu.mutation.SetProviderRatingID(id)
+	return ppu
+}
+
+// SetNillableProviderRatingID sets the "provider_rating" edge to the ProviderRating entity by ID if the given value is not nil.
+func (ppu *ProviderProfileUpdate) SetNillableProviderRatingID(id *int) *ProviderProfileUpdate {
+	if id != nil {
+		ppu = ppu.SetProviderRatingID(*id)
+	}
+	return ppu
+}
+
+// SetProviderRating sets the "provider_rating" edge to the ProviderRating entity.
+func (ppu *ProviderProfileUpdate) SetProviderRating(p *ProviderRating) *ProviderProfileUpdate {
+	return ppu.SetProviderRatingID(p.ID)
+}
+
 // Mutation returns the ProviderProfileMutation object of the builder.
 func (ppu *ProviderProfileUpdate) Mutation() *ProviderProfileMutation {
 	return ppu.mutation
@@ -167,6 +187,12 @@ func (ppu *ProviderProfileUpdate) RemoveOrderTokens(p ...*ProviderOrderToken) *P
 // ClearAvailability clears the "availability" edge to the ProviderAvailability entity.
 func (ppu *ProviderProfileUpdate) ClearAvailability() *ProviderProfileUpdate {
 	ppu.mutation.ClearAvailability()
+	return ppu
+}
+
+// ClearProviderRating clears the "provider_rating" edge to the ProviderRating entity.
+func (ppu *ProviderProfileUpdate) ClearProviderRating() *ProviderProfileUpdate {
+	ppu.mutation.ClearProviderRating()
 	return ppu
 }
 
@@ -393,6 +419,35 @@ func (ppu *ProviderProfileUpdate) sqlSave(ctx context.Context) (n int, err error
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if ppu.mutation.ProviderRatingCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   providerprofile.ProviderRatingTable,
+			Columns: []string{providerprofile.ProviderRatingColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(providerrating.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ppu.mutation.ProviderRatingIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   providerprofile.ProviderRatingTable,
+			Columns: []string{providerprofile.ProviderRatingColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(providerrating.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, ppu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{providerprofile.Label}
@@ -491,6 +546,25 @@ func (ppuo *ProviderProfileUpdateOne) SetAvailability(p *ProviderAvailability) *
 	return ppuo.SetAvailabilityID(p.ID)
 }
 
+// SetProviderRatingID sets the "provider_rating" edge to the ProviderRating entity by ID.
+func (ppuo *ProviderProfileUpdateOne) SetProviderRatingID(id int) *ProviderProfileUpdateOne {
+	ppuo.mutation.SetProviderRatingID(id)
+	return ppuo
+}
+
+// SetNillableProviderRatingID sets the "provider_rating" edge to the ProviderRating entity by ID if the given value is not nil.
+func (ppuo *ProviderProfileUpdateOne) SetNillableProviderRatingID(id *int) *ProviderProfileUpdateOne {
+	if id != nil {
+		ppuo = ppuo.SetProviderRatingID(*id)
+	}
+	return ppuo
+}
+
+// SetProviderRating sets the "provider_rating" edge to the ProviderRating entity.
+func (ppuo *ProviderProfileUpdateOne) SetProviderRating(p *ProviderRating) *ProviderProfileUpdateOne {
+	return ppuo.SetProviderRatingID(p.ID)
+}
+
 // Mutation returns the ProviderProfileMutation object of the builder.
 func (ppuo *ProviderProfileUpdateOne) Mutation() *ProviderProfileMutation {
 	return ppuo.mutation
@@ -547,6 +621,12 @@ func (ppuo *ProviderProfileUpdateOne) RemoveOrderTokens(p ...*ProviderOrderToken
 // ClearAvailability clears the "availability" edge to the ProviderAvailability entity.
 func (ppuo *ProviderProfileUpdateOne) ClearAvailability() *ProviderProfileUpdateOne {
 	ppuo.mutation.ClearAvailability()
+	return ppuo
+}
+
+// ClearProviderRating clears the "provider_rating" edge to the ProviderRating entity.
+func (ppuo *ProviderProfileUpdateOne) ClearProviderRating() *ProviderProfileUpdateOne {
+	ppuo.mutation.ClearProviderRating()
 	return ppuo
 }
 
@@ -796,6 +876,35 @@ func (ppuo *ProviderProfileUpdateOne) sqlSave(ctx context.Context) (_node *Provi
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(provideravailability.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if ppuo.mutation.ProviderRatingCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   providerprofile.ProviderRatingTable,
+			Columns: []string{providerprofile.ProviderRatingColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(providerrating.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ppuo.mutation.ProviderRatingIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   providerprofile.ProviderRatingTable,
+			Columns: []string{providerprofile.ProviderRatingColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(providerrating.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

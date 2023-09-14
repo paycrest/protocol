@@ -44,7 +44,7 @@ func (ProviderProfile) Edges() []ent.Edge {
 		edge.To("order_tokens", ProviderOrderToken.Type),
 		edge.To("availability", ProviderAvailability.Type).
 			Unique(),
-		edge.To("rating", ProviderRating.Type).
+		edge.To("provider_rating", ProviderRating.Type).
 			Unique(),
 	}
 }

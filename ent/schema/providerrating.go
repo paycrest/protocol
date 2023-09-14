@@ -33,6 +33,7 @@ func (ProviderRating) Edges() []ent.Edge {
 		edge.From("provider_profile", ProviderProfile.Type).
 			Ref("provider_rating").
 			Unique().
-			Required(),
+			Required().
+			Immutable(),
 	}
 }

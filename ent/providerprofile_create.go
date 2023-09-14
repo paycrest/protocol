@@ -15,6 +15,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/provideravailability"
 	"github.com/paycrest/paycrest-protocol/ent/providerordertoken"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
+	"github.com/paycrest/paycrest-protocol/ent/providerrating"
 	"github.com/paycrest/paycrest-protocol/ent/provisionbucket"
 )
 
@@ -137,6 +138,25 @@ func (ppc *ProviderProfileCreate) SetNillableAvailabilityID(id *int) *ProviderPr
 // SetAvailability sets the "availability" edge to the ProviderAvailability entity.
 func (ppc *ProviderProfileCreate) SetAvailability(p *ProviderAvailability) *ProviderProfileCreate {
 	return ppc.SetAvailabilityID(p.ID)
+}
+
+// SetProviderRatingID sets the "provider_rating" edge to the ProviderRating entity by ID.
+func (ppc *ProviderProfileCreate) SetProviderRatingID(id int) *ProviderProfileCreate {
+	ppc.mutation.SetProviderRatingID(id)
+	return ppc
+}
+
+// SetNillableProviderRatingID sets the "provider_rating" edge to the ProviderRating entity by ID if the given value is not nil.
+func (ppc *ProviderProfileCreate) SetNillableProviderRatingID(id *int) *ProviderProfileCreate {
+	if id != nil {
+		ppc = ppc.SetProviderRatingID(*id)
+	}
+	return ppc
+}
+
+// SetProviderRating sets the "provider_rating" edge to the ProviderRating entity.
+func (ppc *ProviderProfileCreate) SetProviderRating(p *ProviderRating) *ProviderProfileCreate {
+	return ppc.SetProviderRatingID(p.ID)
 }
 
 // Mutation returns the ProviderProfileMutation object of the builder.
@@ -324,6 +344,22 @@ func (ppc *ProviderProfileCreate) createSpec() (*ProviderProfile, *sqlgraph.Crea
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(provideravailability.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := ppc.mutation.ProviderRatingIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   providerprofile.ProviderRatingTable,
+			Columns: []string{providerprofile.ProviderRatingColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(providerrating.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

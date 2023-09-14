@@ -117,6 +117,18 @@ func (f ProviderProfileFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Va
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ProviderProfileMutation", m)
 }
 
+// The ProviderRatingFunc type is an adapter to allow the use of ordinary
+// function as ProviderRating mutator.
+type ProviderRatingFunc func(context.Context, *ent.ProviderRatingMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ProviderRatingFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ProviderRatingMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ProviderRatingMutation", m)
+}
+
 // The ProvisionBucketFunc type is an adapter to allow the use of ordinary
 // function as ProvisionBucket mutator.
 type ProvisionBucketFunc func(context.Context, *ent.ProvisionBucketMutation) (ent.Value, error)
