@@ -64,7 +64,7 @@ func (m *EmailService) SendVerificationEmail(ctx context.Context, token, email s
 
 // NewMailGun initialize mailgunv3.Mailgun and can be used to initialize a mocked Mailgun interface.
 func NewMailGun(m mailgunv3.Mailgun) {
-	if _, ok := m.(mailgunv3.Mailgun); ok {
+	if m != nil {
 		mailGunClient = m
 		return
 	}
