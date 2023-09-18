@@ -400,18 +400,18 @@ func (ctrl *AuthController) ResendVerificationToken(ctx *gin.Context) {
 	// Fetch User account.
 	user, userErr := db.Client.User.Query().Where(user.EmailEQ(payload.Email)).Only(ctx)
 	if userErr != nil {
-		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid credential", "email mismatched")
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid credential", userErr.Error())
 	}
 
 	// Generate VerificationToken.
 	verificationtoken, vtErr := db.Client.VerificationToken.Create().SetOwner(user).SetScope(verificationtoken.Scope(payload.Scope)).Save(ctx)
 	if vtErr != nil {
-		u.APIResponse(ctx, http.StatusBadRequest, "error", "Generate Verification Token", vtErr.Error())
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to generate verification token", vtErr.Error())
 		return
 	}
 
 	if _, err := ctrl.emailService.SendVerificationEmail(ctx, verificationtoken.Token, user.Email); err != nil {
-		u.APIResponse(ctx, http.StatusBadRequest, "error", "Send Verification Email", vtErr.Error())
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to send verification email", vtErr.Error())
 		return
 	}
 
