@@ -388,7 +388,7 @@ func (ctrl *AuthController) ConfirmEmail(ctx *gin.Context) {
 
 // ResendVerificationToken controller resends the verification token to the users email.
 func (ctrl *AuthController) ResendVerificationToken(ctx *gin.Context) {
-	var payload types.ResendVerificationTokenPayload
+	var payload types.ResendTokenPayload
 
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		logger.Errorf("error: %v", err)

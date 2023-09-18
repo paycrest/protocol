@@ -528,7 +528,7 @@ func TestAuth(t *testing.T) {
 
 		t.Run("verification token should be resent", func(t *testing.T) {
 			// construct resend verification token payload
-			payload := types.ResendVerificationTokenPayload{
+			payload := types.ResendTokenPayload{
 				Scope: verificationtoken.ScopeVerification.String(),
 				Email: user.Email,
 			}
@@ -539,9 +539,9 @@ func TestAuth(t *testing.T) {
 			// Assert the response body
 			assert.Equal(t, http.StatusOK, res.Code)
 
-      // verificationtokens should be two
-      amount := user.QueryVerificationToken().CountX(context.Background())
-      assert.Equal(t, 2, amount)
+			// verificationtokens should be two
+			amount := user.QueryVerificationToken().CountX(context.Background())
+			assert.Equal(t, 2, amount)
 		})
 	})
 }

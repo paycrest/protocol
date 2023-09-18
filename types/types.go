@@ -166,7 +166,7 @@ type SendEmailResponse struct {
 	Id      string `json:"id"`
 }
 
-type ResendVerificationTokenPayload struct {
+type ResendTokenPayload struct {
 	Scope string `json:"scope" binding:"required"`
 	Email string `json:"email" binding:"required,email"`
 }
