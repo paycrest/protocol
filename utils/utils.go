@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"bytes"
+	"context"
 	"crypto/ecdsa"
 	"fmt"
 	"math/big"
@@ -8,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/paycrest/paycrest-protocol/types"
 	cryptoUtils "github.com/paycrest/paycrest-protocol/utils/crypto"
 	"github.com/shopspring/decimal"
 )
@@ -64,34 +67,16 @@ func StringToByte32(s string) [32]byte {
 }
 
 // Byte32ToString converts [32]byte to string
-// func Byte32ToString(b [32]byte) string {
-
-// 	// Copy byte array into slice
-// 	buf := make([]byte, 32)
-// 	copy(buf, b[:])
-
-// 	// Truncate trailing zeros
-// 	buf = bytes.TrimRight(buf, "\x00")
-
-//		return string(buf)
-//	}
 func Byte32ToString(b [32]byte) string {
 
-	// Find first null index if any
-	nullIndex := -1
-	for i, x := range b {
-		if x == 0 {
-			nullIndex = i
-			break
-		}
-	}
+	// Copy byte array into slice
+	buf := make([]byte, 32)
+	copy(buf, b[:])
 
-	// Slice at first null or return full 32 bytes
-	if nullIndex >= 0 {
-		return string(b[:nullIndex])
-	} else {
-		return string(b[:])
-	}
+	// Truncate trailing zeros
+	buf = bytes.TrimRight(buf, "\x00")
+
+	return string(buf)
 }
 
 // BigMin returns the minimum value between two big numbers
@@ -126,7 +111,7 @@ func GetMasterAccount() (*common.Address, *ecdsa.PrivateKey, error) {
 
 // PersonalSign is an equivalent of ethers.personal_sign for signing ethereum messages
 // Ref: https://github.com/etaaa/Golang-Ethereum-Personal-Sign/blob/main/main.go
-func PersonalSign(message string, privateKey *ecdsa.PrivateKey) ([]byte, error) {
+func PersonalSign(message []byte, privateKey *ecdsa.PrivateKey) ([]byte, error) {
 	fullMessage := fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(message), message)
 	hash := crypto.Keccak256Hash([]byte(fullMessage))
 	signatureBytes, err := crypto.Sign(hash.Bytes(), privateKey)
@@ -135,4 +120,23 @@ func PersonalSign(message string, privateKey *ecdsa.PrivateKey) ([]byte, error) 
 	}
 	signatureBytes[64] += 27
 	return signatureBytes, nil
+}
+
+// EIP1559GasPrice returns the maxFeePerGas and maxPriorityFeePerGas for EIP-1559
+func EIP1559GasPrice(ctx context.Context, client types.RPCClient) (maxFeePerGas, maxPriorityFeePerGas *big.Int) {
+	tip, _ := client.SuggestGasTipCap(ctx)
+	latestHeader, _ := client.HeaderByNumber(ctx, nil)
+
+	buffer := new(big.Int).Mul(tip, big.NewInt(13)).Div(tip, big.NewInt(100))
+	maxPriorityFeePerGas = new(big.Int).Add(tip, buffer)
+
+	if latestHeader.BaseFee != nil {
+		maxFeePerGas = new(big.Int).
+			Mul(latestHeader.BaseFee, big.NewInt(2)).
+			Add(latestHeader.BaseFee, maxPriorityFeePerGas)
+	} else {
+		maxFeePerGas = maxPriorityFeePerGas
+	}
+
+	return maxFeePerGas, maxPriorityFeePerGas
 }

@@ -9,11 +9,13 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent"
 	"github.com/paycrest/paycrest-protocol/services/contracts"
 	db "github.com/paycrest/paycrest-protocol/storage"
+	"github.com/shopspring/decimal"
 
 	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/types"
@@ -123,17 +125,15 @@ func (s *OrderService) CreateOrder(ctx context.Context, client types.RPCClient, 
 	}
 	userOperation.CallData = calldata
 
+	// Set gas fees
+	userOperation.MaxFeePerGas, userOperation.MaxPriorityFeePerGas = utils.EIP1559GasPrice(ctx, client)
+
 	// Sponsor user operation.
 	// This will populate the following fields in userOperation: PaymasterAndData, PreVerificationGas, VerificationGasLimit, CallGasLimit
-	err = s.sponsorUserOperation(userOperation)
+	userOperation, err = s.sponsorUserOperation(userOperation)
 	if err != nil {
 		return fmt.Errorf("failed to sponsor user operation: %w", err)
 	}
-
-	// Set gas fees
-	gasPrice := userOperation.GetDynamicGasPrice(nil)
-	userOperation.MaxFeePerGas = big.NewInt(0).Mul(gasPrice, userOperation.CallGasLimit)
-	userOperation.MaxPriorityFeePerGas = big.NewInt(0).Mul(gasPrice, big.NewInt(110)) // 110%
 
 	// Sign user operation
 	userOpHash := userOperation.GetUserOpHash(
@@ -141,7 +141,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, client types.RPCClient, 
 		big.NewInt(order.Edges.Token.Edges.Network.ChainID),
 	)
 
-	signature, err := utils.PersonalSign(string(userOpHash[:]), privateKey)
+	signature, err := utils.PersonalSign(userOpHash.Bytes(), privateKey)
 	if err != nil {
 		return fmt.Errorf("failed to sign user operation: %w", err)
 	}
@@ -153,14 +153,16 @@ func (s *OrderService) CreateOrder(ctx context.Context, client types.RPCClient, 
 		return fmt.Errorf("failed to send user operation: %w", err)
 	}
 
-	// update payment order with userOpHash
-	_, err = order.Update().
-		SetTxHash(userOpHash.Hex()).
-		SetStatus(paymentorder.StatusPending).
-		Save(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to update payment order: %w", err)
-	}
+	// Update payment order with userOpHash
+	// _, err = order.Update().
+	// 	SetTxHash(userOpHash.Hex()).
+	// 	SetStatus(paymentorder.StatusPending).
+	// 	Save(ctx)
+	// if err != nil {
+	// 	return fmt.Errorf("failed to update payment order: %w", err)
+	// }
+
+	fmt.Println("userOpHash: ", userOpHash.Hex())
 
 	return nil
 }
@@ -170,23 +172,23 @@ func (s *OrderService) executeBatchCallData(order *ent.PaymentOrder) ([]byte, er
 	// Create approve data for paycrest order contract
 	approvePaycrestData, err := s.approveCallData(
 		OrderConf.PaycrestOrderContractAddress,
-		utils.ToSubunit(order.Amount, order.Edges.Token.Decimals),
+		utils.ToSubunit(order.Amount.Mul(decimal.NewFromInt(2)), order.Edges.Token.Decimals),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create paycrest approve calldata: %w", err)
 	}
 
 	// Fetch paymaster account
-	paymasterAccount, err := s.getPaymasterAccount()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get paymaster account: %w", err)
-	}
+	// paymasterAccount, err := s.getPaymasterAccount()
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to get paymaster account: %w", err)
+	// }
 
 	// Create approve data for paymaster contract
 	approvePaymasterData, err := s.approveCallData(
-		// common.HexToAddress("0xE93ECa6595fe94091DC1af46aaC2A8b5D7990770"),
-		common.HexToAddress(paymasterAccount),
-		utils.ToSubunit(order.Amount, order.Edges.Token.Decimals),
+		common.HexToAddress("0xE93ECa6595fe94091DC1af46aaC2A8b5D7990770"),
+		// common.HexToAddress(paymasterAccount),
+		utils.ToSubunit(order.Amount.Mul(decimal.NewFromInt(2)), order.Edges.Token.Decimals),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create paymaster approve calldata : %w", err)
@@ -207,7 +209,7 @@ func (s *OrderService) executeBatchCallData(order *ent.PaymentOrder) ([]byte, er
 		"executeBatch",
 		[]common.Address{
 			common.HexToAddress("0x3870419Ba2BBf0127060bCB37f69A1b1C090992B"), // TODO: replace with production token address or config
-			common.HexToAddress("0x3870419Ba2BBf0127060bCB37f69A1b1C090992B"),
+			common.HexToAddress("0xfe4F5145f6e09952a5ba9e956ED0C25e3Fa4c7F1"),
 			OrderConf.PaycrestOrderContractAddress,
 		},
 		// []*big.Int{big.NewInt(0), big.NewInt(0)},
@@ -345,10 +347,10 @@ func (s *OrderService) getPaymasterAccount() (string, error) {
 
 // sponsorUserOperation sponsors the user operation
 // ref: https://docs.stackup.sh/docs/paymaster-api-rpc-methods#pm_sponsoruseroperation
-func (s *OrderService) sponsorUserOperation(userOp *userop.UserOperation) error {
+func (s *OrderService) sponsorUserOperation(userOp *userop.UserOperation) (*userop.UserOperation, error) {
 	client, err := rpc.Dial(OrderConf.PaymasterURL)
 	if err != nil {
-		return fmt.Errorf("failed to connect to RPC client: %w", err)
+		return nil, fmt.Errorf("failed to connect to RPC client: %w", err)
 	}
 
 	requestParams := []interface{}{
@@ -360,10 +362,13 @@ func (s *OrderService) sponsorUserOperation(userOp *userop.UserOperation) error 
 		},
 	}
 
+	// op, _ := userOp.MarshalJSON()
+	// fmt.Println("userOp: ", string(op))
+
 	var result json.RawMessage
 	err = client.Call(&result, "pm_sponsorUserOperation", requestParams...)
 	if err != nil {
-		return fmt.Errorf("RPC error: %w", err)
+		return nil, fmt.Errorf("RPC error: %w", err)
 	}
 
 	type Response struct {
@@ -376,15 +381,15 @@ func (s *OrderService) sponsorUserOperation(userOp *userop.UserOperation) error 
 	var response Response
 	err = json.Unmarshal(result, &response)
 	if err != nil {
-		return fmt.Errorf("failed to unmarshal response: %w", err)
+		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
-	userOp.CallGasLimit, _ = new(big.Int).SetString(response.CallGasLimit, 0)
-	userOp.VerificationGasLimit, _ = new(big.Int).SetString(response.VerificationGasLimit, 0)
-	userOp.PreVerificationGas, _ = new(big.Int).SetString(response.PreVerificationGas, 0)
+	userOp.CallGasLimit, _ = hexutil.DecodeBig(response.CallGasLimit)
+	userOp.VerificationGasLimit, _ = hexutil.DecodeBig(response.VerificationGasLimit)
+	userOp.PreVerificationGas, _ = hexutil.DecodeBig(response.PreVerificationGas)
 	userOp.PaymasterAndData = common.FromHex(response.PaymasterAndData)
 
-	return nil
+	return userOp, nil
 }
 
 // sendUserOperation sends the user operation
@@ -398,9 +403,6 @@ func (s *OrderService) sendUserOperation(userOp *userop.UserOperation) (string, 
 		userOp,
 		OrderConf.EntryPointContractAddress.Hex(),
 	}
-
-	// op, _ := userOp.MarshalJSON()
-	// fmt.Println(string(op))
 
 	var result json.RawMessage
 	err = client.Call(&result, "eth_sendUserOperation", requestParams...)
