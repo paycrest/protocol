@@ -38,6 +38,11 @@ func (m *MockIndexerService) IndexERC20Transfer(ctx context.Context, client type
 	return nil
 }
 
+// IndexOrderDeposits mocks the IndexOrderDeposits method
+func (m *MockIndexerService) IndexOrderDeposits(ctx context.Context, client types.RPCClient, network *ent.Network) error {
+	return nil
+}
+
 var testCtx = struct {
 	user         *ent.User
 	token        *ent.Token

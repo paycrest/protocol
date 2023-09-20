@@ -15,6 +15,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent"
 	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
 	networkent "github.com/paycrest/paycrest-protocol/ent/network"
@@ -38,9 +39,10 @@ type orderRecipient struct {
 	ProviderID        string
 }
 
-type lockPaymentOrderFields struct {
+type LockPaymentOrderFields struct {
+	ID                uuid.UUID
 	Token             *ent.Token
-	OrderID           string
+	OrderID           string 
 	Amount            decimal.Decimal
 	Rate              decimal.Decimal
 	BlockNumber       int64
@@ -54,17 +56,22 @@ type lockPaymentOrderFields struct {
 // Indexer is an interface for indexing blockchain data to the database.
 type Indexer interface {
 	IndexERC20Transfer(ctx context.Context, client types.RPCClient, receiveAddress *ent.ReceiveAddress, done chan<- bool) error
+	IndexOrderDeposits(ctx context.Context, client types.RPCClient, network *ent.Network) error
 }
 
 // IndexerService performs blockchain to database extract, transform, load (ETL) operations.
 type IndexerService struct {
-	indexer Indexer
+	indexer       Indexer
+	priorityQueue *PriorityQueueService
 }
 
 // NewIndexerService creates a new instance of IndexerService.
 func NewIndexerService(indexer Indexer) *IndexerService {
+	priorityQueue := NewPriorityQueueService()
+
 	return &IndexerService{
-		indexer: indexer,
+		indexer:       indexer,
+		priorityQueue: priorityQueue,
 	}
 }
 
@@ -496,7 +503,7 @@ func (s *IndexerService) saveLockPaymentOrder(ctx context.Context, client types.
 	}
 
 	// Create lock payment order fields
-	lockPaymentOrder := lockPaymentOrderFields{
+	lockPaymentOrder := LockPaymentOrderFields{
 		Token:             token,
 		OrderID:           fmt.Sprintf("0x%v", hex.EncodeToString(deposit.OrderId[:])),
 		Amount:            amountInDecimals,
@@ -519,7 +526,7 @@ func (s *IndexerService) saveLockPaymentOrder(ctx context.Context, client types.
 		}
 	} else {
 		// Create lock payment order in db
-		_, err := db.Client.LockPaymentOrder.
+		orderCreated, err := db.Client.LockPaymentOrder.
 			Create().
 			SetToken(lockPaymentOrder.Token).
 			SetOrderID(lockPaymentOrder.OrderID).
@@ -535,6 +542,10 @@ func (s *IndexerService) saveLockPaymentOrder(ctx context.Context, client types.
 		if err != nil {
 			return fmt.Errorf("failed to create lock payment order: %w", err)
 		}
+
+		// Assign the lock payment order to a provider
+		lockPaymentOrder.ID = orderCreated.ID
+		_ = s.priorityQueue.AssignLockPaymentOrder(ctx, lockPaymentOrder)
 	}
 
 	return nil
@@ -574,7 +585,7 @@ func (s *IndexerService) getInstitutionByCode(ctx context.Context, client types.
 }
 
 // splitLockPaymentOrder splits a lock payment order into multiple orders
-func (s *IndexerService) splitLockPaymentOrder(ctx context.Context, lockPaymentOrder lockPaymentOrderFields, currency string) error {
+func (s *IndexerService) splitLockPaymentOrder(ctx context.Context, lockPaymentOrder LockPaymentOrderFields, currency string) error {
 	buckets, err := db.Client.ProvisionBucket.
 		Query().
 		Where(provisionbucket.CurrencyEQ(currency)).
@@ -588,18 +599,12 @@ func (s *IndexerService) splitLockPaymentOrder(ctx context.Context, lockPaymentO
 
 	amountToSplit := lockPaymentOrder.Amount // e.g 100,000
 
-	tx, err := db.Client.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-
 	for _, bucket := range buckets {
 		// Get the number of providers in the bucket
 		bucketSize := int64(len(bucket.Edges.ProviderProfiles))
 
-		// Calculate the bucket capacity: max amount * number of providers
-		bucketMaxAmountInToken := bucket.MaxAmount.Div(lockPaymentOrder.Rate)
-		numberOfAllocations := amountToSplit.Div(bucketMaxAmountInToken).IntPart() // e.g 100000 / 10000 = 10, TODO: verify integer conversion
+		// Get the number of allocations to make in the bucket
+		numberOfAllocations := amountToSplit.Div(bucket.MaxAmount).IntPart() // e.g 100000 / 10000 = 10, TODO: verify integer conversion
 
 		var trips int64
 
@@ -612,12 +617,17 @@ func (s *IndexerService) splitLockPaymentOrder(ctx context.Context, lockPaymentO
 		// Create a slice to hold the LockPaymentOrder entities for this bucket
 		lockOrders := make([]*ent.LockPaymentOrderCreate, 0, trips)
 
+		tx, err := db.Client.BeginTx(ctx, nil)
+		if err != nil {
+			return err
+		}
+
 		for i := int64(0); i < trips; i++ {
 			lockOrder := tx.LockPaymentOrder.
 				Create().
 				SetToken(lockPaymentOrder.Token).
 				SetOrderID(lockPaymentOrder.OrderID).
-				SetAmount(bucketMaxAmountInToken).
+				SetAmount(bucket.MaxAmount).
 				SetRate(lockPaymentOrder.Rate).
 				SetBlockNumber(lockPaymentOrder.BlockNumber).
 				SetInstitution(lockPaymentOrder.Institution).
@@ -629,7 +639,7 @@ func (s *IndexerService) splitLockPaymentOrder(ctx context.Context, lockPaymentO
 		}
 
 		// Batch insert all LockPaymentOrder entities for this bucket in a single transaction
-		_, err := tx.LockPaymentOrder.
+		ordersCreated, err := tx.LockPaymentOrder.
 			CreateBulk(lockOrders...).
 			Save(ctx)
 		if err != nil {
@@ -638,7 +648,19 @@ func (s *IndexerService) splitLockPaymentOrder(ctx context.Context, lockPaymentO
 			return err
 		}
 
-		amountToSplit = amountToSplit.Sub(bucketMaxAmountInToken.Mul(decimal.NewFromInt(trips)))
+		// Commit the transaction if everything succeeded
+		if err := tx.Commit(); err != nil {
+			logger.Errorf("failed to split lock payment order: %v", err)
+			return err
+		}
+
+		// Assign the lock payment orders to providers
+		for _, order := range ordersCreated {
+			lockPaymentOrder.ID = order.ID
+			_ = s.priorityQueue.AssignLockPaymentOrder(ctx, lockPaymentOrder)
+		}
+
+		amountToSplit = amountToSplit.Sub(bucket.MaxAmount)
 	}
 
 	largestBucket := buckets[0]
@@ -649,7 +671,7 @@ func (s *IndexerService) splitLockPaymentOrder(ctx context.Context, lockPaymentO
 			return err
 		}
 
-		_, err = tx.LockPaymentOrder.
+		orderCreated, err := db.Client.LockPaymentOrder.
 			Create().
 			SetToken(lockPaymentOrder.Token).
 			SetOrderID(lockPaymentOrder.OrderID).
@@ -664,9 +686,13 @@ func (s *IndexerService) splitLockPaymentOrder(ctx context.Context, lockPaymentO
 			Save(ctx)
 		if err != nil {
 			logger.Errorf("failed to create lock payment order: %v", err)
-			_ = tx.Rollback()
 			return err
 		}
+
+		// Assign the lock payment order to a provider
+		lockPaymentOrder.ID = orderCreated.ID
+		_ = s.priorityQueue.AssignLockPaymentOrder(ctx, lockPaymentOrder)
+
 	} else {
 		// TODO: figure out how to handle this case, currently it recursively splits the amount
 		lockPaymentOrder.Amount = amountToSplit
@@ -674,12 +700,6 @@ func (s *IndexerService) splitLockPaymentOrder(ctx context.Context, lockPaymentO
 		if err != nil {
 			return err
 		}
-	}
-
-	// Commit the transaction if everything succeeded
-	if err := tx.Commit(); err != nil {
-		logger.Errorf("failed to split lock payment order: %v", err)
-		return err
 	}
 
 	return nil

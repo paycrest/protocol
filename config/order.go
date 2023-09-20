@@ -11,6 +11,7 @@ import (
 // OrderConfiguration type defines payment order configurations
 type OrderConfiguration struct {
 	ReceiveAddressValidity       time.Duration
+	OrderRequestValidity         time.Duration
 	PaycrestOrderContractAddress common.Address
 	BundlerRPCURL                string
 	PaymasterURL                 string
@@ -23,6 +24,7 @@ func OrderConfig() *OrderConfiguration {
 
 	return &OrderConfiguration{
 		ReceiveAddressValidity:       time.Duration(viper.GetInt("RECEIVE_ADDRESS_VALIDITY")) * time.Minute,
+		OrderRequestValidity:         time.Duration(viper.GetInt("ORDER_REQUEST_VALIDITY")) * time.Second,
 		PaycrestOrderContractAddress: common.HexToAddress(viper.GetString("PAYCREST_ORDER_CONTRACT_ADDRESS")),
 		BundlerRPCURL:                viper.GetString("BUNDLER_RPC_URL"),
 		PaymasterURL:                 viper.GetString("PAYMASTER_URL"),
