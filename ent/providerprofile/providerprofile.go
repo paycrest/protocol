@@ -32,6 +32,8 @@ const (
 	EdgeAvailability = "availability"
 	// EdgeProviderRating holds the string denoting the provider_rating edge name in mutations.
 	EdgeProviderRating = "provider_rating"
+	// EdgeAssignedOrders holds the string denoting the assigned_orders edge name in mutations.
+	EdgeAssignedOrders = "assigned_orders"
 	// Table holds the table name of the providerprofile in the database.
 	Table = "provider_profiles"
 	// APIKeyTable is the table that holds the api_key relation/edge.
@@ -67,6 +69,13 @@ const (
 	ProviderRatingInverseTable = "provider_ratings"
 	// ProviderRatingColumn is the table column denoting the provider_rating relation/edge.
 	ProviderRatingColumn = "provider_profile_provider_rating"
+	// AssignedOrdersTable is the table that holds the assigned_orders relation/edge.
+	AssignedOrdersTable = "lock_payment_orders"
+	// AssignedOrdersInverseTable is the table name for the LockPaymentOrder entity.
+	// It exists in this package in order to avoid circular dependency with the "lockpaymentorder" package.
+	AssignedOrdersInverseTable = "lock_payment_orders"
+	// AssignedOrdersColumn is the table column denoting the assigned_orders relation/edge.
+	AssignedOrdersColumn = "provider_profile_assigned_orders"
 )
 
 // Columns holds all SQL columns for providerprofile fields.
@@ -196,6 +205,20 @@ func ByProviderRatingField(field string, opts ...sql.OrderTermOption) OrderOptio
 		sqlgraph.OrderByNeighborTerms(s, newProviderRatingStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// ByAssignedOrdersCount orders the results by assigned_orders count.
+func ByAssignedOrdersCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newAssignedOrdersStep(), opts...)
+	}
+}
+
+// ByAssignedOrders orders the results by assigned_orders terms.
+func ByAssignedOrders(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newAssignedOrdersStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newAPIKeyStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -229,5 +252,12 @@ func newProviderRatingStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(ProviderRatingInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2O, false, ProviderRatingTable, ProviderRatingColumn),
+	)
+}
+func newAssignedOrdersStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(AssignedOrdersInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, AssignedOrdersTable, AssignedOrdersColumn),
 	)
 }

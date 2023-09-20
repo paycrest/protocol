@@ -38,12 +38,12 @@ const (
 	FieldAccountIdentifier = "account_identifier"
 	// FieldAccountName holds the string denoting the account_name field in the database.
 	FieldAccountName = "account_name"
-	// FieldProviderID holds the string denoting the provider_id field in the database.
-	FieldProviderID = "provider_id"
 	// EdgeToken holds the string denoting the token edge name in mutations.
 	EdgeToken = "token"
 	// EdgeProvisionBucket holds the string denoting the provision_bucket edge name in mutations.
 	EdgeProvisionBucket = "provision_bucket"
+	// EdgeProvider holds the string denoting the provider edge name in mutations.
+	EdgeProvider = "provider"
 	// Table holds the table name of the lockpaymentorder in the database.
 	Table = "lock_payment_orders"
 	// TokenTable is the table that holds the token relation/edge.
@@ -60,6 +60,13 @@ const (
 	ProvisionBucketInverseTable = "provision_buckets"
 	// ProvisionBucketColumn is the table column denoting the provision_bucket relation/edge.
 	ProvisionBucketColumn = "provision_bucket_lock_payment_orders"
+	// ProviderTable is the table that holds the provider relation/edge.
+	ProviderTable = "lock_payment_orders"
+	// ProviderInverseTable is the table name for the ProviderProfile entity.
+	// It exists in this package in order to avoid circular dependency with the "providerprofile" package.
+	ProviderInverseTable = "provider_profiles"
+	// ProviderColumn is the table column denoting the provider relation/edge.
+	ProviderColumn = "provider_profile_assigned_orders"
 )
 
 // Columns holds all SQL columns for lockpaymentorder fields.
@@ -76,12 +83,12 @@ var Columns = []string{
 	FieldInstitution,
 	FieldAccountIdentifier,
 	FieldAccountName,
-	FieldProviderID,
 }
 
 // ForeignKeys holds the SQL foreign-keys that are owned by the "lock_payment_orders"
 // table and are not defined as standalone fields in the schema.
 var ForeignKeys = []string{
+	"provider_profile_assigned_orders",
 	"provision_bucket_lock_payment_orders",
 	"token_lock_payment_orders",
 }
@@ -207,11 +214,6 @@ func ByAccountName(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAccountName, opts...).ToFunc()
 }
 
-// ByProviderID orders the results by the provider_id field.
-func ByProviderID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldProviderID, opts...).ToFunc()
-}
-
 // ByTokenField orders the results by token field.
 func ByTokenField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -223,6 +225,13 @@ func ByTokenField(field string, opts ...sql.OrderTermOption) OrderOption {
 func ByProvisionBucketField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newProvisionBucketStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByProviderField orders the results by provider field.
+func ByProviderField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newProviderStep(), sql.OrderByField(field, opts...))
 	}
 }
 func newTokenStep() *sqlgraph.Step {
@@ -237,5 +246,12 @@ func newProvisionBucketStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(ProvisionBucketInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, ProvisionBucketTable, ProvisionBucketColumn),
+	)
+}
+func newProviderStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ProviderInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, ProviderTable, ProviderColumn),
 	)
 }

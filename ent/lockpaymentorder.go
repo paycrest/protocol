@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
+	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 	"github.com/paycrest/paycrest-protocol/ent/provisionbucket"
 	"github.com/paycrest/paycrest-protocol/ent/token"
 	"github.com/shopspring/decimal"
@@ -43,11 +44,10 @@ type LockPaymentOrder struct {
 	AccountIdentifier string `json:"account_identifier,omitempty"`
 	// AccountName holds the value of the "account_name" field.
 	AccountName string `json:"account_name,omitempty"`
-	// ProviderID holds the value of the "provider_id" field.
-	ProviderID string `json:"provider_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the LockPaymentOrderQuery when eager-loading is set.
 	Edges                                LockPaymentOrderEdges `json:"edges"`
+	provider_profile_assigned_orders     *string
 	provision_bucket_lock_payment_orders *int
 	token_lock_payment_orders            *int
 	selectValues                         sql.SelectValues
@@ -59,9 +59,11 @@ type LockPaymentOrderEdges struct {
 	Token *Token `json:"token,omitempty"`
 	// ProvisionBucket holds the value of the provision_bucket edge.
 	ProvisionBucket *ProvisionBucket `json:"provision_bucket,omitempty"`
+	// Provider holds the value of the provider edge.
+	Provider *ProviderProfile `json:"provider,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [3]bool
 }
 
 // TokenOrErr returns the Token value or an error if the edge
@@ -90,6 +92,19 @@ func (e LockPaymentOrderEdges) ProvisionBucketOrErr() (*ProvisionBucket, error) 
 	return nil, &NotLoadedError{edge: "provision_bucket"}
 }
 
+// ProviderOrErr returns the Provider value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e LockPaymentOrderEdges) ProviderOrErr() (*ProviderProfile, error) {
+	if e.loadedTypes[2] {
+		if e.Provider == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: providerprofile.Label}
+		}
+		return e.Provider, nil
+	}
+	return nil, &NotLoadedError{edge: "provider"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*LockPaymentOrder) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -99,15 +114,17 @@ func (*LockPaymentOrder) scanValues(columns []string) ([]any, error) {
 			values[i] = new(decimal.Decimal)
 		case lockpaymentorder.FieldBlockNumber:
 			values[i] = new(sql.NullInt64)
-		case lockpaymentorder.FieldOrderID, lockpaymentorder.FieldTxHash, lockpaymentorder.FieldStatus, lockpaymentorder.FieldInstitution, lockpaymentorder.FieldAccountIdentifier, lockpaymentorder.FieldAccountName, lockpaymentorder.FieldProviderID:
+		case lockpaymentorder.FieldOrderID, lockpaymentorder.FieldTxHash, lockpaymentorder.FieldStatus, lockpaymentorder.FieldInstitution, lockpaymentorder.FieldAccountIdentifier, lockpaymentorder.FieldAccountName:
 			values[i] = new(sql.NullString)
 		case lockpaymentorder.FieldCreatedAt, lockpaymentorder.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
 		case lockpaymentorder.FieldID:
 			values[i] = new(uuid.UUID)
-		case lockpaymentorder.ForeignKeys[0]: // provision_bucket_lock_payment_orders
+		case lockpaymentorder.ForeignKeys[0]: // provider_profile_assigned_orders
+			values[i] = new(sql.NullString)
+		case lockpaymentorder.ForeignKeys[1]: // provision_bucket_lock_payment_orders
 			values[i] = new(sql.NullInt64)
-		case lockpaymentorder.ForeignKeys[1]: // token_lock_payment_orders
+		case lockpaymentorder.ForeignKeys[2]: // token_lock_payment_orders
 			values[i] = new(sql.NullInt64)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -196,20 +213,21 @@ func (lpo *LockPaymentOrder) assignValues(columns []string, values []any) error 
 			} else if value.Valid {
 				lpo.AccountName = value.String
 			}
-		case lockpaymentorder.FieldProviderID:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field provider_id", values[i])
-			} else if value.Valid {
-				lpo.ProviderID = value.String
-			}
 		case lockpaymentorder.ForeignKeys[0]:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field provider_profile_assigned_orders", values[i])
+			} else if value.Valid {
+				lpo.provider_profile_assigned_orders = new(string)
+				*lpo.provider_profile_assigned_orders = value.String
+			}
+		case lockpaymentorder.ForeignKeys[1]:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for edge-field provision_bucket_lock_payment_orders", value)
 			} else if value.Valid {
 				lpo.provision_bucket_lock_payment_orders = new(int)
 				*lpo.provision_bucket_lock_payment_orders = int(value.Int64)
 			}
-		case lockpaymentorder.ForeignKeys[1]:
+		case lockpaymentorder.ForeignKeys[2]:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for edge-field token_lock_payment_orders", value)
 			} else if value.Valid {
@@ -237,6 +255,11 @@ func (lpo *LockPaymentOrder) QueryToken() *TokenQuery {
 // QueryProvisionBucket queries the "provision_bucket" edge of the LockPaymentOrder entity.
 func (lpo *LockPaymentOrder) QueryProvisionBucket() *ProvisionBucketQuery {
 	return NewLockPaymentOrderClient(lpo.config).QueryProvisionBucket(lpo)
+}
+
+// QueryProvider queries the "provider" edge of the LockPaymentOrder entity.
+func (lpo *LockPaymentOrder) QueryProvider() *ProviderProfileQuery {
+	return NewLockPaymentOrderClient(lpo.config).QueryProvider(lpo)
 }
 
 // Update returns a builder for updating this LockPaymentOrder.
@@ -294,9 +317,6 @@ func (lpo *LockPaymentOrder) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("account_name=")
 	builder.WriteString(lpo.AccountName)
-	builder.WriteString(", ")
-	builder.WriteString("provider_id=")
-	builder.WriteString(lpo.ProviderID)
 	builder.WriteByte(')')
 	return builder.String()
 }

@@ -40,8 +40,6 @@ func (LockPaymentOrder) Fields() []ent.Field {
 		field.String("institution"),
 		field.String("account_identifier"),
 		field.String("account_name"),
-		field.String("provider_id").
-			Optional(),
 	}
 }
 
@@ -54,6 +52,9 @@ func (LockPaymentOrder) Edges() []ent.Edge {
 			Required(),
 		edge.From("provision_bucket", ProvisionBucket.Type).
 			Ref("lock_payment_orders").
+			Unique(),
+		edge.From("provider", ProviderProfile.Type).
+			Ref("assigned_orders").
 			Unique(),
 	}
 }

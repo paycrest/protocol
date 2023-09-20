@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
+	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
 	"github.com/paycrest/paycrest-protocol/ent/provideravailability"
 	"github.com/paycrest/paycrest-protocol/ent/providerordertoken"
@@ -131,6 +132,21 @@ func (ppu *ProviderProfileUpdate) SetProviderRating(p *ProviderRating) *Provider
 	return ppu.SetProviderRatingID(p.ID)
 }
 
+// AddAssignedOrderIDs adds the "assigned_orders" edge to the LockPaymentOrder entity by IDs.
+func (ppu *ProviderProfileUpdate) AddAssignedOrderIDs(ids ...uuid.UUID) *ProviderProfileUpdate {
+	ppu.mutation.AddAssignedOrderIDs(ids...)
+	return ppu
+}
+
+// AddAssignedOrders adds the "assigned_orders" edges to the LockPaymentOrder entity.
+func (ppu *ProviderProfileUpdate) AddAssignedOrders(l ...*LockPaymentOrder) *ProviderProfileUpdate {
+	ids := make([]uuid.UUID, len(l))
+	for i := range l {
+		ids[i] = l[i].ID
+	}
+	return ppu.AddAssignedOrderIDs(ids...)
+}
+
 // Mutation returns the ProviderProfileMutation object of the builder.
 func (ppu *ProviderProfileUpdate) Mutation() *ProviderProfileMutation {
 	return ppu.mutation
@@ -194,6 +210,27 @@ func (ppu *ProviderProfileUpdate) ClearAvailability() *ProviderProfileUpdate {
 func (ppu *ProviderProfileUpdate) ClearProviderRating() *ProviderProfileUpdate {
 	ppu.mutation.ClearProviderRating()
 	return ppu
+}
+
+// ClearAssignedOrders clears all "assigned_orders" edges to the LockPaymentOrder entity.
+func (ppu *ProviderProfileUpdate) ClearAssignedOrders() *ProviderProfileUpdate {
+	ppu.mutation.ClearAssignedOrders()
+	return ppu
+}
+
+// RemoveAssignedOrderIDs removes the "assigned_orders" edge to LockPaymentOrder entities by IDs.
+func (ppu *ProviderProfileUpdate) RemoveAssignedOrderIDs(ids ...uuid.UUID) *ProviderProfileUpdate {
+	ppu.mutation.RemoveAssignedOrderIDs(ids...)
+	return ppu
+}
+
+// RemoveAssignedOrders removes "assigned_orders" edges to LockPaymentOrder entities.
+func (ppu *ProviderProfileUpdate) RemoveAssignedOrders(l ...*LockPaymentOrder) *ProviderProfileUpdate {
+	ids := make([]uuid.UUID, len(l))
+	for i := range l {
+		ids[i] = l[i].ID
+	}
+	return ppu.RemoveAssignedOrderIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -448,6 +485,51 @@ func (ppu *ProviderProfileUpdate) sqlSave(ctx context.Context) (n int, err error
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if ppu.mutation.AssignedOrdersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   providerprofile.AssignedOrdersTable,
+			Columns: []string{providerprofile.AssignedOrdersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(lockpaymentorder.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ppu.mutation.RemovedAssignedOrdersIDs(); len(nodes) > 0 && !ppu.mutation.AssignedOrdersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   providerprofile.AssignedOrdersTable,
+			Columns: []string{providerprofile.AssignedOrdersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(lockpaymentorder.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ppu.mutation.AssignedOrdersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   providerprofile.AssignedOrdersTable,
+			Columns: []string{providerprofile.AssignedOrdersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(lockpaymentorder.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, ppu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{providerprofile.Label}
@@ -565,6 +647,21 @@ func (ppuo *ProviderProfileUpdateOne) SetProviderRating(p *ProviderRating) *Prov
 	return ppuo.SetProviderRatingID(p.ID)
 }
 
+// AddAssignedOrderIDs adds the "assigned_orders" edge to the LockPaymentOrder entity by IDs.
+func (ppuo *ProviderProfileUpdateOne) AddAssignedOrderIDs(ids ...uuid.UUID) *ProviderProfileUpdateOne {
+	ppuo.mutation.AddAssignedOrderIDs(ids...)
+	return ppuo
+}
+
+// AddAssignedOrders adds the "assigned_orders" edges to the LockPaymentOrder entity.
+func (ppuo *ProviderProfileUpdateOne) AddAssignedOrders(l ...*LockPaymentOrder) *ProviderProfileUpdateOne {
+	ids := make([]uuid.UUID, len(l))
+	for i := range l {
+		ids[i] = l[i].ID
+	}
+	return ppuo.AddAssignedOrderIDs(ids...)
+}
+
 // Mutation returns the ProviderProfileMutation object of the builder.
 func (ppuo *ProviderProfileUpdateOne) Mutation() *ProviderProfileMutation {
 	return ppuo.mutation
@@ -628,6 +725,27 @@ func (ppuo *ProviderProfileUpdateOne) ClearAvailability() *ProviderProfileUpdate
 func (ppuo *ProviderProfileUpdateOne) ClearProviderRating() *ProviderProfileUpdateOne {
 	ppuo.mutation.ClearProviderRating()
 	return ppuo
+}
+
+// ClearAssignedOrders clears all "assigned_orders" edges to the LockPaymentOrder entity.
+func (ppuo *ProviderProfileUpdateOne) ClearAssignedOrders() *ProviderProfileUpdateOne {
+	ppuo.mutation.ClearAssignedOrders()
+	return ppuo
+}
+
+// RemoveAssignedOrderIDs removes the "assigned_orders" edge to LockPaymentOrder entities by IDs.
+func (ppuo *ProviderProfileUpdateOne) RemoveAssignedOrderIDs(ids ...uuid.UUID) *ProviderProfileUpdateOne {
+	ppuo.mutation.RemoveAssignedOrderIDs(ids...)
+	return ppuo
+}
+
+// RemoveAssignedOrders removes "assigned_orders" edges to LockPaymentOrder entities.
+func (ppuo *ProviderProfileUpdateOne) RemoveAssignedOrders(l ...*LockPaymentOrder) *ProviderProfileUpdateOne {
+	ids := make([]uuid.UUID, len(l))
+	for i := range l {
+		ids[i] = l[i].ID
+	}
+	return ppuo.RemoveAssignedOrderIDs(ids...)
 }
 
 // Where appends a list predicates to the ProviderProfileUpdate builder.
@@ -905,6 +1023,51 @@ func (ppuo *ProviderProfileUpdateOne) sqlSave(ctx context.Context) (_node *Provi
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(providerrating.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if ppuo.mutation.AssignedOrdersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   providerprofile.AssignedOrdersTable,
+			Columns: []string{providerprofile.AssignedOrdersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(lockpaymentorder.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ppuo.mutation.RemovedAssignedOrdersIDs(); len(nodes) > 0 && !ppuo.mutation.AssignedOrdersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   providerprofile.AssignedOrdersTable,
+			Columns: []string{providerprofile.AssignedOrdersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(lockpaymentorder.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ppuo.mutation.AssignedOrdersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   providerprofile.AssignedOrdersTable,
+			Columns: []string{providerprofile.AssignedOrdersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(lockpaymentorder.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

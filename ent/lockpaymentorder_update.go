@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
+	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 	"github.com/paycrest/paycrest-protocol/ent/provisionbucket"
 	"github.com/paycrest/paycrest-protocol/ent/token"
 	"github.com/shopspring/decimal"
@@ -134,26 +135,6 @@ func (lpou *LockPaymentOrderUpdate) SetAccountName(s string) *LockPaymentOrderUp
 	return lpou
 }
 
-// SetProviderID sets the "provider_id" field.
-func (lpou *LockPaymentOrderUpdate) SetProviderID(s string) *LockPaymentOrderUpdate {
-	lpou.mutation.SetProviderID(s)
-	return lpou
-}
-
-// SetNillableProviderID sets the "provider_id" field if the given value is not nil.
-func (lpou *LockPaymentOrderUpdate) SetNillableProviderID(s *string) *LockPaymentOrderUpdate {
-	if s != nil {
-		lpou.SetProviderID(*s)
-	}
-	return lpou
-}
-
-// ClearProviderID clears the value of the "provider_id" field.
-func (lpou *LockPaymentOrderUpdate) ClearProviderID() *LockPaymentOrderUpdate {
-	lpou.mutation.ClearProviderID()
-	return lpou
-}
-
 // SetTokenID sets the "token" edge to the Token entity by ID.
 func (lpou *LockPaymentOrderUpdate) SetTokenID(id int) *LockPaymentOrderUpdate {
 	lpou.mutation.SetTokenID(id)
@@ -184,6 +165,25 @@ func (lpou *LockPaymentOrderUpdate) SetProvisionBucket(p *ProvisionBucket) *Lock
 	return lpou.SetProvisionBucketID(p.ID)
 }
 
+// SetProviderID sets the "provider" edge to the ProviderProfile entity by ID.
+func (lpou *LockPaymentOrderUpdate) SetProviderID(id string) *LockPaymentOrderUpdate {
+	lpou.mutation.SetProviderID(id)
+	return lpou
+}
+
+// SetNillableProviderID sets the "provider" edge to the ProviderProfile entity by ID if the given value is not nil.
+func (lpou *LockPaymentOrderUpdate) SetNillableProviderID(id *string) *LockPaymentOrderUpdate {
+	if id != nil {
+		lpou = lpou.SetProviderID(*id)
+	}
+	return lpou
+}
+
+// SetProvider sets the "provider" edge to the ProviderProfile entity.
+func (lpou *LockPaymentOrderUpdate) SetProvider(p *ProviderProfile) *LockPaymentOrderUpdate {
+	return lpou.SetProviderID(p.ID)
+}
+
 // Mutation returns the LockPaymentOrderMutation object of the builder.
 func (lpou *LockPaymentOrderUpdate) Mutation() *LockPaymentOrderMutation {
 	return lpou.mutation
@@ -198,6 +198,12 @@ func (lpou *LockPaymentOrderUpdate) ClearToken() *LockPaymentOrderUpdate {
 // ClearProvisionBucket clears the "provision_bucket" edge to the ProvisionBucket entity.
 func (lpou *LockPaymentOrderUpdate) ClearProvisionBucket() *LockPaymentOrderUpdate {
 	lpou.mutation.ClearProvisionBucket()
+	return lpou
+}
+
+// ClearProvider clears the "provider" edge to the ProviderProfile entity.
+func (lpou *LockPaymentOrderUpdate) ClearProvider() *LockPaymentOrderUpdate {
+	lpou.mutation.ClearProvider()
 	return lpou
 }
 
@@ -309,12 +315,6 @@ func (lpou *LockPaymentOrderUpdate) sqlSave(ctx context.Context) (n int, err err
 	if value, ok := lpou.mutation.AccountName(); ok {
 		_spec.SetField(lockpaymentorder.FieldAccountName, field.TypeString, value)
 	}
-	if value, ok := lpou.mutation.ProviderID(); ok {
-		_spec.SetField(lockpaymentorder.FieldProviderID, field.TypeString, value)
-	}
-	if lpou.mutation.ProviderIDCleared() {
-		_spec.ClearField(lockpaymentorder.FieldProviderID, field.TypeString)
-	}
 	if lpou.mutation.TokenCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -366,6 +366,35 @@ func (lpou *LockPaymentOrderUpdate) sqlSave(ctx context.Context) (n int, err err
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(provisionbucket.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if lpou.mutation.ProviderCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   lockpaymentorder.ProviderTable,
+			Columns: []string{lockpaymentorder.ProviderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(providerprofile.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := lpou.mutation.ProviderIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   lockpaymentorder.ProviderTable,
+			Columns: []string{lockpaymentorder.ProviderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(providerprofile.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -496,26 +525,6 @@ func (lpouo *LockPaymentOrderUpdateOne) SetAccountName(s string) *LockPaymentOrd
 	return lpouo
 }
 
-// SetProviderID sets the "provider_id" field.
-func (lpouo *LockPaymentOrderUpdateOne) SetProviderID(s string) *LockPaymentOrderUpdateOne {
-	lpouo.mutation.SetProviderID(s)
-	return lpouo
-}
-
-// SetNillableProviderID sets the "provider_id" field if the given value is not nil.
-func (lpouo *LockPaymentOrderUpdateOne) SetNillableProviderID(s *string) *LockPaymentOrderUpdateOne {
-	if s != nil {
-		lpouo.SetProviderID(*s)
-	}
-	return lpouo
-}
-
-// ClearProviderID clears the value of the "provider_id" field.
-func (lpouo *LockPaymentOrderUpdateOne) ClearProviderID() *LockPaymentOrderUpdateOne {
-	lpouo.mutation.ClearProviderID()
-	return lpouo
-}
-
 // SetTokenID sets the "token" edge to the Token entity by ID.
 func (lpouo *LockPaymentOrderUpdateOne) SetTokenID(id int) *LockPaymentOrderUpdateOne {
 	lpouo.mutation.SetTokenID(id)
@@ -546,6 +555,25 @@ func (lpouo *LockPaymentOrderUpdateOne) SetProvisionBucket(p *ProvisionBucket) *
 	return lpouo.SetProvisionBucketID(p.ID)
 }
 
+// SetProviderID sets the "provider" edge to the ProviderProfile entity by ID.
+func (lpouo *LockPaymentOrderUpdateOne) SetProviderID(id string) *LockPaymentOrderUpdateOne {
+	lpouo.mutation.SetProviderID(id)
+	return lpouo
+}
+
+// SetNillableProviderID sets the "provider" edge to the ProviderProfile entity by ID if the given value is not nil.
+func (lpouo *LockPaymentOrderUpdateOne) SetNillableProviderID(id *string) *LockPaymentOrderUpdateOne {
+	if id != nil {
+		lpouo = lpouo.SetProviderID(*id)
+	}
+	return lpouo
+}
+
+// SetProvider sets the "provider" edge to the ProviderProfile entity.
+func (lpouo *LockPaymentOrderUpdateOne) SetProvider(p *ProviderProfile) *LockPaymentOrderUpdateOne {
+	return lpouo.SetProviderID(p.ID)
+}
+
 // Mutation returns the LockPaymentOrderMutation object of the builder.
 func (lpouo *LockPaymentOrderUpdateOne) Mutation() *LockPaymentOrderMutation {
 	return lpouo.mutation
@@ -560,6 +588,12 @@ func (lpouo *LockPaymentOrderUpdateOne) ClearToken() *LockPaymentOrderUpdateOne 
 // ClearProvisionBucket clears the "provision_bucket" edge to the ProvisionBucket entity.
 func (lpouo *LockPaymentOrderUpdateOne) ClearProvisionBucket() *LockPaymentOrderUpdateOne {
 	lpouo.mutation.ClearProvisionBucket()
+	return lpouo
+}
+
+// ClearProvider clears the "provider" edge to the ProviderProfile entity.
+func (lpouo *LockPaymentOrderUpdateOne) ClearProvider() *LockPaymentOrderUpdateOne {
+	lpouo.mutation.ClearProvider()
 	return lpouo
 }
 
@@ -701,12 +735,6 @@ func (lpouo *LockPaymentOrderUpdateOne) sqlSave(ctx context.Context) (_node *Loc
 	if value, ok := lpouo.mutation.AccountName(); ok {
 		_spec.SetField(lockpaymentorder.FieldAccountName, field.TypeString, value)
 	}
-	if value, ok := lpouo.mutation.ProviderID(); ok {
-		_spec.SetField(lockpaymentorder.FieldProviderID, field.TypeString, value)
-	}
-	if lpouo.mutation.ProviderIDCleared() {
-		_spec.ClearField(lockpaymentorder.FieldProviderID, field.TypeString)
-	}
 	if lpouo.mutation.TokenCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -758,6 +786,35 @@ func (lpouo *LockPaymentOrderUpdateOne) sqlSave(ctx context.Context) (_node *Loc
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(provisionbucket.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if lpouo.mutation.ProviderCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   lockpaymentorder.ProviderTable,
+			Columns: []string{lockpaymentorder.ProviderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(providerprofile.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := lpouo.mutation.ProviderIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   lockpaymentorder.ProviderTable,
+			Columns: []string{lockpaymentorder.ProviderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(providerprofile.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

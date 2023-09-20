@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
+	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 	"github.com/paycrest/paycrest-protocol/ent/provisionbucket"
 	"github.com/paycrest/paycrest-protocol/ent/token"
 )
@@ -26,6 +27,7 @@ type LockPaymentOrderQuery struct {
 	predicates          []predicate.LockPaymentOrder
 	withToken           *TokenQuery
 	withProvisionBucket *ProvisionBucketQuery
+	withProvider        *ProviderProfileQuery
 	withFKs             bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -100,6 +102,28 @@ func (lpoq *LockPaymentOrderQuery) QueryProvisionBucket() *ProvisionBucketQuery 
 			sqlgraph.From(lockpaymentorder.Table, lockpaymentorder.FieldID, selector),
 			sqlgraph.To(provisionbucket.Table, provisionbucket.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, lockpaymentorder.ProvisionBucketTable, lockpaymentorder.ProvisionBucketColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(lpoq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryProvider chains the current query on the "provider" edge.
+func (lpoq *LockPaymentOrderQuery) QueryProvider() *ProviderProfileQuery {
+	query := (&ProviderProfileClient{config: lpoq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := lpoq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := lpoq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(lockpaymentorder.Table, lockpaymentorder.FieldID, selector),
+			sqlgraph.To(providerprofile.Table, providerprofile.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, lockpaymentorder.ProviderTable, lockpaymentorder.ProviderColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(lpoq.driver.Dialect(), step)
 		return fromU, nil
@@ -301,6 +325,7 @@ func (lpoq *LockPaymentOrderQuery) Clone() *LockPaymentOrderQuery {
 		predicates:          append([]predicate.LockPaymentOrder{}, lpoq.predicates...),
 		withToken:           lpoq.withToken.Clone(),
 		withProvisionBucket: lpoq.withProvisionBucket.Clone(),
+		withProvider:        lpoq.withProvider.Clone(),
 		// clone intermediate query.
 		sql:  lpoq.sql.Clone(),
 		path: lpoq.path,
@@ -326,6 +351,17 @@ func (lpoq *LockPaymentOrderQuery) WithProvisionBucket(opts ...func(*ProvisionBu
 		opt(query)
 	}
 	lpoq.withProvisionBucket = query
+	return lpoq
+}
+
+// WithProvider tells the query-builder to eager-load the nodes that are connected to
+// the "provider" edge. The optional arguments are used to configure the query builder of the edge.
+func (lpoq *LockPaymentOrderQuery) WithProvider(opts ...func(*ProviderProfileQuery)) *LockPaymentOrderQuery {
+	query := (&ProviderProfileClient{config: lpoq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	lpoq.withProvider = query
 	return lpoq
 }
 
@@ -408,12 +444,13 @@ func (lpoq *LockPaymentOrderQuery) sqlAll(ctx context.Context, hooks ...queryHoo
 		nodes       = []*LockPaymentOrder{}
 		withFKs     = lpoq.withFKs
 		_spec       = lpoq.querySpec()
-		loadedTypes = [2]bool{
+		loadedTypes = [3]bool{
 			lpoq.withToken != nil,
 			lpoq.withProvisionBucket != nil,
+			lpoq.withProvider != nil,
 		}
 	)
-	if lpoq.withToken != nil || lpoq.withProvisionBucket != nil {
+	if lpoq.withToken != nil || lpoq.withProvisionBucket != nil || lpoq.withProvider != nil {
 		withFKs = true
 	}
 	if withFKs {
@@ -446,6 +483,12 @@ func (lpoq *LockPaymentOrderQuery) sqlAll(ctx context.Context, hooks ...queryHoo
 	if query := lpoq.withProvisionBucket; query != nil {
 		if err := lpoq.loadProvisionBucket(ctx, query, nodes, nil,
 			func(n *LockPaymentOrder, e *ProvisionBucket) { n.Edges.ProvisionBucket = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := lpoq.withProvider; query != nil {
+		if err := lpoq.loadProvider(ctx, query, nodes, nil,
+			func(n *LockPaymentOrder, e *ProviderProfile) { n.Edges.Provider = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -509,6 +552,38 @@ func (lpoq *LockPaymentOrderQuery) loadProvisionBucket(ctx context.Context, quer
 		nodes, ok := nodeids[n.ID]
 		if !ok {
 			return fmt.Errorf(`unexpected foreign-key "provision_bucket_lock_payment_orders" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
+func (lpoq *LockPaymentOrderQuery) loadProvider(ctx context.Context, query *ProviderProfileQuery, nodes []*LockPaymentOrder, init func(*LockPaymentOrder), assign func(*LockPaymentOrder, *ProviderProfile)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*LockPaymentOrder)
+	for i := range nodes {
+		if nodes[i].provider_profile_assigned_orders == nil {
+			continue
+		}
+		fk := *nodes[i].provider_profile_assigned_orders
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(providerprofile.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "provider_profile_assigned_orders" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)

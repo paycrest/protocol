@@ -5,6 +5,7 @@ import (
 	"math/rand"
 
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 )
@@ -46,6 +47,8 @@ func (ProviderProfile) Edges() []ent.Edge {
 			Unique(),
 		edge.To("provider_rating", ProviderRating.Type).
 			Unique(),
+		edge.To("assigned_orders", LockPaymentOrder.Type).
+			Annotations(entsql.OnDelete(entsql.SetNull)),
 	}
 }
 
