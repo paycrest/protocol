@@ -101,3 +101,59 @@ func (s *PriorityQueueService) CreatePriorityQueueForBucket(ctx context.Context,
 		logger.Errorf("failed to add bucket priority queue to Redis: %v", err)
 	}
 }
+
+// AssignLockPaymentOrders assigns lock payment orders to providers
+func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order LockPaymentOrderFields) error {
+	// Get the first provider from the priority queue
+	redisKey := fmt.Sprintf("bucket_%d", order.ProvisionBucket.ID)
+	providerIDs, err := storage.RedisClient.ZRevRange(ctx, redisKey, 0, 0).Result()
+	if err != nil {
+		logger.Errorf("failed to get provider from priority queue: %v", err)
+		return err
+	}
+
+	if len(providerIDs) == 0 {
+		logger.Errorf("no providers available for bucket %d", order.ProvisionBucket.ID)
+		return fmt.Errorf("no providers available for bucket %d", order.ProvisionBucket.ID)
+	}
+
+	// Assign the order to the provider and save it to redis
+	orderKey := fmt.Sprintf("order_request_%d", order.ID)
+	data := map[string]interface{}{
+		"amount":      order.Amount.Mul(order.Rate),
+		"token":       order.Token.Symbol,
+		"institution": order.Institution,
+		"provider_id": providerIDs[0],
+	}
+
+	_, err = storage.RedisClient.HSet(ctx, orderKey, data).Result()
+	if err != nil {
+		logger.Errorf("failed to map order to a provider in redis: %v", err)
+		return err
+	}
+
+	// Set a TTL for the order request
+	_, err = storage.RedisClient.Expire(ctx, orderKey, OrderConf.OrderRequestValidity).Result()
+	if err != nil {
+		logger.Errorf("failed to set TTL for order request: %v", err)
+		return err
+	}
+
+	// Remove the provider from the priority queue
+	_, err = storage.RedisClient.ZRem(ctx, redisKey, providerIDs[0]).Result()
+	if err != nil {
+		logger.Errorf("failed to remove provider from priority queue: %v", err)
+		return err
+	}
+
+	// Create a priority queue for the bucket if there was only one provider
+	if len(providerIDs) == 1 {
+		s.CreatePriorityQueueForBucket(ctx, order.ProvisionBucket)
+	}
+
+	// TODO: Send wss message to the provider (for automatic provider case)
+
+	// TODO: Send out a push notification to the provider (for manual provider case)
+
+	return nil
+}
