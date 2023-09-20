@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
+	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 	"github.com/paycrest/paycrest-protocol/ent/provisionbucket"
 	"github.com/paycrest/paycrest-protocol/ent/token"
 	"github.com/shopspring/decimal"
@@ -122,20 +123,6 @@ func (lpoc *LockPaymentOrderCreate) SetAccountName(s string) *LockPaymentOrderCr
 	return lpoc
 }
 
-// SetProviderID sets the "provider_id" field.
-func (lpoc *LockPaymentOrderCreate) SetProviderID(s string) *LockPaymentOrderCreate {
-	lpoc.mutation.SetProviderID(s)
-	return lpoc
-}
-
-// SetNillableProviderID sets the "provider_id" field if the given value is not nil.
-func (lpoc *LockPaymentOrderCreate) SetNillableProviderID(s *string) *LockPaymentOrderCreate {
-	if s != nil {
-		lpoc.SetProviderID(*s)
-	}
-	return lpoc
-}
-
 // SetID sets the "id" field.
 func (lpoc *LockPaymentOrderCreate) SetID(u uuid.UUID) *LockPaymentOrderCreate {
 	lpoc.mutation.SetID(u)
@@ -178,6 +165,25 @@ func (lpoc *LockPaymentOrderCreate) SetNillableProvisionBucketID(id *int) *LockP
 // SetProvisionBucket sets the "provision_bucket" edge to the ProvisionBucket entity.
 func (lpoc *LockPaymentOrderCreate) SetProvisionBucket(p *ProvisionBucket) *LockPaymentOrderCreate {
 	return lpoc.SetProvisionBucketID(p.ID)
+}
+
+// SetProviderID sets the "provider" edge to the ProviderProfile entity by ID.
+func (lpoc *LockPaymentOrderCreate) SetProviderID(id string) *LockPaymentOrderCreate {
+	lpoc.mutation.SetProviderID(id)
+	return lpoc
+}
+
+// SetNillableProviderID sets the "provider" edge to the ProviderProfile entity by ID if the given value is not nil.
+func (lpoc *LockPaymentOrderCreate) SetNillableProviderID(id *string) *LockPaymentOrderCreate {
+	if id != nil {
+		lpoc = lpoc.SetProviderID(*id)
+	}
+	return lpoc
+}
+
+// SetProvider sets the "provider" edge to the ProviderProfile entity.
+func (lpoc *LockPaymentOrderCreate) SetProvider(p *ProviderProfile) *LockPaymentOrderCreate {
+	return lpoc.SetProviderID(p.ID)
 }
 
 // Mutation returns the LockPaymentOrderMutation object of the builder.
@@ -357,10 +363,6 @@ func (lpoc *LockPaymentOrderCreate) createSpec() (*LockPaymentOrder, *sqlgraph.C
 		_spec.SetField(lockpaymentorder.FieldAccountName, field.TypeString, value)
 		_node.AccountName = value
 	}
-	if value, ok := lpoc.mutation.ProviderID(); ok {
-		_spec.SetField(lockpaymentorder.FieldProviderID, field.TypeString, value)
-		_node.ProviderID = value
-	}
 	if nodes := lpoc.mutation.TokenIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -393,6 +395,23 @@ func (lpoc *LockPaymentOrderCreate) createSpec() (*LockPaymentOrder, *sqlgraph.C
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.provision_bucket_lock_payment_orders = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := lpoc.mutation.ProviderIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   lockpaymentorder.ProviderTable,
+			Columns: []string{lockpaymentorder.ProviderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(providerprofile.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.provider_profile_assigned_orders = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

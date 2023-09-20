@@ -606,6 +606,22 @@ func (c *LockPaymentOrderClient) QueryProvisionBucket(lpo *LockPaymentOrder) *Pr
 	return query
 }
 
+// QueryProvider queries the provider edge of a LockPaymentOrder.
+func (c *LockPaymentOrderClient) QueryProvider(lpo *LockPaymentOrder) *ProviderProfileQuery {
+	query := (&ProviderProfileClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := lpo.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(lockpaymentorder.Table, lockpaymentorder.FieldID, id),
+			sqlgraph.To(providerprofile.Table, providerprofile.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, lockpaymentorder.ProviderTable, lockpaymentorder.ProviderColumn),
+		)
+		fromV = sqlgraph.Neighbors(lpo.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *LockPaymentOrderClient) Hooks() []Hook {
 	return c.hooks.LockPaymentOrder
@@ -1665,6 +1681,22 @@ func (c *ProviderProfileClient) QueryProviderRating(pp *ProviderProfile) *Provid
 			sqlgraph.From(providerprofile.Table, providerprofile.FieldID, id),
 			sqlgraph.To(providerrating.Table, providerrating.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, false, providerprofile.ProviderRatingTable, providerprofile.ProviderRatingColumn),
+		)
+		fromV = sqlgraph.Neighbors(pp.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryAssignedOrders queries the assigned_orders edge of a ProviderProfile.
+func (c *ProviderProfileClient) QueryAssignedOrders(pp *ProviderProfile) *LockPaymentOrderQuery {
+	query := (&LockPaymentOrderClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := pp.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(providerprofile.Table, providerprofile.FieldID, id),
+			sqlgraph.To(lockpaymentorder.Table, lockpaymentorder.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, providerprofile.AssignedOrdersTable, providerprofile.AssignedOrdersColumn),
 		)
 		fromV = sqlgraph.Neighbors(pp.driver.Dialect(), step)
 		return fromV, nil

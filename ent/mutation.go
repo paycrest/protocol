@@ -836,12 +836,13 @@ type LockPaymentOrderMutation struct {
 	institution             *string
 	account_identifier      *string
 	account_name            *string
-	provider_id             *string
 	clearedFields           map[string]struct{}
 	token                   *int
 	clearedtoken            bool
 	provision_bucket        *int
 	clearedprovision_bucket bool
+	provider                *string
+	clearedprovider         bool
 	done                    bool
 	oldValue                func(context.Context) (*LockPaymentOrder, error)
 	predicates              []predicate.LockPaymentOrder
@@ -1420,55 +1421,6 @@ func (m *LockPaymentOrderMutation) ResetAccountName() {
 	m.account_name = nil
 }
 
-// SetProviderID sets the "provider_id" field.
-func (m *LockPaymentOrderMutation) SetProviderID(s string) {
-	m.provider_id = &s
-}
-
-// ProviderID returns the value of the "provider_id" field in the mutation.
-func (m *LockPaymentOrderMutation) ProviderID() (r string, exists bool) {
-	v := m.provider_id
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldProviderID returns the old "provider_id" field's value of the LockPaymentOrder entity.
-// If the LockPaymentOrder object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *LockPaymentOrderMutation) OldProviderID(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldProviderID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldProviderID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldProviderID: %w", err)
-	}
-	return oldValue.ProviderID, nil
-}
-
-// ClearProviderID clears the value of the "provider_id" field.
-func (m *LockPaymentOrderMutation) ClearProviderID() {
-	m.provider_id = nil
-	m.clearedFields[lockpaymentorder.FieldProviderID] = struct{}{}
-}
-
-// ProviderIDCleared returns if the "provider_id" field was cleared in this mutation.
-func (m *LockPaymentOrderMutation) ProviderIDCleared() bool {
-	_, ok := m.clearedFields[lockpaymentorder.FieldProviderID]
-	return ok
-}
-
-// ResetProviderID resets all changes to the "provider_id" field.
-func (m *LockPaymentOrderMutation) ResetProviderID() {
-	m.provider_id = nil
-	delete(m.clearedFields, lockpaymentorder.FieldProviderID)
-}
-
 // SetTokenID sets the "token" edge to the Token entity by id.
 func (m *LockPaymentOrderMutation) SetTokenID(id int) {
 	m.token = &id
@@ -1547,6 +1499,45 @@ func (m *LockPaymentOrderMutation) ResetProvisionBucket() {
 	m.clearedprovision_bucket = false
 }
 
+// SetProviderID sets the "provider" edge to the ProviderProfile entity by id.
+func (m *LockPaymentOrderMutation) SetProviderID(id string) {
+	m.provider = &id
+}
+
+// ClearProvider clears the "provider" edge to the ProviderProfile entity.
+func (m *LockPaymentOrderMutation) ClearProvider() {
+	m.clearedprovider = true
+}
+
+// ProviderCleared reports if the "provider" edge to the ProviderProfile entity was cleared.
+func (m *LockPaymentOrderMutation) ProviderCleared() bool {
+	return m.clearedprovider
+}
+
+// ProviderID returns the "provider" edge ID in the mutation.
+func (m *LockPaymentOrderMutation) ProviderID() (id string, exists bool) {
+	if m.provider != nil {
+		return *m.provider, true
+	}
+	return
+}
+
+// ProviderIDs returns the "provider" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// ProviderID instead. It exists only for internal usage by the builders.
+func (m *LockPaymentOrderMutation) ProviderIDs() (ids []string) {
+	if id := m.provider; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetProvider resets all changes to the "provider" edge.
+func (m *LockPaymentOrderMutation) ResetProvider() {
+	m.provider = nil
+	m.clearedprovider = false
+}
+
 // Where appends a list predicates to the LockPaymentOrderMutation builder.
 func (m *LockPaymentOrderMutation) Where(ps ...predicate.LockPaymentOrder) {
 	m.predicates = append(m.predicates, ps...)
@@ -1581,7 +1572,7 @@ func (m *LockPaymentOrderMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *LockPaymentOrderMutation) Fields() []string {
-	fields := make([]string, 0, 12)
+	fields := make([]string, 0, 11)
 	if m.created_at != nil {
 		fields = append(fields, lockpaymentorder.FieldCreatedAt)
 	}
@@ -1615,9 +1606,6 @@ func (m *LockPaymentOrderMutation) Fields() []string {
 	if m.account_name != nil {
 		fields = append(fields, lockpaymentorder.FieldAccountName)
 	}
-	if m.provider_id != nil {
-		fields = append(fields, lockpaymentorder.FieldProviderID)
-	}
 	return fields
 }
 
@@ -1648,8 +1636,6 @@ func (m *LockPaymentOrderMutation) Field(name string) (ent.Value, bool) {
 		return m.AccountIdentifier()
 	case lockpaymentorder.FieldAccountName:
 		return m.AccountName()
-	case lockpaymentorder.FieldProviderID:
-		return m.ProviderID()
 	}
 	return nil, false
 }
@@ -1681,8 +1667,6 @@ func (m *LockPaymentOrderMutation) OldField(ctx context.Context, name string) (e
 		return m.OldAccountIdentifier(ctx)
 	case lockpaymentorder.FieldAccountName:
 		return m.OldAccountName(ctx)
-	case lockpaymentorder.FieldProviderID:
-		return m.OldProviderID(ctx)
 	}
 	return nil, fmt.Errorf("unknown LockPaymentOrder field %s", name)
 }
@@ -1769,13 +1753,6 @@ func (m *LockPaymentOrderMutation) SetField(name string, value ent.Value) error 
 		}
 		m.SetAccountName(v)
 		return nil
-	case lockpaymentorder.FieldProviderID:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetProviderID(v)
-		return nil
 	}
 	return fmt.Errorf("unknown LockPaymentOrder field %s", name)
 }
@@ -1848,9 +1825,6 @@ func (m *LockPaymentOrderMutation) ClearedFields() []string {
 	if m.FieldCleared(lockpaymentorder.FieldTxHash) {
 		fields = append(fields, lockpaymentorder.FieldTxHash)
 	}
-	if m.FieldCleared(lockpaymentorder.FieldProviderID) {
-		fields = append(fields, lockpaymentorder.FieldProviderID)
-	}
 	return fields
 }
 
@@ -1867,9 +1841,6 @@ func (m *LockPaymentOrderMutation) ClearField(name string) error {
 	switch name {
 	case lockpaymentorder.FieldTxHash:
 		m.ClearTxHash()
-		return nil
-	case lockpaymentorder.FieldProviderID:
-		m.ClearProviderID()
 		return nil
 	}
 	return fmt.Errorf("unknown LockPaymentOrder nullable field %s", name)
@@ -1912,21 +1883,21 @@ func (m *LockPaymentOrderMutation) ResetField(name string) error {
 	case lockpaymentorder.FieldAccountName:
 		m.ResetAccountName()
 		return nil
-	case lockpaymentorder.FieldProviderID:
-		m.ResetProviderID()
-		return nil
 	}
 	return fmt.Errorf("unknown LockPaymentOrder field %s", name)
 }
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *LockPaymentOrderMutation) AddedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.token != nil {
 		edges = append(edges, lockpaymentorder.EdgeToken)
 	}
 	if m.provision_bucket != nil {
 		edges = append(edges, lockpaymentorder.EdgeProvisionBucket)
+	}
+	if m.provider != nil {
+		edges = append(edges, lockpaymentorder.EdgeProvider)
 	}
 	return edges
 }
@@ -1943,13 +1914,17 @@ func (m *LockPaymentOrderMutation) AddedIDs(name string) []ent.Value {
 		if id := m.provision_bucket; id != nil {
 			return []ent.Value{*id}
 		}
+	case lockpaymentorder.EdgeProvider:
+		if id := m.provider; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *LockPaymentOrderMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	return edges
 }
 
@@ -1961,12 +1936,15 @@ func (m *LockPaymentOrderMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *LockPaymentOrderMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.clearedtoken {
 		edges = append(edges, lockpaymentorder.EdgeToken)
 	}
 	if m.clearedprovision_bucket {
 		edges = append(edges, lockpaymentorder.EdgeProvisionBucket)
+	}
+	if m.clearedprovider {
+		edges = append(edges, lockpaymentorder.EdgeProvider)
 	}
 	return edges
 }
@@ -1979,6 +1957,8 @@ func (m *LockPaymentOrderMutation) EdgeCleared(name string) bool {
 		return m.clearedtoken
 	case lockpaymentorder.EdgeProvisionBucket:
 		return m.clearedprovision_bucket
+	case lockpaymentorder.EdgeProvider:
+		return m.clearedprovider
 	}
 	return false
 }
@@ -1993,6 +1973,9 @@ func (m *LockPaymentOrderMutation) ClearEdge(name string) error {
 	case lockpaymentorder.EdgeProvisionBucket:
 		m.ClearProvisionBucket()
 		return nil
+	case lockpaymentorder.EdgeProvider:
+		m.ClearProvider()
+		return nil
 	}
 	return fmt.Errorf("unknown LockPaymentOrder unique edge %s", name)
 }
@@ -2006,6 +1989,9 @@ func (m *LockPaymentOrderMutation) ResetEdge(name string) error {
 		return nil
 	case lockpaymentorder.EdgeProvisionBucket:
 		m.ResetProvisionBucket()
+		return nil
+	case lockpaymentorder.EdgeProvider:
+		m.ResetProvider()
 		return nil
 	}
 	return fmt.Errorf("unknown LockPaymentOrder edge %s", name)
@@ -6339,6 +6325,9 @@ type ProviderProfileMutation struct {
 	clearedavailability      bool
 	provider_rating          *int
 	clearedprovider_rating   bool
+	assigned_orders          map[uuid.UUID]struct{}
+	removedassigned_orders   map[uuid.UUID]struct{}
+	clearedassigned_orders   bool
 	done                     bool
 	oldValue                 func(context.Context) (*ProviderProfile, error)
 	predicates               []predicate.ProviderProfile
@@ -6817,6 +6806,60 @@ func (m *ProviderProfileMutation) ResetProviderRating() {
 	m.clearedprovider_rating = false
 }
 
+// AddAssignedOrderIDs adds the "assigned_orders" edge to the LockPaymentOrder entity by ids.
+func (m *ProviderProfileMutation) AddAssignedOrderIDs(ids ...uuid.UUID) {
+	if m.assigned_orders == nil {
+		m.assigned_orders = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		m.assigned_orders[ids[i]] = struct{}{}
+	}
+}
+
+// ClearAssignedOrders clears the "assigned_orders" edge to the LockPaymentOrder entity.
+func (m *ProviderProfileMutation) ClearAssignedOrders() {
+	m.clearedassigned_orders = true
+}
+
+// AssignedOrdersCleared reports if the "assigned_orders" edge to the LockPaymentOrder entity was cleared.
+func (m *ProviderProfileMutation) AssignedOrdersCleared() bool {
+	return m.clearedassigned_orders
+}
+
+// RemoveAssignedOrderIDs removes the "assigned_orders" edge to the LockPaymentOrder entity by IDs.
+func (m *ProviderProfileMutation) RemoveAssignedOrderIDs(ids ...uuid.UUID) {
+	if m.removedassigned_orders == nil {
+		m.removedassigned_orders = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		delete(m.assigned_orders, ids[i])
+		m.removedassigned_orders[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedAssignedOrders returns the removed IDs of the "assigned_orders" edge to the LockPaymentOrder entity.
+func (m *ProviderProfileMutation) RemovedAssignedOrdersIDs() (ids []uuid.UUID) {
+	for id := range m.removedassigned_orders {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// AssignedOrdersIDs returns the "assigned_orders" edge IDs in the mutation.
+func (m *ProviderProfileMutation) AssignedOrdersIDs() (ids []uuid.UUID) {
+	for id := range m.assigned_orders {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetAssignedOrders resets all changes to the "assigned_orders" edge.
+func (m *ProviderProfileMutation) ResetAssignedOrders() {
+	m.assigned_orders = nil
+	m.clearedassigned_orders = false
+	m.removedassigned_orders = nil
+}
+
 // Where appends a list predicates to the ProviderProfileMutation builder.
 func (m *ProviderProfileMutation) Where(ps ...predicate.ProviderProfile) {
 	m.predicates = append(m.predicates, ps...)
@@ -7001,7 +7044,7 @@ func (m *ProviderProfileMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ProviderProfileMutation) AddedEdges() []string {
-	edges := make([]string, 0, 5)
+	edges := make([]string, 0, 6)
 	if m.api_key != nil {
 		edges = append(edges, providerprofile.EdgeAPIKey)
 	}
@@ -7016,6 +7059,9 @@ func (m *ProviderProfileMutation) AddedEdges() []string {
 	}
 	if m.provider_rating != nil {
 		edges = append(edges, providerprofile.EdgeProviderRating)
+	}
+	if m.assigned_orders != nil {
+		edges = append(edges, providerprofile.EdgeAssignedOrders)
 	}
 	return edges
 }
@@ -7048,18 +7094,27 @@ func (m *ProviderProfileMutation) AddedIDs(name string) []ent.Value {
 		if id := m.provider_rating; id != nil {
 			return []ent.Value{*id}
 		}
+	case providerprofile.EdgeAssignedOrders:
+		ids := make([]ent.Value, 0, len(m.assigned_orders))
+		for id := range m.assigned_orders {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *ProviderProfileMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 5)
+	edges := make([]string, 0, 6)
 	if m.removedprovision_buckets != nil {
 		edges = append(edges, providerprofile.EdgeProvisionBuckets)
 	}
 	if m.removedorder_tokens != nil {
 		edges = append(edges, providerprofile.EdgeOrderTokens)
+	}
+	if m.removedassigned_orders != nil {
+		edges = append(edges, providerprofile.EdgeAssignedOrders)
 	}
 	return edges
 }
@@ -7080,13 +7135,19 @@ func (m *ProviderProfileMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case providerprofile.EdgeAssignedOrders:
+		ids := make([]ent.Value, 0, len(m.removedassigned_orders))
+		for id := range m.removedassigned_orders {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ProviderProfileMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 5)
+	edges := make([]string, 0, 6)
 	if m.clearedapi_key {
 		edges = append(edges, providerprofile.EdgeAPIKey)
 	}
@@ -7101,6 +7162,9 @@ func (m *ProviderProfileMutation) ClearedEdges() []string {
 	}
 	if m.clearedprovider_rating {
 		edges = append(edges, providerprofile.EdgeProviderRating)
+	}
+	if m.clearedassigned_orders {
+		edges = append(edges, providerprofile.EdgeAssignedOrders)
 	}
 	return edges
 }
@@ -7119,6 +7183,8 @@ func (m *ProviderProfileMutation) EdgeCleared(name string) bool {
 		return m.clearedavailability
 	case providerprofile.EdgeProviderRating:
 		return m.clearedprovider_rating
+	case providerprofile.EdgeAssignedOrders:
+		return m.clearedassigned_orders
 	}
 	return false
 }
@@ -7158,6 +7224,9 @@ func (m *ProviderProfileMutation) ResetEdge(name string) error {
 		return nil
 	case providerprofile.EdgeProviderRating:
 		m.ResetProviderRating()
+		return nil
+	case providerprofile.EdgeAssignedOrders:
+		m.ResetAssignedOrders()
 		return nil
 	}
 	return fmt.Errorf("unknown ProviderProfile edge %s", name)

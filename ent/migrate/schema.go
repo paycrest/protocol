@@ -53,7 +53,7 @@ var (
 		{Name: "institution", Type: field.TypeString},
 		{Name: "account_identifier", Type: field.TypeString},
 		{Name: "account_name", Type: field.TypeString},
-		{Name: "provider_id", Type: field.TypeString, Nullable: true},
+		{Name: "provider_profile_assigned_orders", Type: field.TypeString, Nullable: true},
 		{Name: "provision_bucket_lock_payment_orders", Type: field.TypeInt, Nullable: true},
 		{Name: "token_lock_payment_orders", Type: field.TypeInt},
 	}
@@ -63,6 +63,12 @@ var (
 		Columns:    LockPaymentOrdersColumns,
 		PrimaryKey: []*schema.Column{LockPaymentOrdersColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "lock_payment_orders_provider_profiles_assigned_orders",
+				Columns:    []*schema.Column{LockPaymentOrdersColumns[12]},
+				RefColumns: []*schema.Column{ProviderProfilesColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
 			{
 				Symbol:     "lock_payment_orders_provision_buckets_lock_payment_orders",
 				Columns:    []*schema.Column{LockPaymentOrdersColumns[13]},
@@ -426,8 +432,9 @@ var (
 
 func init() {
 	APIKeysTable.ForeignKeys[0].RefTable = UsersTable
-	LockPaymentOrdersTable.ForeignKeys[0].RefTable = ProvisionBucketsTable
-	LockPaymentOrdersTable.ForeignKeys[1].RefTable = TokensTable
+	LockPaymentOrdersTable.ForeignKeys[0].RefTable = ProviderProfilesTable
+	LockPaymentOrdersTable.ForeignKeys[1].RefTable = ProvisionBucketsTable
+	LockPaymentOrdersTable.ForeignKeys[2].RefTable = TokensTable
 	PaymentOrdersTable.ForeignKeys[0].RefTable = APIKeysTable
 	PaymentOrdersTable.ForeignKeys[1].RefTable = TokensTable
 	PaymentOrderRecipientsTable.ForeignKeys[0].RefTable = PaymentOrdersTable

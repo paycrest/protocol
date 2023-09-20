@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
+	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/provideravailability"
 	"github.com/paycrest/paycrest-protocol/ent/providerordertoken"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
@@ -157,6 +158,21 @@ func (ppc *ProviderProfileCreate) SetNillableProviderRatingID(id *int) *Provider
 // SetProviderRating sets the "provider_rating" edge to the ProviderRating entity.
 func (ppc *ProviderProfileCreate) SetProviderRating(p *ProviderRating) *ProviderProfileCreate {
 	return ppc.SetProviderRatingID(p.ID)
+}
+
+// AddAssignedOrderIDs adds the "assigned_orders" edge to the LockPaymentOrder entity by IDs.
+func (ppc *ProviderProfileCreate) AddAssignedOrderIDs(ids ...uuid.UUID) *ProviderProfileCreate {
+	ppc.mutation.AddAssignedOrderIDs(ids...)
+	return ppc
+}
+
+// AddAssignedOrders adds the "assigned_orders" edges to the LockPaymentOrder entity.
+func (ppc *ProviderProfileCreate) AddAssignedOrders(l ...*LockPaymentOrder) *ProviderProfileCreate {
+	ids := make([]uuid.UUID, len(l))
+	for i := range l {
+		ids[i] = l[i].ID
+	}
+	return ppc.AddAssignedOrderIDs(ids...)
 }
 
 // Mutation returns the ProviderProfileMutation object of the builder.
@@ -360,6 +376,22 @@ func (ppc *ProviderProfileCreate) createSpec() (*ProviderProfile, *sqlgraph.Crea
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(providerrating.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := ppc.mutation.AssignedOrdersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   providerprofile.AssignedOrdersTable,
+			Columns: []string{providerprofile.AssignedOrdersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(lockpaymentorder.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

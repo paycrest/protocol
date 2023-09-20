@@ -107,11 +107,6 @@ func AccountName(v string) predicate.LockPaymentOrder {
 	return predicate.LockPaymentOrder(sql.FieldEQ(FieldAccountName, v))
 }
 
-// ProviderID applies equality check predicate on the "provider_id" field. It's identical to ProviderIDEQ.
-func ProviderID(v string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldEQ(FieldProviderID, v))
-}
-
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.LockPaymentOrder {
 	return predicate.LockPaymentOrder(sql.FieldEQ(FieldCreatedAt, v))
@@ -667,81 +662,6 @@ func AccountNameContainsFold(v string) predicate.LockPaymentOrder {
 	return predicate.LockPaymentOrder(sql.FieldContainsFold(FieldAccountName, v))
 }
 
-// ProviderIDEQ applies the EQ predicate on the "provider_id" field.
-func ProviderIDEQ(v string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldEQ(FieldProviderID, v))
-}
-
-// ProviderIDNEQ applies the NEQ predicate on the "provider_id" field.
-func ProviderIDNEQ(v string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldNEQ(FieldProviderID, v))
-}
-
-// ProviderIDIn applies the In predicate on the "provider_id" field.
-func ProviderIDIn(vs ...string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldIn(FieldProviderID, vs...))
-}
-
-// ProviderIDNotIn applies the NotIn predicate on the "provider_id" field.
-func ProviderIDNotIn(vs ...string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldNotIn(FieldProviderID, vs...))
-}
-
-// ProviderIDGT applies the GT predicate on the "provider_id" field.
-func ProviderIDGT(v string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldGT(FieldProviderID, v))
-}
-
-// ProviderIDGTE applies the GTE predicate on the "provider_id" field.
-func ProviderIDGTE(v string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldGTE(FieldProviderID, v))
-}
-
-// ProviderIDLT applies the LT predicate on the "provider_id" field.
-func ProviderIDLT(v string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldLT(FieldProviderID, v))
-}
-
-// ProviderIDLTE applies the LTE predicate on the "provider_id" field.
-func ProviderIDLTE(v string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldLTE(FieldProviderID, v))
-}
-
-// ProviderIDContains applies the Contains predicate on the "provider_id" field.
-func ProviderIDContains(v string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldContains(FieldProviderID, v))
-}
-
-// ProviderIDHasPrefix applies the HasPrefix predicate on the "provider_id" field.
-func ProviderIDHasPrefix(v string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldHasPrefix(FieldProviderID, v))
-}
-
-// ProviderIDHasSuffix applies the HasSuffix predicate on the "provider_id" field.
-func ProviderIDHasSuffix(v string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldHasSuffix(FieldProviderID, v))
-}
-
-// ProviderIDIsNil applies the IsNil predicate on the "provider_id" field.
-func ProviderIDIsNil() predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldIsNull(FieldProviderID))
-}
-
-// ProviderIDNotNil applies the NotNil predicate on the "provider_id" field.
-func ProviderIDNotNil() predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldNotNull(FieldProviderID))
-}
-
-// ProviderIDEqualFold applies the EqualFold predicate on the "provider_id" field.
-func ProviderIDEqualFold(v string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldEqualFold(FieldProviderID, v))
-}
-
-// ProviderIDContainsFold applies the ContainsFold predicate on the "provider_id" field.
-func ProviderIDContainsFold(v string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldContainsFold(FieldProviderID, v))
-}
-
 // HasToken applies the HasEdge predicate on the "token" edge.
 func HasToken() predicate.LockPaymentOrder {
 	return predicate.LockPaymentOrder(func(s *sql.Selector) {
@@ -780,6 +700,29 @@ func HasProvisionBucket() predicate.LockPaymentOrder {
 func HasProvisionBucketWith(preds ...predicate.ProvisionBucket) predicate.LockPaymentOrder {
 	return predicate.LockPaymentOrder(func(s *sql.Selector) {
 		step := newProvisionBucketStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasProvider applies the HasEdge predicate on the "provider" edge.
+func HasProvider() predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, ProviderTable, ProviderColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasProviderWith applies the HasEdge predicate on the "provider" edge with a given conditions (other predicates).
+func HasProviderWith(preds ...predicate.ProviderProfile) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(func(s *sql.Selector) {
+		step := newProviderStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

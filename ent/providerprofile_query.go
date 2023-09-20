@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
+	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
 	"github.com/paycrest/paycrest-protocol/ent/provideravailability"
 	"github.com/paycrest/paycrest-protocol/ent/providerordertoken"
@@ -33,6 +34,7 @@ type ProviderProfileQuery struct {
 	withOrderTokens      *ProviderOrderTokenQuery
 	withAvailability     *ProviderAvailabilityQuery
 	withProviderRating   *ProviderRatingQuery
+	withAssignedOrders   *LockPaymentOrderQuery
 	withFKs              bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -173,6 +175,28 @@ func (ppq *ProviderProfileQuery) QueryProviderRating() *ProviderRatingQuery {
 			sqlgraph.From(providerprofile.Table, providerprofile.FieldID, selector),
 			sqlgraph.To(providerrating.Table, providerrating.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, false, providerprofile.ProviderRatingTable, providerprofile.ProviderRatingColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(ppq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryAssignedOrders chains the current query on the "assigned_orders" edge.
+func (ppq *ProviderProfileQuery) QueryAssignedOrders() *LockPaymentOrderQuery {
+	query := (&LockPaymentOrderClient{config: ppq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := ppq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := ppq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(providerprofile.Table, providerprofile.FieldID, selector),
+			sqlgraph.To(lockpaymentorder.Table, lockpaymentorder.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, providerprofile.AssignedOrdersTable, providerprofile.AssignedOrdersColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(ppq.driver.Dialect(), step)
 		return fromU, nil
@@ -377,6 +401,7 @@ func (ppq *ProviderProfileQuery) Clone() *ProviderProfileQuery {
 		withOrderTokens:      ppq.withOrderTokens.Clone(),
 		withAvailability:     ppq.withAvailability.Clone(),
 		withProviderRating:   ppq.withProviderRating.Clone(),
+		withAssignedOrders:   ppq.withAssignedOrders.Clone(),
 		// clone intermediate query.
 		sql:  ppq.sql.Clone(),
 		path: ppq.path,
@@ -435,6 +460,17 @@ func (ppq *ProviderProfileQuery) WithProviderRating(opts ...func(*ProviderRating
 		opt(query)
 	}
 	ppq.withProviderRating = query
+	return ppq
+}
+
+// WithAssignedOrders tells the query-builder to eager-load the nodes that are connected to
+// the "assigned_orders" edge. The optional arguments are used to configure the query builder of the edge.
+func (ppq *ProviderProfileQuery) WithAssignedOrders(opts ...func(*LockPaymentOrderQuery)) *ProviderProfileQuery {
+	query := (&LockPaymentOrderClient{config: ppq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	ppq.withAssignedOrders = query
 	return ppq
 }
 
@@ -517,12 +553,13 @@ func (ppq *ProviderProfileQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 		nodes       = []*ProviderProfile{}
 		withFKs     = ppq.withFKs
 		_spec       = ppq.querySpec()
-		loadedTypes = [5]bool{
+		loadedTypes = [6]bool{
 			ppq.withAPIKey != nil,
 			ppq.withProvisionBuckets != nil,
 			ppq.withOrderTokens != nil,
 			ppq.withAvailability != nil,
 			ppq.withProviderRating != nil,
+			ppq.withAssignedOrders != nil,
 		}
 	)
 	if ppq.withAPIKey != nil {
@@ -580,6 +617,15 @@ func (ppq *ProviderProfileQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 	if query := ppq.withProviderRating; query != nil {
 		if err := ppq.loadProviderRating(ctx, query, nodes, nil,
 			func(n *ProviderProfile, e *ProviderRating) { n.Edges.ProviderRating = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := ppq.withAssignedOrders; query != nil {
+		if err := ppq.loadAssignedOrders(ctx, query, nodes,
+			func(n *ProviderProfile) { n.Edges.AssignedOrders = []*LockPaymentOrder{} },
+			func(n *ProviderProfile, e *LockPaymentOrder) {
+				n.Edges.AssignedOrders = append(n.Edges.AssignedOrders, e)
+			}); err != nil {
 			return nil, err
 		}
 	}
@@ -761,6 +807,37 @@ func (ppq *ProviderProfileQuery) loadProviderRating(ctx context.Context, query *
 		node, ok := nodeids[*fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "provider_profile_provider_rating" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (ppq *ProviderProfileQuery) loadAssignedOrders(ctx context.Context, query *LockPaymentOrderQuery, nodes []*ProviderProfile, init func(*ProviderProfile), assign func(*ProviderProfile, *LockPaymentOrder)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*ProviderProfile)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.LockPaymentOrder(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(providerprofile.AssignedOrdersColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.provider_profile_assigned_orders
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "provider_profile_assigned_orders" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "provider_profile_assigned_orders" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}
