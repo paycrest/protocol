@@ -21,6 +21,7 @@ type OrderConfiguration struct {
 // OrderConfig sets the order configuration
 func OrderConfig() *OrderConfiguration {
 	viper.SetDefault("RECEIVE_ADDRESS_VALIDITY", 30)
+	viper.SetDefault("ORDER_REQUEST_VALIDITY", 120)
 
 	return &OrderConfiguration{
 		ReceiveAddressValidity:       time.Duration(viper.GetInt("RECEIVE_ADDRESS_VALIDITY")) * time.Minute,
