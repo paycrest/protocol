@@ -11,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
+	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
 	"github.com/shopspring/decimal"
 )
 
@@ -65,6 +66,18 @@ type RegisterResponse struct {
 	FirstName string    `json:"firstName"`
 	LastName  string    `json:"lastName"`
 	Email     string    `json:"email"`
+}
+
+// LockOrderResponse is the response for the lock payment order model
+type LockOrderResponse struct {
+	ID                uuid.UUID               `json:"id"`
+	Amount            decimal.Decimal         `json:"amount"`
+	Token             string                  `json:"token"`
+	Institution       string                  `json:"institution"`
+	AccountIdentifier string                  `json:"accountIdentifier"`
+	AccountName       string                  `json:"accountName"`
+	Status            lockpaymentorder.Status `json:"status"`
+	UpdatedAt         time.Time               `json:"updatedAt"`
 }
 
 // LoginPayload is the payload for the login endpoint
