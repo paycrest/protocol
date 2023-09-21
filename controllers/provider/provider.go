@@ -30,6 +30,14 @@ func (ctrl *ProviderController) AcceptOrder(ctx *gin.Context) {
 		return
 	}
 
+	// Delete order request from Redis
+	_, err = storage.RedisClient.Del(ctx, fmt.Sprintf("order_request_%d", orderID)).Result()
+	if err != nil {
+		logger.Errorf("error deleting order request from Redis: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to accept order request", nil)
+		return
+	}
+
 	// Update lock order status to processing
 	order, err := storage.Client.LockPaymentOrder.
 		UpdateOneID(orderID).
@@ -84,7 +92,33 @@ func (ctrl *ProviderController) DeclineOrder(ctx *gin.Context) {
 
 // FulfillOrder controller fulfills an order
 func (ctrl *ProviderController) FulfillOrder(ctx *gin.Context) {
-	u.APIResponse(ctx, http.StatusOK, "success", "OK", nil)
+	var payload types.FulfillLockOrderPayload
+
+	// Parse the order payload
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusBadRequest, "error",
+			"Failed to validate payload", u.GetErrorData(err))
+		return
+	}
+
+	orderID, _, err := parseOrderPayload(ctx)
+	if err != nil {
+		return
+	}
+
+	// Update lock order status to fulfilled
+	_, err = storage.Client.LockPaymentOrder.
+		UpdateOneID(orderID).
+		SetStatus(lockpaymentorder.StatusFulfilled).
+		Save(ctx)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update lock order status", nil)
+		return
+	}
+
+	u.APIResponse(ctx, http.StatusOK, "success", "Order fulfilled successfully", nil)
 }
 
 // CancelOrder controller cancels an order
