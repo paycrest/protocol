@@ -12,6 +12,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/providerrating"
 	"github.com/paycrest/paycrest-protocol/ent/provisionbucket"
 	"github.com/paycrest/paycrest-protocol/storage"
+	"github.com/paycrest/paycrest-protocol/utils"
 	"github.com/paycrest/paycrest-protocol/utils/logger"
 	"github.com/redis/go-redis/v9"
 )
@@ -111,6 +112,15 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 		logger.Errorf("failed to get provider from priority queue: %v", err)
 		return err
 	}
+
+	// Retrieve exclude list for order
+	excludeList, err := storage.RedisClient.LRange(ctx, fmt.Sprintf("order_exclude_list_%d", order.ID), 0, -1).Result()
+	if err != nil {
+		logger.Errorf("failed to get exclude list for order %d: %v", order.ID, err)
+		return err
+	}
+
+	providerIDs = utils.Difference(providerIDs, excludeList)
 
 	if len(providerIDs) == 0 {
 		logger.Errorf("no providers available for bucket %d", order.ProvisionBucket.ID)
