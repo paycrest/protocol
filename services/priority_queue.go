@@ -96,7 +96,7 @@ func (s *PriorityQueueService) CreatePriorityQueueForBucket(ctx context.Context,
 	redisKey := fmt.Sprintf("bucket_%d", bucket.ID)
 
 	// Add the members to the sorted set
-	_, err := storage.RedisClient.ZAdd(ctx, redisKey, members...).Result()
+	err := storage.RedisClient.ZAdd(ctx, redisKey, members...).Err()
 	if err != nil {
 		logger.Errorf("failed to add bucket priority queue to Redis: %v", err)
 	}
@@ -126,21 +126,21 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 		"provider_id": providerIDs[0],
 	}
 
-	_, err = storage.RedisClient.HSet(ctx, orderKey, data).Result()
+	err = storage.RedisClient.HSet(ctx, orderKey, data).Err()
 	if err != nil {
 		logger.Errorf("failed to map order to a provider in redis: %v", err)
 		return err
 	}
 
 	// Set a TTL for the order request
-	_, err = storage.RedisClient.Expire(ctx, orderKey, OrderConf.OrderRequestValidity).Result()
+	err = storage.RedisClient.Expire(ctx, orderKey, OrderConf.OrderRequestValidity).Err()
 	if err != nil {
 		logger.Errorf("failed to set TTL for order request: %v", err)
 		return err
 	}
 
 	// Remove the provider from the priority queue
-	_, err = storage.RedisClient.ZRem(ctx, redisKey, providerIDs[0]).Result()
+	err = storage.RedisClient.ZRem(ctx, redisKey, providerIDs[0]).Err()
 	if err != nil {
 		logger.Errorf("failed to remove provider from priority queue: %v", err)
 		return err

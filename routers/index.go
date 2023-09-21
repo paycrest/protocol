@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/paycrest/paycrest-protocol/controllers"
 	"github.com/paycrest/paycrest-protocol/controllers/accounts"
+	"github.com/paycrest/paycrest-protocol/controllers/provider"
 	"github.com/paycrest/paycrest-protocol/controllers/sender"
 	"github.com/paycrest/paycrest-protocol/routers/middleware"
 	u "github.com/paycrest/paycrest-protocol/utils"
@@ -51,7 +52,7 @@ func senderRoutes(route *gin.Engine) {
 }
 
 func providerRoutes(route *gin.Engine) {
-	var ctrl controllers.ProviderController
+	var ctrl provider.ProviderController
 
 	v1 := route.Group("/v1/provider/")
 	v1.Use(middleware.HMACVerificationMiddleware)
@@ -65,10 +66,10 @@ func providerRoutes(route *gin.Engine) {
 }
 
 func miscRoutes(route *gin.Engine) {
-	var ctrl controllers.ProviderController
+	var ctrl controllers.MiscController
 
 	v1 := route.Group("/v1/misc/")
-	v1.GET("currencies/", ctrl.GetOrders)
-	v1.GET("institutions/:currencyCode", ctrl.GetOrders)
-	v1.GET("rates/:token", ctrl.GetOrders)
+	v1.GET("currencies/", ctrl.GetFiatCurrencies)
+	v1.GET("institutions/:currencyCode", ctrl.GetInstitutionsByCurrency)
+	v1.GET("rates/:token", ctrl.GetTokenRates)
 }
