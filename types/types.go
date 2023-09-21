@@ -80,6 +80,12 @@ type LockOrderResponse struct {
 	UpdatedAt         time.Time               `json:"updatedAt"`
 }
 
+type FulfillLockOrderPayload struct {
+	TransactionID string `json:"transactionId" binding:"required"`
+	ImageURL      string `json:"imageUrl" binding:"required"`
+	Institution   string `json:"institution" binding:"required"`
+}
+
 // LoginPayload is the payload for the login endpoint
 type LoginPayload struct {
 	Email    string `json:"email" binding:"required,email"`
