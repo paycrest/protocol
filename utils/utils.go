@@ -136,3 +136,19 @@ func PersonalSign(message string, privateKey *ecdsa.PrivateKey) ([]byte, error) 
 	signatureBytes[64] += 27
 	return signatureBytes, nil
 }
+
+// Difference returns the elements in `a` that aren't in `b`.
+func Difference(a, b []string) []string {
+	setB := make(map[string]struct{})
+	for _, x := range b {
+	  setB[x] = struct{}{}
+	}
+  
+	var diff []string
+	for _, x := range a {
+	  if _, found := setB[x]; !found {
+		diff = append(diff, x) 
+	  }
+	}
+	return diff
+  }
