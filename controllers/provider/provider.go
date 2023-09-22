@@ -5,7 +5,9 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
+	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
+	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 	"github.com/paycrest/paycrest-protocol/storage"
 	"github.com/paycrest/paycrest-protocol/types"
 	u "github.com/paycrest/paycrest-protocol/utils"
@@ -25,7 +27,7 @@ func (ctrl *ProviderController) GetOrders(ctx *gin.Context) {
 // AcceptOrder controller accepts an order
 func (ctrl *ProviderController) AcceptOrder(ctx *gin.Context) {
 	// Parse the order payload
-	orderID, providerID, err := parseOrderPayload(ctx)
+	orderID, apiKeyID, err := parseOrderPayload(ctx)
 	if err != nil {
 		return
 	}
@@ -38,11 +40,26 @@ func (ctrl *ProviderController) AcceptOrder(ctx *gin.Context) {
 		return
 	}
 
+	// Fetch provider from db
+	provider, err := storage.Client.ProviderProfile.
+		Query().
+		Where(
+			providerprofile.HasAPIKeyWith(
+				apikey.IDEQ(apiKeyID),
+			),
+		).
+		Only(ctx)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to accept order request", nil)
+		return
+	}
+
 	// Update lock order status to processing
 	order, err := storage.Client.LockPaymentOrder.
 		UpdateOneID(orderID).
 		SetStatus(lockpaymentorder.StatusProcessing).
-		SetProviderID(providerID).
+		SetProviderID(provider.ID).
 		Save(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
@@ -65,8 +82,23 @@ func (ctrl *ProviderController) AcceptOrder(ctx *gin.Context) {
 // DeclineOrder controller declines an order
 func (ctrl *ProviderController) DeclineOrder(ctx *gin.Context) {
 	// Parse the order payload
-	orderID, providerID, err := parseOrderPayload(ctx)
+	orderID, apiKeyID, err := parseOrderPayload(ctx)
 	if err != nil {
+		return
+	}
+
+	// Fetch provider from db
+	provider, err := storage.Client.ProviderProfile.
+		Query().
+		Where(
+			providerprofile.HasAPIKeyWith(
+				apikey.IDEQ(apiKeyID),
+			),
+		).
+		Only(ctx)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to accept order request", nil)
 		return
 	}
 
@@ -80,9 +112,9 @@ func (ctrl *ProviderController) DeclineOrder(ctx *gin.Context) {
 
 	// Push provider ID to order exclude list
 	orderKey := fmt.Sprintf("order_exclude_list_%d", orderID)
-	_, err = storage.RedisClient.RPush(ctx, orderKey, providerID).Result()
+	_, err = storage.RedisClient.RPush(ctx, orderKey, provider.ID).Result()
 	if err != nil {
-		logger.Errorf("error pushing provider %s to order %d exclude_list on Redis: %v", providerID, orderID, err)
+		logger.Errorf("error pushing provider %s to order %d exclude_list on Redis: %v", provider.ID, orderID, err)
 		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to decline order request", nil)
 		return
 	}
@@ -151,11 +183,57 @@ func (ctrl *ProviderController) FulfillOrder(ctx *gin.Context) {
 
 // CancelOrder controller cancels an order
 func (ctrl *ProviderController) CancelOrder(ctx *gin.Context) {
-	u.APIResponse(ctx, http.StatusOK, "success", "OK", nil)
+	// Parse the order payload
+	orderID, apiKeyID, err := parseOrderPayload(ctx)
+	if err != nil {
+		return
+	}
+
+	// Fetch lock payment order from db
+	order, err := storage.Client.LockPaymentOrder.
+		Query().
+		Where(
+			lockpaymentorder.IDEQ(orderID),
+			lockpaymentorder.HasProviderWith(
+				providerprofile.HasAPIKeyWith(
+					apikey.IDEQ(apiKeyID),
+				),
+			),
+		).
+		WithProvider().
+		Only(ctx)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to cancel order", nil)
+		return
+	}
+
+	// Update lock order status to cancelled
+	_, err = storage.Client.LockPaymentOrder.
+		UpdateOneID(orderID).
+		SetStatus(lockpaymentorder.StatusCancelled).
+		SetCancellationCount(order.CancellationCount + 1).
+		Save(ctx)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to cancel order", nil)
+		return
+	}
+
+	// Push provider ID to order exclude list
+	orderKey := fmt.Sprintf("order_exclude_list_%d", orderID)
+	_, err = storage.RedisClient.RPush(ctx, orderKey, order.Edges.Provider.ID).Result()
+	if err != nil {
+		logger.Errorf("error pushing provider %s to order %d exclude_list on Redis: %v", order.Edges.Provider.ID, orderID, err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to decline order request", nil)
+		return
+	}
+
+	u.APIResponse(ctx, http.StatusOK, "success", "Order cancelled successfully", nil)
 }
 
 // parseOrderPayload parses the order payload
-func parseOrderPayload(ctx *gin.Context) (uuid.UUID, string, error) {
+func parseOrderPayload(ctx *gin.Context) (uuid.UUID, uuid.UUID, error) {
 	// Get lock order ID from URL
 	orderID := ctx.Param("id")
 
@@ -164,25 +242,26 @@ func parseOrderPayload(ctx *gin.Context) (uuid.UUID, string, error) {
 	if err != nil {
 		logger.Errorf("error parsing API key ID: %v", err)
 		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid API key ID", nil)
-		return uuid.UUID{}, "", err
+		return uuid.UUID{}, uuid.UUID{}, err
 	}
 
-	// Get the user ID from the context
-	providerID, _ := ctx.Get("user_id")
+	// Get the api key ID from the context
+	apiKeyID, _ := ctx.Get("api_key")
+	apiKeyUUID, _ := uuid.Parse(apiKeyID.(string))
 
 	// Get Order request from Redis
 	result, err := storage.RedisClient.HGetAll(ctx, fmt.Sprintf("order_request_%d", orderUUID)).Result()
 	if err != nil {
 		logger.Errorf("error getting order request from Redis: %v", err)
 		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Internal server error", nil)
-		return uuid.UUID{}, "", err
+		return uuid.UUID{}, uuid.UUID{}, err
 	}
 
 	if len(result) == 0 {
 		logger.Errorf("order request not found in Redis: %d", orderUUID)
 		u.APIResponse(ctx, http.StatusNotFound, "error", "Order request not found or is expired", nil)
-		return uuid.UUID{}, "", err
+		return uuid.UUID{}, uuid.UUID{}, err
 	}
 
-	return orderUUID, providerID.(string), nil
+	return orderUUID, apiKeyUUID, nil
 }
