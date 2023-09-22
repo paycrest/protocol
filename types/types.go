@@ -81,9 +81,9 @@ type LockOrderResponse struct {
 }
 
 type FulfillLockOrderPayload struct {
-	TransactionID string `json:"transactionId" binding:"required"`
-	ImageURL      string `json:"imageUrl" binding:"required"`
-	Institution   string `json:"institution" binding:"required"`
+	TxID           string `json:"txId" binding:"required"`
+	TxReceiptImage string `json:"txReceiptImage" binding:"required"`
+	Institution    string `json:"institution" binding:"required"`
 }
 
 // LoginPayload is the payload for the login endpoint
