@@ -38,6 +38,10 @@ const (
 	FieldAccountIdentifier = "account_identifier"
 	// FieldAccountName holds the string denoting the account_name field in the database.
 	FieldAccountName = "account_name"
+	// FieldCancellationCount holds the string denoting the cancellation_count field in the database.
+	FieldCancellationCount = "cancellation_count"
+	// FieldCancellationReasons holds the string denoting the cancellation_reasons field in the database.
+	FieldCancellationReasons = "cancellation_reasons"
 	// EdgeToken holds the string denoting the token edge name in mutations.
 	EdgeToken = "token"
 	// EdgeProvisionBucket holds the string denoting the provision_bucket edge name in mutations.
@@ -92,6 +96,8 @@ var Columns = []string{
 	FieldInstitution,
 	FieldAccountIdentifier,
 	FieldAccountName,
+	FieldCancellationCount,
+	FieldCancellationReasons,
 }
 
 // ForeignKeys holds the SQL foreign-keys that are owned by the "lock_payment_orders"
@@ -126,6 +132,8 @@ var (
 	UpdateDefaultUpdatedAt func() time.Time
 	// TxHashValidator is a validator for the "tx_hash" field. It is called by the builders before save.
 	TxHashValidator func(string) error
+	// DefaultCancellationCount holds the default value on creation for the "cancellation_count" field.
+	DefaultCancellationCount int
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() uuid.UUID
 )
@@ -221,6 +229,11 @@ func ByAccountIdentifier(opts ...sql.OrderTermOption) OrderOption {
 // ByAccountName orders the results by the account_name field.
 func ByAccountName(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAccountName, opts...).ToFunc()
+}
+
+// ByCancellationCount orders the results by the cancellation_count field.
+func ByCancellationCount(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCancellationCount, opts...).ToFunc()
 }
 
 // ByTokenField orders the results by token field.

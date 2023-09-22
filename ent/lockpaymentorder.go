@@ -3,6 +3,7 @@
 package ent
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -45,6 +46,10 @@ type LockPaymentOrder struct {
 	AccountIdentifier string `json:"account_identifier,omitempty"`
 	// AccountName holds the value of the "account_name" field.
 	AccountName string `json:"account_name,omitempty"`
+	// CancellationCount holds the value of the "cancellation_count" field.
+	CancellationCount int `json:"cancellation_count,omitempty"`
+	// CancellationReasons holds the value of the "cancellation_reasons" field.
+	CancellationReasons []string `json:"cancellation_reasons,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the LockPaymentOrderQuery when eager-loading is set.
 	Edges                                LockPaymentOrderEdges `json:"edges"`
@@ -126,9 +131,11 @@ func (*LockPaymentOrder) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case lockpaymentorder.FieldCancellationReasons:
+			values[i] = new([]byte)
 		case lockpaymentorder.FieldAmount, lockpaymentorder.FieldRate:
 			values[i] = new(decimal.Decimal)
-		case lockpaymentorder.FieldBlockNumber:
+		case lockpaymentorder.FieldBlockNumber, lockpaymentorder.FieldCancellationCount:
 			values[i] = new(sql.NullInt64)
 		case lockpaymentorder.FieldOrderID, lockpaymentorder.FieldTxHash, lockpaymentorder.FieldStatus, lockpaymentorder.FieldInstitution, lockpaymentorder.FieldAccountIdentifier, lockpaymentorder.FieldAccountName:
 			values[i] = new(sql.NullString)
@@ -228,6 +235,20 @@ func (lpo *LockPaymentOrder) assignValues(columns []string, values []any) error 
 				return fmt.Errorf("unexpected type %T for field account_name", values[i])
 			} else if value.Valid {
 				lpo.AccountName = value.String
+			}
+		case lockpaymentorder.FieldCancellationCount:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field cancellation_count", values[i])
+			} else if value.Valid {
+				lpo.CancellationCount = int(value.Int64)
+			}
+		case lockpaymentorder.FieldCancellationReasons:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field cancellation_reasons", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &lpo.CancellationReasons); err != nil {
+					return fmt.Errorf("unmarshal field cancellation_reasons: %w", err)
+				}
 			}
 		case lockpaymentorder.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -338,6 +359,12 @@ func (lpo *LockPaymentOrder) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("account_name=")
 	builder.WriteString(lpo.AccountName)
+	builder.WriteString(", ")
+	builder.WriteString("cancellation_count=")
+	builder.WriteString(fmt.Sprintf("%v", lpo.CancellationCount))
+	builder.WriteString(", ")
+	builder.WriteString("cancellation_reasons=")
+	builder.WriteString(fmt.Sprintf("%v", lpo.CancellationReasons))
 	builder.WriteByte(')')
 	return builder.String()
 }

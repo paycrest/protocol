@@ -107,6 +107,11 @@ func AccountName(v string) predicate.LockPaymentOrder {
 	return predicate.LockPaymentOrder(sql.FieldEQ(FieldAccountName, v))
 }
 
+// CancellationCount applies equality check predicate on the "cancellation_count" field. It's identical to CancellationCountEQ.
+func CancellationCount(v int) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(sql.FieldEQ(FieldCancellationCount, v))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.LockPaymentOrder {
 	return predicate.LockPaymentOrder(sql.FieldEQ(FieldCreatedAt, v))
@@ -660,6 +665,46 @@ func AccountNameEqualFold(v string) predicate.LockPaymentOrder {
 // AccountNameContainsFold applies the ContainsFold predicate on the "account_name" field.
 func AccountNameContainsFold(v string) predicate.LockPaymentOrder {
 	return predicate.LockPaymentOrder(sql.FieldContainsFold(FieldAccountName, v))
+}
+
+// CancellationCountEQ applies the EQ predicate on the "cancellation_count" field.
+func CancellationCountEQ(v int) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(sql.FieldEQ(FieldCancellationCount, v))
+}
+
+// CancellationCountNEQ applies the NEQ predicate on the "cancellation_count" field.
+func CancellationCountNEQ(v int) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(sql.FieldNEQ(FieldCancellationCount, v))
+}
+
+// CancellationCountIn applies the In predicate on the "cancellation_count" field.
+func CancellationCountIn(vs ...int) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(sql.FieldIn(FieldCancellationCount, vs...))
+}
+
+// CancellationCountNotIn applies the NotIn predicate on the "cancellation_count" field.
+func CancellationCountNotIn(vs ...int) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(sql.FieldNotIn(FieldCancellationCount, vs...))
+}
+
+// CancellationCountGT applies the GT predicate on the "cancellation_count" field.
+func CancellationCountGT(v int) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(sql.FieldGT(FieldCancellationCount, v))
+}
+
+// CancellationCountGTE applies the GTE predicate on the "cancellation_count" field.
+func CancellationCountGTE(v int) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(sql.FieldGTE(FieldCancellationCount, v))
+}
+
+// CancellationCountLT applies the LT predicate on the "cancellation_count" field.
+func CancellationCountLT(v int) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(sql.FieldLT(FieldCancellationCount, v))
+}
+
+// CancellationCountLTE applies the LTE predicate on the "cancellation_count" field.
+func CancellationCountLTE(v int) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(sql.FieldLTE(FieldCancellationCount, v))
 }
 
 // HasToken applies the HasEdge predicate on the "token" edge.

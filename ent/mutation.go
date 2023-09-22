@@ -1466,35 +1466,39 @@ func (m *LockOrderFulfillmentMutation) ResetEdge(name string) error {
 // LockPaymentOrderMutation represents an operation that mutates the LockPaymentOrder nodes in the graph.
 type LockPaymentOrderMutation struct {
 	config
-	op                      Op
-	typ                     string
-	id                      *uuid.UUID
-	created_at              *time.Time
-	updated_at              *time.Time
-	order_id                *string
-	amount                  *decimal.Decimal
-	addamount               *decimal.Decimal
-	rate                    *decimal.Decimal
-	addrate                 *decimal.Decimal
-	tx_hash                 *string
-	status                  *lockpaymentorder.Status
-	block_number            *int64
-	addblock_number         *int64
-	institution             *string
-	account_identifier      *string
-	account_name            *string
-	clearedFields           map[string]struct{}
-	token                   *int
-	clearedtoken            bool
-	provision_bucket        *int
-	clearedprovision_bucket bool
-	provider                *string
-	clearedprovider         bool
-	fulfillment             *int
-	clearedfulfillment      bool
-	done                    bool
-	oldValue                func(context.Context) (*LockPaymentOrder, error)
-	predicates              []predicate.LockPaymentOrder
+	op                         Op
+	typ                        string
+	id                         *uuid.UUID
+	created_at                 *time.Time
+	updated_at                 *time.Time
+	order_id                   *string
+	amount                     *decimal.Decimal
+	addamount                  *decimal.Decimal
+	rate                       *decimal.Decimal
+	addrate                    *decimal.Decimal
+	tx_hash                    *string
+	status                     *lockpaymentorder.Status
+	block_number               *int64
+	addblock_number            *int64
+	institution                *string
+	account_identifier         *string
+	account_name               *string
+	cancellation_count         *int
+	addcancellation_count      *int
+	cancellation_reasons       *[]string
+	appendcancellation_reasons []string
+	clearedFields              map[string]struct{}
+	token                      *int
+	clearedtoken               bool
+	provision_bucket           *int
+	clearedprovision_bucket    bool
+	provider                   *string
+	clearedprovider            bool
+	fulfillment                *int
+	clearedfulfillment         bool
+	done                       bool
+	oldValue                   func(context.Context) (*LockPaymentOrder, error)
+	predicates                 []predicate.LockPaymentOrder
 }
 
 var _ ent.Mutation = (*LockPaymentOrderMutation)(nil)
@@ -2070,6 +2074,113 @@ func (m *LockPaymentOrderMutation) ResetAccountName() {
 	m.account_name = nil
 }
 
+// SetCancellationCount sets the "cancellation_count" field.
+func (m *LockPaymentOrderMutation) SetCancellationCount(i int) {
+	m.cancellation_count = &i
+	m.addcancellation_count = nil
+}
+
+// CancellationCount returns the value of the "cancellation_count" field in the mutation.
+func (m *LockPaymentOrderMutation) CancellationCount() (r int, exists bool) {
+	v := m.cancellation_count
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCancellationCount returns the old "cancellation_count" field's value of the LockPaymentOrder entity.
+// If the LockPaymentOrder object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LockPaymentOrderMutation) OldCancellationCount(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCancellationCount is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCancellationCount requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCancellationCount: %w", err)
+	}
+	return oldValue.CancellationCount, nil
+}
+
+// AddCancellationCount adds i to the "cancellation_count" field.
+func (m *LockPaymentOrderMutation) AddCancellationCount(i int) {
+	if m.addcancellation_count != nil {
+		*m.addcancellation_count += i
+	} else {
+		m.addcancellation_count = &i
+	}
+}
+
+// AddedCancellationCount returns the value that was added to the "cancellation_count" field in this mutation.
+func (m *LockPaymentOrderMutation) AddedCancellationCount() (r int, exists bool) {
+	v := m.addcancellation_count
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetCancellationCount resets all changes to the "cancellation_count" field.
+func (m *LockPaymentOrderMutation) ResetCancellationCount() {
+	m.cancellation_count = nil
+	m.addcancellation_count = nil
+}
+
+// SetCancellationReasons sets the "cancellation_reasons" field.
+func (m *LockPaymentOrderMutation) SetCancellationReasons(s []string) {
+	m.cancellation_reasons = &s
+	m.appendcancellation_reasons = nil
+}
+
+// CancellationReasons returns the value of the "cancellation_reasons" field in the mutation.
+func (m *LockPaymentOrderMutation) CancellationReasons() (r []string, exists bool) {
+	v := m.cancellation_reasons
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCancellationReasons returns the old "cancellation_reasons" field's value of the LockPaymentOrder entity.
+// If the LockPaymentOrder object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LockPaymentOrderMutation) OldCancellationReasons(ctx context.Context) (v []string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCancellationReasons is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCancellationReasons requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCancellationReasons: %w", err)
+	}
+	return oldValue.CancellationReasons, nil
+}
+
+// AppendCancellationReasons adds s to the "cancellation_reasons" field.
+func (m *LockPaymentOrderMutation) AppendCancellationReasons(s []string) {
+	m.appendcancellation_reasons = append(m.appendcancellation_reasons, s...)
+}
+
+// AppendedCancellationReasons returns the list of values that were appended to the "cancellation_reasons" field in this mutation.
+func (m *LockPaymentOrderMutation) AppendedCancellationReasons() ([]string, bool) {
+	if len(m.appendcancellation_reasons) == 0 {
+		return nil, false
+	}
+	return m.appendcancellation_reasons, true
+}
+
+// ResetCancellationReasons resets all changes to the "cancellation_reasons" field.
+func (m *LockPaymentOrderMutation) ResetCancellationReasons() {
+	m.cancellation_reasons = nil
+	m.appendcancellation_reasons = nil
+}
+
 // SetTokenID sets the "token" edge to the Token entity by id.
 func (m *LockPaymentOrderMutation) SetTokenID(id int) {
 	m.token = &id
@@ -2260,7 +2371,7 @@ func (m *LockPaymentOrderMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *LockPaymentOrderMutation) Fields() []string {
-	fields := make([]string, 0, 11)
+	fields := make([]string, 0, 13)
 	if m.created_at != nil {
 		fields = append(fields, lockpaymentorder.FieldCreatedAt)
 	}
@@ -2294,6 +2405,12 @@ func (m *LockPaymentOrderMutation) Fields() []string {
 	if m.account_name != nil {
 		fields = append(fields, lockpaymentorder.FieldAccountName)
 	}
+	if m.cancellation_count != nil {
+		fields = append(fields, lockpaymentorder.FieldCancellationCount)
+	}
+	if m.cancellation_reasons != nil {
+		fields = append(fields, lockpaymentorder.FieldCancellationReasons)
+	}
 	return fields
 }
 
@@ -2324,6 +2441,10 @@ func (m *LockPaymentOrderMutation) Field(name string) (ent.Value, bool) {
 		return m.AccountIdentifier()
 	case lockpaymentorder.FieldAccountName:
 		return m.AccountName()
+	case lockpaymentorder.FieldCancellationCount:
+		return m.CancellationCount()
+	case lockpaymentorder.FieldCancellationReasons:
+		return m.CancellationReasons()
 	}
 	return nil, false
 }
@@ -2355,6 +2476,10 @@ func (m *LockPaymentOrderMutation) OldField(ctx context.Context, name string) (e
 		return m.OldAccountIdentifier(ctx)
 	case lockpaymentorder.FieldAccountName:
 		return m.OldAccountName(ctx)
+	case lockpaymentorder.FieldCancellationCount:
+		return m.OldCancellationCount(ctx)
+	case lockpaymentorder.FieldCancellationReasons:
+		return m.OldCancellationReasons(ctx)
 	}
 	return nil, fmt.Errorf("unknown LockPaymentOrder field %s", name)
 }
@@ -2441,6 +2566,20 @@ func (m *LockPaymentOrderMutation) SetField(name string, value ent.Value) error 
 		}
 		m.SetAccountName(v)
 		return nil
+	case lockpaymentorder.FieldCancellationCount:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCancellationCount(v)
+		return nil
+	case lockpaymentorder.FieldCancellationReasons:
+		v, ok := value.([]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCancellationReasons(v)
+		return nil
 	}
 	return fmt.Errorf("unknown LockPaymentOrder field %s", name)
 }
@@ -2458,6 +2597,9 @@ func (m *LockPaymentOrderMutation) AddedFields() []string {
 	if m.addblock_number != nil {
 		fields = append(fields, lockpaymentorder.FieldBlockNumber)
 	}
+	if m.addcancellation_count != nil {
+		fields = append(fields, lockpaymentorder.FieldCancellationCount)
+	}
 	return fields
 }
 
@@ -2472,6 +2614,8 @@ func (m *LockPaymentOrderMutation) AddedField(name string) (ent.Value, bool) {
 		return m.AddedRate()
 	case lockpaymentorder.FieldBlockNumber:
 		return m.AddedBlockNumber()
+	case lockpaymentorder.FieldCancellationCount:
+		return m.AddedCancellationCount()
 	}
 	return nil, false
 }
@@ -2501,6 +2645,13 @@ func (m *LockPaymentOrderMutation) AddField(name string, value ent.Value) error 
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.AddBlockNumber(v)
+		return nil
+	case lockpaymentorder.FieldCancellationCount:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddCancellationCount(v)
 		return nil
 	}
 	return fmt.Errorf("unknown LockPaymentOrder numeric field %s", name)
@@ -2570,6 +2721,12 @@ func (m *LockPaymentOrderMutation) ResetField(name string) error {
 		return nil
 	case lockpaymentorder.FieldAccountName:
 		m.ResetAccountName()
+		return nil
+	case lockpaymentorder.FieldCancellationCount:
+		m.ResetCancellationCount()
+		return nil
+	case lockpaymentorder.FieldCancellationReasons:
+		m.ResetCancellationReasons()
 		return nil
 	}
 	return fmt.Errorf("unknown LockPaymentOrder field %s", name)
