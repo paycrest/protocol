@@ -617,7 +617,7 @@ func (s *IndexerService) splitLockPaymentOrder(ctx context.Context, lockPaymentO
 		// Create a slice to hold the LockPaymentOrder entities for this bucket
 		lockOrders := make([]*ent.LockPaymentOrderCreate, 0, trips)
 
-		tx, err := db.Client.BeginTx(ctx, nil)
+		tx, err := db.Client.Tx(ctx)
 		if err != nil {
 			return err
 		}

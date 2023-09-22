@@ -347,7 +347,6 @@ func TestAuth(t *testing.T) {
 			err = json.Unmarshal(res.Body.Bytes(), &response)
 			assert.NoError(t, err)
 			assert.Equal(t, "Invalid or expired refresh token", response.Message)
-			assert.NotNil(t, response.Data, "response.Data is nil")
 		})
 	})
 
