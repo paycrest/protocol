@@ -58,7 +58,7 @@ func (ctrl *SenderController) CreatePaymentOrder(ctx *gin.Context) {
 	if err != nil {
 		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusInternalServerError, "error",
-			"Failed to initiate payment order", err.Error())
+			"Failed to initiate payment order", nil)
 		return
 	}
 
@@ -71,7 +71,7 @@ func (ctrl *SenderController) CreatePaymentOrder(ctx *gin.Context) {
 	if err != nil {
 		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusBadRequest, "error",
-			"Provided crypto token is not supported", err.Error())
+			"Provided crypto token is not supported", nil)
 		return
 	}
 
@@ -80,7 +80,7 @@ func (ctrl *SenderController) CreatePaymentOrder(ctx *gin.Context) {
 	if err != nil {
 		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusInternalServerError, "error",
-			"Failed to initiate payment order", err.Error())
+			"Failed to initiate payment order", nil)
 		return
 	}
 
@@ -99,7 +99,7 @@ func (ctrl *SenderController) CreatePaymentOrder(ctx *gin.Context) {
 	if err != nil {
 		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusInternalServerError, "error",
-			"Failed to initiate payment order", err.Error())
+			"Failed to initiate payment order", nil)
 		_ = tx.Rollback()
 		return
 	}
@@ -116,7 +116,7 @@ func (ctrl *SenderController) CreatePaymentOrder(ctx *gin.Context) {
 	if err != nil {
 		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusInternalServerError, "error",
-			"Failed to initiate payment order", err.Error())
+			"Failed to initiate payment order", nil)
 		_ = tx.Rollback()
 		return
 	}
@@ -125,7 +125,7 @@ func (ctrl *SenderController) CreatePaymentOrder(ctx *gin.Context) {
 	if err := tx.Commit(); err != nil {
 		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusInternalServerError, "error",
-			"Failed to initiate payment order", err.Error())
+			"Failed to initiate payment order", nil)
 		return
 	}
 
@@ -153,7 +153,7 @@ func (ctrl *SenderController) GetPaymentOrderByID(ctx *gin.Context) {
 	if err != nil {
 		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusBadRequest, "error",
-			"Invalid order ID", err.Error())
+			"Invalid order ID", nil)
 		return
 	}
 
@@ -170,7 +170,7 @@ func (ctrl *SenderController) GetPaymentOrderByID(ctx *gin.Context) {
 	if err != nil {
 		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusNotFound, "error",
-			"Payment order not found", err.Error())
+			"Payment order not found", nil)
 		return
 	}
 
