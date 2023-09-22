@@ -83,6 +83,10 @@ func init() {
 	lockpaymentorderDescTxHash := lockpaymentorderFields[4].Descriptor()
 	// lockpaymentorder.TxHashValidator is a validator for the "tx_hash" field. It is called by the builders before save.
 	lockpaymentorder.TxHashValidator = lockpaymentorderDescTxHash.Validators[0].(func(string) error)
+	// lockpaymentorderDescCancellationCount is the schema descriptor for cancellation_count field.
+	lockpaymentorderDescCancellationCount := lockpaymentorderFields[10].Descriptor()
+	// lockpaymentorder.DefaultCancellationCount holds the default value on creation for the cancellation_count field.
+	lockpaymentorder.DefaultCancellationCount = lockpaymentorderDescCancellationCount.Default.(int)
 	// lockpaymentorderDescID is the schema descriptor for id field.
 	lockpaymentorderDescID := lockpaymentorderFields[0].Descriptor()
 	// lockpaymentorder.DefaultID holds the default value on creation for the id field.

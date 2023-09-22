@@ -124,6 +124,26 @@ func (lpoc *LockPaymentOrderCreate) SetAccountName(s string) *LockPaymentOrderCr
 	return lpoc
 }
 
+// SetCancellationCount sets the "cancellation_count" field.
+func (lpoc *LockPaymentOrderCreate) SetCancellationCount(i int) *LockPaymentOrderCreate {
+	lpoc.mutation.SetCancellationCount(i)
+	return lpoc
+}
+
+// SetNillableCancellationCount sets the "cancellation_count" field if the given value is not nil.
+func (lpoc *LockPaymentOrderCreate) SetNillableCancellationCount(i *int) *LockPaymentOrderCreate {
+	if i != nil {
+		lpoc.SetCancellationCount(*i)
+	}
+	return lpoc
+}
+
+// SetCancellationReasons sets the "cancellation_reasons" field.
+func (lpoc *LockPaymentOrderCreate) SetCancellationReasons(s []string) *LockPaymentOrderCreate {
+	lpoc.mutation.SetCancellationReasons(s)
+	return lpoc
+}
+
 // SetID sets the "id" field.
 func (lpoc *LockPaymentOrderCreate) SetID(u uuid.UUID) *LockPaymentOrderCreate {
 	lpoc.mutation.SetID(u)
@@ -253,6 +273,10 @@ func (lpoc *LockPaymentOrderCreate) defaults() {
 		v := lockpaymentorder.DefaultStatus
 		lpoc.mutation.SetStatus(v)
 	}
+	if _, ok := lpoc.mutation.CancellationCount(); !ok {
+		v := lockpaymentorder.DefaultCancellationCount
+		lpoc.mutation.SetCancellationCount(v)
+	}
 	if _, ok := lpoc.mutation.ID(); !ok {
 		v := lockpaymentorder.DefaultID()
 		lpoc.mutation.SetID(v)
@@ -300,6 +324,12 @@ func (lpoc *LockPaymentOrderCreate) check() error {
 	}
 	if _, ok := lpoc.mutation.AccountName(); !ok {
 		return &ValidationError{Name: "account_name", err: errors.New(`ent: missing required field "LockPaymentOrder.account_name"`)}
+	}
+	if _, ok := lpoc.mutation.CancellationCount(); !ok {
+		return &ValidationError{Name: "cancellation_count", err: errors.New(`ent: missing required field "LockPaymentOrder.cancellation_count"`)}
+	}
+	if _, ok := lpoc.mutation.CancellationReasons(); !ok {
+		return &ValidationError{Name: "cancellation_reasons", err: errors.New(`ent: missing required field "LockPaymentOrder.cancellation_reasons"`)}
 	}
 	if _, ok := lpoc.mutation.TokenID(); !ok {
 		return &ValidationError{Name: "token", err: errors.New(`ent: missing required edge "LockPaymentOrder.token"`)}
@@ -382,6 +412,14 @@ func (lpoc *LockPaymentOrderCreate) createSpec() (*LockPaymentOrder, *sqlgraph.C
 	if value, ok := lpoc.mutation.AccountName(); ok {
 		_spec.SetField(lockpaymentorder.FieldAccountName, field.TypeString, value)
 		_node.AccountName = value
+	}
+	if value, ok := lpoc.mutation.CancellationCount(); ok {
+		_spec.SetField(lockpaymentorder.FieldCancellationCount, field.TypeInt, value)
+		_node.CancellationCount = value
+	}
+	if value, ok := lpoc.mutation.CancellationReasons(); ok {
+		_spec.SetField(lockpaymentorder.FieldCancellationReasons, field.TypeJSON, value)
+		_node.CancellationReasons = value
 	}
 	if nodes := lpoc.mutation.TokenIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

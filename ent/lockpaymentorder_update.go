@@ -10,6 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
 	"github.com/paycrest/paycrest-protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
@@ -133,6 +134,39 @@ func (lpou *LockPaymentOrderUpdate) SetAccountIdentifier(s string) *LockPaymentO
 // SetAccountName sets the "account_name" field.
 func (lpou *LockPaymentOrderUpdate) SetAccountName(s string) *LockPaymentOrderUpdate {
 	lpou.mutation.SetAccountName(s)
+	return lpou
+}
+
+// SetCancellationCount sets the "cancellation_count" field.
+func (lpou *LockPaymentOrderUpdate) SetCancellationCount(i int) *LockPaymentOrderUpdate {
+	lpou.mutation.ResetCancellationCount()
+	lpou.mutation.SetCancellationCount(i)
+	return lpou
+}
+
+// SetNillableCancellationCount sets the "cancellation_count" field if the given value is not nil.
+func (lpou *LockPaymentOrderUpdate) SetNillableCancellationCount(i *int) *LockPaymentOrderUpdate {
+	if i != nil {
+		lpou.SetCancellationCount(*i)
+	}
+	return lpou
+}
+
+// AddCancellationCount adds i to the "cancellation_count" field.
+func (lpou *LockPaymentOrderUpdate) AddCancellationCount(i int) *LockPaymentOrderUpdate {
+	lpou.mutation.AddCancellationCount(i)
+	return lpou
+}
+
+// SetCancellationReasons sets the "cancellation_reasons" field.
+func (lpou *LockPaymentOrderUpdate) SetCancellationReasons(s []string) *LockPaymentOrderUpdate {
+	lpou.mutation.SetCancellationReasons(s)
+	return lpou
+}
+
+// AppendCancellationReasons appends s to the "cancellation_reasons" field.
+func (lpou *LockPaymentOrderUpdate) AppendCancellationReasons(s []string) *LockPaymentOrderUpdate {
+	lpou.mutation.AppendCancellationReasons(s)
 	return lpou
 }
 
@@ -340,6 +374,20 @@ func (lpou *LockPaymentOrderUpdate) sqlSave(ctx context.Context) (n int, err err
 	}
 	if value, ok := lpou.mutation.AccountName(); ok {
 		_spec.SetField(lockpaymentorder.FieldAccountName, field.TypeString, value)
+	}
+	if value, ok := lpou.mutation.CancellationCount(); ok {
+		_spec.SetField(lockpaymentorder.FieldCancellationCount, field.TypeInt, value)
+	}
+	if value, ok := lpou.mutation.AddedCancellationCount(); ok {
+		_spec.AddField(lockpaymentorder.FieldCancellationCount, field.TypeInt, value)
+	}
+	if value, ok := lpou.mutation.CancellationReasons(); ok {
+		_spec.SetField(lockpaymentorder.FieldCancellationReasons, field.TypeJSON, value)
+	}
+	if value, ok := lpou.mutation.AppendedCancellationReasons(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, lockpaymentorder.FieldCancellationReasons, value)
+		})
 	}
 	if lpou.mutation.TokenCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -580,6 +628,39 @@ func (lpouo *LockPaymentOrderUpdateOne) SetAccountName(s string) *LockPaymentOrd
 	return lpouo
 }
 
+// SetCancellationCount sets the "cancellation_count" field.
+func (lpouo *LockPaymentOrderUpdateOne) SetCancellationCount(i int) *LockPaymentOrderUpdateOne {
+	lpouo.mutation.ResetCancellationCount()
+	lpouo.mutation.SetCancellationCount(i)
+	return lpouo
+}
+
+// SetNillableCancellationCount sets the "cancellation_count" field if the given value is not nil.
+func (lpouo *LockPaymentOrderUpdateOne) SetNillableCancellationCount(i *int) *LockPaymentOrderUpdateOne {
+	if i != nil {
+		lpouo.SetCancellationCount(*i)
+	}
+	return lpouo
+}
+
+// AddCancellationCount adds i to the "cancellation_count" field.
+func (lpouo *LockPaymentOrderUpdateOne) AddCancellationCount(i int) *LockPaymentOrderUpdateOne {
+	lpouo.mutation.AddCancellationCount(i)
+	return lpouo
+}
+
+// SetCancellationReasons sets the "cancellation_reasons" field.
+func (lpouo *LockPaymentOrderUpdateOne) SetCancellationReasons(s []string) *LockPaymentOrderUpdateOne {
+	lpouo.mutation.SetCancellationReasons(s)
+	return lpouo
+}
+
+// AppendCancellationReasons appends s to the "cancellation_reasons" field.
+func (lpouo *LockPaymentOrderUpdateOne) AppendCancellationReasons(s []string) *LockPaymentOrderUpdateOne {
+	lpouo.mutation.AppendCancellationReasons(s)
+	return lpouo
+}
+
 // SetTokenID sets the "token" edge to the Token entity by ID.
 func (lpouo *LockPaymentOrderUpdateOne) SetTokenID(id int) *LockPaymentOrderUpdateOne {
 	lpouo.mutation.SetTokenID(id)
@@ -814,6 +895,20 @@ func (lpouo *LockPaymentOrderUpdateOne) sqlSave(ctx context.Context) (_node *Loc
 	}
 	if value, ok := lpouo.mutation.AccountName(); ok {
 		_spec.SetField(lockpaymentorder.FieldAccountName, field.TypeString, value)
+	}
+	if value, ok := lpouo.mutation.CancellationCount(); ok {
+		_spec.SetField(lockpaymentorder.FieldCancellationCount, field.TypeInt, value)
+	}
+	if value, ok := lpouo.mutation.AddedCancellationCount(); ok {
+		_spec.AddField(lockpaymentorder.FieldCancellationCount, field.TypeInt, value)
+	}
+	if value, ok := lpouo.mutation.CancellationReasons(); ok {
+		_spec.SetField(lockpaymentorder.FieldCancellationReasons, field.TypeJSON, value)
+	}
+	if value, ok := lpouo.mutation.AppendedCancellationReasons(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, lockpaymentorder.FieldCancellationReasons, value)
+		})
 	}
 	if lpouo.mutation.TokenCleared() {
 		edge := &sqlgraph.EdgeSpec{
