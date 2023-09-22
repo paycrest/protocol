@@ -71,7 +71,7 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 	if err != nil {
 		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusInternalServerError, "error",
-			"Failed to create new user", err.Error())
+			"Failed to create new user", nil)
 		return
 	}
 
@@ -99,7 +99,7 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 		if err != nil {
 			logger.Errorf("error: %v", err)
 			u.APIResponse(ctx, http.StatusInternalServerError, "error",
-				"Failed to create new user", err.Error())
+				"Failed to create new user", nil)
 			return
 		}
 
@@ -114,7 +114,7 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 		if err != nil {
 			logger.Errorf("error: %v", err)
 			u.APIResponse(ctx, http.StatusInternalServerError, "error",
-				"Failed to create new user", err.Error())
+				"Failed to create new user", nil)
 			return
 		}
 	}
@@ -164,7 +164,7 @@ func (ctrl *AuthController) Login(ctx *gin.Context) {
 	if err != nil {
 		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusInternalServerError, "error",
-			"Failed to create token pair", err.Error(),
+			"Failed to create token pair", nil,
 		)
 		return
 	}
@@ -189,14 +189,14 @@ func (ctrl *AuthController) RefreshJWT(ctx *gin.Context) {
 	claims, err := token.ValidateJWT(payload.RefreshToken)
 	userID, ok := claims["sub"].(string)
 	if err != nil || !ok {
-		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid or expired refresh token", err.Error())
+		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid or expired refresh token", nil)
 		return
 	}
 
 	// Generate a new access token
 	accessToken, err := token.GenerateAccessJWT(userID)
 	if err != nil {
-		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to generate access token", err.Error())
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to generate access token", nil)
 		return
 	}
 
@@ -231,7 +231,7 @@ func (ctrl *AuthController) CreateAPIKey(ctx *gin.Context) {
 	apiKey, secretKey, err := ctrl.apiKeyService.GenerateAPIKey(ctx, userID, payload)
 	if err != nil {
 		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to generate API key", err.Error())
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to generate API key", nil)
 		return
 	}
 
@@ -267,7 +267,7 @@ func (ctrl *AuthController) ListAPIKeys(ctx *gin.Context) {
 		All(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to retrieve API keys", err.Error())
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to retrieve API keys", nil)
 		return
 	}
 
@@ -278,7 +278,7 @@ func (ctrl *AuthController) ListAPIKeys(ctx *gin.Context) {
 		decodedSecret, err := base64.StdEncoding.DecodeString(apiKey.Secret)
 		if err != nil {
 			logger.Errorf("error: %v", err)
-			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to decode API key", err.Error())
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to decode API key", nil)
 			return
 		}
 
@@ -286,7 +286,7 @@ func (ctrl *AuthController) ListAPIKeys(ctx *gin.Context) {
 		decryptedSecret, err := crypto.DecryptPlain(decodedSecret)
 		if err != nil {
 			logger.Errorf("error: %v", err)
-			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to decrypt API key", err.Error())
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to decrypt API key", nil)
 			return
 		}
 		apiKeyResponses[i] = types.APIKeyResponse{
@@ -337,7 +337,7 @@ func (ctrl *AuthController) DeleteAPIKey(ctx *gin.Context) {
 			u.APIResponse(ctx, http.StatusNotFound, "error", "API key not found", nil)
 		} else {
 			logger.Errorf("error: %v", err)
-			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to delete API key", err.Error())
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to delete API key", nil)
 		}
 		return
 	}
@@ -348,7 +348,7 @@ func (ctrl *AuthController) DeleteAPIKey(ctx *gin.Context) {
 		Exec(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to delete API key", err.Error())
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to delete API key", nil)
 		return
 	}
 
@@ -368,22 +368,28 @@ func (ctrl *AuthController) ConfirmEmail(ctx *gin.Context) {
 	}
 
 	// Fetch verificationtoken
-	verificationtoken, vtErr := db.Client.VerificationToken.Query().Where(verificationtoken.TokenEQ(payload.Token)).Only(ctx)
-	user, queryOwnerErr := verificationtoken.QueryOwner().Only(ctx)
-	if vtErr != nil || queryOwnerErr != nil {
-		u.APIResponse(ctx, http.StatusBadRequest, "error", "Verification Token invalid", vtErr.Error())
+	verificationToken, vtErr := db.Client.VerificationToken.
+		Query().
+		Where(verificationtoken.TokenEQ(payload.Token)).
+		WithOwner().
+		Only(ctx)
+	if vtErr != nil {
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid verification token", vtErr.Error())
 		return
 	}
 
 	// Update User IsVerified to true
-	_, setIfVerifiedErr := user.Update().SetIsVerified(true).Save(ctx)
+	_, setIfVerifiedErr := verificationToken.Edges.Owner.
+		Update().
+		SetIsVerified(true).
+		Save(ctx)
 	if setIfVerifiedErr != nil {
 		u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to verify user email", setIfVerifiedErr.Error())
 		return
 	}
 
 	// Return a success response
-	u.APIResponse(ctx, http.StatusOK, "success", "User Email confirmed", nil)
+	u.APIResponse(ctx, http.StatusOK, "success", "User email verified successfully", nil)
 }
 
 // ResendVerificationToken controller resends the verification token to the users email.
