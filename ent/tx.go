@@ -14,6 +14,8 @@ type Tx struct {
 	config
 	// APIKey is the client for interacting with the APIKey builders.
 	APIKey *APIKeyClient
+	// LockOrderFulfillment is the client for interacting with the LockOrderFulfillment builders.
+	LockOrderFulfillment *LockOrderFulfillmentClient
 	// LockPaymentOrder is the client for interacting with the LockPaymentOrder builders.
 	LockPaymentOrder *LockPaymentOrderClient
 	// Network is the client for interacting with the Network builders.
@@ -174,6 +176,7 @@ func (tx *Tx) Client() *Client {
 
 func (tx *Tx) init() {
 	tx.APIKey = NewAPIKeyClient(tx.config)
+	tx.LockOrderFulfillment = NewLockOrderFulfillmentClient(tx.config)
 	tx.LockPaymentOrder = NewLockPaymentOrderClient(tx.config)
 	tx.Network = NewNetworkClient(tx.config)
 	tx.PaymentOrder = NewPaymentOrderClient(tx.config)

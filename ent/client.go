@@ -16,6 +16,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
+	"github.com/paycrest/paycrest-protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/network"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
@@ -39,6 +40,8 @@ type Client struct {
 	Schema *migrate.Schema
 	// APIKey is the client for interacting with the APIKey builders.
 	APIKey *APIKeyClient
+	// LockOrderFulfillment is the client for interacting with the LockOrderFulfillment builders.
+	LockOrderFulfillment *LockOrderFulfillmentClient
 	// LockPaymentOrder is the client for interacting with the LockPaymentOrder builders.
 	LockPaymentOrder *LockPaymentOrderClient
 	// Network is the client for interacting with the Network builders.
@@ -81,6 +84,7 @@ func NewClient(opts ...Option) *Client {
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
 	c.APIKey = NewAPIKeyClient(c.config)
+	c.LockOrderFulfillment = NewLockOrderFulfillmentClient(c.config)
 	c.LockPaymentOrder = NewLockPaymentOrderClient(c.config)
 	c.Network = NewNetworkClient(c.config)
 	c.PaymentOrder = NewPaymentOrderClient(c.config)
@@ -178,6 +182,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		ctx:                       ctx,
 		config:                    cfg,
 		APIKey:                    NewAPIKeyClient(cfg),
+		LockOrderFulfillment:      NewLockOrderFulfillmentClient(cfg),
 		LockPaymentOrder:          NewLockPaymentOrderClient(cfg),
 		Network:                   NewNetworkClient(cfg),
 		PaymentOrder:              NewPaymentOrderClient(cfg),
@@ -212,6 +217,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		ctx:                       ctx,
 		config:                    cfg,
 		APIKey:                    NewAPIKeyClient(cfg),
+		LockOrderFulfillment:      NewLockOrderFulfillmentClient(cfg),
 		LockPaymentOrder:          NewLockPaymentOrderClient(cfg),
 		Network:                   NewNetworkClient(cfg),
 		PaymentOrder:              NewPaymentOrderClient(cfg),
@@ -255,7 +261,7 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.APIKey, c.LockPaymentOrder, c.Network, c.PaymentOrder,
+		c.APIKey, c.LockOrderFulfillment, c.LockPaymentOrder, c.Network, c.PaymentOrder,
 		c.PaymentOrderRecipient, c.ProviderAvailability, c.ProviderOrderToken,
 		c.ProviderOrderTokenAddress, c.ProviderProfile, c.ProviderRating,
 		c.ProvisionBucket, c.ReceiveAddress, c.Token, c.User, c.VerificationToken,
@@ -268,7 +274,7 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.APIKey, c.LockPaymentOrder, c.Network, c.PaymentOrder,
+		c.APIKey, c.LockOrderFulfillment, c.LockPaymentOrder, c.Network, c.PaymentOrder,
 		c.PaymentOrderRecipient, c.ProviderAvailability, c.ProviderOrderToken,
 		c.ProviderOrderTokenAddress, c.ProviderProfile, c.ProviderRating,
 		c.ProvisionBucket, c.ReceiveAddress, c.Token, c.User, c.VerificationToken,
@@ -282,6 +288,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
 	case *APIKeyMutation:
 		return c.APIKey.mutate(ctx, m)
+	case *LockOrderFulfillmentMutation:
+		return c.LockOrderFulfillment.mutate(ctx, m)
 	case *LockPaymentOrderMutation:
 		return c.LockPaymentOrder.mutate(ctx, m)
 	case *NetworkMutation:
@@ -481,6 +489,140 @@ func (c *APIKeyClient) mutate(ctx context.Context, m *APIKeyMutation) (Value, er
 	}
 }
 
+// LockOrderFulfillmentClient is a client for the LockOrderFulfillment schema.
+type LockOrderFulfillmentClient struct {
+	config
+}
+
+// NewLockOrderFulfillmentClient returns a client for the LockOrderFulfillment from the given config.
+func NewLockOrderFulfillmentClient(c config) *LockOrderFulfillmentClient {
+	return &LockOrderFulfillmentClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `lockorderfulfillment.Hooks(f(g(h())))`.
+func (c *LockOrderFulfillmentClient) Use(hooks ...Hook) {
+	c.hooks.LockOrderFulfillment = append(c.hooks.LockOrderFulfillment, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `lockorderfulfillment.Intercept(f(g(h())))`.
+func (c *LockOrderFulfillmentClient) Intercept(interceptors ...Interceptor) {
+	c.inters.LockOrderFulfillment = append(c.inters.LockOrderFulfillment, interceptors...)
+}
+
+// Create returns a builder for creating a LockOrderFulfillment entity.
+func (c *LockOrderFulfillmentClient) Create() *LockOrderFulfillmentCreate {
+	mutation := newLockOrderFulfillmentMutation(c.config, OpCreate)
+	return &LockOrderFulfillmentCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of LockOrderFulfillment entities.
+func (c *LockOrderFulfillmentClient) CreateBulk(builders ...*LockOrderFulfillmentCreate) *LockOrderFulfillmentCreateBulk {
+	return &LockOrderFulfillmentCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for LockOrderFulfillment.
+func (c *LockOrderFulfillmentClient) Update() *LockOrderFulfillmentUpdate {
+	mutation := newLockOrderFulfillmentMutation(c.config, OpUpdate)
+	return &LockOrderFulfillmentUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *LockOrderFulfillmentClient) UpdateOne(lof *LockOrderFulfillment) *LockOrderFulfillmentUpdateOne {
+	mutation := newLockOrderFulfillmentMutation(c.config, OpUpdateOne, withLockOrderFulfillment(lof))
+	return &LockOrderFulfillmentUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *LockOrderFulfillmentClient) UpdateOneID(id int) *LockOrderFulfillmentUpdateOne {
+	mutation := newLockOrderFulfillmentMutation(c.config, OpUpdateOne, withLockOrderFulfillmentID(id))
+	return &LockOrderFulfillmentUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for LockOrderFulfillment.
+func (c *LockOrderFulfillmentClient) Delete() *LockOrderFulfillmentDelete {
+	mutation := newLockOrderFulfillmentMutation(c.config, OpDelete)
+	return &LockOrderFulfillmentDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *LockOrderFulfillmentClient) DeleteOne(lof *LockOrderFulfillment) *LockOrderFulfillmentDeleteOne {
+	return c.DeleteOneID(lof.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *LockOrderFulfillmentClient) DeleteOneID(id int) *LockOrderFulfillmentDeleteOne {
+	builder := c.Delete().Where(lockorderfulfillment.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &LockOrderFulfillmentDeleteOne{builder}
+}
+
+// Query returns a query builder for LockOrderFulfillment.
+func (c *LockOrderFulfillmentClient) Query() *LockOrderFulfillmentQuery {
+	return &LockOrderFulfillmentQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeLockOrderFulfillment},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a LockOrderFulfillment entity by its id.
+func (c *LockOrderFulfillmentClient) Get(ctx context.Context, id int) (*LockOrderFulfillment, error) {
+	return c.Query().Where(lockorderfulfillment.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *LockOrderFulfillmentClient) GetX(ctx context.Context, id int) *LockOrderFulfillment {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryOrder queries the order edge of a LockOrderFulfillment.
+func (c *LockOrderFulfillmentClient) QueryOrder(lof *LockOrderFulfillment) *LockPaymentOrderQuery {
+	query := (&LockPaymentOrderClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := lof.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(lockorderfulfillment.Table, lockorderfulfillment.FieldID, id),
+			sqlgraph.To(lockpaymentorder.Table, lockpaymentorder.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, lockorderfulfillment.OrderTable, lockorderfulfillment.OrderColumn),
+		)
+		fromV = sqlgraph.Neighbors(lof.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *LockOrderFulfillmentClient) Hooks() []Hook {
+	return c.hooks.LockOrderFulfillment
+}
+
+// Interceptors returns the client interceptors.
+func (c *LockOrderFulfillmentClient) Interceptors() []Interceptor {
+	return c.inters.LockOrderFulfillment
+}
+
+func (c *LockOrderFulfillmentClient) mutate(ctx context.Context, m *LockOrderFulfillmentMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&LockOrderFulfillmentCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&LockOrderFulfillmentUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&LockOrderFulfillmentUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&LockOrderFulfillmentDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown LockOrderFulfillment mutation op: %q", m.Op())
+	}
+}
+
 // LockPaymentOrderClient is a client for the LockPaymentOrder schema.
 type LockPaymentOrderClient struct {
 	config
@@ -615,6 +757,22 @@ func (c *LockPaymentOrderClient) QueryProvider(lpo *LockPaymentOrder) *ProviderP
 			sqlgraph.From(lockpaymentorder.Table, lockpaymentorder.FieldID, id),
 			sqlgraph.To(providerprofile.Table, providerprofile.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, lockpaymentorder.ProviderTable, lockpaymentorder.ProviderColumn),
+		)
+		fromV = sqlgraph.Neighbors(lpo.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryFulfillment queries the fulfillment edge of a LockPaymentOrder.
+func (c *LockPaymentOrderClient) QueryFulfillment(lpo *LockPaymentOrder) *LockOrderFulfillmentQuery {
+	query := (&LockOrderFulfillmentClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := lpo.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(lockpaymentorder.Table, lockpaymentorder.FieldID, id),
+			sqlgraph.To(lockorderfulfillment.Table, lockorderfulfillment.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, lockpaymentorder.FulfillmentTable, lockpaymentorder.FulfillmentColumn),
 		)
 		fromV = sqlgraph.Neighbors(lpo.driver.Dialect(), step)
 		return fromV, nil
@@ -2602,15 +2760,15 @@ func (c *VerificationTokenClient) mutate(ctx context.Context, m *VerificationTok
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		APIKey, LockPaymentOrder, Network, PaymentOrder, PaymentOrderRecipient,
-		ProviderAvailability, ProviderOrderToken, ProviderOrderTokenAddress,
-		ProviderProfile, ProviderRating, ProvisionBucket, ReceiveAddress, Token, User,
-		VerificationToken []ent.Hook
+		APIKey, LockOrderFulfillment, LockPaymentOrder, Network, PaymentOrder,
+		PaymentOrderRecipient, ProviderAvailability, ProviderOrderToken,
+		ProviderOrderTokenAddress, ProviderProfile, ProviderRating, ProvisionBucket,
+		ReceiveAddress, Token, User, VerificationToken []ent.Hook
 	}
 	inters struct {
-		APIKey, LockPaymentOrder, Network, PaymentOrder, PaymentOrderRecipient,
-		ProviderAvailability, ProviderOrderToken, ProviderOrderTokenAddress,
-		ProviderProfile, ProviderRating, ProvisionBucket, ReceiveAddress, Token, User,
-		VerificationToken []ent.Interceptor
+		APIKey, LockOrderFulfillment, LockPaymentOrder, Network, PaymentOrder,
+		PaymentOrderRecipient, ProviderAvailability, ProviderOrderToken,
+		ProviderOrderTokenAddress, ProviderProfile, ProviderRating, ProvisionBucket,
+		ReceiveAddress, Token, User, VerificationToken []ent.Interceptor
 	}
 )

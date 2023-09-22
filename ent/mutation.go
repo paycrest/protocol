@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
+	"github.com/paycrest/paycrest-protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/network"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
@@ -41,6 +42,7 @@ const (
 
 	// Node types.
 	TypeAPIKey                    = "APIKey"
+	TypeLockOrderFulfillment      = "LockOrderFulfillment"
 	TypeLockPaymentOrder          = "LockPaymentOrder"
 	TypeNetwork                   = "Network"
 	TypePaymentOrder              = "PaymentOrder"
@@ -816,6 +818,651 @@ func (m *APIKeyMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown APIKey edge %s", name)
 }
 
+// LockOrderFulfillmentMutation represents an operation that mutates the LockOrderFulfillment nodes in the graph.
+type LockOrderFulfillmentMutation struct {
+	config
+	op               Op
+	typ              string
+	id               *int
+	created_at       *time.Time
+	updated_at       *time.Time
+	tx_id            *string
+	tx_receipt_image *string
+	confirmations    *int
+	addconfirmations *int
+	clearedFields    map[string]struct{}
+	_order           *uuid.UUID
+	cleared_order    bool
+	done             bool
+	oldValue         func(context.Context) (*LockOrderFulfillment, error)
+	predicates       []predicate.LockOrderFulfillment
+}
+
+var _ ent.Mutation = (*LockOrderFulfillmentMutation)(nil)
+
+// lockorderfulfillmentOption allows management of the mutation configuration using functional options.
+type lockorderfulfillmentOption func(*LockOrderFulfillmentMutation)
+
+// newLockOrderFulfillmentMutation creates new mutation for the LockOrderFulfillment entity.
+func newLockOrderFulfillmentMutation(c config, op Op, opts ...lockorderfulfillmentOption) *LockOrderFulfillmentMutation {
+	m := &LockOrderFulfillmentMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeLockOrderFulfillment,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withLockOrderFulfillmentID sets the ID field of the mutation.
+func withLockOrderFulfillmentID(id int) lockorderfulfillmentOption {
+	return func(m *LockOrderFulfillmentMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *LockOrderFulfillment
+		)
+		m.oldValue = func(ctx context.Context) (*LockOrderFulfillment, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().LockOrderFulfillment.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withLockOrderFulfillment sets the old LockOrderFulfillment of the mutation.
+func withLockOrderFulfillment(node *LockOrderFulfillment) lockorderfulfillmentOption {
+	return func(m *LockOrderFulfillmentMutation) {
+		m.oldValue = func(context.Context) (*LockOrderFulfillment, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m LockOrderFulfillmentMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m LockOrderFulfillmentMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *LockOrderFulfillmentMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *LockOrderFulfillmentMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().LockOrderFulfillment.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *LockOrderFulfillmentMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *LockOrderFulfillmentMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the LockOrderFulfillment entity.
+// If the LockOrderFulfillment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LockOrderFulfillmentMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *LockOrderFulfillmentMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *LockOrderFulfillmentMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *LockOrderFulfillmentMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the LockOrderFulfillment entity.
+// If the LockOrderFulfillment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LockOrderFulfillmentMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *LockOrderFulfillmentMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetTxID sets the "tx_id" field.
+func (m *LockOrderFulfillmentMutation) SetTxID(s string) {
+	m.tx_id = &s
+}
+
+// TxID returns the value of the "tx_id" field in the mutation.
+func (m *LockOrderFulfillmentMutation) TxID() (r string, exists bool) {
+	v := m.tx_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTxID returns the old "tx_id" field's value of the LockOrderFulfillment entity.
+// If the LockOrderFulfillment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LockOrderFulfillmentMutation) OldTxID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTxID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTxID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTxID: %w", err)
+	}
+	return oldValue.TxID, nil
+}
+
+// ResetTxID resets all changes to the "tx_id" field.
+func (m *LockOrderFulfillmentMutation) ResetTxID() {
+	m.tx_id = nil
+}
+
+// SetTxReceiptImage sets the "tx_receipt_image" field.
+func (m *LockOrderFulfillmentMutation) SetTxReceiptImage(s string) {
+	m.tx_receipt_image = &s
+}
+
+// TxReceiptImage returns the value of the "tx_receipt_image" field in the mutation.
+func (m *LockOrderFulfillmentMutation) TxReceiptImage() (r string, exists bool) {
+	v := m.tx_receipt_image
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTxReceiptImage returns the old "tx_receipt_image" field's value of the LockOrderFulfillment entity.
+// If the LockOrderFulfillment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LockOrderFulfillmentMutation) OldTxReceiptImage(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTxReceiptImage is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTxReceiptImage requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTxReceiptImage: %w", err)
+	}
+	return oldValue.TxReceiptImage, nil
+}
+
+// ResetTxReceiptImage resets all changes to the "tx_receipt_image" field.
+func (m *LockOrderFulfillmentMutation) ResetTxReceiptImage() {
+	m.tx_receipt_image = nil
+}
+
+// SetConfirmations sets the "confirmations" field.
+func (m *LockOrderFulfillmentMutation) SetConfirmations(i int) {
+	m.confirmations = &i
+	m.addconfirmations = nil
+}
+
+// Confirmations returns the value of the "confirmations" field in the mutation.
+func (m *LockOrderFulfillmentMutation) Confirmations() (r int, exists bool) {
+	v := m.confirmations
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldConfirmations returns the old "confirmations" field's value of the LockOrderFulfillment entity.
+// If the LockOrderFulfillment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LockOrderFulfillmentMutation) OldConfirmations(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldConfirmations is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldConfirmations requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldConfirmations: %w", err)
+	}
+	return oldValue.Confirmations, nil
+}
+
+// AddConfirmations adds i to the "confirmations" field.
+func (m *LockOrderFulfillmentMutation) AddConfirmations(i int) {
+	if m.addconfirmations != nil {
+		*m.addconfirmations += i
+	} else {
+		m.addconfirmations = &i
+	}
+}
+
+// AddedConfirmations returns the value that was added to the "confirmations" field in this mutation.
+func (m *LockOrderFulfillmentMutation) AddedConfirmations() (r int, exists bool) {
+	v := m.addconfirmations
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetConfirmations resets all changes to the "confirmations" field.
+func (m *LockOrderFulfillmentMutation) ResetConfirmations() {
+	m.confirmations = nil
+	m.addconfirmations = nil
+}
+
+// SetOrderID sets the "order" edge to the LockPaymentOrder entity by id.
+func (m *LockOrderFulfillmentMutation) SetOrderID(id uuid.UUID) {
+	m._order = &id
+}
+
+// ClearOrder clears the "order" edge to the LockPaymentOrder entity.
+func (m *LockOrderFulfillmentMutation) ClearOrder() {
+	m.cleared_order = true
+}
+
+// OrderCleared reports if the "order" edge to the LockPaymentOrder entity was cleared.
+func (m *LockOrderFulfillmentMutation) OrderCleared() bool {
+	return m.cleared_order
+}
+
+// OrderID returns the "order" edge ID in the mutation.
+func (m *LockOrderFulfillmentMutation) OrderID() (id uuid.UUID, exists bool) {
+	if m._order != nil {
+		return *m._order, true
+	}
+	return
+}
+
+// OrderIDs returns the "order" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// OrderID instead. It exists only for internal usage by the builders.
+func (m *LockOrderFulfillmentMutation) OrderIDs() (ids []uuid.UUID) {
+	if id := m._order; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetOrder resets all changes to the "order" edge.
+func (m *LockOrderFulfillmentMutation) ResetOrder() {
+	m._order = nil
+	m.cleared_order = false
+}
+
+// Where appends a list predicates to the LockOrderFulfillmentMutation builder.
+func (m *LockOrderFulfillmentMutation) Where(ps ...predicate.LockOrderFulfillment) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the LockOrderFulfillmentMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *LockOrderFulfillmentMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.LockOrderFulfillment, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *LockOrderFulfillmentMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *LockOrderFulfillmentMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (LockOrderFulfillment).
+func (m *LockOrderFulfillmentMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *LockOrderFulfillmentMutation) Fields() []string {
+	fields := make([]string, 0, 5)
+	if m.created_at != nil {
+		fields = append(fields, lockorderfulfillment.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, lockorderfulfillment.FieldUpdatedAt)
+	}
+	if m.tx_id != nil {
+		fields = append(fields, lockorderfulfillment.FieldTxID)
+	}
+	if m.tx_receipt_image != nil {
+		fields = append(fields, lockorderfulfillment.FieldTxReceiptImage)
+	}
+	if m.confirmations != nil {
+		fields = append(fields, lockorderfulfillment.FieldConfirmations)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *LockOrderFulfillmentMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case lockorderfulfillment.FieldCreatedAt:
+		return m.CreatedAt()
+	case lockorderfulfillment.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case lockorderfulfillment.FieldTxID:
+		return m.TxID()
+	case lockorderfulfillment.FieldTxReceiptImage:
+		return m.TxReceiptImage()
+	case lockorderfulfillment.FieldConfirmations:
+		return m.Confirmations()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *LockOrderFulfillmentMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case lockorderfulfillment.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case lockorderfulfillment.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case lockorderfulfillment.FieldTxID:
+		return m.OldTxID(ctx)
+	case lockorderfulfillment.FieldTxReceiptImage:
+		return m.OldTxReceiptImage(ctx)
+	case lockorderfulfillment.FieldConfirmations:
+		return m.OldConfirmations(ctx)
+	}
+	return nil, fmt.Errorf("unknown LockOrderFulfillment field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *LockOrderFulfillmentMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case lockorderfulfillment.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case lockorderfulfillment.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case lockorderfulfillment.FieldTxID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTxID(v)
+		return nil
+	case lockorderfulfillment.FieldTxReceiptImage:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTxReceiptImage(v)
+		return nil
+	case lockorderfulfillment.FieldConfirmations:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetConfirmations(v)
+		return nil
+	}
+	return fmt.Errorf("unknown LockOrderFulfillment field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *LockOrderFulfillmentMutation) AddedFields() []string {
+	var fields []string
+	if m.addconfirmations != nil {
+		fields = append(fields, lockorderfulfillment.FieldConfirmations)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *LockOrderFulfillmentMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case lockorderfulfillment.FieldConfirmations:
+		return m.AddedConfirmations()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *LockOrderFulfillmentMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case lockorderfulfillment.FieldConfirmations:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddConfirmations(v)
+		return nil
+	}
+	return fmt.Errorf("unknown LockOrderFulfillment numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *LockOrderFulfillmentMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *LockOrderFulfillmentMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *LockOrderFulfillmentMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown LockOrderFulfillment nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *LockOrderFulfillmentMutation) ResetField(name string) error {
+	switch name {
+	case lockorderfulfillment.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case lockorderfulfillment.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case lockorderfulfillment.FieldTxID:
+		m.ResetTxID()
+		return nil
+	case lockorderfulfillment.FieldTxReceiptImage:
+		m.ResetTxReceiptImage()
+		return nil
+	case lockorderfulfillment.FieldConfirmations:
+		m.ResetConfirmations()
+		return nil
+	}
+	return fmt.Errorf("unknown LockOrderFulfillment field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *LockOrderFulfillmentMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m._order != nil {
+		edges = append(edges, lockorderfulfillment.EdgeOrder)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *LockOrderFulfillmentMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case lockorderfulfillment.EdgeOrder:
+		if id := m._order; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *LockOrderFulfillmentMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *LockOrderFulfillmentMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *LockOrderFulfillmentMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.cleared_order {
+		edges = append(edges, lockorderfulfillment.EdgeOrder)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *LockOrderFulfillmentMutation) EdgeCleared(name string) bool {
+	switch name {
+	case lockorderfulfillment.EdgeOrder:
+		return m.cleared_order
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *LockOrderFulfillmentMutation) ClearEdge(name string) error {
+	switch name {
+	case lockorderfulfillment.EdgeOrder:
+		m.ClearOrder()
+		return nil
+	}
+	return fmt.Errorf("unknown LockOrderFulfillment unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *LockOrderFulfillmentMutation) ResetEdge(name string) error {
+	switch name {
+	case lockorderfulfillment.EdgeOrder:
+		m.ResetOrder()
+		return nil
+	}
+	return fmt.Errorf("unknown LockOrderFulfillment edge %s", name)
+}
+
 // LockPaymentOrderMutation represents an operation that mutates the LockPaymentOrder nodes in the graph.
 type LockPaymentOrderMutation struct {
 	config
@@ -843,6 +1490,8 @@ type LockPaymentOrderMutation struct {
 	clearedprovision_bucket bool
 	provider                *string
 	clearedprovider         bool
+	fulfillment             *int
+	clearedfulfillment      bool
 	done                    bool
 	oldValue                func(context.Context) (*LockPaymentOrder, error)
 	predicates              []predicate.LockPaymentOrder
@@ -1538,6 +2187,45 @@ func (m *LockPaymentOrderMutation) ResetProvider() {
 	m.clearedprovider = false
 }
 
+// SetFulfillmentID sets the "fulfillment" edge to the LockOrderFulfillment entity by id.
+func (m *LockPaymentOrderMutation) SetFulfillmentID(id int) {
+	m.fulfillment = &id
+}
+
+// ClearFulfillment clears the "fulfillment" edge to the LockOrderFulfillment entity.
+func (m *LockPaymentOrderMutation) ClearFulfillment() {
+	m.clearedfulfillment = true
+}
+
+// FulfillmentCleared reports if the "fulfillment" edge to the LockOrderFulfillment entity was cleared.
+func (m *LockPaymentOrderMutation) FulfillmentCleared() bool {
+	return m.clearedfulfillment
+}
+
+// FulfillmentID returns the "fulfillment" edge ID in the mutation.
+func (m *LockPaymentOrderMutation) FulfillmentID() (id int, exists bool) {
+	if m.fulfillment != nil {
+		return *m.fulfillment, true
+	}
+	return
+}
+
+// FulfillmentIDs returns the "fulfillment" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// FulfillmentID instead. It exists only for internal usage by the builders.
+func (m *LockPaymentOrderMutation) FulfillmentIDs() (ids []int) {
+	if id := m.fulfillment; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetFulfillment resets all changes to the "fulfillment" edge.
+func (m *LockPaymentOrderMutation) ResetFulfillment() {
+	m.fulfillment = nil
+	m.clearedfulfillment = false
+}
+
 // Where appends a list predicates to the LockPaymentOrderMutation builder.
 func (m *LockPaymentOrderMutation) Where(ps ...predicate.LockPaymentOrder) {
 	m.predicates = append(m.predicates, ps...)
@@ -1889,7 +2577,7 @@ func (m *LockPaymentOrderMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *LockPaymentOrderMutation) AddedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	if m.token != nil {
 		edges = append(edges, lockpaymentorder.EdgeToken)
 	}
@@ -1898,6 +2586,9 @@ func (m *LockPaymentOrderMutation) AddedEdges() []string {
 	}
 	if m.provider != nil {
 		edges = append(edges, lockpaymentorder.EdgeProvider)
+	}
+	if m.fulfillment != nil {
+		edges = append(edges, lockpaymentorder.EdgeFulfillment)
 	}
 	return edges
 }
@@ -1918,13 +2609,17 @@ func (m *LockPaymentOrderMutation) AddedIDs(name string) []ent.Value {
 		if id := m.provider; id != nil {
 			return []ent.Value{*id}
 		}
+	case lockpaymentorder.EdgeFulfillment:
+		if id := m.fulfillment; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *LockPaymentOrderMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	return edges
 }
 
@@ -1936,7 +2631,7 @@ func (m *LockPaymentOrderMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *LockPaymentOrderMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	if m.clearedtoken {
 		edges = append(edges, lockpaymentorder.EdgeToken)
 	}
@@ -1945,6 +2640,9 @@ func (m *LockPaymentOrderMutation) ClearedEdges() []string {
 	}
 	if m.clearedprovider {
 		edges = append(edges, lockpaymentorder.EdgeProvider)
+	}
+	if m.clearedfulfillment {
+		edges = append(edges, lockpaymentorder.EdgeFulfillment)
 	}
 	return edges
 }
@@ -1959,6 +2657,8 @@ func (m *LockPaymentOrderMutation) EdgeCleared(name string) bool {
 		return m.clearedprovision_bucket
 	case lockpaymentorder.EdgeProvider:
 		return m.clearedprovider
+	case lockpaymentorder.EdgeFulfillment:
+		return m.clearedfulfillment
 	}
 	return false
 }
@@ -1976,6 +2676,9 @@ func (m *LockPaymentOrderMutation) ClearEdge(name string) error {
 	case lockpaymentorder.EdgeProvider:
 		m.ClearProvider()
 		return nil
+	case lockpaymentorder.EdgeFulfillment:
+		m.ClearFulfillment()
+		return nil
 	}
 	return fmt.Errorf("unknown LockPaymentOrder unique edge %s", name)
 }
@@ -1992,6 +2695,9 @@ func (m *LockPaymentOrderMutation) ResetEdge(name string) error {
 		return nil
 	case lockpaymentorder.EdgeProvider:
 		m.ResetProvider()
+		return nil
+	case lockpaymentorder.EdgeFulfillment:
+		m.ResetFulfillment()
 		return nil
 	}
 	return fmt.Errorf("unknown LockPaymentOrder edge %s", name)

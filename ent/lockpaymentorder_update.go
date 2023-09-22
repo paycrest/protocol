@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/paycrest/paycrest-protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
@@ -184,6 +185,25 @@ func (lpou *LockPaymentOrderUpdate) SetProvider(p *ProviderProfile) *LockPayment
 	return lpou.SetProviderID(p.ID)
 }
 
+// SetFulfillmentID sets the "fulfillment" edge to the LockOrderFulfillment entity by ID.
+func (lpou *LockPaymentOrderUpdate) SetFulfillmentID(id int) *LockPaymentOrderUpdate {
+	lpou.mutation.SetFulfillmentID(id)
+	return lpou
+}
+
+// SetNillableFulfillmentID sets the "fulfillment" edge to the LockOrderFulfillment entity by ID if the given value is not nil.
+func (lpou *LockPaymentOrderUpdate) SetNillableFulfillmentID(id *int) *LockPaymentOrderUpdate {
+	if id != nil {
+		lpou = lpou.SetFulfillmentID(*id)
+	}
+	return lpou
+}
+
+// SetFulfillment sets the "fulfillment" edge to the LockOrderFulfillment entity.
+func (lpou *LockPaymentOrderUpdate) SetFulfillment(l *LockOrderFulfillment) *LockPaymentOrderUpdate {
+	return lpou.SetFulfillmentID(l.ID)
+}
+
 // Mutation returns the LockPaymentOrderMutation object of the builder.
 func (lpou *LockPaymentOrderUpdate) Mutation() *LockPaymentOrderMutation {
 	return lpou.mutation
@@ -204,6 +224,12 @@ func (lpou *LockPaymentOrderUpdate) ClearProvisionBucket() *LockPaymentOrderUpda
 // ClearProvider clears the "provider" edge to the ProviderProfile entity.
 func (lpou *LockPaymentOrderUpdate) ClearProvider() *LockPaymentOrderUpdate {
 	lpou.mutation.ClearProvider()
+	return lpou
+}
+
+// ClearFulfillment clears the "fulfillment" edge to the LockOrderFulfillment entity.
+func (lpou *LockPaymentOrderUpdate) ClearFulfillment() *LockPaymentOrderUpdate {
+	lpou.mutation.ClearFulfillment()
 	return lpou
 }
 
@@ -402,6 +428,35 @@ func (lpou *LockPaymentOrderUpdate) sqlSave(ctx context.Context) (n int, err err
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if lpou.mutation.FulfillmentCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   lockpaymentorder.FulfillmentTable,
+			Columns: []string{lockpaymentorder.FulfillmentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(lockorderfulfillment.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := lpou.mutation.FulfillmentIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   lockpaymentorder.FulfillmentTable,
+			Columns: []string{lockpaymentorder.FulfillmentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(lockorderfulfillment.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, lpou.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{lockpaymentorder.Label}
@@ -574,6 +629,25 @@ func (lpouo *LockPaymentOrderUpdateOne) SetProvider(p *ProviderProfile) *LockPay
 	return lpouo.SetProviderID(p.ID)
 }
 
+// SetFulfillmentID sets the "fulfillment" edge to the LockOrderFulfillment entity by ID.
+func (lpouo *LockPaymentOrderUpdateOne) SetFulfillmentID(id int) *LockPaymentOrderUpdateOne {
+	lpouo.mutation.SetFulfillmentID(id)
+	return lpouo
+}
+
+// SetNillableFulfillmentID sets the "fulfillment" edge to the LockOrderFulfillment entity by ID if the given value is not nil.
+func (lpouo *LockPaymentOrderUpdateOne) SetNillableFulfillmentID(id *int) *LockPaymentOrderUpdateOne {
+	if id != nil {
+		lpouo = lpouo.SetFulfillmentID(*id)
+	}
+	return lpouo
+}
+
+// SetFulfillment sets the "fulfillment" edge to the LockOrderFulfillment entity.
+func (lpouo *LockPaymentOrderUpdateOne) SetFulfillment(l *LockOrderFulfillment) *LockPaymentOrderUpdateOne {
+	return lpouo.SetFulfillmentID(l.ID)
+}
+
 // Mutation returns the LockPaymentOrderMutation object of the builder.
 func (lpouo *LockPaymentOrderUpdateOne) Mutation() *LockPaymentOrderMutation {
 	return lpouo.mutation
@@ -594,6 +668,12 @@ func (lpouo *LockPaymentOrderUpdateOne) ClearProvisionBucket() *LockPaymentOrder
 // ClearProvider clears the "provider" edge to the ProviderProfile entity.
 func (lpouo *LockPaymentOrderUpdateOne) ClearProvider() *LockPaymentOrderUpdateOne {
 	lpouo.mutation.ClearProvider()
+	return lpouo
+}
+
+// ClearFulfillment clears the "fulfillment" edge to the LockOrderFulfillment entity.
+func (lpouo *LockPaymentOrderUpdateOne) ClearFulfillment() *LockPaymentOrderUpdateOne {
+	lpouo.mutation.ClearFulfillment()
 	return lpouo
 }
 
@@ -815,6 +895,35 @@ func (lpouo *LockPaymentOrderUpdateOne) sqlSave(ctx context.Context) (_node *Loc
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(providerprofile.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if lpouo.mutation.FulfillmentCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   lockpaymentorder.FulfillmentTable,
+			Columns: []string{lockpaymentorder.FulfillmentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(lockorderfulfillment.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := lpouo.mutation.FulfillmentIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   lockpaymentorder.FulfillmentTable,
+			Columns: []string{lockpaymentorder.FulfillmentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(lockorderfulfillment.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

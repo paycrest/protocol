@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
+	"github.com/paycrest/paycrest-protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 	"github.com/paycrest/paycrest-protocol/ent/provisionbucket"
@@ -184,6 +185,25 @@ func (lpoc *LockPaymentOrderCreate) SetNillableProviderID(id *string) *LockPayme
 // SetProvider sets the "provider" edge to the ProviderProfile entity.
 func (lpoc *LockPaymentOrderCreate) SetProvider(p *ProviderProfile) *LockPaymentOrderCreate {
 	return lpoc.SetProviderID(p.ID)
+}
+
+// SetFulfillmentID sets the "fulfillment" edge to the LockOrderFulfillment entity by ID.
+func (lpoc *LockPaymentOrderCreate) SetFulfillmentID(id int) *LockPaymentOrderCreate {
+	lpoc.mutation.SetFulfillmentID(id)
+	return lpoc
+}
+
+// SetNillableFulfillmentID sets the "fulfillment" edge to the LockOrderFulfillment entity by ID if the given value is not nil.
+func (lpoc *LockPaymentOrderCreate) SetNillableFulfillmentID(id *int) *LockPaymentOrderCreate {
+	if id != nil {
+		lpoc = lpoc.SetFulfillmentID(*id)
+	}
+	return lpoc
+}
+
+// SetFulfillment sets the "fulfillment" edge to the LockOrderFulfillment entity.
+func (lpoc *LockPaymentOrderCreate) SetFulfillment(l *LockOrderFulfillment) *LockPaymentOrderCreate {
+	return lpoc.SetFulfillmentID(l.ID)
 }
 
 // Mutation returns the LockPaymentOrderMutation object of the builder.
@@ -412,6 +432,22 @@ func (lpoc *LockPaymentOrderCreate) createSpec() (*LockPaymentOrder, *sqlgraph.C
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.provider_profile_assigned_orders = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := lpoc.mutation.FulfillmentIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   lockpaymentorder.FulfillmentTable,
+			Columns: []string{lockpaymentorder.FulfillmentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(lockorderfulfillment.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

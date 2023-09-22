@@ -2,6 +2,7 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
@@ -56,5 +57,8 @@ func (LockPaymentOrder) Edges() []ent.Edge {
 		edge.From("provider", ProviderProfile.Type).
 			Ref("assigned_orders").
 			Unique(),
+		edge.To("fulfillment", LockOrderFulfillment.Type).
+			Unique().
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }

@@ -39,6 +39,30 @@ var (
 			},
 		},
 	}
+	// LockOrderFulfillmentsColumns holds the columns for the "lock_order_fulfillments" table.
+	LockOrderFulfillmentsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "tx_id", Type: field.TypeString},
+		{Name: "tx_receipt_image", Type: field.TypeString},
+		{Name: "confirmations", Type: field.TypeInt, Default: 0},
+		{Name: "lock_payment_order_fulfillment", Type: field.TypeUUID, Unique: true},
+	}
+	// LockOrderFulfillmentsTable holds the schema information for the "lock_order_fulfillments" table.
+	LockOrderFulfillmentsTable = &schema.Table{
+		Name:       "lock_order_fulfillments",
+		Columns:    LockOrderFulfillmentsColumns,
+		PrimaryKey: []*schema.Column{LockOrderFulfillmentsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "lock_order_fulfillments_lock_payment_orders_fulfillment",
+				Columns:    []*schema.Column{LockOrderFulfillmentsColumns[6]},
+				RefColumns: []*schema.Column{LockPaymentOrdersColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+	}
 	// LockPaymentOrdersColumns holds the columns for the "lock_payment_orders" table.
 	LockPaymentOrdersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -412,6 +436,7 @@ var (
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		APIKeysTable,
+		LockOrderFulfillmentsTable,
 		LockPaymentOrdersTable,
 		NetworksTable,
 		PaymentOrdersTable,
@@ -432,6 +457,7 @@ var (
 
 func init() {
 	APIKeysTable.ForeignKeys[0].RefTable = UsersTable
+	LockOrderFulfillmentsTable.ForeignKeys[0].RefTable = LockPaymentOrdersTable
 	LockPaymentOrdersTable.ForeignKeys[0].RefTable = ProviderProfilesTable
 	LockPaymentOrdersTable.ForeignKeys[1].RefTable = ProvisionBucketsTable
 	LockPaymentOrdersTable.ForeignKeys[2].RefTable = TokensTable

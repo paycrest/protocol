@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
+	"github.com/paycrest/paycrest-protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 	"github.com/paycrest/paycrest-protocol/ent/provisionbucket"
@@ -61,9 +62,11 @@ type LockPaymentOrderEdges struct {
 	ProvisionBucket *ProvisionBucket `json:"provision_bucket,omitempty"`
 	// Provider holds the value of the provider edge.
 	Provider *ProviderProfile `json:"provider,omitempty"`
+	// Fulfillment holds the value of the fulfillment edge.
+	Fulfillment *LockOrderFulfillment `json:"fulfillment,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [4]bool
 }
 
 // TokenOrErr returns the Token value or an error if the edge
@@ -103,6 +106,19 @@ func (e LockPaymentOrderEdges) ProviderOrErr() (*ProviderProfile, error) {
 		return e.Provider, nil
 	}
 	return nil, &NotLoadedError{edge: "provider"}
+}
+
+// FulfillmentOrErr returns the Fulfillment value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e LockPaymentOrderEdges) FulfillmentOrErr() (*LockOrderFulfillment, error) {
+	if e.loadedTypes[3] {
+		if e.Fulfillment == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: lockorderfulfillment.Label}
+		}
+		return e.Fulfillment, nil
+	}
+	return nil, &NotLoadedError{edge: "fulfillment"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -260,6 +276,11 @@ func (lpo *LockPaymentOrder) QueryProvisionBucket() *ProvisionBucketQuery {
 // QueryProvider queries the "provider" edge of the LockPaymentOrder entity.
 func (lpo *LockPaymentOrder) QueryProvider() *ProviderProfileQuery {
 	return NewLockPaymentOrderClient(lpo.config).QueryProvider(lpo)
+}
+
+// QueryFulfillment queries the "fulfillment" edge of the LockPaymentOrder entity.
+func (lpo *LockPaymentOrder) QueryFulfillment() *LockOrderFulfillmentQuery {
+	return NewLockPaymentOrderClient(lpo.config).QueryFulfillment(lpo)
 }
 
 // Update returns a builder for updating this LockPaymentOrder.
