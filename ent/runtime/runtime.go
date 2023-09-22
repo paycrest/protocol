@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
+	"github.com/paycrest/paycrest-protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/network"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
@@ -44,6 +45,25 @@ func init() {
 	apikeyDescID := apikeyFields[0].Descriptor()
 	// apikey.DefaultID holds the default value on creation for the id field.
 	apikey.DefaultID = apikeyDescID.Default.(func() uuid.UUID)
+	lockorderfulfillmentMixin := schema.LockOrderFulfillment{}.Mixin()
+	lockorderfulfillmentMixinFields0 := lockorderfulfillmentMixin[0].Fields()
+	_ = lockorderfulfillmentMixinFields0
+	lockorderfulfillmentFields := schema.LockOrderFulfillment{}.Fields()
+	_ = lockorderfulfillmentFields
+	// lockorderfulfillmentDescCreatedAt is the schema descriptor for created_at field.
+	lockorderfulfillmentDescCreatedAt := lockorderfulfillmentMixinFields0[0].Descriptor()
+	// lockorderfulfillment.DefaultCreatedAt holds the default value on creation for the created_at field.
+	lockorderfulfillment.DefaultCreatedAt = lockorderfulfillmentDescCreatedAt.Default.(func() time.Time)
+	// lockorderfulfillmentDescUpdatedAt is the schema descriptor for updated_at field.
+	lockorderfulfillmentDescUpdatedAt := lockorderfulfillmentMixinFields0[1].Descriptor()
+	// lockorderfulfillment.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	lockorderfulfillment.DefaultUpdatedAt = lockorderfulfillmentDescUpdatedAt.Default.(func() time.Time)
+	// lockorderfulfillment.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	lockorderfulfillment.UpdateDefaultUpdatedAt = lockorderfulfillmentDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// lockorderfulfillmentDescConfirmations is the schema descriptor for confirmations field.
+	lockorderfulfillmentDescConfirmations := lockorderfulfillmentFields[2].Descriptor()
+	// lockorderfulfillment.DefaultConfirmations holds the default value on creation for the confirmations field.
+	lockorderfulfillment.DefaultConfirmations = lockorderfulfillmentDescConfirmations.Default.(int)
 	lockpaymentorderMixin := schema.LockPaymentOrder{}.Mixin()
 	lockpaymentorderMixinFields0 := lockpaymentorderMixin[0].Fields()
 	_ = lockpaymentorderMixinFields0

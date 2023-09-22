@@ -44,6 +44,8 @@ const (
 	EdgeProvisionBucket = "provision_bucket"
 	// EdgeProvider holds the string denoting the provider edge name in mutations.
 	EdgeProvider = "provider"
+	// EdgeFulfillment holds the string denoting the fulfillment edge name in mutations.
+	EdgeFulfillment = "fulfillment"
 	// Table holds the table name of the lockpaymentorder in the database.
 	Table = "lock_payment_orders"
 	// TokenTable is the table that holds the token relation/edge.
@@ -67,6 +69,13 @@ const (
 	ProviderInverseTable = "provider_profiles"
 	// ProviderColumn is the table column denoting the provider relation/edge.
 	ProviderColumn = "provider_profile_assigned_orders"
+	// FulfillmentTable is the table that holds the fulfillment relation/edge.
+	FulfillmentTable = "lock_order_fulfillments"
+	// FulfillmentInverseTable is the table name for the LockOrderFulfillment entity.
+	// It exists in this package in order to avoid circular dependency with the "lockorderfulfillment" package.
+	FulfillmentInverseTable = "lock_order_fulfillments"
+	// FulfillmentColumn is the table column denoting the fulfillment relation/edge.
+	FulfillmentColumn = "lock_payment_order_fulfillment"
 )
 
 // Columns holds all SQL columns for lockpaymentorder fields.
@@ -234,6 +243,13 @@ func ByProviderField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newProviderStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// ByFulfillmentField orders the results by fulfillment field.
+func ByFulfillmentField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newFulfillmentStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newTokenStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -253,5 +269,12 @@ func newProviderStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(ProviderInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, ProviderTable, ProviderColumn),
+	)
+}
+func newFulfillmentStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(FulfillmentInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, false, FulfillmentTable, FulfillmentColumn),
 	)
 }
