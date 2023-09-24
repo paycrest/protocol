@@ -87,6 +87,10 @@ func init() {
 	lockpaymentorderDescCancellationCount := lockpaymentorderFields[10].Descriptor()
 	// lockpaymentorder.DefaultCancellationCount holds the default value on creation for the cancellation_count field.
 	lockpaymentorder.DefaultCancellationCount = lockpaymentorderDescCancellationCount.Default.(int)
+	// lockpaymentorderDescCancellationReasons is the schema descriptor for cancellation_reasons field.
+	lockpaymentorderDescCancellationReasons := lockpaymentorderFields[11].Descriptor()
+	// lockpaymentorder.DefaultCancellationReasons holds the default value on creation for the cancellation_reasons field.
+	lockpaymentorder.DefaultCancellationReasons = lockpaymentorderDescCancellationReasons.Default.([]string)
 	// lockpaymentorderDescID is the schema descriptor for id field.
 	lockpaymentorderDescID := lockpaymentorderFields[0].Descriptor()
 	// lockpaymentorder.DefaultID holds the default value on creation for the id field.

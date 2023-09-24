@@ -43,7 +43,8 @@ func (LockPaymentOrder) Fields() []ent.Field {
 		field.String("account_name"),
 		field.Int("cancellation_count").
 			Default(0),
-		field.Strings("cancellation_reasons"),
+		field.Strings("cancellation_reasons").
+			Default([]string{}),
 	}
 }
 

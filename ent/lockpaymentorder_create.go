@@ -277,6 +277,10 @@ func (lpoc *LockPaymentOrderCreate) defaults() {
 		v := lockpaymentorder.DefaultCancellationCount
 		lpoc.mutation.SetCancellationCount(v)
 	}
+	if _, ok := lpoc.mutation.CancellationReasons(); !ok {
+		v := lockpaymentorder.DefaultCancellationReasons
+		lpoc.mutation.SetCancellationReasons(v)
+	}
 	if _, ok := lpoc.mutation.ID(); !ok {
 		v := lockpaymentorder.DefaultID()
 		lpoc.mutation.SetID(v)
