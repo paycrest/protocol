@@ -80,10 +80,16 @@ type LockOrderResponse struct {
 	UpdatedAt         time.Time               `json:"updatedAt"`
 }
 
+// FulfillLockOrderPayload is the payload for the fulfill order endpoint
 type FulfillLockOrderPayload struct {
 	TxID           string `json:"txId" binding:"required"`
 	TxReceiptImage string `json:"txReceiptImage" binding:"required"`
 	Institution    string `json:"institution" binding:"required"`
+}
+
+// CancelLockOrderPayload is the payload for the cancel order endpoint
+type CancelLockOrderPayload struct {
+	Reason string `json:"reason" binding:"required"`
 }
 
 // LoginPayload is the payload for the login endpoint

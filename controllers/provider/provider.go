@@ -183,7 +183,16 @@ func (ctrl *ProviderController) FulfillOrder(ctx *gin.Context) {
 
 // CancelOrder controller cancels an order
 func (ctrl *ProviderController) CancelOrder(ctx *gin.Context) {
+	var payload types.CancelLockOrderPayload
+
 	// Parse the order payload
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusBadRequest, "error",
+			"Failed to validate payload", u.GetErrorData(err))
+		return
+	}
+
 	orderID, apiKeyID, err := parseOrderPayload(ctx)
 	if err != nil {
 		return
@@ -208,11 +217,14 @@ func (ctrl *ProviderController) CancelOrder(ctx *gin.Context) {
 		return
 	}
 
+	order.CancellationReasons = append(order.CancellationReasons, payload.Reason)
+
 	// Update lock order status to cancelled
 	_, err = storage.Client.LockPaymentOrder.
 		UpdateOneID(orderID).
 		SetStatus(lockpaymentorder.StatusCancelled).
 		SetCancellationCount(order.CancellationCount + 1).
+		SetCancellationReasons(order.CancellationReasons).
 		Save(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
