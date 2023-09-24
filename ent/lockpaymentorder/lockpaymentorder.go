@@ -134,6 +134,8 @@ var (
 	TxHashValidator func(string) error
 	// DefaultCancellationCount holds the default value on creation for the "cancellation_count" field.
 	DefaultCancellationCount int
+	// DefaultCancellationReasons holds the default value on creation for the "cancellation_reasons" field.
+	DefaultCancellationReasons []string
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() uuid.UUID
 )
