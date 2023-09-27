@@ -45,6 +45,9 @@ func (APIKey) Edges() []ent.Edge {
 		edge.To("provider_profile", ProviderProfile.Type).
 			Unique().
 			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("validator_profile", ValidatorProfile.Type).
+			Unique().
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("payment_orders", PaymentOrder.Type).
 			Annotations(entsql.OnDelete(entsql.SetNull)),
 	}

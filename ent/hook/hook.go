@@ -189,6 +189,18 @@ func (f UserFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error)
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.UserMutation", m)
 }
 
+// The ValidatorProfileFunc type is an adapter to allow the use of ordinary
+// function as ValidatorProfile mutator.
+type ValidatorProfileFunc func(context.Context, *ent.ValidatorProfileMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ValidatorProfileFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ValidatorProfileMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ValidatorProfileMutation", m)
+}
+
 // The VerificationTokenFunc type is an adapter to allow the use of ordinary
 // function as VerificationToken mutator.
 type VerificationTokenFunc func(context.Context, *ent.VerificationTokenMutation) (ent.Value, error)

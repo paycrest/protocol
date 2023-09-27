@@ -42,6 +42,8 @@ type Tx struct {
 	Token *TokenClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
+	// ValidatorProfile is the client for interacting with the ValidatorProfile builders.
+	ValidatorProfile *ValidatorProfileClient
 	// VerificationToken is the client for interacting with the VerificationToken builders.
 	VerificationToken *VerificationTokenClient
 
@@ -190,6 +192,7 @@ func (tx *Tx) init() {
 	tx.ReceiveAddress = NewReceiveAddressClient(tx.config)
 	tx.Token = NewTokenClient(tx.config)
 	tx.User = NewUserClient(tx.config)
+	tx.ValidatorProfile = NewValidatorProfileClient(tx.config)
 	tx.VerificationToken = NewVerificationTokenClient(tx.config)
 }
 

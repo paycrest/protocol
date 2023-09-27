@@ -208,13 +208,13 @@ func (lpoc *LockPaymentOrderCreate) SetProvider(p *ProviderProfile) *LockPayment
 }
 
 // SetFulfillmentID sets the "fulfillment" edge to the LockOrderFulfillment entity by ID.
-func (lpoc *LockPaymentOrderCreate) SetFulfillmentID(id int) *LockPaymentOrderCreate {
+func (lpoc *LockPaymentOrderCreate) SetFulfillmentID(id uuid.UUID) *LockPaymentOrderCreate {
 	lpoc.mutation.SetFulfillmentID(id)
 	return lpoc
 }
 
 // SetNillableFulfillmentID sets the "fulfillment" edge to the LockOrderFulfillment entity by ID if the given value is not nil.
-func (lpoc *LockPaymentOrderCreate) SetNillableFulfillmentID(id *int) *LockPaymentOrderCreate {
+func (lpoc *LockPaymentOrderCreate) SetNillableFulfillmentID(id *uuid.UUID) *LockPaymentOrderCreate {
 	if id != nil {
 		lpoc = lpoc.SetFulfillmentID(*id)
 	}
@@ -484,7 +484,7 @@ func (lpoc *LockPaymentOrderCreate) createSpec() (*LockPaymentOrder, *sqlgraph.C
 			Columns: []string{lockpaymentorder.FulfillmentColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(lockorderfulfillment.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(lockorderfulfillment.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

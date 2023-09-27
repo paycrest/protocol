@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
+	"github.com/paycrest/paycrest-protocol/ent/validatorprofile"
 )
 
 // LockOrderFulfillmentCreate is the builder for creating a LockOrderFulfillment entity.
@@ -76,6 +77,26 @@ func (lofc *LockOrderFulfillmentCreate) SetNillableConfirmations(i *int) *LockOr
 	return lofc
 }
 
+// SetValidationErrors sets the "validation_errors" field.
+func (lofc *LockOrderFulfillmentCreate) SetValidationErrors(s []string) *LockOrderFulfillmentCreate {
+	lofc.mutation.SetValidationErrors(s)
+	return lofc
+}
+
+// SetID sets the "id" field.
+func (lofc *LockOrderFulfillmentCreate) SetID(u uuid.UUID) *LockOrderFulfillmentCreate {
+	lofc.mutation.SetID(u)
+	return lofc
+}
+
+// SetNillableID sets the "id" field if the given value is not nil.
+func (lofc *LockOrderFulfillmentCreate) SetNillableID(u *uuid.UUID) *LockOrderFulfillmentCreate {
+	if u != nil {
+		lofc.SetID(*u)
+	}
+	return lofc
+}
+
 // SetOrderID sets the "order" edge to the LockPaymentOrder entity by ID.
 func (lofc *LockOrderFulfillmentCreate) SetOrderID(id uuid.UUID) *LockOrderFulfillmentCreate {
 	lofc.mutation.SetOrderID(id)
@@ -85,6 +106,21 @@ func (lofc *LockOrderFulfillmentCreate) SetOrderID(id uuid.UUID) *LockOrderFulfi
 // SetOrder sets the "order" edge to the LockPaymentOrder entity.
 func (lofc *LockOrderFulfillmentCreate) SetOrder(l *LockPaymentOrder) *LockOrderFulfillmentCreate {
 	return lofc.SetOrderID(l.ID)
+}
+
+// AddValidatorIDs adds the "validators" edge to the ValidatorProfile entity by IDs.
+func (lofc *LockOrderFulfillmentCreate) AddValidatorIDs(ids ...uuid.UUID) *LockOrderFulfillmentCreate {
+	lofc.mutation.AddValidatorIDs(ids...)
+	return lofc
+}
+
+// AddValidators adds the "validators" edges to the ValidatorProfile entity.
+func (lofc *LockOrderFulfillmentCreate) AddValidators(v ...*ValidatorProfile) *LockOrderFulfillmentCreate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return lofc.AddValidatorIDs(ids...)
 }
 
 // Mutation returns the LockOrderFulfillmentMutation object of the builder.
@@ -134,6 +170,14 @@ func (lofc *LockOrderFulfillmentCreate) defaults() {
 		v := lockorderfulfillment.DefaultConfirmations
 		lofc.mutation.SetConfirmations(v)
 	}
+	if _, ok := lofc.mutation.ValidationErrors(); !ok {
+		v := lockorderfulfillment.DefaultValidationErrors
+		lofc.mutation.SetValidationErrors(v)
+	}
+	if _, ok := lofc.mutation.ID(); !ok {
+		v := lockorderfulfillment.DefaultID()
+		lofc.mutation.SetID(v)
+	}
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -153,6 +197,9 @@ func (lofc *LockOrderFulfillmentCreate) check() error {
 	if _, ok := lofc.mutation.Confirmations(); !ok {
 		return &ValidationError{Name: "confirmations", err: errors.New(`ent: missing required field "LockOrderFulfillment.confirmations"`)}
 	}
+	if _, ok := lofc.mutation.ValidationErrors(); !ok {
+		return &ValidationError{Name: "validation_errors", err: errors.New(`ent: missing required field "LockOrderFulfillment.validation_errors"`)}
+	}
 	if _, ok := lofc.mutation.OrderID(); !ok {
 		return &ValidationError{Name: "order", err: errors.New(`ent: missing required edge "LockOrderFulfillment.order"`)}
 	}
@@ -170,8 +217,13 @@ func (lofc *LockOrderFulfillmentCreate) sqlSave(ctx context.Context) (*LockOrder
 		}
 		return nil, err
 	}
-	id := _spec.ID.Value.(int64)
-	_node.ID = int(id)
+	if _spec.ID.Value != nil {
+		if id, ok := _spec.ID.Value.(*uuid.UUID); ok {
+			_node.ID = *id
+		} else if err := _node.ID.Scan(_spec.ID.Value); err != nil {
+			return nil, err
+		}
+	}
 	lofc.mutation.id = &_node.ID
 	lofc.mutation.done = true
 	return _node, nil
@@ -180,8 +232,12 @@ func (lofc *LockOrderFulfillmentCreate) sqlSave(ctx context.Context) (*LockOrder
 func (lofc *LockOrderFulfillmentCreate) createSpec() (*LockOrderFulfillment, *sqlgraph.CreateSpec) {
 	var (
 		_node = &LockOrderFulfillment{config: lofc.config}
-		_spec = sqlgraph.NewCreateSpec(lockorderfulfillment.Table, sqlgraph.NewFieldSpec(lockorderfulfillment.FieldID, field.TypeInt))
+		_spec = sqlgraph.NewCreateSpec(lockorderfulfillment.Table, sqlgraph.NewFieldSpec(lockorderfulfillment.FieldID, field.TypeUUID))
 	)
+	if id, ok := lofc.mutation.ID(); ok {
+		_node.ID = id
+		_spec.ID.Value = &id
+	}
 	if value, ok := lofc.mutation.CreatedAt(); ok {
 		_spec.SetField(lockorderfulfillment.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
@@ -202,6 +258,10 @@ func (lofc *LockOrderFulfillmentCreate) createSpec() (*LockOrderFulfillment, *sq
 		_spec.SetField(lockorderfulfillment.FieldConfirmations, field.TypeInt, value)
 		_node.Confirmations = value
 	}
+	if value, ok := lofc.mutation.ValidationErrors(); ok {
+		_spec.SetField(lockorderfulfillment.FieldValidationErrors, field.TypeJSON, value)
+		_node.ValidationErrors = value
+	}
 	if nodes := lofc.mutation.OrderIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
@@ -217,6 +277,22 @@ func (lofc *LockOrderFulfillmentCreate) createSpec() (*LockOrderFulfillment, *sq
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.lock_payment_order_fulfillment = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := lofc.mutation.ValidatorsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   lockorderfulfillment.ValidatorsTable,
+			Columns: lockorderfulfillment.ValidatorsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(validatorprofile.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
@@ -263,10 +339,6 @@ func (lofcb *LockOrderFulfillmentCreateBulk) Save(ctx context.Context) ([]*LockO
 					return nil, err
 				}
 				mutation.id = &nodes[i].ID
-				if specs[i].ID.Value != nil {
-					id := specs[i].ID.Value.(int64)
-					nodes[i].ID = int(id)
-				}
 				mutation.done = true
 				return nodes[i], nil
 			})
