@@ -20,6 +20,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/schema"
 	"github.com/paycrest/paycrest-protocol/ent/token"
 	"github.com/paycrest/paycrest-protocol/ent/user"
+	"github.com/paycrest/paycrest-protocol/ent/validatorprofile"
 	"github.com/paycrest/paycrest-protocol/ent/verificationtoken"
 )
 
@@ -61,9 +62,17 @@ func init() {
 	// lockorderfulfillment.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	lockorderfulfillment.UpdateDefaultUpdatedAt = lockorderfulfillmentDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// lockorderfulfillmentDescConfirmations is the schema descriptor for confirmations field.
-	lockorderfulfillmentDescConfirmations := lockorderfulfillmentFields[2].Descriptor()
+	lockorderfulfillmentDescConfirmations := lockorderfulfillmentFields[3].Descriptor()
 	// lockorderfulfillment.DefaultConfirmations holds the default value on creation for the confirmations field.
 	lockorderfulfillment.DefaultConfirmations = lockorderfulfillmentDescConfirmations.Default.(int)
+	// lockorderfulfillmentDescValidationErrors is the schema descriptor for validation_errors field.
+	lockorderfulfillmentDescValidationErrors := lockorderfulfillmentFields[4].Descriptor()
+	// lockorderfulfillment.DefaultValidationErrors holds the default value on creation for the validation_errors field.
+	lockorderfulfillment.DefaultValidationErrors = lockorderfulfillmentDescValidationErrors.Default.([]string)
+	// lockorderfulfillmentDescID is the schema descriptor for id field.
+	lockorderfulfillmentDescID := lockorderfulfillmentFields[0].Descriptor()
+	// lockorderfulfillment.DefaultID holds the default value on creation for the id field.
+	lockorderfulfillment.DefaultID = lockorderfulfillmentDescID.Default.(func() uuid.UUID)
 	lockpaymentorderMixin := schema.LockPaymentOrder{}.Mixin()
 	lockpaymentorderMixinFields0 := lockpaymentorderMixin[0].Fields()
 	_ = lockpaymentorderMixinFields0
@@ -285,6 +294,29 @@ func init() {
 	userDescID := userFields[0].Descriptor()
 	// user.DefaultID holds the default value on creation for the id field.
 	user.DefaultID = userDescID.Default.(func() uuid.UUID)
+	validatorprofileMixin := schema.ValidatorProfile{}.Mixin()
+	validatorprofileMixinFields0 := validatorprofileMixin[0].Fields()
+	_ = validatorprofileMixinFields0
+	validatorprofileFields := schema.ValidatorProfile{}.Fields()
+	_ = validatorprofileFields
+	// validatorprofileDescCreatedAt is the schema descriptor for created_at field.
+	validatorprofileDescCreatedAt := validatorprofileMixinFields0[0].Descriptor()
+	// validatorprofile.DefaultCreatedAt holds the default value on creation for the created_at field.
+	validatorprofile.DefaultCreatedAt = validatorprofileDescCreatedAt.Default.(func() time.Time)
+	// validatorprofileDescUpdatedAt is the schema descriptor for updated_at field.
+	validatorprofileDescUpdatedAt := validatorprofileMixinFields0[1].Descriptor()
+	// validatorprofile.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	validatorprofile.DefaultUpdatedAt = validatorprofileDescUpdatedAt.Default.(func() time.Time)
+	// validatorprofile.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	validatorprofile.UpdateDefaultUpdatedAt = validatorprofileDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// validatorprofileDescWalletAddress is the schema descriptor for wallet_address field.
+	validatorprofileDescWalletAddress := validatorprofileFields[1].Descriptor()
+	// validatorprofile.WalletAddressValidator is a validator for the "wallet_address" field. It is called by the builders before save.
+	validatorprofile.WalletAddressValidator = validatorprofileDescWalletAddress.Validators[0].(func(string) error)
+	// validatorprofileDescID is the schema descriptor for id field.
+	validatorprofileDescID := validatorprofileFields[0].Descriptor()
+	// validatorprofile.DefaultID holds the default value on creation for the id field.
+	validatorprofile.DefaultID = validatorprofileDescID.Default.(func() uuid.UUID)
 	verificationtokenMixin := schema.VerificationToken{}.Mixin()
 	verificationtokenHooks := schema.VerificationToken{}.Hooks()
 	verificationtoken.Hooks[0] = verificationtokenHooks[0]

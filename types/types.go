@@ -153,6 +153,12 @@ type NewPaymentOrderPayload struct {
 	Recipient PaymentOrderRecipient `json:"recipient" binding:"required"`
 }
 
+// ValidateOrderPayload is the payload for the validate order endpoint
+type ValidateOrderPayload struct {
+	IsValid  bool   `json:"isValid" binding:"required"`
+	ErrorMsg string `json:"errorMsg"`
+}
+
 // ReceiveAddressResponse is the response type for a receive address
 type ReceiveAddressResponse struct {
 	ID             uuid.UUID `json:"id"`

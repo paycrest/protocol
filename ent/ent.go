@@ -27,6 +27,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
 	"github.com/paycrest/paycrest-protocol/ent/token"
 	"github.com/paycrest/paycrest-protocol/ent/user"
+	"github.com/paycrest/paycrest-protocol/ent/validatorprofile"
 	"github.com/paycrest/paycrest-protocol/ent/verificationtoken"
 )
 
@@ -103,6 +104,7 @@ func checkColumn(table, column string) error {
 			receiveaddress.Table:            receiveaddress.ValidColumn,
 			token.Table:                     token.ValidColumn,
 			user.Table:                      user.ValidColumn,
+			validatorprofile.Table:          validatorprofile.ValidColumn,
 			verificationtoken.Table:         verificationtoken.ValidColumn,
 		})
 	})

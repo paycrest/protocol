@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
@@ -220,13 +221,13 @@ func (lpou *LockPaymentOrderUpdate) SetProvider(p *ProviderProfile) *LockPayment
 }
 
 // SetFulfillmentID sets the "fulfillment" edge to the LockOrderFulfillment entity by ID.
-func (lpou *LockPaymentOrderUpdate) SetFulfillmentID(id int) *LockPaymentOrderUpdate {
+func (lpou *LockPaymentOrderUpdate) SetFulfillmentID(id uuid.UUID) *LockPaymentOrderUpdate {
 	lpou.mutation.SetFulfillmentID(id)
 	return lpou
 }
 
 // SetNillableFulfillmentID sets the "fulfillment" edge to the LockOrderFulfillment entity by ID if the given value is not nil.
-func (lpou *LockPaymentOrderUpdate) SetNillableFulfillmentID(id *int) *LockPaymentOrderUpdate {
+func (lpou *LockPaymentOrderUpdate) SetNillableFulfillmentID(id *uuid.UUID) *LockPaymentOrderUpdate {
 	if id != nil {
 		lpou = lpou.SetFulfillmentID(*id)
 	}
@@ -484,7 +485,7 @@ func (lpou *LockPaymentOrderUpdate) sqlSave(ctx context.Context) (n int, err err
 			Columns: []string{lockpaymentorder.FulfillmentColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(lockorderfulfillment.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(lockorderfulfillment.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -497,7 +498,7 @@ func (lpou *LockPaymentOrderUpdate) sqlSave(ctx context.Context) (n int, err err
 			Columns: []string{lockpaymentorder.FulfillmentColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(lockorderfulfillment.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(lockorderfulfillment.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -711,13 +712,13 @@ func (lpouo *LockPaymentOrderUpdateOne) SetProvider(p *ProviderProfile) *LockPay
 }
 
 // SetFulfillmentID sets the "fulfillment" edge to the LockOrderFulfillment entity by ID.
-func (lpouo *LockPaymentOrderUpdateOne) SetFulfillmentID(id int) *LockPaymentOrderUpdateOne {
+func (lpouo *LockPaymentOrderUpdateOne) SetFulfillmentID(id uuid.UUID) *LockPaymentOrderUpdateOne {
 	lpouo.mutation.SetFulfillmentID(id)
 	return lpouo
 }
 
 // SetNillableFulfillmentID sets the "fulfillment" edge to the LockOrderFulfillment entity by ID if the given value is not nil.
-func (lpouo *LockPaymentOrderUpdateOne) SetNillableFulfillmentID(id *int) *LockPaymentOrderUpdateOne {
+func (lpouo *LockPaymentOrderUpdateOne) SetNillableFulfillmentID(id *uuid.UUID) *LockPaymentOrderUpdateOne {
 	if id != nil {
 		lpouo = lpouo.SetFulfillmentID(*id)
 	}
@@ -1005,7 +1006,7 @@ func (lpouo *LockPaymentOrderUpdateOne) sqlSave(ctx context.Context) (_node *Loc
 			Columns: []string{lockpaymentorder.FulfillmentColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(lockorderfulfillment.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(lockorderfulfillment.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -1018,7 +1019,7 @@ func (lpouo *LockPaymentOrderUpdateOne) sqlSave(ctx context.Context) (_node *Loc
 			Columns: []string{lockpaymentorder.FulfillmentColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(lockorderfulfillment.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(lockorderfulfillment.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

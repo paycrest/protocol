@@ -7,6 +7,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/google/uuid"
 )
 
 const (
@@ -24,8 +25,12 @@ const (
 	FieldTxReceiptImage = "tx_receipt_image"
 	// FieldConfirmations holds the string denoting the confirmations field in the database.
 	FieldConfirmations = "confirmations"
+	// FieldValidationErrors holds the string denoting the validation_errors field in the database.
+	FieldValidationErrors = "validation_errors"
 	// EdgeOrder holds the string denoting the order edge name in mutations.
 	EdgeOrder = "order"
+	// EdgeValidators holds the string denoting the validators edge name in mutations.
+	EdgeValidators = "validators"
 	// Table holds the table name of the lockorderfulfillment in the database.
 	Table = "lock_order_fulfillments"
 	// OrderTable is the table that holds the order relation/edge.
@@ -35,6 +40,11 @@ const (
 	OrderInverseTable = "lock_payment_orders"
 	// OrderColumn is the table column denoting the order relation/edge.
 	OrderColumn = "lock_payment_order_fulfillment"
+	// ValidatorsTable is the table that holds the validators relation/edge. The primary key declared below.
+	ValidatorsTable = "lock_order_fulfillment_validators"
+	// ValidatorsInverseTable is the table name for the ValidatorProfile entity.
+	// It exists in this package in order to avoid circular dependency with the "validatorprofile" package.
+	ValidatorsInverseTable = "validator_profiles"
 )
 
 // Columns holds all SQL columns for lockorderfulfillment fields.
@@ -45,6 +55,7 @@ var Columns = []string{
 	FieldTxID,
 	FieldTxReceiptImage,
 	FieldConfirmations,
+	FieldValidationErrors,
 }
 
 // ForeignKeys holds the SQL foreign-keys that are owned by the "lock_order_fulfillments"
@@ -52,6 +63,12 @@ var Columns = []string{
 var ForeignKeys = []string{
 	"lock_payment_order_fulfillment",
 }
+
+var (
+	// ValidatorsPrimaryKey and ValidatorsColumn2 are the table columns denoting the
+	// primary key for the validators relation (M2M).
+	ValidatorsPrimaryKey = []string{"lock_order_fulfillment_id", "validator_profile_id"}
+)
 
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
@@ -77,6 +94,10 @@ var (
 	UpdateDefaultUpdatedAt func() time.Time
 	// DefaultConfirmations holds the default value on creation for the "confirmations" field.
 	DefaultConfirmations int
+	// DefaultValidationErrors holds the default value on creation for the "validation_errors" field.
+	DefaultValidationErrors []string
+	// DefaultID holds the default value on creation for the "id" field.
+	DefaultID func() uuid.UUID
 )
 
 // OrderOption defines the ordering options for the LockOrderFulfillment queries.
@@ -118,10 +139,31 @@ func ByOrderField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newOrderStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// ByValidatorsCount orders the results by validators count.
+func ByValidatorsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newValidatorsStep(), opts...)
+	}
+}
+
+// ByValidators orders the results by validators terms.
+func ByValidators(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newValidatorsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newOrderStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(OrderInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2O, true, OrderTable, OrderColumn),
+	)
+}
+func newValidatorsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ValidatorsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2M, false, ValidatorsTable, ValidatorsPrimaryKey...),
 	)
 }

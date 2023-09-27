@@ -4,6 +4,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 )
 
 // LockOrderFulfillment holds the schema definition for the LockOrderFulfillment entity.
@@ -21,10 +22,14 @@ func (LockOrderFulfillment) Mixin() []ent.Mixin {
 // Fields of the LockOrderFulfillment.
 func (LockOrderFulfillment) Fields() []ent.Field {
 	return []ent.Field{
+		field.UUID("id", uuid.UUID{}).
+			Default(uuid.New),
 		field.String("tx_id"),
 		field.String("tx_receipt_image"),
 		field.Int("confirmations").
 			Default(0),
+		field.Strings("validation_errors").
+			Default([]string{}),
 	}
 }
 
@@ -35,5 +40,6 @@ func (LockOrderFulfillment) Edges() []ent.Edge {
 			Ref("fulfillment").
 			Unique().
 			Required(),
+		edge.To("validators", ValidatorProfile.Type),
 	}
 }

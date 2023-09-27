@@ -51,7 +51,7 @@ func (ctrl *ProviderController) AcceptOrder(ctx *gin.Context) {
 		Only(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to accept order request", nil)
+		u.APIResponse(ctx, http.StatusNotFound, "error", "Could not find provider profile", nil)
 		return
 	}
 
@@ -98,7 +98,7 @@ func (ctrl *ProviderController) DeclineOrder(ctx *gin.Context) {
 		Only(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to accept order request", nil)
+		u.APIResponse(ctx, http.StatusNotFound, "error", "Could not find provider profile", nil)
 		return
 	}
 
@@ -213,18 +213,16 @@ func (ctrl *ProviderController) CancelOrder(ctx *gin.Context) {
 		Only(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to cancel order", nil)
+		u.APIResponse(ctx, http.StatusNotFound, "error", "Could not find payment order", nil)
 		return
 	}
-
-	order.CancellationReasons = append(order.CancellationReasons, payload.Reason)
 
 	// Update lock order status to cancelled
 	_, err = storage.Client.LockPaymentOrder.
 		UpdateOneID(orderID).
 		SetStatus(lockpaymentorder.StatusCancelled).
 		SetCancellationCount(order.CancellationCount + 1).
-		SetCancellationReasons(order.CancellationReasons).
+		AppendCancellationReasons([]string{payload.Reason}).
 		Save(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)

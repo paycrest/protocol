@@ -15,6 +15,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
+	"github.com/paycrest/paycrest-protocol/ent/validatorprofile"
 )
 
 // APIKeyUpdate is the builder for updating APIKey entities.
@@ -81,6 +82,25 @@ func (aku *APIKeyUpdate) SetProviderProfile(p *ProviderProfile) *APIKeyUpdate {
 	return aku.SetProviderProfileID(p.ID)
 }
 
+// SetValidatorProfileID sets the "validator_profile" edge to the ValidatorProfile entity by ID.
+func (aku *APIKeyUpdate) SetValidatorProfileID(id uuid.UUID) *APIKeyUpdate {
+	aku.mutation.SetValidatorProfileID(id)
+	return aku
+}
+
+// SetNillableValidatorProfileID sets the "validator_profile" edge to the ValidatorProfile entity by ID if the given value is not nil.
+func (aku *APIKeyUpdate) SetNillableValidatorProfileID(id *uuid.UUID) *APIKeyUpdate {
+	if id != nil {
+		aku = aku.SetValidatorProfileID(*id)
+	}
+	return aku
+}
+
+// SetValidatorProfile sets the "validator_profile" edge to the ValidatorProfile entity.
+func (aku *APIKeyUpdate) SetValidatorProfile(v *ValidatorProfile) *APIKeyUpdate {
+	return aku.SetValidatorProfileID(v.ID)
+}
+
 // AddPaymentOrderIDs adds the "payment_orders" edge to the PaymentOrder entity by IDs.
 func (aku *APIKeyUpdate) AddPaymentOrderIDs(ids ...uuid.UUID) *APIKeyUpdate {
 	aku.mutation.AddPaymentOrderIDs(ids...)
@@ -104,6 +124,12 @@ func (aku *APIKeyUpdate) Mutation() *APIKeyMutation {
 // ClearProviderProfile clears the "provider_profile" edge to the ProviderProfile entity.
 func (aku *APIKeyUpdate) ClearProviderProfile() *APIKeyUpdate {
 	aku.mutation.ClearProviderProfile()
+	return aku
+}
+
+// ClearValidatorProfile clears the "validator_profile" edge to the ValidatorProfile entity.
+func (aku *APIKeyUpdate) ClearValidatorProfile() *APIKeyUpdate {
+	aku.mutation.ClearValidatorProfile()
 	return aku
 }
 
@@ -216,6 +242,35 @@ func (aku *APIKeyUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(providerprofile.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if aku.mutation.ValidatorProfileCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   apikey.ValidatorProfileTable,
+			Columns: []string{apikey.ValidatorProfileColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(validatorprofile.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := aku.mutation.ValidatorProfileIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   apikey.ValidatorProfileTable,
+			Columns: []string{apikey.ValidatorProfileColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(validatorprofile.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -339,6 +394,25 @@ func (akuo *APIKeyUpdateOne) SetProviderProfile(p *ProviderProfile) *APIKeyUpdat
 	return akuo.SetProviderProfileID(p.ID)
 }
 
+// SetValidatorProfileID sets the "validator_profile" edge to the ValidatorProfile entity by ID.
+func (akuo *APIKeyUpdateOne) SetValidatorProfileID(id uuid.UUID) *APIKeyUpdateOne {
+	akuo.mutation.SetValidatorProfileID(id)
+	return akuo
+}
+
+// SetNillableValidatorProfileID sets the "validator_profile" edge to the ValidatorProfile entity by ID if the given value is not nil.
+func (akuo *APIKeyUpdateOne) SetNillableValidatorProfileID(id *uuid.UUID) *APIKeyUpdateOne {
+	if id != nil {
+		akuo = akuo.SetValidatorProfileID(*id)
+	}
+	return akuo
+}
+
+// SetValidatorProfile sets the "validator_profile" edge to the ValidatorProfile entity.
+func (akuo *APIKeyUpdateOne) SetValidatorProfile(v *ValidatorProfile) *APIKeyUpdateOne {
+	return akuo.SetValidatorProfileID(v.ID)
+}
+
 // AddPaymentOrderIDs adds the "payment_orders" edge to the PaymentOrder entity by IDs.
 func (akuo *APIKeyUpdateOne) AddPaymentOrderIDs(ids ...uuid.UUID) *APIKeyUpdateOne {
 	akuo.mutation.AddPaymentOrderIDs(ids...)
@@ -362,6 +436,12 @@ func (akuo *APIKeyUpdateOne) Mutation() *APIKeyMutation {
 // ClearProviderProfile clears the "provider_profile" edge to the ProviderProfile entity.
 func (akuo *APIKeyUpdateOne) ClearProviderProfile() *APIKeyUpdateOne {
 	akuo.mutation.ClearProviderProfile()
+	return akuo
+}
+
+// ClearValidatorProfile clears the "validator_profile" edge to the ValidatorProfile entity.
+func (akuo *APIKeyUpdateOne) ClearValidatorProfile() *APIKeyUpdateOne {
+	akuo.mutation.ClearValidatorProfile()
 	return akuo
 }
 
@@ -504,6 +584,35 @@ func (akuo *APIKeyUpdateOne) sqlSave(ctx context.Context) (_node *APIKey, err er
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(providerprofile.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if akuo.mutation.ValidatorProfileCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   apikey.ValidatorProfileTable,
+			Columns: []string{apikey.ValidatorProfileColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(validatorprofile.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := akuo.mutation.ValidatorProfileIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   apikey.ValidatorProfileTable,
+			Columns: []string{apikey.ValidatorProfileColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(validatorprofile.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

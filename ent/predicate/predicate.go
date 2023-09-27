@@ -51,5 +51,8 @@ type Token func(*sql.Selector)
 // User is the predicate function for user builders.
 type User func(*sql.Selector)
 
+// ValidatorProfile is the predicate function for validatorprofile builders.
+type ValidatorProfile func(*sql.Selector)
+
 // VerificationToken is the predicate function for verificationtoken builders.
 type VerificationToken func(*sql.Selector)
