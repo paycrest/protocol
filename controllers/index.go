@@ -90,10 +90,15 @@ func (ctrl *Controller) ValidateOrder(ctx *gin.Context) {
 
 	// Update lock order fulfillment status
 	if payload.IsValid {
-		fulfillment.Update().
+		_, err = fulfillment.Update().
 			SetConfirmations(fulfillment.Confirmations + 1).
 			AddValidatorIDs(validator.ID).
 			Save(ctx)
+		if err != nil {
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to validate order fulfillment", nil)
+			return
+		}
 	} else {
 		fulfillment.Update().
 			AppendValidationErrors([]string{payload.ErrorMsg})
