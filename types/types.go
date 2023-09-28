@@ -201,3 +201,9 @@ type ResendTokenPayload struct {
 	Scope string `json:"scope" binding:"required"`
 	Email string `json:"email" binding:"required,email"`
 }
+
+type Institution struct {
+  Name string `json:"name"`
+  Code string `json:"code"`
+  Type string `json:"type"`
+}
