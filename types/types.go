@@ -155,7 +155,7 @@ type NewPaymentOrderPayload struct {
 
 // ValidateOrderPayload is the payload for the validate order endpoint
 type ValidateOrderPayload struct {
-	IsValid  bool   `json:"isValid" binding:"required"`
+	IsValid  bool   `json:"isValid"`
 	ErrorMsg string `json:"errorMsg"`
 }
 

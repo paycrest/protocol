@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
+	"github.com/paycrest/paycrest-protocol/ent"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
@@ -27,7 +28,7 @@ func (ctrl *ProviderController) GetOrders(ctx *gin.Context) {
 // AcceptOrder controller accepts an order
 func (ctrl *ProviderController) AcceptOrder(ctx *gin.Context) {
 	// Parse the order payload
-	orderID, apiKeyID, err := parseOrderPayload(ctx)
+	orderID, err := parseOrderPayload(ctx)
 	if err != nil {
 		return
 	}
@@ -41,11 +42,12 @@ func (ctrl *ProviderController) AcceptOrder(ctx *gin.Context) {
 	}
 
 	// Fetch provider from db
+	apiKey, _ := ctx.Get("api_key")
 	provider, err := storage.Client.ProviderProfile.
 		Query().
 		Where(
 			providerprofile.HasAPIKeyWith(
-				apikey.IDEQ(apiKeyID),
+				apikey.IDEQ(apiKey.(*ent.APIKey).ID),
 			),
 		).
 		Only(ctx)
@@ -82,17 +84,18 @@ func (ctrl *ProviderController) AcceptOrder(ctx *gin.Context) {
 // DeclineOrder controller declines an order
 func (ctrl *ProviderController) DeclineOrder(ctx *gin.Context) {
 	// Parse the order payload
-	orderID, apiKeyID, err := parseOrderPayload(ctx)
+	orderID, err := parseOrderPayload(ctx)
 	if err != nil {
 		return
 	}
 
 	// Fetch provider from db
+	apiKey, _ := ctx.Get("api_key")
 	provider, err := storage.Client.ProviderProfile.
 		Query().
 		Where(
 			providerprofile.HasAPIKeyWith(
-				apikey.IDEQ(apiKeyID),
+				apikey.IDEQ(apiKey.(*ent.APIKey).ID),
 			),
 		).
 		Only(ctx)
@@ -134,7 +137,7 @@ func (ctrl *ProviderController) FulfillOrder(ctx *gin.Context) {
 		return
 	}
 
-	orderID, _, err := parseOrderPayload(ctx)
+	orderID, err := parseOrderPayload(ctx)
 	if err != nil {
 		return
 	}
@@ -193,19 +196,20 @@ func (ctrl *ProviderController) CancelOrder(ctx *gin.Context) {
 		return
 	}
 
-	orderID, apiKeyID, err := parseOrderPayload(ctx)
+	orderID, err := parseOrderPayload(ctx)
 	if err != nil {
 		return
 	}
 
 	// Fetch lock payment order from db
+	apiKey, _ := ctx.Get("api_key")
 	order, err := storage.Client.LockPaymentOrder.
 		Query().
 		Where(
 			lockpaymentorder.IDEQ(orderID),
 			lockpaymentorder.HasProviderWith(
 				providerprofile.HasAPIKeyWith(
-					apikey.IDEQ(apiKeyID),
+					apikey.IDEQ(apiKey.(*ent.APIKey).ID),
 				),
 			),
 		).
@@ -243,7 +247,7 @@ func (ctrl *ProviderController) CancelOrder(ctx *gin.Context) {
 }
 
 // parseOrderPayload parses the order payload
-func parseOrderPayload(ctx *gin.Context) (uuid.UUID, uuid.UUID, error) {
+func parseOrderPayload(ctx *gin.Context) (uuid.UUID, error) {
 	// Get lock order ID from URL
 	orderID := ctx.Param("id")
 
@@ -252,26 +256,22 @@ func parseOrderPayload(ctx *gin.Context) (uuid.UUID, uuid.UUID, error) {
 	if err != nil {
 		logger.Errorf("error parsing API key ID: %v", err)
 		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid API key ID", nil)
-		return uuid.UUID{}, uuid.UUID{}, err
+		return uuid.UUID{}, err
 	}
-
-	// Get the api key ID from the context
-	apiKeyID, _ := ctx.Get("api_key")
-	apiKeyUUID, _ := uuid.Parse(apiKeyID.(string))
 
 	// Get Order request from Redis
 	result, err := storage.RedisClient.HGetAll(ctx, fmt.Sprintf("order_request_%d", orderUUID)).Result()
 	if err != nil {
 		logger.Errorf("error getting order request from Redis: %v", err)
 		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Internal server error", nil)
-		return uuid.UUID{}, uuid.UUID{}, err
+		return uuid.UUID{}, err
 	}
 
 	if len(result) == 0 {
 		logger.Errorf("order request not found in Redis: %d", orderUUID)
 		u.APIResponse(ctx, http.StatusNotFound, "error", "Order request not found or is expired", nil)
-		return uuid.UUID{}, uuid.UUID{}, err
+		return uuid.UUID{}, err
 	}
 
-	return orderUUID, apiKeyUUID, nil
+	return orderUUID, nil
 }
