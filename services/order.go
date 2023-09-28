@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/google/uuid"
@@ -19,6 +20,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/types"
 	"github.com/paycrest/paycrest-protocol/utils"
 	cryptoUtils "github.com/paycrest/paycrest-protocol/utils/crypto"
+	"github.com/paycrest/paycrest-protocol/utils/logger"
 	"github.com/stackup-wallet/stackup-bundler/pkg/userop"
 )
 
@@ -416,3 +418,31 @@ func (s *OrderService) sendUserOperation(userOp *userop.UserOperation) (string, 
 
 	return userOpHash, nil
 }
+
+// GetSupportedInstitution fetches the supported institutions by currencyCode.
+func (s *OrderService) GetSupportedInstitution(ctx context.Context, client types.RPCClient, currencyCode [32]byte) (interface{}, error) {
+	// Connect to RPC endpoint
+	var err error
+	if client == nil {
+		client, err = types.NewEthClient("https://mainnet.infura.io/v3/4818dbcee84d4651a832894818bd4534")
+		if err != nil {
+			return nil, fmt.Errorf("failed to connect to RPC client: %w", err)
+		}
+	}
+
+	// Initialize contract filterer
+	instance, err := contracts.NewPaycrestOrder(OrderConf.PaycrestOrderContractAddress, client.(bind.ContractBackend))
+	if err != nil {
+		logger.Errorf("contracts.NewPaycrestOrder: %v", err)
+		return nil, err
+	}
+
+	institutions, err := instance.GetSupportedInstitutions(nil, currencyCode)
+	if err != nil {
+		logger.Errorf("instance.GetSupportedInstitutions: %v", err)
+		return nil, err
+	}
+
+	return &institutions, nil
+}
+
