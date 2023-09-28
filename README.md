@@ -47,6 +47,12 @@ brew install postgresql
 
 # start postgresql service
 brew services start postgresql
+
+# Install Redis via homebrew
+brew install redis
+
+# start redis service
+brew service start redis
 ```
 
 Setup database
@@ -61,6 +67,19 @@ psql paycrest
 # enable extended display
 \x
 
+```
+
+Setup redis
+
+```bash
+# Run redis on the current TTY
+redis-server
+
+# connect to redis instance
+redis-cli
+
+# set new password
+CONFIG SET requirepass "password"
 ```
 
 ```bash

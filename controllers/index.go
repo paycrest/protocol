@@ -8,6 +8,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/paycrest-protocol/ent/validatorprofile"
+	svc "github.com/paycrest/paycrest-protocol/services"
 	"github.com/paycrest/paycrest-protocol/storage"
 	"github.com/paycrest/paycrest-protocol/types"
 	u "github.com/paycrest/paycrest-protocol/utils"
@@ -17,7 +18,17 @@ import (
 )
 
 // Controller is the default controller for other endpoints
-type Controller struct{}
+type Controller struct{
+  orderService *svc.OrderService
+}
+
+// NewController creates a new instance of AuthController with injected services
+func NewController() *Controller {
+	return &Controller{
+		orderService: svc.NewOrderService(),
+	}
+}
+
 
 // GetFiatCurrencies controller fetches the supported fiat currencies
 func (ctrl *Controller) GetFiatCurrencies(ctx *gin.Context) {
@@ -26,7 +37,18 @@ func (ctrl *Controller) GetFiatCurrencies(ctx *gin.Context) {
 
 // GetInstitutionsByCurrency controller fetches the supported institutions for a given currency
 func (ctrl *Controller) GetInstitutionsByCurrency(ctx *gin.Context) {
-	u.APIResponse(ctx, http.StatusOK, "success", "OK", nil)
+	// Get currencyCode from the URL
+	currencyCode := u.StringToByte32(ctx.Param("currencyCode"))
+
+	institutions, err := ctrl.orderService.GetSupportedInstitution(ctx, nil, currencyCode)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusBadRequest, "error",
+			"invalid order id", err.Error())
+		return
+	}
+
+	u.APIResponse(ctx, http.StatusOK, "success", "OK", institutions)
 }
 
 // GetTokenRates controller fetches the current market rates for the supported cryptocurrencies
