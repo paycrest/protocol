@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
+	"github.com/paycrest/paycrest-protocol/ent"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/paycrest-protocol/ent/validatorprofile"
@@ -51,21 +52,20 @@ func (ctrl *Controller) ValidateOrder(ctx *gin.Context) {
 	// Parse the order fulfillment ID string into a UUID
 	fulfillmentUUID, err := uuid.Parse(fulfillmentID)
 	if err != nil {
-		logger.Errorf("error parsing API key ID: %v", err)
-		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid API key ID", nil)
+		logger.Errorf("error parsing fulfillment ID: %v", err)
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid fulfillment ID", nil)
 		return
 	}
 
 	// Get the api key ID from the context
-	apiKeyID, _ := ctx.Get("api_key")
-	apiKeyUUID, _ := uuid.Parse(apiKeyID.(string))
+	apiKey, _ := ctx.Get("api_key")
 
 	// Fetch validator from db
 	validator, err := storage.Client.ValidatorProfile.
 		Query().
 		Where(
 			validatorprofile.HasAPIKeyWith(
-				apikey.ID(apiKeyUUID),
+				apikey.ID(apiKey.(*ent.APIKey).ID),
 			),
 		).
 		Only(ctx)
@@ -101,8 +101,9 @@ func (ctrl *Controller) ValidateOrder(ctx *gin.Context) {
 		}
 	} else {
 		fulfillment.Update().
-			AppendValidationErrors([]string{payload.ErrorMsg})
+			AppendValidationErrors([]string{payload.ErrorMsg}).
+			Save(ctx)
 	}
 
-	u.APIResponse(ctx, http.StatusOK, "success", "Order fulfilled successfully", nil)
+	ctx.JSON(http.StatusOK, "OK")
 }
