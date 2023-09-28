@@ -420,15 +420,18 @@ func (s *OrderService) sendUserOperation(userOp *userop.UserOperation) (string, 
 }
 
 // GetSupportedInstitution fetches the supported institutions by currencyCode.
-func (s *OrderService) GetSupportedInstitution(ctx context.Context, client types.RPCClient, currencyCode [32]byte) (interface{}, error) {
+func (s *OrderService) GetSupportedInstitution(ctx context.Context, client types.RPCClient, currencyCode string) ([]types.Institution,error) {
 	// Connect to RPC endpoint
 	var err error
 	if client == nil {
-		client, err = types.NewEthClient("https://mainnet.infura.io/v3/4818dbcee84d4651a832894818bd4534")
+    // NOTE: RPCEndpoint defaults to polygon-mumbai until contract is deployed to mainnet.
+		client, err = types.NewEthClient("https://polygon-mumbai.g.alchemy.com/v2/zfXjaatj2o5xKkqe0iSvnU9JkKZoiS54")
 		if err != nil {
 			return nil, fmt.Errorf("failed to connect to RPC client: %w", err)
 		}
 	}
+
+  currency := utils.StringToByte32(currencyCode)
 
 	// Initialize contract filterer
 	instance, err := contracts.NewPaycrestOrder(OrderConf.PaycrestOrderContractAddress, client.(bind.ContractBackend))
@@ -437,12 +440,22 @@ func (s *OrderService) GetSupportedInstitution(ctx context.Context, client types
 		return nil, err
 	}
 
-	institutions, err := instance.GetSupportedInstitutions(nil, currencyCode)
+	institutions, err := instance.GetSupportedInstitutions(nil, currency)
 	if err != nil {
 		logger.Errorf("instance.GetSupportedInstitutions: %v", err)
 		return nil, err
 	}
 
-	return &institutions, nil
+  supportedInstitution := make([]types.Institution, len(institutions))
+  for i, v := range institutions {
+    institution := types.Institution{
+      Name: utils.Byte32ToString(v.Name),
+      Code: utils.Byte32ToString(v.Code),
+      Type: "BANK", // NOTE: defaults to bank.
+    }
+    supportedInstitution[i] = institution
+  }
+
+	return supportedInstitution, nil
 }
 

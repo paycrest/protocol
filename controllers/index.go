@@ -38,13 +38,13 @@ func (ctrl *Controller) GetFiatCurrencies(ctx *gin.Context) {
 // GetInstitutionsByCurrency controller fetches the supported institutions for a given currency
 func (ctrl *Controller) GetInstitutionsByCurrency(ctx *gin.Context) {
 	// Get currencyCode from the URL
-	currencyCode := u.StringToByte32(ctx.Param("currencyCode"))
+	currencyCode := ctx.Param("currencyCode")
 
 	institutions, err := ctrl.orderService.GetSupportedInstitution(ctx, nil, currencyCode)
 	if err != nil {
 		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusBadRequest, "error",
-			"invalid order id", err.Error())
+			"Failed to fetch institutions", err.Error())
 		return
 	}
 
