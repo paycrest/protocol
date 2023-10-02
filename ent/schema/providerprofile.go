@@ -42,13 +42,14 @@ func (ProviderProfile) Edges() []ent.Edge {
 			Required(),
 		edge.From("provision_buckets", ProvisionBucket.Type).
 			Ref("provider_profiles"),
-		edge.To("order_tokens", ProviderOrderToken.Type),
+		edge.To("order_tokens", ProviderOrderToken.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("availability", ProviderAvailability.Type).
 			Unique(),
 		edge.To("provider_rating", ProviderRating.Type).
 			Unique(),
 		edge.To("assigned_orders", LockPaymentOrder.Type).
-			Annotations(entsql.OnDelete(entsql.SetNull)),
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }
 

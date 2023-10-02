@@ -73,6 +73,33 @@ func (lpou *LockPaymentOrderUpdate) AddRate(d decimal.Decimal) *LockPaymentOrder
 	return lpou
 }
 
+// SetOrderPercent sets the "order_percent" field.
+func (lpou *LockPaymentOrderUpdate) SetOrderPercent(d decimal.Decimal) *LockPaymentOrderUpdate {
+	lpou.mutation.ResetOrderPercent()
+	lpou.mutation.SetOrderPercent(d)
+	return lpou
+}
+
+// SetNillableOrderPercent sets the "order_percent" field if the given value is not nil.
+func (lpou *LockPaymentOrderUpdate) SetNillableOrderPercent(d *decimal.Decimal) *LockPaymentOrderUpdate {
+	if d != nil {
+		lpou.SetOrderPercent(*d)
+	}
+	return lpou
+}
+
+// AddOrderPercent adds d to the "order_percent" field.
+func (lpou *LockPaymentOrderUpdate) AddOrderPercent(d decimal.Decimal) *LockPaymentOrderUpdate {
+	lpou.mutation.AddOrderPercent(d)
+	return lpou
+}
+
+// ClearOrderPercent clears the value of the "order_percent" field.
+func (lpou *LockPaymentOrderUpdate) ClearOrderPercent() *LockPaymentOrderUpdate {
+	lpou.mutation.ClearOrderPercent()
+	return lpou
+}
+
 // SetTxHash sets the "tx_hash" field.
 func (lpou *LockPaymentOrderUpdate) SetTxHash(s string) *LockPaymentOrderUpdate {
 	lpou.mutation.SetTxHash(s)
@@ -352,6 +379,15 @@ func (lpou *LockPaymentOrderUpdate) sqlSave(ctx context.Context) (n int, err err
 	if value, ok := lpou.mutation.AddedRate(); ok {
 		_spec.AddField(lockpaymentorder.FieldRate, field.TypeFloat64, value)
 	}
+	if value, ok := lpou.mutation.OrderPercent(); ok {
+		_spec.SetField(lockpaymentorder.FieldOrderPercent, field.TypeFloat64, value)
+	}
+	if value, ok := lpou.mutation.AddedOrderPercent(); ok {
+		_spec.AddField(lockpaymentorder.FieldOrderPercent, field.TypeFloat64, value)
+	}
+	if lpou.mutation.OrderPercentCleared() {
+		_spec.ClearField(lockpaymentorder.FieldOrderPercent, field.TypeFloat64)
+	}
 	if value, ok := lpou.mutation.TxHash(); ok {
 		_spec.SetField(lockpaymentorder.FieldTxHash, field.TypeString, value)
 	}
@@ -561,6 +597,33 @@ func (lpouo *LockPaymentOrderUpdateOne) SetRate(d decimal.Decimal) *LockPaymentO
 // AddRate adds d to the "rate" field.
 func (lpouo *LockPaymentOrderUpdateOne) AddRate(d decimal.Decimal) *LockPaymentOrderUpdateOne {
 	lpouo.mutation.AddRate(d)
+	return lpouo
+}
+
+// SetOrderPercent sets the "order_percent" field.
+func (lpouo *LockPaymentOrderUpdateOne) SetOrderPercent(d decimal.Decimal) *LockPaymentOrderUpdateOne {
+	lpouo.mutation.ResetOrderPercent()
+	lpouo.mutation.SetOrderPercent(d)
+	return lpouo
+}
+
+// SetNillableOrderPercent sets the "order_percent" field if the given value is not nil.
+func (lpouo *LockPaymentOrderUpdateOne) SetNillableOrderPercent(d *decimal.Decimal) *LockPaymentOrderUpdateOne {
+	if d != nil {
+		lpouo.SetOrderPercent(*d)
+	}
+	return lpouo
+}
+
+// AddOrderPercent adds d to the "order_percent" field.
+func (lpouo *LockPaymentOrderUpdateOne) AddOrderPercent(d decimal.Decimal) *LockPaymentOrderUpdateOne {
+	lpouo.mutation.AddOrderPercent(d)
+	return lpouo
+}
+
+// ClearOrderPercent clears the value of the "order_percent" field.
+func (lpouo *LockPaymentOrderUpdateOne) ClearOrderPercent() *LockPaymentOrderUpdateOne {
+	lpouo.mutation.ClearOrderPercent()
 	return lpouo
 }
 
@@ -872,6 +935,15 @@ func (lpouo *LockPaymentOrderUpdateOne) sqlSave(ctx context.Context) (_node *Loc
 	}
 	if value, ok := lpouo.mutation.AddedRate(); ok {
 		_spec.AddField(lockpaymentorder.FieldRate, field.TypeFloat64, value)
+	}
+	if value, ok := lpouo.mutation.OrderPercent(); ok {
+		_spec.SetField(lockpaymentorder.FieldOrderPercent, field.TypeFloat64, value)
+	}
+	if value, ok := lpouo.mutation.AddedOrderPercent(); ok {
+		_spec.AddField(lockpaymentorder.FieldOrderPercent, field.TypeFloat64, value)
+	}
+	if lpouo.mutation.OrderPercentCleared() {
+		_spec.ClearField(lockpaymentorder.FieldOrderPercent, field.TypeFloat64)
 	}
 	if value, ok := lpouo.mutation.TxHash(); ok {
 		_spec.SetField(lockpaymentorder.FieldTxHash, field.TypeString, value)

@@ -43,8 +43,7 @@ func (ProviderOrderToken) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("provider", ProviderProfile.Type).
 			Ref("order_tokens").
-			Unique().
-			Immutable(),
+			Unique(),
 		edge.To("addresses", ProviderOrderTokenAddress.Type),
 	}
 }

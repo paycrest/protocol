@@ -72,6 +72,20 @@ func (lpoc *LockPaymentOrderCreate) SetRate(d decimal.Decimal) *LockPaymentOrder
 	return lpoc
 }
 
+// SetOrderPercent sets the "order_percent" field.
+func (lpoc *LockPaymentOrderCreate) SetOrderPercent(d decimal.Decimal) *LockPaymentOrderCreate {
+	lpoc.mutation.SetOrderPercent(d)
+	return lpoc
+}
+
+// SetNillableOrderPercent sets the "order_percent" field if the given value is not nil.
+func (lpoc *LockPaymentOrderCreate) SetNillableOrderPercent(d *decimal.Decimal) *LockPaymentOrderCreate {
+	if d != nil {
+		lpoc.SetOrderPercent(*d)
+	}
+	return lpoc
+}
+
 // SetTxHash sets the "tx_hash" field.
 func (lpoc *LockPaymentOrderCreate) SetTxHash(s string) *LockPaymentOrderCreate {
 	lpoc.mutation.SetTxHash(s)
@@ -392,6 +406,10 @@ func (lpoc *LockPaymentOrderCreate) createSpec() (*LockPaymentOrder, *sqlgraph.C
 	if value, ok := lpoc.mutation.Rate(); ok {
 		_spec.SetField(lockpaymentorder.FieldRate, field.TypeFloat64, value)
 		_node.Rate = value
+	}
+	if value, ok := lpoc.mutation.OrderPercent(); ok {
+		_spec.SetField(lockpaymentorder.FieldOrderPercent, field.TypeFloat64, value)
+		_node.OrderPercent = value
 	}
 	if value, ok := lpoc.mutation.TxHash(); ok {
 		_spec.SetField(lockpaymentorder.FieldTxHash, field.TypeString, value)

@@ -31,6 +31,9 @@ func (LockPaymentOrder) Fields() []ent.Field {
 			GoType(decimal.Decimal{}),
 		field.Float("rate").
 			GoType(decimal.Decimal{}),
+		field.Float("order_percent").
+			GoType(decimal.Decimal{}).
+			Optional(),
 		field.String("tx_hash").
 			MaxLen(70).
 			Optional(),

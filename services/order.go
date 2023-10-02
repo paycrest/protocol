@@ -16,7 +16,11 @@ import (
 	"github.com/paycrest/paycrest-protocol/services/contracts"
 	db "github.com/paycrest/paycrest-protocol/storage"
 
+	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
+	"github.com/paycrest/paycrest-protocol/ent/providerordertoken"
+	"github.com/paycrest/paycrest-protocol/ent/providerordertokenaddress"
+	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 	"github.com/paycrest/paycrest-protocol/types"
 	"github.com/paycrest/paycrest-protocol/utils"
 	cryptoUtils "github.com/paycrest/paycrest-protocol/utils/crypto"
@@ -159,6 +163,95 @@ func (s *OrderService) CreateOrder(ctx context.Context, client types.RPCClient, 
 	_, err = order.Update().
 		SetTxHash(userOpHash.Hex()).
 		SetStatus(paymentorder.StatusPending).
+		Save(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to update payment order: %w", err)
+	}
+
+	return nil
+}
+
+func (s *OrderService) SettleOrder(ctx context.Context, client types.RPCClient, orderID uuid.UUID) error {
+	var err error
+
+	// Fetch payment order from db
+	order, err := db.Client.LockPaymentOrder.
+		Query().
+		Where(lockpaymentorder.IDEQ(orderID)).
+		WithToken(func(tq *ent.TokenQuery) {
+			tq.WithNetwork()
+		}).
+		WithFulfillment(func(lofq *ent.LockOrderFulfillmentQuery) {
+			lofq.WithValidators()
+		}).
+		WithProvider().
+		Only(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to fetch lock order: %w", err)
+	}
+
+	// Fetch provider address from db
+	providerAddress, err := db.Client.ProviderOrderTokenAddress.
+		Query().
+		Where(
+			providerordertokenaddress.NetworkEQ(
+				providerordertokenaddress.Network(
+					order.Edges.Token.Edges.Network.Identifier,
+				),
+			),
+			providerordertokenaddress.HasProviderordertokenWith(
+				providerordertoken.HasProviderWith(
+					providerprofile.IDEQ(order.Edges.Provider.ID),
+				),
+			),
+		).
+		First(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to fetch provider address: %w", err)
+	}
+
+	// Connect to RPC endpoint
+	if client == nil {
+		client, err = types.NewEthClient(order.Edges.Token.Edges.Network.RPCEndpoint)
+		if err != nil {
+			return fmt.Errorf("failed to connect to RPC client: %w", err)
+		}
+	}
+
+	// Initialize paycrest order contract
+	orderContract, err := contracts.NewPaycrestOrder(OrderConf.PaycrestOrderContractAddress, client.(bind.ContractBackend))
+	if err != nil {
+		return fmt.Errorf("failed to initialize paycrest order contract: %w", err)
+	}
+
+	// Fetch validators
+	validators := make([]common.Address, len(order.Edges.Fulfillment.Edges.Validators))
+	for _, v := range order.Edges.Fulfillment.Edges.Validators {
+		validators = append(validators, common.HexToAddress(v.WalletAddress))
+	}
+
+	var orderPercent *big.Int
+
+	if order.OrderPercent.IsZero() {
+		orderPercent = big.NewInt(100)
+	} else {
+		orderPercent = utils.ToSubunit(order.OrderPercent, 2)
+	}
+
+	// Settle order
+	tx, err := orderContract.Settle(
+		nil,
+		utils.StringToByte32(order.OrderID),
+		validators,
+		common.HexToAddress(providerAddress.Address),
+		orderPercent,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to settle order: %w", err)
+	}
+
+	_, err = order.Update().
+		SetTxHash(tx.Hash().Hex()).
 		Save(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to update payment order: %w", err)

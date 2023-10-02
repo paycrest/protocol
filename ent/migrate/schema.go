@@ -72,6 +72,7 @@ var (
 		{Name: "order_id", Type: field.TypeString},
 		{Name: "amount", Type: field.TypeFloat64},
 		{Name: "rate", Type: field.TypeFloat64},
+		{Name: "order_percent", Type: field.TypeFloat64, Nullable: true},
 		{Name: "tx_hash", Type: field.TypeString, Nullable: true, Size: 70},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"pending", "processing", "cancelled", "fulfilled", "validated", "settled"}, Default: "pending"},
 		{Name: "block_number", Type: field.TypeInt64},
@@ -92,19 +93,19 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "lock_payment_orders_provider_profiles_assigned_orders",
-				Columns:    []*schema.Column{LockPaymentOrdersColumns[14]},
+				Columns:    []*schema.Column{LockPaymentOrdersColumns[15]},
 				RefColumns: []*schema.Column{ProviderProfilesColumns[0]},
-				OnDelete:   schema.SetNull,
+				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "lock_payment_orders_provision_buckets_lock_payment_orders",
-				Columns:    []*schema.Column{LockPaymentOrdersColumns[15]},
+				Columns:    []*schema.Column{LockPaymentOrdersColumns[16]},
 				RefColumns: []*schema.Column{ProvisionBucketsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "lock_payment_orders_tokens_lock_payment_orders",
-				Columns:    []*schema.Column{LockPaymentOrdersColumns[16]},
+				Columns:    []*schema.Column{LockPaymentOrdersColumns[17]},
 				RefColumns: []*schema.Column{TokensColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
@@ -228,7 +229,7 @@ var (
 				Symbol:     "provider_order_tokens_provider_profiles_order_tokens",
 				Columns:    []*schema.Column{ProviderOrderTokensColumns[9]},
 				RefColumns: []*schema.Column{ProviderProfilesColumns[0]},
-				OnDelete:   schema.SetNull,
+				OnDelete:   schema.Cascade,
 			},
 		},
 		Indexes: []*schema.Index{

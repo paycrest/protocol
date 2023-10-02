@@ -82,6 +82,11 @@ func Rate(v decimal.Decimal) predicate.LockPaymentOrder {
 	return predicate.LockPaymentOrder(sql.FieldEQ(FieldRate, v))
 }
 
+// OrderPercent applies equality check predicate on the "order_percent" field. It's identical to OrderPercentEQ.
+func OrderPercent(v decimal.Decimal) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(sql.FieldEQ(FieldOrderPercent, v))
+}
+
 // TxHash applies equality check predicate on the "tx_hash" field. It's identical to TxHashEQ.
 func TxHash(v string) predicate.LockPaymentOrder {
 	return predicate.LockPaymentOrder(sql.FieldEQ(FieldTxHash, v))
@@ -335,6 +340,56 @@ func RateLT(v decimal.Decimal) predicate.LockPaymentOrder {
 // RateLTE applies the LTE predicate on the "rate" field.
 func RateLTE(v decimal.Decimal) predicate.LockPaymentOrder {
 	return predicate.LockPaymentOrder(sql.FieldLTE(FieldRate, v))
+}
+
+// OrderPercentEQ applies the EQ predicate on the "order_percent" field.
+func OrderPercentEQ(v decimal.Decimal) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(sql.FieldEQ(FieldOrderPercent, v))
+}
+
+// OrderPercentNEQ applies the NEQ predicate on the "order_percent" field.
+func OrderPercentNEQ(v decimal.Decimal) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(sql.FieldNEQ(FieldOrderPercent, v))
+}
+
+// OrderPercentIn applies the In predicate on the "order_percent" field.
+func OrderPercentIn(vs ...decimal.Decimal) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(sql.FieldIn(FieldOrderPercent, vs...))
+}
+
+// OrderPercentNotIn applies the NotIn predicate on the "order_percent" field.
+func OrderPercentNotIn(vs ...decimal.Decimal) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(sql.FieldNotIn(FieldOrderPercent, vs...))
+}
+
+// OrderPercentGT applies the GT predicate on the "order_percent" field.
+func OrderPercentGT(v decimal.Decimal) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(sql.FieldGT(FieldOrderPercent, v))
+}
+
+// OrderPercentGTE applies the GTE predicate on the "order_percent" field.
+func OrderPercentGTE(v decimal.Decimal) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(sql.FieldGTE(FieldOrderPercent, v))
+}
+
+// OrderPercentLT applies the LT predicate on the "order_percent" field.
+func OrderPercentLT(v decimal.Decimal) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(sql.FieldLT(FieldOrderPercent, v))
+}
+
+// OrderPercentLTE applies the LTE predicate on the "order_percent" field.
+func OrderPercentLTE(v decimal.Decimal) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(sql.FieldLTE(FieldOrderPercent, v))
+}
+
+// OrderPercentIsNil applies the IsNil predicate on the "order_percent" field.
+func OrderPercentIsNil() predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(sql.FieldIsNull(FieldOrderPercent))
+}
+
+// OrderPercentNotNil applies the NotNil predicate on the "order_percent" field.
+func OrderPercentNotNil() predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(sql.FieldNotNull(FieldOrderPercent))
 }
 
 // TxHashEQ applies the EQ predicate on the "tx_hash" field.
