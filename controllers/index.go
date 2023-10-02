@@ -18,8 +18,8 @@ import (
 )
 
 // Controller is the default controller for other endpoints
-type Controller struct{
-  orderService *svc.OrderService
+type Controller struct {
+	orderService *svc.OrderService
 }
 
 // NewController creates a new instance of AuthController with injected services
@@ -28,7 +28,6 @@ func NewController() *Controller {
 		orderService: svc.NewOrderService(),
 	}
 }
-
 
 // GetFiatCurrencies controller fetches the supported fiat currencies
 func (ctrl *Controller) GetFiatCurrencies(ctx *gin.Context) {
@@ -122,9 +121,14 @@ func (ctrl *Controller) ValidateOrder(ctx *gin.Context) {
 			return
 		}
 	} else {
-		fulfillment.Update().
+		_, err = fulfillment.Update().
 			AppendValidationErrors([]string{payload.ErrorMsg}).
 			Save(ctx)
+		if err != nil {
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to validate order fulfillment", nil)
+			return
+		}
 	}
 
 	ctx.JSON(http.StatusOK, "OK")

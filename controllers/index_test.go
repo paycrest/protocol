@@ -54,7 +54,10 @@ func setup() error {
 	if err != nil {
 		return err
 	}
-	validator.Update().SetAPIKeyID(apiKey.ID).Save(context.Background())
+	_, err = validator.Update().SetAPIKeyID(apiKey.ID).Save(context.Background())
+	if err != nil {
+		return err
+	}
 	testCtx.validatorProfile = validator
 
 	testCtx.apiKeySecret = secretKey
