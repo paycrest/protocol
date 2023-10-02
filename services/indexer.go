@@ -42,7 +42,7 @@ type orderRecipient struct {
 type LockPaymentOrderFields struct {
 	ID                uuid.UUID
 	Token             *ent.Token
-	OrderID           string 
+	OrderID           string
 	Amount            decimal.Decimal
 	Rate              decimal.Decimal
 	BlockNumber       int64
@@ -623,12 +623,15 @@ func (s *IndexerService) splitLockPaymentOrder(ctx context.Context, lockPaymentO
 		}
 
 		for i := int64(0); i < trips; i++ {
+			ratio := bucket.MaxAmount.Div(amountToSplit)
+			orderPercent := ratio.Mul(decimal.NewFromInt(100))
 			lockOrder := tx.LockPaymentOrder.
 				Create().
 				SetToken(lockPaymentOrder.Token).
 				SetOrderID(lockPaymentOrder.OrderID).
 				SetAmount(bucket.MaxAmount).
 				SetRate(lockPaymentOrder.Rate).
+				SetOrderPercent(orderPercent).
 				SetBlockNumber(lockPaymentOrder.BlockNumber).
 				SetInstitution(lockPaymentOrder.Institution).
 				SetAccountIdentifier(lockPaymentOrder.AccountIdentifier).

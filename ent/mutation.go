@@ -1698,6 +1698,8 @@ type LockPaymentOrderMutation struct {
 	addamount                  *decimal.Decimal
 	rate                       *decimal.Decimal
 	addrate                    *decimal.Decimal
+	order_percent              *decimal.Decimal
+	addorder_percent           *decimal.Decimal
 	tx_hash                    *string
 	status                     *lockpaymentorder.Status
 	block_number               *int64
@@ -2045,6 +2047,76 @@ func (m *LockPaymentOrderMutation) AddedRate() (r decimal.Decimal, exists bool) 
 func (m *LockPaymentOrderMutation) ResetRate() {
 	m.rate = nil
 	m.addrate = nil
+}
+
+// SetOrderPercent sets the "order_percent" field.
+func (m *LockPaymentOrderMutation) SetOrderPercent(d decimal.Decimal) {
+	m.order_percent = &d
+	m.addorder_percent = nil
+}
+
+// OrderPercent returns the value of the "order_percent" field in the mutation.
+func (m *LockPaymentOrderMutation) OrderPercent() (r decimal.Decimal, exists bool) {
+	v := m.order_percent
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOrderPercent returns the old "order_percent" field's value of the LockPaymentOrder entity.
+// If the LockPaymentOrder object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LockPaymentOrderMutation) OldOrderPercent(ctx context.Context) (v decimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOrderPercent is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOrderPercent requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOrderPercent: %w", err)
+	}
+	return oldValue.OrderPercent, nil
+}
+
+// AddOrderPercent adds d to the "order_percent" field.
+func (m *LockPaymentOrderMutation) AddOrderPercent(d decimal.Decimal) {
+	if m.addorder_percent != nil {
+		*m.addorder_percent = m.addorder_percent.Add(d)
+	} else {
+		m.addorder_percent = &d
+	}
+}
+
+// AddedOrderPercent returns the value that was added to the "order_percent" field in this mutation.
+func (m *LockPaymentOrderMutation) AddedOrderPercent() (r decimal.Decimal, exists bool) {
+	v := m.addorder_percent
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearOrderPercent clears the value of the "order_percent" field.
+func (m *LockPaymentOrderMutation) ClearOrderPercent() {
+	m.order_percent = nil
+	m.addorder_percent = nil
+	m.clearedFields[lockpaymentorder.FieldOrderPercent] = struct{}{}
+}
+
+// OrderPercentCleared returns if the "order_percent" field was cleared in this mutation.
+func (m *LockPaymentOrderMutation) OrderPercentCleared() bool {
+	_, ok := m.clearedFields[lockpaymentorder.FieldOrderPercent]
+	return ok
+}
+
+// ResetOrderPercent resets all changes to the "order_percent" field.
+func (m *LockPaymentOrderMutation) ResetOrderPercent() {
+	m.order_percent = nil
+	m.addorder_percent = nil
+	delete(m.clearedFields, lockpaymentorder.FieldOrderPercent)
 }
 
 // SetTxHash sets the "tx_hash" field.
@@ -2593,7 +2665,7 @@ func (m *LockPaymentOrderMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *LockPaymentOrderMutation) Fields() []string {
-	fields := make([]string, 0, 13)
+	fields := make([]string, 0, 14)
 	if m.created_at != nil {
 		fields = append(fields, lockpaymentorder.FieldCreatedAt)
 	}
@@ -2608,6 +2680,9 @@ func (m *LockPaymentOrderMutation) Fields() []string {
 	}
 	if m.rate != nil {
 		fields = append(fields, lockpaymentorder.FieldRate)
+	}
+	if m.order_percent != nil {
+		fields = append(fields, lockpaymentorder.FieldOrderPercent)
 	}
 	if m.tx_hash != nil {
 		fields = append(fields, lockpaymentorder.FieldTxHash)
@@ -2651,6 +2726,8 @@ func (m *LockPaymentOrderMutation) Field(name string) (ent.Value, bool) {
 		return m.Amount()
 	case lockpaymentorder.FieldRate:
 		return m.Rate()
+	case lockpaymentorder.FieldOrderPercent:
+		return m.OrderPercent()
 	case lockpaymentorder.FieldTxHash:
 		return m.TxHash()
 	case lockpaymentorder.FieldStatus:
@@ -2686,6 +2763,8 @@ func (m *LockPaymentOrderMutation) OldField(ctx context.Context, name string) (e
 		return m.OldAmount(ctx)
 	case lockpaymentorder.FieldRate:
 		return m.OldRate(ctx)
+	case lockpaymentorder.FieldOrderPercent:
+		return m.OldOrderPercent(ctx)
 	case lockpaymentorder.FieldTxHash:
 		return m.OldTxHash(ctx)
 	case lockpaymentorder.FieldStatus:
@@ -2745,6 +2824,13 @@ func (m *LockPaymentOrderMutation) SetField(name string, value ent.Value) error 
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetRate(v)
+		return nil
+	case lockpaymentorder.FieldOrderPercent:
+		v, ok := value.(decimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOrderPercent(v)
 		return nil
 	case lockpaymentorder.FieldTxHash:
 		v, ok := value.(string)
@@ -2816,6 +2902,9 @@ func (m *LockPaymentOrderMutation) AddedFields() []string {
 	if m.addrate != nil {
 		fields = append(fields, lockpaymentorder.FieldRate)
 	}
+	if m.addorder_percent != nil {
+		fields = append(fields, lockpaymentorder.FieldOrderPercent)
+	}
 	if m.addblock_number != nil {
 		fields = append(fields, lockpaymentorder.FieldBlockNumber)
 	}
@@ -2834,6 +2923,8 @@ func (m *LockPaymentOrderMutation) AddedField(name string) (ent.Value, bool) {
 		return m.AddedAmount()
 	case lockpaymentorder.FieldRate:
 		return m.AddedRate()
+	case lockpaymentorder.FieldOrderPercent:
+		return m.AddedOrderPercent()
 	case lockpaymentorder.FieldBlockNumber:
 		return m.AddedBlockNumber()
 	case lockpaymentorder.FieldCancellationCount:
@@ -2861,6 +2952,13 @@ func (m *LockPaymentOrderMutation) AddField(name string, value ent.Value) error 
 		}
 		m.AddRate(v)
 		return nil
+	case lockpaymentorder.FieldOrderPercent:
+		v, ok := value.(decimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddOrderPercent(v)
+		return nil
 	case lockpaymentorder.FieldBlockNumber:
 		v, ok := value.(int64)
 		if !ok {
@@ -2883,6 +2981,9 @@ func (m *LockPaymentOrderMutation) AddField(name string, value ent.Value) error 
 // mutation.
 func (m *LockPaymentOrderMutation) ClearedFields() []string {
 	var fields []string
+	if m.FieldCleared(lockpaymentorder.FieldOrderPercent) {
+		fields = append(fields, lockpaymentorder.FieldOrderPercent)
+	}
 	if m.FieldCleared(lockpaymentorder.FieldTxHash) {
 		fields = append(fields, lockpaymentorder.FieldTxHash)
 	}
@@ -2900,6 +3001,9 @@ func (m *LockPaymentOrderMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *LockPaymentOrderMutation) ClearField(name string) error {
 	switch name {
+	case lockpaymentorder.FieldOrderPercent:
+		m.ClearOrderPercent()
+		return nil
 	case lockpaymentorder.FieldTxHash:
 		m.ClearTxHash()
 		return nil
@@ -2925,6 +3029,9 @@ func (m *LockPaymentOrderMutation) ResetField(name string) error {
 		return nil
 	case lockpaymentorder.FieldRate:
 		m.ResetRate()
+		return nil
+	case lockpaymentorder.FieldOrderPercent:
+		m.ResetOrderPercent()
 		return nil
 	case lockpaymentorder.FieldTxHash:
 		m.ResetTxHash()
