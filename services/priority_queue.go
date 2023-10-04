@@ -173,8 +173,8 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 }
 
 // ReassignStaleOrderRequest reassigns expired order requests to providers
-func (s *PriorityQueueService) ReassignStaleOrderRequest(ctx context.Context, expiredChan <-chan *redis.Message) {
-	for msg := range expiredChan {
+func (s *PriorityQueueService) ReassignStaleOrderRequest(ctx context.Context, orderRequestChan <-chan *redis.Message) {
+	for msg := range orderRequestChan {
 		key := strings.Split(msg.Payload, "_")
 		orderID := key[len(key)-1]
 
