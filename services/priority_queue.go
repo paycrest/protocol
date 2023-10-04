@@ -109,7 +109,7 @@ func (s *PriorityQueueService) CreatePriorityQueueForBucket(ctx context.Context,
 		data := fmt.Sprintf("%s:%s", providerID, rate)
 
 		// Enqueue the serialized data into the circular queue
-		err := storage.RedisClient.RPush(ctx, redisKey, data).Err()
+		err := pipe.RPush(ctx, redisKey, data).Err()
 		if err != nil {
 			logger.Errorf("failed to enqueue provider data to circular queue: %v", err)
 		}
@@ -121,8 +121,11 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 	// Get the first provider from the circular queue
 	redisKey := fmt.Sprintf("bucket_%d_%d", order.ProvisionBucket.MinAmount, order.ProvisionBucket.MaxAmount)
 
+	// Start a Redis transaction
+	pipe := storage.RedisClient.TxPipeline()
+
 	for index := 0; ; index++ {
-		providerData, err := storage.RedisClient.LIndex(ctx, redisKey, int64(index)).Result()
+		providerData, err := pipe.LIndex(ctx, redisKey, int64(index)).Result()
 		if err != nil {
 			if err == redis.Nil {
 				// TODO: assign to top provider in default bucket and rotate the default bucket queue
@@ -143,7 +146,7 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 		providerID := parts[0]
 
 		// Skip entry is provider is excluded
-		excludeList, err := storage.RedisClient.LRange(ctx, fmt.Sprintf("order_exclude_list_%d", order.ID), 0, -1).Result()
+		excludeList, err := pipe.LRange(ctx, fmt.Sprintf("order_exclude_list_%d", order.ID), 0, -1).Result()
 		if err != nil {
 			logger.Errorf("failed to get exclude list for order %d: %v", order.ID, err)
 			return err
@@ -162,14 +165,14 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 			// Found a match for the rate
 			if index == 0 {
 				// Match found at index 0, perform LPOP to dequeue
-				data, err := storage.RedisClient.LPop(ctx, redisKey).Result()
+				data, err := pipe.LPop(ctx, redisKey).Result()
 				if err != nil {
 					logger.Errorf("failed to dequeue from circular queue: %v", err)
 					return err
 				}
 
 				// Enqueue data to the end of the queue
-				err = storage.RedisClient.RPush(ctx, redisKey, data).Err()
+				err = pipe.RPush(ctx, redisKey, data).Err()
 				if err != nil {
 					logger.Errorf("failed to enqueue to circular queue: %v", err)
 					return err
@@ -185,14 +188,14 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 				"provider_id": providerID,
 			}
 
-			err = storage.RedisClient.HSet(ctx, orderKey, orderRequestData).Err()
+			err = pipe.HSet(ctx, orderKey, orderRequestData).Err()
 			if err != nil {
 				logger.Errorf("failed to map order to a provider in Redis: %v", err)
 				return err
 			}
 
 			// Set a TTL for the order request
-			err = storage.RedisClient.ExpireAt(ctx, orderKey, time.Now().Add(OrderConf.OrderRequestValidity)).Err()
+			err = pipe.ExpireAt(ctx, orderKey, time.Now().Add(OrderConf.OrderRequestValidity)).Err()
 			if err != nil {
 				logger.Errorf("failed to set TTL for order request: %v", err)
 				return err
@@ -202,6 +205,13 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 
 			// TODO: Send out a push notification to the provider (for manual provider case)
 		}
+	}
+
+	// Execute all Redis commands within the transaction atomically
+	_, err := pipe.Exec(ctx)
+	if err != nil {
+		logger.Errorf("failed to execute Redis transaction: %v", err)
+		return err
 	}
 
 	return nil
