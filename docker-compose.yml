@@ -22,6 +22,9 @@ services:
       - REDIS_PASSWORD=${REDIS_PASSWORD}
     ports:
       - ${REDIS_PORT}:6379
+    volumes:
+      - ./redis.conf:/usr/local/etc/redis/redis.conf
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
     restart: always
 
   server:
