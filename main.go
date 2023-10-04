@@ -21,30 +21,33 @@ func main() {
 	DSN := config.DBConfig()
 
 	if err := storage.DBConnection(DSN); err != nil {
-		logger.Fatalf("database DBConnection error: %s", err)
+		logger.Fatalf("database DBConnection: %s", err)
 	}
 
 	defer storage.GetClient().Close()
 
 	// Seed the database
 	if err := storage.SeedAll(); err != nil {
-		logger.Fatalf("database SeedAll error: %s", err)
+		logger.Fatalf("database SeedAll: %s", err)
 	}
 
 	// Initialize Redis
 	if err := storage.InitializeRedis(); err != nil {
-		logger.Fatalf("Redis initialization error: %s", err)
+		logger.Fatalf("Redis initialization: %s", err)
 	}
 
 	// Start indexer
 	if err := tasks.ContinueIndexing(); err != nil {
-		logger.Fatalf("continueIndexing error: %s", err)
+		logger.Fatalf("ContinueIndexing: %s", err)
 	}
 
 	// Start processing orders
 	if err := tasks.ProcessOrders(); err != nil {
-		logger.Fatalf("processOrders error; %s", err)
+		logger.Fatalf("ProcessOrders: %s", err)
 	}
+
+	// Subscribe to Redis keyspace events
+	tasks.SubscribeToRedisKeyspaceEvents()
 
 	// Run the server
 	router := routers.Routes()
