@@ -85,3 +85,18 @@ func ProcessOrders() error {
 
 	return nil
 }
+
+// SubscribeToRedisKeyspaceEvents subscribes to redis keyspace events according to redis.conf settings
+func SubscribeToRedisKeyspaceEvents() {
+	ctx := context.Background()
+
+	// Handle expired or deleted order request key events
+	orderRequest := storage.RedisClient.PSubscribe(
+		ctx,
+		"__keyevent@0__:expired:order_request_*",
+		"__keyevent@0__:del:order_request_*",
+	)
+	orderRequestChan := orderRequest.Channel()
+
+	go services.NewPriorityQueueService().ReassignStaleOrderRequest(ctx, orderRequestChan)
+}
