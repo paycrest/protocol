@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/google/uuid"
+	"github.com/paycrest/paycrest-protocol/ent"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
 	"github.com/shopspring/decimal"
@@ -137,6 +138,21 @@ type ERC20Transfer struct {
 	Value *big.Int
 }
 
+// LockPaymentOrderFields is the fields for a lock payment order
+type LockPaymentOrderFields struct {
+	ID                uuid.UUID
+	Token             *ent.Token
+	OrderID           string
+	Amount            decimal.Decimal
+	Rate              decimal.Decimal
+	BlockNumber       int64
+	Institution       string
+	AccountIdentifier string
+	AccountName       string
+	ProviderID        string
+	ProvisionBucket   *ent.ProvisionBucket
+}
+
 // PaymentOrderRecipient describes a payment order recipient
 type PaymentOrderRecipient struct {
 	Institution       string `json:"institution" binding:"required"`
@@ -203,7 +219,7 @@ type ResendTokenPayload struct {
 }
 
 type Institution struct {
-  Name string `json:"name"`
-  Code string `json:"code"`
-  Type string `json:"type"`
+	Name string `json:"name"`
+	Code string `json:"code"`
+	Type string `json:"type"`
 }

@@ -15,7 +15,6 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent"
 	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
 	networkent "github.com/paycrest/paycrest-protocol/ent/network"
@@ -37,20 +36,6 @@ type orderRecipient struct {
 	AccountName       string
 	Institution       string
 	ProviderID        string
-}
-
-type LockPaymentOrderFields struct {
-	ID                uuid.UUID
-	Token             *ent.Token
-	OrderID           string
-	Amount            decimal.Decimal
-	Rate              decimal.Decimal
-	BlockNumber       int64
-	Institution       string
-	AccountIdentifier string
-	AccountName       string
-	ProviderID        string
-	ProvisionBucket   *ent.ProvisionBucket
 }
 
 // Indexer is an interface for indexing blockchain data to the database.
@@ -503,7 +488,7 @@ func (s *IndexerService) saveLockPaymentOrder(ctx context.Context, client types.
 	}
 
 	// Create lock payment order fields
-	lockPaymentOrder := LockPaymentOrderFields{
+	lockPaymentOrder := types.LockPaymentOrderFields{
 		Token:             token,
 		OrderID:           fmt.Sprintf("0x%v", hex.EncodeToString(deposit.OrderId[:])),
 		Amount:            amountInDecimals,
@@ -585,7 +570,7 @@ func (s *IndexerService) getInstitutionByCode(ctx context.Context, client types.
 }
 
 // splitLockPaymentOrder splits a lock payment order into multiple orders
-func (s *IndexerService) splitLockPaymentOrder(ctx context.Context, lockPaymentOrder LockPaymentOrderFields, currency string) error {
+func (s *IndexerService) splitLockPaymentOrder(ctx context.Context, lockPaymentOrder types.LockPaymentOrderFields, currency string) error {
 	buckets, err := db.Client.ProvisionBucket.
 		Query().
 		Where(provisionbucket.CurrencyEQ(currency)).

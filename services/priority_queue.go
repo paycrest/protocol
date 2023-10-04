@@ -3,15 +3,19 @@ package services
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent"
+	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/provideravailability"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 	"github.com/paycrest/paycrest-protocol/ent/providerrating"
 	"github.com/paycrest/paycrest-protocol/ent/provisionbucket"
 	"github.com/paycrest/paycrest-protocol/storage"
+	"github.com/paycrest/paycrest-protocol/types"
 	"github.com/paycrest/paycrest-protocol/utils"
 	"github.com/paycrest/paycrest-protocol/utils/logger"
 	"github.com/redis/go-redis/v9"
@@ -104,7 +108,7 @@ func (s *PriorityQueueService) CreatePriorityQueueForBucket(ctx context.Context,
 }
 
 // AssignLockPaymentOrders assigns lock payment orders to providers
-func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order LockPaymentOrderFields) error {
+func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order types.LockPaymentOrderFields) error {
 	// Get the first provider from the priority queue
 	redisKey := fmt.Sprintf("bucket_%d", order.ProvisionBucket.ID)
 	providerIDs, err := storage.RedisClient.ZRevRange(ctx, redisKey, 0, 0).Result()
@@ -143,7 +147,7 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 	}
 
 	// Set a TTL for the order request
-	err = storage.RedisClient.Expire(ctx, orderKey, OrderConf.OrderRequestValidity).Err()
+	err = storage.RedisClient.ExpireAt(ctx, orderKey, time.Now().Add(OrderConf.OrderRequestValidity)).Err()
 	if err != nil {
 		logger.Errorf("failed to set TTL for order request: %v", err)
 		return err
@@ -166,4 +170,50 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 	// TODO: Send out a push notification to the provider (for manual provider case)
 
 	return nil
+}
+
+// ReassignStaleOrderRequest reassigns expired order requests to providers
+func (s *PriorityQueueService) ReassignStaleOrderRequest(ctx context.Context, expiredChan <-chan *redis.Message) {
+	for msg := range expiredChan {
+		key := strings.Split(msg.Payload, "_")
+		orderID := key[len(key)-1]
+
+		orderUUID, err := uuid.Parse(orderID)
+		if err != nil {
+			logger.Errorf("ReassignStaleOrderRequest: %v", err)
+			return
+		}
+
+		// Get the order from the database
+		order, err := storage.Client.LockPaymentOrder.
+			Query().
+			Where(
+				lockpaymentorder.IDEQ(orderUUID),
+			).
+			WithProvisionBucket().
+			Only(context.Background())
+		if err != nil {
+			logger.Errorf("ReassignStaleOrderRequest: %v", err)
+			return
+		}
+
+		orderFields := types.LockPaymentOrderFields{
+			ID:                order.ID,
+			OrderID:           order.OrderID,
+			Amount:            order.Amount,
+			Rate:              order.Rate,
+			BlockNumber:       order.BlockNumber,
+			Institution:       order.Institution,
+			AccountIdentifier: order.AccountIdentifier,
+			AccountName:       order.AccountName,
+			ProvisionBucket:   order.Edges.ProvisionBucket,
+		}
+
+		// Assign the order to a provider
+		err = s.AssignLockPaymentOrder(ctx, orderFields)
+		if err != nil {
+			logger.Errorf("ReassignStaleOrderRequest: %v", err)
+			return
+		}
+	}
 }
