@@ -109,7 +109,7 @@ func (s *PriorityQueueService) CreatePriorityQueueForBucket(ctx context.Context,
 		data := fmt.Sprintf("%s:%s", providerID, rate)
 
 		// Enqueue the serialized data into the circular queue
-		err := pipe.RPush(ctx, redisKey, data).Err()
+		err := storage.RedisClient.RPush(ctx, redisKey, data).Err()
 		if err != nil {
 			logger.Errorf("failed to enqueue provider data to circular queue: %v", err)
 		}
