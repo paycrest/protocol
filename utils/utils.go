@@ -141,14 +141,24 @@ func PersonalSign(message string, privateKey *ecdsa.PrivateKey) ([]byte, error) 
 func Difference(a, b []string) []string {
 	setB := make(map[string]struct{})
 	for _, x := range b {
-	  setB[x] = struct{}{}
+		setB[x] = struct{}{}
 	}
-  
+
 	var diff []string
 	for _, x := range a {
-	  if _, found := setB[x]; !found {
-		diff = append(diff, x) 
-	  }
+		if _, found := setB[x]; !found {
+			diff = append(diff, x)
+		}
 	}
 	return diff
-  }
+}
+
+// ContainsString returns true if the slice contains the given string
+func ContainsString(slice []string, item string) bool {
+	for _, s := range slice {
+		if s == item {
+			return true
+		}
+	}
+	return false
+}

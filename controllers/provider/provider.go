@@ -181,6 +181,13 @@ func (ctrl *ProviderController) FulfillOrder(ctx *gin.Context) {
 		return
 	}
 
+	// Delete the order exclude list
+	orderKey := fmt.Sprintf("order_exclude_list_%d", orderID)
+	_, err = storage.RedisClient.Del(ctx, orderKey).Result()
+	if err != nil {
+		logger.Errorf("error deleting order exclude list from Redis: %v", err)
+	}
+
 	u.APIResponse(ctx, http.StatusOK, "success", "Order fulfilled successfully", nil)
 }
 

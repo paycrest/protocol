@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -19,6 +20,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/utils"
 	"github.com/paycrest/paycrest-protocol/utils/logger"
 	"github.com/redis/go-redis/v9"
+	"github.com/shopspring/decimal"
 )
 
 type PriorityQueueService struct{}
@@ -80,94 +82,127 @@ func (s *PriorityQueueService) GetProvidersByBucket(ctx context.Context) ([]*ent
 	return buckets, nil
 }
 
+// getProviderRate returns the rate for a provider
+func (s *PriorityQueueService) getProviderRate(provider *ent.ProviderProfile) (decimal.Decimal, error) {
+	// TODO: implement fetching of provider rate. this also includes calculating floating rate
+	return decimal.Decimal{}, nil
+}
+
 // CreatePriorityQueueForBucket creates a priority queue for a bucket and saves it to redis
 func (s *PriorityQueueService) CreatePriorityQueueForBucket(ctx context.Context, bucket *ent.ProvisionBucket) {
-	// Create a slice to store the sorted set members with their scores
+	// Create a slice to store the provider profiles sorted by trust score
 	providers := bucket.Edges.ProviderProfiles
-	members := make([]redis.Z, len(providers))
+	sort.SliceStable(providers, func(i, j int) bool {
+		trustScoreI, _ := providers[i].Edges.ProviderRating.TrustScore.Float64()
+		trustScoreJ, _ := providers[j].Edges.ProviderRating.TrustScore.Float64()
+		return trustScoreI > trustScoreJ // Sort in descending order
+	})
 
-	// Populate the members slice with providers and their trust scores
-	for i, provider := range providers {
-		trustScore, _ := provider.Edges.ProviderRating.TrustScore.Float64()
+	// Enqueue provider ID and rate as a single string into the circular queue
+	redisKey := fmt.Sprintf("bucket_%d_%d", bucket.MinAmount, bucket.MaxAmount)
 
-		members[i] = redis.Z{
-			Score:  trustScore,
-			Member: provider.ID,
+	for _, provider := range providers {
+		providerID := provider.ID
+		rate, _ := s.getProviderRate(provider)
+
+		// Serialize the provider ID and rate into a single string
+		data := fmt.Sprintf("%s:%s", providerID, rate)
+
+		// Enqueue the serialized data into the circular queue
+		err := storage.RedisClient.RPush(ctx, redisKey, data).Err()
+		if err != nil {
+			logger.Errorf("failed to enqueue provider data to circular queue: %v", err)
 		}
-	}
-
-	// Add bucket with sorted priority queue to the redis cache
-	// e.g {"bucket_<id>": [1,2,3,4,5,6,7]}
-	redisKey := fmt.Sprintf("bucket_%d", bucket.ID)
-
-	// Add the members to the sorted set
-	err := storage.RedisClient.ZAdd(ctx, redisKey, members...).Err()
-	if err != nil {
-		logger.Errorf("failed to add bucket priority queue to Redis: %v", err)
 	}
 }
 
 // AssignLockPaymentOrders assigns lock payment orders to providers
 func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order types.LockPaymentOrderFields) error {
-	// Get the first provider from the priority queue
-	redisKey := fmt.Sprintf("bucket_%d", order.ProvisionBucket.ID)
-	providerIDs, err := storage.RedisClient.ZRevRange(ctx, redisKey, 0, 0).Result()
-	if err != nil {
-		logger.Errorf("failed to get provider from priority queue: %v", err)
-		return err
+	// Get the first provider from the circular queue
+	redisKey := fmt.Sprintf("bucket_%d_%d", order.ProvisionBucket.MinAmount, order.ProvisionBucket.MaxAmount)
+
+	for index := 0; ; index++ {
+		providerData, err := storage.RedisClient.LIndex(ctx, redisKey, int64(index)).Result()
+		if err != nil {
+			if err == redis.Nil {
+				// TODO: assign to top provider in default bucket and rotate the default bucket queue
+				// The rate of providers in the default bucket are always set to the median rate
+				// We can incentivize providers to be in the default bucket by waiving the protocol fee during settlement
+				break
+			}
+			logger.Errorf("failed to access index %d from circular queue: %v", index, err)
+			return err
+		}
+
+		// Extract the rate from the data (assuming it's in the format "providerID:rate")
+		parts := strings.Split(providerData, ":")
+		if len(parts) != 2 {
+			logger.Errorf("invalid data format at index %d: %s", index, providerData)
+			continue // Skip this entry due to invalid format
+		}
+		providerID := parts[0]
+
+		// Skip entry is provider is excluded
+		excludeList, err := storage.RedisClient.LRange(ctx, fmt.Sprintf("order_exclude_list_%d", order.ID), 0, -1).Result()
+		if err != nil {
+			logger.Errorf("failed to get exclude list for order %d: %v", order.ID, err)
+			return err
+		}
+		if utils.ContainsString(excludeList, providerID) {
+			continue
+		}
+
+		rate, err := decimal.NewFromString(parts[1])
+		if err != nil {
+			logger.Errorf("failed to parse rate at index %d: %v", index, err)
+			continue // Skip this entry due to parsing error
+		}
+
+		if rate.Equal(order.Rate) {
+			// Found a match for the rate
+			if index == 0 {
+				// Match found at index 0, perform LPOP to dequeue
+				data, err := storage.RedisClient.LPop(ctx, redisKey).Result()
+				if err != nil {
+					logger.Errorf("failed to dequeue from circular queue: %v", err)
+					return err
+				}
+
+				// Enqueue data to the end of the queue
+				err = storage.RedisClient.RPush(ctx, redisKey, data).Err()
+				if err != nil {
+					logger.Errorf("failed to enqueue to circular queue: %v", err)
+					return err
+				}
+			}
+
+			// Assign the order to the provider and save it to Redis
+			orderKey := fmt.Sprintf("order_request_%d", order.ID)
+			orderRequestData := map[string]interface{}{
+				"amount":      order.Amount.Mul(order.Rate),
+				"token":       order.Token.Symbol,
+				"institution": order.Institution,
+				"provider_id": providerID,
+			}
+
+			err = storage.RedisClient.HSet(ctx, orderKey, orderRequestData).Err()
+			if err != nil {
+				logger.Errorf("failed to map order to a provider in Redis: %v", err)
+				return err
+			}
+
+			// Set a TTL for the order request
+			err = storage.RedisClient.ExpireAt(ctx, orderKey, time.Now().Add(OrderConf.OrderRequestValidity)).Err()
+			if err != nil {
+				logger.Errorf("failed to set TTL for order request: %v", err)
+				return err
+			}
+
+			// TODO: Send POST request to the provider's webhook (for automatic provider case)
+
+			// TODO: Send out a push notification to the provider (for manual provider case)
+		}
 	}
-
-	// Retrieve exclude list for order
-	excludeList, err := storage.RedisClient.LRange(ctx, fmt.Sprintf("order_exclude_list_%d", order.ID), 0, -1).Result()
-	if err != nil {
-		logger.Errorf("failed to get exclude list for order %d: %v", order.ID, err)
-		return err
-	}
-
-	providerIDs = utils.Difference(providerIDs, excludeList)
-
-	if len(providerIDs) == 0 {
-		logger.Errorf("no providers available for bucket %d", order.ProvisionBucket.ID)
-		return fmt.Errorf("no providers available for bucket %d", order.ProvisionBucket.ID)
-	}
-
-	// Assign the order to the provider and save it to redis
-	orderKey := fmt.Sprintf("order_request_%d", order.ID)
-	data := map[string]interface{}{
-		"amount":      order.Amount.Mul(order.Rate),
-		"token":       order.Token.Symbol,
-		"institution": order.Institution,
-		"provider_id": providerIDs[0],
-	}
-
-	err = storage.RedisClient.HSet(ctx, orderKey, data).Err()
-	if err != nil {
-		logger.Errorf("failed to map order to a provider in redis: %v", err)
-		return err
-	}
-
-	// Set a TTL for the order request
-	err = storage.RedisClient.ExpireAt(ctx, orderKey, time.Now().Add(OrderConf.OrderRequestValidity)).Err()
-	if err != nil {
-		logger.Errorf("failed to set TTL for order request: %v", err)
-		return err
-	}
-
-	// Remove the provider from the priority queue
-	err = storage.RedisClient.ZRem(ctx, redisKey, providerIDs[0]).Err()
-	if err != nil {
-		logger.Errorf("failed to remove provider from priority queue: %v", err)
-		return err
-	}
-
-	// Create a priority queue for the bucket if there was only one provider
-	if len(providerIDs) == 1 {
-		s.CreatePriorityQueueForBucket(ctx, order.ProvisionBucket)
-	}
-
-	// TODO: Send wss message to the provider (for automatic provider case)
-
-	// TODO: Send out a push notification to the provider (for manual provider case)
 
 	return nil
 }
