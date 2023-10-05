@@ -85,6 +85,7 @@ func TestIndex(t *testing.T) {
 		middleware.OnlyValidatorMiddleware,
 		ctrl.ValidateOrder,
 	)
+	router.GET("currencies", ctrl.GetFiatCurrencies)
 
 	t.Run("ValidateOrderFulfillment", func(t *testing.T) {
 		t.Run("order is valid", func(t *testing.T) {
@@ -171,6 +172,14 @@ func TestIndex(t *testing.T) {
 
 			fmt.Println("validation errors: ", fulfillment.ValidationErrors)
 			assert.Contains(t, fulfillment.ValidationErrors, "Invalid transaction reference")
+		})
+
+		t.Run("fetch supported fiat currencies", func(t *testing.T) {
+			res, err := test.PerformRequest(t, "GET", "/currencies", nil, nil, router)
+			assert.NoError(t, err)
+
+			// Assert the response body
+			assert.Equal(t, http.StatusOK, res.Code)
 		})
 	})
 }
