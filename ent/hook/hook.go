@@ -21,6 +21,18 @@ func (f APIKeyFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, erro
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.APIKeyMutation", m)
 }
 
+// The FiatCurrencyFunc type is an adapter to allow the use of ordinary
+// function as FiatCurrency mutator.
+type FiatCurrencyFunc func(context.Context, *ent.FiatCurrencyMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f FiatCurrencyFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.FiatCurrencyMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.FiatCurrencyMutation", m)
+}
+
 // The LockOrderFulfillmentFunc type is an adapter to allow the use of ordinary
 // function as LockOrderFulfillment mutator.
 type LockOrderFulfillmentFunc func(context.Context, *ent.LockOrderFulfillmentMutation) (ent.Value, error)

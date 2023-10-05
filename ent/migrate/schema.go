@@ -39,6 +39,22 @@ var (
 			},
 		},
 	}
+	// FiatCurrenciesColumns holds the columns for the "fiat_currencies" table.
+	FiatCurrenciesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "code", Type: field.TypeString, Unique: true},
+		{Name: "short_name", Type: field.TypeString, Unique: true},
+		{Name: "decimals", Type: field.TypeInt, Default: 2},
+		{Name: "symbol", Type: field.TypeString},
+	}
+	// FiatCurrenciesTable holds the schema information for the "fiat_currencies" table.
+	FiatCurrenciesTable = &schema.Table{
+		Name:       "fiat_currencies",
+		Columns:    FiatCurrenciesColumns,
+		PrimaryKey: []*schema.Column{FiatCurrenciesColumns[0]},
+	}
 	// LockOrderFulfillmentsColumns holds the columns for the "lock_order_fulfillments" table.
 	LockOrderFulfillmentsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -487,6 +503,7 @@ var (
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		APIKeysTable,
+		FiatCurrenciesTable,
 		LockOrderFulfillmentsTable,
 		LockPaymentOrdersTable,
 		NetworksTable,

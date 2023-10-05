@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
+	"github.com/paycrest/paycrest-protocol/ent/fiatcurrency"
 	"github.com/paycrest/paycrest-protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/network"
@@ -46,6 +47,29 @@ func init() {
 	apikeyDescID := apikeyFields[0].Descriptor()
 	// apikey.DefaultID holds the default value on creation for the id field.
 	apikey.DefaultID = apikeyDescID.Default.(func() uuid.UUID)
+	fiatcurrencyMixin := schema.FiatCurrency{}.Mixin()
+	fiatcurrencyMixinFields0 := fiatcurrencyMixin[0].Fields()
+	_ = fiatcurrencyMixinFields0
+	fiatcurrencyFields := schema.FiatCurrency{}.Fields()
+	_ = fiatcurrencyFields
+	// fiatcurrencyDescCreatedAt is the schema descriptor for created_at field.
+	fiatcurrencyDescCreatedAt := fiatcurrencyMixinFields0[0].Descriptor()
+	// fiatcurrency.DefaultCreatedAt holds the default value on creation for the created_at field.
+	fiatcurrency.DefaultCreatedAt = fiatcurrencyDescCreatedAt.Default.(func() time.Time)
+	// fiatcurrencyDescUpdatedAt is the schema descriptor for updated_at field.
+	fiatcurrencyDescUpdatedAt := fiatcurrencyMixinFields0[1].Descriptor()
+	// fiatcurrency.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	fiatcurrency.DefaultUpdatedAt = fiatcurrencyDescUpdatedAt.Default.(func() time.Time)
+	// fiatcurrency.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	fiatcurrency.UpdateDefaultUpdatedAt = fiatcurrencyDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// fiatcurrencyDescDecimals is the schema descriptor for decimals field.
+	fiatcurrencyDescDecimals := fiatcurrencyFields[3].Descriptor()
+	// fiatcurrency.DefaultDecimals holds the default value on creation for the decimals field.
+	fiatcurrency.DefaultDecimals = fiatcurrencyDescDecimals.Default.(int)
+	// fiatcurrencyDescID is the schema descriptor for id field.
+	fiatcurrencyDescID := fiatcurrencyFields[0].Descriptor()
+	// fiatcurrency.DefaultID holds the default value on creation for the id field.
+	fiatcurrency.DefaultID = fiatcurrencyDescID.Default.(func() uuid.UUID)
 	lockorderfulfillmentMixin := schema.LockOrderFulfillment{}.Mixin()
 	lockorderfulfillmentMixinFields0 := lockorderfulfillmentMixin[0].Fields()
 	_ = lockorderfulfillmentMixinFields0

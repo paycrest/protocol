@@ -223,3 +223,12 @@ type Institution struct {
 	Code string `json:"code"`
 	Type string `json:"type"`
 }
+
+// SupportedCurrencies is the supported currencies response struct.
+type SupportedCurrencies struct {
+	Code      string `json:"code"`
+	Name      string `json:"name"`
+	ShortName string `json:"shortName"`
+	Decimals  int8   `json:"decimals"`
+	Symbol    string `json:"symbol"`
+}
