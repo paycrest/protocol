@@ -420,6 +420,7 @@ func (s *IndexerService) IndexOrderSettlements(ctx context.Context, client types
 				Where(
 					lockpaymentorder.IDEQ(splitOrderId),
 				).
+				SetBlockNumber(int64(log.Raw.BlockNumber)).
 				SetStatus(lockpaymentorder.StatusSettled).
 				Save(ctx)
 			if err != nil {
@@ -458,6 +459,7 @@ func (s *IndexerService) indexMissingBlocks(ctx context.Context, client types.RP
 					networkent.IDEQ(network.ID),
 				),
 			),
+			lockpaymentorder.StatusEQ(lockpaymentorder.StatusPending),
 		).
 		Order(ent.Desc(lockpaymentorder.FieldBlockNumber)).
 		Limit(1).
