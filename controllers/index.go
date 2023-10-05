@@ -31,7 +31,15 @@ func NewController() *Controller {
 
 // GetFiatCurrencies controller fetches the supported fiat currencies
 func (ctrl *Controller) GetFiatCurrencies(ctx *gin.Context) {
-	u.APIResponse(ctx, http.StatusOK, "success", "OK", nil)
+	currencies, err := ctrl.orderService.GetSuppotedCurrencies(ctx, nil)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusBadRequest, "error",
+			"Failed to fetch institutions", err.Error())
+		return
+	}
+
+	u.APIResponse(ctx, http.StatusOK, "success", "OK", currencies)
 }
 
 // GetInstitutionsByCurrency controller fetches the supported institutions for a given currency
