@@ -26,6 +26,8 @@ const (
 	FieldDecimals = "decimals"
 	// FieldSymbol holds the string denoting the symbol field in the database.
 	FieldSymbol = "symbol"
+	// FieldName holds the string denoting the name field in the database.
+	FieldName = "name"
 	// Table holds the table name of the fiatcurrency in the database.
 	Table = "fiat_currencies"
 )
@@ -39,6 +41,7 @@ var Columns = []string{
 	FieldShortName,
 	FieldDecimals,
 	FieldSymbol,
+	FieldName,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -100,4 +103,9 @@ func ByDecimals(opts ...sql.OrderTermOption) OrderOption {
 // BySymbol orders the results by the symbol field.
 func BySymbol(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSymbol, opts...).ToFunc()
+}
+
+// ByName orders the results by the name field.
+func ByName(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldName, opts...).ToFunc()
 }

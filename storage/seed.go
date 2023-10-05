@@ -122,7 +122,8 @@ func SeedDatabase() error {
 			listedCurrencies = append(listedCurrencies, client.FiatCurrency.Create().
 				SetCode(currency.Code).
 				SetShortName(currency.ShortName).
-				SetSymbol(currency.Symbol),
+				SetSymbol(currency.Symbol).
+				SetName(currency.Name),
 			)
 		}
 	}

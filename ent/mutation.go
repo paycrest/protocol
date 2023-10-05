@@ -894,6 +894,7 @@ type FiatCurrencyMutation struct {
 	decimals      *int
 	adddecimals   *int
 	symbol        *string
+	name          *string
 	clearedFields map[string]struct{}
 	done          bool
 	oldValue      func(context.Context) (*FiatCurrency, error)
@@ -1240,6 +1241,42 @@ func (m *FiatCurrencyMutation) ResetSymbol() {
 	m.symbol = nil
 }
 
+// SetName sets the "name" field.
+func (m *FiatCurrencyMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *FiatCurrencyMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the FiatCurrency entity.
+// If the FiatCurrency object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FiatCurrencyMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *FiatCurrencyMutation) ResetName() {
+	m.name = nil
+}
+
 // Where appends a list predicates to the FiatCurrencyMutation builder.
 func (m *FiatCurrencyMutation) Where(ps ...predicate.FiatCurrency) {
 	m.predicates = append(m.predicates, ps...)
@@ -1274,7 +1311,7 @@ func (m *FiatCurrencyMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *FiatCurrencyMutation) Fields() []string {
-	fields := make([]string, 0, 6)
+	fields := make([]string, 0, 7)
 	if m.created_at != nil {
 		fields = append(fields, fiatcurrency.FieldCreatedAt)
 	}
@@ -1292,6 +1329,9 @@ func (m *FiatCurrencyMutation) Fields() []string {
 	}
 	if m.symbol != nil {
 		fields = append(fields, fiatcurrency.FieldSymbol)
+	}
+	if m.name != nil {
+		fields = append(fields, fiatcurrency.FieldName)
 	}
 	return fields
 }
@@ -1313,6 +1353,8 @@ func (m *FiatCurrencyMutation) Field(name string) (ent.Value, bool) {
 		return m.Decimals()
 	case fiatcurrency.FieldSymbol:
 		return m.Symbol()
+	case fiatcurrency.FieldName:
+		return m.Name()
 	}
 	return nil, false
 }
@@ -1334,6 +1376,8 @@ func (m *FiatCurrencyMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldDecimals(ctx)
 	case fiatcurrency.FieldSymbol:
 		return m.OldSymbol(ctx)
+	case fiatcurrency.FieldName:
+		return m.OldName(ctx)
 	}
 	return nil, fmt.Errorf("unknown FiatCurrency field %s", name)
 }
@@ -1384,6 +1428,13 @@ func (m *FiatCurrencyMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetSymbol(v)
+		return nil
+	case fiatcurrency.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
 		return nil
 	}
 	return fmt.Errorf("unknown FiatCurrency field %s", name)
@@ -1466,6 +1517,9 @@ func (m *FiatCurrencyMutation) ResetField(name string) error {
 		return nil
 	case fiatcurrency.FieldSymbol:
 		m.ResetSymbol()
+		return nil
+	case fiatcurrency.FieldName:
+		m.ResetName()
 		return nil
 	}
 	return fmt.Errorf("unknown FiatCurrency field %s", name)

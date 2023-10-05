@@ -48,6 +48,7 @@ var (
 		{Name: "short_name", Type: field.TypeString, Unique: true},
 		{Name: "decimals", Type: field.TypeInt, Default: 2},
 		{Name: "symbol", Type: field.TypeString},
+		{Name: "name", Type: field.TypeString},
 	}
 	// FiatCurrenciesTable holds the schema information for the "fiat_currencies" table.
 	FiatCurrenciesTable = &schema.Table{

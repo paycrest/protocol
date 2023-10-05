@@ -27,6 +27,7 @@ func (FiatCurrency) Fields() []ent.Field {
 		field.String("short_name").Unique(),
 		field.Int("decimals").Default(2),
 		field.String("symbol"),
+		field.String("name"),
 	}
 }
 
