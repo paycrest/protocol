@@ -15,6 +15,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent"
 	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
 	networkent "github.com/paycrest/paycrest-protocol/ent/network"
@@ -369,6 +370,78 @@ func (s *IndexerService) IndexOrderDeposits(ctx context.Context, client types.RP
 			}
 		case err := <-sub.Err():
 			logger.Errorf("failed to parse deposit event: %v", err)
+			continue
+		}
+	}
+}
+
+// IndexOrderSettlements indexes order settlements for a specific network.
+func (s *IndexerService) IndexOrderSettlements(ctx context.Context, client types.RPCClient, network *ent.Network) error {
+	var err error
+
+	// Connect to RPC endpoint
+	if client == nil {
+		client, err = types.NewEthClient(network.RPCEndpoint)
+		if err != nil {
+			return fmt.Errorf("failed to connect to RPC client: %w", err)
+		}
+	}
+
+	// Initialize contract filterer
+	filterer, err := contracts.NewPaycrestOrderFilterer(OrderConf.PaycrestOrderContractAddress, client)
+	if err != nil {
+		return fmt.Errorf("failed to create filterer: %w", err)
+	}
+
+	// TODO: index missing blocks here
+	// e.g go s.indexMissingBlocks(ctx, client, filterer, network)
+
+	// Start listening for settlement events
+	logs := make(chan *contracts.PaycrestOrderSettled)
+
+	sub, err := filterer.WatchSettled(&bind.WatchOpts{
+		Start: nil,
+	}, logs, nil, nil)
+	if err != nil {
+		return fmt.Errorf("failed to watch settlement events: %w", err)
+	}
+
+	defer sub.Unsubscribe()
+
+	logger.Infof("Listening for Settlement events...\n")
+
+	for {
+		select {
+		case log := <-logs:
+			splitOrderId, _ := uuid.Parse(utils.Byte32ToString(log.SplitOrderId))
+
+			_, err := db.Client.LockPaymentOrder.
+				Update().
+				Where(
+					lockpaymentorder.IDEQ(splitOrderId),
+				).
+				SetStatus(lockpaymentorder.StatusSettled).
+				Save(ctx)
+			if err != nil {
+				logger.Errorf("failed to fetch lock payment order: %v", err)
+				continue
+			}
+
+			// TODO: Settle payment order on sender side
+			// orderId, _ := uuid.Parse(utils.Byte32ToString(log.OrderId))
+			// order, err = db.Client.PaymentOrder.
+			// 	Query().
+			// 	Where(
+			// 		paymentorder.OrderIDEQ(orderId),
+			// 	).
+			// 	Only(ctx)
+
+			// if err != nil {
+			// 	logger.Errorf("failed to fetch lock payment order: %v", err)
+			// 	continue
+			// }
+		case err := <-sub.Err():
+			logger.Errorf("failed to parse settlement event: %v", err)
 			continue
 		}
 	}
