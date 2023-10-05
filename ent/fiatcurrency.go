@@ -29,7 +29,9 @@ type FiatCurrency struct {
 	// Decimals holds the value of the "decimals" field.
 	Decimals int `json:"decimals,omitempty"`
 	// Symbol holds the value of the "symbol" field.
-	Symbol       string `json:"symbol,omitempty"`
+	Symbol string `json:"symbol,omitempty"`
+	// Name holds the value of the "name" field.
+	Name         string `json:"name,omitempty"`
 	selectValues sql.SelectValues
 }
 
@@ -40,7 +42,7 @@ func (*FiatCurrency) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case fiatcurrency.FieldDecimals:
 			values[i] = new(sql.NullInt64)
-		case fiatcurrency.FieldCode, fiatcurrency.FieldShortName, fiatcurrency.FieldSymbol:
+		case fiatcurrency.FieldCode, fiatcurrency.FieldShortName, fiatcurrency.FieldSymbol, fiatcurrency.FieldName:
 			values[i] = new(sql.NullString)
 		case fiatcurrency.FieldCreatedAt, fiatcurrency.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -103,6 +105,12 @@ func (fc *FiatCurrency) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				fc.Symbol = value.String
 			}
+		case fiatcurrency.FieldName:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field name", values[i])
+			} else if value.Valid {
+				fc.Name = value.String
+			}
 		default:
 			fc.selectValues.Set(columns[i], values[i])
 		}
@@ -156,6 +164,9 @@ func (fc *FiatCurrency) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("symbol=")
 	builder.WriteString(fc.Symbol)
+	builder.WriteString(", ")
+	builder.WriteString("name=")
+	builder.WriteString(fc.Name)
 	builder.WriteByte(')')
 	return builder.String()
 }

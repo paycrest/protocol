@@ -81,6 +81,12 @@ func (fcc *FiatCurrencyCreate) SetSymbol(s string) *FiatCurrencyCreate {
 	return fcc
 }
 
+// SetName sets the "name" field.
+func (fcc *FiatCurrencyCreate) SetName(s string) *FiatCurrencyCreate {
+	fcc.mutation.SetName(s)
+	return fcc
+}
+
 // SetID sets the "id" field.
 func (fcc *FiatCurrencyCreate) SetID(u uuid.UUID) *FiatCurrencyCreate {
 	fcc.mutation.SetID(u)
@@ -168,6 +174,9 @@ func (fcc *FiatCurrencyCreate) check() error {
 	if _, ok := fcc.mutation.Symbol(); !ok {
 		return &ValidationError{Name: "symbol", err: errors.New(`ent: missing required field "FiatCurrency.symbol"`)}
 	}
+	if _, ok := fcc.mutation.Name(); !ok {
+		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "FiatCurrency.name"`)}
+	}
 	return nil
 }
 
@@ -226,6 +235,10 @@ func (fcc *FiatCurrencyCreate) createSpec() (*FiatCurrency, *sqlgraph.CreateSpec
 	if value, ok := fcc.mutation.Symbol(); ok {
 		_spec.SetField(fiatcurrency.FieldSymbol, field.TypeString, value)
 		_node.Symbol = value
+	}
+	if value, ok := fcc.mutation.Name(); ok {
+		_spec.SetField(fiatcurrency.FieldName, field.TypeString, value)
+		_node.Name = value
 	}
 	return _node, _spec
 }

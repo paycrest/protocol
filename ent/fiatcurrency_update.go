@@ -73,6 +73,12 @@ func (fcu *FiatCurrencyUpdate) SetSymbol(s string) *FiatCurrencyUpdate {
 	return fcu
 }
 
+// SetName sets the "name" field.
+func (fcu *FiatCurrencyUpdate) SetName(s string) *FiatCurrencyUpdate {
+	fcu.mutation.SetName(s)
+	return fcu
+}
+
 // Mutation returns the FiatCurrencyMutation object of the builder.
 func (fcu *FiatCurrencyUpdate) Mutation() *FiatCurrencyMutation {
 	return fcu.mutation
@@ -141,6 +147,9 @@ func (fcu *FiatCurrencyUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if value, ok := fcu.mutation.Symbol(); ok {
 		_spec.SetField(fiatcurrency.FieldSymbol, field.TypeString, value)
 	}
+	if value, ok := fcu.mutation.Name(); ok {
+		_spec.SetField(fiatcurrency.FieldName, field.TypeString, value)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, fcu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{fiatcurrency.Label}
@@ -203,6 +212,12 @@ func (fcuo *FiatCurrencyUpdateOne) AddDecimals(i int) *FiatCurrencyUpdateOne {
 // SetSymbol sets the "symbol" field.
 func (fcuo *FiatCurrencyUpdateOne) SetSymbol(s string) *FiatCurrencyUpdateOne {
 	fcuo.mutation.SetSymbol(s)
+	return fcuo
+}
+
+// SetName sets the "name" field.
+func (fcuo *FiatCurrencyUpdateOne) SetName(s string) *FiatCurrencyUpdateOne {
+	fcuo.mutation.SetName(s)
 	return fcuo
 }
 
@@ -303,6 +318,9 @@ func (fcuo *FiatCurrencyUpdateOne) sqlSave(ctx context.Context) (_node *FiatCurr
 	}
 	if value, ok := fcuo.mutation.Symbol(); ok {
 		_spec.SetField(fiatcurrency.FieldSymbol, field.TypeString, value)
+	}
+	if value, ok := fcuo.mutation.Name(); ok {
+		_spec.SetField(fiatcurrency.FieldName, field.TypeString, value)
 	}
 	_node = &FiatCurrency{config: fcuo.config}
 	_spec.Assign = _node.assignValues
