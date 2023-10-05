@@ -16,6 +16,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
+	"github.com/paycrest/paycrest-protocol/ent/fiatcurrency"
 	"github.com/paycrest/paycrest-protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/network"
@@ -41,6 +42,8 @@ type Client struct {
 	Schema *migrate.Schema
 	// APIKey is the client for interacting with the APIKey builders.
 	APIKey *APIKeyClient
+	// FiatCurrency is the client for interacting with the FiatCurrency builders.
+	FiatCurrency *FiatCurrencyClient
 	// LockOrderFulfillment is the client for interacting with the LockOrderFulfillment builders.
 	LockOrderFulfillment *LockOrderFulfillmentClient
 	// LockPaymentOrder is the client for interacting with the LockPaymentOrder builders.
@@ -87,6 +90,7 @@ func NewClient(opts ...Option) *Client {
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
 	c.APIKey = NewAPIKeyClient(c.config)
+	c.FiatCurrency = NewFiatCurrencyClient(c.config)
 	c.LockOrderFulfillment = NewLockOrderFulfillmentClient(c.config)
 	c.LockPaymentOrder = NewLockPaymentOrderClient(c.config)
 	c.Network = NewNetworkClient(c.config)
@@ -186,6 +190,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		ctx:                       ctx,
 		config:                    cfg,
 		APIKey:                    NewAPIKeyClient(cfg),
+		FiatCurrency:              NewFiatCurrencyClient(cfg),
 		LockOrderFulfillment:      NewLockOrderFulfillmentClient(cfg),
 		LockPaymentOrder:          NewLockPaymentOrderClient(cfg),
 		Network:                   NewNetworkClient(cfg),
@@ -222,6 +227,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		ctx:                       ctx,
 		config:                    cfg,
 		APIKey:                    NewAPIKeyClient(cfg),
+		FiatCurrency:              NewFiatCurrencyClient(cfg),
 		LockOrderFulfillment:      NewLockOrderFulfillmentClient(cfg),
 		LockPaymentOrder:          NewLockPaymentOrderClient(cfg),
 		Network:                   NewNetworkClient(cfg),
@@ -267,11 +273,11 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.APIKey, c.LockOrderFulfillment, c.LockPaymentOrder, c.Network, c.PaymentOrder,
-		c.PaymentOrderRecipient, c.ProviderAvailability, c.ProviderOrderToken,
-		c.ProviderOrderTokenAddress, c.ProviderProfile, c.ProviderRating,
-		c.ProvisionBucket, c.ReceiveAddress, c.Token, c.User, c.ValidatorProfile,
-		c.VerificationToken,
+		c.APIKey, c.FiatCurrency, c.LockOrderFulfillment, c.LockPaymentOrder, c.Network,
+		c.PaymentOrder, c.PaymentOrderRecipient, c.ProviderAvailability,
+		c.ProviderOrderToken, c.ProviderOrderTokenAddress, c.ProviderProfile,
+		c.ProviderRating, c.ProvisionBucket, c.ReceiveAddress, c.Token, c.User,
+		c.ValidatorProfile, c.VerificationToken,
 	} {
 		n.Use(hooks...)
 	}
@@ -281,11 +287,11 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.APIKey, c.LockOrderFulfillment, c.LockPaymentOrder, c.Network, c.PaymentOrder,
-		c.PaymentOrderRecipient, c.ProviderAvailability, c.ProviderOrderToken,
-		c.ProviderOrderTokenAddress, c.ProviderProfile, c.ProviderRating,
-		c.ProvisionBucket, c.ReceiveAddress, c.Token, c.User, c.ValidatorProfile,
-		c.VerificationToken,
+		c.APIKey, c.FiatCurrency, c.LockOrderFulfillment, c.LockPaymentOrder, c.Network,
+		c.PaymentOrder, c.PaymentOrderRecipient, c.ProviderAvailability,
+		c.ProviderOrderToken, c.ProviderOrderTokenAddress, c.ProviderProfile,
+		c.ProviderRating, c.ProvisionBucket, c.ReceiveAddress, c.Token, c.User,
+		c.ValidatorProfile, c.VerificationToken,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -296,6 +302,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
 	case *APIKeyMutation:
 		return c.APIKey.mutate(ctx, m)
+	case *FiatCurrencyMutation:
+		return c.FiatCurrency.mutate(ctx, m)
 	case *LockOrderFulfillmentMutation:
 		return c.LockOrderFulfillment.mutate(ctx, m)
 	case *LockPaymentOrderMutation:
@@ -512,6 +520,124 @@ func (c *APIKeyClient) mutate(ctx context.Context, m *APIKeyMutation) (Value, er
 		return (&APIKeyDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown APIKey mutation op: %q", m.Op())
+	}
+}
+
+// FiatCurrencyClient is a client for the FiatCurrency schema.
+type FiatCurrencyClient struct {
+	config
+}
+
+// NewFiatCurrencyClient returns a client for the FiatCurrency from the given config.
+func NewFiatCurrencyClient(c config) *FiatCurrencyClient {
+	return &FiatCurrencyClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `fiatcurrency.Hooks(f(g(h())))`.
+func (c *FiatCurrencyClient) Use(hooks ...Hook) {
+	c.hooks.FiatCurrency = append(c.hooks.FiatCurrency, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `fiatcurrency.Intercept(f(g(h())))`.
+func (c *FiatCurrencyClient) Intercept(interceptors ...Interceptor) {
+	c.inters.FiatCurrency = append(c.inters.FiatCurrency, interceptors...)
+}
+
+// Create returns a builder for creating a FiatCurrency entity.
+func (c *FiatCurrencyClient) Create() *FiatCurrencyCreate {
+	mutation := newFiatCurrencyMutation(c.config, OpCreate)
+	return &FiatCurrencyCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of FiatCurrency entities.
+func (c *FiatCurrencyClient) CreateBulk(builders ...*FiatCurrencyCreate) *FiatCurrencyCreateBulk {
+	return &FiatCurrencyCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for FiatCurrency.
+func (c *FiatCurrencyClient) Update() *FiatCurrencyUpdate {
+	mutation := newFiatCurrencyMutation(c.config, OpUpdate)
+	return &FiatCurrencyUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *FiatCurrencyClient) UpdateOne(fc *FiatCurrency) *FiatCurrencyUpdateOne {
+	mutation := newFiatCurrencyMutation(c.config, OpUpdateOne, withFiatCurrency(fc))
+	return &FiatCurrencyUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *FiatCurrencyClient) UpdateOneID(id uuid.UUID) *FiatCurrencyUpdateOne {
+	mutation := newFiatCurrencyMutation(c.config, OpUpdateOne, withFiatCurrencyID(id))
+	return &FiatCurrencyUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for FiatCurrency.
+func (c *FiatCurrencyClient) Delete() *FiatCurrencyDelete {
+	mutation := newFiatCurrencyMutation(c.config, OpDelete)
+	return &FiatCurrencyDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *FiatCurrencyClient) DeleteOne(fc *FiatCurrency) *FiatCurrencyDeleteOne {
+	return c.DeleteOneID(fc.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *FiatCurrencyClient) DeleteOneID(id uuid.UUID) *FiatCurrencyDeleteOne {
+	builder := c.Delete().Where(fiatcurrency.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &FiatCurrencyDeleteOne{builder}
+}
+
+// Query returns a query builder for FiatCurrency.
+func (c *FiatCurrencyClient) Query() *FiatCurrencyQuery {
+	return &FiatCurrencyQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeFiatCurrency},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a FiatCurrency entity by its id.
+func (c *FiatCurrencyClient) Get(ctx context.Context, id uuid.UUID) (*FiatCurrency, error) {
+	return c.Query().Where(fiatcurrency.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *FiatCurrencyClient) GetX(ctx context.Context, id uuid.UUID) *FiatCurrency {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *FiatCurrencyClient) Hooks() []Hook {
+	return c.hooks.FiatCurrency
+}
+
+// Interceptors returns the client interceptors.
+func (c *FiatCurrencyClient) Interceptors() []Interceptor {
+	return c.inters.FiatCurrency
+}
+
+func (c *FiatCurrencyClient) mutate(ctx context.Context, m *FiatCurrencyMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&FiatCurrencyCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&FiatCurrencyUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&FiatCurrencyUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&FiatCurrencyDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown FiatCurrency mutation op: %q", m.Op())
 	}
 }
 
@@ -2952,14 +3078,14 @@ func (c *VerificationTokenClient) mutate(ctx context.Context, m *VerificationTok
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		APIKey, LockOrderFulfillment, LockPaymentOrder, Network, PaymentOrder,
-		PaymentOrderRecipient, ProviderAvailability, ProviderOrderToken,
+		APIKey, FiatCurrency, LockOrderFulfillment, LockPaymentOrder, Network,
+		PaymentOrder, PaymentOrderRecipient, ProviderAvailability, ProviderOrderToken,
 		ProviderOrderTokenAddress, ProviderProfile, ProviderRating, ProvisionBucket,
 		ReceiveAddress, Token, User, ValidatorProfile, VerificationToken []ent.Hook
 	}
 	inters struct {
-		APIKey, LockOrderFulfillment, LockPaymentOrder, Network, PaymentOrder,
-		PaymentOrderRecipient, ProviderAvailability, ProviderOrderToken,
+		APIKey, FiatCurrency, LockOrderFulfillment, LockPaymentOrder, Network,
+		PaymentOrder, PaymentOrderRecipient, ProviderAvailability, ProviderOrderToken,
 		ProviderOrderTokenAddress, ProviderProfile, ProviderRating, ProvisionBucket,
 		ReceiveAddress, Token, User, ValidatorProfile,
 		VerificationToken []ent.Interceptor

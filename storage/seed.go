@@ -6,7 +6,9 @@ import (
 	"fmt"
 
 	"github.com/paycrest/paycrest-protocol/ent"
+	"github.com/paycrest/paycrest-protocol/ent/fiatcurrency"
 	"github.com/paycrest/paycrest-protocol/ent/network"
+	"github.com/paycrest/paycrest-protocol/types"
 	"github.com/shopspring/decimal"
 )
 
@@ -102,6 +104,33 @@ func SeedDatabase() error {
 			Save(ctx)
 		if err != nil {
 			return fmt.Errorf("failed seeding provision buckets: %w", err)
+		}
+	}
+
+	// Seed Fiat Currencies
+	currencies := []types.SupportedCurrencies{
+		{Code: "NGN", Decimals: 2, Name: "Nigerian naira", ShortName: "Naira", Symbol: "₦"},
+		{Code: "KES", Decimals: 2, Name: "Kenyan shilling", ShortName: "Swahili", Symbol: "/="},
+	}
+
+	listedCurrencies := make([]*ent.FiatCurrencyCreate, 0)
+	for _, currency := range currencies {
+
+		_, err := client.FiatCurrency.Query().Where(fiatcurrency.CodeEQ(currency.Code)).Only(ctx)
+		if ent.IsNotFound(err) {
+			fmt.Printf("Seeding currency - %s\n", currency.Code)
+			listedCurrencies = append(listedCurrencies, client.FiatCurrency.Create().
+				SetCode(currency.Code).
+				SetShortName(currency.ShortName).
+				SetSymbol(currency.Symbol),
+			)
+		}
+	}
+
+	if len(listedCurrencies) > 0 {
+		_, err = client.FiatCurrency.CreateBulk(listedCurrencies...).Save(ctx)
+		if err != nil {
+			return fmt.Errorf("failed seeding fiat currencies: %w", err)
 		}
 	}
 
