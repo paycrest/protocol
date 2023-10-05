@@ -344,7 +344,7 @@ func (s *IndexerService) IndexOrderDeposits(ctx context.Context, client types.RP
 		return fmt.Errorf("failed to create filterer: %w", err)
 	}
 
-	go s.indexMissingBlocks(ctx, client, filterer, network)
+	go s.indexMissedBlocksForDeposits(ctx, client, filterer, network)
 
 	// Start listening for deposit events
 	logs := make(chan *contracts.PaycrestOrderDeposit)
@@ -363,9 +363,9 @@ func (s *IndexerService) IndexOrderDeposits(ctx context.Context, client types.RP
 	for {
 		select {
 		case log := <-logs:
-			err := s.saveLockPaymentOrder(ctx, client, network, log)
+			err := s.createLockPaymentOrder(ctx, client, network, log)
 			if err != nil {
-				logger.Errorf("failed to save lock payment order: %v", err)
+				logger.Errorf("failed to create lock payment order: %v", err)
 				continue
 			}
 		case err := <-sub.Err():
@@ -393,8 +393,7 @@ func (s *IndexerService) IndexOrderSettlements(ctx context.Context, client types
 		return fmt.Errorf("failed to create filterer: %w", err)
 	}
 
-	// TODO: index missing blocks here
-	// e.g go s.indexMissingBlocks(ctx, client, filterer, network)
+	go s.indexMissedBlocksForSettlements(ctx, client, filterer, network)
 
 	// Start listening for settlement events
 	logs := make(chan *contracts.PaycrestOrderSettled)
@@ -448,8 +447,8 @@ func (s *IndexerService) IndexOrderSettlements(ctx context.Context, client types
 	}
 }
 
-// indexMissingBlocks indexes missing blocks from the last lock payment order block number
-func (s *IndexerService) indexMissingBlocks(ctx context.Context, client types.RPCClient, filterer *contracts.PaycrestOrderFilterer, network *ent.Network) {
+// indexMissedBlocksForDeposits indexes missed blocks for deposits from the last lock payment order block number
+func (s *IndexerService) indexMissedBlocksForDeposits(ctx context.Context, client types.RPCClient, filterer *contracts.PaycrestOrderFilterer, network *ent.Network) {
 	// Get the last lock payment order from db
 	result, err := db.Client.LockPaymentOrder.
 		Query().
@@ -492,9 +491,71 @@ func (s *IndexerService) indexMissingBlocks(ctx context.Context, client types.RP
 
 		// Iterate over logs
 		for iter.Next() {
-			err := s.saveLockPaymentOrder(ctx, client, network, iter.Event)
+			err := s.createLockPaymentOrder(ctx, client, network, iter.Event)
 			if err != nil {
-				logger.Errorf("failed to save lock payment order: %v", err)
+				logger.Errorf("failed to create lock payment order: %v", err)
+				continue
+			}
+		}
+	}
+}
+
+// indexMissedBlocksForSettlements indexes missed blocks for settlements from the last settled lock payment order block number
+func (s *IndexerService) indexMissedBlocksForSettlements(ctx context.Context, client types.RPCClient, filterer *contracts.PaycrestOrderFilterer, network *ent.Network) {
+	// Get the last lock payment order from db
+	result, err := db.Client.LockPaymentOrder.
+		Query().
+		Where(
+			lockpaymentorder.HasTokenWith(
+				token.HasNetworkWith(
+					networkent.IDEQ(network.ID),
+				),
+			),
+			lockpaymentorder.StatusEQ(lockpaymentorder.StatusValidated),
+		).
+		Order(ent.Desc(lockpaymentorder.FieldBlockNumber)).
+		Limit(1).
+		All(ctx)
+	if err != nil {
+		logger.Errorf("failed to fetch lock payment order: %v", err)
+	}
+
+	// Fetch current block header
+	header, err := client.HeaderByNumber(ctx, nil)
+	if err != nil {
+		logger.Errorf("failed to fetch current block number: %v", err)
+	}
+
+	if len(result) > 0 {
+		lockPaymentOrder := result[0]
+
+		// Filter logs from the last lock payment order block number
+		toBlock := header.Number.Uint64()
+		opts := &bind.FilterOpts{
+			Start: uint64(lockPaymentOrder.BlockNumber),
+			End:   &toBlock,
+		}
+
+		// Fetch logs
+		iter, err := filterer.FilterSettled(opts, nil, nil)
+		if err != nil {
+			logger.Errorf("failed to fetch logs: %v", err)
+		}
+
+		// Iterate over logs
+		for iter.Next() {
+			splitOrderId, _ := uuid.Parse(utils.Byte32ToString(iter.Event.SplitOrderId))
+
+			_, err := db.Client.LockPaymentOrder.
+				Update().
+				Where(
+					lockpaymentorder.IDEQ(splitOrderId),
+				).
+				SetBlockNumber(int64(iter.Event.Raw.BlockNumber)).
+				SetStatus(lockpaymentorder.StatusSettled).
+				Save(ctx)
+			if err != nil {
+				logger.Errorf("failed to update lock payment order: %v", err)
 				continue
 			}
 		}
@@ -526,8 +587,8 @@ func (s *IndexerService) getOrderRecipientFromMessageHash(messageHash string) (*
 	return recipient, nil
 }
 
-// saveLockPaymentOrder saves a lock payment order in the database
-func (s *IndexerService) saveLockPaymentOrder(ctx context.Context, client types.RPCClient, network *ent.Network, deposit *contracts.PaycrestOrderDeposit) error {
+// createLockPaymentOrder saves a lock payment order in the database
+func (s *IndexerService) createLockPaymentOrder(ctx context.Context, client types.RPCClient, network *ent.Network, deposit *contracts.PaycrestOrderDeposit) error {
 	// Get token from db
 	token, err := db.Client.Token.
 		Query().
