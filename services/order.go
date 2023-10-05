@@ -241,6 +241,7 @@ func (s *OrderService) SettleOrder(ctx context.Context, client types.RPCClient, 
 	// Settle order
 	tx, err := orderContract.Settle(
 		nil,
+		utils.StringToByte32(order.ID.String()),
 		utils.StringToByte32(order.OrderID),
 		validators,
 		common.HexToAddress(providerAddress.Address),
