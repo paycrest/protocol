@@ -2,12 +2,15 @@ package tasks
 
 import (
 	"context"
+	"time"
 
 	"github.com/paycrest/paycrest-protocol/ent"
+	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
 	"github.com/paycrest/paycrest-protocol/services"
 	"github.com/paycrest/paycrest-protocol/storage"
+	"github.com/paycrest/paycrest-protocol/types"
 	"github.com/paycrest/paycrest-protocol/utils/logger"
 )
 
@@ -104,4 +107,45 @@ func SubscribeToRedisKeyspaceEvents() {
 	orderRequestChan := orderRequest.Channel()
 
 	go services.NewPriorityQueueService().ReassignStaleOrderRequest(ctx, orderRequestChan)
+}
+
+// ProcessUnfulfilledLockOrders reassigns lockOrder not unfulfilled within a time frame.
+func ProcessUnfulfilledLockOrders() error {
+	ctx := context.Background()
+
+	lockOrders, err := storage.GetClient().LockPaymentOrder.
+		Query().
+		Where(
+			lockpaymentorder.StatusEQ(lockpaymentorder.StatusProcessing),
+			lockpaymentorder.UpdatedAtLTE(time.Now().Add(-services.OrderConf.ReceiveAddressValidity*time.Minute)),
+		).
+		All(ctx)
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		for _, order := range lockOrders {
+
+			lockPaymentOrder := types.LockPaymentOrderFields{
+				Token:             order.Edges.Token,
+				OrderID:           order.OrderID,
+				Amount:            order.Amount,
+				Rate:              order.Rate,
+				BlockNumber:       order.BlockNumber,
+				Institution:       order.Institution,
+				AccountIdentifier: order.AccountIdentifier,
+				AccountName:       order.AccountName,
+				ProviderID:        order.Edges.Provider.ID,
+				ProvisionBucket:   order.Edges.ProvisionBucket,
+			}
+
+			err := services.NewPriorityQueueService().AssignLockPaymentOrder(ctx, lockPaymentOrder)
+			if err != nil {
+				logger.Errorf("task reassign unfulfilled lock order with id: %s => %v\n", order.OrderID, err)
+			}
+		}
+	}()
+
+	return nil
 }
