@@ -101,6 +101,11 @@ func (s *PriorityQueueService) CreatePriorityQueueForBucket(ctx context.Context,
 	// Enqueue provider ID and rate as a single string into the circular queue
 	redisKey := fmt.Sprintf("bucket_%d_%d", bucket.MinAmount, bucket.MaxAmount)
 
+	_, err := storage.RedisClient.Del(ctx, redisKey).Result() // delete existing queue
+	if err != nil {
+		logger.Errorf("failed to delete existing circular queue: %v", err)
+	}
+
 	for _, provider := range providers {
 		providerID := provider.ID
 		rate, _ := s.getProviderRate(provider)
