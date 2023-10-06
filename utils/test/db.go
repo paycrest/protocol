@@ -190,3 +190,33 @@ func CreateTestValidatorProfile(overrides map[string]interface{}) (*ent.Validato
 
 	return profile, err
 }
+
+func CreateSupportedFiatCurrency(overrides map[string]interface{}) (*ent.FiatCurrency, error) {
+  
+  // Default payload.
+  payload := map[string]interface{}{
+    "id": uuid.New(),
+    "code": "NGN",
+    "short_name": "Naira",
+    "decimals": 2,
+    "symbol": "₦",
+    "name": "Nigerian naira",
+  }
+
+  // Apply overrides.
+  for key, value := range overrides {
+    payload[key] = value
+  }
+
+  currency, err := db.Client.FiatCurrency.
+    Create().
+    SetID(payload["id"].(uuid.UUID)).
+    SetCode(payload["code"].(string)).
+    SetShortName(payload["short_name"].(string)).
+    SetDecimals(payload["decimals"].(int)).
+    SetSymbol(payload["symbol"].(string)).
+    SetName(payload["name"].(string)).
+    Save(context.Background())
+
+  return currency, err
+}

@@ -31,12 +31,24 @@ func NewController() *Controller {
 
 // GetFiatCurrencies controller fetches the supported fiat currencies
 func (ctrl *Controller) GetFiatCurrencies(ctx *gin.Context) {
-	currencies, err := ctrl.orderService.GetSuppotedCurrencies(ctx, nil)
+  // fetch stored fiat currencies.
+	fiatcurrencies, err := storage.Client.FiatCurrency.Query().All(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusBadRequest, "error",
-			"Failed to fetch institutions", err.Error())
+			"Failed to fetch FiatCurrencies", err.Error())
 		return
+	}
+
+	currencies := make([]types.SupportedCurrencies, 0, len(fiatcurrencies))
+	for _, currency := range fiatcurrencies {
+		currencies = append(currencies, types.SupportedCurrencies{
+			Code:      currency.Code,
+			Name:      currency.Name,
+			ShortName: currency.ShortName,
+			Decimals:  int8(currency.Decimals),
+			Symbol:    currency.Symbol,
+		})
 	}
 
 	u.APIResponse(ctx, http.StatusOK, "success", "OK", currencies)
