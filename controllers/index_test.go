@@ -62,6 +62,10 @@ func setup() error {
 
 	testCtx.apiKeySecret = secretKey
 
+	if _, err := test.CreateSupportedFiatCurrency(nil); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -173,13 +177,33 @@ func TestIndex(t *testing.T) {
 			fmt.Println("validation errors: ", fulfillment.ValidationErrors)
 			assert.Contains(t, fulfillment.ValidationErrors, "Invalid transaction reference")
 		})
+	})
 
-		t.Run("fetch supported fiat currencies", func(t *testing.T) {
+	t.Run("Currencies", func(t *testing.T) {
+		t.Run("fetched supported fiat currencies", func(t *testing.T) {
 			res, err := test.PerformRequest(t, "GET", "/currencies", nil, nil, router)
 			assert.NoError(t, err)
 
-			// Assert the response body
+			// Assert the response code.
 			assert.Equal(t, http.StatusOK, res.Code)
+
+			var response struct {
+				Data    []types.SupportedCurrencies
+				Message string
+			}
+			err = json.Unmarshal(res.Body.Bytes(), &response)
+			assert.NoError(t, err)
+			assert.Equal(t, "OK", response.Message)
+
+			// Assert /currencies response with the seeded naira currency.
+			nairacurrency := types.SupportedCurrencies{
+				Code:      "NGN",
+				Name:      "Nigerian naira",
+				ShortName: "Naira",
+				Decimals:  2,
+				Symbol:    "₦",
+			}
+			assert.Equal(t, nairacurrency, response.Data[0])
 		})
 	})
 }

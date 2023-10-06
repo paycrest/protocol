@@ -552,24 +552,3 @@ func (s *OrderService) GetSupportedInstitution(ctx context.Context, client types
 
 	return supportedInstitution, nil
 }
-
-// GetSuppotedCurrencies fetches the currencies supported by the aggregator.
-func (s *OrderService) GetSuppotedCurrencies(ctx context.Context, client types.RPCClient) ([]types.SupportedCurrencies, error) {
-	fiatcurrencies, err := db.Client.FiatCurrency.Query().All(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch supported fiat currencies: %w", err)
-	}
-
-	supportedFiatCurrencies := make([]types.SupportedCurrencies, 0, len(fiatcurrencies))
-	for _, currency := range fiatcurrencies {
-		supportedFiatCurrencies = append(supportedFiatCurrencies, types.SupportedCurrencies{
-			Code:      currency.Code,
-			Name:      currency.Name,
-			ShortName: currency.ShortName,
-			Decimals:  int8(currency.Decimals),
-			Symbol:    currency.Symbol,
-		})
-	}
-
-	return supportedFiatCurrencies, nil
-}
