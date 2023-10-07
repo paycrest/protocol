@@ -124,6 +124,8 @@ func ComputeMarketRate() error {
 		return err
 	}
 
+	priorityQueue := services.NewPriorityQueueService()
+
 	for _, currency := range currencies {
 		go func(currency *ent.FiatCurrency) {
 			// Fetch rates from token configs with fixed conversion rate
@@ -153,13 +155,16 @@ func ComputeMarketRate() error {
 			median := utils.Median(rates)
 
 			// Update currency with median rate
-			_, err = storage.Client.FiatCurrency.
+			currency, err = storage.Client.FiatCurrency.
 				UpdateOneID(currency.ID).
 				SetMarketRate(median).
 				Save(ctx)
 			if err != nil {
 				logger.Errorf("compute market price task => %v\n", err)
 			}
+
+			// Create default bucket for currency
+			priorityQueue.CreatePriorityQueueForDefaultBucket(ctx, currency)
 		}(currency)
 	}
 
