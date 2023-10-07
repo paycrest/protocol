@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent"
+	"github.com/paycrest/paycrest-protocol/ent/fiatcurrency"
 	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/provideravailability"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
@@ -121,8 +122,34 @@ func (s *PriorityQueueService) CreatePriorityQueueForBucket(ctx context.Context,
 	}
 }
 
-func (s *PriorityQueueService) CreatePriorityQueueForDefaultBucket(ctx context.Context) {
-	
+// CreatePriorityQueueForDefaultBucket creates a priority queue for the default bucket and saves it to redis
+func (s *PriorityQueueService) CreatePriorityQueueForDefaultBucket(ctx context.Context, currency *ent.FiatCurrency) {
+	// Fetch providers with is_partner == true
+	providers, err := storage.Client.ProviderProfile.
+		Query().
+		Where(
+			providerprofile.IsPartnerEQ(true),
+			providerprofile.HasCurrencyWith(fiatcurrency.IDEQ(currency.ID)),
+		).
+		// WithProviderRating(). //  should we sort partner providers by trust score?
+		All(ctx)
+	if err != nil {
+		logger.Errorf("failed to fetch partner providers: %v", err)
+		return
+	}
+
+	// Create default buckets
+	for _, provider := range providers {
+		providerID := provider.ID
+
+		// Enqueue provider ID and market rate as a single string into the circular queue
+		redisKey := fmt.Sprintf("bucket_%s_default", currency.Code)
+		data := fmt.Sprintf("%s:%s", providerID, currency.MarketRate)
+		err := storage.RedisClient.RPush(ctx, redisKey, data).Err()
+		if err != nil {
+			logger.Errorf("failed to enqueue provider data to circular queue: %v", err)
+		}
+	}
 }
 
 // AssignLockPaymentOrders assigns lock payment orders to providers
