@@ -37,9 +37,9 @@ func (potu *ProviderOrderTokenUpdate) SetUpdatedAt(t time.Time) *ProviderOrderTo
 	return potu
 }
 
-// SetName sets the "name" field.
-func (potu *ProviderOrderTokenUpdate) SetName(pr providerordertoken.Name) *ProviderOrderTokenUpdate {
-	potu.mutation.SetName(pr)
+// SetSymbol sets the "symbol" field.
+func (potu *ProviderOrderTokenUpdate) SetSymbol(pr providerordertoken.Symbol) *ProviderOrderTokenUpdate {
+	potu.mutation.SetSymbol(pr)
 	return potu
 }
 
@@ -205,9 +205,9 @@ func (potu *ProviderOrderTokenUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (potu *ProviderOrderTokenUpdate) check() error {
-	if v, ok := potu.mutation.Name(); ok {
-		if err := providerordertoken.NameValidator(v); err != nil {
-			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "ProviderOrderToken.name": %w`, err)}
+	if v, ok := potu.mutation.Symbol(); ok {
+		if err := providerordertoken.SymbolValidator(v); err != nil {
+			return &ValidationError{Name: "symbol", err: fmt.Errorf(`ent: validator failed for field "ProviderOrderToken.symbol": %w`, err)}
 		}
 	}
 	if v, ok := potu.mutation.ConversionRateType(); ok {
@@ -233,8 +233,8 @@ func (potu *ProviderOrderTokenUpdate) sqlSave(ctx context.Context) (n int, err e
 	if value, ok := potu.mutation.UpdatedAt(); ok {
 		_spec.SetField(providerordertoken.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := potu.mutation.Name(); ok {
-		_spec.SetField(providerordertoken.FieldName, field.TypeEnum, value)
+	if value, ok := potu.mutation.Symbol(); ok {
+		_spec.SetField(providerordertoken.FieldSymbol, field.TypeEnum, value)
 	}
 	if value, ok := potu.mutation.FixedConversionRate(); ok {
 		_spec.SetField(providerordertoken.FieldFixedConversionRate, field.TypeFloat64, value)
@@ -363,9 +363,9 @@ func (potuo *ProviderOrderTokenUpdateOne) SetUpdatedAt(t time.Time) *ProviderOrd
 	return potuo
 }
 
-// SetName sets the "name" field.
-func (potuo *ProviderOrderTokenUpdateOne) SetName(pr providerordertoken.Name) *ProviderOrderTokenUpdateOne {
-	potuo.mutation.SetName(pr)
+// SetSymbol sets the "symbol" field.
+func (potuo *ProviderOrderTokenUpdateOne) SetSymbol(pr providerordertoken.Symbol) *ProviderOrderTokenUpdateOne {
+	potuo.mutation.SetSymbol(pr)
 	return potuo
 }
 
@@ -544,9 +544,9 @@ func (potuo *ProviderOrderTokenUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (potuo *ProviderOrderTokenUpdateOne) check() error {
-	if v, ok := potuo.mutation.Name(); ok {
-		if err := providerordertoken.NameValidator(v); err != nil {
-			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "ProviderOrderToken.name": %w`, err)}
+	if v, ok := potuo.mutation.Symbol(); ok {
+		if err := providerordertoken.SymbolValidator(v); err != nil {
+			return &ValidationError{Name: "symbol", err: fmt.Errorf(`ent: validator failed for field "ProviderOrderToken.symbol": %w`, err)}
 		}
 	}
 	if v, ok := potuo.mutation.ConversionRateType(); ok {
@@ -589,8 +589,8 @@ func (potuo *ProviderOrderTokenUpdateOne) sqlSave(ctx context.Context) (_node *P
 	if value, ok := potuo.mutation.UpdatedAt(); ok {
 		_spec.SetField(providerordertoken.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := potuo.mutation.Name(); ok {
-		_spec.SetField(providerordertoken.FieldName, field.TypeEnum, value)
+	if value, ok := potuo.mutation.Symbol(); ok {
+		_spec.SetField(providerordertoken.FieldSymbol, field.TypeEnum, value)
 	}
 	if value, ok := potuo.mutation.FixedConversionRate(); ok {
 		_spec.SetField(providerordertoken.FieldFixedConversionRate, field.TypeFloat64, value)

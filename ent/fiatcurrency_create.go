@@ -12,6 +12,8 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/fiatcurrency"
+	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
+	"github.com/shopspring/decimal"
 )
 
 // FiatCurrencyCreate is the builder for creating a FiatCurrency entity.
@@ -87,6 +89,12 @@ func (fcc *FiatCurrencyCreate) SetName(s string) *FiatCurrencyCreate {
 	return fcc
 }
 
+// SetMarketRate sets the "market_rate" field.
+func (fcc *FiatCurrencyCreate) SetMarketRate(d decimal.Decimal) *FiatCurrencyCreate {
+	fcc.mutation.SetMarketRate(d)
+	return fcc
+}
+
 // SetID sets the "id" field.
 func (fcc *FiatCurrencyCreate) SetID(u uuid.UUID) *FiatCurrencyCreate {
 	fcc.mutation.SetID(u)
@@ -99,6 +107,25 @@ func (fcc *FiatCurrencyCreate) SetNillableID(u *uuid.UUID) *FiatCurrencyCreate {
 		fcc.SetID(*u)
 	}
 	return fcc
+}
+
+// SetProviderID sets the "provider" edge to the ProviderProfile entity by ID.
+func (fcc *FiatCurrencyCreate) SetProviderID(id string) *FiatCurrencyCreate {
+	fcc.mutation.SetProviderID(id)
+	return fcc
+}
+
+// SetNillableProviderID sets the "provider" edge to the ProviderProfile entity by ID if the given value is not nil.
+func (fcc *FiatCurrencyCreate) SetNillableProviderID(id *string) *FiatCurrencyCreate {
+	if id != nil {
+		fcc = fcc.SetProviderID(*id)
+	}
+	return fcc
+}
+
+// SetProvider sets the "provider" edge to the ProviderProfile entity.
+func (fcc *FiatCurrencyCreate) SetProvider(p *ProviderProfile) *FiatCurrencyCreate {
+	return fcc.SetProviderID(p.ID)
 }
 
 // Mutation returns the FiatCurrencyMutation object of the builder.
@@ -177,6 +204,9 @@ func (fcc *FiatCurrencyCreate) check() error {
 	if _, ok := fcc.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "FiatCurrency.name"`)}
 	}
+	if _, ok := fcc.mutation.MarketRate(); !ok {
+		return &ValidationError{Name: "market_rate", err: errors.New(`ent: missing required field "FiatCurrency.market_rate"`)}
+	}
 	return nil
 }
 
@@ -239,6 +269,26 @@ func (fcc *FiatCurrencyCreate) createSpec() (*FiatCurrency, *sqlgraph.CreateSpec
 	if value, ok := fcc.mutation.Name(); ok {
 		_spec.SetField(fiatcurrency.FieldName, field.TypeString, value)
 		_node.Name = value
+	}
+	if value, ok := fcc.mutation.MarketRate(); ok {
+		_spec.SetField(fiatcurrency.FieldMarketRate, field.TypeFloat64, value)
+		_node.MarketRate = value
+	}
+	if nodes := fcc.mutation.ProviderIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   fiatcurrency.ProviderTable,
+			Columns: []string{fiatcurrency.ProviderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(providerprofile.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

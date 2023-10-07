@@ -4,7 +4,6 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
-	"entgo.io/ent/schema/index"
 	"github.com/shopspring/decimal"
 )
 
@@ -23,7 +22,7 @@ func (ProviderOrderToken) Mixin() []ent.Mixin {
 // Fields of the ProviderOrderToken.
 func (ProviderOrderToken) Fields() []ent.Field {
 	return []ent.Field{
-		field.Enum("name").
+		field.Enum("symbol").
 			Values("USDT", "USDC", "BUSD"),
 		field.Float("fixed_conversion_rate").
 			GoType(decimal.Decimal{}),
@@ -50,9 +49,5 @@ func (ProviderOrderToken) Edges() []ent.Edge {
 
 // Indexes of the ProviderOrderToken.
 func (ProviderOrderToken) Indexes() []ent.Index {
-	return []ent.Index{
-		index.Fields("name").
-			Edges("provider").
-			Unique(),
-	}
+	return nil
 }

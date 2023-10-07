@@ -51,9 +51,9 @@ func (potc *ProviderOrderTokenCreate) SetNillableUpdatedAt(t *time.Time) *Provid
 	return potc
 }
 
-// SetName sets the "name" field.
-func (potc *ProviderOrderTokenCreate) SetName(pr providerordertoken.Name) *ProviderOrderTokenCreate {
-	potc.mutation.SetName(pr)
+// SetSymbol sets the "symbol" field.
+func (potc *ProviderOrderTokenCreate) SetSymbol(pr providerordertoken.Symbol) *ProviderOrderTokenCreate {
+	potc.mutation.SetSymbol(pr)
 	return potc
 }
 
@@ -174,12 +174,12 @@ func (potc *ProviderOrderTokenCreate) check() error {
 	if _, ok := potc.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "ProviderOrderToken.updated_at"`)}
 	}
-	if _, ok := potc.mutation.Name(); !ok {
-		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "ProviderOrderToken.name"`)}
+	if _, ok := potc.mutation.Symbol(); !ok {
+		return &ValidationError{Name: "symbol", err: errors.New(`ent: missing required field "ProviderOrderToken.symbol"`)}
 	}
-	if v, ok := potc.mutation.Name(); ok {
-		if err := providerordertoken.NameValidator(v); err != nil {
-			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "ProviderOrderToken.name": %w`, err)}
+	if v, ok := potc.mutation.Symbol(); ok {
+		if err := providerordertoken.SymbolValidator(v); err != nil {
+			return &ValidationError{Name: "symbol", err: fmt.Errorf(`ent: validator failed for field "ProviderOrderToken.symbol": %w`, err)}
 		}
 	}
 	if _, ok := potc.mutation.FixedConversionRate(); !ok {
@@ -236,9 +236,9 @@ func (potc *ProviderOrderTokenCreate) createSpec() (*ProviderOrderToken, *sqlgra
 		_spec.SetField(providerordertoken.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
 	}
-	if value, ok := potc.mutation.Name(); ok {
-		_spec.SetField(providerordertoken.FieldName, field.TypeEnum, value)
-		_node.Name = value
+	if value, ok := potc.mutation.Symbol(); ok {
+		_spec.SetField(providerordertoken.FieldSymbol, field.TypeEnum, value)
+		_node.Symbol = value
 	}
 	if value, ok := potc.mutation.FixedConversionRate(); ok {
 		_spec.SetField(providerordertoken.FieldFixedConversionRate, field.TypeFloat64, value)

@@ -2,8 +2,11 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
+	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 )
 
 // FiatCurrency holds the schema definition for the FiatCurrency entity.
@@ -28,10 +31,16 @@ func (FiatCurrency) Fields() []ent.Field {
 		field.Int("decimals").Default(2),
 		field.String("symbol"),
 		field.String("name"),
+		field.Float("market_rate").
+			GoType(decimal.Decimal{}),
 	}
 }
 
 // Edges of the FiatCurrency.
 func (FiatCurrency) Edges() []ent.Edge {
-	return nil
+	return []ent.Edge{
+		edge.To("provider", ProviderProfile.Type).
+			Unique().
+			Annotations(entsql.OnDelete(entsql.SetNull)),
+	}
 }

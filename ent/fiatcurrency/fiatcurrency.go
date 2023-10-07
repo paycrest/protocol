@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/google/uuid"
 )
 
@@ -28,8 +29,19 @@ const (
 	FieldSymbol = "symbol"
 	// FieldName holds the string denoting the name field in the database.
 	FieldName = "name"
+	// FieldMarketRate holds the string denoting the market_rate field in the database.
+	FieldMarketRate = "market_rate"
+	// EdgeProvider holds the string denoting the provider edge name in mutations.
+	EdgeProvider = "provider"
 	// Table holds the table name of the fiatcurrency in the database.
 	Table = "fiat_currencies"
+	// ProviderTable is the table that holds the provider relation/edge.
+	ProviderTable = "provider_profiles"
+	// ProviderInverseTable is the table name for the ProviderProfile entity.
+	// It exists in this package in order to avoid circular dependency with the "providerprofile" package.
+	ProviderInverseTable = "provider_profiles"
+	// ProviderColumn is the table column denoting the provider relation/edge.
+	ProviderColumn = "fiat_currency_provider"
 )
 
 // Columns holds all SQL columns for fiatcurrency fields.
@@ -42,6 +54,7 @@ var Columns = []string{
 	FieldDecimals,
 	FieldSymbol,
 	FieldName,
+	FieldMarketRate,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -108,4 +121,23 @@ func BySymbol(opts ...sql.OrderTermOption) OrderOption {
 // ByName orders the results by the name field.
 func ByName(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldName, opts...).ToFunc()
+}
+
+// ByMarketRate orders the results by the market_rate field.
+func ByMarketRate(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldMarketRate, opts...).ToFunc()
+}
+
+// ByProviderField orders the results by provider field.
+func ByProviderField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newProviderStep(), sql.OrderByField(field, opts...))
+	}
+}
+func newProviderStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ProviderInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, false, ProviderTable, ProviderColumn),
+	)
 }

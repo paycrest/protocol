@@ -24,6 +24,8 @@ const (
 	FieldCountry = "country"
 	// EdgeAPIKey holds the string denoting the api_key edge name in mutations.
 	EdgeAPIKey = "api_key"
+	// EdgeCurrency holds the string denoting the currency edge name in mutations.
+	EdgeCurrency = "currency"
 	// EdgeProvisionBuckets holds the string denoting the provision_buckets edge name in mutations.
 	EdgeProvisionBuckets = "provision_buckets"
 	// EdgeOrderTokens holds the string denoting the order_tokens edge name in mutations.
@@ -43,6 +45,13 @@ const (
 	APIKeyInverseTable = "api_keys"
 	// APIKeyColumn is the table column denoting the api_key relation/edge.
 	APIKeyColumn = "api_key_provider_profile"
+	// CurrencyTable is the table that holds the currency relation/edge.
+	CurrencyTable = "provider_profiles"
+	// CurrencyInverseTable is the table name for the FiatCurrency entity.
+	// It exists in this package in order to avoid circular dependency with the "fiatcurrency" package.
+	CurrencyInverseTable = "fiat_currencies"
+	// CurrencyColumn is the table column denoting the currency relation/edge.
+	CurrencyColumn = "fiat_currency_provider"
 	// ProvisionBucketsTable is the table that holds the provision_buckets relation/edge. The primary key declared below.
 	ProvisionBucketsTable = "provision_bucket_provider_profiles"
 	// ProvisionBucketsInverseTable is the table name for the ProvisionBucket entity.
@@ -91,6 +100,7 @@ var Columns = []string{
 // table and are not defined as standalone fields in the schema.
 var ForeignKeys = []string{
 	"api_key_provider_profile",
+	"fiat_currency_provider",
 }
 
 var (
@@ -164,6 +174,13 @@ func ByAPIKeyField(field string, opts ...sql.OrderTermOption) OrderOption {
 	}
 }
 
+// ByCurrencyField orders the results by currency field.
+func ByCurrencyField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newCurrencyStep(), sql.OrderByField(field, opts...))
+	}
+}
+
 // ByProvisionBucketsCount orders the results by provision_buckets count.
 func ByProvisionBucketsCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -224,6 +241,13 @@ func newAPIKeyStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(APIKeyInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2O, true, APIKeyTable, APIKeyColumn),
+	)
+}
+func newCurrencyStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(CurrencyInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, true, CurrencyTable, CurrencyColumn),
 	)
 }
 func newProvisionBucketsStep() *sqlgraph.Step {

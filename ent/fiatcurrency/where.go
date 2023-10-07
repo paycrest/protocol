@@ -6,8 +6,10 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
+	"github.com/shopspring/decimal"
 )
 
 // ID filters vertices based on their ID field.
@@ -88,6 +90,11 @@ func Symbol(v string) predicate.FiatCurrency {
 // Name applies equality check predicate on the "name" field. It's identical to NameEQ.
 func Name(v string) predicate.FiatCurrency {
 	return predicate.FiatCurrency(sql.FieldEQ(FieldName, v))
+}
+
+// MarketRate applies equality check predicate on the "market_rate" field. It's identical to MarketRateEQ.
+func MarketRate(v decimal.Decimal) predicate.FiatCurrency {
+	return predicate.FiatCurrency(sql.FieldEQ(FieldMarketRate, v))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
@@ -468,6 +475,69 @@ func NameEqualFold(v string) predicate.FiatCurrency {
 // NameContainsFold applies the ContainsFold predicate on the "name" field.
 func NameContainsFold(v string) predicate.FiatCurrency {
 	return predicate.FiatCurrency(sql.FieldContainsFold(FieldName, v))
+}
+
+// MarketRateEQ applies the EQ predicate on the "market_rate" field.
+func MarketRateEQ(v decimal.Decimal) predicate.FiatCurrency {
+	return predicate.FiatCurrency(sql.FieldEQ(FieldMarketRate, v))
+}
+
+// MarketRateNEQ applies the NEQ predicate on the "market_rate" field.
+func MarketRateNEQ(v decimal.Decimal) predicate.FiatCurrency {
+	return predicate.FiatCurrency(sql.FieldNEQ(FieldMarketRate, v))
+}
+
+// MarketRateIn applies the In predicate on the "market_rate" field.
+func MarketRateIn(vs ...decimal.Decimal) predicate.FiatCurrency {
+	return predicate.FiatCurrency(sql.FieldIn(FieldMarketRate, vs...))
+}
+
+// MarketRateNotIn applies the NotIn predicate on the "market_rate" field.
+func MarketRateNotIn(vs ...decimal.Decimal) predicate.FiatCurrency {
+	return predicate.FiatCurrency(sql.FieldNotIn(FieldMarketRate, vs...))
+}
+
+// MarketRateGT applies the GT predicate on the "market_rate" field.
+func MarketRateGT(v decimal.Decimal) predicate.FiatCurrency {
+	return predicate.FiatCurrency(sql.FieldGT(FieldMarketRate, v))
+}
+
+// MarketRateGTE applies the GTE predicate on the "market_rate" field.
+func MarketRateGTE(v decimal.Decimal) predicate.FiatCurrency {
+	return predicate.FiatCurrency(sql.FieldGTE(FieldMarketRate, v))
+}
+
+// MarketRateLT applies the LT predicate on the "market_rate" field.
+func MarketRateLT(v decimal.Decimal) predicate.FiatCurrency {
+	return predicate.FiatCurrency(sql.FieldLT(FieldMarketRate, v))
+}
+
+// MarketRateLTE applies the LTE predicate on the "market_rate" field.
+func MarketRateLTE(v decimal.Decimal) predicate.FiatCurrency {
+	return predicate.FiatCurrency(sql.FieldLTE(FieldMarketRate, v))
+}
+
+// HasProvider applies the HasEdge predicate on the "provider" edge.
+func HasProvider() predicate.FiatCurrency {
+	return predicate.FiatCurrency(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, ProviderTable, ProviderColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasProviderWith applies the HasEdge predicate on the "provider" edge with a given conditions (other predicates).
+func HasProviderWith(preds ...predicate.ProviderProfile) predicate.FiatCurrency {
+	return predicate.FiatCurrency(func(s *sql.Selector) {
+		step := newProviderStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
 }
 
 // And groups predicates with the AND operator between them.

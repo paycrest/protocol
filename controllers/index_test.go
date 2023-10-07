@@ -62,7 +62,7 @@ func setup() error {
 
 	testCtx.apiKeySecret = secretKey
 
-	if _, err := test.CreateSupportedFiatCurrency(nil); err != nil {
+	if _, err := test.CreateTestFiatCurrency(nil); err != nil {
 		return err
 	}
 
@@ -180,7 +180,7 @@ func TestIndex(t *testing.T) {
 	})
 
 	t.Run("Currencies", func(t *testing.T) {
-		t.Run("fetched supported fiat currencies", func(t *testing.T) {
+		t.Run("fetch supported fiat currencies", func(t *testing.T) {
 			res, err := test.PerformRequest(t, "GET", "/currencies", nil, nil, router)
 			assert.NoError(t, err)
 
@@ -195,15 +195,15 @@ func TestIndex(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Equal(t, "OK", response.Message)
 
-			// Assert /currencies response with the seeded naira currency.
-			nairacurrency := types.SupportedCurrencies{
+			// Assert /currencies response with the seeded Naira currency.
+			nairaCurrency := types.SupportedCurrencies{
 				Code:      "NGN",
-				Name:      "Nigerian naira",
+				Name:      "Nigerian Naira",
 				ShortName: "Naira",
 				Decimals:  2,
 				Symbol:    "₦",
 			}
-			assert.Equal(t, nairacurrency, response.Data[0])
+			assert.Equal(t, nairaCurrency, response.Data[0])
 		})
 	})
 }

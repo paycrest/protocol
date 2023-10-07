@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
+	"github.com/paycrest/paycrest-protocol/ent/fiatcurrency"
 	"github.com/paycrest/paycrest-protocol/ent/user"
 	"github.com/paycrest/paycrest-protocol/ent/verificationtoken"
 	svc "github.com/paycrest/paycrest-protocol/services"
@@ -103,11 +104,24 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 			return
 		}
 
+		// Fetch currency
+		currency, err := db.Client.FiatCurrency.
+			Query().
+			Where(fiatcurrency.CodeEQ(payload.Currency)).
+			Only(ctx)
+		if err != nil {
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error",
+				"Failed to create new user", nil)
+			return
+		}
+
 		// Create a provider profile
 		_, err = db.Client.ProviderProfile.
 			Create().
 			SetTradingName(payload.TradingName).
 			SetCountry(payload.Country).
+			SetCurrency(currency).
 			SetAPIKey(apiKey).
 			Save(ctx)
 

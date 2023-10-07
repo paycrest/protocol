@@ -99,7 +99,7 @@ func (s *PriorityQueueService) CreatePriorityQueueForBucket(ctx context.Context,
 	})
 
 	// Enqueue provider ID and rate as a single string into the circular queue
-	redisKey := fmt.Sprintf("bucket_%d_%d", bucket.MinAmount, bucket.MaxAmount)
+	redisKey := fmt.Sprintf("bucket_%s_%d_%d", bucket.Currency, bucket.MinAmount, bucket.MaxAmount)
 
 	_, err := storage.RedisClient.Del(ctx, redisKey).Result() // delete existing queue
 	if err != nil {
@@ -124,7 +124,7 @@ func (s *PriorityQueueService) CreatePriorityQueueForBucket(ctx context.Context,
 // AssignLockPaymentOrders assigns lock payment orders to providers
 func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order types.LockPaymentOrderFields) error {
 	// Get the first provider from the circular queue
-	redisKey := fmt.Sprintf("bucket_%d_%d", order.ProvisionBucket.MinAmount, order.ProvisionBucket.MaxAmount)
+	redisKey := fmt.Sprintf("bucket_%s_%d_%d", order.ProvisionBucket.Currency, order.ProvisionBucket.MinAmount, order.ProvisionBucket.MaxAmount)
 
 	// Start a Redis transaction
 	pipe := storage.RedisClient.TxPipeline()

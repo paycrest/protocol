@@ -49,6 +49,9 @@ func main() {
 	// Subscribe to Redis keyspace events
 	tasks.SubscribeToRedisKeyspaceEvents()
 
+	// Start cron jobs
+	tasks.StartCronJobs()
+
 	// Run the server
 	router := routers.Routes()
 

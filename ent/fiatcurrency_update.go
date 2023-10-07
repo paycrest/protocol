@@ -13,6 +13,8 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/paycrest/paycrest-protocol/ent/fiatcurrency"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
+	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
+	"github.com/shopspring/decimal"
 )
 
 // FiatCurrencyUpdate is the builder for updating FiatCurrency entities.
@@ -79,9 +81,47 @@ func (fcu *FiatCurrencyUpdate) SetName(s string) *FiatCurrencyUpdate {
 	return fcu
 }
 
+// SetMarketRate sets the "market_rate" field.
+func (fcu *FiatCurrencyUpdate) SetMarketRate(d decimal.Decimal) *FiatCurrencyUpdate {
+	fcu.mutation.ResetMarketRate()
+	fcu.mutation.SetMarketRate(d)
+	return fcu
+}
+
+// AddMarketRate adds d to the "market_rate" field.
+func (fcu *FiatCurrencyUpdate) AddMarketRate(d decimal.Decimal) *FiatCurrencyUpdate {
+	fcu.mutation.AddMarketRate(d)
+	return fcu
+}
+
+// SetProviderID sets the "provider" edge to the ProviderProfile entity by ID.
+func (fcu *FiatCurrencyUpdate) SetProviderID(id string) *FiatCurrencyUpdate {
+	fcu.mutation.SetProviderID(id)
+	return fcu
+}
+
+// SetNillableProviderID sets the "provider" edge to the ProviderProfile entity by ID if the given value is not nil.
+func (fcu *FiatCurrencyUpdate) SetNillableProviderID(id *string) *FiatCurrencyUpdate {
+	if id != nil {
+		fcu = fcu.SetProviderID(*id)
+	}
+	return fcu
+}
+
+// SetProvider sets the "provider" edge to the ProviderProfile entity.
+func (fcu *FiatCurrencyUpdate) SetProvider(p *ProviderProfile) *FiatCurrencyUpdate {
+	return fcu.SetProviderID(p.ID)
+}
+
 // Mutation returns the FiatCurrencyMutation object of the builder.
 func (fcu *FiatCurrencyUpdate) Mutation() *FiatCurrencyMutation {
 	return fcu.mutation
+}
+
+// ClearProvider clears the "provider" edge to the ProviderProfile entity.
+func (fcu *FiatCurrencyUpdate) ClearProvider() *FiatCurrencyUpdate {
+	fcu.mutation.ClearProvider()
+	return fcu
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -149,6 +189,41 @@ func (fcu *FiatCurrencyUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if value, ok := fcu.mutation.Name(); ok {
 		_spec.SetField(fiatcurrency.FieldName, field.TypeString, value)
+	}
+	if value, ok := fcu.mutation.MarketRate(); ok {
+		_spec.SetField(fiatcurrency.FieldMarketRate, field.TypeFloat64, value)
+	}
+	if value, ok := fcu.mutation.AddedMarketRate(); ok {
+		_spec.AddField(fiatcurrency.FieldMarketRate, field.TypeFloat64, value)
+	}
+	if fcu.mutation.ProviderCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   fiatcurrency.ProviderTable,
+			Columns: []string{fiatcurrency.ProviderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(providerprofile.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := fcu.mutation.ProviderIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   fiatcurrency.ProviderTable,
+			Columns: []string{fiatcurrency.ProviderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(providerprofile.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, fcu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -221,9 +296,47 @@ func (fcuo *FiatCurrencyUpdateOne) SetName(s string) *FiatCurrencyUpdateOne {
 	return fcuo
 }
 
+// SetMarketRate sets the "market_rate" field.
+func (fcuo *FiatCurrencyUpdateOne) SetMarketRate(d decimal.Decimal) *FiatCurrencyUpdateOne {
+	fcuo.mutation.ResetMarketRate()
+	fcuo.mutation.SetMarketRate(d)
+	return fcuo
+}
+
+// AddMarketRate adds d to the "market_rate" field.
+func (fcuo *FiatCurrencyUpdateOne) AddMarketRate(d decimal.Decimal) *FiatCurrencyUpdateOne {
+	fcuo.mutation.AddMarketRate(d)
+	return fcuo
+}
+
+// SetProviderID sets the "provider" edge to the ProviderProfile entity by ID.
+func (fcuo *FiatCurrencyUpdateOne) SetProviderID(id string) *FiatCurrencyUpdateOne {
+	fcuo.mutation.SetProviderID(id)
+	return fcuo
+}
+
+// SetNillableProviderID sets the "provider" edge to the ProviderProfile entity by ID if the given value is not nil.
+func (fcuo *FiatCurrencyUpdateOne) SetNillableProviderID(id *string) *FiatCurrencyUpdateOne {
+	if id != nil {
+		fcuo = fcuo.SetProviderID(*id)
+	}
+	return fcuo
+}
+
+// SetProvider sets the "provider" edge to the ProviderProfile entity.
+func (fcuo *FiatCurrencyUpdateOne) SetProvider(p *ProviderProfile) *FiatCurrencyUpdateOne {
+	return fcuo.SetProviderID(p.ID)
+}
+
 // Mutation returns the FiatCurrencyMutation object of the builder.
 func (fcuo *FiatCurrencyUpdateOne) Mutation() *FiatCurrencyMutation {
 	return fcuo.mutation
+}
+
+// ClearProvider clears the "provider" edge to the ProviderProfile entity.
+func (fcuo *FiatCurrencyUpdateOne) ClearProvider() *FiatCurrencyUpdateOne {
+	fcuo.mutation.ClearProvider()
+	return fcuo
 }
 
 // Where appends a list predicates to the FiatCurrencyUpdate builder.
@@ -321,6 +434,41 @@ func (fcuo *FiatCurrencyUpdateOne) sqlSave(ctx context.Context) (_node *FiatCurr
 	}
 	if value, ok := fcuo.mutation.Name(); ok {
 		_spec.SetField(fiatcurrency.FieldName, field.TypeString, value)
+	}
+	if value, ok := fcuo.mutation.MarketRate(); ok {
+		_spec.SetField(fiatcurrency.FieldMarketRate, field.TypeFloat64, value)
+	}
+	if value, ok := fcuo.mutation.AddedMarketRate(); ok {
+		_spec.AddField(fiatcurrency.FieldMarketRate, field.TypeFloat64, value)
+	}
+	if fcuo.mutation.ProviderCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   fiatcurrency.ProviderTable,
+			Columns: []string{fiatcurrency.ProviderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(providerprofile.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := fcuo.mutation.ProviderIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   fiatcurrency.ProviderTable,
+			Columns: []string{fiatcurrency.ProviderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(providerprofile.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &FiatCurrency{config: fcuo.config}
 	_spec.Assign = _node.assignValues

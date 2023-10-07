@@ -11,6 +11,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/fiatcurrency"
+	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
+	"github.com/shopspring/decimal"
 )
 
 // FiatCurrency is the model entity for the FiatCurrency schema.
@@ -31,8 +33,35 @@ type FiatCurrency struct {
 	// Symbol holds the value of the "symbol" field.
 	Symbol string `json:"symbol,omitempty"`
 	// Name holds the value of the "name" field.
-	Name         string `json:"name,omitempty"`
+	Name string `json:"name,omitempty"`
+	// MarketRate holds the value of the "market_rate" field.
+	MarketRate decimal.Decimal `json:"market_rate,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the FiatCurrencyQuery when eager-loading is set.
+	Edges        FiatCurrencyEdges `json:"edges"`
 	selectValues sql.SelectValues
+}
+
+// FiatCurrencyEdges holds the relations/edges for other nodes in the graph.
+type FiatCurrencyEdges struct {
+	// Provider holds the value of the provider edge.
+	Provider *ProviderProfile `json:"provider,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+}
+
+// ProviderOrErr returns the Provider value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e FiatCurrencyEdges) ProviderOrErr() (*ProviderProfile, error) {
+	if e.loadedTypes[0] {
+		if e.Provider == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: providerprofile.Label}
+		}
+		return e.Provider, nil
+	}
+	return nil, &NotLoadedError{edge: "provider"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -40,6 +69,8 @@ func (*FiatCurrency) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case fiatcurrency.FieldMarketRate:
+			values[i] = new(decimal.Decimal)
 		case fiatcurrency.FieldDecimals:
 			values[i] = new(sql.NullInt64)
 		case fiatcurrency.FieldCode, fiatcurrency.FieldShortName, fiatcurrency.FieldSymbol, fiatcurrency.FieldName:
@@ -111,6 +142,12 @@ func (fc *FiatCurrency) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				fc.Name = value.String
 			}
+		case fiatcurrency.FieldMarketRate:
+			if value, ok := values[i].(*decimal.Decimal); !ok {
+				return fmt.Errorf("unexpected type %T for field market_rate", values[i])
+			} else if value != nil {
+				fc.MarketRate = *value
+			}
 		default:
 			fc.selectValues.Set(columns[i], values[i])
 		}
@@ -122,6 +159,11 @@ func (fc *FiatCurrency) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (fc *FiatCurrency) Value(name string) (ent.Value, error) {
 	return fc.selectValues.Get(name)
+}
+
+// QueryProvider queries the "provider" edge of the FiatCurrency entity.
+func (fc *FiatCurrency) QueryProvider() *ProviderProfileQuery {
+	return NewFiatCurrencyClient(fc.config).QueryProvider(fc)
 }
 
 // Update returns a builder for updating this FiatCurrency.
@@ -167,6 +209,9 @@ func (fc *FiatCurrency) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("name=")
 	builder.WriteString(fc.Name)
+	builder.WriteString(", ")
+	builder.WriteString("market_rate=")
+	builder.WriteString(fmt.Sprintf("%v", fc.MarketRate))
 	builder.WriteByte(')')
 	return builder.String()
 }

@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
+	"github.com/paycrest/paycrest-protocol/ent/fiatcurrency"
 	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
 	"github.com/paycrest/paycrest-protocol/ent/provideravailability"
@@ -62,6 +63,17 @@ func (ppu *ProviderProfileUpdate) SetAPIKeyID(id uuid.UUID) *ProviderProfileUpda
 // SetAPIKey sets the "api_key" edge to the APIKey entity.
 func (ppu *ProviderProfileUpdate) SetAPIKey(a *APIKey) *ProviderProfileUpdate {
 	return ppu.SetAPIKeyID(a.ID)
+}
+
+// SetCurrencyID sets the "currency" edge to the FiatCurrency entity by ID.
+func (ppu *ProviderProfileUpdate) SetCurrencyID(id uuid.UUID) *ProviderProfileUpdate {
+	ppu.mutation.SetCurrencyID(id)
+	return ppu
+}
+
+// SetCurrency sets the "currency" edge to the FiatCurrency entity.
+func (ppu *ProviderProfileUpdate) SetCurrency(f *FiatCurrency) *ProviderProfileUpdate {
+	return ppu.SetCurrencyID(f.ID)
 }
 
 // AddProvisionBucketIDs adds the "provision_buckets" edge to the ProvisionBucket entity by IDs.
@@ -155,6 +167,12 @@ func (ppu *ProviderProfileUpdate) Mutation() *ProviderProfileMutation {
 // ClearAPIKey clears the "api_key" edge to the APIKey entity.
 func (ppu *ProviderProfileUpdate) ClearAPIKey() *ProviderProfileUpdate {
 	ppu.mutation.ClearAPIKey()
+	return ppu
+}
+
+// ClearCurrency clears the "currency" edge to the FiatCurrency entity.
+func (ppu *ProviderProfileUpdate) ClearCurrency() *ProviderProfileUpdate {
+	ppu.mutation.ClearCurrency()
 	return ppu
 }
 
@@ -284,6 +302,9 @@ func (ppu *ProviderProfileUpdate) check() error {
 	if _, ok := ppu.mutation.APIKeyID(); ppu.mutation.APIKeyCleared() && !ok {
 		return errors.New(`ent: clearing a required unique edge "ProviderProfile.api_key"`)
 	}
+	if _, ok := ppu.mutation.CurrencyID(); ppu.mutation.CurrencyCleared() && !ok {
+		return errors.New(`ent: clearing a required unique edge "ProviderProfile.currency"`)
+	}
 	return nil
 }
 
@@ -330,6 +351,35 @@ func (ppu *ProviderProfileUpdate) sqlSave(ctx context.Context) (n int, err error
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if ppu.mutation.CurrencyCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   providerprofile.CurrencyTable,
+			Columns: []string{providerprofile.CurrencyColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(fiatcurrency.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ppu.mutation.CurrencyIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   providerprofile.CurrencyTable,
+			Columns: []string{providerprofile.CurrencyColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(fiatcurrency.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -579,6 +629,17 @@ func (ppuo *ProviderProfileUpdateOne) SetAPIKey(a *APIKey) *ProviderProfileUpdat
 	return ppuo.SetAPIKeyID(a.ID)
 }
 
+// SetCurrencyID sets the "currency" edge to the FiatCurrency entity by ID.
+func (ppuo *ProviderProfileUpdateOne) SetCurrencyID(id uuid.UUID) *ProviderProfileUpdateOne {
+	ppuo.mutation.SetCurrencyID(id)
+	return ppuo
+}
+
+// SetCurrency sets the "currency" edge to the FiatCurrency entity.
+func (ppuo *ProviderProfileUpdateOne) SetCurrency(f *FiatCurrency) *ProviderProfileUpdateOne {
+	return ppuo.SetCurrencyID(f.ID)
+}
+
 // AddProvisionBucketIDs adds the "provision_buckets" edge to the ProvisionBucket entity by IDs.
 func (ppuo *ProviderProfileUpdateOne) AddProvisionBucketIDs(ids ...int) *ProviderProfileUpdateOne {
 	ppuo.mutation.AddProvisionBucketIDs(ids...)
@@ -670,6 +731,12 @@ func (ppuo *ProviderProfileUpdateOne) Mutation() *ProviderProfileMutation {
 // ClearAPIKey clears the "api_key" edge to the APIKey entity.
 func (ppuo *ProviderProfileUpdateOne) ClearAPIKey() *ProviderProfileUpdateOne {
 	ppuo.mutation.ClearAPIKey()
+	return ppuo
+}
+
+// ClearCurrency clears the "currency" edge to the FiatCurrency entity.
+func (ppuo *ProviderProfileUpdateOne) ClearCurrency() *ProviderProfileUpdateOne {
+	ppuo.mutation.ClearCurrency()
 	return ppuo
 }
 
@@ -812,6 +879,9 @@ func (ppuo *ProviderProfileUpdateOne) check() error {
 	if _, ok := ppuo.mutation.APIKeyID(); ppuo.mutation.APIKeyCleared() && !ok {
 		return errors.New(`ent: clearing a required unique edge "ProviderProfile.api_key"`)
 	}
+	if _, ok := ppuo.mutation.CurrencyID(); ppuo.mutation.CurrencyCleared() && !ok {
+		return errors.New(`ent: clearing a required unique edge "ProviderProfile.currency"`)
+	}
 	return nil
 }
 
@@ -875,6 +945,35 @@ func (ppuo *ProviderProfileUpdateOne) sqlSave(ctx context.Context) (_node *Provi
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if ppuo.mutation.CurrencyCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   providerprofile.CurrencyTable,
+			Columns: []string{providerprofile.CurrencyColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(fiatcurrency.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ppuo.mutation.CurrencyIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   providerprofile.CurrencyTable,
+			Columns: []string{providerprofile.CurrencyColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(fiatcurrency.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

@@ -23,8 +23,8 @@ type ProviderOrderToken struct {
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
-	// Name holds the value of the "name" field.
-	Name providerordertoken.Name `json:"name,omitempty"`
+	// Symbol holds the value of the "symbol" field.
+	Symbol providerordertoken.Symbol `json:"symbol,omitempty"`
 	// FixedConversionRate holds the value of the "fixed_conversion_rate" field.
 	FixedConversionRate decimal.Decimal `json:"fixed_conversion_rate,omitempty"`
 	// FloatingConversionRate holds the value of the "floating_conversion_rate" field.
@@ -84,7 +84,7 @@ func (*ProviderOrderToken) scanValues(columns []string) ([]any, error) {
 			values[i] = new(decimal.Decimal)
 		case providerordertoken.FieldID:
 			values[i] = new(sql.NullInt64)
-		case providerordertoken.FieldName, providerordertoken.FieldConversionRateType:
+		case providerordertoken.FieldSymbol, providerordertoken.FieldConversionRateType:
 			values[i] = new(sql.NullString)
 		case providerordertoken.FieldCreatedAt, providerordertoken.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -123,11 +123,11 @@ func (pot *ProviderOrderToken) assignValues(columns []string, values []any) erro
 			} else if value.Valid {
 				pot.UpdatedAt = value.Time
 			}
-		case providerordertoken.FieldName:
+		case providerordertoken.FieldSymbol:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field name", values[i])
+				return fmt.Errorf("unexpected type %T for field symbol", values[i])
 			} else if value.Valid {
-				pot.Name = providerordertoken.Name(value.String)
+				pot.Symbol = providerordertoken.Symbol(value.String)
 			}
 		case providerordertoken.FieldFixedConversionRate:
 			if value, ok := values[i].(*decimal.Decimal); !ok {
@@ -218,8 +218,8 @@ func (pot *ProviderOrderToken) String() string {
 	builder.WriteString("updated_at=")
 	builder.WriteString(pot.UpdatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
-	builder.WriteString("name=")
-	builder.WriteString(fmt.Sprintf("%v", pot.Name))
+	builder.WriteString("symbol=")
+	builder.WriteString(fmt.Sprintf("%v", pot.Symbol))
 	builder.WriteString(", ")
 	builder.WriteString("fixed_conversion_rate=")
 	builder.WriteString(fmt.Sprintf("%v", pot.FixedConversionRate))

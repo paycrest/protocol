@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
+	"github.com/paycrest/paycrest-protocol/ent/fiatcurrency"
 	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/provideravailability"
 	"github.com/paycrest/paycrest-protocol/ent/providerordertoken"
@@ -90,6 +91,17 @@ func (ppc *ProviderProfileCreate) SetAPIKeyID(id uuid.UUID) *ProviderProfileCrea
 // SetAPIKey sets the "api_key" edge to the APIKey entity.
 func (ppc *ProviderProfileCreate) SetAPIKey(a *APIKey) *ProviderProfileCreate {
 	return ppc.SetAPIKeyID(a.ID)
+}
+
+// SetCurrencyID sets the "currency" edge to the FiatCurrency entity by ID.
+func (ppc *ProviderProfileCreate) SetCurrencyID(id uuid.UUID) *ProviderProfileCreate {
+	ppc.mutation.SetCurrencyID(id)
+	return ppc
+}
+
+// SetCurrency sets the "currency" edge to the FiatCurrency entity.
+func (ppc *ProviderProfileCreate) SetCurrency(f *FiatCurrency) *ProviderProfileCreate {
+	return ppc.SetCurrencyID(f.ID)
 }
 
 // AddProvisionBucketIDs adds the "provision_buckets" edge to the ProvisionBucket entity by IDs.
@@ -251,6 +263,9 @@ func (ppc *ProviderProfileCreate) check() error {
 	if _, ok := ppc.mutation.APIKeyID(); !ok {
 		return &ValidationError{Name: "api_key", err: errors.New(`ent: missing required edge "ProviderProfile.api_key"`)}
 	}
+	if _, ok := ppc.mutation.CurrencyID(); !ok {
+		return &ValidationError{Name: "currency", err: errors.New(`ent: missing required edge "ProviderProfile.currency"`)}
+	}
 	return nil
 }
 
@@ -317,6 +332,23 @@ func (ppc *ProviderProfileCreate) createSpec() (*ProviderProfile, *sqlgraph.Crea
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.api_key_provider_profile = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := ppc.mutation.CurrencyIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   providerprofile.CurrencyTable,
+			Columns: []string{providerprofile.CurrencyColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(fiatcurrency.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.fiat_currency_provider = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := ppc.mutation.ProvisionBucketsIDs(); len(nodes) > 0 {
