@@ -121,6 +121,10 @@ func (s *PriorityQueueService) CreatePriorityQueueForBucket(ctx context.Context,
 	}
 }
 
+func (s *PriorityQueueService) CreatePriorityQueueForDefaultBucket(ctx context.Context) {
+	
+}
+
 // AssignLockPaymentOrders assigns lock payment orders to providers
 func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order types.LockPaymentOrderFields) error {
 	// Get the first provider from the circular queue

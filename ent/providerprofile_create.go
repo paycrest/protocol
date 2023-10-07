@@ -68,6 +68,20 @@ func (ppc *ProviderProfileCreate) SetCountry(s string) *ProviderProfileCreate {
 	return ppc
 }
 
+// SetIsPartner sets the "is_partner" field.
+func (ppc *ProviderProfileCreate) SetIsPartner(b bool) *ProviderProfileCreate {
+	ppc.mutation.SetIsPartner(b)
+	return ppc
+}
+
+// SetNillableIsPartner sets the "is_partner" field if the given value is not nil.
+func (ppc *ProviderProfileCreate) SetNillableIsPartner(b *bool) *ProviderProfileCreate {
+	if b != nil {
+		ppc.SetIsPartner(*b)
+	}
+	return ppc
+}
+
 // SetID sets the "id" field.
 func (ppc *ProviderProfileCreate) SetID(s string) *ProviderProfileCreate {
 	ppc.mutation.SetID(s)
@@ -230,6 +244,10 @@ func (ppc *ProviderProfileCreate) defaults() {
 		v := providerprofile.DefaultUpdatedAt()
 		ppc.mutation.SetUpdatedAt(v)
 	}
+	if _, ok := ppc.mutation.IsPartner(); !ok {
+		v := providerprofile.DefaultIsPartner
+		ppc.mutation.SetIsPartner(v)
+	}
 	if _, ok := ppc.mutation.ID(); !ok {
 		v := providerprofile.DefaultID()
 		ppc.mutation.SetID(v)
@@ -259,6 +277,9 @@ func (ppc *ProviderProfileCreate) check() error {
 		if err := providerprofile.CountryValidator(v); err != nil {
 			return &ValidationError{Name: "country", err: fmt.Errorf(`ent: validator failed for field "ProviderProfile.country": %w`, err)}
 		}
+	}
+	if _, ok := ppc.mutation.IsPartner(); !ok {
+		return &ValidationError{Name: "is_partner", err: errors.New(`ent: missing required field "ProviderProfile.is_partner"`)}
 	}
 	if _, ok := ppc.mutation.APIKeyID(); !ok {
 		return &ValidationError{Name: "api_key", err: errors.New(`ent: missing required edge "ProviderProfile.api_key"`)}
@@ -316,6 +337,10 @@ func (ppc *ProviderProfileCreate) createSpec() (*ProviderProfile, *sqlgraph.Crea
 	if value, ok := ppc.mutation.Country(); ok {
 		_spec.SetField(providerprofile.FieldCountry, field.TypeString, value)
 		_node.Country = value
+	}
+	if value, ok := ppc.mutation.IsPartner(); ok {
+		_spec.SetField(providerprofile.FieldIsPartner, field.TypeBool, value)
+		_node.IsPartner = value
 	}
 	if nodes := ppc.mutation.APIKeyIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

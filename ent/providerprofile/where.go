@@ -85,6 +85,11 @@ func Country(v string) predicate.ProviderProfile {
 	return predicate.ProviderProfile(sql.FieldEQ(FieldCountry, v))
 }
 
+// IsPartner applies equality check predicate on the "is_partner" field. It's identical to IsPartnerEQ.
+func IsPartner(v bool) predicate.ProviderProfile {
+	return predicate.ProviderProfile(sql.FieldEQ(FieldIsPartner, v))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.ProviderProfile {
 	return predicate.ProviderProfile(sql.FieldEQ(FieldCreatedAt, v))
@@ -293,6 +298,16 @@ func CountryEqualFold(v string) predicate.ProviderProfile {
 // CountryContainsFold applies the ContainsFold predicate on the "country" field.
 func CountryContainsFold(v string) predicate.ProviderProfile {
 	return predicate.ProviderProfile(sql.FieldContainsFold(FieldCountry, v))
+}
+
+// IsPartnerEQ applies the EQ predicate on the "is_partner" field.
+func IsPartnerEQ(v bool) predicate.ProviderProfile {
+	return predicate.ProviderProfile(sql.FieldEQ(FieldIsPartner, v))
+}
+
+// IsPartnerNEQ applies the NEQ predicate on the "is_partner" field.
+func IsPartnerNEQ(v bool) predicate.ProviderProfile {
+	return predicate.ProviderProfile(sql.FieldNEQ(FieldIsPartner, v))
 }
 
 // HasAPIKey applies the HasEdge predicate on the "api_key" edge.

@@ -279,6 +279,7 @@ var (
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "trading_name", Type: field.TypeString, Size: 80},
 		{Name: "country", Type: field.TypeString, Size: 80},
+		{Name: "is_partner", Type: field.TypeBool, Default: false},
 		{Name: "api_key_provider_profile", Type: field.TypeUUID, Unique: true},
 		{Name: "fiat_currency_provider", Type: field.TypeUUID, Unique: true},
 	}
@@ -290,13 +291,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "provider_profiles_api_keys_provider_profile",
-				Columns:    []*schema.Column{ProviderProfilesColumns[5]},
+				Columns:    []*schema.Column{ProviderProfilesColumns[6]},
 				RefColumns: []*schema.Column{APIKeysColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "provider_profiles_fiat_currencies_provider",
-				Columns:    []*schema.Column{ProviderProfilesColumns[6]},
+				Columns:    []*schema.Column{ProviderProfilesColumns[7]},
 				RefColumns: []*schema.Column{FiatCurrenciesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},

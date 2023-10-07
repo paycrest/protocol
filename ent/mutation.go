@@ -8352,6 +8352,7 @@ type ProviderProfileMutation struct {
 	updated_at               *time.Time
 	trading_name             *string
 	country                  *string
+	is_partner               *bool
 	clearedFields            map[string]struct{}
 	api_key                  *uuid.UUID
 	clearedapi_key           bool
@@ -8621,6 +8622,42 @@ func (m *ProviderProfileMutation) OldCountry(ctx context.Context) (v string, err
 // ResetCountry resets all changes to the "country" field.
 func (m *ProviderProfileMutation) ResetCountry() {
 	m.country = nil
+}
+
+// SetIsPartner sets the "is_partner" field.
+func (m *ProviderProfileMutation) SetIsPartner(b bool) {
+	m.is_partner = &b
+}
+
+// IsPartner returns the value of the "is_partner" field in the mutation.
+func (m *ProviderProfileMutation) IsPartner() (r bool, exists bool) {
+	v := m.is_partner
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIsPartner returns the old "is_partner" field's value of the ProviderProfile entity.
+// If the ProviderProfile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderProfileMutation) OldIsPartner(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIsPartner is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIsPartner requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIsPartner: %w", err)
+	}
+	return oldValue.IsPartner, nil
+}
+
+// ResetIsPartner resets all changes to the "is_partner" field.
+func (m *ProviderProfileMutation) ResetIsPartner() {
+	m.is_partner = nil
 }
 
 // SetAPIKeyID sets the "api_key" edge to the APIKey entity by id.
@@ -8975,7 +9012,7 @@ func (m *ProviderProfileMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ProviderProfileMutation) Fields() []string {
-	fields := make([]string, 0, 4)
+	fields := make([]string, 0, 5)
 	if m.created_at != nil {
 		fields = append(fields, providerprofile.FieldCreatedAt)
 	}
@@ -8987,6 +9024,9 @@ func (m *ProviderProfileMutation) Fields() []string {
 	}
 	if m.country != nil {
 		fields = append(fields, providerprofile.FieldCountry)
+	}
+	if m.is_partner != nil {
+		fields = append(fields, providerprofile.FieldIsPartner)
 	}
 	return fields
 }
@@ -9004,6 +9044,8 @@ func (m *ProviderProfileMutation) Field(name string) (ent.Value, bool) {
 		return m.TradingName()
 	case providerprofile.FieldCountry:
 		return m.Country()
+	case providerprofile.FieldIsPartner:
+		return m.IsPartner()
 	}
 	return nil, false
 }
@@ -9021,6 +9063,8 @@ func (m *ProviderProfileMutation) OldField(ctx context.Context, name string) (en
 		return m.OldTradingName(ctx)
 	case providerprofile.FieldCountry:
 		return m.OldCountry(ctx)
+	case providerprofile.FieldIsPartner:
+		return m.OldIsPartner(ctx)
 	}
 	return nil, fmt.Errorf("unknown ProviderProfile field %s", name)
 }
@@ -9057,6 +9101,13 @@ func (m *ProviderProfileMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCountry(v)
+		return nil
+	case providerprofile.FieldIsPartner:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIsPartner(v)
 		return nil
 	}
 	return fmt.Errorf("unknown ProviderProfile field %s", name)
@@ -9118,6 +9169,9 @@ func (m *ProviderProfileMutation) ResetField(name string) error {
 		return nil
 	case providerprofile.FieldCountry:
 		m.ResetCountry()
+		return nil
+	case providerprofile.FieldIsPartner:
+		m.ResetIsPartner()
 		return nil
 	}
 	return fmt.Errorf("unknown ProviderProfile field %s", name)
