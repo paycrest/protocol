@@ -22,6 +22,8 @@ const (
 	FieldTradingName = "trading_name"
 	// FieldCountry holds the string denoting the country field in the database.
 	FieldCountry = "country"
+	// FieldIsPartner holds the string denoting the is_partner field in the database.
+	FieldIsPartner = "is_partner"
 	// EdgeAPIKey holds the string denoting the api_key edge name in mutations.
 	EdgeAPIKey = "api_key"
 	// EdgeCurrency holds the string denoting the currency edge name in mutations.
@@ -94,6 +96,7 @@ var Columns = []string{
 	FieldUpdatedAt,
 	FieldTradingName,
 	FieldCountry,
+	FieldIsPartner,
 }
 
 // ForeignKeys holds the SQL foreign-keys that are owned by the "provider_profiles"
@@ -135,6 +138,8 @@ var (
 	TradingNameValidator func(string) error
 	// CountryValidator is a validator for the "country" field. It is called by the builders before save.
 	CountryValidator func(string) error
+	// DefaultIsPartner holds the default value on creation for the "is_partner" field.
+	DefaultIsPartner bool
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
@@ -165,6 +170,11 @@ func ByTradingName(opts ...sql.OrderTermOption) OrderOption {
 // ByCountry orders the results by the country field.
 func ByCountry(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCountry, opts...).ToFunc()
+}
+
+// ByIsPartner orders the results by the is_partner field.
+func ByIsPartner(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIsPartner, opts...).ToFunc()
 }
 
 // ByAPIKeyField orders the results by api_key field.

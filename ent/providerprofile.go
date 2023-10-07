@@ -30,6 +30,8 @@ type ProviderProfile struct {
 	TradingName string `json:"trading_name,omitempty"`
 	// Country holds the value of the "country" field.
 	Country string `json:"country,omitempty"`
+	// IsPartner holds the value of the "is_partner" field.
+	IsPartner bool `json:"is_partner,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ProviderProfileQuery when eager-loading is set.
 	Edges                    ProviderProfileEdges `json:"edges"`
@@ -143,6 +145,8 @@ func (*ProviderProfile) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case providerprofile.FieldIsPartner:
+			values[i] = new(sql.NullBool)
 		case providerprofile.FieldID, providerprofile.FieldTradingName, providerprofile.FieldCountry:
 			values[i] = new(sql.NullString)
 		case providerprofile.FieldCreatedAt, providerprofile.FieldUpdatedAt:
@@ -195,6 +199,12 @@ func (pp *ProviderProfile) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field country", values[i])
 			} else if value.Valid {
 				pp.Country = value.String
+			}
+		case providerprofile.FieldIsPartner:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field is_partner", values[i])
+			} else if value.Valid {
+				pp.IsPartner = value.Bool
 			}
 		case providerprofile.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullScanner); !ok {
@@ -292,6 +302,9 @@ func (pp *ProviderProfile) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("country=")
 	builder.WriteString(pp.Country)
+	builder.WriteString(", ")
+	builder.WriteString("is_partner=")
+	builder.WriteString(fmt.Sprintf("%v", pp.IsPartner))
 	builder.WriteByte(')')
 	return builder.String()
 }

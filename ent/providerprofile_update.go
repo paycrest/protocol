@@ -54,6 +54,20 @@ func (ppu *ProviderProfileUpdate) SetCountry(s string) *ProviderProfileUpdate {
 	return ppu
 }
 
+// SetIsPartner sets the "is_partner" field.
+func (ppu *ProviderProfileUpdate) SetIsPartner(b bool) *ProviderProfileUpdate {
+	ppu.mutation.SetIsPartner(b)
+	return ppu
+}
+
+// SetNillableIsPartner sets the "is_partner" field if the given value is not nil.
+func (ppu *ProviderProfileUpdate) SetNillableIsPartner(b *bool) *ProviderProfileUpdate {
+	if b != nil {
+		ppu.SetIsPartner(*b)
+	}
+	return ppu
+}
+
 // SetAPIKeyID sets the "api_key" edge to the APIKey entity by ID.
 func (ppu *ProviderProfileUpdate) SetAPIKeyID(id uuid.UUID) *ProviderProfileUpdate {
 	ppu.mutation.SetAPIKeyID(id)
@@ -328,6 +342,9 @@ func (ppu *ProviderProfileUpdate) sqlSave(ctx context.Context) (n int, err error
 	}
 	if value, ok := ppu.mutation.Country(); ok {
 		_spec.SetField(providerprofile.FieldCountry, field.TypeString, value)
+	}
+	if value, ok := ppu.mutation.IsPartner(); ok {
+		_spec.SetField(providerprofile.FieldIsPartner, field.TypeBool, value)
 	}
 	if ppu.mutation.APIKeyCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -615,6 +632,20 @@ func (ppuo *ProviderProfileUpdateOne) SetTradingName(s string) *ProviderProfileU
 // SetCountry sets the "country" field.
 func (ppuo *ProviderProfileUpdateOne) SetCountry(s string) *ProviderProfileUpdateOne {
 	ppuo.mutation.SetCountry(s)
+	return ppuo
+}
+
+// SetIsPartner sets the "is_partner" field.
+func (ppuo *ProviderProfileUpdateOne) SetIsPartner(b bool) *ProviderProfileUpdateOne {
+	ppuo.mutation.SetIsPartner(b)
+	return ppuo
+}
+
+// SetNillableIsPartner sets the "is_partner" field if the given value is not nil.
+func (ppuo *ProviderProfileUpdateOne) SetNillableIsPartner(b *bool) *ProviderProfileUpdateOne {
+	if b != nil {
+		ppuo.SetIsPartner(*b)
+	}
 	return ppuo
 }
 
@@ -922,6 +953,9 @@ func (ppuo *ProviderProfileUpdateOne) sqlSave(ctx context.Context) (_node *Provi
 	}
 	if value, ok := ppuo.mutation.Country(); ok {
 		_spec.SetField(providerprofile.FieldCountry, field.TypeString, value)
+	}
+	if value, ok := ppuo.mutation.IsPartner(); ok {
+		_spec.SetField(providerprofile.FieldIsPartner, field.TypeBool, value)
 	}
 	if ppuo.mutation.APIKeyCleared() {
 		edge := &sqlgraph.EdgeSpec{

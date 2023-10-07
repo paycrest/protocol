@@ -30,6 +30,7 @@ func (ProviderProfile) Fields() []ent.Field {
 			Unique(),
 		field.String("trading_name").MaxLen(80),
 		field.String("country").MaxLen(80),
+		field.Bool("is_partner").Default(false),
 	}
 }
 
