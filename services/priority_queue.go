@@ -164,13 +164,11 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 		providerData, err := pipe.LIndex(ctx, redisKey, int64(index)).Result()
 		if err != nil {
 			if err == redis.Nil {
-				// TODO: assign to top provider in default bucket and rotate the default bucket queue
-				// The rate of providers in the default bucket are always set to the median rate
-				// We can incentivize providers to be in the default bucket by waiving the protocol fee during settlement
-				break
+				// Assign to top provider in default bucket and rotate the default bucket queue
+				s.AssignLockOrderToDefaultBucket(ctx, order)
+				logger.Errorf("failed to access index %d from circular queue: %v", index, err)
 			}
-			logger.Errorf("failed to access index %d from circular queue: %v", index, err)
-			return err
+			break
 		}
 
 		// Extract the rate from the data (assuming it's in the format "providerID:rate")
@@ -241,10 +239,67 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 
 			// TODO: Send out a push notification to the provider (for manual provider case)
 		}
+
 	}
 
 	// Execute all Redis commands within the transaction atomically
 	_, err := pipe.Exec(ctx)
+	if err != nil {
+		logger.Errorf("failed to execute Redis transaction: %v", err)
+		return err
+	}
+
+	return nil
+}
+
+// AssignLockOrderToDefaultBucket assigns lock payment orders to providers in the default bucket
+func (s *PriorityQueueService) AssignLockOrderToDefaultBucket(ctx context.Context, order types.LockPaymentOrderFields) error {
+	pipe := storage.RedisClient.TxPipeline()
+	data, err := pipe.LPop(ctx, fmt.Sprintf("bucket_%s_default", order.ProvisionBucket.Currency)).Result()
+	if err != nil {
+		logger.Errorf("failed to dequeue from circular queue: %v", err)
+		return err
+	}
+
+	// Enqueue data to the end of the queue
+	err = pipe.RPush(ctx, fmt.Sprintf("bucket_%s_default", order.ProvisionBucket.Currency), data).Err()
+	if err != nil {
+		logger.Errorf("failed to enqueue to circular queue: %v", err)
+		return err
+	}
+
+	// Extract the rate from the data (assuming it's in the format "providerID:rate")
+	parts := strings.Split(data, ":")
+	if len(parts) != 2 {
+		logger.Errorf("invalid data format: %s", data)
+		return err
+	}
+	providerID := parts[0]
+
+	// Assign the order to the provider and save it to Redis
+	orderKey := fmt.Sprintf("order_request_%d", order.ID)
+	orderRequestData := map[string]interface{}{
+		"amount":      order.Amount.Mul(order.Rate),
+		"token":       order.Token.Symbol,
+		"institution": order.Institution,
+		"provider_id": providerID,
+	}
+
+	err = pipe.HSet(ctx, orderKey, orderRequestData).Err()
+	if err != nil {
+		logger.Errorf("failed to map order to a provider in Redis: %v", err)
+		return err
+	}
+
+	// Set a TTL for the order request
+	err = pipe.ExpireAt(ctx, orderKey, time.Now().Add(OrderConf.OrderRequestValidity)).Err()
+	if err != nil {
+		logger.Errorf("failed to set TTL for order request: %v", err)
+		return err
+	}
+
+	// Execute all Redis commands within the transaction atomically
+	_, err = pipe.Exec(ctx)
 	if err != nil {
 		logger.Errorf("failed to execute Redis transaction: %v", err)
 		return err
