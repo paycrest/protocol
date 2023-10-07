@@ -109,7 +109,11 @@ func TestAuth(t *testing.T) {
 				Password:    "password",
 				TradingName: "Africana LP",
 				Country:     "Nigeria",
+				Currency:    "NGN",
 			}
+
+			_, err := test.CreateTestFiatCurrency(nil)
+			assert.NoError(t, err)
 
 			headers := map[string]string{
 				"X-App-ID": "provider",

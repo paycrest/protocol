@@ -57,6 +57,7 @@ type RegisterPayload struct {
 	Password    string `json:"password" binding:"required,min=6,max=20"`
 	TradingName string `json:"tradingName"`
 	Country     string `json:"country"`
+	Currency    string `json:"currency"`
 }
 
 // RegisterResponse is the response for the register endpoint

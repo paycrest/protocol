@@ -2,13 +2,19 @@ package tasks
 
 import (
 	"context"
+	"sort"
+	"time"
 
+	"github.com/go-co-op/gocron"
 	"github.com/paycrest/paycrest-protocol/ent"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
+	"github.com/paycrest/paycrest-protocol/ent/providerordertoken"
 	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
 	"github.com/paycrest/paycrest-protocol/services"
 	"github.com/paycrest/paycrest-protocol/storage"
+	"github.com/paycrest/paycrest-protocol/utils"
 	"github.com/paycrest/paycrest-protocol/utils/logger"
+	"github.com/shopspring/decimal"
 )
 
 // ContinueIndexing continues indexing
@@ -104,4 +110,72 @@ func SubscribeToRedisKeyspaceEvents() {
 	orderRequestChan := orderRequest.Channel()
 
 	go services.NewPriorityQueueService().ReassignStaleOrderRequest(ctx, orderRequestChan)
+}
+
+// ComputeMarketRate computes the market price for fiat currencies
+func ComputeMarketRate() error {
+	ctx := context.Background()
+
+	// Fetch all fiat currencies
+	currencies, err := storage.Client.FiatCurrency.
+		Query().
+		All(ctx)
+	if err != nil {
+		return err
+	}
+
+	for _, currency := range currencies {
+		go func(currency *ent.FiatCurrency) {
+			// Fetch rates from token configs with fixed conversion rate
+			tokenConfigs, err := storage.Client.ProviderOrderToken.
+				Query().
+				Where(
+					providerordertoken.SymbolEQ(providerordertoken.SymbolUSDT),
+					providerordertoken.ConversionRateTypeEQ(providerordertoken.ConversionRateTypeFixed),
+				).
+				All(ctx)
+			if err != nil {
+				logger.Errorf("compute market price task => %v\n", err)
+				return
+			}
+
+			var rates []decimal.Decimal
+			for _, tokenConfig := range tokenConfigs {
+				rates = append(rates, tokenConfig.FixedConversionRate)
+			}
+
+			// Sort rates in ascending order
+			sort.Slice(rates, func(i, j int) bool {
+				return rates[i].LessThan(rates[j])
+			})
+
+			// Calculate median
+			median := utils.Median(rates)
+
+			// Update currency with median rate
+			_, err = storage.Client.FiatCurrency.
+				UpdateOneID(currency.ID).
+				SetMarketRate(median).
+				Save(ctx)
+			if err != nil {
+				logger.Errorf("compute market price task => %v\n", err)
+			}
+		}(currency)
+	}
+
+	return nil
+}
+
+// StartCronJobs starts cron jobs
+func StartCronJobs() {
+	scheduler := gocron.NewScheduler(time.UTC)
+
+	// Compute market rate four times a day - starting at 6AM
+	_, err := scheduler.Cron("0 6,12,18,0 * * *").Do(ComputeMarketRate)
+	if err != nil {
+		logger.Errorf("failed to schedule compute market rate task => %v\n", err)
+	}
+
+	// Start scheduler
+	scheduler.StartAsync()
 }

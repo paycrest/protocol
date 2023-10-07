@@ -884,21 +884,25 @@ func (m *APIKeyMutation) ResetEdge(name string) error {
 // FiatCurrencyMutation represents an operation that mutates the FiatCurrency nodes in the graph.
 type FiatCurrencyMutation struct {
 	config
-	op            Op
-	typ           string
-	id            *uuid.UUID
-	created_at    *time.Time
-	updated_at    *time.Time
-	code          *string
-	short_name    *string
-	decimals      *int
-	adddecimals   *int
-	symbol        *string
-	name          *string
-	clearedFields map[string]struct{}
-	done          bool
-	oldValue      func(context.Context) (*FiatCurrency, error)
-	predicates    []predicate.FiatCurrency
+	op              Op
+	typ             string
+	id              *uuid.UUID
+	created_at      *time.Time
+	updated_at      *time.Time
+	code            *string
+	short_name      *string
+	decimals        *int
+	adddecimals     *int
+	symbol          *string
+	name            *string
+	market_rate     *decimal.Decimal
+	addmarket_rate  *decimal.Decimal
+	clearedFields   map[string]struct{}
+	provider        *string
+	clearedprovider bool
+	done            bool
+	oldValue        func(context.Context) (*FiatCurrency, error)
+	predicates      []predicate.FiatCurrency
 }
 
 var _ ent.Mutation = (*FiatCurrencyMutation)(nil)
@@ -1277,6 +1281,101 @@ func (m *FiatCurrencyMutation) ResetName() {
 	m.name = nil
 }
 
+// SetMarketRate sets the "market_rate" field.
+func (m *FiatCurrencyMutation) SetMarketRate(d decimal.Decimal) {
+	m.market_rate = &d
+	m.addmarket_rate = nil
+}
+
+// MarketRate returns the value of the "market_rate" field in the mutation.
+func (m *FiatCurrencyMutation) MarketRate() (r decimal.Decimal, exists bool) {
+	v := m.market_rate
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMarketRate returns the old "market_rate" field's value of the FiatCurrency entity.
+// If the FiatCurrency object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FiatCurrencyMutation) OldMarketRate(ctx context.Context) (v decimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMarketRate is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMarketRate requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMarketRate: %w", err)
+	}
+	return oldValue.MarketRate, nil
+}
+
+// AddMarketRate adds d to the "market_rate" field.
+func (m *FiatCurrencyMutation) AddMarketRate(d decimal.Decimal) {
+	if m.addmarket_rate != nil {
+		*m.addmarket_rate = m.addmarket_rate.Add(d)
+	} else {
+		m.addmarket_rate = &d
+	}
+}
+
+// AddedMarketRate returns the value that was added to the "market_rate" field in this mutation.
+func (m *FiatCurrencyMutation) AddedMarketRate() (r decimal.Decimal, exists bool) {
+	v := m.addmarket_rate
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetMarketRate resets all changes to the "market_rate" field.
+func (m *FiatCurrencyMutation) ResetMarketRate() {
+	m.market_rate = nil
+	m.addmarket_rate = nil
+}
+
+// SetProviderID sets the "provider" edge to the ProviderProfile entity by id.
+func (m *FiatCurrencyMutation) SetProviderID(id string) {
+	m.provider = &id
+}
+
+// ClearProvider clears the "provider" edge to the ProviderProfile entity.
+func (m *FiatCurrencyMutation) ClearProvider() {
+	m.clearedprovider = true
+}
+
+// ProviderCleared reports if the "provider" edge to the ProviderProfile entity was cleared.
+func (m *FiatCurrencyMutation) ProviderCleared() bool {
+	return m.clearedprovider
+}
+
+// ProviderID returns the "provider" edge ID in the mutation.
+func (m *FiatCurrencyMutation) ProviderID() (id string, exists bool) {
+	if m.provider != nil {
+		return *m.provider, true
+	}
+	return
+}
+
+// ProviderIDs returns the "provider" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// ProviderID instead. It exists only for internal usage by the builders.
+func (m *FiatCurrencyMutation) ProviderIDs() (ids []string) {
+	if id := m.provider; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetProvider resets all changes to the "provider" edge.
+func (m *FiatCurrencyMutation) ResetProvider() {
+	m.provider = nil
+	m.clearedprovider = false
+}
+
 // Where appends a list predicates to the FiatCurrencyMutation builder.
 func (m *FiatCurrencyMutation) Where(ps ...predicate.FiatCurrency) {
 	m.predicates = append(m.predicates, ps...)
@@ -1311,7 +1410,7 @@ func (m *FiatCurrencyMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *FiatCurrencyMutation) Fields() []string {
-	fields := make([]string, 0, 7)
+	fields := make([]string, 0, 8)
 	if m.created_at != nil {
 		fields = append(fields, fiatcurrency.FieldCreatedAt)
 	}
@@ -1332,6 +1431,9 @@ func (m *FiatCurrencyMutation) Fields() []string {
 	}
 	if m.name != nil {
 		fields = append(fields, fiatcurrency.FieldName)
+	}
+	if m.market_rate != nil {
+		fields = append(fields, fiatcurrency.FieldMarketRate)
 	}
 	return fields
 }
@@ -1355,6 +1457,8 @@ func (m *FiatCurrencyMutation) Field(name string) (ent.Value, bool) {
 		return m.Symbol()
 	case fiatcurrency.FieldName:
 		return m.Name()
+	case fiatcurrency.FieldMarketRate:
+		return m.MarketRate()
 	}
 	return nil, false
 }
@@ -1378,6 +1482,8 @@ func (m *FiatCurrencyMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldSymbol(ctx)
 	case fiatcurrency.FieldName:
 		return m.OldName(ctx)
+	case fiatcurrency.FieldMarketRate:
+		return m.OldMarketRate(ctx)
 	}
 	return nil, fmt.Errorf("unknown FiatCurrency field %s", name)
 }
@@ -1436,6 +1542,13 @@ func (m *FiatCurrencyMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetName(v)
 		return nil
+	case fiatcurrency.FieldMarketRate:
+		v, ok := value.(decimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMarketRate(v)
+		return nil
 	}
 	return fmt.Errorf("unknown FiatCurrency field %s", name)
 }
@@ -1447,6 +1560,9 @@ func (m *FiatCurrencyMutation) AddedFields() []string {
 	if m.adddecimals != nil {
 		fields = append(fields, fiatcurrency.FieldDecimals)
 	}
+	if m.addmarket_rate != nil {
+		fields = append(fields, fiatcurrency.FieldMarketRate)
+	}
 	return fields
 }
 
@@ -1457,6 +1573,8 @@ func (m *FiatCurrencyMutation) AddedField(name string) (ent.Value, bool) {
 	switch name {
 	case fiatcurrency.FieldDecimals:
 		return m.AddedDecimals()
+	case fiatcurrency.FieldMarketRate:
+		return m.AddedMarketRate()
 	}
 	return nil, false
 }
@@ -1472,6 +1590,13 @@ func (m *FiatCurrencyMutation) AddField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.AddDecimals(v)
+		return nil
+	case fiatcurrency.FieldMarketRate:
+		v, ok := value.(decimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddMarketRate(v)
 		return nil
 	}
 	return fmt.Errorf("unknown FiatCurrency numeric field %s", name)
@@ -1521,25 +1646,37 @@ func (m *FiatCurrencyMutation) ResetField(name string) error {
 	case fiatcurrency.FieldName:
 		m.ResetName()
 		return nil
+	case fiatcurrency.FieldMarketRate:
+		m.ResetMarketRate()
+		return nil
 	}
 	return fmt.Errorf("unknown FiatCurrency field %s", name)
 }
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *FiatCurrencyMutation) AddedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.provider != nil {
+		edges = append(edges, fiatcurrency.EdgeProvider)
+	}
 	return edges
 }
 
 // AddedIDs returns all IDs (to other nodes) that were added for the given edge
 // name in this mutation.
 func (m *FiatCurrencyMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case fiatcurrency.EdgeProvider:
+		if id := m.provider; id != nil {
+			return []ent.Value{*id}
+		}
+	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *FiatCurrencyMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
 	return edges
 }
 
@@ -1551,25 +1688,42 @@ func (m *FiatCurrencyMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *FiatCurrencyMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.clearedprovider {
+		edges = append(edges, fiatcurrency.EdgeProvider)
+	}
 	return edges
 }
 
 // EdgeCleared returns a boolean which indicates if the edge with the given name
 // was cleared in this mutation.
 func (m *FiatCurrencyMutation) EdgeCleared(name string) bool {
+	switch name {
+	case fiatcurrency.EdgeProvider:
+		return m.clearedprovider
+	}
 	return false
 }
 
 // ClearEdge clears the value of the edge with the given name. It returns an error
 // if that edge is not defined in the schema.
 func (m *FiatCurrencyMutation) ClearEdge(name string) error {
+	switch name {
+	case fiatcurrency.EdgeProvider:
+		m.ClearProvider()
+		return nil
+	}
 	return fmt.Errorf("unknown FiatCurrency unique edge %s", name)
 }
 
 // ResetEdge resets all changes to the edge with the given name in this mutation.
 // It returns an error if the edge is not defined in the schema.
 func (m *FiatCurrencyMutation) ResetEdge(name string) error {
+	switch name {
+	case fiatcurrency.EdgeProvider:
+		m.ResetProvider()
+		return nil
+	}
 	return fmt.Errorf("unknown FiatCurrency edge %s", name)
 }
 
@@ -6758,7 +6912,7 @@ type ProviderOrderTokenMutation struct {
 	id                          *int
 	created_at                  *time.Time
 	updated_at                  *time.Time
-	name                        *providerordertoken.Name
+	symbol                      *providerordertoken.Symbol
 	fixed_conversion_rate       *decimal.Decimal
 	addfixed_conversion_rate    *decimal.Decimal
 	floating_conversion_rate    *decimal.Decimal
@@ -6949,40 +7103,40 @@ func (m *ProviderOrderTokenMutation) ResetUpdatedAt() {
 	m.updated_at = nil
 }
 
-// SetName sets the "name" field.
-func (m *ProviderOrderTokenMutation) SetName(pr providerordertoken.Name) {
-	m.name = &pr
+// SetSymbol sets the "symbol" field.
+func (m *ProviderOrderTokenMutation) SetSymbol(pr providerordertoken.Symbol) {
+	m.symbol = &pr
 }
 
-// Name returns the value of the "name" field in the mutation.
-func (m *ProviderOrderTokenMutation) Name() (r providerordertoken.Name, exists bool) {
-	v := m.name
+// Symbol returns the value of the "symbol" field in the mutation.
+func (m *ProviderOrderTokenMutation) Symbol() (r providerordertoken.Symbol, exists bool) {
+	v := m.symbol
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldName returns the old "name" field's value of the ProviderOrderToken entity.
+// OldSymbol returns the old "symbol" field's value of the ProviderOrderToken entity.
 // If the ProviderOrderToken object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ProviderOrderTokenMutation) OldName(ctx context.Context) (v providerordertoken.Name, err error) {
+func (m *ProviderOrderTokenMutation) OldSymbol(ctx context.Context) (v providerordertoken.Symbol, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldName is only allowed on UpdateOne operations")
+		return v, errors.New("OldSymbol is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldName requires an ID field in the mutation")
+		return v, errors.New("OldSymbol requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldName: %w", err)
+		return v, fmt.Errorf("querying old value for OldSymbol: %w", err)
 	}
-	return oldValue.Name, nil
+	return oldValue.Symbol, nil
 }
 
-// ResetName resets all changes to the "name" field.
-func (m *ProviderOrderTokenMutation) ResetName() {
-	m.name = nil
+// ResetSymbol resets all changes to the "symbol" field.
+func (m *ProviderOrderTokenMutation) ResetSymbol() {
+	m.symbol = nil
 }
 
 // SetFixedConversionRate sets the "fixed_conversion_rate" field.
@@ -7379,8 +7533,8 @@ func (m *ProviderOrderTokenMutation) Fields() []string {
 	if m.updated_at != nil {
 		fields = append(fields, providerordertoken.FieldUpdatedAt)
 	}
-	if m.name != nil {
-		fields = append(fields, providerordertoken.FieldName)
+	if m.symbol != nil {
+		fields = append(fields, providerordertoken.FieldSymbol)
 	}
 	if m.fixed_conversion_rate != nil {
 		fields = append(fields, providerordertoken.FieldFixedConversionRate)
@@ -7409,8 +7563,8 @@ func (m *ProviderOrderTokenMutation) Field(name string) (ent.Value, bool) {
 		return m.CreatedAt()
 	case providerordertoken.FieldUpdatedAt:
 		return m.UpdatedAt()
-	case providerordertoken.FieldName:
-		return m.Name()
+	case providerordertoken.FieldSymbol:
+		return m.Symbol()
 	case providerordertoken.FieldFixedConversionRate:
 		return m.FixedConversionRate()
 	case providerordertoken.FieldFloatingConversionRate:
@@ -7434,8 +7588,8 @@ func (m *ProviderOrderTokenMutation) OldField(ctx context.Context, name string) 
 		return m.OldCreatedAt(ctx)
 	case providerordertoken.FieldUpdatedAt:
 		return m.OldUpdatedAt(ctx)
-	case providerordertoken.FieldName:
-		return m.OldName(ctx)
+	case providerordertoken.FieldSymbol:
+		return m.OldSymbol(ctx)
 	case providerordertoken.FieldFixedConversionRate:
 		return m.OldFixedConversionRate(ctx)
 	case providerordertoken.FieldFloatingConversionRate:
@@ -7469,12 +7623,12 @@ func (m *ProviderOrderTokenMutation) SetField(name string, value ent.Value) erro
 		}
 		m.SetUpdatedAt(v)
 		return nil
-	case providerordertoken.FieldName:
-		v, ok := value.(providerordertoken.Name)
+	case providerordertoken.FieldSymbol:
+		v, ok := value.(providerordertoken.Symbol)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetName(v)
+		m.SetSymbol(v)
 		return nil
 	case providerordertoken.FieldFixedConversionRate:
 		v, ok := value.(decimal.Decimal)
@@ -7617,8 +7771,8 @@ func (m *ProviderOrderTokenMutation) ResetField(name string) error {
 	case providerordertoken.FieldUpdatedAt:
 		m.ResetUpdatedAt()
 		return nil
-	case providerordertoken.FieldName:
-		m.ResetName()
+	case providerordertoken.FieldSymbol:
+		m.ResetSymbol()
 		return nil
 	case providerordertoken.FieldFixedConversionRate:
 		m.ResetFixedConversionRate()
@@ -8201,6 +8355,8 @@ type ProviderProfileMutation struct {
 	clearedFields            map[string]struct{}
 	api_key                  *uuid.UUID
 	clearedapi_key           bool
+	currency                 *uuid.UUID
+	clearedcurrency          bool
 	provision_buckets        map[int]struct{}
 	removedprovision_buckets map[int]struct{}
 	clearedprovision_buckets bool
@@ -8504,6 +8660,45 @@ func (m *ProviderProfileMutation) APIKeyIDs() (ids []uuid.UUID) {
 func (m *ProviderProfileMutation) ResetAPIKey() {
 	m.api_key = nil
 	m.clearedapi_key = false
+}
+
+// SetCurrencyID sets the "currency" edge to the FiatCurrency entity by id.
+func (m *ProviderProfileMutation) SetCurrencyID(id uuid.UUID) {
+	m.currency = &id
+}
+
+// ClearCurrency clears the "currency" edge to the FiatCurrency entity.
+func (m *ProviderProfileMutation) ClearCurrency() {
+	m.clearedcurrency = true
+}
+
+// CurrencyCleared reports if the "currency" edge to the FiatCurrency entity was cleared.
+func (m *ProviderProfileMutation) CurrencyCleared() bool {
+	return m.clearedcurrency
+}
+
+// CurrencyID returns the "currency" edge ID in the mutation.
+func (m *ProviderProfileMutation) CurrencyID() (id uuid.UUID, exists bool) {
+	if m.currency != nil {
+		return *m.currency, true
+	}
+	return
+}
+
+// CurrencyIDs returns the "currency" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// CurrencyID instead. It exists only for internal usage by the builders.
+func (m *ProviderProfileMutation) CurrencyIDs() (ids []uuid.UUID) {
+	if id := m.currency; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetCurrency resets all changes to the "currency" edge.
+func (m *ProviderProfileMutation) ResetCurrency() {
+	m.currency = nil
+	m.clearedcurrency = false
 }
 
 // AddProvisionBucketIDs adds the "provision_buckets" edge to the ProvisionBucket entity by ids.
@@ -8930,9 +9125,12 @@ func (m *ProviderProfileMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ProviderProfileMutation) AddedEdges() []string {
-	edges := make([]string, 0, 6)
+	edges := make([]string, 0, 7)
 	if m.api_key != nil {
 		edges = append(edges, providerprofile.EdgeAPIKey)
+	}
+	if m.currency != nil {
+		edges = append(edges, providerprofile.EdgeCurrency)
 	}
 	if m.provision_buckets != nil {
 		edges = append(edges, providerprofile.EdgeProvisionBuckets)
@@ -8958,6 +9156,10 @@ func (m *ProviderProfileMutation) AddedIDs(name string) []ent.Value {
 	switch name {
 	case providerprofile.EdgeAPIKey:
 		if id := m.api_key; id != nil {
+			return []ent.Value{*id}
+		}
+	case providerprofile.EdgeCurrency:
+		if id := m.currency; id != nil {
 			return []ent.Value{*id}
 		}
 	case providerprofile.EdgeProvisionBuckets:
@@ -8992,7 +9194,7 @@ func (m *ProviderProfileMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *ProviderProfileMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 6)
+	edges := make([]string, 0, 7)
 	if m.removedprovision_buckets != nil {
 		edges = append(edges, providerprofile.EdgeProvisionBuckets)
 	}
@@ -9033,9 +9235,12 @@ func (m *ProviderProfileMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ProviderProfileMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 6)
+	edges := make([]string, 0, 7)
 	if m.clearedapi_key {
 		edges = append(edges, providerprofile.EdgeAPIKey)
+	}
+	if m.clearedcurrency {
+		edges = append(edges, providerprofile.EdgeCurrency)
 	}
 	if m.clearedprovision_buckets {
 		edges = append(edges, providerprofile.EdgeProvisionBuckets)
@@ -9061,6 +9266,8 @@ func (m *ProviderProfileMutation) EdgeCleared(name string) bool {
 	switch name {
 	case providerprofile.EdgeAPIKey:
 		return m.clearedapi_key
+	case providerprofile.EdgeCurrency:
+		return m.clearedcurrency
 	case providerprofile.EdgeProvisionBuckets:
 		return m.clearedprovision_buckets
 	case providerprofile.EdgeOrderTokens:
@@ -9082,6 +9289,9 @@ func (m *ProviderProfileMutation) ClearEdge(name string) error {
 	case providerprofile.EdgeAPIKey:
 		m.ClearAPIKey()
 		return nil
+	case providerprofile.EdgeCurrency:
+		m.ClearCurrency()
+		return nil
 	case providerprofile.EdgeAvailability:
 		m.ClearAvailability()
 		return nil
@@ -9098,6 +9308,9 @@ func (m *ProviderProfileMutation) ResetEdge(name string) error {
 	switch name {
 	case providerprofile.EdgeAPIKey:
 		m.ResetAPIKey()
+		return nil
+	case providerprofile.EdgeCurrency:
+		m.ResetCurrency()
 		return nil
 	case providerprofile.EdgeProvisionBuckets:
 		m.ResetProvisionBuckets()

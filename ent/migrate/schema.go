@@ -49,6 +49,7 @@ var (
 		{Name: "decimals", Type: field.TypeInt, Default: 2},
 		{Name: "symbol", Type: field.TypeString},
 		{Name: "name", Type: field.TypeString},
+		{Name: "market_rate", Type: field.TypeFloat64},
 	}
 	// FiatCurrenciesTable holds the schema information for the "fiat_currencies" table.
 	FiatCurrenciesTable = &schema.Table{
@@ -228,7 +229,7 @@ var (
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
-		{Name: "name", Type: field.TypeEnum, Enums: []string{"USDT", "USDC", "BUSD"}},
+		{Name: "symbol", Type: field.TypeEnum, Enums: []string{"USDT", "USDC", "BUSD"}},
 		{Name: "fixed_conversion_rate", Type: field.TypeFloat64},
 		{Name: "floating_conversion_rate", Type: field.TypeFloat64},
 		{Name: "conversion_rate_type", Type: field.TypeEnum, Enums: []string{"fixed", "floating"}},
@@ -247,13 +248,6 @@ var (
 				Columns:    []*schema.Column{ProviderOrderTokensColumns[9]},
 				RefColumns: []*schema.Column{ProviderProfilesColumns[0]},
 				OnDelete:   schema.Cascade,
-			},
-		},
-		Indexes: []*schema.Index{
-			{
-				Name:    "providerordertoken_name_provider_profile_order_tokens",
-				Unique:  true,
-				Columns: []*schema.Column{ProviderOrderTokensColumns[3], ProviderOrderTokensColumns[9]},
 			},
 		},
 	}
@@ -286,6 +280,7 @@ var (
 		{Name: "trading_name", Type: field.TypeString, Size: 80},
 		{Name: "country", Type: field.TypeString, Size: 80},
 		{Name: "api_key_provider_profile", Type: field.TypeUUID, Unique: true},
+		{Name: "fiat_currency_provider", Type: field.TypeUUID, Unique: true},
 	}
 	// ProviderProfilesTable holds the schema information for the "provider_profiles" table.
 	ProviderProfilesTable = &schema.Table{
@@ -298,6 +293,12 @@ var (
 				Columns:    []*schema.Column{ProviderProfilesColumns[5]},
 				RefColumns: []*schema.Column{APIKeysColumns[0]},
 				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "provider_profiles_fiat_currencies_provider",
+				Columns:    []*schema.Column{ProviderProfilesColumns[6]},
+				RefColumns: []*schema.Column{FiatCurrenciesColumns[0]},
+				OnDelete:   schema.SetNull,
 			},
 		},
 	}
@@ -539,6 +540,7 @@ func init() {
 	ProviderOrderTokensTable.ForeignKeys[0].RefTable = ProviderProfilesTable
 	ProviderOrderTokenAddressesTable.ForeignKeys[0].RefTable = ProviderOrderTokensTable
 	ProviderProfilesTable.ForeignKeys[0].RefTable = APIKeysTable
+	ProviderProfilesTable.ForeignKeys[1].RefTable = FiatCurrenciesTable
 	ProviderRatingsTable.ForeignKeys[0].RefTable = ProviderProfilesTable
 	ReceiveAddressesTable.ForeignKeys[0].RefTable = PaymentOrdersTable
 	TokensTable.ForeignKeys[0].RefTable = NetworksTable

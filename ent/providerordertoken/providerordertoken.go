@@ -19,8 +19,8 @@ const (
 	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
 	FieldUpdatedAt = "updated_at"
-	// FieldName holds the string denoting the name field in the database.
-	FieldName = "name"
+	// FieldSymbol holds the string denoting the symbol field in the database.
+	FieldSymbol = "symbol"
 	// FieldFixedConversionRate holds the string denoting the fixed_conversion_rate field in the database.
 	FieldFixedConversionRate = "fixed_conversion_rate"
 	// FieldFloatingConversionRate holds the string denoting the floating_conversion_rate field in the database.
@@ -58,7 +58,7 @@ var Columns = []string{
 	FieldID,
 	FieldCreatedAt,
 	FieldUpdatedAt,
-	FieldName,
+	FieldSymbol,
 	FieldFixedConversionRate,
 	FieldFloatingConversionRate,
 	FieldConversionRateType,
@@ -96,27 +96,27 @@ var (
 	UpdateDefaultUpdatedAt func() time.Time
 )
 
-// Name defines the type for the "name" enum field.
-type Name string
+// Symbol defines the type for the "symbol" enum field.
+type Symbol string
 
-// Name values.
+// Symbol values.
 const (
-	NameUSDT Name = "USDT"
-	NameUSDC Name = "USDC"
-	NameBUSD Name = "BUSD"
+	SymbolUSDT Symbol = "USDT"
+	SymbolUSDC Symbol = "USDC"
+	SymbolBUSD Symbol = "BUSD"
 )
 
-func (n Name) String() string {
-	return string(n)
+func (s Symbol) String() string {
+	return string(s)
 }
 
-// NameValidator is a validator for the "name" field enum values. It is called by the builders before save.
-func NameValidator(n Name) error {
-	switch n {
-	case NameUSDT, NameUSDC, NameBUSD:
+// SymbolValidator is a validator for the "symbol" field enum values. It is called by the builders before save.
+func SymbolValidator(s Symbol) error {
+	switch s {
+	case SymbolUSDT, SymbolUSDC, SymbolBUSD:
 		return nil
 	default:
-		return fmt.Errorf("providerordertoken: invalid enum value for name field: %q", n)
+		return fmt.Errorf("providerordertoken: invalid enum value for symbol field: %q", s)
 	}
 }
 
@@ -161,9 +161,9 @@ func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldUpdatedAt, opts...).ToFunc()
 }
 
-// ByName orders the results by the name field.
-func ByName(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldName, opts...).ToFunc()
+// BySymbol orders the results by the symbol field.
+func BySymbol(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSymbol, opts...).ToFunc()
 }
 
 // ByFixedConversionRate orders the results by the fixed_conversion_rate field.

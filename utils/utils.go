@@ -162,3 +162,24 @@ func ContainsString(slice []string, item string) bool {
 	}
 	return false
 }
+
+// Median returns the median value of a decimal slice
+func Median(data []decimal.Decimal) decimal.Decimal {
+
+	l := len(data)
+	if l == 0 {
+		return decimal.Zero
+	}
+
+	middle := l / 2
+	result := data[middle]
+
+	// Handle even length slices
+	if l%2 == 0 {
+		result = result.Add(data[middle-1])
+		result = result.Div(decimal.New(2, 0))
+	}
+
+	return result
+
+}

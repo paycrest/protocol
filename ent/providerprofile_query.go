@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
+	"github.com/paycrest/paycrest-protocol/ent/fiatcurrency"
 	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
 	"github.com/paycrest/paycrest-protocol/ent/provideravailability"
@@ -30,6 +31,7 @@ type ProviderProfileQuery struct {
 	inters               []Interceptor
 	predicates           []predicate.ProviderProfile
 	withAPIKey           *APIKeyQuery
+	withCurrency         *FiatCurrencyQuery
 	withProvisionBuckets *ProvisionBucketQuery
 	withOrderTokens      *ProviderOrderTokenQuery
 	withAvailability     *ProviderAvailabilityQuery
@@ -87,6 +89,28 @@ func (ppq *ProviderProfileQuery) QueryAPIKey() *APIKeyQuery {
 			sqlgraph.From(providerprofile.Table, providerprofile.FieldID, selector),
 			sqlgraph.To(apikey.Table, apikey.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, true, providerprofile.APIKeyTable, providerprofile.APIKeyColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(ppq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryCurrency chains the current query on the "currency" edge.
+func (ppq *ProviderProfileQuery) QueryCurrency() *FiatCurrencyQuery {
+	query := (&FiatCurrencyClient{config: ppq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := ppq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := ppq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(providerprofile.Table, providerprofile.FieldID, selector),
+			sqlgraph.To(fiatcurrency.Table, fiatcurrency.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, providerprofile.CurrencyTable, providerprofile.CurrencyColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(ppq.driver.Dialect(), step)
 		return fromU, nil
@@ -397,6 +421,7 @@ func (ppq *ProviderProfileQuery) Clone() *ProviderProfileQuery {
 		inters:               append([]Interceptor{}, ppq.inters...),
 		predicates:           append([]predicate.ProviderProfile{}, ppq.predicates...),
 		withAPIKey:           ppq.withAPIKey.Clone(),
+		withCurrency:         ppq.withCurrency.Clone(),
 		withProvisionBuckets: ppq.withProvisionBuckets.Clone(),
 		withOrderTokens:      ppq.withOrderTokens.Clone(),
 		withAvailability:     ppq.withAvailability.Clone(),
@@ -416,6 +441,17 @@ func (ppq *ProviderProfileQuery) WithAPIKey(opts ...func(*APIKeyQuery)) *Provide
 		opt(query)
 	}
 	ppq.withAPIKey = query
+	return ppq
+}
+
+// WithCurrency tells the query-builder to eager-load the nodes that are connected to
+// the "currency" edge. The optional arguments are used to configure the query builder of the edge.
+func (ppq *ProviderProfileQuery) WithCurrency(opts ...func(*FiatCurrencyQuery)) *ProviderProfileQuery {
+	query := (&FiatCurrencyClient{config: ppq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	ppq.withCurrency = query
 	return ppq
 }
 
@@ -553,8 +589,9 @@ func (ppq *ProviderProfileQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 		nodes       = []*ProviderProfile{}
 		withFKs     = ppq.withFKs
 		_spec       = ppq.querySpec()
-		loadedTypes = [6]bool{
+		loadedTypes = [7]bool{
 			ppq.withAPIKey != nil,
+			ppq.withCurrency != nil,
 			ppq.withProvisionBuckets != nil,
 			ppq.withOrderTokens != nil,
 			ppq.withAvailability != nil,
@@ -562,7 +599,7 @@ func (ppq *ProviderProfileQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 			ppq.withAssignedOrders != nil,
 		}
 	)
-	if ppq.withAPIKey != nil {
+	if ppq.withAPIKey != nil || ppq.withCurrency != nil {
 		withFKs = true
 	}
 	if withFKs {
@@ -589,6 +626,12 @@ func (ppq *ProviderProfileQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 	if query := ppq.withAPIKey; query != nil {
 		if err := ppq.loadAPIKey(ctx, query, nodes, nil,
 			func(n *ProviderProfile, e *APIKey) { n.Edges.APIKey = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := ppq.withCurrency; query != nil {
+		if err := ppq.loadCurrency(ctx, query, nodes, nil,
+			func(n *ProviderProfile, e *FiatCurrency) { n.Edges.Currency = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -657,6 +700,38 @@ func (ppq *ProviderProfileQuery) loadAPIKey(ctx context.Context, query *APIKeyQu
 		nodes, ok := nodeids[n.ID]
 		if !ok {
 			return fmt.Errorf(`unexpected foreign-key "api_key_provider_profile" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
+func (ppq *ProviderProfileQuery) loadCurrency(ctx context.Context, query *FiatCurrencyQuery, nodes []*ProviderProfile, init func(*ProviderProfile), assign func(*ProviderProfile, *FiatCurrency)) error {
+	ids := make([]uuid.UUID, 0, len(nodes))
+	nodeids := make(map[uuid.UUID][]*ProviderProfile)
+	for i := range nodes {
+		if nodes[i].fiat_currency_provider == nil {
+			continue
+		}
+		fk := *nodes[i].fiat_currency_provider
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(fiatcurrency.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "fiat_currency_provider" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)

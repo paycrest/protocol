@@ -166,24 +166,24 @@ func UpdatedAtLTE(v time.Time) predicate.ProviderOrderToken {
 	return predicate.ProviderOrderToken(sql.FieldLTE(FieldUpdatedAt, v))
 }
 
-// NameEQ applies the EQ predicate on the "name" field.
-func NameEQ(v Name) predicate.ProviderOrderToken {
-	return predicate.ProviderOrderToken(sql.FieldEQ(FieldName, v))
+// SymbolEQ applies the EQ predicate on the "symbol" field.
+func SymbolEQ(v Symbol) predicate.ProviderOrderToken {
+	return predicate.ProviderOrderToken(sql.FieldEQ(FieldSymbol, v))
 }
 
-// NameNEQ applies the NEQ predicate on the "name" field.
-func NameNEQ(v Name) predicate.ProviderOrderToken {
-	return predicate.ProviderOrderToken(sql.FieldNEQ(FieldName, v))
+// SymbolNEQ applies the NEQ predicate on the "symbol" field.
+func SymbolNEQ(v Symbol) predicate.ProviderOrderToken {
+	return predicate.ProviderOrderToken(sql.FieldNEQ(FieldSymbol, v))
 }
 
-// NameIn applies the In predicate on the "name" field.
-func NameIn(vs ...Name) predicate.ProviderOrderToken {
-	return predicate.ProviderOrderToken(sql.FieldIn(FieldName, vs...))
+// SymbolIn applies the In predicate on the "symbol" field.
+func SymbolIn(vs ...Symbol) predicate.ProviderOrderToken {
+	return predicate.ProviderOrderToken(sql.FieldIn(FieldSymbol, vs...))
 }
 
-// NameNotIn applies the NotIn predicate on the "name" field.
-func NameNotIn(vs ...Name) predicate.ProviderOrderToken {
-	return predicate.ProviderOrderToken(sql.FieldNotIn(FieldName, vs...))
+// SymbolNotIn applies the NotIn predicate on the "symbol" field.
+func SymbolNotIn(vs ...Symbol) predicate.ProviderOrderToken {
+	return predicate.ProviderOrderToken(sql.FieldNotIn(FieldSymbol, vs...))
 }
 
 // FixedConversionRateEQ applies the EQ predicate on the "fixed_conversion_rate" field.
