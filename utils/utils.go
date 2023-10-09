@@ -4,6 +4,7 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 	"math/big"
+	"sort"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -165,11 +166,15 @@ func ContainsString(slice []string, item string) bool {
 
 // Median returns the median value of a decimal slice
 func Median(data []decimal.Decimal) decimal.Decimal {
-
 	l := len(data)
 	if l == 0 {
 		return decimal.Zero
 	}
+
+	// Sort data in ascending order
+	sort.Slice(data, func(i, j int) bool {
+		return data[i].LessThan(data[j])
+	})
 
 	middle := l / 2
 	result := data[middle]
@@ -177,9 +182,9 @@ func Median(data []decimal.Decimal) decimal.Decimal {
 	// Handle even length slices
 	if l%2 == 0 {
 		result = result.Add(data[middle-1])
-		result = result.Div(decimal.New(2, 0))
+		fmt.Println("middle-1: ", result)
+		result = result.Div(decimal.NewFromInt(2))
 	}
 
 	return result
-
 }

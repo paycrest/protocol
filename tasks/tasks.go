@@ -2,7 +2,6 @@ package tasks
 
 import (
 	"context"
-	"sort"
 	"time"
 
 	"github.com/go-co-op/gocron"
@@ -145,11 +144,6 @@ func ComputeMarketRate() error {
 			for _, tokenConfig := range tokenConfigs {
 				rates = append(rates, tokenConfig.FixedConversionRate)
 			}
-
-			// Sort rates in ascending order
-			sort.Slice(rates, func(i, j int) bool {
-				return rates[i].LessThan(rates[j])
-			})
 
 			// Calculate median
 			median := utils.Median(rates)
