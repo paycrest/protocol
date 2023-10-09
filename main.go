@@ -46,11 +46,6 @@ func main() {
 		logger.Fatalf("ProcessOrders: %s", err)
 	}
 
-	// Start scanning unfulfilled lockOrders & reassignment.
-	if err := tasks.ProcessUnfulfilledLockOrders(); err != nil {
-		logger.Fatalf("UnfulfilledReassignment: %s", err)
-	}
-
 	// Subscribe to Redis keyspace events
 	tasks.SubscribeToRedisKeyspaceEvents()
 
