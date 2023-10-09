@@ -10,6 +10,7 @@ import (
 
 // OrderConfiguration type defines payment order configurations
 type OrderConfiguration struct {
+	OrderFulfillmentValidity     time.Duration
 	ReceiveAddressValidity       time.Duration
 	OrderRequestValidity         time.Duration
 	PaycrestOrderContractAddress common.Address
@@ -24,6 +25,7 @@ func OrderConfig() *OrderConfiguration {
 	viper.SetDefault("ORDER_REQUEST_VALIDITY", 120)
 
 	return &OrderConfiguration{
+		OrderFulfillmentValidity:     time.Duration(viper.GetInt("ORDER_FULFILLMENT_VALIDITY")) * time.Minute,
 		ReceiveAddressValidity:       time.Duration(viper.GetInt("RECEIVE_ADDRESS_VALIDITY")) * time.Minute,
 		OrderRequestValidity:         time.Duration(viper.GetInt("ORDER_REQUEST_VALIDITY")) * time.Second,
 		PaycrestOrderContractAddress: common.HexToAddress(viper.GetString("PAYCREST_ORDER_CONTRACT_ADDRESS")),

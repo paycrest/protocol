@@ -123,6 +123,8 @@ func (s *PriorityQueueService) CreatePriorityQueueForBucket(ctx context.Context,
 
 // AssignLockPaymentOrders assigns lock payment orders to providers
 func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order types.LockPaymentOrderFields) error {
+	go s.ReassignUnfulfilledLockOrders(ctx)
+
 	// Get the first provider from the circular queue
 	redisKey := fmt.Sprintf("bucket_%d_%d", order.ProvisionBucket.MinAmount, order.ProvisionBucket.MaxAmount)
 
@@ -266,4 +268,64 @@ func (s *PriorityQueueService) ReassignStaleOrderRequest(ctx context.Context, or
 			return
 		}
 	}
+}
+
+// ReassignUnfulfilledLockOrders reassigns lockOrder unfulfilled within a time frame.
+func (s *PriorityQueueService) ReassignUnfulfilledLockOrders(ctx context.Context) error {
+	// query unfulfilled lock orders.
+	lockOrders, err := storage.Client.LockPaymentOrder.
+		Query().
+		Where(
+			lockpaymentorder.Not(lockpaymentorder.HasFulfillment()),
+			lockpaymentorder.Or(
+				lockpaymentorder.And(
+					lockpaymentorder.StatusEQ(lockpaymentorder.StatusProcessing),
+					lockpaymentorder.UpdatedAtLTE(time.Now().Add(-OrderConf.OrderFulfillmentValidity*time.Minute)),
+				),
+				lockpaymentorder.StatusEQ(lockpaymentorder.StatusCancelled),
+			),
+		).
+		WithToken().
+		WithProvider().
+		WithProvisionBucket().
+		All(ctx)
+	if err != nil {
+		return err
+	}
+
+	// unassign unfulfilled lock orders.
+	_, err = storage.Client.LockPaymentOrder.
+		Update().
+		Where(
+			lockpaymentorder.StatusEQ(lockpaymentorder.StatusProcessing),
+			lockpaymentorder.UpdatedAtLTE(time.Now().Add(-OrderConf.OrderFulfillmentValidity*time.Minute)),
+			lockpaymentorder.Not(lockpaymentorder.HasFulfillment()),
+		).
+		SetStatus(lockpaymentorder.StatusPending).
+		Save(ctx)
+	if err != nil {
+		return err
+	}
+
+	for _, order := range lockOrders {
+		lockPaymentOrder := types.LockPaymentOrderFields{
+			Token:             order.Edges.Token,
+			OrderID:           order.OrderID,
+			Amount:            order.Amount,
+			Rate:              order.Rate,
+			BlockNumber:       order.BlockNumber,
+			Institution:       order.Institution,
+			AccountIdentifier: order.AccountIdentifier,
+			AccountName:       order.AccountName,
+			ProviderID:        order.Edges.Provider.ID,
+			ProvisionBucket:   order.Edges.ProvisionBucket,
+		}
+
+		err := s.AssignLockPaymentOrder(ctx, lockPaymentOrder)
+		if err != nil {
+			logger.Errorf("task reassign unfulfilled lock order with id: %s => %v\n", order.OrderID, err)
+		}
+	}
+
+	return nil
 }
