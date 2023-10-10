@@ -13,6 +13,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/fiatcurrency"
 	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/provideravailability"
+	"github.com/paycrest/paycrest-protocol/ent/providerordertoken"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 	"github.com/paycrest/paycrest-protocol/ent/providerrating"
 	"github.com/paycrest/paycrest-protocol/ent/provisionbucket"
@@ -84,9 +85,40 @@ func (s *PriorityQueueService) GetProvidersByBucket(ctx context.Context) ([]*ent
 }
 
 // getProviderRate returns the rate for a provider
-func (s *PriorityQueueService) getProviderRate(provider *ent.ProviderProfile) (decimal.Decimal, error) {
+func (s *PriorityQueueService) getProviderRate(ctx context.Context, provider *ent.ProviderProfile) (decimal.Decimal, error) {
 	// TODO: implement fetching of provider rate. this also includes calculating floating rate
-	return decimal.Decimal{}, nil
+	tokenConfig, err := storage.Client.ProviderOrderToken.
+		Query().
+		Where(
+			providerordertoken.HasProviderWith(providerprofile.IDEQ(provider.ID)),
+		).
+		WithProvider(func(pq *ent.ProviderProfileQuery) {
+			pq.WithCurrency()
+		}).
+		Select(
+			providerordertoken.FieldConversionRateType,
+			providerordertoken.FieldFixedConversionRate,
+			providerordertoken.FieldFloatingConversionRate,
+		).
+		First(ctx)
+	if err != nil {
+		return decimal.Decimal{}, err
+	}
+
+	rate := decimal.Decimal{}
+
+	if tokenConfig.ConversionRateType == providerordertoken.ConversionRateTypeFixed {
+		rate = tokenConfig.FixedConversionRate
+	} else {
+		// Haandle floating pricing case
+		marketRate := tokenConfig.Edges.Provider.Edges.Currency.MarketRate
+		floatingRate := tokenConfig.FloatingConversionRate // in percentage
+
+		// Calculate the floating rate based on the market rate
+		rate = marketRate.Mul(floatingRate.Div(decimal.NewFromInt(100)))
+	}
+
+	return rate, nil
 }
 
 // CreatePriorityQueueForBucket creates a priority queue for a bucket and saves it to redis
@@ -109,7 +141,7 @@ func (s *PriorityQueueService) CreatePriorityQueueForBucket(ctx context.Context,
 
 	for _, provider := range providers {
 		providerID := provider.ID
-		rate, _ := s.getProviderRate(provider)
+		rate, _ := s.getProviderRate(ctx, provider)
 
 		// Serialize the provider ID and rate into a single string
 		data := fmt.Sprintf("%s:%s", providerID, rate)
