@@ -54,6 +54,32 @@ func (ppu *ProviderProfileUpdate) SetCountry(s string) *ProviderProfileUpdate {
 	return ppu
 }
 
+// SetHostIdentifier sets the "host_identifier" field.
+func (ppu *ProviderProfileUpdate) SetHostIdentifier(s string) *ProviderProfileUpdate {
+	ppu.mutation.SetHostIdentifier(s)
+	return ppu
+}
+
+// SetNillableHostIdentifier sets the "host_identifier" field if the given value is not nil.
+func (ppu *ProviderProfileUpdate) SetNillableHostIdentifier(s *string) *ProviderProfileUpdate {
+	if s != nil {
+		ppu.SetHostIdentifier(*s)
+	}
+	return ppu
+}
+
+// ClearHostIdentifier clears the value of the "host_identifier" field.
+func (ppu *ProviderProfileUpdate) ClearHostIdentifier() *ProviderProfileUpdate {
+	ppu.mutation.ClearHostIdentifier()
+	return ppu
+}
+
+// SetProvisionMode sets the "provision_mode" field.
+func (ppu *ProviderProfileUpdate) SetProvisionMode(pm providerprofile.ProvisionMode) *ProviderProfileUpdate {
+	ppu.mutation.SetProvisionMode(pm)
+	return ppu
+}
+
 // SetIsPartner sets the "is_partner" field.
 func (ppu *ProviderProfileUpdate) SetIsPartner(b bool) *ProviderProfileUpdate {
 	ppu.mutation.SetIsPartner(b)
@@ -313,6 +339,11 @@ func (ppu *ProviderProfileUpdate) check() error {
 			return &ValidationError{Name: "country", err: fmt.Errorf(`ent: validator failed for field "ProviderProfile.country": %w`, err)}
 		}
 	}
+	if v, ok := ppu.mutation.ProvisionMode(); ok {
+		if err := providerprofile.ProvisionModeValidator(v); err != nil {
+			return &ValidationError{Name: "provision_mode", err: fmt.Errorf(`ent: validator failed for field "ProviderProfile.provision_mode": %w`, err)}
+		}
+	}
 	if _, ok := ppu.mutation.APIKeyID(); ppu.mutation.APIKeyCleared() && !ok {
 		return errors.New(`ent: clearing a required unique edge "ProviderProfile.api_key"`)
 	}
@@ -342,6 +373,15 @@ func (ppu *ProviderProfileUpdate) sqlSave(ctx context.Context) (n int, err error
 	}
 	if value, ok := ppu.mutation.Country(); ok {
 		_spec.SetField(providerprofile.FieldCountry, field.TypeString, value)
+	}
+	if value, ok := ppu.mutation.HostIdentifier(); ok {
+		_spec.SetField(providerprofile.FieldHostIdentifier, field.TypeString, value)
+	}
+	if ppu.mutation.HostIdentifierCleared() {
+		_spec.ClearField(providerprofile.FieldHostIdentifier, field.TypeString)
+	}
+	if value, ok := ppu.mutation.ProvisionMode(); ok {
+		_spec.SetField(providerprofile.FieldProvisionMode, field.TypeEnum, value)
 	}
 	if value, ok := ppu.mutation.IsPartner(); ok {
 		_spec.SetField(providerprofile.FieldIsPartner, field.TypeBool, value)
@@ -635,6 +675,32 @@ func (ppuo *ProviderProfileUpdateOne) SetCountry(s string) *ProviderProfileUpdat
 	return ppuo
 }
 
+// SetHostIdentifier sets the "host_identifier" field.
+func (ppuo *ProviderProfileUpdateOne) SetHostIdentifier(s string) *ProviderProfileUpdateOne {
+	ppuo.mutation.SetHostIdentifier(s)
+	return ppuo
+}
+
+// SetNillableHostIdentifier sets the "host_identifier" field if the given value is not nil.
+func (ppuo *ProviderProfileUpdateOne) SetNillableHostIdentifier(s *string) *ProviderProfileUpdateOne {
+	if s != nil {
+		ppuo.SetHostIdentifier(*s)
+	}
+	return ppuo
+}
+
+// ClearHostIdentifier clears the value of the "host_identifier" field.
+func (ppuo *ProviderProfileUpdateOne) ClearHostIdentifier() *ProviderProfileUpdateOne {
+	ppuo.mutation.ClearHostIdentifier()
+	return ppuo
+}
+
+// SetProvisionMode sets the "provision_mode" field.
+func (ppuo *ProviderProfileUpdateOne) SetProvisionMode(pm providerprofile.ProvisionMode) *ProviderProfileUpdateOne {
+	ppuo.mutation.SetProvisionMode(pm)
+	return ppuo
+}
+
 // SetIsPartner sets the "is_partner" field.
 func (ppuo *ProviderProfileUpdateOne) SetIsPartner(b bool) *ProviderProfileUpdateOne {
 	ppuo.mutation.SetIsPartner(b)
@@ -907,6 +973,11 @@ func (ppuo *ProviderProfileUpdateOne) check() error {
 			return &ValidationError{Name: "country", err: fmt.Errorf(`ent: validator failed for field "ProviderProfile.country": %w`, err)}
 		}
 	}
+	if v, ok := ppuo.mutation.ProvisionMode(); ok {
+		if err := providerprofile.ProvisionModeValidator(v); err != nil {
+			return &ValidationError{Name: "provision_mode", err: fmt.Errorf(`ent: validator failed for field "ProviderProfile.provision_mode": %w`, err)}
+		}
+	}
 	if _, ok := ppuo.mutation.APIKeyID(); ppuo.mutation.APIKeyCleared() && !ok {
 		return errors.New(`ent: clearing a required unique edge "ProviderProfile.api_key"`)
 	}
@@ -953,6 +1024,15 @@ func (ppuo *ProviderProfileUpdateOne) sqlSave(ctx context.Context) (_node *Provi
 	}
 	if value, ok := ppuo.mutation.Country(); ok {
 		_spec.SetField(providerprofile.FieldCountry, field.TypeString, value)
+	}
+	if value, ok := ppuo.mutation.HostIdentifier(); ok {
+		_spec.SetField(providerprofile.FieldHostIdentifier, field.TypeString, value)
+	}
+	if ppuo.mutation.HostIdentifierCleared() {
+		_spec.ClearField(providerprofile.FieldHostIdentifier, field.TypeString)
+	}
+	if value, ok := ppuo.mutation.ProvisionMode(); ok {
+		_spec.SetField(providerprofile.FieldProvisionMode, field.TypeEnum, value)
 	}
 	if value, ok := ppuo.mutation.IsPartner(); ok {
 		_spec.SetField(providerprofile.FieldIsPartner, field.TypeBool, value)

@@ -3,6 +3,7 @@
 package providerprofile
 
 import (
+	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
@@ -22,6 +23,10 @@ const (
 	FieldTradingName = "trading_name"
 	// FieldCountry holds the string denoting the country field in the database.
 	FieldCountry = "country"
+	// FieldHostIdentifier holds the string denoting the host_identifier field in the database.
+	FieldHostIdentifier = "host_identifier"
+	// FieldProvisionMode holds the string denoting the provision_mode field in the database.
+	FieldProvisionMode = "provision_mode"
 	// FieldIsPartner holds the string denoting the is_partner field in the database.
 	FieldIsPartner = "is_partner"
 	// EdgeAPIKey holds the string denoting the api_key edge name in mutations.
@@ -96,6 +101,8 @@ var Columns = []string{
 	FieldUpdatedAt,
 	FieldTradingName,
 	FieldCountry,
+	FieldHostIdentifier,
+	FieldProvisionMode,
 	FieldIsPartner,
 }
 
@@ -144,6 +151,29 @@ var (
 	DefaultID func() string
 )
 
+// ProvisionMode defines the type for the "provision_mode" enum field.
+type ProvisionMode string
+
+// ProvisionMode values.
+const (
+	ProvisionModeManual ProvisionMode = "manual"
+	ProvisionModeAuto   ProvisionMode = "auto"
+)
+
+func (pm ProvisionMode) String() string {
+	return string(pm)
+}
+
+// ProvisionModeValidator is a validator for the "provision_mode" field enum values. It is called by the builders before save.
+func ProvisionModeValidator(pm ProvisionMode) error {
+	switch pm {
+	case ProvisionModeManual, ProvisionModeAuto:
+		return nil
+	default:
+		return fmt.Errorf("providerprofile: invalid enum value for provision_mode field: %q", pm)
+	}
+}
+
 // OrderOption defines the ordering options for the ProviderProfile queries.
 type OrderOption func(*sql.Selector)
 
@@ -170,6 +200,16 @@ func ByTradingName(opts ...sql.OrderTermOption) OrderOption {
 // ByCountry orders the results by the country field.
 func ByCountry(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCountry, opts...).ToFunc()
+}
+
+// ByHostIdentifier orders the results by the host_identifier field.
+func ByHostIdentifier(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldHostIdentifier, opts...).ToFunc()
+}
+
+// ByProvisionMode orders the results by the provision_mode field.
+func ByProvisionMode(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldProvisionMode, opts...).ToFunc()
 }
 
 // ByIsPartner orders the results by the is_partner field.

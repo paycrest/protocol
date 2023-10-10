@@ -8352,6 +8352,8 @@ type ProviderProfileMutation struct {
 	updated_at               *time.Time
 	trading_name             *string
 	country                  *string
+	host_identifier          *string
+	provision_mode           *providerprofile.ProvisionMode
 	is_partner               *bool
 	clearedFields            map[string]struct{}
 	api_key                  *uuid.UUID
@@ -8622,6 +8624,91 @@ func (m *ProviderProfileMutation) OldCountry(ctx context.Context) (v string, err
 // ResetCountry resets all changes to the "country" field.
 func (m *ProviderProfileMutation) ResetCountry() {
 	m.country = nil
+}
+
+// SetHostIdentifier sets the "host_identifier" field.
+func (m *ProviderProfileMutation) SetHostIdentifier(s string) {
+	m.host_identifier = &s
+}
+
+// HostIdentifier returns the value of the "host_identifier" field in the mutation.
+func (m *ProviderProfileMutation) HostIdentifier() (r string, exists bool) {
+	v := m.host_identifier
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldHostIdentifier returns the old "host_identifier" field's value of the ProviderProfile entity.
+// If the ProviderProfile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderProfileMutation) OldHostIdentifier(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldHostIdentifier is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldHostIdentifier requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldHostIdentifier: %w", err)
+	}
+	return oldValue.HostIdentifier, nil
+}
+
+// ClearHostIdentifier clears the value of the "host_identifier" field.
+func (m *ProviderProfileMutation) ClearHostIdentifier() {
+	m.host_identifier = nil
+	m.clearedFields[providerprofile.FieldHostIdentifier] = struct{}{}
+}
+
+// HostIdentifierCleared returns if the "host_identifier" field was cleared in this mutation.
+func (m *ProviderProfileMutation) HostIdentifierCleared() bool {
+	_, ok := m.clearedFields[providerprofile.FieldHostIdentifier]
+	return ok
+}
+
+// ResetHostIdentifier resets all changes to the "host_identifier" field.
+func (m *ProviderProfileMutation) ResetHostIdentifier() {
+	m.host_identifier = nil
+	delete(m.clearedFields, providerprofile.FieldHostIdentifier)
+}
+
+// SetProvisionMode sets the "provision_mode" field.
+func (m *ProviderProfileMutation) SetProvisionMode(pm providerprofile.ProvisionMode) {
+	m.provision_mode = &pm
+}
+
+// ProvisionMode returns the value of the "provision_mode" field in the mutation.
+func (m *ProviderProfileMutation) ProvisionMode() (r providerprofile.ProvisionMode, exists bool) {
+	v := m.provision_mode
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldProvisionMode returns the old "provision_mode" field's value of the ProviderProfile entity.
+// If the ProviderProfile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderProfileMutation) OldProvisionMode(ctx context.Context) (v providerprofile.ProvisionMode, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldProvisionMode is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldProvisionMode requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldProvisionMode: %w", err)
+	}
+	return oldValue.ProvisionMode, nil
+}
+
+// ResetProvisionMode resets all changes to the "provision_mode" field.
+func (m *ProviderProfileMutation) ResetProvisionMode() {
+	m.provision_mode = nil
 }
 
 // SetIsPartner sets the "is_partner" field.
@@ -9012,7 +9099,7 @@ func (m *ProviderProfileMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ProviderProfileMutation) Fields() []string {
-	fields := make([]string, 0, 5)
+	fields := make([]string, 0, 7)
 	if m.created_at != nil {
 		fields = append(fields, providerprofile.FieldCreatedAt)
 	}
@@ -9024,6 +9111,12 @@ func (m *ProviderProfileMutation) Fields() []string {
 	}
 	if m.country != nil {
 		fields = append(fields, providerprofile.FieldCountry)
+	}
+	if m.host_identifier != nil {
+		fields = append(fields, providerprofile.FieldHostIdentifier)
+	}
+	if m.provision_mode != nil {
+		fields = append(fields, providerprofile.FieldProvisionMode)
 	}
 	if m.is_partner != nil {
 		fields = append(fields, providerprofile.FieldIsPartner)
@@ -9044,6 +9137,10 @@ func (m *ProviderProfileMutation) Field(name string) (ent.Value, bool) {
 		return m.TradingName()
 	case providerprofile.FieldCountry:
 		return m.Country()
+	case providerprofile.FieldHostIdentifier:
+		return m.HostIdentifier()
+	case providerprofile.FieldProvisionMode:
+		return m.ProvisionMode()
 	case providerprofile.FieldIsPartner:
 		return m.IsPartner()
 	}
@@ -9063,6 +9160,10 @@ func (m *ProviderProfileMutation) OldField(ctx context.Context, name string) (en
 		return m.OldTradingName(ctx)
 	case providerprofile.FieldCountry:
 		return m.OldCountry(ctx)
+	case providerprofile.FieldHostIdentifier:
+		return m.OldHostIdentifier(ctx)
+	case providerprofile.FieldProvisionMode:
+		return m.OldProvisionMode(ctx)
 	case providerprofile.FieldIsPartner:
 		return m.OldIsPartner(ctx)
 	}
@@ -9102,6 +9203,20 @@ func (m *ProviderProfileMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetCountry(v)
 		return nil
+	case providerprofile.FieldHostIdentifier:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetHostIdentifier(v)
+		return nil
+	case providerprofile.FieldProvisionMode:
+		v, ok := value.(providerprofile.ProvisionMode)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetProvisionMode(v)
+		return nil
 	case providerprofile.FieldIsPartner:
 		v, ok := value.(bool)
 		if !ok {
@@ -9138,7 +9253,11 @@ func (m *ProviderProfileMutation) AddField(name string, value ent.Value) error {
 // ClearedFields returns all nullable fields that were cleared during this
 // mutation.
 func (m *ProviderProfileMutation) ClearedFields() []string {
-	return nil
+	var fields []string
+	if m.FieldCleared(providerprofile.FieldHostIdentifier) {
+		fields = append(fields, providerprofile.FieldHostIdentifier)
+	}
+	return fields
 }
 
 // FieldCleared returns a boolean indicating if a field with the given name was
@@ -9151,6 +9270,11 @@ func (m *ProviderProfileMutation) FieldCleared(name string) bool {
 // ClearField clears the value of the field with the given name. It returns an
 // error if the field is not defined in the schema.
 func (m *ProviderProfileMutation) ClearField(name string) error {
+	switch name {
+	case providerprofile.FieldHostIdentifier:
+		m.ClearHostIdentifier()
+		return nil
+	}
 	return fmt.Errorf("unknown ProviderProfile nullable field %s", name)
 }
 
@@ -9169,6 +9293,12 @@ func (m *ProviderProfileMutation) ResetField(name string) error {
 		return nil
 	case providerprofile.FieldCountry:
 		m.ResetCountry()
+		return nil
+	case providerprofile.FieldHostIdentifier:
+		m.ResetHostIdentifier()
+		return nil
+	case providerprofile.FieldProvisionMode:
+		m.ResetProvisionMode()
 		return nil
 	case providerprofile.FieldIsPartner:
 		m.ResetIsPartner()

@@ -1,8 +1,11 @@
 package services
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"sort"
 	"strings"
 	"sync"
@@ -269,11 +272,14 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 				return err
 			}
 
-			// TODO: Send POST request to the provider's webhook (for automatic provider case)
-
-			// TODO: Send out a push notification to the provider (for manual provider case)
+			// Notify the provider
+			delete(orderRequestData, "provider_id")
+			orderRequestData["order_id"] = order.ID
+			err = s.notifyProvider(ctx, orderRequestData)
+			if err != nil {
+				logger.Errorf("failed to notify provider: %v", err)
+			}
 		}
-
 	}
 
 	// Execute all Redis commands within the transaction atomically
@@ -281,6 +287,48 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 	if err != nil {
 		logger.Errorf("failed to execute Redis transaction: %v", err)
 		return err
+	}
+
+	return nil
+}
+
+// notifyProvider sends an order request notification to a provider
+func (s *PriorityQueueService) notifyProvider(ctx context.Context, orderRequestData map[string]interface{}) error {
+	// TODO: can we add mode and host identifier to redis during priority queue creation?
+	provider, err := storage.Client.ProviderProfile.
+		Query().
+		Where(
+			providerprofile.IDEQ(orderRequestData["provider_id"].(string)),
+		).
+		Select(providerprofile.FieldProvisionMode, providerprofile.FieldHostIdentifier).
+		Only(ctx)
+	if err != nil {
+		return err
+	}
+
+	if provider.ProvisionMode == providerprofile.ProvisionModeAuto {
+		// Send POST request to the provider's node
+		requestBody, _ := json.Marshal(orderRequestData)
+		req, err := http.NewRequest(
+			"POST",
+			fmt.Sprintf("%s/new_order", provider.HostIdentifier),
+			bytes.NewBuffer(requestBody),
+		)
+		if err != nil {
+			return err
+		}
+		req.Header.Set("Content-Type", "application/json")
+
+		// Send the request
+		client := &http.Client{}
+		resp, err := client.Do(req)
+		if err != nil {
+			return err
+		}
+		defer resp.Body.Close()
+	} else {
+		// TODO: Send out a push notification to the provider (for manual provider case)
+		fmt.Println("TODO: Send out a push notification to the provider (for manual provider case)")
 	}
 
 	return nil

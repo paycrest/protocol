@@ -85,6 +85,11 @@ func Country(v string) predicate.ProviderProfile {
 	return predicate.ProviderProfile(sql.FieldEQ(FieldCountry, v))
 }
 
+// HostIdentifier applies equality check predicate on the "host_identifier" field. It's identical to HostIdentifierEQ.
+func HostIdentifier(v string) predicate.ProviderProfile {
+	return predicate.ProviderProfile(sql.FieldEQ(FieldHostIdentifier, v))
+}
+
 // IsPartner applies equality check predicate on the "is_partner" field. It's identical to IsPartnerEQ.
 func IsPartner(v bool) predicate.ProviderProfile {
 	return predicate.ProviderProfile(sql.FieldEQ(FieldIsPartner, v))
@@ -298,6 +303,101 @@ func CountryEqualFold(v string) predicate.ProviderProfile {
 // CountryContainsFold applies the ContainsFold predicate on the "country" field.
 func CountryContainsFold(v string) predicate.ProviderProfile {
 	return predicate.ProviderProfile(sql.FieldContainsFold(FieldCountry, v))
+}
+
+// HostIdentifierEQ applies the EQ predicate on the "host_identifier" field.
+func HostIdentifierEQ(v string) predicate.ProviderProfile {
+	return predicate.ProviderProfile(sql.FieldEQ(FieldHostIdentifier, v))
+}
+
+// HostIdentifierNEQ applies the NEQ predicate on the "host_identifier" field.
+func HostIdentifierNEQ(v string) predicate.ProviderProfile {
+	return predicate.ProviderProfile(sql.FieldNEQ(FieldHostIdentifier, v))
+}
+
+// HostIdentifierIn applies the In predicate on the "host_identifier" field.
+func HostIdentifierIn(vs ...string) predicate.ProviderProfile {
+	return predicate.ProviderProfile(sql.FieldIn(FieldHostIdentifier, vs...))
+}
+
+// HostIdentifierNotIn applies the NotIn predicate on the "host_identifier" field.
+func HostIdentifierNotIn(vs ...string) predicate.ProviderProfile {
+	return predicate.ProviderProfile(sql.FieldNotIn(FieldHostIdentifier, vs...))
+}
+
+// HostIdentifierGT applies the GT predicate on the "host_identifier" field.
+func HostIdentifierGT(v string) predicate.ProviderProfile {
+	return predicate.ProviderProfile(sql.FieldGT(FieldHostIdentifier, v))
+}
+
+// HostIdentifierGTE applies the GTE predicate on the "host_identifier" field.
+func HostIdentifierGTE(v string) predicate.ProviderProfile {
+	return predicate.ProviderProfile(sql.FieldGTE(FieldHostIdentifier, v))
+}
+
+// HostIdentifierLT applies the LT predicate on the "host_identifier" field.
+func HostIdentifierLT(v string) predicate.ProviderProfile {
+	return predicate.ProviderProfile(sql.FieldLT(FieldHostIdentifier, v))
+}
+
+// HostIdentifierLTE applies the LTE predicate on the "host_identifier" field.
+func HostIdentifierLTE(v string) predicate.ProviderProfile {
+	return predicate.ProviderProfile(sql.FieldLTE(FieldHostIdentifier, v))
+}
+
+// HostIdentifierContains applies the Contains predicate on the "host_identifier" field.
+func HostIdentifierContains(v string) predicate.ProviderProfile {
+	return predicate.ProviderProfile(sql.FieldContains(FieldHostIdentifier, v))
+}
+
+// HostIdentifierHasPrefix applies the HasPrefix predicate on the "host_identifier" field.
+func HostIdentifierHasPrefix(v string) predicate.ProviderProfile {
+	return predicate.ProviderProfile(sql.FieldHasPrefix(FieldHostIdentifier, v))
+}
+
+// HostIdentifierHasSuffix applies the HasSuffix predicate on the "host_identifier" field.
+func HostIdentifierHasSuffix(v string) predicate.ProviderProfile {
+	return predicate.ProviderProfile(sql.FieldHasSuffix(FieldHostIdentifier, v))
+}
+
+// HostIdentifierIsNil applies the IsNil predicate on the "host_identifier" field.
+func HostIdentifierIsNil() predicate.ProviderProfile {
+	return predicate.ProviderProfile(sql.FieldIsNull(FieldHostIdentifier))
+}
+
+// HostIdentifierNotNil applies the NotNil predicate on the "host_identifier" field.
+func HostIdentifierNotNil() predicate.ProviderProfile {
+	return predicate.ProviderProfile(sql.FieldNotNull(FieldHostIdentifier))
+}
+
+// HostIdentifierEqualFold applies the EqualFold predicate on the "host_identifier" field.
+func HostIdentifierEqualFold(v string) predicate.ProviderProfile {
+	return predicate.ProviderProfile(sql.FieldEqualFold(FieldHostIdentifier, v))
+}
+
+// HostIdentifierContainsFold applies the ContainsFold predicate on the "host_identifier" field.
+func HostIdentifierContainsFold(v string) predicate.ProviderProfile {
+	return predicate.ProviderProfile(sql.FieldContainsFold(FieldHostIdentifier, v))
+}
+
+// ProvisionModeEQ applies the EQ predicate on the "provision_mode" field.
+func ProvisionModeEQ(v ProvisionMode) predicate.ProviderProfile {
+	return predicate.ProviderProfile(sql.FieldEQ(FieldProvisionMode, v))
+}
+
+// ProvisionModeNEQ applies the NEQ predicate on the "provision_mode" field.
+func ProvisionModeNEQ(v ProvisionMode) predicate.ProviderProfile {
+	return predicate.ProviderProfile(sql.FieldNEQ(FieldProvisionMode, v))
+}
+
+// ProvisionModeIn applies the In predicate on the "provision_mode" field.
+func ProvisionModeIn(vs ...ProvisionMode) predicate.ProviderProfile {
+	return predicate.ProviderProfile(sql.FieldIn(FieldProvisionMode, vs...))
+}
+
+// ProvisionModeNotIn applies the NotIn predicate on the "provision_mode" field.
+func ProvisionModeNotIn(vs ...ProvisionMode) predicate.ProviderProfile {
+	return predicate.ProviderProfile(sql.FieldNotIn(FieldProvisionMode, vs...))
 }
 
 // IsPartnerEQ applies the EQ predicate on the "is_partner" field.

@@ -68,6 +68,26 @@ func (ppc *ProviderProfileCreate) SetCountry(s string) *ProviderProfileCreate {
 	return ppc
 }
 
+// SetHostIdentifier sets the "host_identifier" field.
+func (ppc *ProviderProfileCreate) SetHostIdentifier(s string) *ProviderProfileCreate {
+	ppc.mutation.SetHostIdentifier(s)
+	return ppc
+}
+
+// SetNillableHostIdentifier sets the "host_identifier" field if the given value is not nil.
+func (ppc *ProviderProfileCreate) SetNillableHostIdentifier(s *string) *ProviderProfileCreate {
+	if s != nil {
+		ppc.SetHostIdentifier(*s)
+	}
+	return ppc
+}
+
+// SetProvisionMode sets the "provision_mode" field.
+func (ppc *ProviderProfileCreate) SetProvisionMode(pm providerprofile.ProvisionMode) *ProviderProfileCreate {
+	ppc.mutation.SetProvisionMode(pm)
+	return ppc
+}
+
 // SetIsPartner sets the "is_partner" field.
 func (ppc *ProviderProfileCreate) SetIsPartner(b bool) *ProviderProfileCreate {
 	ppc.mutation.SetIsPartner(b)
@@ -278,6 +298,14 @@ func (ppc *ProviderProfileCreate) check() error {
 			return &ValidationError{Name: "country", err: fmt.Errorf(`ent: validator failed for field "ProviderProfile.country": %w`, err)}
 		}
 	}
+	if _, ok := ppc.mutation.ProvisionMode(); !ok {
+		return &ValidationError{Name: "provision_mode", err: errors.New(`ent: missing required field "ProviderProfile.provision_mode"`)}
+	}
+	if v, ok := ppc.mutation.ProvisionMode(); ok {
+		if err := providerprofile.ProvisionModeValidator(v); err != nil {
+			return &ValidationError{Name: "provision_mode", err: fmt.Errorf(`ent: validator failed for field "ProviderProfile.provision_mode": %w`, err)}
+		}
+	}
 	if _, ok := ppc.mutation.IsPartner(); !ok {
 		return &ValidationError{Name: "is_partner", err: errors.New(`ent: missing required field "ProviderProfile.is_partner"`)}
 	}
@@ -337,6 +365,14 @@ func (ppc *ProviderProfileCreate) createSpec() (*ProviderProfile, *sqlgraph.Crea
 	if value, ok := ppc.mutation.Country(); ok {
 		_spec.SetField(providerprofile.FieldCountry, field.TypeString, value)
 		_node.Country = value
+	}
+	if value, ok := ppc.mutation.HostIdentifier(); ok {
+		_spec.SetField(providerprofile.FieldHostIdentifier, field.TypeString, value)
+		_node.HostIdentifier = value
+	}
+	if value, ok := ppc.mutation.ProvisionMode(); ok {
+		_spec.SetField(providerprofile.FieldProvisionMode, field.TypeEnum, value)
+		_node.ProvisionMode = value
 	}
 	if value, ok := ppc.mutation.IsPartner(); ok {
 		_spec.SetField(providerprofile.FieldIsPartner, field.TypeBool, value)
