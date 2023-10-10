@@ -215,7 +215,7 @@ func init() {
 	// providerprofile.CountryValidator is a validator for the "country" field. It is called by the builders before save.
 	providerprofile.CountryValidator = providerprofileDescCountry.Validators[0].(func(string) error)
 	// providerprofileDescIsPartner is the schema descriptor for is_partner field.
-	providerprofileDescIsPartner := providerprofileFields[3].Descriptor()
+	providerprofileDescIsPartner := providerprofileFields[5].Descriptor()
 	// providerprofile.DefaultIsPartner holds the default value on creation for the is_partner field.
 	providerprofile.DefaultIsPartner = providerprofileDescIsPartner.Default.(bool)
 	// providerprofileDescID is the schema descriptor for id field.

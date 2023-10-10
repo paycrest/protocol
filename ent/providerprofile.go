@@ -30,6 +30,10 @@ type ProviderProfile struct {
 	TradingName string `json:"trading_name,omitempty"`
 	// Country holds the value of the "country" field.
 	Country string `json:"country,omitempty"`
+	// HostIdentifier holds the value of the "host_identifier" field.
+	HostIdentifier string `json:"host_identifier,omitempty"`
+	// ProvisionMode holds the value of the "provision_mode" field.
+	ProvisionMode providerprofile.ProvisionMode `json:"provision_mode,omitempty"`
 	// IsPartner holds the value of the "is_partner" field.
 	IsPartner bool `json:"is_partner,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -147,7 +151,7 @@ func (*ProviderProfile) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case providerprofile.FieldIsPartner:
 			values[i] = new(sql.NullBool)
-		case providerprofile.FieldID, providerprofile.FieldTradingName, providerprofile.FieldCountry:
+		case providerprofile.FieldID, providerprofile.FieldTradingName, providerprofile.FieldCountry, providerprofile.FieldHostIdentifier, providerprofile.FieldProvisionMode:
 			values[i] = new(sql.NullString)
 		case providerprofile.FieldCreatedAt, providerprofile.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -199,6 +203,18 @@ func (pp *ProviderProfile) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field country", values[i])
 			} else if value.Valid {
 				pp.Country = value.String
+			}
+		case providerprofile.FieldHostIdentifier:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field host_identifier", values[i])
+			} else if value.Valid {
+				pp.HostIdentifier = value.String
+			}
+		case providerprofile.FieldProvisionMode:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field provision_mode", values[i])
+			} else if value.Valid {
+				pp.ProvisionMode = providerprofile.ProvisionMode(value.String)
 			}
 		case providerprofile.FieldIsPartner:
 			if value, ok := values[i].(*sql.NullBool); !ok {
@@ -302,6 +318,12 @@ func (pp *ProviderProfile) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("country=")
 	builder.WriteString(pp.Country)
+	builder.WriteString(", ")
+	builder.WriteString("host_identifier=")
+	builder.WriteString(pp.HostIdentifier)
+	builder.WriteString(", ")
+	builder.WriteString("provision_mode=")
+	builder.WriteString(fmt.Sprintf("%v", pp.ProvisionMode))
 	builder.WriteString(", ")
 	builder.WriteString("is_partner=")
 	builder.WriteString(fmt.Sprintf("%v", pp.IsPartner))

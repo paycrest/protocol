@@ -10,6 +10,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/fiatcurrency"
+	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 	"github.com/paycrest/paycrest-protocol/ent/user"
 	"github.com/paycrest/paycrest-protocol/ent/verificationtoken"
 	svc "github.com/paycrest/paycrest-protocol/services"
@@ -123,8 +124,8 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 			SetCountry(payload.Country).
 			SetCurrency(currency).
 			SetAPIKey(apiKey).
+			SetProvisionMode(providerprofile.ProvisionModeManual).
 			Save(ctx)
-
 		if err != nil {
 			logger.Errorf("error: %v", err)
 			u.APIResponse(ctx, http.StatusInternalServerError, "error",
