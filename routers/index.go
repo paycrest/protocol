@@ -35,8 +35,8 @@ func RegisterRoutes(route *gin.Engine) {
 		ctrl.ValidateOrder,
 	)
 	v1.GET("currencies/", ctrl.GetFiatCurrencies)
-	v1.GET("institutions/:currencyCode", ctrl.GetInstitutionsByCurrency)
-	v1.GET("rates/:token", ctrl.GetTokenRates)
+	v1.GET("institutions/:currency_code", ctrl.GetInstitutionsByCurrency)
+	v1.GET("rates/:token/:amount", ctrl.GetTokenRates)
 }
 
 func authRoutes(route *gin.Engine) {

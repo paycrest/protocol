@@ -216,7 +216,7 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 		}
 		providerID := parts[0]
 
-		// Skip entry is provider is excluded
+		// Skip entry if provider is excluded
 		excludeList, err := pipe.LRange(ctx, fmt.Sprintf("order_exclude_list_%d", order.ID), 0, -1).Result()
 		if err != nil {
 			logger.Errorf("failed to get exclude list for order %d: %v", order.ID, err)
