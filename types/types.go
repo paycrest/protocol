@@ -233,3 +233,16 @@ type SupportedCurrencies struct {
 	Decimals  int8   `json:"decimals"`
 	Symbol    string `json:"symbol"`
 }
+
+// Response is the struct for an API response
+type Response struct {
+	Status  string      `json:"status"`
+	Message string      `json:"message"`
+	Data    interface{} `json:"data"`
+}
+
+// ErrorData is the struct for error data i.e when Status is "error"
+type ErrorData struct {
+	Field   string `json:"field"`
+	Message string `json:"message"`
+}

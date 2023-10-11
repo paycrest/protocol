@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	mailgunEndpoint = fmt.Sprintf("https://api.mailgun.net/v3/%s/messages", emailConf.Domain)
+	mailgunEndpoint = fmt.Sprintf("https://api.mailgun.net/v3/%s/messages", notificationConf.EmailDomain)
 
 	testToken = "test-token"
 	testEmail = "test@paycrest.io"

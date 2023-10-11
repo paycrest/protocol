@@ -23,7 +23,6 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 	"github.com/paycrest/paycrest-protocol/ent/user"
 	"github.com/paycrest/paycrest-protocol/ent/verificationtoken"
-	"github.com/paycrest/paycrest-protocol/utils"
 	"github.com/paycrest/paycrest-protocol/utils/test"
 	"github.com/paycrest/paycrest-protocol/utils/token"
 	"github.com/stretchr/testify/assert"
@@ -77,7 +76,7 @@ func TestAuth(t *testing.T) {
 			// Assert the response body
 			assert.Equal(t, http.StatusCreated, res.Code)
 
-			var response utils.Response
+			var response types.Response
 			err = json.Unmarshal(res.Body.Bytes(), &response)
 			assert.NoError(t, err)
 			assert.Equal(t, "User created successfully", response.Message)
@@ -125,7 +124,7 @@ func TestAuth(t *testing.T) {
 			// Assert the response body
 			assert.Equal(t, http.StatusCreated, res.Code)
 
-			var response utils.Response
+			var response types.Response
 			err = json.Unmarshal(res.Body.Bytes(), &response)
 			assert.NoError(t, err)
 			data, ok := response.Data.(map[string]interface{})
@@ -168,7 +167,7 @@ func TestAuth(t *testing.T) {
 			// Assert the response body
 			assert.Equal(t, http.StatusBadRequest, res.Code)
 
-			var response utils.Response
+			var response types.Response
 			err = json.Unmarshal(res.Body.Bytes(), &response)
 			assert.NoError(t, err)
 			assert.Equal(t, "User with email already exists", response.Message)
@@ -190,7 +189,7 @@ func TestAuth(t *testing.T) {
 			// Assert the response body
 			assert.Equal(t, http.StatusBadRequest, res.Code)
 
-			var response utils.Response
+			var response types.Response
 			err = json.Unmarshal(res.Body.Bytes(), &response)
 			assert.NoError(t, err)
 			assert.Equal(t, "Failed to validate payload", response.Message)
@@ -232,7 +231,7 @@ func TestAuth(t *testing.T) {
 			// Assert the response body
 			assert.Equal(t, http.StatusOK, res.Code)
 
-			var response utils.Response
+			var response types.Response
 			err = json.Unmarshal(res.Body.Bytes(), &response)
 			assert.NoError(t, err)
 			assert.Nil(t, response.Data)
@@ -257,7 +256,7 @@ func TestAuth(t *testing.T) {
 			// Assert the response body
 			assert.Equal(t, http.StatusOK, res.Code)
 
-			var response utils.Response
+			var response types.Response
 			err = json.Unmarshal(res.Body.Bytes(), &response)
 			assert.NoError(t, err)
 			assert.Equal(t, "Successfully logged in", response.Message)
@@ -285,7 +284,7 @@ func TestAuth(t *testing.T) {
 			// Assert the response body
 			assert.Equal(t, http.StatusUnauthorized, res.Code)
 
-			var response utils.Response
+			var response types.Response
 			err = json.Unmarshal(res.Body.Bytes(), &response)
 			assert.NoError(t, err)
 			assert.Equal(t, "Invalid credentials", response.Message)
@@ -313,7 +312,7 @@ func TestAuth(t *testing.T) {
 			// Assert the response body
 			assert.Equal(t, http.StatusOK, res.Code)
 
-			var response utils.Response
+			var response types.Response
 			err = json.Unmarshal(res.Body.Bytes(), &response)
 			assert.NoError(t, err)
 			assert.Equal(t, "Successfully refreshed access token", response.Message)
@@ -347,7 +346,7 @@ func TestAuth(t *testing.T) {
 			// Assert the response body
 			assert.Equal(t, http.StatusUnauthorized, res.Code)
 
-			var response utils.Response
+			var response types.Response
 			err = json.Unmarshal(res.Body.Bytes(), &response)
 			assert.NoError(t, err)
 			assert.Equal(t, "Invalid or expired refresh token", response.Message)
@@ -373,7 +372,7 @@ func TestAuth(t *testing.T) {
 			// Assert the response body
 			assert.Equal(t, http.StatusCreated, res.Code)
 
-			var response utils.Response
+			var response types.Response
 			err = json.Unmarshal(res.Body.Bytes(), &response)
 			assert.NoError(t, err)
 			assert.Equal(t, "Successfully generated API key", response.Message)
@@ -412,7 +411,7 @@ func TestAuth(t *testing.T) {
 			// Assert the response body
 			assert.Equal(t, http.StatusBadRequest, res.Code)
 
-			var response utils.Response
+			var response types.Response
 			err = json.Unmarshal(res.Body.Bytes(), &response)
 			assert.NoError(t, err)
 			assert.Equal(t, "Invalid request body", response.Message)
@@ -444,7 +443,7 @@ func TestAuth(t *testing.T) {
 		// Assert the response body
 		assert.Equal(t, http.StatusOK, res.Code)
 
-		var response utils.Response
+		var response types.Response
 		err = json.Unmarshal(res.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.Equal(t, "Successfully retrieved API keys", response.Message)
@@ -513,7 +512,7 @@ func TestAuth(t *testing.T) {
 			// Assert the response body
 			assert.Equal(t, http.StatusBadRequest, res.Code)
 
-			var response utils.Response
+			var response types.Response
 			err = json.Unmarshal(res.Body.Bytes(), &response)
 			assert.NoError(t, err)
 			assert.Equal(t, "error", response.Status)

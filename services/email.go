@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	emailConf = config.EmailConfig()
+	notificationConf = config.NotificationConfig()
 
 	mailGunClient mailgunv3.Mailgun
 )
@@ -69,7 +69,7 @@ func NewMailGun(m mailgunv3.Mailgun) {
 		return
 	}
 
-	mailGunClient = mailgunv3.NewMailgun(emailConf.Domain, emailConf.ApiKey)
+	mailGunClient = mailgunv3.NewMailgun(notificationConf.EmailDomain, notificationConf.EmailAPIKey)
 }
 
 // sendEmailViaMailgun performs the actions for sending an email.
