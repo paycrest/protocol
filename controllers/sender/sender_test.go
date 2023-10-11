@@ -15,7 +15,6 @@ import (
 	"github.com/paycrest/paycrest-protocol/services"
 	db "github.com/paycrest/paycrest-protocol/storage"
 	"github.com/paycrest/paycrest-protocol/types"
-	"github.com/paycrest/paycrest-protocol/utils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/paycrest/paycrest-protocol/ent/enttest"
@@ -148,7 +147,7 @@ func TestSender(t *testing.T) {
 		// Assert the response body
 		assert.Equal(t, http.StatusCreated, res.Code)
 
-		var response utils.Response
+		var response types.Response
 		err = json.Unmarshal(res.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.Equal(t, "Payment order initiated successfully", response.Message)
@@ -192,7 +191,7 @@ func TestSender(t *testing.T) {
 		// Assert the response body
 		assert.Equal(t, http.StatusOK, res.Code)
 
-		var response utils.Response
+		var response types.Response
 		err = json.Unmarshal(res.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.Equal(t, "The order has been successfully retrieved", response.Message)

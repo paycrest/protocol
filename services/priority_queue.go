@@ -1,17 +1,15 @@
 package services
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"net/http"
 	"sort"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/paycrest/paycrest-protocol/config"
 	"github.com/paycrest/paycrest-protocol/ent"
 	"github.com/paycrest/paycrest-protocol/ent/fiatcurrency"
 	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
@@ -273,11 +271,10 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 			}
 
 			// Notify the provider
-			delete(orderRequestData, "provider_id")
 			orderRequestData["order_id"] = order.ID
 			err = s.notifyProvider(ctx, orderRequestData)
 			if err != nil {
-				logger.Errorf("failed to notify provider: %v", err)
+				logger.Errorf("failed to notify provider %s: %v", providerID, err)
 			}
 		}
 	}
@@ -293,12 +290,16 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 }
 
 // notifyProvider sends an order request notification to a provider
+// TODO: ideally notifications should be moved to a notification service
 func (s *PriorityQueueService) notifyProvider(ctx context.Context, orderRequestData map[string]interface{}) error {
 	// TODO: can we add mode and host identifier to redis during priority queue creation?
+	providerID := orderRequestData["provider_id"].(string)
+	delete(orderRequestData, "provider_id")
+
 	provider, err := storage.Client.ProviderProfile.
 		Query().
 		Where(
-			providerprofile.IDEQ(orderRequestData["provider_id"].(string)),
+			providerprofile.IDEQ(providerID),
 		).
 		Select(providerprofile.FieldProvisionMode, providerprofile.FieldHostIdentifier).
 		Only(ctx)
@@ -308,27 +309,52 @@ func (s *PriorityQueueService) notifyProvider(ctx context.Context, orderRequestD
 
 	if provider.ProvisionMode == providerprofile.ProvisionModeAuto {
 		// Send POST request to the provider's node
-		requestBody, _ := json.Marshal(orderRequestData)
-		req, err := http.NewRequest(
+		_, err := utils.MakeJSONRequest(
+			ctx,
 			"POST",
 			fmt.Sprintf("%s/new_order", provider.HostIdentifier),
-			bytes.NewBuffer(requestBody),
+			orderRequestData,
+			nil,
 		)
 		if err != nil {
 			return err
 		}
-		req.Header.Set("Content-Type", "application/json")
+	} else {
+		notificationConf := config.NotificationConfig()
+		// Send POST request to the provider's mobile device
+		requestBody := map[string]interface{}{
+			"app_id": notificationConf.OneSignalAppID,
+			"include_aliases": map[string]interface{}{
+				"external_id": []string{providerID},
+			},
+			"target_channel": "push",
+			"headings":       "Incoming Order 💸",
+			"contents": map[string]interface{}{
+				// TODO: format currency string with commas
+				"en": "You have a payment order of ₦" + orderRequestData["amount"].(decimal.Decimal).String(),
+			},
+			"data": orderRequestData,
+			"buttons": []map[string]interface{}{
+				{"id": "accept-button", "text": "Accept"},
+				{"id": "decline-button", "text": "Decline"},
+			},
+			"name": "Order Requests",
+		}
 
-		// Send the request
-		client := &http.Client{}
-		resp, err := client.Do(req)
+		headers := map[string]string{
+			"accept":        "application/json",
+			"Authorization": fmt.Sprintf("Basic %s", notificationConf.OneSignalRESTAPIKey),
+		}
+		_, err := utils.MakeJSONRequest(
+			ctx,
+			"POST",
+			"https://onesignal.com/api/v1/notifications",
+			requestBody,
+			headers,
+		)
 		if err != nil {
 			return err
 		}
-		defer resp.Body.Close()
-	} else {
-		// TODO: Send out a push notification to the provider (for manual provider case)
-		fmt.Println("TODO: Send out a push notification to the provider (for manual provider case)")
 	}
 
 	return nil
