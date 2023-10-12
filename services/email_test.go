@@ -34,7 +34,7 @@ func TestEmailService(t *testing.T) {
 		t.Run("SendVerificationEmail should work properly and return a response payload", func(t *testing.T) {
 			srv := NewEmailService(MAILGUN_MAIL_PROVIDER)
 
-			response, err := srv.SendVerificationEmail(context.TODO(), testToken, testEmail)
+			response, err := srv.SendVerificationEmail(context.Background(), testToken, testEmail)
 
 			// error checker.
 			assert.NoError(t, err, "unexpected error")

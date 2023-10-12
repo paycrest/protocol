@@ -106,7 +106,7 @@ func (s *PriorityQueueService) getProviderRate(ctx context.Context, provider *en
 		return decimal.Decimal{}, err
 	}
 
-	rate := decimal.Decimal{}
+	var rate decimal.Decimal
 
 	if tokenConfig.ConversionRateType == providerordertoken.ConversionRateTypeFixed {
 		rate = tokenConfig.FixedConversionRate
@@ -200,7 +200,7 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 		if err != nil {
 			if err == redis.Nil {
 				// Assign to top provider in default bucket and rotate the default bucket queue
-				s.AssignLockOrderToDefaultBucket(ctx, order)
+				_ = s.AssignLockOrderToDefaultBucket(ctx, order)
 				logger.Errorf("failed to access index %d from circular queue: %v", index, err)
 			}
 			break
@@ -463,7 +463,7 @@ func (s *PriorityQueueService) ReassignStaleOrderRequest(ctx context.Context, or
 }
 
 // ReassignUnfulfilledLockOrders reassigns lockOrder unfulfilled within a time frame.
-func (s *PriorityQueueService) ReassignUnfulfilledLockOrders(ctx context.Context) error {
+func (s *PriorityQueueService) ReassignUnfulfilledLockOrders(ctx context.Context) {
 	// query unfulfilled lock orders.
 	lockOrders, err := storage.Client.LockPaymentOrder.
 		Query().
@@ -482,7 +482,8 @@ func (s *PriorityQueueService) ReassignUnfulfilledLockOrders(ctx context.Context
 		WithProvisionBucket().
 		All(ctx)
 	if err != nil {
-		return err
+		logger.Errorf("failed to fetch unfulfilled lock order => %v\n", err)
+		return
 	}
 
 	// unassign unfulfilled lock orders.
@@ -496,7 +497,8 @@ func (s *PriorityQueueService) ReassignUnfulfilledLockOrders(ctx context.Context
 		SetStatus(lockpaymentorder.StatusPending).
 		Save(ctx)
 	if err != nil {
-		return err
+		logger.Errorf("failed to unassign unfulfilled lock order => %v\n", err)
+		return
 	}
 
 	for _, order := range lockOrders {
@@ -518,6 +520,4 @@ func (s *PriorityQueueService) ReassignUnfulfilledLockOrders(ctx context.Context
 			logger.Errorf("task reassign unfulfilled lock order with id: %s => %v\n", order.OrderID, err)
 		}
 	}
-
-	return nil
 }
