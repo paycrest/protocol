@@ -16,6 +16,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/google/uuid"
+	"github.com/paycrest/paycrest-protocol/config"
 	"github.com/paycrest/paycrest-protocol/ent"
 	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
 	networkent "github.com/paycrest/paycrest-protocol/ent/network"
@@ -31,6 +32,8 @@ import (
 	"github.com/paycrest/paycrest-protocol/utils/logger"
 	"github.com/shopspring/decimal"
 )
+
+var OrderConf = config.OrderConfig()
 
 type orderRecipient struct {
 	AccountIdentifier string
