@@ -328,7 +328,9 @@ func (s *PriorityQueueService) notifyProvider(ctx context.Context, orderRequestD
 				"external_id": []string{providerID},
 			},
 			"target_channel": "push",
-			"headings":       "Incoming Order 💸",
+			"headings": map[string]interface{}{
+				"en": "Incoming Order 💸",
+			},
 			"contents": map[string]interface{}{
 				// TODO: format currency string with commas
 				"en": "You have a payment order of ₦" + orderRequestData["amount"].(decimal.Decimal).String(),
