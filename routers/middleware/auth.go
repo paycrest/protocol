@@ -189,6 +189,23 @@ func HMACVerificationMiddleware(c *gin.Context) {
 	c.Next()
 }
 
+// DynamicAuthMiddleware is a middleware that dynamically selects the authentication method
+func DynamicAuthMiddleware(c *gin.Context) {
+	// Check the request headers to determine the desired authentication method
+	clientType := c.GetHeader("Client-Type")
+
+	// Select the authentication middleware based on the client type
+	switch clientType {
+	case "frontend":
+		JWTMiddleware(c)
+	case "backend":
+		HMACVerificationMiddleware(c)
+	default:
+		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid client type", nil)
+		c.Abort()
+	}
+}
+
 // OnlySenderMiddleware is a middleware that checks if the API key scope is sender.
 func OnlySenderMiddleware(c *gin.Context) {
 	apiKey, ok := c.Get("api_key")

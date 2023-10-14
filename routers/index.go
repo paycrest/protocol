@@ -68,7 +68,7 @@ func providerRoutes(route *gin.Engine) {
 	var ctrl provider.ProviderController
 
 	v1 := route.Group("/v1/provider/")
-	v1.Use(middleware.HMACVerificationMiddleware)
+	v1.Use(middleware.DynamicAuthMiddleware)
 	v1.Use(middleware.OnlyProviderMiddleware)
 
 	v1.GET("orders/", ctrl.GetOrders)
