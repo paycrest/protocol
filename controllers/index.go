@@ -77,9 +77,15 @@ func (ctrl *Controller) GetInstitutionsByCurrency(ctx *gin.Context) {
 func (ctrl *Controller) GetTokenRates(ctx *gin.Context) {
 	// Parse path parameters
 	token := ctx.Param("token")
-	tokenIsValid := utils.ContainsString([]string{"USDT", "USDC"}, token)
+	tokenIsValid := utils.ContainsString([]string{"USDT", "USDC"}, token) // TODO: fetch supported tokens from db
 	if !tokenIsValid {
 		u.APIResponse(ctx, http.StatusBadRequest, "error", "Token is not supported", nil)
+	}
+
+	fiatSymbol := ctx.Param("fiat")
+	fiatIsValid := utils.ContainsString([]string{"NGN"}, fiatSymbol) // TODO: fetch supported fiat currencies from db
+	if !fiatIsValid {
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Fiat currency is not supported", nil)
 	}
 
 	tokenAmount, err := decimal.NewFromString(ctx.Param("amount"))
@@ -88,77 +94,55 @@ func (ctrl *Controller) GetTokenRates(ctx *gin.Context) {
 		return
 	}
 
-	rates := map[string]decimal.Decimal{}
-	cursor := 0
+	// Get redis keys for provision buckets
+	keys, _, err := storage.RedisClient.Scan(ctx, uint64(0), "bucket_"+fiatSymbol+"_%d_%d", 100).Result()
+	if err != nil {
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch rates", nil)
+		return
+	}
 
-scanLoop:
-	for {
-		// Get redis keys for provision buckets
-		keys, c, err := storage.RedisClient.Scan(ctx, uint64(cursor), "bucket_%s_%d_%d", 100).Result()
+	rateResponse := decimal.NewFromInt(0)
+
+	// Scan through the buckets to find a matching rate
+	for _, key := range keys {
+		bucketData := strings.Split(key, "_")
+		minAmount, _ := decimal.NewFromString(bucketData[2])
+		maxAmount, _ := decimal.NewFromString(bucketData[3])
+
+		// Get the topmost provider in the priority queue of the bucket
+		providerData, err := storage.RedisClient.LIndex(ctx, key, 0).Result()
 		if err != nil {
 			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch rates", nil)
 			return
 		}
 
-		for _, key := range keys {
-			bucketData := strings.Split(key, "_")
-			fiatCurrency := bucketData[1]
-			minAmount, _ := decimal.NewFromString(bucketData[2])
-			maxAmount, _ := decimal.NewFromString(bucketData[3])
+		// Get fiat equivalent of the token amount
+		rate, _ := decimal.NewFromString(strings.Split(providerData, ":")[1])
+		fiatAmount := tokenAmount.Mul(rate)
 
-			// Get the topmost provider in the priority queue of the bucket
-			providerData, err := storage.RedisClient.LIndex(ctx, key, 0).Result()
-			if err != nil {
-				u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch rates", nil)
-				return
-			}
-
-			// Get fiat equivalent of the token amount
-			rate, _ := decimal.NewFromString(strings.Split(providerData, ":")[1])
-			fiatAmount := tokenAmount.Mul(rate)
-
-			// Check if fiat amount is within the bucket range
-			if fiatAmount.GreaterThanOrEqual(minAmount) && fiatAmount.LessThanOrEqual(maxAmount) {
-				// Assign rate to the fiat currency
-				rates[fiatCurrency] = rate
-
-				break scanLoop
-			}
-		}
-
-		if len(rates) == 0 {
-			// No rate found in the regular buckets, return market rate from a provider in the default bucket
-			keys, _, err := storage.RedisClient.Scan(ctx, uint64(cursor), "bucket_%s_default", 100).Result()
-			if err != nil {
-				u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch rates", nil)
-				return
-			}
-
-			for _, key := range keys {
-				// Get rate of the topmost provider in the priority queue of the default bucket
-				providerData, err := storage.RedisClient.LIndex(ctx, key, 0).Result()
-				if err != nil {
-					u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch rates", nil)
-					return
-				}
-				rate, _ := decimal.NewFromString(strings.Split(providerData, ":")[1])
-
-				// Assign rate to the fiat currency
-				fiatCurrency := strings.Split(key, "_")[1]
-				rates[fiatCurrency] = rate
-
-				break scanLoop
-			}
-		}
-
-		// Break when cursor is back to 0
-		cursor = int(c)
-		if cursor == 0 {
-			break
+		// Check if fiat amount is within the bucket range and set the rate
+		if fiatAmount.GreaterThanOrEqual(minAmount) && fiatAmount.LessThanOrEqual(maxAmount) {
+			rateResponse = rate
 		}
 	}
 
-	u.APIResponse(ctx, http.StatusOK, "success", "Rates fetched successfully", rates)
+	if rateResponse.Equal(decimal.NewFromInt(0)) {
+		// No rate found in the regular buckets, return market rate from a provider in the default bucket
+		keys, _, err := storage.RedisClient.Scan(ctx, uint64(0), "bucket_"+fiatSymbol+"_default", 1).Result()
+		if err != nil {
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch rates", nil)
+			return
+		}
+		// Get rate of the topmost provider in the priority queue of the default bucket
+		providerData, err := storage.RedisClient.LIndex(ctx, keys[0], 0).Result()
+		if err != nil {
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch rates", nil)
+			return
+		}
+		rateResponse, _ = decimal.NewFromString(strings.Split(providerData, ":")[1])
+	}
+
+	u.APIResponse(ctx, http.StatusOK, "success", "Rates fetched successfully", rateResponse)
 }
 
 // ValidateOrder is a hook to receive validation decisions from validators
