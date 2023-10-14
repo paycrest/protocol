@@ -3,6 +3,7 @@ package provider
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent"
@@ -10,8 +11,10 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 	"github.com/paycrest/paycrest-protocol/storage"
 	"github.com/paycrest/paycrest-protocol/types"
+	"github.com/paycrest/paycrest-protocol/utils"
 	u "github.com/paycrest/paycrest-protocol/utils"
 	"github.com/paycrest/paycrest-protocol/utils/logger"
+	"github.com/shopspring/decimal"
 
 	"github.com/gin-gonic/gin"
 )
@@ -240,6 +243,43 @@ func (ctrl *ProviderController) CancelOrder(ctx *gin.Context) {
 	}
 
 	u.APIResponse(ctx, http.StatusOK, "success", "Order cancelled successfully", nil)
+}
+
+// GetMarketRate controller fetches the median rate of the cryptocurrency token against the fiat currency
+func (ctrl *ProviderController) GetMarketRate(ctx *gin.Context) {
+	// Parse path parameters
+	token := ctx.Param("token")
+	tokenIsValid := utils.ContainsString([]string{"USDT", "USDC"}, token) // TODO: fetch supported tokens from db
+	if !tokenIsValid {
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Token is not supported", nil)
+	}
+
+	fiatSymbol := ctx.Param("fiat")
+	fiatIsValid := utils.ContainsString([]string{"NGN"}, fiatSymbol) // TODO: fetch supported fiat currencies from db
+	if !fiatIsValid {
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Fiat currency is not supported", nil)
+	}
+
+	// Get rate of the topmost provider in the priority queue of the default bucket
+	keys, _, err := storage.RedisClient.Scan(ctx, uint64(0), "bucket_"+fiatSymbol+"_default", 1).Result()
+	if err != nil {
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch rates", nil)
+		return
+	}
+	providerData, err := storage.RedisClient.LIndex(ctx, keys[0], 0).Result()
+	if err != nil {
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch rates", nil)
+		return
+	}
+	marketRate, _ := decimal.NewFromString(strings.Split(providerData, ":")[1])
+
+	deviation := 0.01 // 1%
+
+	u.APIResponse(ctx, http.StatusOK, "success", "Rate fetched successfully", &types.MarketRateResponse{
+		MarketRate:  marketRate,
+		MinimumRate: marketRate.Sub(marketRate.Mul(decimal.NewFromFloat(deviation))), // market rate - 1%
+		MaximumRate: marketRate.Add(marketRate.Mul(decimal.NewFromFloat(deviation))), // market rate + 1%
+	})
 }
 
 // parseOrderPayload parses the order payload

@@ -70,8 +70,8 @@ func (ctrl *Controller) GetInstitutionsByCurrency(ctx *gin.Context) {
 	u.APIResponse(ctx, http.StatusOK, "success", "OK", institutions)
 }
 
-// GetRates controller fetches the current market rates for the supported cryptocurrencies
-func (ctrl *Controller) GetTokenRates(ctx *gin.Context) {
+// GetTokenRate controller fetches the current rate of the cryptocurrency token against the fiat currency
+func (ctrl *Controller) GetTokenRate(ctx *gin.Context) {
 	// Parse path parameters
 	token := ctx.Param("token")
 	tokenIsValid := u.ContainsString([]string{"USDT", "USDC"}, token) // TODO: fetch supported tokens from db
