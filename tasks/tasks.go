@@ -165,7 +165,7 @@ func ComputeMarketRate() error {
 		median := utils.Median(rates)
 
 		// Check the median rate against the external rate to ensure it's not too far off
-		allowedDeviation := decimal.NewFromFloat(0.01) // 1%
+		allowedDeviation := decimal.NewFromFloat(0.005) // 0.5%
 		if externalRate.Cmp(decimal.Zero) != 0 {
 			if median.LessThan(externalRate.Mul(decimal.NewFromFloat(1).Sub(allowedDeviation))) ||
 				median.GreaterThan(externalRate.Mul(decimal.NewFromFloat(1).Add(allowedDeviation))) {
