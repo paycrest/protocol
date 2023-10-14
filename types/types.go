@@ -214,6 +214,13 @@ type SendEmailResponse struct {
 	Id      string `json:"id"`
 }
 
+// MarketRateResponse is the response for the market rate endpoint
+type MarketRateResponse struct {
+	MarketRate  decimal.Decimal `json:"marketRate"`
+	MinimumRate decimal.Decimal `json:"minimumRate"`
+	MaximumRate decimal.Decimal `json:"maximumRate"`
+}
+
 type ResendTokenPayload struct {
 	Scope string `json:"scope" binding:"required"`
 	Email string `json:"email" binding:"required,email"`
