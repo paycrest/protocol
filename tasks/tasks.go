@@ -135,9 +135,13 @@ func ComputeMarketRate() error {
 	)
 	if err != nil {
 		logger.Errorf("failed to fetch third-party rate => %v\n", err)
+		return err
 	}
 
-	externalRate, _ := decimal.NewFromString(resp["price"].(string))
+	var externalRate decimal.Decimal
+	if resp != nil {
+		externalRate, _ = decimal.NewFromString(resp["price"].(string))
+	}
 
 	for _, currency := range currencies {
 		// Fetch rates from token configs with fixed conversion rate
@@ -150,7 +154,6 @@ func ComputeMarketRate() error {
 			All(ctx)
 		if err != nil {
 			logger.Errorf("compute market price task => %v\n", err)
-			return err
 		}
 
 		var rates []decimal.Decimal
@@ -163,9 +166,11 @@ func ComputeMarketRate() error {
 
 		// Check the median rate against the external rate to ensure it's not too far off
 		allowedDeviation := decimal.NewFromFloat(0.01) // 1%
-		if median.LessThan(externalRate.Mul(decimal.NewFromFloat(1).Sub(allowedDeviation))) ||
-			median.GreaterThan(externalRate.Mul(decimal.NewFromFloat(1).Add(allowedDeviation))) {
-			median = externalRate
+		if externalRate.Cmp(decimal.Zero) != 0 {
+			if median.LessThan(externalRate.Mul(decimal.NewFromFloat(1).Sub(allowedDeviation))) ||
+				median.GreaterThan(externalRate.Mul(decimal.NewFromFloat(1).Add(allowedDeviation))) {
+				median = externalRate
+			}
 		}
 
 		// Update currency with median rate
