@@ -125,41 +125,61 @@ func ComputeMarketRate() error {
 
 	priorityQueue := services.NewPriorityQueueService()
 
+	// Fetch stable coin rate from third-party API Binance (USDT)
+	resp, err := utils.MakeJSONRequest(
+		ctx,
+		"GET",
+		"https://api.binance.com/api/v3/ticker/price?symbol=USDTNGN",
+		nil,
+		nil,
+	)
+	if err != nil {
+		logger.Errorf("failed to fetch third-party rate => %v\n", err)
+	}
+
+	externalRate, _ := decimal.NewFromString(resp["price"].(string))
+
 	for _, currency := range currencies {
-		go func(currency *ent.FiatCurrency) {
-			// Fetch rates from token configs with fixed conversion rate
-			tokenConfigs, err := storage.Client.ProviderOrderToken.
-				Query().
-				Where(
-					providerordertoken.SymbolEQ(providerordertoken.SymbolUSDT),
-					providerordertoken.ConversionRateTypeEQ(providerordertoken.ConversionRateTypeFixed),
-				).
-				All(ctx)
-			if err != nil {
-				logger.Errorf("compute market price task => %v\n", err)
-				return
-			}
+		// Fetch rates from token configs with fixed conversion rate
+		tokenConfigs, err := storage.Client.ProviderOrderToken.
+			Query().
+			Where(
+				providerordertoken.SymbolEQ(providerordertoken.SymbolUSDT),
+				providerordertoken.ConversionRateTypeEQ(providerordertoken.ConversionRateTypeFixed),
+			).
+			All(ctx)
+		if err != nil {
+			logger.Errorf("compute market price task => %v\n", err)
+			return err
+		}
 
-			var rates []decimal.Decimal
-			for _, tokenConfig := range tokenConfigs {
-				rates = append(rates, tokenConfig.FixedConversionRate)
-			}
+		var rates []decimal.Decimal
+		for _, tokenConfig := range tokenConfigs {
+			rates = append(rates, tokenConfig.FixedConversionRate)
+		}
 
-			// Calculate median
-			median := utils.Median(rates)
+		// Calculate median
+		median := utils.Median(rates)
 
-			// Update currency with median rate
-			currency, err = storage.Client.FiatCurrency.
-				UpdateOneID(currency.ID).
-				SetMarketRate(median).
-				Save(ctx)
-			if err != nil {
-				logger.Errorf("compute market price task => %v\n", err)
-			}
+		// Check the median rate against the external rate to ensure it's not too far off
+		allowedDeviation := decimal.NewFromFloat(0.01) // 1%
+		if median.LessThan(externalRate.Mul(decimal.NewFromFloat(1).Sub(allowedDeviation))) ||
+			median.GreaterThan(externalRate.Mul(decimal.NewFromFloat(1).Add(allowedDeviation))) {
+			median = externalRate
+		}
 
-			// Create default bucket for currency
-			priorityQueue.CreatePriorityQueueForDefaultBucket(ctx, currency)
-		}(currency)
+		// Update currency with median rate
+		currency, err = storage.Client.FiatCurrency.
+			UpdateOneID(currency.ID).
+			SetMarketRate(median).
+			Save(ctx)
+		if err != nil {
+			logger.Errorf("compute market price task => %v\n", err)
+			return err
+		}
+
+		// Create default bucket for currency
+		priorityQueue.CreatePriorityQueueForDefaultBucket(ctx, currency)
 	}
 
 	return nil
