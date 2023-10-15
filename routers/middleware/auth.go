@@ -203,7 +203,42 @@ func DynamicAuthMiddleware(c *gin.Context) {
 	default:
 		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid client type", nil)
 		c.Abort()
+		return
 	}
+
+	c.Next()
+}
+
+// ScopeMiddleware is a middleware that checks the request scope.
+func ScopeMiddleware(c *gin.Context) {
+	conf := config.ServerConfig()
+	var subdomain string
+
+	if conf.Debug {
+		subdomain = c.Query("scope")
+	} else {
+		host := c.Request.Host
+		parts := strings.Split(host, ".")
+		subdomain = parts[0]
+	}
+
+	var scope string
+
+	switch subdomain {
+	case "sender":
+		scope = "sender"
+	case "provider":
+		scope = "provider"
+	case "validator":
+		scope = "validator"
+	default:
+		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid scope", nil)
+		c.Abort()
+		return
+	}
+
+	c.Set("scope", scope)
+	c.Next()
 }
 
 // OnlySenderMiddleware is a middleware that checks if the API key scope is sender.
