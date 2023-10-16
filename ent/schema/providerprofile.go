@@ -29,7 +29,6 @@ func (ProviderProfile) Fields() []ent.Field {
 			DefaultFunc(generateProviderID).
 			Unique(),
 		field.String("trading_name").MaxLen(80),
-		field.String("country").MaxLen(80),
 		field.String("host_identifier").
 			Optional(),
 		field.Enum("provision_mode").

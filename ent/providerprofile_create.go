@@ -62,12 +62,6 @@ func (ppc *ProviderProfileCreate) SetTradingName(s string) *ProviderProfileCreat
 	return ppc
 }
 
-// SetCountry sets the "country" field.
-func (ppc *ProviderProfileCreate) SetCountry(s string) *ProviderProfileCreate {
-	ppc.mutation.SetCountry(s)
-	return ppc
-}
-
 // SetHostIdentifier sets the "host_identifier" field.
 func (ppc *ProviderProfileCreate) SetHostIdentifier(s string) *ProviderProfileCreate {
 	ppc.mutation.SetHostIdentifier(s)
@@ -290,14 +284,6 @@ func (ppc *ProviderProfileCreate) check() error {
 			return &ValidationError{Name: "trading_name", err: fmt.Errorf(`ent: validator failed for field "ProviderProfile.trading_name": %w`, err)}
 		}
 	}
-	if _, ok := ppc.mutation.Country(); !ok {
-		return &ValidationError{Name: "country", err: errors.New(`ent: missing required field "ProviderProfile.country"`)}
-	}
-	if v, ok := ppc.mutation.Country(); ok {
-		if err := providerprofile.CountryValidator(v); err != nil {
-			return &ValidationError{Name: "country", err: fmt.Errorf(`ent: validator failed for field "ProviderProfile.country": %w`, err)}
-		}
-	}
 	if _, ok := ppc.mutation.ProvisionMode(); !ok {
 		return &ValidationError{Name: "provision_mode", err: errors.New(`ent: missing required field "ProviderProfile.provision_mode"`)}
 	}
@@ -361,10 +347,6 @@ func (ppc *ProviderProfileCreate) createSpec() (*ProviderProfile, *sqlgraph.Crea
 	if value, ok := ppc.mutation.TradingName(); ok {
 		_spec.SetField(providerprofile.FieldTradingName, field.TypeString, value)
 		_node.TradingName = value
-	}
-	if value, ok := ppc.mutation.Country(); ok {
-		_spec.SetField(providerprofile.FieldCountry, field.TypeString, value)
-		_node.Country = value
 	}
 	if value, ok := ppc.mutation.HostIdentifier(); ok {
 		_spec.SetField(providerprofile.FieldHostIdentifier, field.TypeString, value)

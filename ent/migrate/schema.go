@@ -269,7 +269,6 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "trading_name", Type: field.TypeString, Size: 80},
-		{Name: "country", Type: field.TypeString, Size: 80},
 		{Name: "host_identifier", Type: field.TypeString, Nullable: true},
 		{Name: "provision_mode", Type: field.TypeEnum, Enums: []string{"manual", "auto"}},
 		{Name: "is_partner", Type: field.TypeBool, Default: false},
@@ -284,13 +283,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "provider_profiles_fiat_currencies_provider",
-				Columns:    []*schema.Column{ProviderProfilesColumns[8]},
+				Columns:    []*schema.Column{ProviderProfilesColumns[7]},
 				RefColumns: []*schema.Column{FiatCurrenciesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "provider_profiles_users_provider_profile",
-				Columns:    []*schema.Column{ProviderProfilesColumns[9]},
+				Columns:    []*schema.Column{ProviderProfilesColumns[8]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
@@ -356,6 +355,27 @@ var (
 				Columns:    []*schema.Column{ReceiveAddressesColumns[9]},
 				RefColumns: []*schema.Column{PaymentOrdersColumns[0]},
 				OnDelete:   schema.SetNull,
+			},
+		},
+	}
+	// SenderProfilesColumns holds the columns for the "sender_profiles" table.
+	SenderProfilesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "webhook_url", Type: field.TypeString, Nullable: true},
+		{Name: "domain_whitelist", Type: field.TypeJSON},
+		{Name: "user_sender_profile", Type: field.TypeUUID, Unique: true},
+	}
+	// SenderProfilesTable holds the schema information for the "sender_profiles" table.
+	SenderProfilesTable = &schema.Table{
+		Name:       "sender_profiles",
+		Columns:    SenderProfilesColumns,
+		PrimaryKey: []*schema.Column{SenderProfilesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "sender_profiles_users_sender_profile",
+				Columns:    []*schema.Column{SenderProfilesColumns[3]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.Cascade,
 			},
 		},
 	}
@@ -520,6 +540,7 @@ var (
 		ProviderRatingsTable,
 		ProvisionBucketsTable,
 		ReceiveAddressesTable,
+		SenderProfilesTable,
 		TokensTable,
 		UsersTable,
 		ValidatorProfilesTable,
@@ -545,6 +566,7 @@ func init() {
 	ProviderProfilesTable.ForeignKeys[1].RefTable = UsersTable
 	ProviderRatingsTable.ForeignKeys[0].RefTable = ProviderProfilesTable
 	ReceiveAddressesTable.ForeignKeys[0].RefTable = PaymentOrdersTable
+	SenderProfilesTable.ForeignKeys[0].RefTable = UsersTable
 	TokensTable.ForeignKeys[0].RefTable = NetworksTable
 	ValidatorProfilesTable.ForeignKeys[0].RefTable = UsersTable
 	VerificationTokensTable.ForeignKeys[0].RefTable = UsersTable

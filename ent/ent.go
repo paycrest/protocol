@@ -26,6 +26,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/providerrating"
 	"github.com/paycrest/paycrest-protocol/ent/provisionbucket"
 	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
+	"github.com/paycrest/paycrest-protocol/ent/senderprofile"
 	"github.com/paycrest/paycrest-protocol/ent/token"
 	"github.com/paycrest/paycrest-protocol/ent/user"
 	"github.com/paycrest/paycrest-protocol/ent/validatorprofile"
@@ -104,6 +105,7 @@ func checkColumn(table, column string) error {
 			providerrating.Table:            providerrating.ValidColumn,
 			provisionbucket.Table:           provisionbucket.ValidColumn,
 			receiveaddress.Table:            receiveaddress.ValidColumn,
+			senderprofile.Table:             senderprofile.ValidColumn,
 			token.Table:                     token.ValidColumn,
 			user.Table:                      user.ValidColumn,
 			validatorprofile.Table:          validatorprofile.ValidColumn,

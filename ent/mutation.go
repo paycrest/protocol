@@ -27,6 +27,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/providerrating"
 	"github.com/paycrest/paycrest-protocol/ent/provisionbucket"
 	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
+	"github.com/paycrest/paycrest-protocol/ent/senderprofile"
 	"github.com/paycrest/paycrest-protocol/ent/token"
 	"github.com/paycrest/paycrest-protocol/ent/user"
 	"github.com/paycrest/paycrest-protocol/ent/validatorprofile"
@@ -57,6 +58,7 @@ const (
 	TypeProviderRating            = "ProviderRating"
 	TypeProvisionBucket           = "ProvisionBucket"
 	TypeReceiveAddress            = "ReceiveAddress"
+	TypeSenderProfile             = "SenderProfile"
 	TypeToken                     = "Token"
 	TypeUser                      = "User"
 	TypeValidatorProfile          = "ValidatorProfile"
@@ -8125,7 +8127,6 @@ type ProviderProfileMutation struct {
 	created_at               *time.Time
 	updated_at               *time.Time
 	trading_name             *string
-	country                  *string
 	host_identifier          *string
 	provision_mode           *providerprofile.ProvisionMode
 	is_partner               *bool
@@ -8362,42 +8363,6 @@ func (m *ProviderProfileMutation) OldTradingName(ctx context.Context) (v string,
 // ResetTradingName resets all changes to the "trading_name" field.
 func (m *ProviderProfileMutation) ResetTradingName() {
 	m.trading_name = nil
-}
-
-// SetCountry sets the "country" field.
-func (m *ProviderProfileMutation) SetCountry(s string) {
-	m.country = &s
-}
-
-// Country returns the value of the "country" field in the mutation.
-func (m *ProviderProfileMutation) Country() (r string, exists bool) {
-	v := m.country
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldCountry returns the old "country" field's value of the ProviderProfile entity.
-// If the ProviderProfile object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ProviderProfileMutation) OldCountry(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCountry is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCountry requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCountry: %w", err)
-	}
-	return oldValue.Country, nil
-}
-
-// ResetCountry resets all changes to the "country" field.
-func (m *ProviderProfileMutation) ResetCountry() {
-	m.country = nil
 }
 
 // SetHostIdentifier sets the "host_identifier" field.
@@ -8873,7 +8838,7 @@ func (m *ProviderProfileMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ProviderProfileMutation) Fields() []string {
-	fields := make([]string, 0, 7)
+	fields := make([]string, 0, 6)
 	if m.created_at != nil {
 		fields = append(fields, providerprofile.FieldCreatedAt)
 	}
@@ -8882,9 +8847,6 @@ func (m *ProviderProfileMutation) Fields() []string {
 	}
 	if m.trading_name != nil {
 		fields = append(fields, providerprofile.FieldTradingName)
-	}
-	if m.country != nil {
-		fields = append(fields, providerprofile.FieldCountry)
 	}
 	if m.host_identifier != nil {
 		fields = append(fields, providerprofile.FieldHostIdentifier)
@@ -8909,8 +8871,6 @@ func (m *ProviderProfileMutation) Field(name string) (ent.Value, bool) {
 		return m.UpdatedAt()
 	case providerprofile.FieldTradingName:
 		return m.TradingName()
-	case providerprofile.FieldCountry:
-		return m.Country()
 	case providerprofile.FieldHostIdentifier:
 		return m.HostIdentifier()
 	case providerprofile.FieldProvisionMode:
@@ -8932,8 +8892,6 @@ func (m *ProviderProfileMutation) OldField(ctx context.Context, name string) (en
 		return m.OldUpdatedAt(ctx)
 	case providerprofile.FieldTradingName:
 		return m.OldTradingName(ctx)
-	case providerprofile.FieldCountry:
-		return m.OldCountry(ctx)
 	case providerprofile.FieldHostIdentifier:
 		return m.OldHostIdentifier(ctx)
 	case providerprofile.FieldProvisionMode:
@@ -8969,13 +8927,6 @@ func (m *ProviderProfileMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetTradingName(v)
-		return nil
-	case providerprofile.FieldCountry:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetCountry(v)
 		return nil
 	case providerprofile.FieldHostIdentifier:
 		v, ok := value.(string)
@@ -9064,9 +9015,6 @@ func (m *ProviderProfileMutation) ResetField(name string) error {
 		return nil
 	case providerprofile.FieldTradingName:
 		m.ResetTradingName()
-		return nil
-	case providerprofile.FieldCountry:
-		m.ResetCountry()
 		return nil
 	case providerprofile.FieldHostIdentifier:
 		m.ResetHostIdentifier()
@@ -11427,6 +11375,497 @@ func (m *ReceiveAddressMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown ReceiveAddress edge %s", name)
 }
 
+// SenderProfileMutation represents an operation that mutates the SenderProfile nodes in the graph.
+type SenderProfileMutation struct {
+	config
+	op                     Op
+	typ                    string
+	id                     *uuid.UUID
+	webhook_url            *string
+	domain_whitelist       *[]string
+	appenddomain_whitelist []string
+	clearedFields          map[string]struct{}
+	user                   *uuid.UUID
+	cleareduser            bool
+	done                   bool
+	oldValue               func(context.Context) (*SenderProfile, error)
+	predicates             []predicate.SenderProfile
+}
+
+var _ ent.Mutation = (*SenderProfileMutation)(nil)
+
+// senderprofileOption allows management of the mutation configuration using functional options.
+type senderprofileOption func(*SenderProfileMutation)
+
+// newSenderProfileMutation creates new mutation for the SenderProfile entity.
+func newSenderProfileMutation(c config, op Op, opts ...senderprofileOption) *SenderProfileMutation {
+	m := &SenderProfileMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeSenderProfile,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withSenderProfileID sets the ID field of the mutation.
+func withSenderProfileID(id uuid.UUID) senderprofileOption {
+	return func(m *SenderProfileMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *SenderProfile
+		)
+		m.oldValue = func(ctx context.Context) (*SenderProfile, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().SenderProfile.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withSenderProfile sets the old SenderProfile of the mutation.
+func withSenderProfile(node *SenderProfile) senderprofileOption {
+	return func(m *SenderProfileMutation) {
+		m.oldValue = func(context.Context) (*SenderProfile, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m SenderProfileMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m SenderProfileMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of SenderProfile entities.
+func (m *SenderProfileMutation) SetID(id uuid.UUID) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *SenderProfileMutation) ID() (id uuid.UUID, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *SenderProfileMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []uuid.UUID{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().SenderProfile.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetWebhookURL sets the "webhook_url" field.
+func (m *SenderProfileMutation) SetWebhookURL(s string) {
+	m.webhook_url = &s
+}
+
+// WebhookURL returns the value of the "webhook_url" field in the mutation.
+func (m *SenderProfileMutation) WebhookURL() (r string, exists bool) {
+	v := m.webhook_url
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldWebhookURL returns the old "webhook_url" field's value of the SenderProfile entity.
+// If the SenderProfile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SenderProfileMutation) OldWebhookURL(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldWebhookURL is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldWebhookURL requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldWebhookURL: %w", err)
+	}
+	return oldValue.WebhookURL, nil
+}
+
+// ClearWebhookURL clears the value of the "webhook_url" field.
+func (m *SenderProfileMutation) ClearWebhookURL() {
+	m.webhook_url = nil
+	m.clearedFields[senderprofile.FieldWebhookURL] = struct{}{}
+}
+
+// WebhookURLCleared returns if the "webhook_url" field was cleared in this mutation.
+func (m *SenderProfileMutation) WebhookURLCleared() bool {
+	_, ok := m.clearedFields[senderprofile.FieldWebhookURL]
+	return ok
+}
+
+// ResetWebhookURL resets all changes to the "webhook_url" field.
+func (m *SenderProfileMutation) ResetWebhookURL() {
+	m.webhook_url = nil
+	delete(m.clearedFields, senderprofile.FieldWebhookURL)
+}
+
+// SetDomainWhitelist sets the "domain_whitelist" field.
+func (m *SenderProfileMutation) SetDomainWhitelist(s []string) {
+	m.domain_whitelist = &s
+	m.appenddomain_whitelist = nil
+}
+
+// DomainWhitelist returns the value of the "domain_whitelist" field in the mutation.
+func (m *SenderProfileMutation) DomainWhitelist() (r []string, exists bool) {
+	v := m.domain_whitelist
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDomainWhitelist returns the old "domain_whitelist" field's value of the SenderProfile entity.
+// If the SenderProfile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SenderProfileMutation) OldDomainWhitelist(ctx context.Context) (v []string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDomainWhitelist is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDomainWhitelist requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDomainWhitelist: %w", err)
+	}
+	return oldValue.DomainWhitelist, nil
+}
+
+// AppendDomainWhitelist adds s to the "domain_whitelist" field.
+func (m *SenderProfileMutation) AppendDomainWhitelist(s []string) {
+	m.appenddomain_whitelist = append(m.appenddomain_whitelist, s...)
+}
+
+// AppendedDomainWhitelist returns the list of values that were appended to the "domain_whitelist" field in this mutation.
+func (m *SenderProfileMutation) AppendedDomainWhitelist() ([]string, bool) {
+	if len(m.appenddomain_whitelist) == 0 {
+		return nil, false
+	}
+	return m.appenddomain_whitelist, true
+}
+
+// ResetDomainWhitelist resets all changes to the "domain_whitelist" field.
+func (m *SenderProfileMutation) ResetDomainWhitelist() {
+	m.domain_whitelist = nil
+	m.appenddomain_whitelist = nil
+}
+
+// SetUserID sets the "user" edge to the User entity by id.
+func (m *SenderProfileMutation) SetUserID(id uuid.UUID) {
+	m.user = &id
+}
+
+// ClearUser clears the "user" edge to the User entity.
+func (m *SenderProfileMutation) ClearUser() {
+	m.cleareduser = true
+}
+
+// UserCleared reports if the "user" edge to the User entity was cleared.
+func (m *SenderProfileMutation) UserCleared() bool {
+	return m.cleareduser
+}
+
+// UserID returns the "user" edge ID in the mutation.
+func (m *SenderProfileMutation) UserID() (id uuid.UUID, exists bool) {
+	if m.user != nil {
+		return *m.user, true
+	}
+	return
+}
+
+// UserIDs returns the "user" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// UserID instead. It exists only for internal usage by the builders.
+func (m *SenderProfileMutation) UserIDs() (ids []uuid.UUID) {
+	if id := m.user; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetUser resets all changes to the "user" edge.
+func (m *SenderProfileMutation) ResetUser() {
+	m.user = nil
+	m.cleareduser = false
+}
+
+// Where appends a list predicates to the SenderProfileMutation builder.
+func (m *SenderProfileMutation) Where(ps ...predicate.SenderProfile) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the SenderProfileMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *SenderProfileMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.SenderProfile, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *SenderProfileMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *SenderProfileMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (SenderProfile).
+func (m *SenderProfileMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *SenderProfileMutation) Fields() []string {
+	fields := make([]string, 0, 2)
+	if m.webhook_url != nil {
+		fields = append(fields, senderprofile.FieldWebhookURL)
+	}
+	if m.domain_whitelist != nil {
+		fields = append(fields, senderprofile.FieldDomainWhitelist)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *SenderProfileMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case senderprofile.FieldWebhookURL:
+		return m.WebhookURL()
+	case senderprofile.FieldDomainWhitelist:
+		return m.DomainWhitelist()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *SenderProfileMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case senderprofile.FieldWebhookURL:
+		return m.OldWebhookURL(ctx)
+	case senderprofile.FieldDomainWhitelist:
+		return m.OldDomainWhitelist(ctx)
+	}
+	return nil, fmt.Errorf("unknown SenderProfile field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *SenderProfileMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case senderprofile.FieldWebhookURL:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetWebhookURL(v)
+		return nil
+	case senderprofile.FieldDomainWhitelist:
+		v, ok := value.([]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDomainWhitelist(v)
+		return nil
+	}
+	return fmt.Errorf("unknown SenderProfile field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *SenderProfileMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *SenderProfileMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *SenderProfileMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown SenderProfile numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *SenderProfileMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(senderprofile.FieldWebhookURL) {
+		fields = append(fields, senderprofile.FieldWebhookURL)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *SenderProfileMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *SenderProfileMutation) ClearField(name string) error {
+	switch name {
+	case senderprofile.FieldWebhookURL:
+		m.ClearWebhookURL()
+		return nil
+	}
+	return fmt.Errorf("unknown SenderProfile nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *SenderProfileMutation) ResetField(name string) error {
+	switch name {
+	case senderprofile.FieldWebhookURL:
+		m.ResetWebhookURL()
+		return nil
+	case senderprofile.FieldDomainWhitelist:
+		m.ResetDomainWhitelist()
+		return nil
+	}
+	return fmt.Errorf("unknown SenderProfile field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *SenderProfileMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.user != nil {
+		edges = append(edges, senderprofile.EdgeUser)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *SenderProfileMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case senderprofile.EdgeUser:
+		if id := m.user; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *SenderProfileMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *SenderProfileMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *SenderProfileMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.cleareduser {
+		edges = append(edges, senderprofile.EdgeUser)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *SenderProfileMutation) EdgeCleared(name string) bool {
+	switch name {
+	case senderprofile.EdgeUser:
+		return m.cleareduser
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *SenderProfileMutation) ClearEdge(name string) error {
+	switch name {
+	case senderprofile.EdgeUser:
+		m.ClearUser()
+		return nil
+	}
+	return fmt.Errorf("unknown SenderProfile unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *SenderProfileMutation) ResetEdge(name string) error {
+	switch name {
+	case senderprofile.EdgeUser:
+		m.ResetUser()
+		return nil
+	}
+	return fmt.Errorf("unknown SenderProfile edge %s", name)
+}
+
 // TokenMutation represents an operation that mutates the Token nodes in the graph.
 type TokenMutation struct {
 	config
@@ -12312,6 +12751,8 @@ type UserMutation struct {
 	api_keys                  map[uuid.UUID]struct{}
 	removedapi_keys           map[uuid.UUID]struct{}
 	clearedapi_keys           bool
+	sender_profile            *uuid.UUID
+	clearedsender_profile     bool
 	provider_profile          *string
 	clearedprovider_profile   bool
 	validator_profile         *uuid.UUID
@@ -12770,6 +13211,45 @@ func (m *UserMutation) ResetAPIKeys() {
 	m.removedapi_keys = nil
 }
 
+// SetSenderProfileID sets the "sender_profile" edge to the SenderProfile entity by id.
+func (m *UserMutation) SetSenderProfileID(id uuid.UUID) {
+	m.sender_profile = &id
+}
+
+// ClearSenderProfile clears the "sender_profile" edge to the SenderProfile entity.
+func (m *UserMutation) ClearSenderProfile() {
+	m.clearedsender_profile = true
+}
+
+// SenderProfileCleared reports if the "sender_profile" edge to the SenderProfile entity was cleared.
+func (m *UserMutation) SenderProfileCleared() bool {
+	return m.clearedsender_profile
+}
+
+// SenderProfileID returns the "sender_profile" edge ID in the mutation.
+func (m *UserMutation) SenderProfileID() (id uuid.UUID, exists bool) {
+	if m.sender_profile != nil {
+		return *m.sender_profile, true
+	}
+	return
+}
+
+// SenderProfileIDs returns the "sender_profile" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// SenderProfileID instead. It exists only for internal usage by the builders.
+func (m *UserMutation) SenderProfileIDs() (ids []uuid.UUID) {
+	if id := m.sender_profile; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetSenderProfile resets all changes to the "sender_profile" edge.
+func (m *UserMutation) ResetSenderProfile() {
+	m.sender_profile = nil
+	m.clearedsender_profile = false
+}
+
 // SetProviderProfileID sets the "provider_profile" edge to the ProviderProfile entity by id.
 func (m *UserMutation) SetProviderProfileID(id string) {
 	m.provider_profile = &id
@@ -13154,9 +13634,12 @@ func (m *UserMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *UserMutation) AddedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 5)
 	if m.api_keys != nil {
 		edges = append(edges, user.EdgeAPIKeys)
+	}
+	if m.sender_profile != nil {
+		edges = append(edges, user.EdgeSenderProfile)
 	}
 	if m.provider_profile != nil {
 		edges = append(edges, user.EdgeProviderProfile)
@@ -13180,6 +13663,10 @@ func (m *UserMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case user.EdgeSenderProfile:
+		if id := m.sender_profile; id != nil {
+			return []ent.Value{*id}
+		}
 	case user.EdgeProviderProfile:
 		if id := m.provider_profile; id != nil {
 			return []ent.Value{*id}
@@ -13200,7 +13687,7 @@ func (m *UserMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *UserMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 5)
 	if m.removedapi_keys != nil {
 		edges = append(edges, user.EdgeAPIKeys)
 	}
@@ -13232,9 +13719,12 @@ func (m *UserMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *UserMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 5)
 	if m.clearedapi_keys {
 		edges = append(edges, user.EdgeAPIKeys)
+	}
+	if m.clearedsender_profile {
+		edges = append(edges, user.EdgeSenderProfile)
 	}
 	if m.clearedprovider_profile {
 		edges = append(edges, user.EdgeProviderProfile)
@@ -13254,6 +13744,8 @@ func (m *UserMutation) EdgeCleared(name string) bool {
 	switch name {
 	case user.EdgeAPIKeys:
 		return m.clearedapi_keys
+	case user.EdgeSenderProfile:
+		return m.clearedsender_profile
 	case user.EdgeProviderProfile:
 		return m.clearedprovider_profile
 	case user.EdgeValidatorProfile:
@@ -13268,6 +13760,9 @@ func (m *UserMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *UserMutation) ClearEdge(name string) error {
 	switch name {
+	case user.EdgeSenderProfile:
+		m.ClearSenderProfile()
+		return nil
 	case user.EdgeProviderProfile:
 		m.ClearProviderProfile()
 		return nil
@@ -13284,6 +13779,9 @@ func (m *UserMutation) ResetEdge(name string) error {
 	switch name {
 	case user.EdgeAPIKeys:
 		m.ResetAPIKeys()
+		return nil
+	case user.EdgeSenderProfile:
+		m.ResetSenderProfile()
 		return nil
 	case user.EdgeProviderProfile:
 		m.ResetProviderProfile()

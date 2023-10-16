@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
+	"github.com/paycrest/paycrest-protocol/ent/senderprofile"
 	"github.com/paycrest/paycrest-protocol/ent/user"
 	"github.com/paycrest/paycrest-protocol/ent/validatorprofile"
 	"github.com/paycrest/paycrest-protocol/ent/verificationtoken"
@@ -124,6 +125,25 @@ func (uc *UserCreate) AddAPIKeys(a ...*APIKey) *UserCreate {
 		ids[i] = a[i].ID
 	}
 	return uc.AddAPIKeyIDs(ids...)
+}
+
+// SetSenderProfileID sets the "sender_profile" edge to the SenderProfile entity by ID.
+func (uc *UserCreate) SetSenderProfileID(id uuid.UUID) *UserCreate {
+	uc.mutation.SetSenderProfileID(id)
+	return uc
+}
+
+// SetNillableSenderProfileID sets the "sender_profile" edge to the SenderProfile entity by ID if the given value is not nil.
+func (uc *UserCreate) SetNillableSenderProfileID(id *uuid.UUID) *UserCreate {
+	if id != nil {
+		uc = uc.SetSenderProfileID(*id)
+	}
+	return uc
+}
+
+// SetSenderProfile sets the "sender_profile" edge to the SenderProfile entity.
+func (uc *UserCreate) SetSenderProfile(s *SenderProfile) *UserCreate {
+	return uc.SetSenderProfileID(s.ID)
 }
 
 // SetProviderProfileID sets the "provider_profile" edge to the ProviderProfile entity by ID.
@@ -361,6 +381,22 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := uc.mutation.SenderProfileIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   user.SenderProfileTable,
+			Columns: []string{user.SenderProfileColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(senderprofile.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

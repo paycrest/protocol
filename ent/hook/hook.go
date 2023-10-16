@@ -177,6 +177,18 @@ func (f ReceiveAddressFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Val
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ReceiveAddressMutation", m)
 }
 
+// The SenderProfileFunc type is an adapter to allow the use of ordinary
+// function as SenderProfile mutator.
+type SenderProfileFunc func(context.Context, *ent.SenderProfileMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f SenderProfileFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.SenderProfileMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.SenderProfileMutation", m)
+}
+
 // The TokenFunc type is an adapter to allow the use of ordinary
 // function as Token mutator.
 type TokenFunc func(context.Context, *ent.TokenMutation) (ent.Value, error)

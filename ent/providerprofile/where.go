@@ -80,11 +80,6 @@ func TradingName(v string) predicate.ProviderProfile {
 	return predicate.ProviderProfile(sql.FieldEQ(FieldTradingName, v))
 }
 
-// Country applies equality check predicate on the "country" field. It's identical to CountryEQ.
-func Country(v string) predicate.ProviderProfile {
-	return predicate.ProviderProfile(sql.FieldEQ(FieldCountry, v))
-}
-
 // HostIdentifier applies equality check predicate on the "host_identifier" field. It's identical to HostIdentifierEQ.
 func HostIdentifier(v string) predicate.ProviderProfile {
 	return predicate.ProviderProfile(sql.FieldEQ(FieldHostIdentifier, v))
@@ -238,71 +233,6 @@ func TradingNameEqualFold(v string) predicate.ProviderProfile {
 // TradingNameContainsFold applies the ContainsFold predicate on the "trading_name" field.
 func TradingNameContainsFold(v string) predicate.ProviderProfile {
 	return predicate.ProviderProfile(sql.FieldContainsFold(FieldTradingName, v))
-}
-
-// CountryEQ applies the EQ predicate on the "country" field.
-func CountryEQ(v string) predicate.ProviderProfile {
-	return predicate.ProviderProfile(sql.FieldEQ(FieldCountry, v))
-}
-
-// CountryNEQ applies the NEQ predicate on the "country" field.
-func CountryNEQ(v string) predicate.ProviderProfile {
-	return predicate.ProviderProfile(sql.FieldNEQ(FieldCountry, v))
-}
-
-// CountryIn applies the In predicate on the "country" field.
-func CountryIn(vs ...string) predicate.ProviderProfile {
-	return predicate.ProviderProfile(sql.FieldIn(FieldCountry, vs...))
-}
-
-// CountryNotIn applies the NotIn predicate on the "country" field.
-func CountryNotIn(vs ...string) predicate.ProviderProfile {
-	return predicate.ProviderProfile(sql.FieldNotIn(FieldCountry, vs...))
-}
-
-// CountryGT applies the GT predicate on the "country" field.
-func CountryGT(v string) predicate.ProviderProfile {
-	return predicate.ProviderProfile(sql.FieldGT(FieldCountry, v))
-}
-
-// CountryGTE applies the GTE predicate on the "country" field.
-func CountryGTE(v string) predicate.ProviderProfile {
-	return predicate.ProviderProfile(sql.FieldGTE(FieldCountry, v))
-}
-
-// CountryLT applies the LT predicate on the "country" field.
-func CountryLT(v string) predicate.ProviderProfile {
-	return predicate.ProviderProfile(sql.FieldLT(FieldCountry, v))
-}
-
-// CountryLTE applies the LTE predicate on the "country" field.
-func CountryLTE(v string) predicate.ProviderProfile {
-	return predicate.ProviderProfile(sql.FieldLTE(FieldCountry, v))
-}
-
-// CountryContains applies the Contains predicate on the "country" field.
-func CountryContains(v string) predicate.ProviderProfile {
-	return predicate.ProviderProfile(sql.FieldContains(FieldCountry, v))
-}
-
-// CountryHasPrefix applies the HasPrefix predicate on the "country" field.
-func CountryHasPrefix(v string) predicate.ProviderProfile {
-	return predicate.ProviderProfile(sql.FieldHasPrefix(FieldCountry, v))
-}
-
-// CountryHasSuffix applies the HasSuffix predicate on the "country" field.
-func CountryHasSuffix(v string) predicate.ProviderProfile {
-	return predicate.ProviderProfile(sql.FieldHasSuffix(FieldCountry, v))
-}
-
-// CountryEqualFold applies the EqualFold predicate on the "country" field.
-func CountryEqualFold(v string) predicate.ProviderProfile {
-	return predicate.ProviderProfile(sql.FieldEqualFold(FieldCountry, v))
-}
-
-// CountryContainsFold applies the ContainsFold predicate on the "country" field.
-func CountryContainsFold(v string) predicate.ProviderProfile {
-	return predicate.ProviderProfile(sql.FieldContainsFold(FieldCountry, v))
 }
 
 // HostIdentifierEQ applies the EQ predicate on the "host_identifier" field.

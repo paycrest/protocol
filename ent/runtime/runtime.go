@@ -19,6 +19,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/provisionbucket"
 	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
 	"github.com/paycrest/paycrest-protocol/ent/schema"
+	"github.com/paycrest/paycrest-protocol/ent/senderprofile"
 	"github.com/paycrest/paycrest-protocol/ent/token"
 	"github.com/paycrest/paycrest-protocol/ent/user"
 	"github.com/paycrest/paycrest-protocol/ent/validatorprofile"
@@ -210,12 +211,8 @@ func init() {
 	providerprofileDescTradingName := providerprofileFields[1].Descriptor()
 	// providerprofile.TradingNameValidator is a validator for the "trading_name" field. It is called by the builders before save.
 	providerprofile.TradingNameValidator = providerprofileDescTradingName.Validators[0].(func(string) error)
-	// providerprofileDescCountry is the schema descriptor for country field.
-	providerprofileDescCountry := providerprofileFields[2].Descriptor()
-	// providerprofile.CountryValidator is a validator for the "country" field. It is called by the builders before save.
-	providerprofile.CountryValidator = providerprofileDescCountry.Validators[0].(func(string) error)
 	// providerprofileDescIsPartner is the schema descriptor for is_partner field.
-	providerprofileDescIsPartner := providerprofileFields[5].Descriptor()
+	providerprofileDescIsPartner := providerprofileFields[4].Descriptor()
 	// providerprofile.DefaultIsPartner holds the default value on creation for the is_partner field.
 	providerprofile.DefaultIsPartner = providerprofileDescIsPartner.Default.(bool)
 	// providerprofileDescID is the schema descriptor for id field.
@@ -262,6 +259,16 @@ func init() {
 	receiveaddress.DefaultUpdatedAt = receiveaddressDescUpdatedAt.Default.(func() time.Time)
 	// receiveaddress.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	receiveaddress.UpdateDefaultUpdatedAt = receiveaddressDescUpdatedAt.UpdateDefault.(func() time.Time)
+	senderprofileFields := schema.SenderProfile{}.Fields()
+	_ = senderprofileFields
+	// senderprofileDescDomainWhitelist is the schema descriptor for domain_whitelist field.
+	senderprofileDescDomainWhitelist := senderprofileFields[2].Descriptor()
+	// senderprofile.DefaultDomainWhitelist holds the default value on creation for the domain_whitelist field.
+	senderprofile.DefaultDomainWhitelist = senderprofileDescDomainWhitelist.Default.([]string)
+	// senderprofileDescID is the schema descriptor for id field.
+	senderprofileDescID := senderprofileFields[0].Descriptor()
+	// senderprofile.DefaultID holds the default value on creation for the id field.
+	senderprofile.DefaultID = senderprofileDescID.Default.(func() uuid.UUID)
 	tokenMixin := schema.Token{}.Mixin()
 	tokenMixinFields0 := tokenMixin[0].Fields()
 	_ = tokenMixinFields0

@@ -6,7 +6,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent"
-	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 	"github.com/paycrest/paycrest-protocol/storage"
@@ -41,21 +40,14 @@ func (ctrl *ProviderController) AcceptOrder(ctx *gin.Context) {
 		return
 	}
 
-	// Fetch provider from db
-	apiKey, _ := ctx.Get("api_key")
-	provider, err := storage.Client.ProviderProfile.
-		Query().
-		Where(
-			providerprofile.HasAPIKeyWith(
-				apikey.IDEQ(apiKey.(*ent.APIKey).ID),
-			),
-		).
-		Only(ctx)
-	if err != nil {
+	// Get provider profile from the context
+	providerCtx, ok := ctx.Get("provider")
+	if !ok {
 		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusNotFound, "error", "Could not find provider profile", nil)
+		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid API key", nil)
 		return
 	}
+	provider := providerCtx.(*ent.ProviderProfile)
 
 	// Update lock order status to processing
 	order, err := storage.Client.LockPaymentOrder.
@@ -89,21 +81,14 @@ func (ctrl *ProviderController) DeclineOrder(ctx *gin.Context) {
 		return
 	}
 
-	// Fetch provider from db
-	apiKey, _ := ctx.Get("api_key")
-	provider, err := storage.Client.ProviderProfile.
-		Query().
-		Where(
-			providerprofile.HasAPIKeyWith(
-				apikey.IDEQ(apiKey.(*ent.APIKey).ID),
-			),
-		).
-		Only(ctx)
-	if err != nil {
+	// Get provider profile from the context
+	providerCtx, ok := ctx.Get("provider")
+	if !ok {
 		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusNotFound, "error", "Could not find provider profile", nil)
+		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid API key", nil)
 		return
 	}
+	provider := providerCtx.(*ent.ProviderProfile)
 
 	// Delete order request from Redis
 	_, err = storage.RedisClient.Del(ctx, fmt.Sprintf("order_request_%d", orderID)).Result()
@@ -208,17 +193,21 @@ func (ctrl *ProviderController) CancelOrder(ctx *gin.Context) {
 		return
 	}
 
+	// Get provider profile from the context
+	providerCtx, ok := ctx.Get("provider")
+	if !ok {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid API key", nil)
+		return
+	}
+	provider := providerCtx.(*ent.ProviderProfile)
+
 	// Fetch lock payment order from db
-	apiKey, _ := ctx.Get("api_key")
 	order, err := storage.Client.LockPaymentOrder.
 		Query().
 		Where(
 			lockpaymentorder.IDEQ(orderID),
-			lockpaymentorder.HasProviderWith(
-				providerprofile.HasAPIKeyWith(
-					apikey.IDEQ(apiKey.(*ent.APIKey).ID),
-				),
-			),
+			lockpaymentorder.HasProviderWith(providerprofile.IDEQ(provider.ID)),
 		).
 		WithProvider().
 		Only(ctx)
