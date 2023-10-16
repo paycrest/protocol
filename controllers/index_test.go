@@ -32,12 +32,15 @@ var testCtx = struct {
 
 func setup() error {
 	// Set up test data
-	user, _ := test.CreateTestUser(nil)
+	user, _ := test.CreateTestUser(map[string]string{
+		"scope": "tx_validator",
+	})
 	testCtx.user = user
 
 	apiKeyService := services.NewAPIKeyService()
 	apiKey, secretKey, err := apiKeyService.GenerateAPIKey(
 		context.Background(),
+		nil,
 		user.ID,
 	)
 	if err != nil {
@@ -76,6 +79,8 @@ func TestIndex(t *testing.T) {
 	// Set up test routers
 	var ctrl Controller
 	router := gin.New()
+	router.Use(middleware.ScopeMiddleware)
+
 	router.POST(
 		"orders/:fulfillment_id/validate",
 		middleware.HMACVerificationMiddleware,
@@ -85,6 +90,7 @@ func TestIndex(t *testing.T) {
 	router.GET("currencies", ctrl.GetFiatCurrencies)
 
 	t.Run("ValidateOrderFulfillment", func(t *testing.T) {
+
 		t.Run("order is valid", func(t *testing.T) {
 			// Test register with valid payload
 			payload := map[string]interface{}{
@@ -103,7 +109,7 @@ func TestIndex(t *testing.T) {
 			assert.NoError(t, err)
 
 			res, err := test.PerformRequest(t, "POST",
-				fmt.Sprintf("/orders/%s/validate", fulfillment.ID.String()), payload, headers, router)
+				fmt.Sprintf("/orders/%s/validate?scope=validator", fulfillment.ID.String()), payload, headers, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -127,7 +133,7 @@ func TestIndex(t *testing.T) {
 				"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
 			}
 
-			res, err := test.PerformRequest(t, "POST", "/orders/"+fulfillmentID+"/validate", payload, headers, router)
+			res, err := test.PerformRequest(t, "POST", "/orders/"+fulfillmentID+"/validate?scope=validator", payload, headers, router)
 			assert.NoError(t, err)
 
 			assert.Equal(t, http.StatusBadRequest, res.Code)
@@ -151,7 +157,7 @@ func TestIndex(t *testing.T) {
 			assert.NoError(t, err)
 
 			res, err := test.PerformRequest(t, "POST",
-				fmt.Sprintf("/orders/%s/validate", fulfillment.ID.String()), payload, headers, router)
+				fmt.Sprintf("/orders/%s/validate?scope=validator", fulfillment.ID.String()), payload, headers, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -167,14 +173,13 @@ func TestIndex(t *testing.T) {
 				Only(context.Background())
 			assert.NoError(t, err)
 
-			fmt.Println("validation errors: ", fulfillment.ValidationErrors)
 			assert.Contains(t, fulfillment.ValidationErrors, "Invalid transaction reference")
 		})
 	})
 
 	t.Run("Currencies", func(t *testing.T) {
 		t.Run("fetch supported fiat currencies", func(t *testing.T) {
-			res, err := test.PerformRequest(t, "GET", "/currencies", nil, nil, router)
+			res, err := test.PerformRequest(t, "GET", "/currencies?scope=sender", nil, nil, router)
 			assert.NoError(t, err)
 
 			// Assert the response code.

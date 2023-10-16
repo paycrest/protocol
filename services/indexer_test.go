@@ -93,6 +93,7 @@ func setup() error {
 	apiKeyService := NewAPIKeyService()
 	apiKey, _, err := apiKeyService.GenerateAPIKey(
 		context.Background(),
+		nil,
 		user.ID,
 	)
 	if err != nil {

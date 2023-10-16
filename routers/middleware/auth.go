@@ -17,7 +17,6 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
 	"github.com/paycrest/paycrest-protocol/ent/user"
 	"github.com/paycrest/paycrest-protocol/storage"
-	db "github.com/paycrest/paycrest-protocol/storage"
 	u "github.com/paycrest/paycrest-protocol/utils"
 	"github.com/paycrest/paycrest-protocol/utils/crypto"
 	"github.com/paycrest/paycrest-protocol/utils/logger"
@@ -130,7 +129,7 @@ func HMACVerificationMiddleware(c *gin.Context) {
 	}
 
 	// Fetch the API key from the database
-	apiKey, err := db.Client.APIKey.
+	apiKey, err := storage.Client.APIKey.
 		Query().
 		Where(apikey.IDEQ(apiKeyUUID)).
 		Only(c)
@@ -337,7 +336,7 @@ func OnlyValidatorMiddleware(c *gin.Context) {
 		WithValidatorProfile().
 		Only(c)
 	if err != nil {
-		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid API key", nil)
+		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid API keyaa", nil)
 		c.Abort()
 		return
 	}
