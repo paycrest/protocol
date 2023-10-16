@@ -12,7 +12,6 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
-	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/fiatcurrency"
 	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
@@ -92,17 +91,6 @@ func (ppu *ProviderProfileUpdate) SetNillableIsPartner(b *bool) *ProviderProfile
 		ppu.SetIsPartner(*b)
 	}
 	return ppu
-}
-
-// SetAPIKeyID sets the "api_key" edge to the APIKey entity by ID.
-func (ppu *ProviderProfileUpdate) SetAPIKeyID(id uuid.UUID) *ProviderProfileUpdate {
-	ppu.mutation.SetAPIKeyID(id)
-	return ppu
-}
-
-// SetAPIKey sets the "api_key" edge to the APIKey entity.
-func (ppu *ProviderProfileUpdate) SetAPIKey(a *APIKey) *ProviderProfileUpdate {
-	return ppu.SetAPIKeyID(a.ID)
 }
 
 // SetCurrencyID sets the "currency" edge to the FiatCurrency entity by ID.
@@ -202,12 +190,6 @@ func (ppu *ProviderProfileUpdate) AddAssignedOrders(l ...*LockPaymentOrder) *Pro
 // Mutation returns the ProviderProfileMutation object of the builder.
 func (ppu *ProviderProfileUpdate) Mutation() *ProviderProfileMutation {
 	return ppu.mutation
-}
-
-// ClearAPIKey clears the "api_key" edge to the APIKey entity.
-func (ppu *ProviderProfileUpdate) ClearAPIKey() *ProviderProfileUpdate {
-	ppu.mutation.ClearAPIKey()
-	return ppu
 }
 
 // ClearCurrency clears the "currency" edge to the FiatCurrency entity.
@@ -344,8 +326,8 @@ func (ppu *ProviderProfileUpdate) check() error {
 			return &ValidationError{Name: "provision_mode", err: fmt.Errorf(`ent: validator failed for field "ProviderProfile.provision_mode": %w`, err)}
 		}
 	}
-	if _, ok := ppu.mutation.APIKeyID(); ppu.mutation.APIKeyCleared() && !ok {
-		return errors.New(`ent: clearing a required unique edge "ProviderProfile.api_key"`)
+	if _, ok := ppu.mutation.UserID(); ppu.mutation.UserCleared() && !ok {
+		return errors.New(`ent: clearing a required unique edge "ProviderProfile.user"`)
 	}
 	if _, ok := ppu.mutation.CurrencyID(); ppu.mutation.CurrencyCleared() && !ok {
 		return errors.New(`ent: clearing a required unique edge "ProviderProfile.currency"`)
@@ -385,35 +367,6 @@ func (ppu *ProviderProfileUpdate) sqlSave(ctx context.Context) (n int, err error
 	}
 	if value, ok := ppu.mutation.IsPartner(); ok {
 		_spec.SetField(providerprofile.FieldIsPartner, field.TypeBool, value)
-	}
-	if ppu.mutation.APIKeyCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: true,
-			Table:   providerprofile.APIKeyTable,
-			Columns: []string{providerprofile.APIKeyColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := ppu.mutation.APIKeyIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: true,
-			Table:   providerprofile.APIKeyTable,
-			Columns: []string{providerprofile.APIKeyColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if ppu.mutation.CurrencyCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -715,17 +668,6 @@ func (ppuo *ProviderProfileUpdateOne) SetNillableIsPartner(b *bool) *ProviderPro
 	return ppuo
 }
 
-// SetAPIKeyID sets the "api_key" edge to the APIKey entity by ID.
-func (ppuo *ProviderProfileUpdateOne) SetAPIKeyID(id uuid.UUID) *ProviderProfileUpdateOne {
-	ppuo.mutation.SetAPIKeyID(id)
-	return ppuo
-}
-
-// SetAPIKey sets the "api_key" edge to the APIKey entity.
-func (ppuo *ProviderProfileUpdateOne) SetAPIKey(a *APIKey) *ProviderProfileUpdateOne {
-	return ppuo.SetAPIKeyID(a.ID)
-}
-
 // SetCurrencyID sets the "currency" edge to the FiatCurrency entity by ID.
 func (ppuo *ProviderProfileUpdateOne) SetCurrencyID(id uuid.UUID) *ProviderProfileUpdateOne {
 	ppuo.mutation.SetCurrencyID(id)
@@ -823,12 +765,6 @@ func (ppuo *ProviderProfileUpdateOne) AddAssignedOrders(l ...*LockPaymentOrder) 
 // Mutation returns the ProviderProfileMutation object of the builder.
 func (ppuo *ProviderProfileUpdateOne) Mutation() *ProviderProfileMutation {
 	return ppuo.mutation
-}
-
-// ClearAPIKey clears the "api_key" edge to the APIKey entity.
-func (ppuo *ProviderProfileUpdateOne) ClearAPIKey() *ProviderProfileUpdateOne {
-	ppuo.mutation.ClearAPIKey()
-	return ppuo
 }
 
 // ClearCurrency clears the "currency" edge to the FiatCurrency entity.
@@ -978,8 +914,8 @@ func (ppuo *ProviderProfileUpdateOne) check() error {
 			return &ValidationError{Name: "provision_mode", err: fmt.Errorf(`ent: validator failed for field "ProviderProfile.provision_mode": %w`, err)}
 		}
 	}
-	if _, ok := ppuo.mutation.APIKeyID(); ppuo.mutation.APIKeyCleared() && !ok {
-		return errors.New(`ent: clearing a required unique edge "ProviderProfile.api_key"`)
+	if _, ok := ppuo.mutation.UserID(); ppuo.mutation.UserCleared() && !ok {
+		return errors.New(`ent: clearing a required unique edge "ProviderProfile.user"`)
 	}
 	if _, ok := ppuo.mutation.CurrencyID(); ppuo.mutation.CurrencyCleared() && !ok {
 		return errors.New(`ent: clearing a required unique edge "ProviderProfile.currency"`)
@@ -1036,35 +972,6 @@ func (ppuo *ProviderProfileUpdateOne) sqlSave(ctx context.Context) (_node *Provi
 	}
 	if value, ok := ppuo.mutation.IsPartner(); ok {
 		_spec.SetField(providerprofile.FieldIsPartner, field.TypeBool, value)
-	}
-	if ppuo.mutation.APIKeyCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: true,
-			Table:   providerprofile.APIKeyTable,
-			Columns: []string{providerprofile.APIKeyColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := ppuo.mutation.APIKeyIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: true,
-			Table:   providerprofile.APIKeyTable,
-			Columns: []string{providerprofile.APIKeyColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if ppuo.mutation.CurrencyCleared() {
 		edge := &sqlgraph.EdgeSpec{

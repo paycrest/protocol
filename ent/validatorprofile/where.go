@@ -216,21 +216,21 @@ func WalletAddressContainsFold(v string) predicate.ValidatorProfile {
 	return predicate.ValidatorProfile(sql.FieldContainsFold(FieldWalletAddress, v))
 }
 
-// HasAPIKey applies the HasEdge predicate on the "api_key" edge.
-func HasAPIKey() predicate.ValidatorProfile {
+// HasUser applies the HasEdge predicate on the "user" edge.
+func HasUser() predicate.ValidatorProfile {
 	return predicate.ValidatorProfile(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, APIKeyTable, APIKeyColumn),
+			sqlgraph.Edge(sqlgraph.O2O, true, UserTable, UserColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasAPIKeyWith applies the HasEdge predicate on the "api_key" edge with a given conditions (other predicates).
-func HasAPIKeyWith(preds ...predicate.APIKey) predicate.ValidatorProfile {
+// HasUserWith applies the HasEdge predicate on the "user" edge with a given conditions (other predicates).
+func HasUserWith(preds ...predicate.User) predicate.ValidatorProfile {
 	return predicate.ValidatorProfile(func(s *sql.Selector) {
-		step := newAPIKeyStep()
+		step := newUserStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

@@ -14,7 +14,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
+	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 	"github.com/paycrest/paycrest-protocol/ent/user"
+	"github.com/paycrest/paycrest-protocol/ent/validatorprofile"
 	"github.com/paycrest/paycrest-protocol/ent/verificationtoken"
 )
 
@@ -61,6 +63,12 @@ func (uu *UserUpdate) SetPassword(s string) *UserUpdate {
 	return uu
 }
 
+// SetScope sets the "scope" field.
+func (uu *UserUpdate) SetScope(u user.Scope) *UserUpdate {
+	uu.mutation.SetScope(u)
+	return uu
+}
+
 // SetIsVerified sets the "is_verified" field.
 func (uu *UserUpdate) SetIsVerified(b bool) *UserUpdate {
 	uu.mutation.SetIsVerified(b)
@@ -88,6 +96,44 @@ func (uu *UserUpdate) AddAPIKeys(a ...*APIKey) *UserUpdate {
 		ids[i] = a[i].ID
 	}
 	return uu.AddAPIKeyIDs(ids...)
+}
+
+// SetProviderProfileID sets the "provider_profile" edge to the ProviderProfile entity by ID.
+func (uu *UserUpdate) SetProviderProfileID(id string) *UserUpdate {
+	uu.mutation.SetProviderProfileID(id)
+	return uu
+}
+
+// SetNillableProviderProfileID sets the "provider_profile" edge to the ProviderProfile entity by ID if the given value is not nil.
+func (uu *UserUpdate) SetNillableProviderProfileID(id *string) *UserUpdate {
+	if id != nil {
+		uu = uu.SetProviderProfileID(*id)
+	}
+	return uu
+}
+
+// SetProviderProfile sets the "provider_profile" edge to the ProviderProfile entity.
+func (uu *UserUpdate) SetProviderProfile(p *ProviderProfile) *UserUpdate {
+	return uu.SetProviderProfileID(p.ID)
+}
+
+// SetValidatorProfileID sets the "validator_profile" edge to the ValidatorProfile entity by ID.
+func (uu *UserUpdate) SetValidatorProfileID(id uuid.UUID) *UserUpdate {
+	uu.mutation.SetValidatorProfileID(id)
+	return uu
+}
+
+// SetNillableValidatorProfileID sets the "validator_profile" edge to the ValidatorProfile entity by ID if the given value is not nil.
+func (uu *UserUpdate) SetNillableValidatorProfileID(id *uuid.UUID) *UserUpdate {
+	if id != nil {
+		uu = uu.SetValidatorProfileID(*id)
+	}
+	return uu
+}
+
+// SetValidatorProfile sets the "validator_profile" edge to the ValidatorProfile entity.
+func (uu *UserUpdate) SetValidatorProfile(v *ValidatorProfile) *UserUpdate {
+	return uu.SetValidatorProfileID(v.ID)
 }
 
 // AddVerificationTokenIDs adds the "verification_token" edge to the VerificationToken entity by IDs.
@@ -129,6 +175,18 @@ func (uu *UserUpdate) RemoveAPIKeys(a ...*APIKey) *UserUpdate {
 		ids[i] = a[i].ID
 	}
 	return uu.RemoveAPIKeyIDs(ids...)
+}
+
+// ClearProviderProfile clears the "provider_profile" edge to the ProviderProfile entity.
+func (uu *UserUpdate) ClearProviderProfile() *UserUpdate {
+	uu.mutation.ClearProviderProfile()
+	return uu
+}
+
+// ClearValidatorProfile clears the "validator_profile" edge to the ValidatorProfile entity.
+func (uu *UserUpdate) ClearValidatorProfile() *UserUpdate {
+	uu.mutation.ClearValidatorProfile()
+	return uu
 }
 
 // ClearVerificationToken clears all "verification_token" edges to the VerificationToken entity.
@@ -206,6 +264,11 @@ func (uu *UserUpdate) check() error {
 			return &ValidationError{Name: "last_name", err: fmt.Errorf(`ent: validator failed for field "User.last_name": %w`, err)}
 		}
 	}
+	if v, ok := uu.mutation.Scope(); ok {
+		if err := user.ScopeValidator(v); err != nil {
+			return &ValidationError{Name: "scope", err: fmt.Errorf(`ent: validator failed for field "User.scope": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -235,6 +298,9 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if value, ok := uu.mutation.Password(); ok {
 		_spec.SetField(user.FieldPassword, field.TypeString, value)
+	}
+	if value, ok := uu.mutation.Scope(); ok {
+		_spec.SetField(user.FieldScope, field.TypeEnum, value)
 	}
 	if value, ok := uu.mutation.IsVerified(); ok {
 		_spec.SetField(user.FieldIsVerified, field.TypeBool, value)
@@ -277,6 +343,64 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if uu.mutation.ProviderProfileCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   user.ProviderProfileTable,
+			Columns: []string{user.ProviderProfileColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(providerprofile.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.ProviderProfileIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   user.ProviderProfileTable,
+			Columns: []string{user.ProviderProfileColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(providerprofile.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if uu.mutation.ValidatorProfileCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   user.ValidatorProfileTable,
+			Columns: []string{user.ValidatorProfileColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(validatorprofile.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.ValidatorProfileIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   user.ValidatorProfileTable,
+			Columns: []string{user.ValidatorProfileColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(validatorprofile.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -379,6 +503,12 @@ func (uuo *UserUpdateOne) SetPassword(s string) *UserUpdateOne {
 	return uuo
 }
 
+// SetScope sets the "scope" field.
+func (uuo *UserUpdateOne) SetScope(u user.Scope) *UserUpdateOne {
+	uuo.mutation.SetScope(u)
+	return uuo
+}
+
 // SetIsVerified sets the "is_verified" field.
 func (uuo *UserUpdateOne) SetIsVerified(b bool) *UserUpdateOne {
 	uuo.mutation.SetIsVerified(b)
@@ -406,6 +536,44 @@ func (uuo *UserUpdateOne) AddAPIKeys(a ...*APIKey) *UserUpdateOne {
 		ids[i] = a[i].ID
 	}
 	return uuo.AddAPIKeyIDs(ids...)
+}
+
+// SetProviderProfileID sets the "provider_profile" edge to the ProviderProfile entity by ID.
+func (uuo *UserUpdateOne) SetProviderProfileID(id string) *UserUpdateOne {
+	uuo.mutation.SetProviderProfileID(id)
+	return uuo
+}
+
+// SetNillableProviderProfileID sets the "provider_profile" edge to the ProviderProfile entity by ID if the given value is not nil.
+func (uuo *UserUpdateOne) SetNillableProviderProfileID(id *string) *UserUpdateOne {
+	if id != nil {
+		uuo = uuo.SetProviderProfileID(*id)
+	}
+	return uuo
+}
+
+// SetProviderProfile sets the "provider_profile" edge to the ProviderProfile entity.
+func (uuo *UserUpdateOne) SetProviderProfile(p *ProviderProfile) *UserUpdateOne {
+	return uuo.SetProviderProfileID(p.ID)
+}
+
+// SetValidatorProfileID sets the "validator_profile" edge to the ValidatorProfile entity by ID.
+func (uuo *UserUpdateOne) SetValidatorProfileID(id uuid.UUID) *UserUpdateOne {
+	uuo.mutation.SetValidatorProfileID(id)
+	return uuo
+}
+
+// SetNillableValidatorProfileID sets the "validator_profile" edge to the ValidatorProfile entity by ID if the given value is not nil.
+func (uuo *UserUpdateOne) SetNillableValidatorProfileID(id *uuid.UUID) *UserUpdateOne {
+	if id != nil {
+		uuo = uuo.SetValidatorProfileID(*id)
+	}
+	return uuo
+}
+
+// SetValidatorProfile sets the "validator_profile" edge to the ValidatorProfile entity.
+func (uuo *UserUpdateOne) SetValidatorProfile(v *ValidatorProfile) *UserUpdateOne {
+	return uuo.SetValidatorProfileID(v.ID)
 }
 
 // AddVerificationTokenIDs adds the "verification_token" edge to the VerificationToken entity by IDs.
@@ -447,6 +615,18 @@ func (uuo *UserUpdateOne) RemoveAPIKeys(a ...*APIKey) *UserUpdateOne {
 		ids[i] = a[i].ID
 	}
 	return uuo.RemoveAPIKeyIDs(ids...)
+}
+
+// ClearProviderProfile clears the "provider_profile" edge to the ProviderProfile entity.
+func (uuo *UserUpdateOne) ClearProviderProfile() *UserUpdateOne {
+	uuo.mutation.ClearProviderProfile()
+	return uuo
+}
+
+// ClearValidatorProfile clears the "validator_profile" edge to the ValidatorProfile entity.
+func (uuo *UserUpdateOne) ClearValidatorProfile() *UserUpdateOne {
+	uuo.mutation.ClearValidatorProfile()
+	return uuo
 }
 
 // ClearVerificationToken clears all "verification_token" edges to the VerificationToken entity.
@@ -537,6 +717,11 @@ func (uuo *UserUpdateOne) check() error {
 			return &ValidationError{Name: "last_name", err: fmt.Errorf(`ent: validator failed for field "User.last_name": %w`, err)}
 		}
 	}
+	if v, ok := uuo.mutation.Scope(); ok {
+		if err := user.ScopeValidator(v); err != nil {
+			return &ValidationError{Name: "scope", err: fmt.Errorf(`ent: validator failed for field "User.scope": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -584,6 +769,9 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 	if value, ok := uuo.mutation.Password(); ok {
 		_spec.SetField(user.FieldPassword, field.TypeString, value)
 	}
+	if value, ok := uuo.mutation.Scope(); ok {
+		_spec.SetField(user.FieldScope, field.TypeEnum, value)
+	}
 	if value, ok := uuo.mutation.IsVerified(); ok {
 		_spec.SetField(user.FieldIsVerified, field.TypeBool, value)
 	}
@@ -625,6 +813,64 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if uuo.mutation.ProviderProfileCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   user.ProviderProfileTable,
+			Columns: []string{user.ProviderProfileColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(providerprofile.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.ProviderProfileIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   user.ProviderProfileTable,
+			Columns: []string{user.ProviderProfileColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(providerprofile.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if uuo.mutation.ValidatorProfileCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   user.ValidatorProfileTable,
+			Columns: []string{user.ValidatorProfileColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(validatorprofile.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.ValidatorProfileIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   user.ValidatorProfileTable,
+			Columns: []string{user.ValidatorProfileColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(validatorprofile.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

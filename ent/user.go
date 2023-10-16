@@ -10,7 +10,9 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
+	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 	"github.com/paycrest/paycrest-protocol/ent/user"
+	"github.com/paycrest/paycrest-protocol/ent/validatorprofile"
 )
 
 // User is the model entity for the User schema.
@@ -30,6 +32,8 @@ type User struct {
 	Email string `json:"email,omitempty"`
 	// Password holds the value of the "password" field.
 	Password string `json:"-"`
+	// Scope holds the value of the "scope" field.
+	Scope user.Scope `json:"scope,omitempty"`
 	// IsVerified holds the value of the "is_verified" field.
 	IsVerified bool `json:"is_verified,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -42,11 +46,15 @@ type User struct {
 type UserEdges struct {
 	// APIKeys holds the value of the api_keys edge.
 	APIKeys []*APIKey `json:"api_keys,omitempty"`
+	// ProviderProfile holds the value of the provider_profile edge.
+	ProviderProfile *ProviderProfile `json:"provider_profile,omitempty"`
+	// ValidatorProfile holds the value of the validator_profile edge.
+	ValidatorProfile *ValidatorProfile `json:"validator_profile,omitempty"`
 	// VerificationToken holds the value of the verification_token edge.
 	VerificationToken []*VerificationToken `json:"verification_token,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [4]bool
 }
 
 // APIKeysOrErr returns the APIKeys value or an error if the edge
@@ -58,10 +66,36 @@ func (e UserEdges) APIKeysOrErr() ([]*APIKey, error) {
 	return nil, &NotLoadedError{edge: "api_keys"}
 }
 
+// ProviderProfileOrErr returns the ProviderProfile value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e UserEdges) ProviderProfileOrErr() (*ProviderProfile, error) {
+	if e.loadedTypes[1] {
+		if e.ProviderProfile == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: providerprofile.Label}
+		}
+		return e.ProviderProfile, nil
+	}
+	return nil, &NotLoadedError{edge: "provider_profile"}
+}
+
+// ValidatorProfileOrErr returns the ValidatorProfile value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e UserEdges) ValidatorProfileOrErr() (*ValidatorProfile, error) {
+	if e.loadedTypes[2] {
+		if e.ValidatorProfile == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: validatorprofile.Label}
+		}
+		return e.ValidatorProfile, nil
+	}
+	return nil, &NotLoadedError{edge: "validator_profile"}
+}
+
 // VerificationTokenOrErr returns the VerificationToken value or an error if the edge
 // was not loaded in eager-loading.
 func (e UserEdges) VerificationTokenOrErr() ([]*VerificationToken, error) {
-	if e.loadedTypes[1] {
+	if e.loadedTypes[3] {
 		return e.VerificationToken, nil
 	}
 	return nil, &NotLoadedError{edge: "verification_token"}
@@ -74,7 +108,7 @@ func (*User) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case user.FieldIsVerified:
 			values[i] = new(sql.NullBool)
-		case user.FieldFirstName, user.FieldLastName, user.FieldEmail, user.FieldPassword:
+		case user.FieldFirstName, user.FieldLastName, user.FieldEmail, user.FieldPassword, user.FieldScope:
 			values[i] = new(sql.NullString)
 		case user.FieldCreatedAt, user.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -137,6 +171,12 @@ func (u *User) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				u.Password = value.String
 			}
+		case user.FieldScope:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field scope", values[i])
+			} else if value.Valid {
+				u.Scope = user.Scope(value.String)
+			}
 		case user.FieldIsVerified:
 			if value, ok := values[i].(*sql.NullBool); !ok {
 				return fmt.Errorf("unexpected type %T for field is_verified", values[i])
@@ -159,6 +199,16 @@ func (u *User) Value(name string) (ent.Value, error) {
 // QueryAPIKeys queries the "api_keys" edge of the User entity.
 func (u *User) QueryAPIKeys() *APIKeyQuery {
 	return NewUserClient(u.config).QueryAPIKeys(u)
+}
+
+// QueryProviderProfile queries the "provider_profile" edge of the User entity.
+func (u *User) QueryProviderProfile() *ProviderProfileQuery {
+	return NewUserClient(u.config).QueryProviderProfile(u)
+}
+
+// QueryValidatorProfile queries the "validator_profile" edge of the User entity.
+func (u *User) QueryValidatorProfile() *ValidatorProfileQuery {
+	return NewUserClient(u.config).QueryValidatorProfile(u)
 }
 
 // QueryVerificationToken queries the "verification_token" edge of the User entity.
@@ -205,6 +255,9 @@ func (u *User) String() string {
 	builder.WriteString(u.Email)
 	builder.WriteString(", ")
 	builder.WriteString("password=<sensitive>")
+	builder.WriteString(", ")
+	builder.WriteString("scope=")
+	builder.WriteString(fmt.Sprintf("%v", u.Scope))
 	builder.WriteString(", ")
 	builder.WriteString("is_verified=")
 	builder.WriteString(fmt.Sprintf("%v", u.IsVerified))

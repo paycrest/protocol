@@ -9,7 +9,6 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent"
 	"github.com/paycrest/paycrest-protocol/ent/user"
 	db "github.com/paycrest/paycrest-protocol/storage"
-	"github.com/paycrest/paycrest-protocol/types"
 	"github.com/paycrest/paycrest-protocol/utils/crypto"
 	"github.com/paycrest/paycrest-protocol/utils/token"
 )
@@ -23,7 +22,7 @@ func NewAPIKeyService() *APIKeyService {
 }
 
 // GenerateAPIKey generates a new API key for the user.
-func (s *APIKeyService) GenerateAPIKey(ctx context.Context, userID uuid.UUID, payload types.CreateAPIKeyPayload) (*ent.APIKey, string, error) {
+func (s *APIKeyService) GenerateAPIKey(ctx context.Context, userID uuid.UUID) (*ent.APIKey, string, error) {
 	// Generate a new secret key
 	secretKey, err := token.GeneratePrivateKey()
 	if err != nil {
@@ -51,8 +50,6 @@ func (s *APIKeyService) GenerateAPIKey(ctx context.Context, userID uuid.UUID, pa
 	// Create a new APIKey entity
 	apiKey, err := db.Client.APIKey.
 		Create().
-		SetName(payload.Name).
-		SetScope(payload.Scope).
 		SetSecret(encodedSecret).
 		SetOwner(user).
 		Save(ctx)

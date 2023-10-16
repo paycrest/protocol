@@ -32,15 +32,15 @@ func init() {
 	apikeyFields := schema.APIKey{}.Fields()
 	_ = apikeyFields
 	// apikeyDescSecret is the schema descriptor for secret field.
-	apikeyDescSecret := apikeyFields[3].Descriptor()
+	apikeyDescSecret := apikeyFields[1].Descriptor()
 	// apikey.SecretValidator is a validator for the "secret" field. It is called by the builders before save.
 	apikey.SecretValidator = apikeyDescSecret.Validators[0].(func(string) error)
 	// apikeyDescIsActive is the schema descriptor for is_active field.
-	apikeyDescIsActive := apikeyFields[4].Descriptor()
+	apikeyDescIsActive := apikeyFields[2].Descriptor()
 	// apikey.DefaultIsActive holds the default value on creation for the is_active field.
 	apikey.DefaultIsActive = apikeyDescIsActive.Default.(bool)
 	// apikeyDescCreatedAt is the schema descriptor for created_at field.
-	apikeyDescCreatedAt := apikeyFields[5].Descriptor()
+	apikeyDescCreatedAt := apikeyFields[3].Descriptor()
 	// apikey.DefaultCreatedAt holds the default value on creation for the created_at field.
 	apikey.DefaultCreatedAt = apikeyDescCreatedAt.Default.(func() time.Time)
 	// apikeyDescID is the schema descriptor for id field.
@@ -315,7 +315,7 @@ func init() {
 	// user.LastNameValidator is a validator for the "last_name" field. It is called by the builders before save.
 	user.LastNameValidator = userDescLastName.Validators[0].(func(string) error)
 	// userDescIsVerified is the schema descriptor for is_verified field.
-	userDescIsVerified := userFields[5].Descriptor()
+	userDescIsVerified := userFields[6].Descriptor()
 	// user.DefaultIsVerified holds the default value on creation for the is_verified field.
 	user.DefaultIsVerified = userDescIsVerified.Default.(bool)
 	// userDescID is the schema descriptor for id field.

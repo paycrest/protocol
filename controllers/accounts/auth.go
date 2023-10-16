@@ -41,6 +41,7 @@ func NewAuthController() *AuthController {
 // It also sends an email to verify the user's email address.
 func (ctrl *AuthController) Register(ctx *gin.Context) {
 	var payload types.RegisterPayload
+	scope, _ := ctx.MustGet("scope").(string)
 
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		logger.Errorf("error: %v", err)
@@ -52,7 +53,10 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 	// Check if user with email already exists
 	userTmp, _ := db.Client.User.
 		Query().
-		Where(user.EmailEQ(strings.ToLower(payload.Email))).
+		Where(
+			user.EmailEQ(strings.ToLower(payload.Email)),
+			user.ScopeEQ(user.Scope(scope)),
+		).
 		Only(ctx)
 
 	if userTmp != nil {
@@ -68,6 +72,7 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 		SetLastName(payload.LastName).
 		SetEmail(strings.ToLower(payload.Email)).
 		SetPassword(payload.Password).
+		SetScope(user.Scope(scope)).
 		Save(ctx)
 
 	if err != nil {
@@ -77,6 +82,7 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 		return
 	}
 
+	// Send verification email
 	verificationToken, err := db.Client.VerificationToken.Create().SetOwner(user).SetScope(verificationtoken.ScopeVerification).Save(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
@@ -88,23 +94,17 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 		}
 	}
 
-	// Create a provider API Key and profile in the background
-	// TODO: Replace provider with a UUID environment variable
-	if appID := ctx.GetHeader("X-APP-ID"); appID == "provider" {
-		apiKeyInput := types.CreateAPIKeyPayload{
-			Name:  payload.TradingName + " API Key",
-			Scope: apikey.ScopeProvider,
-		}
+	// Generate the API key using the service
+	apiKey, _, err := ctrl.apiKeyService.GenerateAPIKey(ctx, user.ID)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error",
+			"Failed to create new user", nil)
+		return
+	}
 
-		// Generate the API key using the service
-		apiKey, _, err := ctrl.apiKeyService.GenerateAPIKey(ctx, user.ID, apiKeyInput)
-		if err != nil {
-			logger.Errorf("error: %v", err)
-			u.APIResponse(ctx, http.StatusInternalServerError, "error",
-				"Failed to create new user", nil)
-			return
-		}
-
+	// Create a provider profile
+	if scope == "provider" && ctx.GetHeader("Client-Type") == "frontend" {
 		// Fetch currency
 		currency, err := db.Client.FiatCurrency.
 			Query().
@@ -243,7 +243,7 @@ func (ctrl *AuthController) CreateAPIKey(ctx *gin.Context) {
 	}
 
 	// Generate the API key using the service
-	apiKey, secretKey, err := ctrl.apiKeyService.GenerateAPIKey(ctx, userID, payload)
+	apiKey, secretKey, err := ctrl.apiKeyService.GenerateAPIKey(ctx, userID)
 	if err != nil {
 		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to generate API key", nil)
@@ -253,8 +253,6 @@ func (ctrl *AuthController) CreateAPIKey(ctx *gin.Context) {
 	// Return the newly generated API key
 	u.APIResponse(ctx, http.StatusCreated, "success", "Successfully generated API key", &types.APIKeyResponse{
 		ID:        apiKey.ID,
-		Name:      apiKey.Name,
-		Scope:     apiKey.Scope,
 		Secret:    secretKey,
 		IsActive:  apiKey.IsActive,
 		CreatedAt: apiKey.CreatedAt,
@@ -307,8 +305,6 @@ func (ctrl *AuthController) ListAPIKeys(ctx *gin.Context) {
 		apiKeyResponses[i] = types.APIKeyResponse{
 			ID:        apiKey.ID,
 			CreatedAt: apiKey.CreatedAt,
-			Name:      apiKey.Name,
-			Scope:     apiKey.Scope,
 			Secret:    string(decryptedSecret),
 			IsActive:  apiKey.IsActive,
 		}

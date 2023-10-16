@@ -12,7 +12,6 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
-	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/fiatcurrency"
 	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
@@ -21,6 +20,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 	"github.com/paycrest/paycrest-protocol/ent/providerrating"
 	"github.com/paycrest/paycrest-protocol/ent/provisionbucket"
+	"github.com/paycrest/paycrest-protocol/ent/user"
 )
 
 // ProviderProfileQuery is the builder for querying ProviderProfile entities.
@@ -30,7 +30,7 @@ type ProviderProfileQuery struct {
 	order                []providerprofile.OrderOption
 	inters               []Interceptor
 	predicates           []predicate.ProviderProfile
-	withAPIKey           *APIKeyQuery
+	withUser             *UserQuery
 	withCurrency         *FiatCurrencyQuery
 	withProvisionBuckets *ProvisionBucketQuery
 	withOrderTokens      *ProviderOrderTokenQuery
@@ -74,9 +74,9 @@ func (ppq *ProviderProfileQuery) Order(o ...providerprofile.OrderOption) *Provid
 	return ppq
 }
 
-// QueryAPIKey chains the current query on the "api_key" edge.
-func (ppq *ProviderProfileQuery) QueryAPIKey() *APIKeyQuery {
-	query := (&APIKeyClient{config: ppq.config}).Query()
+// QueryUser chains the current query on the "user" edge.
+func (ppq *ProviderProfileQuery) QueryUser() *UserQuery {
+	query := (&UserClient{config: ppq.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := ppq.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -87,8 +87,8 @@ func (ppq *ProviderProfileQuery) QueryAPIKey() *APIKeyQuery {
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(providerprofile.Table, providerprofile.FieldID, selector),
-			sqlgraph.To(apikey.Table, apikey.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, providerprofile.APIKeyTable, providerprofile.APIKeyColumn),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, providerprofile.UserTable, providerprofile.UserColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(ppq.driver.Dialect(), step)
 		return fromU, nil
@@ -420,7 +420,7 @@ func (ppq *ProviderProfileQuery) Clone() *ProviderProfileQuery {
 		order:                append([]providerprofile.OrderOption{}, ppq.order...),
 		inters:               append([]Interceptor{}, ppq.inters...),
 		predicates:           append([]predicate.ProviderProfile{}, ppq.predicates...),
-		withAPIKey:           ppq.withAPIKey.Clone(),
+		withUser:             ppq.withUser.Clone(),
 		withCurrency:         ppq.withCurrency.Clone(),
 		withProvisionBuckets: ppq.withProvisionBuckets.Clone(),
 		withOrderTokens:      ppq.withOrderTokens.Clone(),
@@ -433,14 +433,14 @@ func (ppq *ProviderProfileQuery) Clone() *ProviderProfileQuery {
 	}
 }
 
-// WithAPIKey tells the query-builder to eager-load the nodes that are connected to
-// the "api_key" edge. The optional arguments are used to configure the query builder of the edge.
-func (ppq *ProviderProfileQuery) WithAPIKey(opts ...func(*APIKeyQuery)) *ProviderProfileQuery {
-	query := (&APIKeyClient{config: ppq.config}).Query()
+// WithUser tells the query-builder to eager-load the nodes that are connected to
+// the "user" edge. The optional arguments are used to configure the query builder of the edge.
+func (ppq *ProviderProfileQuery) WithUser(opts ...func(*UserQuery)) *ProviderProfileQuery {
+	query := (&UserClient{config: ppq.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	ppq.withAPIKey = query
+	ppq.withUser = query
 	return ppq
 }
 
@@ -590,7 +590,7 @@ func (ppq *ProviderProfileQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 		withFKs     = ppq.withFKs
 		_spec       = ppq.querySpec()
 		loadedTypes = [7]bool{
-			ppq.withAPIKey != nil,
+			ppq.withUser != nil,
 			ppq.withCurrency != nil,
 			ppq.withProvisionBuckets != nil,
 			ppq.withOrderTokens != nil,
@@ -599,7 +599,7 @@ func (ppq *ProviderProfileQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 			ppq.withAssignedOrders != nil,
 		}
 	)
-	if ppq.withAPIKey != nil || ppq.withCurrency != nil {
+	if ppq.withUser != nil || ppq.withCurrency != nil {
 		withFKs = true
 	}
 	if withFKs {
@@ -623,9 +623,9 @@ func (ppq *ProviderProfileQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := ppq.withAPIKey; query != nil {
-		if err := ppq.loadAPIKey(ctx, query, nodes, nil,
-			func(n *ProviderProfile, e *APIKey) { n.Edges.APIKey = e }); err != nil {
+	if query := ppq.withUser; query != nil {
+		if err := ppq.loadUser(ctx, query, nodes, nil,
+			func(n *ProviderProfile, e *User) { n.Edges.User = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -675,14 +675,14 @@ func (ppq *ProviderProfileQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 	return nodes, nil
 }
 
-func (ppq *ProviderProfileQuery) loadAPIKey(ctx context.Context, query *APIKeyQuery, nodes []*ProviderProfile, init func(*ProviderProfile), assign func(*ProviderProfile, *APIKey)) error {
+func (ppq *ProviderProfileQuery) loadUser(ctx context.Context, query *UserQuery, nodes []*ProviderProfile, init func(*ProviderProfile), assign func(*ProviderProfile, *User)) error {
 	ids := make([]uuid.UUID, 0, len(nodes))
 	nodeids := make(map[uuid.UUID][]*ProviderProfile)
 	for i := range nodes {
-		if nodes[i].api_key_provider_profile == nil {
+		if nodes[i].user_provider_profile == nil {
 			continue
 		}
-		fk := *nodes[i].api_key_provider_profile
+		fk := *nodes[i].user_provider_profile
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}
@@ -691,7 +691,7 @@ func (ppq *ProviderProfileQuery) loadAPIKey(ctx context.Context, query *APIKeyQu
 	if len(ids) == 0 {
 		return nil
 	}
-	query.Where(apikey.IDIn(ids...))
+	query.Where(user.IDIn(ids...))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
@@ -699,7 +699,7 @@ func (ppq *ProviderProfileQuery) loadAPIKey(ctx context.Context, query *APIKeyQu
 	for _, n := range neighbors {
 		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "api_key_provider_profile" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "user_provider_profile" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)

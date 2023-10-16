@@ -39,10 +39,7 @@ func setup() error {
 	apiKey, secretKey, err := apiKeyService.GenerateAPIKey(
 		context.Background(),
 		user.ID,
-		types.CreateAPIKeyPayload{
-			Name:  "name",
-			Scope: "tx_validator",
-		})
+	)
 	if err != nil {
 		return err
 	}

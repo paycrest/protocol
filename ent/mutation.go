@@ -66,27 +66,21 @@ const (
 // APIKeyMutation represents an operation that mutates the APIKey nodes in the graph.
 type APIKeyMutation struct {
 	config
-	op                       Op
-	typ                      string
-	id                       *uuid.UUID
-	name                     *string
-	scope                    *apikey.Scope
-	secret                   *string
-	is_active                *bool
-	created_at               *time.Time
-	clearedFields            map[string]struct{}
-	owner                    *uuid.UUID
-	clearedowner             bool
-	provider_profile         *string
-	clearedprovider_profile  bool
-	validator_profile        *uuid.UUID
-	clearedvalidator_profile bool
-	payment_orders           map[uuid.UUID]struct{}
-	removedpayment_orders    map[uuid.UUID]struct{}
-	clearedpayment_orders    bool
-	done                     bool
-	oldValue                 func(context.Context) (*APIKey, error)
-	predicates               []predicate.APIKey
+	op                    Op
+	typ                   string
+	id                    *uuid.UUID
+	secret                *string
+	is_active             *bool
+	created_at            *time.Time
+	clearedFields         map[string]struct{}
+	owner                 *uuid.UUID
+	clearedowner          bool
+	payment_orders        map[uuid.UUID]struct{}
+	removedpayment_orders map[uuid.UUID]struct{}
+	clearedpayment_orders bool
+	done                  bool
+	oldValue              func(context.Context) (*APIKey, error)
+	predicates            []predicate.APIKey
 }
 
 var _ ent.Mutation = (*APIKeyMutation)(nil)
@@ -191,78 +185,6 @@ func (m *APIKeyMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
 	default:
 		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
 	}
-}
-
-// SetName sets the "name" field.
-func (m *APIKeyMutation) SetName(s string) {
-	m.name = &s
-}
-
-// Name returns the value of the "name" field in the mutation.
-func (m *APIKeyMutation) Name() (r string, exists bool) {
-	v := m.name
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldName returns the old "name" field's value of the APIKey entity.
-// If the APIKey object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *APIKeyMutation) OldName(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldName is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldName requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldName: %w", err)
-	}
-	return oldValue.Name, nil
-}
-
-// ResetName resets all changes to the "name" field.
-func (m *APIKeyMutation) ResetName() {
-	m.name = nil
-}
-
-// SetScope sets the "scope" field.
-func (m *APIKeyMutation) SetScope(a apikey.Scope) {
-	m.scope = &a
-}
-
-// Scope returns the value of the "scope" field in the mutation.
-func (m *APIKeyMutation) Scope() (r apikey.Scope, exists bool) {
-	v := m.scope
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldScope returns the old "scope" field's value of the APIKey entity.
-// If the APIKey object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *APIKeyMutation) OldScope(ctx context.Context) (v apikey.Scope, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldScope is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldScope requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldScope: %w", err)
-	}
-	return oldValue.Scope, nil
-}
-
-// ResetScope resets all changes to the "scope" field.
-func (m *APIKeyMutation) ResetScope() {
-	m.scope = nil
 }
 
 // SetSecret sets the "secret" field.
@@ -412,84 +334,6 @@ func (m *APIKeyMutation) ResetOwner() {
 	m.clearedowner = false
 }
 
-// SetProviderProfileID sets the "provider_profile" edge to the ProviderProfile entity by id.
-func (m *APIKeyMutation) SetProviderProfileID(id string) {
-	m.provider_profile = &id
-}
-
-// ClearProviderProfile clears the "provider_profile" edge to the ProviderProfile entity.
-func (m *APIKeyMutation) ClearProviderProfile() {
-	m.clearedprovider_profile = true
-}
-
-// ProviderProfileCleared reports if the "provider_profile" edge to the ProviderProfile entity was cleared.
-func (m *APIKeyMutation) ProviderProfileCleared() bool {
-	return m.clearedprovider_profile
-}
-
-// ProviderProfileID returns the "provider_profile" edge ID in the mutation.
-func (m *APIKeyMutation) ProviderProfileID() (id string, exists bool) {
-	if m.provider_profile != nil {
-		return *m.provider_profile, true
-	}
-	return
-}
-
-// ProviderProfileIDs returns the "provider_profile" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// ProviderProfileID instead. It exists only for internal usage by the builders.
-func (m *APIKeyMutation) ProviderProfileIDs() (ids []string) {
-	if id := m.provider_profile; id != nil {
-		ids = append(ids, *id)
-	}
-	return
-}
-
-// ResetProviderProfile resets all changes to the "provider_profile" edge.
-func (m *APIKeyMutation) ResetProviderProfile() {
-	m.provider_profile = nil
-	m.clearedprovider_profile = false
-}
-
-// SetValidatorProfileID sets the "validator_profile" edge to the ValidatorProfile entity by id.
-func (m *APIKeyMutation) SetValidatorProfileID(id uuid.UUID) {
-	m.validator_profile = &id
-}
-
-// ClearValidatorProfile clears the "validator_profile" edge to the ValidatorProfile entity.
-func (m *APIKeyMutation) ClearValidatorProfile() {
-	m.clearedvalidator_profile = true
-}
-
-// ValidatorProfileCleared reports if the "validator_profile" edge to the ValidatorProfile entity was cleared.
-func (m *APIKeyMutation) ValidatorProfileCleared() bool {
-	return m.clearedvalidator_profile
-}
-
-// ValidatorProfileID returns the "validator_profile" edge ID in the mutation.
-func (m *APIKeyMutation) ValidatorProfileID() (id uuid.UUID, exists bool) {
-	if m.validator_profile != nil {
-		return *m.validator_profile, true
-	}
-	return
-}
-
-// ValidatorProfileIDs returns the "validator_profile" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// ValidatorProfileID instead. It exists only for internal usage by the builders.
-func (m *APIKeyMutation) ValidatorProfileIDs() (ids []uuid.UUID) {
-	if id := m.validator_profile; id != nil {
-		ids = append(ids, *id)
-	}
-	return
-}
-
-// ResetValidatorProfile resets all changes to the "validator_profile" edge.
-func (m *APIKeyMutation) ResetValidatorProfile() {
-	m.validator_profile = nil
-	m.clearedvalidator_profile = false
-}
-
 // AddPaymentOrderIDs adds the "payment_orders" edge to the PaymentOrder entity by ids.
 func (m *APIKeyMutation) AddPaymentOrderIDs(ids ...uuid.UUID) {
 	if m.payment_orders == nil {
@@ -578,13 +422,7 @@ func (m *APIKeyMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *APIKeyMutation) Fields() []string {
-	fields := make([]string, 0, 5)
-	if m.name != nil {
-		fields = append(fields, apikey.FieldName)
-	}
-	if m.scope != nil {
-		fields = append(fields, apikey.FieldScope)
-	}
+	fields := make([]string, 0, 3)
 	if m.secret != nil {
 		fields = append(fields, apikey.FieldSecret)
 	}
@@ -602,10 +440,6 @@ func (m *APIKeyMutation) Fields() []string {
 // schema.
 func (m *APIKeyMutation) Field(name string) (ent.Value, bool) {
 	switch name {
-	case apikey.FieldName:
-		return m.Name()
-	case apikey.FieldScope:
-		return m.Scope()
 	case apikey.FieldSecret:
 		return m.Secret()
 	case apikey.FieldIsActive:
@@ -621,10 +455,6 @@ func (m *APIKeyMutation) Field(name string) (ent.Value, bool) {
 // database failed.
 func (m *APIKeyMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
-	case apikey.FieldName:
-		return m.OldName(ctx)
-	case apikey.FieldScope:
-		return m.OldScope(ctx)
 	case apikey.FieldSecret:
 		return m.OldSecret(ctx)
 	case apikey.FieldIsActive:
@@ -640,20 +470,6 @@ func (m *APIKeyMutation) OldField(ctx context.Context, name string) (ent.Value, 
 // type.
 func (m *APIKeyMutation) SetField(name string, value ent.Value) error {
 	switch name {
-	case apikey.FieldName:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetName(v)
-		return nil
-	case apikey.FieldScope:
-		v, ok := value.(apikey.Scope)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetScope(v)
-		return nil
 	case apikey.FieldSecret:
 		v, ok := value.(string)
 		if !ok {
@@ -724,12 +540,6 @@ func (m *APIKeyMutation) ClearField(name string) error {
 // It returns an error if the field is not defined in the schema.
 func (m *APIKeyMutation) ResetField(name string) error {
 	switch name {
-	case apikey.FieldName:
-		m.ResetName()
-		return nil
-	case apikey.FieldScope:
-		m.ResetScope()
-		return nil
 	case apikey.FieldSecret:
 		m.ResetSecret()
 		return nil
@@ -745,15 +555,9 @@ func (m *APIKeyMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *APIKeyMutation) AddedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 2)
 	if m.owner != nil {
 		edges = append(edges, apikey.EdgeOwner)
-	}
-	if m.provider_profile != nil {
-		edges = append(edges, apikey.EdgeProviderProfile)
-	}
-	if m.validator_profile != nil {
-		edges = append(edges, apikey.EdgeValidatorProfile)
 	}
 	if m.payment_orders != nil {
 		edges = append(edges, apikey.EdgePaymentOrders)
@@ -769,14 +573,6 @@ func (m *APIKeyMutation) AddedIDs(name string) []ent.Value {
 		if id := m.owner; id != nil {
 			return []ent.Value{*id}
 		}
-	case apikey.EdgeProviderProfile:
-		if id := m.provider_profile; id != nil {
-			return []ent.Value{*id}
-		}
-	case apikey.EdgeValidatorProfile:
-		if id := m.validator_profile; id != nil {
-			return []ent.Value{*id}
-		}
 	case apikey.EdgePaymentOrders:
 		ids := make([]ent.Value, 0, len(m.payment_orders))
 		for id := range m.payment_orders {
@@ -789,7 +585,7 @@ func (m *APIKeyMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *APIKeyMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 2)
 	if m.removedpayment_orders != nil {
 		edges = append(edges, apikey.EdgePaymentOrders)
 	}
@@ -812,15 +608,9 @@ func (m *APIKeyMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *APIKeyMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 2)
 	if m.clearedowner {
 		edges = append(edges, apikey.EdgeOwner)
-	}
-	if m.clearedprovider_profile {
-		edges = append(edges, apikey.EdgeProviderProfile)
-	}
-	if m.clearedvalidator_profile {
-		edges = append(edges, apikey.EdgeValidatorProfile)
 	}
 	if m.clearedpayment_orders {
 		edges = append(edges, apikey.EdgePaymentOrders)
@@ -834,10 +624,6 @@ func (m *APIKeyMutation) EdgeCleared(name string) bool {
 	switch name {
 	case apikey.EdgeOwner:
 		return m.clearedowner
-	case apikey.EdgeProviderProfile:
-		return m.clearedprovider_profile
-	case apikey.EdgeValidatorProfile:
-		return m.clearedvalidator_profile
 	case apikey.EdgePaymentOrders:
 		return m.clearedpayment_orders
 	}
@@ -851,12 +637,6 @@ func (m *APIKeyMutation) ClearEdge(name string) error {
 	case apikey.EdgeOwner:
 		m.ClearOwner()
 		return nil
-	case apikey.EdgeProviderProfile:
-		m.ClearProviderProfile()
-		return nil
-	case apikey.EdgeValidatorProfile:
-		m.ClearValidatorProfile()
-		return nil
 	}
 	return fmt.Errorf("unknown APIKey unique edge %s", name)
 }
@@ -867,12 +647,6 @@ func (m *APIKeyMutation) ResetEdge(name string) error {
 	switch name {
 	case apikey.EdgeOwner:
 		m.ResetOwner()
-		return nil
-	case apikey.EdgeProviderProfile:
-		m.ResetProviderProfile()
-		return nil
-	case apikey.EdgeValidatorProfile:
-		m.ResetValidatorProfile()
 		return nil
 	case apikey.EdgePaymentOrders:
 		m.ResetPaymentOrders()
@@ -8356,8 +8130,8 @@ type ProviderProfileMutation struct {
 	provision_mode           *providerprofile.ProvisionMode
 	is_partner               *bool
 	clearedFields            map[string]struct{}
-	api_key                  *uuid.UUID
-	clearedapi_key           bool
+	user                     *uuid.UUID
+	cleareduser              bool
 	currency                 *uuid.UUID
 	clearedcurrency          bool
 	provision_buckets        map[int]struct{}
@@ -8747,43 +8521,43 @@ func (m *ProviderProfileMutation) ResetIsPartner() {
 	m.is_partner = nil
 }
 
-// SetAPIKeyID sets the "api_key" edge to the APIKey entity by id.
-func (m *ProviderProfileMutation) SetAPIKeyID(id uuid.UUID) {
-	m.api_key = &id
+// SetUserID sets the "user" edge to the User entity by id.
+func (m *ProviderProfileMutation) SetUserID(id uuid.UUID) {
+	m.user = &id
 }
 
-// ClearAPIKey clears the "api_key" edge to the APIKey entity.
-func (m *ProviderProfileMutation) ClearAPIKey() {
-	m.clearedapi_key = true
+// ClearUser clears the "user" edge to the User entity.
+func (m *ProviderProfileMutation) ClearUser() {
+	m.cleareduser = true
 }
 
-// APIKeyCleared reports if the "api_key" edge to the APIKey entity was cleared.
-func (m *ProviderProfileMutation) APIKeyCleared() bool {
-	return m.clearedapi_key
+// UserCleared reports if the "user" edge to the User entity was cleared.
+func (m *ProviderProfileMutation) UserCleared() bool {
+	return m.cleareduser
 }
 
-// APIKeyID returns the "api_key" edge ID in the mutation.
-func (m *ProviderProfileMutation) APIKeyID() (id uuid.UUID, exists bool) {
-	if m.api_key != nil {
-		return *m.api_key, true
+// UserID returns the "user" edge ID in the mutation.
+func (m *ProviderProfileMutation) UserID() (id uuid.UUID, exists bool) {
+	if m.user != nil {
+		return *m.user, true
 	}
 	return
 }
 
-// APIKeyIDs returns the "api_key" edge IDs in the mutation.
+// UserIDs returns the "user" edge IDs in the mutation.
 // Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// APIKeyID instead. It exists only for internal usage by the builders.
-func (m *ProviderProfileMutation) APIKeyIDs() (ids []uuid.UUID) {
-	if id := m.api_key; id != nil {
+// UserID instead. It exists only for internal usage by the builders.
+func (m *ProviderProfileMutation) UserIDs() (ids []uuid.UUID) {
+	if id := m.user; id != nil {
 		ids = append(ids, *id)
 	}
 	return
 }
 
-// ResetAPIKey resets all changes to the "api_key" edge.
-func (m *ProviderProfileMutation) ResetAPIKey() {
-	m.api_key = nil
-	m.clearedapi_key = false
+// ResetUser resets all changes to the "user" edge.
+func (m *ProviderProfileMutation) ResetUser() {
+	m.user = nil
+	m.cleareduser = false
 }
 
 // SetCurrencyID sets the "currency" edge to the FiatCurrency entity by id.
@@ -9310,8 +9084,8 @@ func (m *ProviderProfileMutation) ResetField(name string) error {
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ProviderProfileMutation) AddedEdges() []string {
 	edges := make([]string, 0, 7)
-	if m.api_key != nil {
-		edges = append(edges, providerprofile.EdgeAPIKey)
+	if m.user != nil {
+		edges = append(edges, providerprofile.EdgeUser)
 	}
 	if m.currency != nil {
 		edges = append(edges, providerprofile.EdgeCurrency)
@@ -9338,8 +9112,8 @@ func (m *ProviderProfileMutation) AddedEdges() []string {
 // name in this mutation.
 func (m *ProviderProfileMutation) AddedIDs(name string) []ent.Value {
 	switch name {
-	case providerprofile.EdgeAPIKey:
-		if id := m.api_key; id != nil {
+	case providerprofile.EdgeUser:
+		if id := m.user; id != nil {
 			return []ent.Value{*id}
 		}
 	case providerprofile.EdgeCurrency:
@@ -9420,8 +9194,8 @@ func (m *ProviderProfileMutation) RemovedIDs(name string) []ent.Value {
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ProviderProfileMutation) ClearedEdges() []string {
 	edges := make([]string, 0, 7)
-	if m.clearedapi_key {
-		edges = append(edges, providerprofile.EdgeAPIKey)
+	if m.cleareduser {
+		edges = append(edges, providerprofile.EdgeUser)
 	}
 	if m.clearedcurrency {
 		edges = append(edges, providerprofile.EdgeCurrency)
@@ -9448,8 +9222,8 @@ func (m *ProviderProfileMutation) ClearedEdges() []string {
 // was cleared in this mutation.
 func (m *ProviderProfileMutation) EdgeCleared(name string) bool {
 	switch name {
-	case providerprofile.EdgeAPIKey:
-		return m.clearedapi_key
+	case providerprofile.EdgeUser:
+		return m.cleareduser
 	case providerprofile.EdgeCurrency:
 		return m.clearedcurrency
 	case providerprofile.EdgeProvisionBuckets:
@@ -9470,8 +9244,8 @@ func (m *ProviderProfileMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *ProviderProfileMutation) ClearEdge(name string) error {
 	switch name {
-	case providerprofile.EdgeAPIKey:
-		m.ClearAPIKey()
+	case providerprofile.EdgeUser:
+		m.ClearUser()
 		return nil
 	case providerprofile.EdgeCurrency:
 		m.ClearCurrency()
@@ -9490,8 +9264,8 @@ func (m *ProviderProfileMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *ProviderProfileMutation) ResetEdge(name string) error {
 	switch name {
-	case providerprofile.EdgeAPIKey:
-		m.ResetAPIKey()
+	case providerprofile.EdgeUser:
+		m.ResetUser()
 		return nil
 	case providerprofile.EdgeCurrency:
 		m.ResetCurrency()
@@ -12532,11 +12306,16 @@ type UserMutation struct {
 	last_name                 *string
 	email                     *string
 	password                  *string
+	scope                     *user.Scope
 	is_verified               *bool
 	clearedFields             map[string]struct{}
 	api_keys                  map[uuid.UUID]struct{}
 	removedapi_keys           map[uuid.UUID]struct{}
 	clearedapi_keys           bool
+	provider_profile          *string
+	clearedprovider_profile   bool
+	validator_profile         *uuid.UUID
+	clearedvalidator_profile  bool
 	verification_token        map[uuid.UUID]struct{}
 	removedverification_token map[uuid.UUID]struct{}
 	clearedverification_token bool
@@ -12865,6 +12644,42 @@ func (m *UserMutation) ResetPassword() {
 	m.password = nil
 }
 
+// SetScope sets the "scope" field.
+func (m *UserMutation) SetScope(u user.Scope) {
+	m.scope = &u
+}
+
+// Scope returns the value of the "scope" field in the mutation.
+func (m *UserMutation) Scope() (r user.Scope, exists bool) {
+	v := m.scope
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldScope returns the old "scope" field's value of the User entity.
+// If the User object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UserMutation) OldScope(ctx context.Context) (v user.Scope, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldScope is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldScope requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldScope: %w", err)
+	}
+	return oldValue.Scope, nil
+}
+
+// ResetScope resets all changes to the "scope" field.
+func (m *UserMutation) ResetScope() {
+	m.scope = nil
+}
+
 // SetIsVerified sets the "is_verified" field.
 func (m *UserMutation) SetIsVerified(b bool) {
 	m.is_verified = &b
@@ -12955,6 +12770,84 @@ func (m *UserMutation) ResetAPIKeys() {
 	m.removedapi_keys = nil
 }
 
+// SetProviderProfileID sets the "provider_profile" edge to the ProviderProfile entity by id.
+func (m *UserMutation) SetProviderProfileID(id string) {
+	m.provider_profile = &id
+}
+
+// ClearProviderProfile clears the "provider_profile" edge to the ProviderProfile entity.
+func (m *UserMutation) ClearProviderProfile() {
+	m.clearedprovider_profile = true
+}
+
+// ProviderProfileCleared reports if the "provider_profile" edge to the ProviderProfile entity was cleared.
+func (m *UserMutation) ProviderProfileCleared() bool {
+	return m.clearedprovider_profile
+}
+
+// ProviderProfileID returns the "provider_profile" edge ID in the mutation.
+func (m *UserMutation) ProviderProfileID() (id string, exists bool) {
+	if m.provider_profile != nil {
+		return *m.provider_profile, true
+	}
+	return
+}
+
+// ProviderProfileIDs returns the "provider_profile" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// ProviderProfileID instead. It exists only for internal usage by the builders.
+func (m *UserMutation) ProviderProfileIDs() (ids []string) {
+	if id := m.provider_profile; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetProviderProfile resets all changes to the "provider_profile" edge.
+func (m *UserMutation) ResetProviderProfile() {
+	m.provider_profile = nil
+	m.clearedprovider_profile = false
+}
+
+// SetValidatorProfileID sets the "validator_profile" edge to the ValidatorProfile entity by id.
+func (m *UserMutation) SetValidatorProfileID(id uuid.UUID) {
+	m.validator_profile = &id
+}
+
+// ClearValidatorProfile clears the "validator_profile" edge to the ValidatorProfile entity.
+func (m *UserMutation) ClearValidatorProfile() {
+	m.clearedvalidator_profile = true
+}
+
+// ValidatorProfileCleared reports if the "validator_profile" edge to the ValidatorProfile entity was cleared.
+func (m *UserMutation) ValidatorProfileCleared() bool {
+	return m.clearedvalidator_profile
+}
+
+// ValidatorProfileID returns the "validator_profile" edge ID in the mutation.
+func (m *UserMutation) ValidatorProfileID() (id uuid.UUID, exists bool) {
+	if m.validator_profile != nil {
+		return *m.validator_profile, true
+	}
+	return
+}
+
+// ValidatorProfileIDs returns the "validator_profile" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// ValidatorProfileID instead. It exists only for internal usage by the builders.
+func (m *UserMutation) ValidatorProfileIDs() (ids []uuid.UUID) {
+	if id := m.validator_profile; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetValidatorProfile resets all changes to the "validator_profile" edge.
+func (m *UserMutation) ResetValidatorProfile() {
+	m.validator_profile = nil
+	m.clearedvalidator_profile = false
+}
+
 // AddVerificationTokenIDs adds the "verification_token" edge to the VerificationToken entity by ids.
 func (m *UserMutation) AddVerificationTokenIDs(ids ...uuid.UUID) {
 	if m.verification_token == nil {
@@ -13043,7 +12936,7 @@ func (m *UserMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *UserMutation) Fields() []string {
-	fields := make([]string, 0, 7)
+	fields := make([]string, 0, 8)
 	if m.created_at != nil {
 		fields = append(fields, user.FieldCreatedAt)
 	}
@@ -13061,6 +12954,9 @@ func (m *UserMutation) Fields() []string {
 	}
 	if m.password != nil {
 		fields = append(fields, user.FieldPassword)
+	}
+	if m.scope != nil {
+		fields = append(fields, user.FieldScope)
 	}
 	if m.is_verified != nil {
 		fields = append(fields, user.FieldIsVerified)
@@ -13085,6 +12981,8 @@ func (m *UserMutation) Field(name string) (ent.Value, bool) {
 		return m.Email()
 	case user.FieldPassword:
 		return m.Password()
+	case user.FieldScope:
+		return m.Scope()
 	case user.FieldIsVerified:
 		return m.IsVerified()
 	}
@@ -13108,6 +13006,8 @@ func (m *UserMutation) OldField(ctx context.Context, name string) (ent.Value, er
 		return m.OldEmail(ctx)
 	case user.FieldPassword:
 		return m.OldPassword(ctx)
+	case user.FieldScope:
+		return m.OldScope(ctx)
 	case user.FieldIsVerified:
 		return m.OldIsVerified(ctx)
 	}
@@ -13160,6 +13060,13 @@ func (m *UserMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetPassword(v)
+		return nil
+	case user.FieldScope:
+		v, ok := value.(user.Scope)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetScope(v)
 		return nil
 	case user.FieldIsVerified:
 		v, ok := value.(bool)
@@ -13235,6 +13142,9 @@ func (m *UserMutation) ResetField(name string) error {
 	case user.FieldPassword:
 		m.ResetPassword()
 		return nil
+	case user.FieldScope:
+		m.ResetScope()
+		return nil
 	case user.FieldIsVerified:
 		m.ResetIsVerified()
 		return nil
@@ -13244,9 +13154,15 @@ func (m *UserMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *UserMutation) AddedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 4)
 	if m.api_keys != nil {
 		edges = append(edges, user.EdgeAPIKeys)
+	}
+	if m.provider_profile != nil {
+		edges = append(edges, user.EdgeProviderProfile)
+	}
+	if m.validator_profile != nil {
+		edges = append(edges, user.EdgeValidatorProfile)
 	}
 	if m.verification_token != nil {
 		edges = append(edges, user.EdgeVerificationToken)
@@ -13264,6 +13180,14 @@ func (m *UserMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case user.EdgeProviderProfile:
+		if id := m.provider_profile; id != nil {
+			return []ent.Value{*id}
+		}
+	case user.EdgeValidatorProfile:
+		if id := m.validator_profile; id != nil {
+			return []ent.Value{*id}
+		}
 	case user.EdgeVerificationToken:
 		ids := make([]ent.Value, 0, len(m.verification_token))
 		for id := range m.verification_token {
@@ -13276,7 +13200,7 @@ func (m *UserMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *UserMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 4)
 	if m.removedapi_keys != nil {
 		edges = append(edges, user.EdgeAPIKeys)
 	}
@@ -13308,9 +13232,15 @@ func (m *UserMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *UserMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 4)
 	if m.clearedapi_keys {
 		edges = append(edges, user.EdgeAPIKeys)
+	}
+	if m.clearedprovider_profile {
+		edges = append(edges, user.EdgeProviderProfile)
+	}
+	if m.clearedvalidator_profile {
+		edges = append(edges, user.EdgeValidatorProfile)
 	}
 	if m.clearedverification_token {
 		edges = append(edges, user.EdgeVerificationToken)
@@ -13324,6 +13254,10 @@ func (m *UserMutation) EdgeCleared(name string) bool {
 	switch name {
 	case user.EdgeAPIKeys:
 		return m.clearedapi_keys
+	case user.EdgeProviderProfile:
+		return m.clearedprovider_profile
+	case user.EdgeValidatorProfile:
+		return m.clearedvalidator_profile
 	case user.EdgeVerificationToken:
 		return m.clearedverification_token
 	}
@@ -13334,6 +13268,12 @@ func (m *UserMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *UserMutation) ClearEdge(name string) error {
 	switch name {
+	case user.EdgeProviderProfile:
+		m.ClearProviderProfile()
+		return nil
+	case user.EdgeValidatorProfile:
+		m.ClearValidatorProfile()
+		return nil
 	}
 	return fmt.Errorf("unknown User unique edge %s", name)
 }
@@ -13344,6 +13284,12 @@ func (m *UserMutation) ResetEdge(name string) error {
 	switch name {
 	case user.EdgeAPIKeys:
 		m.ResetAPIKeys()
+		return nil
+	case user.EdgeProviderProfile:
+		m.ResetProviderProfile()
+		return nil
+	case user.EdgeValidatorProfile:
+		m.ResetValidatorProfile()
 		return nil
 	case user.EdgeVerificationToken:
 		m.ResetVerificationToken()
@@ -13362,8 +13308,8 @@ type ValidatorProfileMutation struct {
 	updated_at                    *time.Time
 	wallet_address                *string
 	clearedFields                 map[string]struct{}
-	api_key                       *uuid.UUID
-	clearedapi_key                bool
+	user                          *uuid.UUID
+	cleareduser                   bool
 	validated_fulfillments        map[uuid.UUID]struct{}
 	removedvalidated_fulfillments map[uuid.UUID]struct{}
 	clearedvalidated_fulfillments bool
@@ -13584,43 +13530,43 @@ func (m *ValidatorProfileMutation) ResetWalletAddress() {
 	m.wallet_address = nil
 }
 
-// SetAPIKeyID sets the "api_key" edge to the APIKey entity by id.
-func (m *ValidatorProfileMutation) SetAPIKeyID(id uuid.UUID) {
-	m.api_key = &id
+// SetUserID sets the "user" edge to the User entity by id.
+func (m *ValidatorProfileMutation) SetUserID(id uuid.UUID) {
+	m.user = &id
 }
 
-// ClearAPIKey clears the "api_key" edge to the APIKey entity.
-func (m *ValidatorProfileMutation) ClearAPIKey() {
-	m.clearedapi_key = true
+// ClearUser clears the "user" edge to the User entity.
+func (m *ValidatorProfileMutation) ClearUser() {
+	m.cleareduser = true
 }
 
-// APIKeyCleared reports if the "api_key" edge to the APIKey entity was cleared.
-func (m *ValidatorProfileMutation) APIKeyCleared() bool {
-	return m.clearedapi_key
+// UserCleared reports if the "user" edge to the User entity was cleared.
+func (m *ValidatorProfileMutation) UserCleared() bool {
+	return m.cleareduser
 }
 
-// APIKeyID returns the "api_key" edge ID in the mutation.
-func (m *ValidatorProfileMutation) APIKeyID() (id uuid.UUID, exists bool) {
-	if m.api_key != nil {
-		return *m.api_key, true
+// UserID returns the "user" edge ID in the mutation.
+func (m *ValidatorProfileMutation) UserID() (id uuid.UUID, exists bool) {
+	if m.user != nil {
+		return *m.user, true
 	}
 	return
 }
 
-// APIKeyIDs returns the "api_key" edge IDs in the mutation.
+// UserIDs returns the "user" edge IDs in the mutation.
 // Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// APIKeyID instead. It exists only for internal usage by the builders.
-func (m *ValidatorProfileMutation) APIKeyIDs() (ids []uuid.UUID) {
-	if id := m.api_key; id != nil {
+// UserID instead. It exists only for internal usage by the builders.
+func (m *ValidatorProfileMutation) UserIDs() (ids []uuid.UUID) {
+	if id := m.user; id != nil {
 		ids = append(ids, *id)
 	}
 	return
 }
 
-// ResetAPIKey resets all changes to the "api_key" edge.
-func (m *ValidatorProfileMutation) ResetAPIKey() {
-	m.api_key = nil
-	m.clearedapi_key = false
+// ResetUser resets all changes to the "user" edge.
+func (m *ValidatorProfileMutation) ResetUser() {
+	m.user = nil
+	m.cleareduser = false
 }
 
 // AddValidatedFulfillmentIDs adds the "validated_fulfillments" edge to the LockOrderFulfillment entity by ids.
@@ -13845,8 +13791,8 @@ func (m *ValidatorProfileMutation) ResetField(name string) error {
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ValidatorProfileMutation) AddedEdges() []string {
 	edges := make([]string, 0, 2)
-	if m.api_key != nil {
-		edges = append(edges, validatorprofile.EdgeAPIKey)
+	if m.user != nil {
+		edges = append(edges, validatorprofile.EdgeUser)
 	}
 	if m.validated_fulfillments != nil {
 		edges = append(edges, validatorprofile.EdgeValidatedFulfillments)
@@ -13858,8 +13804,8 @@ func (m *ValidatorProfileMutation) AddedEdges() []string {
 // name in this mutation.
 func (m *ValidatorProfileMutation) AddedIDs(name string) []ent.Value {
 	switch name {
-	case validatorprofile.EdgeAPIKey:
-		if id := m.api_key; id != nil {
+	case validatorprofile.EdgeUser:
+		if id := m.user; id != nil {
 			return []ent.Value{*id}
 		}
 	case validatorprofile.EdgeValidatedFulfillments:
@@ -13898,8 +13844,8 @@ func (m *ValidatorProfileMutation) RemovedIDs(name string) []ent.Value {
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ValidatorProfileMutation) ClearedEdges() []string {
 	edges := make([]string, 0, 2)
-	if m.clearedapi_key {
-		edges = append(edges, validatorprofile.EdgeAPIKey)
+	if m.cleareduser {
+		edges = append(edges, validatorprofile.EdgeUser)
 	}
 	if m.clearedvalidated_fulfillments {
 		edges = append(edges, validatorprofile.EdgeValidatedFulfillments)
@@ -13911,8 +13857,8 @@ func (m *ValidatorProfileMutation) ClearedEdges() []string {
 // was cleared in this mutation.
 func (m *ValidatorProfileMutation) EdgeCleared(name string) bool {
 	switch name {
-	case validatorprofile.EdgeAPIKey:
-		return m.clearedapi_key
+	case validatorprofile.EdgeUser:
+		return m.cleareduser
 	case validatorprofile.EdgeValidatedFulfillments:
 		return m.clearedvalidated_fulfillments
 	}
@@ -13923,8 +13869,8 @@ func (m *ValidatorProfileMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *ValidatorProfileMutation) ClearEdge(name string) error {
 	switch name {
-	case validatorprofile.EdgeAPIKey:
-		m.ClearAPIKey()
+	case validatorprofile.EdgeUser:
+		m.ClearUser()
 		return nil
 	}
 	return fmt.Errorf("unknown ValidatorProfile unique edge %s", name)
@@ -13934,8 +13880,8 @@ func (m *ValidatorProfileMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *ValidatorProfileMutation) ResetEdge(name string) error {
 	switch name {
-	case validatorprofile.EdgeAPIKey:
-		m.ResetAPIKey()
+	case validatorprofile.EdgeUser:
+		m.ResetUser()
 		return nil
 	case validatorprofile.EdgeValidatedFulfillments:
 		m.ResetValidatedFulfillments()

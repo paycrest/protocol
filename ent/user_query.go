@@ -14,7 +14,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
+	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 	"github.com/paycrest/paycrest-protocol/ent/user"
+	"github.com/paycrest/paycrest-protocol/ent/validatorprofile"
 	"github.com/paycrest/paycrest-protocol/ent/verificationtoken"
 )
 
@@ -26,6 +28,8 @@ type UserQuery struct {
 	inters                []Interceptor
 	predicates            []predicate.User
 	withAPIKeys           *APIKeyQuery
+	withProviderProfile   *ProviderProfileQuery
+	withValidatorProfile  *ValidatorProfileQuery
 	withVerificationToken *VerificationTokenQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -78,6 +82,50 @@ func (uq *UserQuery) QueryAPIKeys() *APIKeyQuery {
 			sqlgraph.From(user.Table, user.FieldID, selector),
 			sqlgraph.To(apikey.Table, apikey.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, user.APIKeysTable, user.APIKeysColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryProviderProfile chains the current query on the "provider_profile" edge.
+func (uq *UserQuery) QueryProviderProfile() *ProviderProfileQuery {
+	query := (&ProviderProfileClient{config: uq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := uq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := uq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(providerprofile.Table, providerprofile.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, user.ProviderProfileTable, user.ProviderProfileColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryValidatorProfile chains the current query on the "validator_profile" edge.
+func (uq *UserQuery) QueryValidatorProfile() *ValidatorProfileQuery {
+	query := (&ValidatorProfileClient{config: uq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := uq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := uq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(validatorprofile.Table, validatorprofile.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, user.ValidatorProfileTable, user.ValidatorProfileColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
 		return fromU, nil
@@ -300,6 +348,8 @@ func (uq *UserQuery) Clone() *UserQuery {
 		inters:                append([]Interceptor{}, uq.inters...),
 		predicates:            append([]predicate.User{}, uq.predicates...),
 		withAPIKeys:           uq.withAPIKeys.Clone(),
+		withProviderProfile:   uq.withProviderProfile.Clone(),
+		withValidatorProfile:  uq.withValidatorProfile.Clone(),
 		withVerificationToken: uq.withVerificationToken.Clone(),
 		// clone intermediate query.
 		sql:  uq.sql.Clone(),
@@ -315,6 +365,28 @@ func (uq *UserQuery) WithAPIKeys(opts ...func(*APIKeyQuery)) *UserQuery {
 		opt(query)
 	}
 	uq.withAPIKeys = query
+	return uq
+}
+
+// WithProviderProfile tells the query-builder to eager-load the nodes that are connected to
+// the "provider_profile" edge. The optional arguments are used to configure the query builder of the edge.
+func (uq *UserQuery) WithProviderProfile(opts ...func(*ProviderProfileQuery)) *UserQuery {
+	query := (&ProviderProfileClient{config: uq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	uq.withProviderProfile = query
+	return uq
+}
+
+// WithValidatorProfile tells the query-builder to eager-load the nodes that are connected to
+// the "validator_profile" edge. The optional arguments are used to configure the query builder of the edge.
+func (uq *UserQuery) WithValidatorProfile(opts ...func(*ValidatorProfileQuery)) *UserQuery {
+	query := (&ValidatorProfileClient{config: uq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	uq.withValidatorProfile = query
 	return uq
 }
 
@@ -407,8 +479,10 @@ func (uq *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 	var (
 		nodes       = []*User{}
 		_spec       = uq.querySpec()
-		loadedTypes = [2]bool{
+		loadedTypes = [4]bool{
 			uq.withAPIKeys != nil,
+			uq.withProviderProfile != nil,
+			uq.withValidatorProfile != nil,
 			uq.withVerificationToken != nil,
 		}
 	)
@@ -434,6 +508,18 @@ func (uq *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 		if err := uq.loadAPIKeys(ctx, query, nodes,
 			func(n *User) { n.Edges.APIKeys = []*APIKey{} },
 			func(n *User, e *APIKey) { n.Edges.APIKeys = append(n.Edges.APIKeys, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := uq.withProviderProfile; query != nil {
+		if err := uq.loadProviderProfile(ctx, query, nodes, nil,
+			func(n *User, e *ProviderProfile) { n.Edges.ProviderProfile = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := uq.withValidatorProfile; query != nil {
+		if err := uq.loadValidatorProfile(ctx, query, nodes, nil,
+			func(n *User, e *ValidatorProfile) { n.Edges.ValidatorProfile = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -473,6 +559,62 @@ func (uq *UserQuery) loadAPIKeys(ctx context.Context, query *APIKeyQuery, nodes 
 		node, ok := nodeids[*fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "user_api_keys" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (uq *UserQuery) loadProviderProfile(ctx context.Context, query *ProviderProfileQuery, nodes []*User, init func(*User), assign func(*User, *ProviderProfile)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+	}
+	query.withFKs = true
+	query.Where(predicate.ProviderProfile(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.ProviderProfileColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.user_provider_profile
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "user_provider_profile" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "user_provider_profile" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (uq *UserQuery) loadValidatorProfile(ctx context.Context, query *ValidatorProfileQuery, nodes []*User, init func(*User), assign func(*User, *ValidatorProfile)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+	}
+	query.withFKs = true
+	query.Where(predicate.ValidatorProfile(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.ValidatorProfileColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.user_validator_profile
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "user_validator_profile" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "user_validator_profile" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}

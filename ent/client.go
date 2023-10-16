@@ -450,38 +450,6 @@ func (c *APIKeyClient) QueryOwner(ak *APIKey) *UserQuery {
 	return query
 }
 
-// QueryProviderProfile queries the provider_profile edge of a APIKey.
-func (c *APIKeyClient) QueryProviderProfile(ak *APIKey) *ProviderProfileQuery {
-	query := (&ProviderProfileClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := ak.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(apikey.Table, apikey.FieldID, id),
-			sqlgraph.To(providerprofile.Table, providerprofile.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, apikey.ProviderProfileTable, apikey.ProviderProfileColumn),
-		)
-		fromV = sqlgraph.Neighbors(ak.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// QueryValidatorProfile queries the validator_profile edge of a APIKey.
-func (c *APIKeyClient) QueryValidatorProfile(ak *APIKey) *ValidatorProfileQuery {
-	query := (&ValidatorProfileClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := ak.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(apikey.Table, apikey.FieldID, id),
-			sqlgraph.To(validatorprofile.Table, validatorprofile.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, apikey.ValidatorProfileTable, apikey.ValidatorProfileColumn),
-		)
-		fromV = sqlgraph.Neighbors(ak.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
 // QueryPaymentOrders queries the payment_orders edge of a APIKey.
 func (c *APIKeyClient) QueryPaymentOrders(ak *APIKey) *PaymentOrderQuery {
 	query := (&PaymentOrderClient{config: c.config}).Query()
@@ -1950,15 +1918,15 @@ func (c *ProviderProfileClient) GetX(ctx context.Context, id string) *ProviderPr
 	return obj
 }
 
-// QueryAPIKey queries the api_key edge of a ProviderProfile.
-func (c *ProviderProfileClient) QueryAPIKey(pp *ProviderProfile) *APIKeyQuery {
-	query := (&APIKeyClient{config: c.config}).Query()
+// QueryUser queries the user edge of a ProviderProfile.
+func (c *ProviderProfileClient) QueryUser(pp *ProviderProfile) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := pp.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(providerprofile.Table, providerprofile.FieldID, id),
-			sqlgraph.To(apikey.Table, apikey.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, providerprofile.APIKeyTable, providerprofile.APIKeyColumn),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, providerprofile.UserTable, providerprofile.UserColumn),
 		)
 		fromV = sqlgraph.Neighbors(pp.driver.Dialect(), step)
 		return fromV, nil
@@ -2780,6 +2748,38 @@ func (c *UserClient) QueryAPIKeys(u *User) *APIKeyQuery {
 	return query
 }
 
+// QueryProviderProfile queries the provider_profile edge of a User.
+func (c *UserClient) QueryProviderProfile(u *User) *ProviderProfileQuery {
+	query := (&ProviderProfileClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := u.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(providerprofile.Table, providerprofile.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, user.ProviderProfileTable, user.ProviderProfileColumn),
+		)
+		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryValidatorProfile queries the validator_profile edge of a User.
+func (c *UserClient) QueryValidatorProfile(u *User) *ValidatorProfileQuery {
+	query := (&ValidatorProfileClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := u.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(validatorprofile.Table, validatorprofile.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, user.ValidatorProfileTable, user.ValidatorProfileColumn),
+		)
+		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QueryVerificationToken queries the verification_token edge of a User.
 func (c *UserClient) QueryVerificationToken(u *User) *VerificationTokenQuery {
 	query := (&VerificationTokenClient{config: c.config}).Query()
@@ -2915,15 +2915,15 @@ func (c *ValidatorProfileClient) GetX(ctx context.Context, id uuid.UUID) *Valida
 	return obj
 }
 
-// QueryAPIKey queries the api_key edge of a ValidatorProfile.
-func (c *ValidatorProfileClient) QueryAPIKey(vp *ValidatorProfile) *APIKeyQuery {
-	query := (&APIKeyClient{config: c.config}).Query()
+// QueryUser queries the user edge of a ValidatorProfile.
+func (c *ValidatorProfileClient) QueryUser(vp *ValidatorProfile) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := vp.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(validatorprofile.Table, validatorprofile.FieldID, id),
-			sqlgraph.To(apikey.Table, apikey.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, validatorprofile.APIKeyTable, validatorprofile.APIKeyColumn),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, validatorprofile.UserTable, validatorprofile.UserColumn),
 		)
 		fromV = sqlgraph.Neighbors(vp.driver.Dialect(), step)
 		return fromV, nil

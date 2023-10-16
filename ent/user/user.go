@@ -3,6 +3,7 @@
 package user
 
 import (
+	"fmt"
 	"time"
 
 	"entgo.io/ent"
@@ -28,10 +29,16 @@ const (
 	FieldEmail = "email"
 	// FieldPassword holds the string denoting the password field in the database.
 	FieldPassword = "password"
+	// FieldScope holds the string denoting the scope field in the database.
+	FieldScope = "scope"
 	// FieldIsVerified holds the string denoting the is_verified field in the database.
 	FieldIsVerified = "is_verified"
 	// EdgeAPIKeys holds the string denoting the api_keys edge name in mutations.
 	EdgeAPIKeys = "api_keys"
+	// EdgeProviderProfile holds the string denoting the provider_profile edge name in mutations.
+	EdgeProviderProfile = "provider_profile"
+	// EdgeValidatorProfile holds the string denoting the validator_profile edge name in mutations.
+	EdgeValidatorProfile = "validator_profile"
 	// EdgeVerificationToken holds the string denoting the verification_token edge name in mutations.
 	EdgeVerificationToken = "verification_token"
 	// Table holds the table name of the user in the database.
@@ -43,6 +50,20 @@ const (
 	APIKeysInverseTable = "api_keys"
 	// APIKeysColumn is the table column denoting the api_keys relation/edge.
 	APIKeysColumn = "user_api_keys"
+	// ProviderProfileTable is the table that holds the provider_profile relation/edge.
+	ProviderProfileTable = "provider_profiles"
+	// ProviderProfileInverseTable is the table name for the ProviderProfile entity.
+	// It exists in this package in order to avoid circular dependency with the "providerprofile" package.
+	ProviderProfileInverseTable = "provider_profiles"
+	// ProviderProfileColumn is the table column denoting the provider_profile relation/edge.
+	ProviderProfileColumn = "user_provider_profile"
+	// ValidatorProfileTable is the table that holds the validator_profile relation/edge.
+	ValidatorProfileTable = "validator_profiles"
+	// ValidatorProfileInverseTable is the table name for the ValidatorProfile entity.
+	// It exists in this package in order to avoid circular dependency with the "validatorprofile" package.
+	ValidatorProfileInverseTable = "validator_profiles"
+	// ValidatorProfileColumn is the table column denoting the validator_profile relation/edge.
+	ValidatorProfileColumn = "user_validator_profile"
 	// VerificationTokenTable is the table that holds the verification_token relation/edge.
 	VerificationTokenTable = "verification_tokens"
 	// VerificationTokenInverseTable is the table name for the VerificationToken entity.
@@ -61,6 +82,7 @@ var Columns = []string{
 	FieldLastName,
 	FieldEmail,
 	FieldPassword,
+	FieldScope,
 	FieldIsVerified,
 }
 
@@ -96,6 +118,30 @@ var (
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() uuid.UUID
 )
+
+// Scope defines the type for the "scope" enum field.
+type Scope string
+
+// Scope values.
+const (
+	ScopeSender      Scope = "sender"
+	ScopeProvider    Scope = "provider"
+	ScopeTxValidator Scope = "tx_validator"
+)
+
+func (s Scope) String() string {
+	return string(s)
+}
+
+// ScopeValidator is a validator for the "scope" field enum values. It is called by the builders before save.
+func ScopeValidator(s Scope) error {
+	switch s {
+	case ScopeSender, ScopeProvider, ScopeTxValidator:
+		return nil
+	default:
+		return fmt.Errorf("user: invalid enum value for scope field: %q", s)
+	}
+}
 
 // OrderOption defines the ordering options for the User queries.
 type OrderOption func(*sql.Selector)
@@ -135,6 +181,11 @@ func ByPassword(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPassword, opts...).ToFunc()
 }
 
+// ByScope orders the results by the scope field.
+func ByScope(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldScope, opts...).ToFunc()
+}
+
 // ByIsVerified orders the results by the is_verified field.
 func ByIsVerified(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldIsVerified, opts...).ToFunc()
@@ -151,6 +202,20 @@ func ByAPIKeysCount(opts ...sql.OrderTermOption) OrderOption {
 func ByAPIKeys(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newAPIKeysStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByProviderProfileField orders the results by provider_profile field.
+func ByProviderProfileField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newProviderProfileStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByValidatorProfileField orders the results by validator_profile field.
+func ByValidatorProfileField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newValidatorProfileStep(), sql.OrderByField(field, opts...))
 	}
 }
 
@@ -172,6 +237,20 @@ func newAPIKeysStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(APIKeysInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, APIKeysTable, APIKeysColumn),
+	)
+}
+func newProviderProfileStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ProviderProfileInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, false, ProviderProfileTable, ProviderProfileColumn),
+	)
+}
+func newValidatorProfileStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ValidatorProfileInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, false, ValidatorProfileTable, ValidatorProfileColumn),
 	)
 }
 func newVerificationTokenStep() *sqlgraph.Step {

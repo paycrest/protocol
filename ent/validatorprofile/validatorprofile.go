@@ -21,19 +21,19 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// FieldWalletAddress holds the string denoting the wallet_address field in the database.
 	FieldWalletAddress = "wallet_address"
-	// EdgeAPIKey holds the string denoting the api_key edge name in mutations.
-	EdgeAPIKey = "api_key"
+	// EdgeUser holds the string denoting the user edge name in mutations.
+	EdgeUser = "user"
 	// EdgeValidatedFulfillments holds the string denoting the validated_fulfillments edge name in mutations.
 	EdgeValidatedFulfillments = "validated_fulfillments"
 	// Table holds the table name of the validatorprofile in the database.
 	Table = "validator_profiles"
-	// APIKeyTable is the table that holds the api_key relation/edge.
-	APIKeyTable = "validator_profiles"
-	// APIKeyInverseTable is the table name for the APIKey entity.
-	// It exists in this package in order to avoid circular dependency with the "apikey" package.
-	APIKeyInverseTable = "api_keys"
-	// APIKeyColumn is the table column denoting the api_key relation/edge.
-	APIKeyColumn = "api_key_validator_profile"
+	// UserTable is the table that holds the user relation/edge.
+	UserTable = "validator_profiles"
+	// UserInverseTable is the table name for the User entity.
+	// It exists in this package in order to avoid circular dependency with the "user" package.
+	UserInverseTable = "users"
+	// UserColumn is the table column denoting the user relation/edge.
+	UserColumn = "user_validator_profile"
 	// ValidatedFulfillmentsTable is the table that holds the validated_fulfillments relation/edge. The primary key declared below.
 	ValidatedFulfillmentsTable = "lock_order_fulfillment_validators"
 	// ValidatedFulfillmentsInverseTable is the table name for the LockOrderFulfillment entity.
@@ -52,7 +52,7 @@ var Columns = []string{
 // ForeignKeys holds the SQL foreign-keys that are owned by the "validator_profiles"
 // table and are not defined as standalone fields in the schema.
 var ForeignKeys = []string{
-	"api_key_validator_profile",
+	"user_validator_profile",
 }
 
 var (
@@ -112,10 +112,10 @@ func ByWalletAddress(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldWalletAddress, opts...).ToFunc()
 }
 
-// ByAPIKeyField orders the results by api_key field.
-func ByAPIKeyField(field string, opts ...sql.OrderTermOption) OrderOption {
+// ByUserField orders the results by user field.
+func ByUserField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newAPIKeyStep(), sql.OrderByField(field, opts...))
+		sqlgraph.OrderByNeighborTerms(s, newUserStep(), sql.OrderByField(field, opts...))
 	}
 }
 
@@ -132,11 +132,11 @@ func ByValidatedFulfillments(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOp
 		sqlgraph.OrderByNeighborTerms(s, newValidatedFulfillmentsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
-func newAPIKeyStep() *sqlgraph.Step {
+func newUserStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(APIKeyInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2O, true, APIKeyTable, APIKeyColumn),
+		sqlgraph.To(UserInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, true, UserTable, UserColumn),
 	)
 }
 func newValidatedFulfillmentsStep() *sqlgraph.Step {

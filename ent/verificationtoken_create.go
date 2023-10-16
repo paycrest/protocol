@@ -82,14 +82,6 @@ func (vtc *VerificationTokenCreate) SetOwnerID(id uuid.UUID) *VerificationTokenC
 	return vtc
 }
 
-// SetNillableOwnerID sets the "owner" edge to the User entity by ID if the given value is not nil.
-func (vtc *VerificationTokenCreate) SetNillableOwnerID(id *uuid.UUID) *VerificationTokenCreate {
-	if id != nil {
-		vtc = vtc.SetOwnerID(*id)
-	}
-	return vtc
-}
-
 // SetOwner sets the "owner" edge to the User entity.
 func (vtc *VerificationTokenCreate) SetOwner(u *User) *VerificationTokenCreate {
 	return vtc.SetOwnerID(u.ID)
@@ -174,6 +166,9 @@ func (vtc *VerificationTokenCreate) check() error {
 		if err := verificationtoken.ScopeValidator(v); err != nil {
 			return &ValidationError{Name: "scope", err: fmt.Errorf(`ent: validator failed for field "VerificationToken.scope": %w`, err)}
 		}
+	}
+	if _, ok := vtc.mutation.OwnerID(); !ok {
+		return &ValidationError{Name: "owner", err: errors.New(`ent: missing required edge "VerificationToken.owner"`)}
 	}
 	return nil
 }

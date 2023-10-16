@@ -10,7 +10,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
-	"github.com/paycrest/paycrest-protocol/ent/apikey"
+	"github.com/paycrest/paycrest-protocol/ent/user"
 	"github.com/paycrest/paycrest-protocol/ent/validatorprofile"
 )
 
@@ -27,15 +27,15 @@ type ValidatorProfile struct {
 	WalletAddress string `json:"wallet_address,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ValidatorProfileQuery when eager-loading is set.
-	Edges                     ValidatorProfileEdges `json:"edges"`
-	api_key_validator_profile *uuid.UUID
-	selectValues              sql.SelectValues
+	Edges                  ValidatorProfileEdges `json:"edges"`
+	user_validator_profile *uuid.UUID
+	selectValues           sql.SelectValues
 }
 
 // ValidatorProfileEdges holds the relations/edges for other nodes in the graph.
 type ValidatorProfileEdges struct {
-	// APIKey holds the value of the api_key edge.
-	APIKey *APIKey `json:"api_key,omitempty"`
+	// User holds the value of the user edge.
+	User *User `json:"user,omitempty"`
 	// ValidatedFulfillments holds the value of the validated_fulfillments edge.
 	ValidatedFulfillments []*LockOrderFulfillment `json:"validated_fulfillments,omitempty"`
 	// loadedTypes holds the information for reporting if a
@@ -43,17 +43,17 @@ type ValidatorProfileEdges struct {
 	loadedTypes [2]bool
 }
 
-// APIKeyOrErr returns the APIKey value or an error if the edge
+// UserOrErr returns the User value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
-func (e ValidatorProfileEdges) APIKeyOrErr() (*APIKey, error) {
+func (e ValidatorProfileEdges) UserOrErr() (*User, error) {
 	if e.loadedTypes[0] {
-		if e.APIKey == nil {
+		if e.User == nil {
 			// Edge was loaded but was not found.
-			return nil, &NotFoundError{label: apikey.Label}
+			return nil, &NotFoundError{label: user.Label}
 		}
-		return e.APIKey, nil
+		return e.User, nil
 	}
-	return nil, &NotLoadedError{edge: "api_key"}
+	return nil, &NotLoadedError{edge: "user"}
 }
 
 // ValidatedFulfillmentsOrErr returns the ValidatedFulfillments value or an error if the edge
@@ -76,7 +76,7 @@ func (*ValidatorProfile) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullTime)
 		case validatorprofile.FieldID:
 			values[i] = new(uuid.UUID)
-		case validatorprofile.ForeignKeys[0]: // api_key_validator_profile
+		case validatorprofile.ForeignKeys[0]: // user_validator_profile
 			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		default:
 			values[i] = new(sql.UnknownType)
@@ -119,10 +119,10 @@ func (vp *ValidatorProfile) assignValues(columns []string, values []any) error {
 			}
 		case validatorprofile.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullScanner); !ok {
-				return fmt.Errorf("unexpected type %T for field api_key_validator_profile", values[i])
+				return fmt.Errorf("unexpected type %T for field user_validator_profile", values[i])
 			} else if value.Valid {
-				vp.api_key_validator_profile = new(uuid.UUID)
-				*vp.api_key_validator_profile = *value.S.(*uuid.UUID)
+				vp.user_validator_profile = new(uuid.UUID)
+				*vp.user_validator_profile = *value.S.(*uuid.UUID)
 			}
 		default:
 			vp.selectValues.Set(columns[i], values[i])
@@ -137,9 +137,9 @@ func (vp *ValidatorProfile) Value(name string) (ent.Value, error) {
 	return vp.selectValues.Get(name)
 }
 
-// QueryAPIKey queries the "api_key" edge of the ValidatorProfile entity.
-func (vp *ValidatorProfile) QueryAPIKey() *APIKeyQuery {
-	return NewValidatorProfileClient(vp.config).QueryAPIKey(vp)
+// QueryUser queries the "user" edge of the ValidatorProfile entity.
+func (vp *ValidatorProfile) QueryUser() *UserQuery {
+	return NewValidatorProfileClient(vp.config).QueryUser(vp)
 }
 
 // QueryValidatedFulfillments queries the "validated_fulfillments" edge of the ValidatorProfile entity.
