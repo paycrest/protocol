@@ -273,44 +273,6 @@ func (ctrl *AuthController) RefreshJWT(ctx *gin.Context) {
 	})
 }
 
-// CreateAPIKey controller creates a new API key pair for the user.
-func (ctrl *AuthController) CreateAPIKey(ctx *gin.Context) {
-	// Get the user ID from the context
-	userIDString, _ := ctx.Get("user_id")
-
-	// Parse the user ID string to uuid.UUID
-	userID, err := uuid.Parse(userIDString.(string))
-	if err != nil {
-		logger.Errorf("error parsing user ID: %v", err)
-		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid user ID", nil)
-		return
-	}
-
-	var payload types.CreateAPIKeyPayload
-
-	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid request body", u.GetErrorData(err))
-		return
-	}
-
-	// Generate the API key using the service
-	apiKey, secretKey, err := ctrl.apiKeyService.GenerateAPIKey(ctx, nil, userID)
-	if err != nil {
-		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to generate API key", nil)
-		return
-	}
-
-	// Return the newly generated API key
-	u.APIResponse(ctx, http.StatusCreated, "success", "Successfully generated API key", &types.APIKeyResponse{
-		ID:        apiKey.ID,
-		Secret:    secretKey,
-		IsActive:  apiKey.IsActive,
-		CreatedAt: apiKey.CreatedAt,
-	})
-}
-
 // ListAPIKeys controller returns all API keys for the user.
 func (ctrl *AuthController) ListAPIKeys(ctx *gin.Context) {
 	// Get the user ID from the context
