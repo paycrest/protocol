@@ -35,6 +35,8 @@ const (
 	FieldIsVerified = "is_verified"
 	// EdgeAPIKeys holds the string denoting the api_keys edge name in mutations.
 	EdgeAPIKeys = "api_keys"
+	// EdgeSenderProfile holds the string denoting the sender_profile edge name in mutations.
+	EdgeSenderProfile = "sender_profile"
 	// EdgeProviderProfile holds the string denoting the provider_profile edge name in mutations.
 	EdgeProviderProfile = "provider_profile"
 	// EdgeValidatorProfile holds the string denoting the validator_profile edge name in mutations.
@@ -50,6 +52,13 @@ const (
 	APIKeysInverseTable = "api_keys"
 	// APIKeysColumn is the table column denoting the api_keys relation/edge.
 	APIKeysColumn = "user_api_keys"
+	// SenderProfileTable is the table that holds the sender_profile relation/edge.
+	SenderProfileTable = "sender_profiles"
+	// SenderProfileInverseTable is the table name for the SenderProfile entity.
+	// It exists in this package in order to avoid circular dependency with the "senderprofile" package.
+	SenderProfileInverseTable = "sender_profiles"
+	// SenderProfileColumn is the table column denoting the sender_profile relation/edge.
+	SenderProfileColumn = "user_sender_profile"
 	// ProviderProfileTable is the table that holds the provider_profile relation/edge.
 	ProviderProfileTable = "provider_profiles"
 	// ProviderProfileInverseTable is the table name for the ProviderProfile entity.
@@ -205,6 +214,13 @@ func ByAPIKeys(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	}
 }
 
+// BySenderProfileField orders the results by sender_profile field.
+func BySenderProfileField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newSenderProfileStep(), sql.OrderByField(field, opts...))
+	}
+}
+
 // ByProviderProfileField orders the results by provider_profile field.
 func ByProviderProfileField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -237,6 +253,13 @@ func newAPIKeysStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(APIKeysInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, APIKeysTable, APIKeysColumn),
+	)
+}
+func newSenderProfileStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(SenderProfileInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, false, SenderProfileTable, SenderProfileColumn),
 	)
 }
 func newProviderProfileStep() *sqlgraph.Step {

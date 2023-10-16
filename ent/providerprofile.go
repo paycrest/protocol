@@ -28,8 +28,6 @@ type ProviderProfile struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// TradingName holds the value of the "trading_name" field.
 	TradingName string `json:"trading_name,omitempty"`
-	// Country holds the value of the "country" field.
-	Country string `json:"country,omitempty"`
 	// HostIdentifier holds the value of the "host_identifier" field.
 	HostIdentifier string `json:"host_identifier,omitempty"`
 	// ProvisionMode holds the value of the "provision_mode" field.
@@ -151,7 +149,7 @@ func (*ProviderProfile) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case providerprofile.FieldIsPartner:
 			values[i] = new(sql.NullBool)
-		case providerprofile.FieldID, providerprofile.FieldTradingName, providerprofile.FieldCountry, providerprofile.FieldHostIdentifier, providerprofile.FieldProvisionMode:
+		case providerprofile.FieldID, providerprofile.FieldTradingName, providerprofile.FieldHostIdentifier, providerprofile.FieldProvisionMode:
 			values[i] = new(sql.NullString)
 		case providerprofile.FieldCreatedAt, providerprofile.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -197,12 +195,6 @@ func (pp *ProviderProfile) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field trading_name", values[i])
 			} else if value.Valid {
 				pp.TradingName = value.String
-			}
-		case providerprofile.FieldCountry:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field country", values[i])
-			} else if value.Valid {
-				pp.Country = value.String
 			}
 		case providerprofile.FieldHostIdentifier:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -315,9 +307,6 @@ func (pp *ProviderProfile) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("trading_name=")
 	builder.WriteString(pp.TradingName)
-	builder.WriteString(", ")
-	builder.WriteString("country=")
-	builder.WriteString(pp.Country)
 	builder.WriteString(", ")
 	builder.WriteString("host_identifier=")
 	builder.WriteString(pp.HostIdentifier)

@@ -29,6 +29,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/providerrating"
 	"github.com/paycrest/paycrest-protocol/ent/provisionbucket"
 	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
+	"github.com/paycrest/paycrest-protocol/ent/senderprofile"
 	"github.com/paycrest/paycrest-protocol/ent/token"
 	"github.com/paycrest/paycrest-protocol/ent/user"
 	"github.com/paycrest/paycrest-protocol/ent/validatorprofile"
@@ -68,6 +69,8 @@ type Client struct {
 	ProvisionBucket *ProvisionBucketClient
 	// ReceiveAddress is the client for interacting with the ReceiveAddress builders.
 	ReceiveAddress *ReceiveAddressClient
+	// SenderProfile is the client for interacting with the SenderProfile builders.
+	SenderProfile *SenderProfileClient
 	// Token is the client for interacting with the Token builders.
 	Token *TokenClient
 	// User is the client for interacting with the User builders.
@@ -103,6 +106,7 @@ func (c *Client) init() {
 	c.ProviderRating = NewProviderRatingClient(c.config)
 	c.ProvisionBucket = NewProvisionBucketClient(c.config)
 	c.ReceiveAddress = NewReceiveAddressClient(c.config)
+	c.SenderProfile = NewSenderProfileClient(c.config)
 	c.Token = NewTokenClient(c.config)
 	c.User = NewUserClient(c.config)
 	c.ValidatorProfile = NewValidatorProfileClient(c.config)
@@ -203,6 +207,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		ProviderRating:            NewProviderRatingClient(cfg),
 		ProvisionBucket:           NewProvisionBucketClient(cfg),
 		ReceiveAddress:            NewReceiveAddressClient(cfg),
+		SenderProfile:             NewSenderProfileClient(cfg),
 		Token:                     NewTokenClient(cfg),
 		User:                      NewUserClient(cfg),
 		ValidatorProfile:          NewValidatorProfileClient(cfg),
@@ -240,6 +245,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		ProviderRating:            NewProviderRatingClient(cfg),
 		ProvisionBucket:           NewProvisionBucketClient(cfg),
 		ReceiveAddress:            NewReceiveAddressClient(cfg),
+		SenderProfile:             NewSenderProfileClient(cfg),
 		Token:                     NewTokenClient(cfg),
 		User:                      NewUserClient(cfg),
 		ValidatorProfile:          NewValidatorProfileClient(cfg),
@@ -276,8 +282,8 @@ func (c *Client) Use(hooks ...Hook) {
 		c.APIKey, c.FiatCurrency, c.LockOrderFulfillment, c.LockPaymentOrder, c.Network,
 		c.PaymentOrder, c.PaymentOrderRecipient, c.ProviderAvailability,
 		c.ProviderOrderToken, c.ProviderOrderTokenAddress, c.ProviderProfile,
-		c.ProviderRating, c.ProvisionBucket, c.ReceiveAddress, c.Token, c.User,
-		c.ValidatorProfile, c.VerificationToken,
+		c.ProviderRating, c.ProvisionBucket, c.ReceiveAddress, c.SenderProfile,
+		c.Token, c.User, c.ValidatorProfile, c.VerificationToken,
 	} {
 		n.Use(hooks...)
 	}
@@ -290,8 +296,8 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.APIKey, c.FiatCurrency, c.LockOrderFulfillment, c.LockPaymentOrder, c.Network,
 		c.PaymentOrder, c.PaymentOrderRecipient, c.ProviderAvailability,
 		c.ProviderOrderToken, c.ProviderOrderTokenAddress, c.ProviderProfile,
-		c.ProviderRating, c.ProvisionBucket, c.ReceiveAddress, c.Token, c.User,
-		c.ValidatorProfile, c.VerificationToken,
+		c.ProviderRating, c.ProvisionBucket, c.ReceiveAddress, c.SenderProfile,
+		c.Token, c.User, c.ValidatorProfile, c.VerificationToken,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -328,6 +334,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.ProvisionBucket.mutate(ctx, m)
 	case *ReceiveAddressMutation:
 		return c.ReceiveAddress.mutate(ctx, m)
+	case *SenderProfileMutation:
+		return c.SenderProfile.mutate(ctx, m)
 	case *TokenMutation:
 		return c.Token.mutate(ctx, m)
 	case *UserMutation:
@@ -2473,6 +2481,140 @@ func (c *ReceiveAddressClient) mutate(ctx context.Context, m *ReceiveAddressMuta
 	}
 }
 
+// SenderProfileClient is a client for the SenderProfile schema.
+type SenderProfileClient struct {
+	config
+}
+
+// NewSenderProfileClient returns a client for the SenderProfile from the given config.
+func NewSenderProfileClient(c config) *SenderProfileClient {
+	return &SenderProfileClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `senderprofile.Hooks(f(g(h())))`.
+func (c *SenderProfileClient) Use(hooks ...Hook) {
+	c.hooks.SenderProfile = append(c.hooks.SenderProfile, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `senderprofile.Intercept(f(g(h())))`.
+func (c *SenderProfileClient) Intercept(interceptors ...Interceptor) {
+	c.inters.SenderProfile = append(c.inters.SenderProfile, interceptors...)
+}
+
+// Create returns a builder for creating a SenderProfile entity.
+func (c *SenderProfileClient) Create() *SenderProfileCreate {
+	mutation := newSenderProfileMutation(c.config, OpCreate)
+	return &SenderProfileCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of SenderProfile entities.
+func (c *SenderProfileClient) CreateBulk(builders ...*SenderProfileCreate) *SenderProfileCreateBulk {
+	return &SenderProfileCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for SenderProfile.
+func (c *SenderProfileClient) Update() *SenderProfileUpdate {
+	mutation := newSenderProfileMutation(c.config, OpUpdate)
+	return &SenderProfileUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *SenderProfileClient) UpdateOne(sp *SenderProfile) *SenderProfileUpdateOne {
+	mutation := newSenderProfileMutation(c.config, OpUpdateOne, withSenderProfile(sp))
+	return &SenderProfileUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *SenderProfileClient) UpdateOneID(id uuid.UUID) *SenderProfileUpdateOne {
+	mutation := newSenderProfileMutation(c.config, OpUpdateOne, withSenderProfileID(id))
+	return &SenderProfileUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for SenderProfile.
+func (c *SenderProfileClient) Delete() *SenderProfileDelete {
+	mutation := newSenderProfileMutation(c.config, OpDelete)
+	return &SenderProfileDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *SenderProfileClient) DeleteOne(sp *SenderProfile) *SenderProfileDeleteOne {
+	return c.DeleteOneID(sp.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *SenderProfileClient) DeleteOneID(id uuid.UUID) *SenderProfileDeleteOne {
+	builder := c.Delete().Where(senderprofile.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &SenderProfileDeleteOne{builder}
+}
+
+// Query returns a query builder for SenderProfile.
+func (c *SenderProfileClient) Query() *SenderProfileQuery {
+	return &SenderProfileQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeSenderProfile},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a SenderProfile entity by its id.
+func (c *SenderProfileClient) Get(ctx context.Context, id uuid.UUID) (*SenderProfile, error) {
+	return c.Query().Where(senderprofile.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *SenderProfileClient) GetX(ctx context.Context, id uuid.UUID) *SenderProfile {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryUser queries the user edge of a SenderProfile.
+func (c *SenderProfileClient) QueryUser(sp *SenderProfile) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := sp.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(senderprofile.Table, senderprofile.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, senderprofile.UserTable, senderprofile.UserColumn),
+		)
+		fromV = sqlgraph.Neighbors(sp.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *SenderProfileClient) Hooks() []Hook {
+	return c.hooks.SenderProfile
+}
+
+// Interceptors returns the client interceptors.
+func (c *SenderProfileClient) Interceptors() []Interceptor {
+	return c.inters.SenderProfile
+}
+
+func (c *SenderProfileClient) mutate(ctx context.Context, m *SenderProfileMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&SenderProfileCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&SenderProfileUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&SenderProfileUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&SenderProfileDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown SenderProfile mutation op: %q", m.Op())
+	}
+}
+
 // TokenClient is a client for the Token schema.
 type TokenClient struct {
 	config
@@ -2741,6 +2883,22 @@ func (c *UserClient) QueryAPIKeys(u *User) *APIKeyQuery {
 			sqlgraph.From(user.Table, user.FieldID, id),
 			sqlgraph.To(apikey.Table, apikey.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, user.APIKeysTable, user.APIKeysColumn),
+		)
+		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QuerySenderProfile queries the sender_profile edge of a User.
+func (c *UserClient) QuerySenderProfile(u *User) *SenderProfileQuery {
+	query := (&SenderProfileClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := u.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(senderprofile.Table, senderprofile.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, user.SenderProfileTable, user.SenderProfileColumn),
 		)
 		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
 		return fromV, nil
@@ -3113,13 +3271,14 @@ type (
 		APIKey, FiatCurrency, LockOrderFulfillment, LockPaymentOrder, Network,
 		PaymentOrder, PaymentOrderRecipient, ProviderAvailability, ProviderOrderToken,
 		ProviderOrderTokenAddress, ProviderProfile, ProviderRating, ProvisionBucket,
-		ReceiveAddress, Token, User, ValidatorProfile, VerificationToken []ent.Hook
+		ReceiveAddress, SenderProfile, Token, User, ValidatorProfile,
+		VerificationToken []ent.Hook
 	}
 	inters struct {
 		APIKey, FiatCurrency, LockOrderFulfillment, LockPaymentOrder, Network,
 		PaymentOrder, PaymentOrderRecipient, ProviderAvailability, ProviderOrderToken,
 		ProviderOrderTokenAddress, ProviderProfile, ProviderRating, ProvisionBucket,
-		ReceiveAddress, Token, User, ValidatorProfile,
+		ReceiveAddress, SenderProfile, Token, User, ValidatorProfile,
 		VerificationToken []ent.Interceptor
 	}
 )

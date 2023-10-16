@@ -46,12 +46,8 @@ func setup() error {
 	testCtx.apiKey = apiKey
 
 	validator, err := test.CreateTestValidatorProfile(map[string]interface{}{
-		"api_key": apiKey.ID,
+		"user_id": user.ID,
 	})
-	if err != nil {
-		return err
-	}
-	_, err = validator.Update().SetAPIKeyID(apiKey.ID).Save(context.Background())
 	if err != nil {
 		return err
 	}

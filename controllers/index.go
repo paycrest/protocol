@@ -6,13 +6,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent"
-	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/lockorderfulfillment"
-	"github.com/paycrest/paycrest-protocol/ent/validatorprofile"
 	svc "github.com/paycrest/paycrest-protocol/services"
 	"github.com/paycrest/paycrest-protocol/storage"
 	"github.com/paycrest/paycrest-protocol/types"
-	"github.com/paycrest/paycrest-protocol/utils"
 	u "github.com/paycrest/paycrest-protocol/utils"
 	"github.com/paycrest/paycrest-protocol/utils/logger"
 	"github.com/shopspring/decimal"
@@ -77,13 +74,13 @@ func (ctrl *Controller) GetInstitutionsByCurrency(ctx *gin.Context) {
 func (ctrl *Controller) GetTokenRates(ctx *gin.Context) {
 	// Parse path parameters
 	token := ctx.Param("token")
-	tokenIsValid := utils.ContainsString([]string{"USDT", "USDC"}, token) // TODO: fetch supported tokens from db
+	tokenIsValid := u.ContainsString([]string{"USDT", "USDC"}, token) // TODO: fetch supported tokens from db
 	if !tokenIsValid {
 		u.APIResponse(ctx, http.StatusBadRequest, "error", "Token is not supported", nil)
 	}
 
 	fiatSymbol := ctx.Param("fiat")
-	fiatIsValid := utils.ContainsString([]string{"NGN"}, fiatSymbol) // TODO: fetch supported fiat currencies from db
+	fiatIsValid := u.ContainsString([]string{"NGN"}, fiatSymbol) // TODO: fetch supported fiat currencies from db
 	if !fiatIsValid {
 		u.APIResponse(ctx, http.StatusBadRequest, "error", "Fiat currency is not supported", nil)
 	}
@@ -168,23 +165,14 @@ func (ctrl *Controller) ValidateOrder(ctx *gin.Context) {
 		return
 	}
 
-	// Get the api key ID from the context
-	apiKey, _ := ctx.Get("api_key")
-
-	// Fetch validator from db
-	validator, err := storage.Client.ValidatorProfile.
-		Query().
-		Where(
-			validatorprofile.HasAPIKeyWith(
-				apikey.ID(apiKey.(*ent.APIKey).ID),
-			),
-		).
-		Only(ctx)
-	if err != nil {
+	// Get validator profile from the context
+	validatorCtx, ok := ctx.Get("validator")
+	if !ok {
 		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusNotFound, "error", "Could not find validator profile", nil)
+		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid API key", nil)
 		return
 	}
+	validator := validatorCtx.(*ent.ValidatorProfile)
 
 	// Fetch order fulfillment from db
 	fulfillment, err := storage.Client.LockOrderFulfillment.

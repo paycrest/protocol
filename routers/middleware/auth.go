@@ -14,6 +14,9 @@ import (
 	"github.com/paycrest/paycrest-protocol/config"
 	"github.com/paycrest/paycrest-protocol/ent"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
+	"github.com/paycrest/paycrest-protocol/ent/predicate"
+	"github.com/paycrest/paycrest-protocol/ent/user"
+	"github.com/paycrest/paycrest-protocol/storage"
 	db "github.com/paycrest/paycrest-protocol/storage"
 	u "github.com/paycrest/paycrest-protocol/utils"
 	"github.com/paycrest/paycrest-protocol/utils/crypto"
@@ -222,16 +225,13 @@ func ScopeMiddleware(c *gin.Context) {
 		subdomain = parts[0]
 	}
 
-	var scope string
+	if subdomain == "validator" {
+		subdomain = "tx_validator"
+	}
 
-	switch subdomain {
-	case "sender":
-		scope = "sender"
-	case "provider":
-		scope = "provider"
-	case "validator":
-		scope = "tx_validator"
-	default:
+	scope := user.Scope(subdomain)
+
+	if scope == "" {
 		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid scope", nil)
 		c.Abort()
 		return
@@ -241,41 +241,107 @@ func ScopeMiddleware(c *gin.Context) {
 	c.Next()
 }
 
-// OnlySenderMiddleware is a middleware that checks if the API key scope is sender.
+// OnlySenderMiddleware is a middleware that checks if the user scope is sender.
 func OnlySenderMiddleware(c *gin.Context) {
-	apiKey, ok := c.Get("api_key")
+	apiKeyCtx, apiKeyOk := c.Get("api_key")
+	userID, userOk := c.Get("user_id")
 
-	if ok && apiKey.(*ent.APIKey).Scope != apikey.ScopeSender {
-		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid API key scope", nil)
+	user, err := storage.Client.User.
+		Query().
+		Where(
+			user.ScopeEQ(user.ScopeSender),
+			func() predicate.User {
+				if apiKeyOk {
+					// HMAC auth was used
+					return user.HasAPIKeysWith(
+						apikey.IDEQ(apiKeyCtx.(*ent.APIKey).ID),
+					)
+				} else if userOk {
+					// JWT auth was used
+					userUUID, _ := uuid.Parse(userID.(string))
+					return user.IDEQ(userUUID)
+				}
+				return nil
+			}(),
+		).
+		WithSenderProfile().
+		Only(c)
+	if err != nil {
+		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid API key", nil)
 		c.Abort()
 		return
 	}
 
+	c.Set("sender", user.Edges.SenderProfile)
 	c.Next()
 }
 
-// OnlyProviderMiddleware is a middleware that checks if the API key scope is provider.
+// OnlyProviderMiddleware is a middleware that checks if the user scope is provider.
 func OnlyProviderMiddleware(c *gin.Context) {
-	apiKey, ok := c.Get("api_key")
+	apiKeyCtx, apiKeyOk := c.Get("api_key")
+	userID, userOk := c.Get("user_id")
 
-	if ok && apiKey.(*ent.APIKey).Scope != apikey.ScopeProvider {
-		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid API key scope", nil)
+	user, err := storage.Client.User.
+		Query().
+		Where(
+			user.ScopeEQ(user.ScopeProvider),
+			func() predicate.User {
+				if apiKeyOk {
+					// HMAC auth was used
+					return user.HasAPIKeysWith(
+						apikey.IDEQ(apiKeyCtx.(*ent.APIKey).ID),
+					)
+				} else if userOk {
+					// JWT auth was used
+					userUUID, _ := uuid.Parse(userID.(string))
+					return user.IDEQ(userUUID)
+				}
+				return nil
+			}(),
+		).
+		WithProviderProfile().
+		Only(c)
+	if err != nil {
+		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid API key", nil)
 		c.Abort()
 		return
 	}
 
+	c.Set("provider", user.Edges.ProviderProfile)
 	c.Next()
 }
 
-// OnlyValidatorMiddleware is a middleware that checks if the API key scope is validator.
+// OnlyValidatorMiddleware is a middleware that checks if the user scope is validator.
 func OnlyValidatorMiddleware(c *gin.Context) {
-	apiKey, ok := c.Get("api_key")
+	apiKeyCtx, apiKeyOk := c.Get("api_key")
+	userID, userOk := c.Get("user_id")
 
-	if ok && apiKey.(*ent.APIKey).Scope != apikey.ScopeTxValidator {
-		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid API key scope", nil)
+	user, err := storage.Client.User.
+		Query().
+		Where(
+			user.ScopeEQ(user.ScopeTxValidator),
+			func() predicate.User {
+				if apiKeyOk {
+					// HMAC auth was used
+					return user.HasAPIKeysWith(
+						apikey.IDEQ(apiKeyCtx.(*ent.APIKey).ID),
+					)
+				} else if userOk {
+					// JWT auth was used
+					userUUID, _ := uuid.Parse(userID.(string))
+					return user.IDEQ(userUUID)
+				}
+				return nil
+			}(),
+		).
+		WithValidatorProfile().
+		Only(c)
+	if err != nil {
+		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid API key", nil)
 		c.Abort()
 		return
 	}
 
+	c.Set("validator", user.Edges.ValidatorProfile)
 	c.Next()
 }

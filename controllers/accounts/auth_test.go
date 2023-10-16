@@ -3,6 +3,7 @@ package accounts
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"regexp"
 	"testing"
@@ -69,7 +70,8 @@ func TestAuth(t *testing.T) {
 				Password:  "password",
 			}
 
-			res, err := test.PerformRequest(t, "POST", "/register", payload, nil, router)
+			res, err := test.PerformRequest(t, "POST", "/register?scope=send", payload, nil, router)
+			fmt.Println(res.Body)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -106,7 +108,6 @@ func TestAuth(t *testing.T) {
 				Email:       "ikeayoprovider@example.com",
 				Password:    "password",
 				TradingName: "Africana LP",
-				Country:     "Nigeria",
 				Currency:    "NGN",
 			}
 
@@ -114,10 +115,10 @@ func TestAuth(t *testing.T) {
 			assert.NoError(t, err)
 
 			headers := map[string]string{
-				"X-App-ID": "provider",
+				"Client-Type": "frontend",
 			}
 
-			res, err := test.PerformRequest(t, "POST", "/register", payload, headers, router)
+			res, err := test.PerformRequest(t, "POST", "/register?scope=sender", payload, headers, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -143,7 +144,7 @@ func TestAuth(t *testing.T) {
 
 			providerProfile, err := db.Client.ProviderProfile.
 				Query().
-				Where(providerprofile.HasAPIKeyWith(apikey.ID(apiKey.ID))).
+				Where(providerprofile.HasUserWith(user.ID(userUUID))).
 				Only(context.Background())
 			assert.NoError(t, err)
 

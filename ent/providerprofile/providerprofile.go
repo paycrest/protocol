@@ -21,8 +21,6 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// FieldTradingName holds the string denoting the trading_name field in the database.
 	FieldTradingName = "trading_name"
-	// FieldCountry holds the string denoting the country field in the database.
-	FieldCountry = "country"
 	// FieldHostIdentifier holds the string denoting the host_identifier field in the database.
 	FieldHostIdentifier = "host_identifier"
 	// FieldProvisionMode holds the string denoting the provision_mode field in the database.
@@ -100,7 +98,6 @@ var Columns = []string{
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldTradingName,
-	FieldCountry,
 	FieldHostIdentifier,
 	FieldProvisionMode,
 	FieldIsPartner,
@@ -143,8 +140,6 @@ var (
 	UpdateDefaultUpdatedAt func() time.Time
 	// TradingNameValidator is a validator for the "trading_name" field. It is called by the builders before save.
 	TradingNameValidator func(string) error
-	// CountryValidator is a validator for the "country" field. It is called by the builders before save.
-	CountryValidator func(string) error
 	// DefaultIsPartner holds the default value on creation for the "is_partner" field.
 	DefaultIsPartner bool
 	// DefaultID holds the default value on creation for the "id" field.
@@ -195,11 +190,6 @@ func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByTradingName orders the results by the trading_name field.
 func ByTradingName(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldTradingName, opts...).ToFunc()
-}
-
-// ByCountry orders the results by the country field.
-func ByCountry(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldCountry, opts...).ToFunc()
 }
 
 // ByHostIdentifier orders the results by the host_identifier field.

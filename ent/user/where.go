@@ -484,6 +484,29 @@ func HasAPIKeysWith(preds ...predicate.APIKey) predicate.User {
 	})
 }
 
+// HasSenderProfile applies the HasEdge predicate on the "sender_profile" edge.
+func HasSenderProfile() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, SenderProfileTable, SenderProfileColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasSenderProfileWith applies the HasEdge predicate on the "sender_profile" edge with a given conditions (other predicates).
+func HasSenderProfileWith(preds ...predicate.SenderProfile) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := newSenderProfileStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // HasProviderProfile applies the HasEdge predicate on the "provider_profile" edge.
 func HasProviderProfile() predicate.User {
 	return predicate.User(func(s *sql.Selector) {

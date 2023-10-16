@@ -47,12 +47,6 @@ func (ppu *ProviderProfileUpdate) SetTradingName(s string) *ProviderProfileUpdat
 	return ppu
 }
 
-// SetCountry sets the "country" field.
-func (ppu *ProviderProfileUpdate) SetCountry(s string) *ProviderProfileUpdate {
-	ppu.mutation.SetCountry(s)
-	return ppu
-}
-
 // SetHostIdentifier sets the "host_identifier" field.
 func (ppu *ProviderProfileUpdate) SetHostIdentifier(s string) *ProviderProfileUpdate {
 	ppu.mutation.SetHostIdentifier(s)
@@ -316,11 +310,6 @@ func (ppu *ProviderProfileUpdate) check() error {
 			return &ValidationError{Name: "trading_name", err: fmt.Errorf(`ent: validator failed for field "ProviderProfile.trading_name": %w`, err)}
 		}
 	}
-	if v, ok := ppu.mutation.Country(); ok {
-		if err := providerprofile.CountryValidator(v); err != nil {
-			return &ValidationError{Name: "country", err: fmt.Errorf(`ent: validator failed for field "ProviderProfile.country": %w`, err)}
-		}
-	}
 	if v, ok := ppu.mutation.ProvisionMode(); ok {
 		if err := providerprofile.ProvisionModeValidator(v); err != nil {
 			return &ValidationError{Name: "provision_mode", err: fmt.Errorf(`ent: validator failed for field "ProviderProfile.provision_mode": %w`, err)}
@@ -352,9 +341,6 @@ func (ppu *ProviderProfileUpdate) sqlSave(ctx context.Context) (n int, err error
 	}
 	if value, ok := ppu.mutation.TradingName(); ok {
 		_spec.SetField(providerprofile.FieldTradingName, field.TypeString, value)
-	}
-	if value, ok := ppu.mutation.Country(); ok {
-		_spec.SetField(providerprofile.FieldCountry, field.TypeString, value)
 	}
 	if value, ok := ppu.mutation.HostIdentifier(); ok {
 		_spec.SetField(providerprofile.FieldHostIdentifier, field.TypeString, value)
@@ -619,12 +605,6 @@ func (ppuo *ProviderProfileUpdateOne) SetUpdatedAt(t time.Time) *ProviderProfile
 // SetTradingName sets the "trading_name" field.
 func (ppuo *ProviderProfileUpdateOne) SetTradingName(s string) *ProviderProfileUpdateOne {
 	ppuo.mutation.SetTradingName(s)
-	return ppuo
-}
-
-// SetCountry sets the "country" field.
-func (ppuo *ProviderProfileUpdateOne) SetCountry(s string) *ProviderProfileUpdateOne {
-	ppuo.mutation.SetCountry(s)
 	return ppuo
 }
 
@@ -904,11 +884,6 @@ func (ppuo *ProviderProfileUpdateOne) check() error {
 			return &ValidationError{Name: "trading_name", err: fmt.Errorf(`ent: validator failed for field "ProviderProfile.trading_name": %w`, err)}
 		}
 	}
-	if v, ok := ppuo.mutation.Country(); ok {
-		if err := providerprofile.CountryValidator(v); err != nil {
-			return &ValidationError{Name: "country", err: fmt.Errorf(`ent: validator failed for field "ProviderProfile.country": %w`, err)}
-		}
-	}
 	if v, ok := ppuo.mutation.ProvisionMode(); ok {
 		if err := providerprofile.ProvisionModeValidator(v); err != nil {
 			return &ValidationError{Name: "provision_mode", err: fmt.Errorf(`ent: validator failed for field "ProviderProfile.provision_mode": %w`, err)}
@@ -957,9 +932,6 @@ func (ppuo *ProviderProfileUpdateOne) sqlSave(ctx context.Context) (_node *Provi
 	}
 	if value, ok := ppuo.mutation.TradingName(); ok {
 		_spec.SetField(providerprofile.FieldTradingName, field.TypeString, value)
-	}
-	if value, ok := ppuo.mutation.Country(); ok {
-		_spec.SetField(providerprofile.FieldCountry, field.TypeString, value)
 	}
 	if value, ok := ppuo.mutation.HostIdentifier(); ok {
 		_spec.SetField(providerprofile.FieldHostIdentifier, field.TypeString, value)

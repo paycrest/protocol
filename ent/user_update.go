@@ -15,6 +15,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
+	"github.com/paycrest/paycrest-protocol/ent/senderprofile"
 	"github.com/paycrest/paycrest-protocol/ent/user"
 	"github.com/paycrest/paycrest-protocol/ent/validatorprofile"
 	"github.com/paycrest/paycrest-protocol/ent/verificationtoken"
@@ -98,6 +99,25 @@ func (uu *UserUpdate) AddAPIKeys(a ...*APIKey) *UserUpdate {
 	return uu.AddAPIKeyIDs(ids...)
 }
 
+// SetSenderProfileID sets the "sender_profile" edge to the SenderProfile entity by ID.
+func (uu *UserUpdate) SetSenderProfileID(id uuid.UUID) *UserUpdate {
+	uu.mutation.SetSenderProfileID(id)
+	return uu
+}
+
+// SetNillableSenderProfileID sets the "sender_profile" edge to the SenderProfile entity by ID if the given value is not nil.
+func (uu *UserUpdate) SetNillableSenderProfileID(id *uuid.UUID) *UserUpdate {
+	if id != nil {
+		uu = uu.SetSenderProfileID(*id)
+	}
+	return uu
+}
+
+// SetSenderProfile sets the "sender_profile" edge to the SenderProfile entity.
+func (uu *UserUpdate) SetSenderProfile(s *SenderProfile) *UserUpdate {
+	return uu.SetSenderProfileID(s.ID)
+}
+
 // SetProviderProfileID sets the "provider_profile" edge to the ProviderProfile entity by ID.
 func (uu *UserUpdate) SetProviderProfileID(id string) *UserUpdate {
 	uu.mutation.SetProviderProfileID(id)
@@ -175,6 +195,12 @@ func (uu *UserUpdate) RemoveAPIKeys(a ...*APIKey) *UserUpdate {
 		ids[i] = a[i].ID
 	}
 	return uu.RemoveAPIKeyIDs(ids...)
+}
+
+// ClearSenderProfile clears the "sender_profile" edge to the SenderProfile entity.
+func (uu *UserUpdate) ClearSenderProfile() *UserUpdate {
+	uu.mutation.ClearSenderProfile()
+	return uu
 }
 
 // ClearProviderProfile clears the "provider_profile" edge to the ProviderProfile entity.
@@ -343,6 +369,35 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if uu.mutation.SenderProfileCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   user.SenderProfileTable,
+			Columns: []string{user.SenderProfileColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(senderprofile.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.SenderProfileIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   user.SenderProfileTable,
+			Columns: []string{user.SenderProfileColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(senderprofile.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -538,6 +593,25 @@ func (uuo *UserUpdateOne) AddAPIKeys(a ...*APIKey) *UserUpdateOne {
 	return uuo.AddAPIKeyIDs(ids...)
 }
 
+// SetSenderProfileID sets the "sender_profile" edge to the SenderProfile entity by ID.
+func (uuo *UserUpdateOne) SetSenderProfileID(id uuid.UUID) *UserUpdateOne {
+	uuo.mutation.SetSenderProfileID(id)
+	return uuo
+}
+
+// SetNillableSenderProfileID sets the "sender_profile" edge to the SenderProfile entity by ID if the given value is not nil.
+func (uuo *UserUpdateOne) SetNillableSenderProfileID(id *uuid.UUID) *UserUpdateOne {
+	if id != nil {
+		uuo = uuo.SetSenderProfileID(*id)
+	}
+	return uuo
+}
+
+// SetSenderProfile sets the "sender_profile" edge to the SenderProfile entity.
+func (uuo *UserUpdateOne) SetSenderProfile(s *SenderProfile) *UserUpdateOne {
+	return uuo.SetSenderProfileID(s.ID)
+}
+
 // SetProviderProfileID sets the "provider_profile" edge to the ProviderProfile entity by ID.
 func (uuo *UserUpdateOne) SetProviderProfileID(id string) *UserUpdateOne {
 	uuo.mutation.SetProviderProfileID(id)
@@ -615,6 +689,12 @@ func (uuo *UserUpdateOne) RemoveAPIKeys(a ...*APIKey) *UserUpdateOne {
 		ids[i] = a[i].ID
 	}
 	return uuo.RemoveAPIKeyIDs(ids...)
+}
+
+// ClearSenderProfile clears the "sender_profile" edge to the SenderProfile entity.
+func (uuo *UserUpdateOne) ClearSenderProfile() *UserUpdateOne {
+	uuo.mutation.ClearSenderProfile()
+	return uuo
 }
 
 // ClearProviderProfile clears the "provider_profile" edge to the ProviderProfile entity.
@@ -813,6 +893,35 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if uuo.mutation.SenderProfileCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   user.SenderProfileTable,
+			Columns: []string{user.SenderProfileColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(senderprofile.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.SenderProfileIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   user.SenderProfileTable,
+			Columns: []string{user.SenderProfileColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(senderprofile.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

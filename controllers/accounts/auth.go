@@ -11,7 +11,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/fiatcurrency"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
-	"github.com/paycrest/paycrest-protocol/ent/user"
+	userEnt "github.com/paycrest/paycrest-protocol/ent/user"
 	"github.com/paycrest/paycrest-protocol/ent/verificationtoken"
 	svc "github.com/paycrest/paycrest-protocol/services"
 	db "github.com/paycrest/paycrest-protocol/storage"
@@ -41,7 +41,7 @@ func NewAuthController() *AuthController {
 // It also sends an email to verify the user's email address.
 func (ctrl *AuthController) Register(ctx *gin.Context) {
 	var payload types.RegisterPayload
-	scope, _ := ctx.MustGet("scope").(string)
+	scope := ctx.MustGet("scope").(userEnt.Scope)
 
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		logger.Errorf("error: %v", err)
@@ -50,31 +50,7 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 		return
 	}
 
-	// Check if user with email already exists
-	userTmp, _ := db.Client.User.
-		Query().
-		Where(
-			user.EmailEQ(strings.ToLower(payload.Email)),
-			user.ScopeEQ(user.Scope(scope)),
-		).
-		Only(ctx)
-
-	if userTmp != nil {
-		u.APIResponse(ctx, http.StatusBadRequest, "error",
-			"User with email already exists", nil)
-		return
-	}
-
-	// Save the user
-	user, err := db.Client.User.
-		Create().
-		SetFirstName(payload.FirstName).
-		SetLastName(payload.LastName).
-		SetEmail(strings.ToLower(payload.Email)).
-		SetPassword(payload.Password).
-		SetScope(user.Scope(scope)).
-		Save(ctx)
-
+	tx, err := db.Client.Tx(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusInternalServerError, "error",
@@ -82,8 +58,42 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 		return
 	}
 
+	// Check if user with email already exists
+	userTmp, _ := tx.User.
+		Query().
+		Where(
+			userEnt.EmailEQ(strings.ToLower(payload.Email)),
+			userEnt.ScopeEQ(userEnt.Scope(scope)),
+		).
+		Only(ctx)
+
+	if userTmp != nil {
+		_ = tx.Rollback()
+		u.APIResponse(ctx, http.StatusBadRequest, "error",
+			"User with email already exists", nil)
+		return
+	}
+
+	// Save the user
+	user, err := tx.User.
+		Create().
+		SetFirstName(payload.FirstName).
+		SetLastName(payload.LastName).
+		SetEmail(strings.ToLower(payload.Email)).
+		SetPassword(payload.Password).
+		SetScope(userEnt.Scope(scope)).
+		Save(ctx)
+
+	if err != nil {
+		_ = tx.Rollback()
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error",
+			"Failed to create new user", nil)
+		return
+	}
+
 	// Send verification email
-	verificationToken, err := db.Client.VerificationToken.Create().SetOwner(user).SetScope(verificationtoken.ScopeVerification).Save(ctx)
+	verificationToken, err := tx.VerificationToken.Create().SetOwner(user).SetScope(verificationtoken.ScopeVerification).Save(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
 	}
@@ -95,8 +105,9 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 	}
 
 	// Generate the API key using the service
-	apiKey, _, err := ctrl.apiKeyService.GenerateAPIKey(ctx, user.ID)
+	_, _, err = ctrl.apiKeyService.GenerateAPIKey(ctx, user.ID)
 	if err != nil {
+		_ = tx.Rollback()
 		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusInternalServerError, "error",
 			"Failed to create new user", nil)
@@ -104,34 +115,71 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 	}
 
 	// Create a provider profile
-	if scope == "provider" && ctx.GetHeader("Client-Type") == "frontend" {
+	if scope == userEnt.ScopeProvider && ctx.GetHeader("Client-Type") == "frontend" {
 		// Fetch currency
-		currency, err := db.Client.FiatCurrency.
+		currency, err := tx.FiatCurrency.
 			Query().
 			Where(fiatcurrency.CodeEQ(payload.Currency)).
 			Only(ctx)
 		if err != nil {
+			_ = tx.Rollback()
 			logger.Errorf("error: %v", err)
 			u.APIResponse(ctx, http.StatusInternalServerError, "error",
 				"Failed to create new user", nil)
 			return
 		}
 
-		// Create a provider profile
-		_, err = db.Client.ProviderProfile.
+		_, err = tx.ProviderProfile.
 			Create().
 			SetTradingName(payload.TradingName).
-			SetCountry(payload.Country).
 			SetCurrency(currency).
-			SetAPIKey(apiKey).
+			SetUser(user).
 			SetProvisionMode(providerprofile.ProvisionModeManual).
 			Save(ctx)
 		if err != nil {
+			_ = tx.Rollback()
 			logger.Errorf("error: %v", err)
 			u.APIResponse(ctx, http.StatusInternalServerError, "error",
 				"Failed to create new user", nil)
 			return
 		}
+	}
+
+	// Create a sender profile
+	if scope == userEnt.ScopeSender {
+		_, err = tx.SenderProfile.
+			Create().
+			SetUser(user).
+			Save(ctx)
+		if err != nil {
+			_ = tx.Rollback()
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error",
+				"Failed to create new user", nil)
+			return
+		}
+	}
+
+	// Create a validator profile
+	if scope == userEnt.ScopeTxValidator {
+		_, err = tx.ValidatorProfile.
+			Create().
+			SetUser(user).
+			Save(ctx)
+		if err != nil {
+			_ = tx.Rollback()
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error",
+				"Failed to create new user", nil)
+			return
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error",
+			"Failed to create new user", nil)
+		return
 	}
 
 	u.APIResponse(ctx, http.StatusCreated, "success", "User created successfully",
@@ -159,7 +207,7 @@ func (ctrl *AuthController) Login(ctx *gin.Context) {
 	// Fetch user by email
 	user, emailErr := db.Client.User.
 		Query().
-		Where(user.EmailEQ(strings.ToLower(payload.Email))).
+		Where(userEnt.EmailEQ(strings.ToLower(payload.Email))).
 		Only(ctx)
 
 	// Check if the password is correct
@@ -275,7 +323,7 @@ func (ctrl *AuthController) ListAPIKeys(ctx *gin.Context) {
 	// Query the user's API keys
 	apiKeys, err := db.Client.User.
 		Query().
-		Where(user.IDEQ(userID)).
+		Where(userEnt.IDEQ(userID)).
 		QueryAPIKeys().
 		All(ctx)
 	if err != nil {
@@ -341,7 +389,7 @@ func (ctrl *AuthController) DeleteAPIKey(ctx *gin.Context) {
 	// Check if the API key belongs to the user making the request
 	apiKey, err := db.Client.APIKey.
 		Query().
-		Where(apikey.IDEQ(apiKeyUUID), apikey.HasOwnerWith(user.IDEQ(userID))).
+		Where(apikey.IDEQ(apiKeyUUID), apikey.HasOwnerWith(userEnt.IDEQ(userID))).
 		Only(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {
@@ -415,7 +463,7 @@ func (ctrl *AuthController) ResendVerificationToken(ctx *gin.Context) {
 	}
 
 	// Fetch User account.
-	user, userErr := db.Client.User.Query().Where(user.EmailEQ(payload.Email)).Only(ctx)
+	user, userErr := db.Client.User.Query().Where(userEnt.EmailEQ(payload.Email)).Only(ctx)
 	if userErr != nil {
 		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid credential", userErr.Error())
 	}
