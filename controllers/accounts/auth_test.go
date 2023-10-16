@@ -48,7 +48,12 @@ func TestAuth(t *testing.T) {
 
 	// Set up test routers
 	router := gin.New()
-	ctrl := &AuthController{emailService: svc.NewEmailService(svc.SENDGRID_MAIL_PROVIDER)}
+	ctrl := &AuthController{
+		apiKeyService: svc.NewAPIKeyService(),
+		emailService:  svc.NewEmailService(svc.SENDGRID_MAIL_PROVIDER),
+	}
+
+	router.Use(middleware.ScopeMiddleware)
 	router.POST("/register", ctrl.Register)
 	router.POST("/login", ctrl.Login)
 	router.POST("/confirm-account", ctrl.ConfirmEmail)
@@ -70,7 +75,7 @@ func TestAuth(t *testing.T) {
 				Password:  "password",
 			}
 
-			res, err := test.PerformRequest(t, "POST", "/register?scope=send", payload, nil, router)
+			res, err := test.PerformRequest(t, "POST", "/register?scope=sender", payload, nil, router)
 			fmt.Println(res.Body)
 			assert.NoError(t, err)
 
@@ -118,7 +123,7 @@ func TestAuth(t *testing.T) {
 				"Client-Type": "frontend",
 			}
 
-			res, err := test.PerformRequest(t, "POST", "/register?scope=sender", payload, headers, router)
+			res, err := test.PerformRequest(t, "POST", "/register?scope=provider", payload, headers, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -161,7 +166,7 @@ func TestAuth(t *testing.T) {
 				Password:  "password",
 			}
 
-			res, err := test.PerformRequest(t, "POST", "/register", payload, nil, router)
+			res, err := test.PerformRequest(t, "POST", "/register?scope=sender", payload, nil, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -183,7 +188,7 @@ func TestAuth(t *testing.T) {
 				Password:  "password",
 			}
 
-			res, err := test.PerformRequest(t, "POST", "/register", payload, nil, router)
+			res, err := test.PerformRequest(t, "POST", "/register?scope=sender", payload, nil, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -225,7 +230,7 @@ func TestAuth(t *testing.T) {
 				Token: verificationtoken.Token,
 			}
 
-			res, err := test.PerformRequest(t, "POST", "/confirm-account", payload, nil, router)
+			res, err := test.PerformRequest(t, "POST", "/confirm-account?scope=sender", payload, nil, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -250,7 +255,7 @@ func TestAuth(t *testing.T) {
 				Password: "password",
 			}
 
-			res, err := test.PerformRequest(t, "POST", "/login", payload, nil, router)
+			res, err := test.PerformRequest(t, "POST", "/login?scope=sender", payload, nil, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -278,7 +283,7 @@ func TestAuth(t *testing.T) {
 				Password: "wrong-password",
 			}
 
-			res, err := test.PerformRequest(t, "POST", "/login", payload, nil, router)
+			res, err := test.PerformRequest(t, "POST", "/login?scope=sender", payload, nil, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -306,7 +311,7 @@ func TestAuth(t *testing.T) {
 				"Authorization": "Bearer " + refreshToken,
 			}
 
-			res, err := test.PerformRequest(t, "POST", "/refresh", payload, headers, router)
+			res, err := test.PerformRequest(t, "POST", "/refresh?scope=sender", payload, headers, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -340,7 +345,7 @@ func TestAuth(t *testing.T) {
 			headers := map[string]string{
 				"Authorization": "Bearer " + refreshTokenForHeader,
 			}
-			res, err := test.PerformRequest(t, "POST", "/refresh", payload, headers, router)
+			res, err := test.PerformRequest(t, "POST", "/refresh?scope=sender", payload, headers, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -437,7 +442,7 @@ func TestAuth(t *testing.T) {
 		headers := map[string]string{
 			"Authorization": "Bearer " + accessToken,
 		}
-		res, err := test.PerformRequest(t, "GET", "/api-keys", nil, headers, router)
+		res, err := test.PerformRequest(t, "GET", "/api-keys?scope=sender", nil, headers, router)
 		assert.NoError(t, err)
 
 		// Assert the response body
@@ -485,7 +490,7 @@ func TestAuth(t *testing.T) {
 				"Authorization": "Bearer " + accessToken,
 			}
 
-			res, err := test.PerformRequest(t, "DELETE", "/api-keys/"+apiKeys[0].ID.String(), nil, headers, router)
+			res, err := test.PerformRequest(t, "DELETE", "/api-keys/"+apiKeys[0].ID.String()+"?scope=sender", nil, headers, router)
 			assert.NoError(t, err)
 
 			assert.Equal(t, http.StatusNoContent, res.Code)
@@ -506,7 +511,7 @@ func TestAuth(t *testing.T) {
 			headers := map[string]string{
 				"Authorization": "Bearer " + accessToken,
 			}
-			res, err := test.PerformRequest(t, "DELETE", "/api-keys/invalid-api-key", nil, headers, router)
+			res, err := test.PerformRequest(t, "DELETE", "/api-keys/invalid-api-key?scope=sender", nil, headers, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -535,7 +540,7 @@ func TestAuth(t *testing.T) {
 				Email: user.Email,
 			}
 
-			res, err := test.PerformRequest(t, "POST", "/resend-token", payload, nil, router)
+			res, err := test.PerformRequest(t, "POST", "/resend-token?scope=sender", payload, nil, router)
 			assert.NoError(t, err)
 
 			// Assert the response body

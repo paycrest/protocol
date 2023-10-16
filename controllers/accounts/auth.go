@@ -81,7 +81,7 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 		SetLastName(payload.LastName).
 		SetEmail(strings.ToLower(payload.Email)).
 		SetPassword(payload.Password).
-		SetScope(userEnt.Scope(scope)).
+		SetScope(scope).
 		Save(ctx)
 
 	if err != nil {
@@ -93,7 +93,11 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 	}
 
 	// Send verification email
-	verificationToken, err := tx.VerificationToken.Create().SetOwner(user).SetScope(verificationtoken.ScopeVerification).Save(ctx)
+	verificationToken, err := tx.VerificationToken.
+		Create().
+		SetOwner(user).
+		SetScope(verificationtoken.ScopeVerification).
+		Save(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
 	}
@@ -105,7 +109,7 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 	}
 
 	// Generate the API key using the service
-	_, _, err = ctrl.apiKeyService.GenerateAPIKey(ctx, user.ID)
+	_, _, err = ctrl.apiKeyService.GenerateAPIKey(ctx, tx, user.ID)
 	if err != nil {
 		_ = tx.Rollback()
 		logger.Errorf("error: %v", err)
@@ -291,7 +295,7 @@ func (ctrl *AuthController) CreateAPIKey(ctx *gin.Context) {
 	}
 
 	// Generate the API key using the service
-	apiKey, secretKey, err := ctrl.apiKeyService.GenerateAPIKey(ctx, userID)
+	apiKey, secretKey, err := ctrl.apiKeyService.GenerateAPIKey(ctx, nil, userID)
 	if err != nil {
 		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to generate API key", nil)

@@ -60,6 +60,7 @@ func setup() error {
 	apiKeyService := services.NewAPIKeyService()
 	apiKey, secretKey, err := apiKeyService.GenerateAPIKey(
 		context.Background(),
+		nil,
 		user.ID,
 	)
 	testCtx.apiKey = apiKey
