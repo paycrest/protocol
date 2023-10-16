@@ -56,11 +56,6 @@ func IDLTE(id uuid.UUID) predicate.APIKey {
 	return predicate.APIKey(sql.FieldLTE(FieldID, id))
 }
 
-// Name applies equality check predicate on the "name" field. It's identical to NameEQ.
-func Name(v string) predicate.APIKey {
-	return predicate.APIKey(sql.FieldEQ(FieldName, v))
-}
-
 // Secret applies equality check predicate on the "secret" field. It's identical to SecretEQ.
 func Secret(v string) predicate.APIKey {
 	return predicate.APIKey(sql.FieldEQ(FieldSecret, v))
@@ -74,91 +69,6 @@ func IsActive(v bool) predicate.APIKey {
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
 func CreatedAt(v time.Time) predicate.APIKey {
 	return predicate.APIKey(sql.FieldEQ(FieldCreatedAt, v))
-}
-
-// NameEQ applies the EQ predicate on the "name" field.
-func NameEQ(v string) predicate.APIKey {
-	return predicate.APIKey(sql.FieldEQ(FieldName, v))
-}
-
-// NameNEQ applies the NEQ predicate on the "name" field.
-func NameNEQ(v string) predicate.APIKey {
-	return predicate.APIKey(sql.FieldNEQ(FieldName, v))
-}
-
-// NameIn applies the In predicate on the "name" field.
-func NameIn(vs ...string) predicate.APIKey {
-	return predicate.APIKey(sql.FieldIn(FieldName, vs...))
-}
-
-// NameNotIn applies the NotIn predicate on the "name" field.
-func NameNotIn(vs ...string) predicate.APIKey {
-	return predicate.APIKey(sql.FieldNotIn(FieldName, vs...))
-}
-
-// NameGT applies the GT predicate on the "name" field.
-func NameGT(v string) predicate.APIKey {
-	return predicate.APIKey(sql.FieldGT(FieldName, v))
-}
-
-// NameGTE applies the GTE predicate on the "name" field.
-func NameGTE(v string) predicate.APIKey {
-	return predicate.APIKey(sql.FieldGTE(FieldName, v))
-}
-
-// NameLT applies the LT predicate on the "name" field.
-func NameLT(v string) predicate.APIKey {
-	return predicate.APIKey(sql.FieldLT(FieldName, v))
-}
-
-// NameLTE applies the LTE predicate on the "name" field.
-func NameLTE(v string) predicate.APIKey {
-	return predicate.APIKey(sql.FieldLTE(FieldName, v))
-}
-
-// NameContains applies the Contains predicate on the "name" field.
-func NameContains(v string) predicate.APIKey {
-	return predicate.APIKey(sql.FieldContains(FieldName, v))
-}
-
-// NameHasPrefix applies the HasPrefix predicate on the "name" field.
-func NameHasPrefix(v string) predicate.APIKey {
-	return predicate.APIKey(sql.FieldHasPrefix(FieldName, v))
-}
-
-// NameHasSuffix applies the HasSuffix predicate on the "name" field.
-func NameHasSuffix(v string) predicate.APIKey {
-	return predicate.APIKey(sql.FieldHasSuffix(FieldName, v))
-}
-
-// NameEqualFold applies the EqualFold predicate on the "name" field.
-func NameEqualFold(v string) predicate.APIKey {
-	return predicate.APIKey(sql.FieldEqualFold(FieldName, v))
-}
-
-// NameContainsFold applies the ContainsFold predicate on the "name" field.
-func NameContainsFold(v string) predicate.APIKey {
-	return predicate.APIKey(sql.FieldContainsFold(FieldName, v))
-}
-
-// ScopeEQ applies the EQ predicate on the "scope" field.
-func ScopeEQ(v Scope) predicate.APIKey {
-	return predicate.APIKey(sql.FieldEQ(FieldScope, v))
-}
-
-// ScopeNEQ applies the NEQ predicate on the "scope" field.
-func ScopeNEQ(v Scope) predicate.APIKey {
-	return predicate.APIKey(sql.FieldNEQ(FieldScope, v))
-}
-
-// ScopeIn applies the In predicate on the "scope" field.
-func ScopeIn(vs ...Scope) predicate.APIKey {
-	return predicate.APIKey(sql.FieldIn(FieldScope, vs...))
-}
-
-// ScopeNotIn applies the NotIn predicate on the "scope" field.
-func ScopeNotIn(vs ...Scope) predicate.APIKey {
-	return predicate.APIKey(sql.FieldNotIn(FieldScope, vs...))
 }
 
 // SecretEQ applies the EQ predicate on the "secret" field.
@@ -291,52 +201,6 @@ func HasOwner() predicate.APIKey {
 func HasOwnerWith(preds ...predicate.User) predicate.APIKey {
 	return predicate.APIKey(func(s *sql.Selector) {
 		step := newOwnerStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
-}
-
-// HasProviderProfile applies the HasEdge predicate on the "provider_profile" edge.
-func HasProviderProfile() predicate.APIKey {
-	return predicate.APIKey(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, ProviderProfileTable, ProviderProfileColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasProviderProfileWith applies the HasEdge predicate on the "provider_profile" edge with a given conditions (other predicates).
-func HasProviderProfileWith(preds ...predicate.ProviderProfile) predicate.APIKey {
-	return predicate.APIKey(func(s *sql.Selector) {
-		step := newProviderProfileStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
-}
-
-// HasValidatorProfile applies the HasEdge predicate on the "validator_profile" edge.
-func HasValidatorProfile() predicate.APIKey {
-	return predicate.APIKey(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, ValidatorProfileTable, ValidatorProfileColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasValidatorProfileWith applies the HasEdge predicate on the "validator_profile" edge with a given conditions (other predicates).
-func HasValidatorProfileWith(preds ...predicate.ValidatorProfile) predicate.APIKey {
-	return predicate.APIKey(func(s *sql.Selector) {
-		step := newValidatorProfileStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

@@ -11,7 +11,6 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent"
-	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
 	"github.com/shopspring/decimal"
 )
@@ -118,18 +117,16 @@ type RefreshResponse struct {
 
 // CreateAPIKeyPayload is the payload for the generate API key endpoint
 type CreateAPIKeyPayload struct {
-	Name  string       `json:"name" binding:"required"`
-	Scope apikey.Scope `json:"scope" binding:"required,oneof=sender provider tx_validator"`
+	Name string `json:"name" binding:"required"`
 }
 
 // APIKeyResponse is the response type for an API key
 type APIKeyResponse struct {
-	ID        uuid.UUID    `json:"id"`
-	CreatedAt time.Time    `json:"createdAt"`
-	Name      string       `json:"name"`
-	Scope     apikey.Scope `json:"scope"`
-	Secret    string       `json:"secret"`
-	IsActive  bool         `json:"isActive"`
+	ID        uuid.UUID `json:"id"`
+	CreatedAt time.Time `json:"createdAt"`
+	Name      string    `json:"name"`
+	Secret    string    `json:"secret"`
+	IsActive  bool      `json:"isActive"`
 }
 
 // ERC20Transfer is the Transfer event of an ERC20 smart contract

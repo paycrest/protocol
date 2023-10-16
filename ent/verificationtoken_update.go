@@ -94,6 +94,9 @@ func (vtu *VerificationTokenUpdate) check() error {
 			return &ValidationError{Name: "scope", err: fmt.Errorf(`ent: validator failed for field "VerificationToken.scope": %w`, err)}
 		}
 	}
+	if _, ok := vtu.mutation.OwnerID(); vtu.mutation.OwnerCleared() && !ok {
+		return errors.New(`ent: clearing a required unique edge "VerificationToken.owner"`)
+	}
 	return nil
 }
 
@@ -213,6 +216,9 @@ func (vtuo *VerificationTokenUpdateOne) check() error {
 		if err := verificationtoken.ScopeValidator(v); err != nil {
 			return &ValidationError{Name: "scope", err: fmt.Errorf(`ent: validator failed for field "VerificationToken.scope": %w`, err)}
 		}
+	}
+	if _, ok := vtuo.mutation.OwnerID(); vtuo.mutation.OwnerCleared() && !ok {
+		return errors.New(`ent: clearing a required unique edge "VerificationToken.owner"`)
 	}
 	return nil
 }

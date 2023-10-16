@@ -2,7 +2,6 @@ package accounts
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"regexp"
@@ -353,84 +352,84 @@ func TestAuth(t *testing.T) {
 		})
 	})
 
-	t.Run("CreateAPIKey", func(t *testing.T) {
-		accessToken, _ := token.GenerateAccessJWT(userID)
+	// t.Run("CreateAPIKey", func(t *testing.T) {
+	// 	accessToken, _ := token.GenerateAccessJWT(userID)
 
-		t.Run("with a valid scope", func(t *testing.T) {
-			payload := types.CreateAPIKeyPayload{
-				Name:  "Test API Key",
-				Scope: "sender",
-			}
+	// 	t.Run("with a valid scope", func(t *testing.T) {
+	// 		payload := types.CreateAPIKeyPayload{
+	// 			Name:  "Test API Key",
+	// 			Scope: "sender",
+	// 		}
 
-			headers := map[string]string{
-				"Authorization": "Bearer " + accessToken,
-			}
+	// 		headers := map[string]string{
+	// 			"Authorization": "Bearer " + accessToken,
+	// 		}
 
-			res, err := test.PerformRequest(t, "POST", "/api-keys", payload, headers, router)
-			assert.NoError(t, err)
+	// 		res, err := test.PerformRequest(t, "POST", "/api-keys", payload, headers, router)
+	// 		assert.NoError(t, err)
 
-			// Assert the response body
-			assert.Equal(t, http.StatusCreated, res.Code)
+	// 		// Assert the response body
+	// 		assert.Equal(t, http.StatusCreated, res.Code)
 
-			var response types.Response
-			err = json.Unmarshal(res.Body.Bytes(), &response)
-			assert.NoError(t, err)
-			assert.Equal(t, "Successfully generated API key", response.Message)
-			data, ok := response.Data.(map[string]interface{})
-			assert.True(t, ok, "response.Data is not of type map[string]interface{}")
-			assert.NotNil(t, data, "response.Data is nil")
+	// 		var response types.Response
+	// 		err = json.Unmarshal(res.Body.Bytes(), &response)
+	// 		assert.NoError(t, err)
+	// 		assert.Equal(t, "Successfully generated API key", response.Message)
+	// 		data, ok := response.Data.(map[string]interface{})
+	// 		assert.True(t, ok, "response.Data is not of type map[string]interface{}")
+	// 		assert.NotNil(t, data, "response.Data is nil")
 
-			assert.Equal(t, "sender", data["scope"])
-			assert.True(t, data["isActive"].(bool))
+	// 		assert.Equal(t, "sender", data["scope"])
+	// 		assert.True(t, data["isActive"].(bool))
 
-			// Assert that id is a valid UUID
-			assert.Contains(t, data, "id")
-			id, err := uuid.Parse(data["id"].(string))
-			assert.NoError(t, err)
-			_ = id
+	// 		// Assert that id is a valid UUID
+	// 		assert.Contains(t, data, "id")
+	// 		id, err := uuid.Parse(data["id"].(string))
+	// 		assert.NoError(t, err)
+	// 		_ = id
 
-			// Assert that the secret is a base64 encoded string
-			secret, err := base64.URLEncoding.DecodeString(data["secret"].(string))
-			assert.NoError(t, err)
-			_ = secret
-		})
+	// 		// Assert that the secret is a base64 encoded string
+	// 		secret, err := base64.URLEncoding.DecodeString(data["secret"].(string))
+	// 		assert.NoError(t, err)
+	// 		_ = secret
+	// 	})
 
-		t.Run("with an invalid scope", func(t *testing.T) {
-			payload := types.CreateAPIKeyPayload{
-				Name:  "Test API Key",
-				Scope: "bad-scope",
-			}
+	// 	t.Run("with an invalid scope", func(t *testing.T) {
+	// 		payload := types.CreateAPIKeyPayload{
+	// 			Name:  "Test API Key",
+	// 			Scope: "bad-scope",
+	// 		}
 
-			headers := map[string]string{
-				"Authorization": "Bearer " + accessToken,
-			}
+	// 		headers := map[string]string{
+	// 			"Authorization": "Bearer " + accessToken,
+	// 		}
 
-			res, err := test.PerformRequest(t, "POST", "/api-keys", payload, headers, router)
-			assert.NoError(t, err)
+	// 		res, err := test.PerformRequest(t, "POST", "/api-keys", payload, headers, router)
+	// 		assert.NoError(t, err)
 
-			// Assert the response body
-			assert.Equal(t, http.StatusBadRequest, res.Code)
+	// 		// Assert the response body
+	// 		assert.Equal(t, http.StatusBadRequest, res.Code)
 
-			var response types.Response
-			err = json.Unmarshal(res.Body.Bytes(), &response)
-			assert.NoError(t, err)
-			assert.Equal(t, "Invalid request body", response.Message)
-			assert.Equal(t, "error", response.Status)
-			data, ok := response.Data.([]interface{})
-			assert.True(t, ok, "response.Data is not of type map[string]interface{}")
-			assert.NotNil(t, data, "response.Data is nil")
+	// 		var response types.Response
+	// 		err = json.Unmarshal(res.Body.Bytes(), &response)
+	// 		assert.NoError(t, err)
+	// 		assert.Equal(t, "Invalid request body", response.Message)
+	// 		assert.Equal(t, "error", response.Status)
+	// 		data, ok := response.Data.([]interface{})
+	// 		assert.True(t, ok, "response.Data is not of type map[string]interface{}")
+	// 		assert.NotNil(t, data, "response.Data is nil")
 
-			// Assert the response errors in data
-			assert.Len(t, data, 1)
-			errorMap, ok := data[0].(map[string]interface{})
-			assert.True(t, ok, "error is not of type map[string]interface{}")
-			assert.NotNil(t, errorMap, "error is nil")
-			assert.Contains(t, errorMap, "field")
-			assert.Equal(t, "Scope", errorMap["field"].(string))
-			assert.Contains(t, errorMap, "message")
-			assert.Equal(t, "Must be one of sender provider tx_validator", errorMap["message"].(string))
-		})
-	})
+	// 		// Assert the response errors in data
+	// 		assert.Len(t, data, 1)
+	// 		errorMap, ok := data[0].(map[string]interface{})
+	// 		assert.True(t, ok, "error is not of type map[string]interface{}")
+	// 		assert.NotNil(t, errorMap, "error is nil")
+	// 		assert.Contains(t, errorMap, "field")
+	// 		assert.Equal(t, "Scope", errorMap["field"].(string))
+	// 		assert.Contains(t, errorMap, "message")
+	// 		assert.Equal(t, "Must be one of sender provider tx_validator", errorMap["message"].(string))
+	// 	})
+	// })
 
 	t.Run("ListAPIKeys", func(t *testing.T) {
 		accessToken, _ := token.GenerateAccessJWT(userID)

@@ -94,10 +94,7 @@ func setup() error {
 	apiKey, _, err := apiKeyService.GenerateAPIKey(
 		context.Background(),
 		user.ID,
-		types.CreateAPIKeyPayload{
-			Name:  "name",
-			Scope: "sender",
-		})
+	)
 	if err != nil {
 		return err
 	}

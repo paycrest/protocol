@@ -410,21 +410,21 @@ func IsPartnerNEQ(v bool) predicate.ProviderProfile {
 	return predicate.ProviderProfile(sql.FieldNEQ(FieldIsPartner, v))
 }
 
-// HasAPIKey applies the HasEdge predicate on the "api_key" edge.
-func HasAPIKey() predicate.ProviderProfile {
+// HasUser applies the HasEdge predicate on the "user" edge.
+func HasUser() predicate.ProviderProfile {
 	return predicate.ProviderProfile(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, APIKeyTable, APIKeyColumn),
+			sqlgraph.Edge(sqlgraph.O2O, true, UserTable, UserColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasAPIKeyWith applies the HasEdge predicate on the "api_key" edge with a given conditions (other predicates).
-func HasAPIKeyWith(preds ...predicate.APIKey) predicate.ProviderProfile {
+// HasUserWith applies the HasEdge predicate on the "user" edge with a given conditions (other predicates).
+func HasUserWith(preds ...predicate.User) predicate.ProviderProfile {
 	return predicate.ProviderProfile(func(s *sql.Selector) {
-		step := newAPIKeyStep()
+		step := newUserStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

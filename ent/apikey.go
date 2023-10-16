@@ -11,9 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
-	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 	"github.com/paycrest/paycrest-protocol/ent/user"
-	"github.com/paycrest/paycrest-protocol/ent/validatorprofile"
 )
 
 // APIKey is the model entity for the APIKey schema.
@@ -21,10 +19,6 @@ type APIKey struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID uuid.UUID `json:"id,omitempty"`
-	// Name holds the value of the "name" field.
-	Name string `json:"name,omitempty"`
-	// Scope holds the value of the "scope" field.
-	Scope apikey.Scope `json:"scope,omitempty"`
 	// Secret holds the value of the "secret" field.
 	Secret string `json:"secret,omitempty"`
 	// IsActive holds the value of the "is_active" field.
@@ -42,15 +36,11 @@ type APIKey struct {
 type APIKeyEdges struct {
 	// Owner holds the value of the owner edge.
 	Owner *User `json:"owner,omitempty"`
-	// ProviderProfile holds the value of the provider_profile edge.
-	ProviderProfile *ProviderProfile `json:"provider_profile,omitempty"`
-	// ValidatorProfile holds the value of the validator_profile edge.
-	ValidatorProfile *ValidatorProfile `json:"validator_profile,omitempty"`
 	// PaymentOrders holds the value of the payment_orders edge.
 	PaymentOrders []*PaymentOrder `json:"payment_orders,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [4]bool
+	loadedTypes [2]bool
 }
 
 // OwnerOrErr returns the Owner value or an error if the edge
@@ -66,36 +56,10 @@ func (e APIKeyEdges) OwnerOrErr() (*User, error) {
 	return nil, &NotLoadedError{edge: "owner"}
 }
 
-// ProviderProfileOrErr returns the ProviderProfile value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e APIKeyEdges) ProviderProfileOrErr() (*ProviderProfile, error) {
-	if e.loadedTypes[1] {
-		if e.ProviderProfile == nil {
-			// Edge was loaded but was not found.
-			return nil, &NotFoundError{label: providerprofile.Label}
-		}
-		return e.ProviderProfile, nil
-	}
-	return nil, &NotLoadedError{edge: "provider_profile"}
-}
-
-// ValidatorProfileOrErr returns the ValidatorProfile value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e APIKeyEdges) ValidatorProfileOrErr() (*ValidatorProfile, error) {
-	if e.loadedTypes[2] {
-		if e.ValidatorProfile == nil {
-			// Edge was loaded but was not found.
-			return nil, &NotFoundError{label: validatorprofile.Label}
-		}
-		return e.ValidatorProfile, nil
-	}
-	return nil, &NotLoadedError{edge: "validator_profile"}
-}
-
 // PaymentOrdersOrErr returns the PaymentOrders value or an error if the edge
 // was not loaded in eager-loading.
 func (e APIKeyEdges) PaymentOrdersOrErr() ([]*PaymentOrder, error) {
-	if e.loadedTypes[3] {
+	if e.loadedTypes[1] {
 		return e.PaymentOrders, nil
 	}
 	return nil, &NotLoadedError{edge: "payment_orders"}
@@ -108,7 +72,7 @@ func (*APIKey) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case apikey.FieldIsActive:
 			values[i] = new(sql.NullBool)
-		case apikey.FieldName, apikey.FieldScope, apikey.FieldSecret:
+		case apikey.FieldSecret:
 			values[i] = new(sql.NullString)
 		case apikey.FieldCreatedAt:
 			values[i] = new(sql.NullTime)
@@ -136,18 +100,6 @@ func (ak *APIKey) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value != nil {
 				ak.ID = *value
-			}
-		case apikey.FieldName:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field name", values[i])
-			} else if value.Valid {
-				ak.Name = value.String
-			}
-		case apikey.FieldScope:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field scope", values[i])
-			} else if value.Valid {
-				ak.Scope = apikey.Scope(value.String)
 			}
 		case apikey.FieldSecret:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -192,16 +144,6 @@ func (ak *APIKey) QueryOwner() *UserQuery {
 	return NewAPIKeyClient(ak.config).QueryOwner(ak)
 }
 
-// QueryProviderProfile queries the "provider_profile" edge of the APIKey entity.
-func (ak *APIKey) QueryProviderProfile() *ProviderProfileQuery {
-	return NewAPIKeyClient(ak.config).QueryProviderProfile(ak)
-}
-
-// QueryValidatorProfile queries the "validator_profile" edge of the APIKey entity.
-func (ak *APIKey) QueryValidatorProfile() *ValidatorProfileQuery {
-	return NewAPIKeyClient(ak.config).QueryValidatorProfile(ak)
-}
-
 // QueryPaymentOrders queries the "payment_orders" edge of the APIKey entity.
 func (ak *APIKey) QueryPaymentOrders() *PaymentOrderQuery {
 	return NewAPIKeyClient(ak.config).QueryPaymentOrders(ak)
@@ -230,12 +172,6 @@ func (ak *APIKey) String() string {
 	var builder strings.Builder
 	builder.WriteString("APIKey(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", ak.ID))
-	builder.WriteString("name=")
-	builder.WriteString(ak.Name)
-	builder.WriteString(", ")
-	builder.WriteString("scope=")
-	builder.WriteString(fmt.Sprintf("%v", ak.Scope))
-	builder.WriteString(", ")
 	builder.WriteString("secret=")
 	builder.WriteString(ak.Secret)
 	builder.WriteString(", ")

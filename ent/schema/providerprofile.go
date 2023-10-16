@@ -41,10 +41,11 @@ func (ProviderProfile) Fields() []ent.Field {
 // Edges of the ProviderProfile.
 func (ProviderProfile) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.From("api_key", APIKey.Type).
+		edge.From("user", User.Type).
 			Ref("provider_profile").
 			Unique().
-			Required(),
+			Required().
+			Immutable(),
 		edge.From("currency", FiatCurrency.Type).
 			Ref("provider").
 			Unique().

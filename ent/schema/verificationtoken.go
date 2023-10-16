@@ -42,6 +42,7 @@ func (VerificationToken) Edges() []ent.Edge {
 		edge.From("owner", User.Type).
 			Ref("verification_token").
 			Unique().
+			Required().
 			Immutable(),
 	}
 }

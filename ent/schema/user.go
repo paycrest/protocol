@@ -4,8 +4,10 @@ import (
 	"context"
 
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
+	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
 	gen "github.com/paycrest/paycrest-protocol/ent"
 	"github.com/paycrest/paycrest-protocol/ent/hook"
@@ -31,9 +33,10 @@ func (User) Fields() []ent.Field {
 			Default(uuid.New),
 		field.String("first_name").MaxLen(80),
 		field.String("last_name").MaxLen(80),
-		field.String("email").
-			Unique(),
+		field.String("email"),
 		field.String("password").Sensitive(),
+		field.Enum("scope").
+			Values("sender", "provider", "tx_validator"),
 		field.Bool("is_verified").
 			Default(false),
 	}
@@ -43,13 +46,22 @@ func (User) Fields() []ent.Field {
 func (User) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("api_keys", APIKey.Type),
+		edge.To("provider_profile", ProviderProfile.Type).
+			Unique().
+			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("validator_profile", ValidatorProfile.Type).
+			Unique().
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("verification_token", VerificationToken.Type),
 	}
 }
 
 // Indexes of the User.
 func (User) Indexes() []ent.Index {
-	return nil
+	return []ent.Index{
+		index.Fields("email", "scope").
+			Unique(),
+	}
 }
 
 // Hooks of the User.

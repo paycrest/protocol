@@ -61,10 +61,7 @@ func setup() error {
 	apiKey, secretKey, err := apiKeyService.GenerateAPIKey(
 		context.Background(),
 		user.ID,
-		types.CreateAPIKeyPayload{
-			Name:  "name",
-			Scope: "sender",
-		})
+	)
 	testCtx.apiKey = apiKey
 	if err != nil {
 		return err

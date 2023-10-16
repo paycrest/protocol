@@ -31,10 +31,11 @@ func (ValidatorProfile) Fields() []ent.Field {
 // Edges of the ValidatorProfile.
 func (ValidatorProfile) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.From("api_key", APIKey.Type).
+		edge.From("user", User.Type).
 			Ref("validator_profile").
 			Unique().
-			Required(),
+			Required().
+			Immutable(),
 		edge.From("validated_fulfillments", LockOrderFulfillment.Type).
 			Ref("validators"),
 	}

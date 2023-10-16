@@ -29,8 +29,8 @@ const (
 	FieldProvisionMode = "provision_mode"
 	// FieldIsPartner holds the string denoting the is_partner field in the database.
 	FieldIsPartner = "is_partner"
-	// EdgeAPIKey holds the string denoting the api_key edge name in mutations.
-	EdgeAPIKey = "api_key"
+	// EdgeUser holds the string denoting the user edge name in mutations.
+	EdgeUser = "user"
 	// EdgeCurrency holds the string denoting the currency edge name in mutations.
 	EdgeCurrency = "currency"
 	// EdgeProvisionBuckets holds the string denoting the provision_buckets edge name in mutations.
@@ -45,13 +45,13 @@ const (
 	EdgeAssignedOrders = "assigned_orders"
 	// Table holds the table name of the providerprofile in the database.
 	Table = "provider_profiles"
-	// APIKeyTable is the table that holds the api_key relation/edge.
-	APIKeyTable = "provider_profiles"
-	// APIKeyInverseTable is the table name for the APIKey entity.
-	// It exists in this package in order to avoid circular dependency with the "apikey" package.
-	APIKeyInverseTable = "api_keys"
-	// APIKeyColumn is the table column denoting the api_key relation/edge.
-	APIKeyColumn = "api_key_provider_profile"
+	// UserTable is the table that holds the user relation/edge.
+	UserTable = "provider_profiles"
+	// UserInverseTable is the table name for the User entity.
+	// It exists in this package in order to avoid circular dependency with the "user" package.
+	UserInverseTable = "users"
+	// UserColumn is the table column denoting the user relation/edge.
+	UserColumn = "user_provider_profile"
 	// CurrencyTable is the table that holds the currency relation/edge.
 	CurrencyTable = "provider_profiles"
 	// CurrencyInverseTable is the table name for the FiatCurrency entity.
@@ -109,8 +109,8 @@ var Columns = []string{
 // ForeignKeys holds the SQL foreign-keys that are owned by the "provider_profiles"
 // table and are not defined as standalone fields in the schema.
 var ForeignKeys = []string{
-	"api_key_provider_profile",
 	"fiat_currency_provider",
+	"user_provider_profile",
 }
 
 var (
@@ -217,10 +217,10 @@ func ByIsPartner(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldIsPartner, opts...).ToFunc()
 }
 
-// ByAPIKeyField orders the results by api_key field.
-func ByAPIKeyField(field string, opts ...sql.OrderTermOption) OrderOption {
+// ByUserField orders the results by user field.
+func ByUserField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newAPIKeyStep(), sql.OrderByField(field, opts...))
+		sqlgraph.OrderByNeighborTerms(s, newUserStep(), sql.OrderByField(field, opts...))
 	}
 }
 
@@ -286,11 +286,11 @@ func ByAssignedOrders(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newAssignedOrdersStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
-func newAPIKeyStep() *sqlgraph.Step {
+func newUserStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(APIKeyInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2O, true, APIKeyTable, APIKeyColumn),
+		sqlgraph.To(UserInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, true, UserTable, UserColumn),
 	)
 }
 func newCurrencyStep() *sqlgraph.Step {

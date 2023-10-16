@@ -11,12 +11,10 @@ var (
 	// APIKeysColumns holds the columns for the "api_keys" table.
 	APIKeysColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
-		{Name: "name", Type: field.TypeString},
-		{Name: "scope", Type: field.TypeEnum, Enums: []string{"sender", "provider", "tx_validator"}},
 		{Name: "secret", Type: field.TypeString, Unique: true},
 		{Name: "is_active", Type: field.TypeBool, Default: true},
 		{Name: "created_at", Type: field.TypeTime},
-		{Name: "user_api_keys", Type: field.TypeUUID, Nullable: true},
+		{Name: "user_api_keys", Type: field.TypeUUID},
 	}
 	// APIKeysTable holds the schema information for the "api_keys" table.
 	APIKeysTable = &schema.Table{
@@ -26,16 +24,9 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "api_keys_users_api_keys",
-				Columns:    []*schema.Column{APIKeysColumns[6]},
+				Columns:    []*schema.Column{APIKeysColumns[4]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
-				OnDelete:   schema.SetNull,
-			},
-		},
-		Indexes: []*schema.Index{
-			{
-				Name:    "apikey_scope_user_api_keys",
-				Unique:  true,
-				Columns: []*schema.Column{APIKeysColumns[2], APIKeysColumns[6]},
+				OnDelete:   schema.NoAction,
 			},
 		},
 	}
@@ -282,8 +273,8 @@ var (
 		{Name: "host_identifier", Type: field.TypeString, Nullable: true},
 		{Name: "provision_mode", Type: field.TypeEnum, Enums: []string{"manual", "auto"}},
 		{Name: "is_partner", Type: field.TypeBool, Default: false},
-		{Name: "api_key_provider_profile", Type: field.TypeUUID, Unique: true},
 		{Name: "fiat_currency_provider", Type: field.TypeUUID, Unique: true},
+		{Name: "user_provider_profile", Type: field.TypeUUID, Unique: true},
 	}
 	// ProviderProfilesTable holds the schema information for the "provider_profiles" table.
 	ProviderProfilesTable = &schema.Table{
@@ -292,16 +283,16 @@ var (
 		PrimaryKey: []*schema.Column{ProviderProfilesColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "provider_profiles_api_keys_provider_profile",
-				Columns:    []*schema.Column{ProviderProfilesColumns[8]},
-				RefColumns: []*schema.Column{APIKeysColumns[0]},
-				OnDelete:   schema.Cascade,
-			},
-			{
 				Symbol:     "provider_profiles_fiat_currencies_provider",
-				Columns:    []*schema.Column{ProviderProfilesColumns[9]},
+				Columns:    []*schema.Column{ProviderProfilesColumns[8]},
 				RefColumns: []*schema.Column{FiatCurrenciesColumns[0]},
 				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "provider_profiles_users_provider_profile",
+				Columns:    []*schema.Column{ProviderProfilesColumns[9]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.Cascade,
 			},
 		},
 	}
@@ -400,8 +391,9 @@ var (
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "first_name", Type: field.TypeString, Size: 80},
 		{Name: "last_name", Type: field.TypeString, Size: 80},
-		{Name: "email", Type: field.TypeString, Unique: true},
+		{Name: "email", Type: field.TypeString},
 		{Name: "password", Type: field.TypeString},
+		{Name: "scope", Type: field.TypeEnum, Enums: []string{"sender", "provider", "tx_validator"}},
 		{Name: "is_verified", Type: field.TypeBool, Default: false},
 	}
 	// UsersTable holds the schema information for the "users" table.
@@ -409,6 +401,13 @@ var (
 		Name:       "users",
 		Columns:    UsersColumns,
 		PrimaryKey: []*schema.Column{UsersColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "user_email_scope",
+				Unique:  true,
+				Columns: []*schema.Column{UsersColumns[5], UsersColumns[7]},
+			},
+		},
 	}
 	// ValidatorProfilesColumns holds the columns for the "validator_profiles" table.
 	ValidatorProfilesColumns = []*schema.Column{
@@ -416,7 +415,7 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "wallet_address", Type: field.TypeString, Size: 80},
-		{Name: "api_key_validator_profile", Type: field.TypeUUID, Unique: true},
+		{Name: "user_validator_profile", Type: field.TypeUUID, Unique: true},
 	}
 	// ValidatorProfilesTable holds the schema information for the "validator_profiles" table.
 	ValidatorProfilesTable = &schema.Table{
@@ -425,9 +424,9 @@ var (
 		PrimaryKey: []*schema.Column{ValidatorProfilesColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "validator_profiles_api_keys_validator_profile",
+				Symbol:     "validator_profiles_users_validator_profile",
 				Columns:    []*schema.Column{ValidatorProfilesColumns[4]},
-				RefColumns: []*schema.Column{APIKeysColumns[0]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 		},
@@ -439,7 +438,7 @@ var (
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "token", Type: field.TypeString},
 		{Name: "scope", Type: field.TypeEnum, Enums: []string{"verification"}},
-		{Name: "user_verification_token", Type: field.TypeUUID, Nullable: true},
+		{Name: "user_verification_token", Type: field.TypeUUID},
 	}
 	// VerificationTokensTable holds the schema information for the "verification_tokens" table.
 	VerificationTokensTable = &schema.Table{
@@ -451,7 +450,7 @@ var (
 				Symbol:     "verification_tokens_users_verification_token",
 				Columns:    []*schema.Column{VerificationTokensColumns[5]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
-				OnDelete:   schema.SetNull,
+				OnDelete:   schema.NoAction,
 			},
 		},
 	}
@@ -542,12 +541,12 @@ func init() {
 	ProviderAvailabilitiesTable.ForeignKeys[0].RefTable = ProviderProfilesTable
 	ProviderOrderTokensTable.ForeignKeys[0].RefTable = ProviderProfilesTable
 	ProviderOrderTokenAddressesTable.ForeignKeys[0].RefTable = ProviderOrderTokensTable
-	ProviderProfilesTable.ForeignKeys[0].RefTable = APIKeysTable
-	ProviderProfilesTable.ForeignKeys[1].RefTable = FiatCurrenciesTable
+	ProviderProfilesTable.ForeignKeys[0].RefTable = FiatCurrenciesTable
+	ProviderProfilesTable.ForeignKeys[1].RefTable = UsersTable
 	ProviderRatingsTable.ForeignKeys[0].RefTable = ProviderProfilesTable
 	ReceiveAddressesTable.ForeignKeys[0].RefTable = PaymentOrdersTable
 	TokensTable.ForeignKeys[0].RefTable = NetworksTable
-	ValidatorProfilesTable.ForeignKeys[0].RefTable = APIKeysTable
+	ValidatorProfilesTable.ForeignKeys[0].RefTable = UsersTable
 	VerificationTokensTable.ForeignKeys[0].RefTable = UsersTable
 	LockOrderFulfillmentValidatorsTable.ForeignKeys[0].RefTable = LockOrderFulfillmentsTable
 	LockOrderFulfillmentValidatorsTable.ForeignKeys[1].RefTable = ValidatorProfilesTable

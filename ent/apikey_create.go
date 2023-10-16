@@ -13,9 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
-	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 	"github.com/paycrest/paycrest-protocol/ent/user"
-	"github.com/paycrest/paycrest-protocol/ent/validatorprofile"
 )
 
 // APIKeyCreate is the builder for creating a APIKey entity.
@@ -23,18 +21,6 @@ type APIKeyCreate struct {
 	config
 	mutation *APIKeyMutation
 	hooks    []Hook
-}
-
-// SetName sets the "name" field.
-func (akc *APIKeyCreate) SetName(s string) *APIKeyCreate {
-	akc.mutation.SetName(s)
-	return akc
-}
-
-// SetScope sets the "scope" field.
-func (akc *APIKeyCreate) SetScope(a apikey.Scope) *APIKeyCreate {
-	akc.mutation.SetScope(a)
-	return akc
 }
 
 // SetSecret sets the "secret" field.
@@ -91,55 +77,9 @@ func (akc *APIKeyCreate) SetOwnerID(id uuid.UUID) *APIKeyCreate {
 	return akc
 }
 
-// SetNillableOwnerID sets the "owner" edge to the User entity by ID if the given value is not nil.
-func (akc *APIKeyCreate) SetNillableOwnerID(id *uuid.UUID) *APIKeyCreate {
-	if id != nil {
-		akc = akc.SetOwnerID(*id)
-	}
-	return akc
-}
-
 // SetOwner sets the "owner" edge to the User entity.
 func (akc *APIKeyCreate) SetOwner(u *User) *APIKeyCreate {
 	return akc.SetOwnerID(u.ID)
-}
-
-// SetProviderProfileID sets the "provider_profile" edge to the ProviderProfile entity by ID.
-func (akc *APIKeyCreate) SetProviderProfileID(id string) *APIKeyCreate {
-	akc.mutation.SetProviderProfileID(id)
-	return akc
-}
-
-// SetNillableProviderProfileID sets the "provider_profile" edge to the ProviderProfile entity by ID if the given value is not nil.
-func (akc *APIKeyCreate) SetNillableProviderProfileID(id *string) *APIKeyCreate {
-	if id != nil {
-		akc = akc.SetProviderProfileID(*id)
-	}
-	return akc
-}
-
-// SetProviderProfile sets the "provider_profile" edge to the ProviderProfile entity.
-func (akc *APIKeyCreate) SetProviderProfile(p *ProviderProfile) *APIKeyCreate {
-	return akc.SetProviderProfileID(p.ID)
-}
-
-// SetValidatorProfileID sets the "validator_profile" edge to the ValidatorProfile entity by ID.
-func (akc *APIKeyCreate) SetValidatorProfileID(id uuid.UUID) *APIKeyCreate {
-	akc.mutation.SetValidatorProfileID(id)
-	return akc
-}
-
-// SetNillableValidatorProfileID sets the "validator_profile" edge to the ValidatorProfile entity by ID if the given value is not nil.
-func (akc *APIKeyCreate) SetNillableValidatorProfileID(id *uuid.UUID) *APIKeyCreate {
-	if id != nil {
-		akc = akc.SetValidatorProfileID(*id)
-	}
-	return akc
-}
-
-// SetValidatorProfile sets the "validator_profile" edge to the ValidatorProfile entity.
-func (akc *APIKeyCreate) SetValidatorProfile(v *ValidatorProfile) *APIKeyCreate {
-	return akc.SetValidatorProfileID(v.ID)
 }
 
 // AddPaymentOrderIDs adds the "payment_orders" edge to the PaymentOrder entity by IDs.
@@ -208,17 +148,6 @@ func (akc *APIKeyCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (akc *APIKeyCreate) check() error {
-	if _, ok := akc.mutation.Name(); !ok {
-		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "APIKey.name"`)}
-	}
-	if _, ok := akc.mutation.Scope(); !ok {
-		return &ValidationError{Name: "scope", err: errors.New(`ent: missing required field "APIKey.scope"`)}
-	}
-	if v, ok := akc.mutation.Scope(); ok {
-		if err := apikey.ScopeValidator(v); err != nil {
-			return &ValidationError{Name: "scope", err: fmt.Errorf(`ent: validator failed for field "APIKey.scope": %w`, err)}
-		}
-	}
 	if _, ok := akc.mutation.Secret(); !ok {
 		return &ValidationError{Name: "secret", err: errors.New(`ent: missing required field "APIKey.secret"`)}
 	}
@@ -232,6 +161,9 @@ func (akc *APIKeyCreate) check() error {
 	}
 	if _, ok := akc.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "APIKey.created_at"`)}
+	}
+	if _, ok := akc.mutation.OwnerID(); !ok {
+		return &ValidationError{Name: "owner", err: errors.New(`ent: missing required edge "APIKey.owner"`)}
 	}
 	return nil
 }
@@ -268,14 +200,6 @@ func (akc *APIKeyCreate) createSpec() (*APIKey, *sqlgraph.CreateSpec) {
 		_node.ID = id
 		_spec.ID.Value = &id
 	}
-	if value, ok := akc.mutation.Name(); ok {
-		_spec.SetField(apikey.FieldName, field.TypeString, value)
-		_node.Name = value
-	}
-	if value, ok := akc.mutation.Scope(); ok {
-		_spec.SetField(apikey.FieldScope, field.TypeEnum, value)
-		_node.Scope = value
-	}
 	if value, ok := akc.mutation.Secret(); ok {
 		_spec.SetField(apikey.FieldSecret, field.TypeString, value)
 		_node.Secret = value
@@ -303,38 +227,6 @@ func (akc *APIKeyCreate) createSpec() (*APIKey, *sqlgraph.CreateSpec) {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.user_api_keys = &nodes[0]
-		_spec.Edges = append(_spec.Edges, edge)
-	}
-	if nodes := akc.mutation.ProviderProfileIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: false,
-			Table:   apikey.ProviderProfileTable,
-			Columns: []string{apikey.ProviderProfileColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(providerprofile.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges = append(_spec.Edges, edge)
-	}
-	if nodes := akc.mutation.ValidatorProfileIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: false,
-			Table:   apikey.ValidatorProfileTable,
-			Columns: []string{apikey.ValidatorProfileColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(validatorprofile.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := akc.mutation.PaymentOrdersIDs(); len(nodes) > 0 {

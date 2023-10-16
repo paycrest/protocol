@@ -12,7 +12,9 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
+	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 	"github.com/paycrest/paycrest-protocol/ent/user"
+	"github.com/paycrest/paycrest-protocol/ent/validatorprofile"
 	"github.com/paycrest/paycrest-protocol/ent/verificationtoken"
 )
 
@@ -75,6 +77,12 @@ func (uc *UserCreate) SetPassword(s string) *UserCreate {
 	return uc
 }
 
+// SetScope sets the "scope" field.
+func (uc *UserCreate) SetScope(u user.Scope) *UserCreate {
+	uc.mutation.SetScope(u)
+	return uc
+}
+
 // SetIsVerified sets the "is_verified" field.
 func (uc *UserCreate) SetIsVerified(b bool) *UserCreate {
 	uc.mutation.SetIsVerified(b)
@@ -116,6 +124,44 @@ func (uc *UserCreate) AddAPIKeys(a ...*APIKey) *UserCreate {
 		ids[i] = a[i].ID
 	}
 	return uc.AddAPIKeyIDs(ids...)
+}
+
+// SetProviderProfileID sets the "provider_profile" edge to the ProviderProfile entity by ID.
+func (uc *UserCreate) SetProviderProfileID(id string) *UserCreate {
+	uc.mutation.SetProviderProfileID(id)
+	return uc
+}
+
+// SetNillableProviderProfileID sets the "provider_profile" edge to the ProviderProfile entity by ID if the given value is not nil.
+func (uc *UserCreate) SetNillableProviderProfileID(id *string) *UserCreate {
+	if id != nil {
+		uc = uc.SetProviderProfileID(*id)
+	}
+	return uc
+}
+
+// SetProviderProfile sets the "provider_profile" edge to the ProviderProfile entity.
+func (uc *UserCreate) SetProviderProfile(p *ProviderProfile) *UserCreate {
+	return uc.SetProviderProfileID(p.ID)
+}
+
+// SetValidatorProfileID sets the "validator_profile" edge to the ValidatorProfile entity by ID.
+func (uc *UserCreate) SetValidatorProfileID(id uuid.UUID) *UserCreate {
+	uc.mutation.SetValidatorProfileID(id)
+	return uc
+}
+
+// SetNillableValidatorProfileID sets the "validator_profile" edge to the ValidatorProfile entity by ID if the given value is not nil.
+func (uc *UserCreate) SetNillableValidatorProfileID(id *uuid.UUID) *UserCreate {
+	if id != nil {
+		uc = uc.SetValidatorProfileID(*id)
+	}
+	return uc
+}
+
+// SetValidatorProfile sets the "validator_profile" edge to the ValidatorProfile entity.
+func (uc *UserCreate) SetValidatorProfile(v *ValidatorProfile) *UserCreate {
+	return uc.SetValidatorProfileID(v.ID)
 }
 
 // AddVerificationTokenIDs adds the "verification_token" edge to the VerificationToken entity by IDs.
@@ -228,6 +274,14 @@ func (uc *UserCreate) check() error {
 	if _, ok := uc.mutation.Password(); !ok {
 		return &ValidationError{Name: "password", err: errors.New(`ent: missing required field "User.password"`)}
 	}
+	if _, ok := uc.mutation.Scope(); !ok {
+		return &ValidationError{Name: "scope", err: errors.New(`ent: missing required field "User.scope"`)}
+	}
+	if v, ok := uc.mutation.Scope(); ok {
+		if err := user.ScopeValidator(v); err != nil {
+			return &ValidationError{Name: "scope", err: fmt.Errorf(`ent: validator failed for field "User.scope": %w`, err)}
+		}
+	}
 	if _, ok := uc.mutation.IsVerified(); !ok {
 		return &ValidationError{Name: "is_verified", err: errors.New(`ent: missing required field "User.is_verified"`)}
 	}
@@ -290,6 +344,10 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 		_spec.SetField(user.FieldPassword, field.TypeString, value)
 		_node.Password = value
 	}
+	if value, ok := uc.mutation.Scope(); ok {
+		_spec.SetField(user.FieldScope, field.TypeEnum, value)
+		_node.Scope = value
+	}
 	if value, ok := uc.mutation.IsVerified(); ok {
 		_spec.SetField(user.FieldIsVerified, field.TypeBool, value)
 		_node.IsVerified = value
@@ -303,6 +361,38 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := uc.mutation.ProviderProfileIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   user.ProviderProfileTable,
+			Columns: []string{user.ProviderProfileColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(providerprofile.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := uc.mutation.ValidatorProfileIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   user.ValidatorProfileTable,
+			Columns: []string{user.ValidatorProfileColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(validatorprofile.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

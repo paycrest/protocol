@@ -11,8 +11,8 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
-	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/lockorderfulfillment"
+	"github.com/paycrest/paycrest-protocol/ent/user"
 	"github.com/paycrest/paycrest-protocol/ent/validatorprofile"
 )
 
@@ -71,15 +71,15 @@ func (vpc *ValidatorProfileCreate) SetNillableID(u *uuid.UUID) *ValidatorProfile
 	return vpc
 }
 
-// SetAPIKeyID sets the "api_key" edge to the APIKey entity by ID.
-func (vpc *ValidatorProfileCreate) SetAPIKeyID(id uuid.UUID) *ValidatorProfileCreate {
-	vpc.mutation.SetAPIKeyID(id)
+// SetUserID sets the "user" edge to the User entity by ID.
+func (vpc *ValidatorProfileCreate) SetUserID(id uuid.UUID) *ValidatorProfileCreate {
+	vpc.mutation.SetUserID(id)
 	return vpc
 }
 
-// SetAPIKey sets the "api_key" edge to the APIKey entity.
-func (vpc *ValidatorProfileCreate) SetAPIKey(a *APIKey) *ValidatorProfileCreate {
-	return vpc.SetAPIKeyID(a.ID)
+// SetUser sets the "user" edge to the User entity.
+func (vpc *ValidatorProfileCreate) SetUser(u *User) *ValidatorProfileCreate {
+	return vpc.SetUserID(u.ID)
 }
 
 // AddValidatedFulfillmentIDs adds the "validated_fulfillments" edge to the LockOrderFulfillment entity by IDs.
@@ -162,8 +162,8 @@ func (vpc *ValidatorProfileCreate) check() error {
 			return &ValidationError{Name: "wallet_address", err: fmt.Errorf(`ent: validator failed for field "ValidatorProfile.wallet_address": %w`, err)}
 		}
 	}
-	if _, ok := vpc.mutation.APIKeyID(); !ok {
-		return &ValidationError{Name: "api_key", err: errors.New(`ent: missing required edge "ValidatorProfile.api_key"`)}
+	if _, ok := vpc.mutation.UserID(); !ok {
+		return &ValidationError{Name: "user", err: errors.New(`ent: missing required edge "ValidatorProfile.user"`)}
 	}
 	return nil
 }
@@ -212,21 +212,21 @@ func (vpc *ValidatorProfileCreate) createSpec() (*ValidatorProfile, *sqlgraph.Cr
 		_spec.SetField(validatorprofile.FieldWalletAddress, field.TypeString, value)
 		_node.WalletAddress = value
 	}
-	if nodes := vpc.mutation.APIKeyIDs(); len(nodes) > 0 {
+	if nodes := vpc.mutation.UserIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
 			Inverse: true,
-			Table:   validatorprofile.APIKeyTable,
-			Columns: []string{validatorprofile.APIKeyColumn},
+			Table:   validatorprofile.UserTable,
+			Columns: []string{validatorprofile.UserColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.api_key_validator_profile = &nodes[0]
+		_node.user_validator_profile = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := vpc.mutation.ValidatedFulfillmentsIDs(); len(nodes) > 0 {

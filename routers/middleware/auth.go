@@ -230,7 +230,7 @@ func ScopeMiddleware(c *gin.Context) {
 	case "provider":
 		scope = "provider"
 	case "validator":
-		scope = "validator"
+		scope = "tx_validator"
 	default:
 		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid scope", nil)
 		c.Abort()

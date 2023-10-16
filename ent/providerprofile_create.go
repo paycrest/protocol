@@ -11,7 +11,6 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
-	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/fiatcurrency"
 	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/provideravailability"
@@ -19,6 +18,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 	"github.com/paycrest/paycrest-protocol/ent/providerrating"
 	"github.com/paycrest/paycrest-protocol/ent/provisionbucket"
+	"github.com/paycrest/paycrest-protocol/ent/user"
 )
 
 // ProviderProfileCreate is the builder for creating a ProviderProfile entity.
@@ -116,15 +116,15 @@ func (ppc *ProviderProfileCreate) SetNillableID(s *string) *ProviderProfileCreat
 	return ppc
 }
 
-// SetAPIKeyID sets the "api_key" edge to the APIKey entity by ID.
-func (ppc *ProviderProfileCreate) SetAPIKeyID(id uuid.UUID) *ProviderProfileCreate {
-	ppc.mutation.SetAPIKeyID(id)
+// SetUserID sets the "user" edge to the User entity by ID.
+func (ppc *ProviderProfileCreate) SetUserID(id uuid.UUID) *ProviderProfileCreate {
+	ppc.mutation.SetUserID(id)
 	return ppc
 }
 
-// SetAPIKey sets the "api_key" edge to the APIKey entity.
-func (ppc *ProviderProfileCreate) SetAPIKey(a *APIKey) *ProviderProfileCreate {
-	return ppc.SetAPIKeyID(a.ID)
+// SetUser sets the "user" edge to the User entity.
+func (ppc *ProviderProfileCreate) SetUser(u *User) *ProviderProfileCreate {
+	return ppc.SetUserID(u.ID)
 }
 
 // SetCurrencyID sets the "currency" edge to the FiatCurrency entity by ID.
@@ -309,8 +309,8 @@ func (ppc *ProviderProfileCreate) check() error {
 	if _, ok := ppc.mutation.IsPartner(); !ok {
 		return &ValidationError{Name: "is_partner", err: errors.New(`ent: missing required field "ProviderProfile.is_partner"`)}
 	}
-	if _, ok := ppc.mutation.APIKeyID(); !ok {
-		return &ValidationError{Name: "api_key", err: errors.New(`ent: missing required edge "ProviderProfile.api_key"`)}
+	if _, ok := ppc.mutation.UserID(); !ok {
+		return &ValidationError{Name: "user", err: errors.New(`ent: missing required edge "ProviderProfile.user"`)}
 	}
 	if _, ok := ppc.mutation.CurrencyID(); !ok {
 		return &ValidationError{Name: "currency", err: errors.New(`ent: missing required edge "ProviderProfile.currency"`)}
@@ -378,21 +378,21 @@ func (ppc *ProviderProfileCreate) createSpec() (*ProviderProfile, *sqlgraph.Crea
 		_spec.SetField(providerprofile.FieldIsPartner, field.TypeBool, value)
 		_node.IsPartner = value
 	}
-	if nodes := ppc.mutation.APIKeyIDs(); len(nodes) > 0 {
+	if nodes := ppc.mutation.UserIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
 			Inverse: true,
-			Table:   providerprofile.APIKeyTable,
-			Columns: []string{providerprofile.APIKeyColumn},
+			Table:   providerprofile.UserTable,
+			Columns: []string{providerprofile.UserColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.api_key_provider_profile = &nodes[0]
+		_node.user_provider_profile = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := ppc.mutation.CurrencyIDs(); len(nodes) > 0 {
