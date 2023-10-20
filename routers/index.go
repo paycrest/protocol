@@ -35,48 +35,52 @@ func RegisterRoutes(route *gin.Engine) {
 }
 
 func authRoutes(route *gin.Engine) {
-	var ctrl accounts.AuthController
+	var authCtrl accounts.AuthController
+	var profileCtrl accounts.ProfileController
 
-	v1 := route.Group("/v1/auth/")
-	v1.POST("register/", ctrl.Register)
-	v1.POST("login/", ctrl.Login)
-	v1.POST("confirm-account/", ctrl.ConfirmEmail)
-	v1.POST("resend-token/", ctrl.ResendVerificationToken)
-	v1.POST("refresh/", middleware.JWTMiddleware, ctrl.RefreshJWT)
-	v1.GET("api-keys/", middleware.JWTMiddleware, ctrl.ListAPIKeys)
-	v1.DELETE("api-keys/:id", middleware.JWTMiddleware, ctrl.DeleteAPIKey)
+	v1 := route.Group("/v1/")
+	v1.POST("auth/register/", authCtrl.Register)
+	v1.POST("auth/login/", authCtrl.Login)
+	v1.POST("auth/confirm-account/", authCtrl.ConfirmEmail)
+	v1.POST("auth/resend-token/", authCtrl.ResendVerificationToken)
+	v1.POST("auth/refresh/", middleware.JWTMiddleware, authCtrl.RefreshJWT)
+	v1.GET("auth/api-keys/", middleware.JWTMiddleware, authCtrl.ListAPIKeys)
+	v1.DELETE("auth/api-keys/:id", middleware.JWTMiddleware, authCtrl.DeleteAPIKey)
+
+	v1.GET("settings/validator", middleware.JWTMiddleware, profileCtrl.GetValidatorProfile)
+	v1.PATCH("settings/validator", middleware.JWTMiddleware, profileCtrl.UpdateValidatorProfile)
 }
 
 func senderRoutes(route *gin.Engine) {
-	var ctrl sender.SenderController
+	var senderCtrl sender.SenderController
 
-	v1 := route.Group("/v1/sender/")
+	v1 := route.Group("/v1/")
 	v1.Use(middleware.HMACVerificationMiddleware)
 	v1.Use(middleware.OnlySenderMiddleware)
 
-	v1.POST("orders/", ctrl.CreatePaymentOrder)
-	v1.GET("orders/:id", ctrl.GetPaymentOrderByID)
+	v1.POST("orders/", senderCtrl.CreatePaymentOrder)
+	v1.GET("orders/:id", senderCtrl.GetPaymentOrderByID)
 }
 
 func providerRoutes(route *gin.Engine) {
-	var ctrl provider.ProviderController
+	var providerCtrl provider.ProviderController
 
-	v1 := route.Group("/v1/provider/")
+	v1 := route.Group("/v1/")
 	v1.Use(middleware.DynamicAuthMiddleware)
 	v1.Use(middleware.OnlyProviderMiddleware)
 
-	v1.GET("orders/", ctrl.GetOrders)
-	v1.POST("orders/:id/accept", ctrl.AcceptOrder)
-	v1.POST("orders/:id/decline", ctrl.DeclineOrder)
-	v1.POST("orders/:id/fulfill", ctrl.FulfillOrder)
-	v1.POST("orders/:id/cancel", ctrl.CancelOrder)
-	v1.GET("rates/:token/:fiat_symbol", ctrl.GetMarketRate)
+	v1.GET("orders/", providerCtrl.GetOrders)
+	v1.POST("orders/:id/accept", providerCtrl.AcceptOrder)
+	v1.POST("orders/:id/decline", providerCtrl.DeclineOrder)
+	v1.POST("orders/:id/fulfill", providerCtrl.FulfillOrder)
+	v1.POST("orders/:id/cancel", providerCtrl.CancelOrder)
+	v1.GET("rates/:token/:fiat_symbol", providerCtrl.GetMarketRate)
 }
 
 func validatorRoutes(route *gin.Engine) {
 	var ctrl controllers.Controller
 
-	v1 := route.Group("/v1/validator/")
+	v1 := route.Group("/v1/")
 	v1.Use(middleware.HMACVerificationMiddleware)
 	v1.Use(middleware.OnlyValidatorMiddleware)
 

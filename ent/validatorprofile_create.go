@@ -57,6 +57,28 @@ func (vpc *ValidatorProfileCreate) SetWalletAddress(s string) *ValidatorProfileC
 	return vpc
 }
 
+// SetNillableWalletAddress sets the "wallet_address" field if the given value is not nil.
+func (vpc *ValidatorProfileCreate) SetNillableWalletAddress(s *string) *ValidatorProfileCreate {
+	if s != nil {
+		vpc.SetWalletAddress(*s)
+	}
+	return vpc
+}
+
+// SetHostIdentifier sets the "host_identifier" field.
+func (vpc *ValidatorProfileCreate) SetHostIdentifier(s string) *ValidatorProfileCreate {
+	vpc.mutation.SetHostIdentifier(s)
+	return vpc
+}
+
+// SetNillableHostIdentifier sets the "host_identifier" field if the given value is not nil.
+func (vpc *ValidatorProfileCreate) SetNillableHostIdentifier(s *string) *ValidatorProfileCreate {
+	if s != nil {
+		vpc.SetHostIdentifier(*s)
+	}
+	return vpc
+}
+
 // SetID sets the "id" field.
 func (vpc *ValidatorProfileCreate) SetID(u uuid.UUID) *ValidatorProfileCreate {
 	vpc.mutation.SetID(u)
@@ -154,14 +176,6 @@ func (vpc *ValidatorProfileCreate) check() error {
 	if _, ok := vpc.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "ValidatorProfile.updated_at"`)}
 	}
-	if _, ok := vpc.mutation.WalletAddress(); !ok {
-		return &ValidationError{Name: "wallet_address", err: errors.New(`ent: missing required field "ValidatorProfile.wallet_address"`)}
-	}
-	if v, ok := vpc.mutation.WalletAddress(); ok {
-		if err := validatorprofile.WalletAddressValidator(v); err != nil {
-			return &ValidationError{Name: "wallet_address", err: fmt.Errorf(`ent: validator failed for field "ValidatorProfile.wallet_address": %w`, err)}
-		}
-	}
 	if _, ok := vpc.mutation.UserID(); !ok {
 		return &ValidationError{Name: "user", err: errors.New(`ent: missing required edge "ValidatorProfile.user"`)}
 	}
@@ -211,6 +225,10 @@ func (vpc *ValidatorProfileCreate) createSpec() (*ValidatorProfile, *sqlgraph.Cr
 	if value, ok := vpc.mutation.WalletAddress(); ok {
 		_spec.SetField(validatorprofile.FieldWalletAddress, field.TypeString, value)
 		_node.WalletAddress = value
+	}
+	if value, ok := vpc.mutation.HostIdentifier(); ok {
+		_spec.SetField(validatorprofile.FieldHostIdentifier, field.TypeString, value)
+		_node.HostIdentifier = value
 	}
 	if nodes := vpc.mutation.UserIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

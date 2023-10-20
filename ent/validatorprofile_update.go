@@ -42,6 +42,40 @@ func (vpu *ValidatorProfileUpdate) SetWalletAddress(s string) *ValidatorProfileU
 	return vpu
 }
 
+// SetNillableWalletAddress sets the "wallet_address" field if the given value is not nil.
+func (vpu *ValidatorProfileUpdate) SetNillableWalletAddress(s *string) *ValidatorProfileUpdate {
+	if s != nil {
+		vpu.SetWalletAddress(*s)
+	}
+	return vpu
+}
+
+// ClearWalletAddress clears the value of the "wallet_address" field.
+func (vpu *ValidatorProfileUpdate) ClearWalletAddress() *ValidatorProfileUpdate {
+	vpu.mutation.ClearWalletAddress()
+	return vpu
+}
+
+// SetHostIdentifier sets the "host_identifier" field.
+func (vpu *ValidatorProfileUpdate) SetHostIdentifier(s string) *ValidatorProfileUpdate {
+	vpu.mutation.SetHostIdentifier(s)
+	return vpu
+}
+
+// SetNillableHostIdentifier sets the "host_identifier" field if the given value is not nil.
+func (vpu *ValidatorProfileUpdate) SetNillableHostIdentifier(s *string) *ValidatorProfileUpdate {
+	if s != nil {
+		vpu.SetHostIdentifier(*s)
+	}
+	return vpu
+}
+
+// ClearHostIdentifier clears the value of the "host_identifier" field.
+func (vpu *ValidatorProfileUpdate) ClearHostIdentifier() *ValidatorProfileUpdate {
+	vpu.mutation.ClearHostIdentifier()
+	return vpu
+}
+
 // AddValidatedFulfillmentIDs adds the "validated_fulfillments" edge to the LockOrderFulfillment entity by IDs.
 func (vpu *ValidatorProfileUpdate) AddValidatedFulfillmentIDs(ids ...uuid.UUID) *ValidatorProfileUpdate {
 	vpu.mutation.AddValidatedFulfillmentIDs(ids...)
@@ -121,11 +155,6 @@ func (vpu *ValidatorProfileUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (vpu *ValidatorProfileUpdate) check() error {
-	if v, ok := vpu.mutation.WalletAddress(); ok {
-		if err := validatorprofile.WalletAddressValidator(v); err != nil {
-			return &ValidationError{Name: "wallet_address", err: fmt.Errorf(`ent: validator failed for field "ValidatorProfile.wallet_address": %w`, err)}
-		}
-	}
 	if _, ok := vpu.mutation.UserID(); vpu.mutation.UserCleared() && !ok {
 		return errors.New(`ent: clearing a required unique edge "ValidatorProfile.user"`)
 	}
@@ -149,6 +178,15 @@ func (vpu *ValidatorProfileUpdate) sqlSave(ctx context.Context) (n int, err erro
 	}
 	if value, ok := vpu.mutation.WalletAddress(); ok {
 		_spec.SetField(validatorprofile.FieldWalletAddress, field.TypeString, value)
+	}
+	if vpu.mutation.WalletAddressCleared() {
+		_spec.ClearField(validatorprofile.FieldWalletAddress, field.TypeString)
+	}
+	if value, ok := vpu.mutation.HostIdentifier(); ok {
+		_spec.SetField(validatorprofile.FieldHostIdentifier, field.TypeString, value)
+	}
+	if vpu.mutation.HostIdentifierCleared() {
+		_spec.ClearField(validatorprofile.FieldHostIdentifier, field.TypeString)
 	}
 	if vpu.mutation.ValidatedFulfillmentsCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -224,6 +262,40 @@ func (vpuo *ValidatorProfileUpdateOne) SetUpdatedAt(t time.Time) *ValidatorProfi
 // SetWalletAddress sets the "wallet_address" field.
 func (vpuo *ValidatorProfileUpdateOne) SetWalletAddress(s string) *ValidatorProfileUpdateOne {
 	vpuo.mutation.SetWalletAddress(s)
+	return vpuo
+}
+
+// SetNillableWalletAddress sets the "wallet_address" field if the given value is not nil.
+func (vpuo *ValidatorProfileUpdateOne) SetNillableWalletAddress(s *string) *ValidatorProfileUpdateOne {
+	if s != nil {
+		vpuo.SetWalletAddress(*s)
+	}
+	return vpuo
+}
+
+// ClearWalletAddress clears the value of the "wallet_address" field.
+func (vpuo *ValidatorProfileUpdateOne) ClearWalletAddress() *ValidatorProfileUpdateOne {
+	vpuo.mutation.ClearWalletAddress()
+	return vpuo
+}
+
+// SetHostIdentifier sets the "host_identifier" field.
+func (vpuo *ValidatorProfileUpdateOne) SetHostIdentifier(s string) *ValidatorProfileUpdateOne {
+	vpuo.mutation.SetHostIdentifier(s)
+	return vpuo
+}
+
+// SetNillableHostIdentifier sets the "host_identifier" field if the given value is not nil.
+func (vpuo *ValidatorProfileUpdateOne) SetNillableHostIdentifier(s *string) *ValidatorProfileUpdateOne {
+	if s != nil {
+		vpuo.SetHostIdentifier(*s)
+	}
+	return vpuo
+}
+
+// ClearHostIdentifier clears the value of the "host_identifier" field.
+func (vpuo *ValidatorProfileUpdateOne) ClearHostIdentifier() *ValidatorProfileUpdateOne {
+	vpuo.mutation.ClearHostIdentifier()
 	return vpuo
 }
 
@@ -319,11 +391,6 @@ func (vpuo *ValidatorProfileUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (vpuo *ValidatorProfileUpdateOne) check() error {
-	if v, ok := vpuo.mutation.WalletAddress(); ok {
-		if err := validatorprofile.WalletAddressValidator(v); err != nil {
-			return &ValidationError{Name: "wallet_address", err: fmt.Errorf(`ent: validator failed for field "ValidatorProfile.wallet_address": %w`, err)}
-		}
-	}
 	if _, ok := vpuo.mutation.UserID(); vpuo.mutation.UserCleared() && !ok {
 		return errors.New(`ent: clearing a required unique edge "ValidatorProfile.user"`)
 	}
@@ -364,6 +431,15 @@ func (vpuo *ValidatorProfileUpdateOne) sqlSave(ctx context.Context) (_node *Vali
 	}
 	if value, ok := vpuo.mutation.WalletAddress(); ok {
 		_spec.SetField(validatorprofile.FieldWalletAddress, field.TypeString, value)
+	}
+	if vpuo.mutation.WalletAddressCleared() {
+		_spec.ClearField(validatorprofile.FieldWalletAddress, field.TypeString)
+	}
+	if value, ok := vpuo.mutation.HostIdentifier(); ok {
+		_spec.SetField(validatorprofile.FieldHostIdentifier, field.TypeString, value)
+	}
+	if vpuo.mutation.HostIdentifierCleared() {
+		_spec.ClearField(validatorprofile.FieldHostIdentifier, field.TypeString)
 	}
 	if vpuo.mutation.ValidatedFulfillmentsCleared() {
 		edge := &sqlgraph.EdgeSpec{
