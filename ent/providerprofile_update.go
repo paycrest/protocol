@@ -73,6 +73,14 @@ func (ppu *ProviderProfileUpdate) SetProvisionMode(pm providerprofile.ProvisionM
 	return ppu
 }
 
+// SetNillableProvisionMode sets the "provision_mode" field if the given value is not nil.
+func (ppu *ProviderProfileUpdate) SetNillableProvisionMode(pm *providerprofile.ProvisionMode) *ProviderProfileUpdate {
+	if pm != nil {
+		ppu.SetProvisionMode(*pm)
+	}
+	return ppu
+}
+
 // SetIsPartner sets the "is_partner" field.
 func (ppu *ProviderProfileUpdate) SetIsPartner(b bool) *ProviderProfileUpdate {
 	ppu.mutation.SetIsPartner(b)
@@ -631,6 +639,14 @@ func (ppuo *ProviderProfileUpdateOne) ClearHostIdentifier() *ProviderProfileUpda
 // SetProvisionMode sets the "provision_mode" field.
 func (ppuo *ProviderProfileUpdateOne) SetProvisionMode(pm providerprofile.ProvisionMode) *ProviderProfileUpdateOne {
 	ppuo.mutation.SetProvisionMode(pm)
+	return ppuo
+}
+
+// SetNillableProvisionMode sets the "provision_mode" field if the given value is not nil.
+func (ppuo *ProviderProfileUpdateOne) SetNillableProvisionMode(pm *providerprofile.ProvisionMode) *ProviderProfileUpdateOne {
+	if pm != nil {
+		ppuo.SetProvisionMode(*pm)
+	}
 	return ppuo
 }
 

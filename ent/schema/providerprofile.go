@@ -32,7 +32,8 @@ func (ProviderProfile) Fields() []ent.Field {
 		field.String("host_identifier").
 			Optional(),
 		field.Enum("provision_mode").
-			Values("manual", "auto"),
+			Values("manual", "auto").
+			Default("auto"),
 		field.Bool("is_partner").Default(false),
 	}
 }

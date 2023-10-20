@@ -270,7 +270,7 @@ var (
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "trading_name", Type: field.TypeString, Size: 80},
 		{Name: "host_identifier", Type: field.TypeString, Nullable: true},
-		{Name: "provision_mode", Type: field.TypeEnum, Enums: []string{"manual", "auto"}},
+		{Name: "provision_mode", Type: field.TypeEnum, Enums: []string{"manual", "auto"}, Default: "auto"},
 		{Name: "is_partner", Type: field.TypeBool, Default: false},
 		{Name: "fiat_currency_provider", Type: field.TypeUUID, Unique: true},
 		{Name: "user_provider_profile", Type: field.TypeUUID, Unique: true},
