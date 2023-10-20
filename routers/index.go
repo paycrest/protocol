@@ -47,8 +47,18 @@ func authRoutes(route *gin.Engine) {
 	v1.GET("auth/api-keys/", middleware.JWTMiddleware, authCtrl.ListAPIKeys)
 	v1.DELETE("auth/api-keys/:id", middleware.JWTMiddleware, authCtrl.DeleteAPIKey)
 
-	v1.GET("settings/validator", middleware.JWTMiddleware, profileCtrl.GetValidatorProfile)
-	v1.PATCH("settings/validator", middleware.JWTMiddleware, profileCtrl.UpdateValidatorProfile)
+	v1.GET(
+		"settings/validator",
+		middleware.JWTMiddleware,
+		middleware.OnlyValidatorMiddleware,
+		profileCtrl.GetValidatorProfile,
+	)
+	v1.PATCH(
+		"settings/validator",
+		middleware.JWTMiddleware,
+		middleware.OnlyValidatorMiddleware,
+		profileCtrl.UpdateValidatorProfile,
+	)
 }
 
 func senderRoutes(route *gin.Engine) {

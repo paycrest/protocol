@@ -31,15 +31,21 @@ func (ctrl *ProfileController) UpdateValidatorProfile(ctx *gin.Context) {
 	}
 	validator := validatorCtx.(*ent.ValidatorProfile)
 
+	update := validator.Update()
+
 	if payload.WalletAddress != "" {
-		validator.WalletAddress = payload.WalletAddress
+		update.SetWalletAddress(payload.WalletAddress)
 	}
 
 	if payload.HostIdentifier != "" {
-		validator.HostIdentifier = payload.HostIdentifier
+		update.SetHostIdentifier(payload.HostIdentifier)
 	}
 
-	validator.Update().Save(ctx)
+	_, err := update.Save(ctx)
+	if err != nil {
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update profile", nil)
+		return
+	}
 
 	u.APIResponse(ctx, http.StatusOK, "success", "Profile updated successfully", nil)
 }

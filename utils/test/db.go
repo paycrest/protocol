@@ -173,9 +173,10 @@ func CreateTestValidatorProfile(overrides map[string]interface{}) (*ent.Validato
 
 	// Default payload
 	payload := map[string]interface{}{
-		"id":             uuid.New(),
-		"wallet_address": "0x000000000000000000000000000000000000dEaD",
-		"user_id":        nil,
+		"id":              uuid.New(),
+		"wallet_address":  "0x000000000000000000000000000000000000dEaD",
+		"host_identifier": "example.com",
+		"user_id":         nil,
 	}
 
 	// Apply overrides
@@ -188,6 +189,7 @@ func CreateTestValidatorProfile(overrides map[string]interface{}) (*ent.Validato
 		Create().
 		SetID(payload["id"].(uuid.UUID)).
 		SetWalletAddress(payload["wallet_address"].(string)).
+		SetHostIdentifier(payload["host_identifier"].(string)).
 		SetUserID(payload["user_id"].(uuid.UUID)).
 		Save(context.Background())
 

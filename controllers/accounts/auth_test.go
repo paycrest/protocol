@@ -119,7 +119,7 @@ func TestAuth(t *testing.T) {
 			assert.NoError(t, err)
 
 			headers := map[string]string{
-				"Client-Type": "frontend",
+				"Client-Type": "mobile",
 			}
 
 			res, err := test.PerformRequest(t, "POST", "/register?scope=provider", payload, headers, router)
