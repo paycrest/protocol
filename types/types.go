@@ -115,6 +115,7 @@ type ValidatorProfilePayload struct {
 	HostIdentifier string `json:"host_identifier"`
 }
 
+// ValidatorProfileResponse is the response for the validator profile endpoint
 type ValidatorProfileResponse struct {
 	ID             uuid.UUID `json:"id"`
 	WalletAddress  string    `json:"wallet_address"`

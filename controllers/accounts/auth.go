@@ -119,7 +119,8 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 	}
 
 	// Create a provider profile
-	if scope == userEnt.ScopeProvider && ctx.GetHeader("Client-Type") == "frontend" {
+	clientType := ctx.GetHeader("Client-Type")
+	if scope == userEnt.ScopeProvider && (clientType == "web" || clientType == "mobile") {
 		// Fetch currency
 		currency, err := tx.FiatCurrency.
 			Query().
