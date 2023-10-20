@@ -344,10 +344,6 @@ func init() {
 	validatorprofile.DefaultUpdatedAt = validatorprofileDescUpdatedAt.Default.(func() time.Time)
 	// validatorprofile.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	validatorprofile.UpdateDefaultUpdatedAt = validatorprofileDescUpdatedAt.UpdateDefault.(func() time.Time)
-	// validatorprofileDescWalletAddress is the schema descriptor for wallet_address field.
-	validatorprofileDescWalletAddress := validatorprofileFields[1].Descriptor()
-	// validatorprofile.WalletAddressValidator is a validator for the "wallet_address" field. It is called by the builders before save.
-	validatorprofile.WalletAddressValidator = validatorprofileDescWalletAddress.Validators[0].(func(string) error)
 	// validatorprofileDescID is the schema descriptor for id field.
 	validatorprofileDescID := validatorprofileFields[0].Descriptor()
 	// validatorprofile.DefaultID holds the default value on creation for the id field.

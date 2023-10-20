@@ -168,7 +168,6 @@ func (ctrl *Controller) ValidateOrder(ctx *gin.Context) {
 	// Get validator profile from the context
 	validatorCtx, ok := ctx.Get("validator")
 	if !ok {
-		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid API key", nil)
 		return
 	}

@@ -13805,6 +13805,7 @@ type ValidatorProfileMutation struct {
 	created_at                    *time.Time
 	updated_at                    *time.Time
 	wallet_address                *string
+	host_identifier               *string
 	clearedFields                 map[string]struct{}
 	user                          *uuid.UUID
 	cleareduser                   bool
@@ -14023,9 +14024,71 @@ func (m *ValidatorProfileMutation) OldWalletAddress(ctx context.Context) (v stri
 	return oldValue.WalletAddress, nil
 }
 
+// ClearWalletAddress clears the value of the "wallet_address" field.
+func (m *ValidatorProfileMutation) ClearWalletAddress() {
+	m.wallet_address = nil
+	m.clearedFields[validatorprofile.FieldWalletAddress] = struct{}{}
+}
+
+// WalletAddressCleared returns if the "wallet_address" field was cleared in this mutation.
+func (m *ValidatorProfileMutation) WalletAddressCleared() bool {
+	_, ok := m.clearedFields[validatorprofile.FieldWalletAddress]
+	return ok
+}
+
 // ResetWalletAddress resets all changes to the "wallet_address" field.
 func (m *ValidatorProfileMutation) ResetWalletAddress() {
 	m.wallet_address = nil
+	delete(m.clearedFields, validatorprofile.FieldWalletAddress)
+}
+
+// SetHostIdentifier sets the "host_identifier" field.
+func (m *ValidatorProfileMutation) SetHostIdentifier(s string) {
+	m.host_identifier = &s
+}
+
+// HostIdentifier returns the value of the "host_identifier" field in the mutation.
+func (m *ValidatorProfileMutation) HostIdentifier() (r string, exists bool) {
+	v := m.host_identifier
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldHostIdentifier returns the old "host_identifier" field's value of the ValidatorProfile entity.
+// If the ValidatorProfile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ValidatorProfileMutation) OldHostIdentifier(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldHostIdentifier is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldHostIdentifier requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldHostIdentifier: %w", err)
+	}
+	return oldValue.HostIdentifier, nil
+}
+
+// ClearHostIdentifier clears the value of the "host_identifier" field.
+func (m *ValidatorProfileMutation) ClearHostIdentifier() {
+	m.host_identifier = nil
+	m.clearedFields[validatorprofile.FieldHostIdentifier] = struct{}{}
+}
+
+// HostIdentifierCleared returns if the "host_identifier" field was cleared in this mutation.
+func (m *ValidatorProfileMutation) HostIdentifierCleared() bool {
+	_, ok := m.clearedFields[validatorprofile.FieldHostIdentifier]
+	return ok
+}
+
+// ResetHostIdentifier resets all changes to the "host_identifier" field.
+func (m *ValidatorProfileMutation) ResetHostIdentifier() {
+	m.host_identifier = nil
+	delete(m.clearedFields, validatorprofile.FieldHostIdentifier)
 }
 
 // SetUserID sets the "user" edge to the User entity by id.
@@ -14155,7 +14218,7 @@ func (m *ValidatorProfileMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ValidatorProfileMutation) Fields() []string {
-	fields := make([]string, 0, 3)
+	fields := make([]string, 0, 4)
 	if m.created_at != nil {
 		fields = append(fields, validatorprofile.FieldCreatedAt)
 	}
@@ -14164,6 +14227,9 @@ func (m *ValidatorProfileMutation) Fields() []string {
 	}
 	if m.wallet_address != nil {
 		fields = append(fields, validatorprofile.FieldWalletAddress)
+	}
+	if m.host_identifier != nil {
+		fields = append(fields, validatorprofile.FieldHostIdentifier)
 	}
 	return fields
 }
@@ -14179,6 +14245,8 @@ func (m *ValidatorProfileMutation) Field(name string) (ent.Value, bool) {
 		return m.UpdatedAt()
 	case validatorprofile.FieldWalletAddress:
 		return m.WalletAddress()
+	case validatorprofile.FieldHostIdentifier:
+		return m.HostIdentifier()
 	}
 	return nil, false
 }
@@ -14194,6 +14262,8 @@ func (m *ValidatorProfileMutation) OldField(ctx context.Context, name string) (e
 		return m.OldUpdatedAt(ctx)
 	case validatorprofile.FieldWalletAddress:
 		return m.OldWalletAddress(ctx)
+	case validatorprofile.FieldHostIdentifier:
+		return m.OldHostIdentifier(ctx)
 	}
 	return nil, fmt.Errorf("unknown ValidatorProfile field %s", name)
 }
@@ -14224,6 +14294,13 @@ func (m *ValidatorProfileMutation) SetField(name string, value ent.Value) error 
 		}
 		m.SetWalletAddress(v)
 		return nil
+	case validatorprofile.FieldHostIdentifier:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetHostIdentifier(v)
+		return nil
 	}
 	return fmt.Errorf("unknown ValidatorProfile field %s", name)
 }
@@ -14253,7 +14330,14 @@ func (m *ValidatorProfileMutation) AddField(name string, value ent.Value) error 
 // ClearedFields returns all nullable fields that were cleared during this
 // mutation.
 func (m *ValidatorProfileMutation) ClearedFields() []string {
-	return nil
+	var fields []string
+	if m.FieldCleared(validatorprofile.FieldWalletAddress) {
+		fields = append(fields, validatorprofile.FieldWalletAddress)
+	}
+	if m.FieldCleared(validatorprofile.FieldHostIdentifier) {
+		fields = append(fields, validatorprofile.FieldHostIdentifier)
+	}
+	return fields
 }
 
 // FieldCleared returns a boolean indicating if a field with the given name was
@@ -14266,6 +14350,14 @@ func (m *ValidatorProfileMutation) FieldCleared(name string) bool {
 // ClearField clears the value of the field with the given name. It returns an
 // error if the field is not defined in the schema.
 func (m *ValidatorProfileMutation) ClearField(name string) error {
+	switch name {
+	case validatorprofile.FieldWalletAddress:
+		m.ClearWalletAddress()
+		return nil
+	case validatorprofile.FieldHostIdentifier:
+		m.ClearHostIdentifier()
+		return nil
+	}
 	return fmt.Errorf("unknown ValidatorProfile nullable field %s", name)
 }
 
@@ -14281,6 +14373,9 @@ func (m *ValidatorProfileMutation) ResetField(name string) error {
 		return nil
 	case validatorprofile.FieldWalletAddress:
 		m.ResetWalletAddress()
+		return nil
+	case validatorprofile.FieldHostIdentifier:
+		m.ResetHostIdentifier()
 		return nil
 	}
 	return fmt.Errorf("unknown ValidatorProfile field %s", name)

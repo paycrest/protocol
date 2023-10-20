@@ -46,7 +46,6 @@ func (ctrl *ProviderController) AcceptOrder(ctx *gin.Context) {
 	// Get provider profile from the context
 	providerCtx, ok := ctx.Get("provider")
 	if !ok {
-		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid API key", nil)
 		return
 	}
@@ -87,7 +86,6 @@ func (ctrl *ProviderController) DeclineOrder(ctx *gin.Context) {
 	// Get provider profile from the context
 	providerCtx, ok := ctx.Get("provider")
 	if !ok {
-		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid API key", nil)
 		return
 	}
@@ -199,7 +197,6 @@ func (ctrl *ProviderController) CancelOrder(ctx *gin.Context) {
 	// Get provider profile from the context
 	providerCtx, ok := ctx.Get("provider")
 	if !ok {
-		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid API key", nil)
 		return
 	}

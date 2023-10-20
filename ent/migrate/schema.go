@@ -434,7 +434,8 @@ var (
 		{Name: "id", Type: field.TypeUUID},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
-		{Name: "wallet_address", Type: field.TypeString, Size: 80},
+		{Name: "wallet_address", Type: field.TypeString, Nullable: true},
+		{Name: "host_identifier", Type: field.TypeString, Nullable: true},
 		{Name: "user_validator_profile", Type: field.TypeUUID, Unique: true},
 	}
 	// ValidatorProfilesTable holds the schema information for the "validator_profiles" table.
@@ -445,7 +446,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "validator_profiles_users_validator_profile",
-				Columns:    []*schema.Column{ValidatorProfilesColumns[4]},
+				Columns:    []*schema.Column{ValidatorProfilesColumns[5]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.Cascade,
 			},

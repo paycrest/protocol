@@ -109,14 +109,21 @@ type RefreshJWTPayload struct {
 	RefreshToken string `json:"refreshToken" binding:"required"`
 }
 
+// ValidatorProfilePayload is the payload for the validator profile endpoint
+type ValidatorProfilePayload struct {
+	WalletAddress  string `json:"wallet_address"`
+	HostIdentifier string `json:"host_identifier"`
+}
+
+type ValidatorProfileResponse struct {
+	ID             uuid.UUID `json:"id"`
+	WalletAddress  string    `json:"wallet_address"`
+	HostIdentifier string    `json:"host_identifier"`
+}
+
 // RefreshResponse is the response for the refresh endpoint
 type RefreshResponse struct {
 	AccessToken string `json:"accessToken"`
-}
-
-// CreateAPIKeyPayload is the payload for the generate API key endpoint
-type CreateAPIKeyPayload struct {
-	Name string `json:"name" binding:"required"`
 }
 
 // APIKeyResponse is the response type for an API key

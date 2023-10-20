@@ -24,7 +24,10 @@ func (ValidatorProfile) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
 			Default(uuid.New),
-		field.String("wallet_address").MaxLen(80),
+		field.String("wallet_address").
+			Optional(),
+		field.String("host_identifier").
+			Optional(),
 	}
 }
 

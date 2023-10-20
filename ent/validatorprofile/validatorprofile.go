@@ -21,6 +21,8 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// FieldWalletAddress holds the string denoting the wallet_address field in the database.
 	FieldWalletAddress = "wallet_address"
+	// FieldHostIdentifier holds the string denoting the host_identifier field in the database.
+	FieldHostIdentifier = "host_identifier"
 	// EdgeUser holds the string denoting the user edge name in mutations.
 	EdgeUser = "user"
 	// EdgeValidatedFulfillments holds the string denoting the validated_fulfillments edge name in mutations.
@@ -47,6 +49,7 @@ var Columns = []string{
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldWalletAddress,
+	FieldHostIdentifier,
 }
 
 // ForeignKeys holds the SQL foreign-keys that are owned by the "validator_profiles"
@@ -83,8 +86,6 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
-	// WalletAddressValidator is a validator for the "wallet_address" field. It is called by the builders before save.
-	WalletAddressValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() uuid.UUID
 )
@@ -110,6 +111,11 @@ func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByWalletAddress orders the results by the wallet_address field.
 func ByWalletAddress(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldWalletAddress, opts...).ToFunc()
+}
+
+// ByHostIdentifier orders the results by the host_identifier field.
+func ByHostIdentifier(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldHostIdentifier, opts...).ToFunc()
 }
 
 // ByUserField orders the results by user field.

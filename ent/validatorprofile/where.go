@@ -71,6 +71,11 @@ func WalletAddress(v string) predicate.ValidatorProfile {
 	return predicate.ValidatorProfile(sql.FieldEQ(FieldWalletAddress, v))
 }
 
+// HostIdentifier applies equality check predicate on the "host_identifier" field. It's identical to HostIdentifierEQ.
+func HostIdentifier(v string) predicate.ValidatorProfile {
+	return predicate.ValidatorProfile(sql.FieldEQ(FieldHostIdentifier, v))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.ValidatorProfile {
 	return predicate.ValidatorProfile(sql.FieldEQ(FieldCreatedAt, v))
@@ -206,6 +211,16 @@ func WalletAddressHasSuffix(v string) predicate.ValidatorProfile {
 	return predicate.ValidatorProfile(sql.FieldHasSuffix(FieldWalletAddress, v))
 }
 
+// WalletAddressIsNil applies the IsNil predicate on the "wallet_address" field.
+func WalletAddressIsNil() predicate.ValidatorProfile {
+	return predicate.ValidatorProfile(sql.FieldIsNull(FieldWalletAddress))
+}
+
+// WalletAddressNotNil applies the NotNil predicate on the "wallet_address" field.
+func WalletAddressNotNil() predicate.ValidatorProfile {
+	return predicate.ValidatorProfile(sql.FieldNotNull(FieldWalletAddress))
+}
+
 // WalletAddressEqualFold applies the EqualFold predicate on the "wallet_address" field.
 func WalletAddressEqualFold(v string) predicate.ValidatorProfile {
 	return predicate.ValidatorProfile(sql.FieldEqualFold(FieldWalletAddress, v))
@@ -214,6 +229,81 @@ func WalletAddressEqualFold(v string) predicate.ValidatorProfile {
 // WalletAddressContainsFold applies the ContainsFold predicate on the "wallet_address" field.
 func WalletAddressContainsFold(v string) predicate.ValidatorProfile {
 	return predicate.ValidatorProfile(sql.FieldContainsFold(FieldWalletAddress, v))
+}
+
+// HostIdentifierEQ applies the EQ predicate on the "host_identifier" field.
+func HostIdentifierEQ(v string) predicate.ValidatorProfile {
+	return predicate.ValidatorProfile(sql.FieldEQ(FieldHostIdentifier, v))
+}
+
+// HostIdentifierNEQ applies the NEQ predicate on the "host_identifier" field.
+func HostIdentifierNEQ(v string) predicate.ValidatorProfile {
+	return predicate.ValidatorProfile(sql.FieldNEQ(FieldHostIdentifier, v))
+}
+
+// HostIdentifierIn applies the In predicate on the "host_identifier" field.
+func HostIdentifierIn(vs ...string) predicate.ValidatorProfile {
+	return predicate.ValidatorProfile(sql.FieldIn(FieldHostIdentifier, vs...))
+}
+
+// HostIdentifierNotIn applies the NotIn predicate on the "host_identifier" field.
+func HostIdentifierNotIn(vs ...string) predicate.ValidatorProfile {
+	return predicate.ValidatorProfile(sql.FieldNotIn(FieldHostIdentifier, vs...))
+}
+
+// HostIdentifierGT applies the GT predicate on the "host_identifier" field.
+func HostIdentifierGT(v string) predicate.ValidatorProfile {
+	return predicate.ValidatorProfile(sql.FieldGT(FieldHostIdentifier, v))
+}
+
+// HostIdentifierGTE applies the GTE predicate on the "host_identifier" field.
+func HostIdentifierGTE(v string) predicate.ValidatorProfile {
+	return predicate.ValidatorProfile(sql.FieldGTE(FieldHostIdentifier, v))
+}
+
+// HostIdentifierLT applies the LT predicate on the "host_identifier" field.
+func HostIdentifierLT(v string) predicate.ValidatorProfile {
+	return predicate.ValidatorProfile(sql.FieldLT(FieldHostIdentifier, v))
+}
+
+// HostIdentifierLTE applies the LTE predicate on the "host_identifier" field.
+func HostIdentifierLTE(v string) predicate.ValidatorProfile {
+	return predicate.ValidatorProfile(sql.FieldLTE(FieldHostIdentifier, v))
+}
+
+// HostIdentifierContains applies the Contains predicate on the "host_identifier" field.
+func HostIdentifierContains(v string) predicate.ValidatorProfile {
+	return predicate.ValidatorProfile(sql.FieldContains(FieldHostIdentifier, v))
+}
+
+// HostIdentifierHasPrefix applies the HasPrefix predicate on the "host_identifier" field.
+func HostIdentifierHasPrefix(v string) predicate.ValidatorProfile {
+	return predicate.ValidatorProfile(sql.FieldHasPrefix(FieldHostIdentifier, v))
+}
+
+// HostIdentifierHasSuffix applies the HasSuffix predicate on the "host_identifier" field.
+func HostIdentifierHasSuffix(v string) predicate.ValidatorProfile {
+	return predicate.ValidatorProfile(sql.FieldHasSuffix(FieldHostIdentifier, v))
+}
+
+// HostIdentifierIsNil applies the IsNil predicate on the "host_identifier" field.
+func HostIdentifierIsNil() predicate.ValidatorProfile {
+	return predicate.ValidatorProfile(sql.FieldIsNull(FieldHostIdentifier))
+}
+
+// HostIdentifierNotNil applies the NotNil predicate on the "host_identifier" field.
+func HostIdentifierNotNil() predicate.ValidatorProfile {
+	return predicate.ValidatorProfile(sql.FieldNotNull(FieldHostIdentifier))
+}
+
+// HostIdentifierEqualFold applies the EqualFold predicate on the "host_identifier" field.
+func HostIdentifierEqualFold(v string) predicate.ValidatorProfile {
+	return predicate.ValidatorProfile(sql.FieldEqualFold(FieldHostIdentifier, v))
+}
+
+// HostIdentifierContainsFold applies the ContainsFold predicate on the "host_identifier" field.
+func HostIdentifierContainsFold(v string) predicate.ValidatorProfile {
+	return predicate.ValidatorProfile(sql.FieldContainsFold(FieldHostIdentifier, v))
 }
 
 // HasUser applies the HasEdge predicate on the "user" edge.
