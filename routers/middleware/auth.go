@@ -198,7 +198,8 @@ func DynamicAuthMiddleware(c *gin.Context) {
 
 	// Select the authentication middleware based on the client type
 	switch clientType {
-	case "frontend":
+	case "web":
+	case "mobile":
 		JWTMiddleware(c)
 	case "backend":
 		HMACVerificationMiddleware(c)
@@ -216,9 +217,11 @@ func ScopeMiddleware(c *gin.Context) {
 	conf := config.ServerConfig()
 	var subdomain string
 
-	if conf.Debug {
+	if conf.Debug || c.GetHeader("Client-Type") == "mobile" {
+		// e.g localhost:8000?scope=sender
 		subdomain = c.Query("scope")
 	} else {
+		// e.g provider.paycrest.io
 		host := c.Request.Host
 		parts := strings.Split(host, ".")
 		subdomain = parts[0]
@@ -336,7 +339,7 @@ func OnlyValidatorMiddleware(c *gin.Context) {
 		WithValidatorProfile().
 		Only(c)
 	if err != nil {
-		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid API keyaa", nil)
+		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid API key", nil)
 		c.Abort()
 		return
 	}
