@@ -82,6 +82,14 @@ func (ppc *ProviderProfileCreate) SetProvisionMode(pm providerprofile.ProvisionM
 	return ppc
 }
 
+// SetNillableProvisionMode sets the "provision_mode" field if the given value is not nil.
+func (ppc *ProviderProfileCreate) SetNillableProvisionMode(pm *providerprofile.ProvisionMode) *ProviderProfileCreate {
+	if pm != nil {
+		ppc.SetProvisionMode(*pm)
+	}
+	return ppc
+}
+
 // SetIsPartner sets the "is_partner" field.
 func (ppc *ProviderProfileCreate) SetIsPartner(b bool) *ProviderProfileCreate {
 	ppc.mutation.SetIsPartner(b)
@@ -257,6 +265,10 @@ func (ppc *ProviderProfileCreate) defaults() {
 	if _, ok := ppc.mutation.UpdatedAt(); !ok {
 		v := providerprofile.DefaultUpdatedAt()
 		ppc.mutation.SetUpdatedAt(v)
+	}
+	if _, ok := ppc.mutation.ProvisionMode(); !ok {
+		v := providerprofile.DefaultProvisionMode
+		ppc.mutation.SetProvisionMode(v)
 	}
 	if _, ok := ppc.mutation.IsPartner(); !ok {
 		v := providerprofile.DefaultIsPartner

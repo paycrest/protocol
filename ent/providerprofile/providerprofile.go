@@ -149,6 +149,9 @@ var (
 // ProvisionMode defines the type for the "provision_mode" enum field.
 type ProvisionMode string
 
+// ProvisionModeAuto is the default value of the ProvisionMode enum.
+const DefaultProvisionMode = ProvisionModeAuto
+
 // ProvisionMode values.
 const (
 	ProvisionModeManual ProvisionMode = "manual"
