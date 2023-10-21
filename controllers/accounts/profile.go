@@ -233,6 +233,40 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 	u.APIResponse(ctx, http.StatusOK, "success", "Profile updated successfully", nil)
 }
 
+func (ctrl *ProfileController) GetProviderProfile(ctx *gin.Context) {
+	// Get provider profile from the context
+	providerCtx, ok := ctx.Get("provider")
+	if !ok {
+		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid API key", nil)
+		return
+	}
+	provider := providerCtx.(*ent.ProviderProfile)
+
+	// Get availability
+	availability, err := provider.QueryAvailability().Only(ctx)
+	if err != nil {
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to retrieve profile", nil)
+		return
+	}
+
+	// Get tokens
+	tokens, err := provider.QueryOrderTokens().All(ctx)
+	if err != nil {
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to retrieve profile", nil)
+		return
+	}
+
+	u.APIResponse(ctx, http.StatusOK, "success", "Profile retrieved successfully", &types.ProviderProfileResponse{
+		ID:             provider.ID,
+		TradingName:    provider.TradingName,
+		Currency:       provider.Edges.Currency.Code,
+		HostIdentifier: provider.HostIdentifier,
+		IsPartner:      provider.IsPartner,
+		Availability:   availability,
+		Tokens:         tokens,
+	})
+}
+
 // GetValidatorProfile retrieves the validator profile
 func (ctrl *ProfileController) GetValidatorProfile(ctx *gin.Context) {
 	// Get validator profile from the context
