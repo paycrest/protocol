@@ -12,6 +12,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent"
 	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
+	"github.com/paycrest/paycrest-protocol/ent/provideravailability"
+	"github.com/paycrest/paycrest-protocol/ent/providerordertoken"
 	"github.com/shopspring/decimal"
 )
 
@@ -113,6 +115,37 @@ type RefreshJWTPayload struct {
 type ValidatorProfilePayload struct {
 	WalletAddress  string `json:"wallet_address"`
 	HostIdentifier string `json:"host_identifier"`
+}
+
+// ProviderAvailabilityPayload defines the setting for a provider availability
+type ProviderAvailabilityPayload struct {
+	Cadence   provideravailability.Cadence `json:"cadence" binding:"required"`
+	StartTime time.Time                    `json:"startTime" binding:"required"`
+	EndTime   time.Time                    `json:"endTime" binding:"required"`
+}
+
+// ProviderOrderTokenPayload defines the provider setting for a token
+type ProviderOrderTokenPayload struct {
+	Symbol                 string                                `json:"symbol" binding:"required"`
+	ConversionRateType     providerordertoken.ConversionRateType `json:"conversionRateType" binding:"required"`
+	FixedConversionRate    decimal.Decimal                       `json:"fixedConversionRate" binding:"required"`
+	FloatingConversionRate decimal.Decimal                       `json:"floatingConversionRate" binding:"required"`
+	MaxOrderAmount         decimal.Decimal                       `json:"maxOrderAmount" binding:"required"`
+	MinOrderAmount         decimal.Decimal                       `json:"minOrderAmount" binding:"required"`
+	Addresses              []struct {
+		Address string `json:"address"`
+		Network string `json:"network"`
+	} `json:"addresses"`
+}
+
+// ProviderProfilePayload is the payload for the provider profile endpoint
+type ProviderProfilePayload struct {
+	TradingName    string                      `json:"tradingName"`
+	Currency       string                      `json:"currency"`
+	HostIdentifier string                      `json:"hostIdentifier"`
+	IsPartner      bool                        `json:"isPartner"`
+	Availability   ProviderAvailabilityPayload `json:"availability"`
+	Tokens         []ProviderOrderTokenPayload `json:"tokens"`
 }
 
 // ValidatorProfileResponse is the response for the validator profile endpoint

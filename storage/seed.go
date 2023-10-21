@@ -7,7 +7,6 @@ import (
 
 	"github.com/paycrest/paycrest-protocol/ent"
 	"github.com/paycrest/paycrest-protocol/ent/fiatcurrency"
-	"github.com/paycrest/paycrest-protocol/ent/network"
 	"github.com/paycrest/paycrest-protocol/types"
 	"github.com/shopspring/decimal"
 )
@@ -35,7 +34,7 @@ func SeedDatabase() error {
 	// Seed Network
 	network, err := client.Network.
 		Create().
-		SetIdentifier(network.IdentifierPolygonMumbai).
+		SetIdentifier("polygon-mumbai").
 		SetChainID(80001).
 		SetRPCEndpoint("wss://polygon-mumbai.infura.io/ws/v3/4458cf4d1689497b9a38b1d6bbf05e78").
 		SetIsTestnet(true).

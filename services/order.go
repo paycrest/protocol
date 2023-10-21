@@ -19,7 +19,6 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/providerordertoken"
-	"github.com/paycrest/paycrest-protocol/ent/providerordertokenaddress"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 	"github.com/paycrest/paycrest-protocol/types"
 	"github.com/paycrest/paycrest-protocol/utils"
@@ -191,22 +190,28 @@ func (s *OrderService) SettleOrder(ctx context.Context, client types.RPCClient, 
 	}
 
 	// Fetch provider address from db
-	providerAddress, err := db.Client.ProviderOrderTokenAddress.
+	token, err := db.Client.ProviderOrderToken.
 		Query().
 		Where(
-			providerordertokenaddress.NetworkEQ(
-				providerordertokenaddress.Network(
-					order.Edges.Token.Edges.Network.Identifier,
-				),
-			),
-			providerordertokenaddress.HasProviderordertokenWith(
-				providerordertoken.HasProviderWith(
-					providerprofile.IDEQ(order.Edges.Provider.ID),
-				),
+			providerordertoken.SymbolEQ(order.Edges.Token.Symbol),
+			providerordertoken.HasProviderWith(
+				providerprofile.IDEQ(order.Edges.Provider.ID),
 			),
 		).
-		First(ctx)
+		Only(ctx)
 	if err != nil {
+		return fmt.Errorf("failed to fetch provider order token: %w", err)
+	}
+
+	var providerAddress string
+	for _, addr := range token.Addresses {
+		if addr.Network == order.Edges.Token.Edges.Network.Identifier {
+			providerAddress = addr.Address
+			break
+		}
+	}
+
+	if providerAddress == "" {
 		return fmt.Errorf("failed to fetch provider address: %w", err)
 	}
 
@@ -244,7 +249,7 @@ func (s *OrderService) SettleOrder(ctx context.Context, client types.RPCClient, 
 		utils.StringToByte32(order.ID.String()),
 		utils.StringToByte32(order.OrderID),
 		validators,
-		common.HexToAddress(providerAddress.Address),
+		common.HexToAddress(providerAddress),
 		orderPercent,
 	)
 	if err != nil {
