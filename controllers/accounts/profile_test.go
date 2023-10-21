@@ -116,6 +116,6 @@ func TestProfile(t *testing.T) {
 		assert.True(t, ok, "response.Data is not of type map[string]interface{}")
 		assert.NotNil(t, data, "response.Data is nil")
 
-		assert.Equal(t, "0x0000000000", data["wallet_address"])
+		assert.Equal(t, "0x0000000000", data["walletAddress"])
 	})
 }

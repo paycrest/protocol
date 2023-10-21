@@ -96,7 +96,6 @@ func CreateTestLockPaymentOrder(overrides map[string]interface{}) (*ent.LockPaym
 
 	// Default payload
 	payload := map[string]interface{}{
-		"id":                 uuid.New(),
 		"order_id":           "order-123",
 		"amount":             100.50,
 		"rate":               750.0,
@@ -119,7 +118,6 @@ func CreateTestLockPaymentOrder(overrides map[string]interface{}) (*ent.LockPaym
 	// Create LockPaymentOrder
 	order, err := db.Client.LockPaymentOrder.
 		Create().
-		SetID(payload["id"].(uuid.UUID)).
 		SetOrderID(payload["order_id"].(string)).
 		SetAmount(decimal.NewFromFloat(payload["amount"].(float64))).
 		SetRate(decimal.NewFromFloat(payload["rate"].(float64))).
@@ -139,7 +137,6 @@ func CreateTestLockOrderFulfillment(overrides map[string]interface{}) (*ent.Lock
 
 	// Default payload
 	payload := map[string]interface{}{
-		"id":                uuid.New(),
 		"tx_id":             "0x123...",
 		"tx_receipt_image":  "https://picsum.photos/200",
 		"confirmations":     0,
@@ -157,7 +154,6 @@ func CreateTestLockOrderFulfillment(overrides map[string]interface{}) (*ent.Lock
 	// Create LockOrderFulfillment
 	fulfillment, err := db.Client.LockOrderFulfillment.
 		Create().
-		SetID(payload["id"].(uuid.UUID)).
 		SetTxID(payload["tx_id"].(string)).
 		SetTxReceiptImage(payload["tx_receipt_image"].(string)).
 		SetConfirmations(payload["confirmations"].(int)).
@@ -173,7 +169,6 @@ func CreateTestValidatorProfile(overrides map[string]interface{}) (*ent.Validato
 
 	// Default payload
 	payload := map[string]interface{}{
-		"id":              uuid.New(),
 		"wallet_address":  "0x000000000000000000000000000000000000dEaD",
 		"host_identifier": "example.com",
 		"user_id":         nil,
@@ -187,7 +182,6 @@ func CreateTestValidatorProfile(overrides map[string]interface{}) (*ent.Validato
 	// Create ValidatorProfile
 	profile, err := db.Client.ValidatorProfile.
 		Create().
-		SetID(payload["id"].(uuid.UUID)).
 		SetWalletAddress(payload["wallet_address"].(string)).
 		SetHostIdentifier(payload["host_identifier"].(string)).
 		SetUserID(payload["user_id"].(uuid.UUID)).
@@ -201,7 +195,6 @@ func CreateTestFiatCurrency(overrides map[string]interface{}) (*ent.FiatCurrency
 
 	// Default payload.
 	payload := map[string]interface{}{
-		"id":          uuid.New(),
 		"code":        "NGN",
 		"short_name":  "Naira",
 		"decimals":    2,
@@ -217,7 +210,6 @@ func CreateTestFiatCurrency(overrides map[string]interface{}) (*ent.FiatCurrency
 
 	currency, err := db.Client.FiatCurrency.
 		Create().
-		SetID(payload["id"].(uuid.UUID)).
 		SetCode(payload["code"].(string)).
 		SetShortName(payload["short_name"].(string)).
 		SetDecimals(payload["decimals"].(int)).
