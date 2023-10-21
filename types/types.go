@@ -113,8 +113,8 @@ type RefreshJWTPayload struct {
 
 // ValidatorProfilePayload is the payload for the validator profile endpoint
 type ValidatorProfilePayload struct {
-	WalletAddress  string `json:"wallet_address"`
-	HostIdentifier string `json:"host_identifier"`
+	WalletAddress  string `json:"walletAddress"`
+	HostIdentifier string `json:"hostIdentifier"`
 }
 
 // ProviderAvailabilityPayload defines the setting for a provider availability
@@ -148,11 +148,21 @@ type ProviderProfilePayload struct {
 	Tokens         []ProviderOrderTokenPayload `json:"tokens"`
 }
 
+type ProviderProfileResponse struct {
+	ID             string                    `json:"id"`
+	TradingName    string                    `json:"tradingName"`
+	Currency       string                    `json:"currency"`
+	HostIdentifier string                    `json:"hostIdentifier"`
+	IsPartner      bool                      `json:"isPartner"`
+	Availability   *ent.ProviderAvailability `json:"availability"`
+	Tokens         []*ent.ProviderOrderToken `json:"tokens"`
+}
+
 // ValidatorProfileResponse is the response for the validator profile endpoint
 type ValidatorProfileResponse struct {
 	ID             uuid.UUID `json:"id"`
-	WalletAddress  string    `json:"wallet_address"`
-	HostIdentifier string    `json:"host_identifier"`
+	WalletAddress  string    `json:"walletAddress"`
+	HostIdentifier string    `json:"hostIdentifier"`
 }
 
 // RefreshResponse is the response for the refresh endpoint
