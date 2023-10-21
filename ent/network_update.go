@@ -49,8 +49,8 @@ func (nu *NetworkUpdate) AddChainID(i int64) *NetworkUpdate {
 }
 
 // SetIdentifier sets the "identifier" field.
-func (nu *NetworkUpdate) SetIdentifier(n network.Identifier) *NetworkUpdate {
-	nu.mutation.SetIdentifier(n)
+func (nu *NetworkUpdate) SetIdentifier(s string) *NetworkUpdate {
+	nu.mutation.SetIdentifier(s)
 	return nu
 }
 
@@ -143,20 +143,7 @@ func (nu *NetworkUpdate) defaults() {
 	}
 }
 
-// check runs all checks and user-defined validators on the builder.
-func (nu *NetworkUpdate) check() error {
-	if v, ok := nu.mutation.Identifier(); ok {
-		if err := network.IdentifierValidator(v); err != nil {
-			return &ValidationError{Name: "identifier", err: fmt.Errorf(`ent: validator failed for field "Network.identifier": %w`, err)}
-		}
-	}
-	return nil
-}
-
 func (nu *NetworkUpdate) sqlSave(ctx context.Context) (n int, err error) {
-	if err := nu.check(); err != nil {
-		return n, err
-	}
 	_spec := sqlgraph.NewUpdateSpec(network.Table, network.Columns, sqlgraph.NewFieldSpec(network.FieldID, field.TypeInt))
 	if ps := nu.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -175,7 +162,7 @@ func (nu *NetworkUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		_spec.AddField(network.FieldChainID, field.TypeInt64, value)
 	}
 	if value, ok := nu.mutation.Identifier(); ok {
-		_spec.SetField(network.FieldIdentifier, field.TypeEnum, value)
+		_spec.SetField(network.FieldIdentifier, field.TypeString, value)
 	}
 	if value, ok := nu.mutation.RPCEndpoint(); ok {
 		_spec.SetField(network.FieldRPCEndpoint, field.TypeString, value)
@@ -268,8 +255,8 @@ func (nuo *NetworkUpdateOne) AddChainID(i int64) *NetworkUpdateOne {
 }
 
 // SetIdentifier sets the "identifier" field.
-func (nuo *NetworkUpdateOne) SetIdentifier(n network.Identifier) *NetworkUpdateOne {
-	nuo.mutation.SetIdentifier(n)
+func (nuo *NetworkUpdateOne) SetIdentifier(s string) *NetworkUpdateOne {
+	nuo.mutation.SetIdentifier(s)
 	return nuo
 }
 
@@ -375,20 +362,7 @@ func (nuo *NetworkUpdateOne) defaults() {
 	}
 }
 
-// check runs all checks and user-defined validators on the builder.
-func (nuo *NetworkUpdateOne) check() error {
-	if v, ok := nuo.mutation.Identifier(); ok {
-		if err := network.IdentifierValidator(v); err != nil {
-			return &ValidationError{Name: "identifier", err: fmt.Errorf(`ent: validator failed for field "Network.identifier": %w`, err)}
-		}
-	}
-	return nil
-}
-
 func (nuo *NetworkUpdateOne) sqlSave(ctx context.Context) (_node *Network, err error) {
-	if err := nuo.check(); err != nil {
-		return _node, err
-	}
 	_spec := sqlgraph.NewUpdateSpec(network.Table, network.Columns, sqlgraph.NewFieldSpec(network.FieldID, field.TypeInt))
 	id, ok := nuo.mutation.ID()
 	if !ok {
@@ -424,7 +398,7 @@ func (nuo *NetworkUpdateOne) sqlSave(ctx context.Context) (_node *Network, err e
 		_spec.AddField(network.FieldChainID, field.TypeInt64, value)
 	}
 	if value, ok := nuo.mutation.Identifier(); ok {
-		_spec.SetField(network.FieldIdentifier, field.TypeEnum, value)
+		_spec.SetField(network.FieldIdentifier, field.TypeString, value)
 	}
 	if value, ok := nuo.mutation.RPCEndpoint(); ok {
 		_spec.SetField(network.FieldRPCEndpoint, field.TypeString, value)

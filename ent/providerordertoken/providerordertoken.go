@@ -31,10 +31,10 @@ const (
 	FieldMaxOrderAmount = "max_order_amount"
 	// FieldMinOrderAmount holds the string denoting the min_order_amount field in the database.
 	FieldMinOrderAmount = "min_order_amount"
+	// FieldAddresses holds the string denoting the addresses field in the database.
+	FieldAddresses = "addresses"
 	// EdgeProvider holds the string denoting the provider edge name in mutations.
 	EdgeProvider = "provider"
-	// EdgeAddresses holds the string denoting the addresses edge name in mutations.
-	EdgeAddresses = "addresses"
 	// Table holds the table name of the providerordertoken in the database.
 	Table = "provider_order_tokens"
 	// ProviderTable is the table that holds the provider relation/edge.
@@ -44,13 +44,6 @@ const (
 	ProviderInverseTable = "provider_profiles"
 	// ProviderColumn is the table column denoting the provider relation/edge.
 	ProviderColumn = "provider_profile_order_tokens"
-	// AddressesTable is the table that holds the addresses relation/edge.
-	AddressesTable = "provider_order_token_addresses"
-	// AddressesInverseTable is the table name for the ProviderOrderTokenAddress entity.
-	// It exists in this package in order to avoid circular dependency with the "providerordertokenaddress" package.
-	AddressesInverseTable = "provider_order_token_addresses"
-	// AddressesColumn is the table column denoting the addresses relation/edge.
-	AddressesColumn = "provider_order_token_addresses"
 )
 
 // Columns holds all SQL columns for providerordertoken fields.
@@ -64,6 +57,7 @@ var Columns = []string{
 	FieldConversionRateType,
 	FieldMaxOrderAmount,
 	FieldMinOrderAmount,
+	FieldAddresses,
 }
 
 // ForeignKeys holds the SQL foreign-keys that are owned by the "provider_order_tokens"
@@ -95,30 +89,6 @@ var (
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
 )
-
-// Symbol defines the type for the "symbol" enum field.
-type Symbol string
-
-// Symbol values.
-const (
-	SymbolUSDT Symbol = "USDT"
-	SymbolUSDC Symbol = "USDC"
-	SymbolBUSD Symbol = "BUSD"
-)
-
-func (s Symbol) String() string {
-	return string(s)
-}
-
-// SymbolValidator is a validator for the "symbol" field enum values. It is called by the builders before save.
-func SymbolValidator(s Symbol) error {
-	switch s {
-	case SymbolUSDT, SymbolUSDC, SymbolBUSD:
-		return nil
-	default:
-		return fmt.Errorf("providerordertoken: invalid enum value for symbol field: %q", s)
-	}
-}
 
 // ConversionRateType defines the type for the "conversion_rate_type" enum field.
 type ConversionRateType string
@@ -197,31 +167,10 @@ func ByProviderField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newProviderStep(), sql.OrderByField(field, opts...))
 	}
 }
-
-// ByAddressesCount orders the results by addresses count.
-func ByAddressesCount(opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newAddressesStep(), opts...)
-	}
-}
-
-// ByAddresses orders the results by addresses terms.
-func ByAddresses(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newAddressesStep(), append([]sql.OrderTerm{term}, terms...)...)
-	}
-}
 func newProviderStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(ProviderInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, ProviderTable, ProviderColumn),
-	)
-}
-func newAddressesStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(AddressesInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, AddressesTable, AddressesColumn),
 	)
 }

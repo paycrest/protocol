@@ -21,7 +21,6 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/paymentorderrecipient"
 	"github.com/paycrest/paycrest-protocol/ent/provideravailability"
 	"github.com/paycrest/paycrest-protocol/ent/providerordertoken"
-	"github.com/paycrest/paycrest-protocol/ent/providerordertokenaddress"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 	"github.com/paycrest/paycrest-protocol/ent/providerrating"
 	"github.com/paycrest/paycrest-protocol/ent/provisionbucket"
@@ -91,25 +90,24 @@ var (
 func checkColumn(table, column string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			apikey.Table:                    apikey.ValidColumn,
-			fiatcurrency.Table:              fiatcurrency.ValidColumn,
-			lockorderfulfillment.Table:      lockorderfulfillment.ValidColumn,
-			lockpaymentorder.Table:          lockpaymentorder.ValidColumn,
-			network.Table:                   network.ValidColumn,
-			paymentorder.Table:              paymentorder.ValidColumn,
-			paymentorderrecipient.Table:     paymentorderrecipient.ValidColumn,
-			provideravailability.Table:      provideravailability.ValidColumn,
-			providerordertoken.Table:        providerordertoken.ValidColumn,
-			providerordertokenaddress.Table: providerordertokenaddress.ValidColumn,
-			providerprofile.Table:           providerprofile.ValidColumn,
-			providerrating.Table:            providerrating.ValidColumn,
-			provisionbucket.Table:           provisionbucket.ValidColumn,
-			receiveaddress.Table:            receiveaddress.ValidColumn,
-			senderprofile.Table:             senderprofile.ValidColumn,
-			token.Table:                     token.ValidColumn,
-			user.Table:                      user.ValidColumn,
-			validatorprofile.Table:          validatorprofile.ValidColumn,
-			verificationtoken.Table:         verificationtoken.ValidColumn,
+			apikey.Table:                apikey.ValidColumn,
+			fiatcurrency.Table:          fiatcurrency.ValidColumn,
+			lockorderfulfillment.Table:  lockorderfulfillment.ValidColumn,
+			lockpaymentorder.Table:      lockpaymentorder.ValidColumn,
+			network.Table:               network.ValidColumn,
+			paymentorder.Table:          paymentorder.ValidColumn,
+			paymentorderrecipient.Table: paymentorderrecipient.ValidColumn,
+			provideravailability.Table:  provideravailability.ValidColumn,
+			providerordertoken.Table:    providerordertoken.ValidColumn,
+			providerprofile.Table:       providerprofile.ValidColumn,
+			providerrating.Table:        providerrating.ValidColumn,
+			provisionbucket.Table:       provisionbucket.ValidColumn,
+			receiveaddress.Table:        receiveaddress.ValidColumn,
+			senderprofile.Table:         senderprofile.ValidColumn,
+			token.Table:                 token.ValidColumn,
+			user.Table:                  user.ValidColumn,
+			validatorprofile.Table:      validatorprofile.ValidColumn,
+			verificationtoken.Table:     verificationtoken.ValidColumn,
 		})
 	})
 	return columnCheck(table, column)

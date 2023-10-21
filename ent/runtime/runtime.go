@@ -13,7 +13,6 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/network"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/providerordertoken"
-	"github.com/paycrest/paycrest-protocol/ent/providerordertokenaddress"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 	"github.com/paycrest/paycrest-protocol/ent/providerrating"
 	"github.com/paycrest/paycrest-protocol/ent/provisionbucket"
@@ -186,12 +185,6 @@ func init() {
 	providerordertoken.DefaultUpdatedAt = providerordertokenDescUpdatedAt.Default.(func() time.Time)
 	// providerordertoken.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	providerordertoken.UpdateDefaultUpdatedAt = providerordertokenDescUpdatedAt.UpdateDefault.(func() time.Time)
-	providerordertokenaddressFields := schema.ProviderOrderTokenAddress{}.Fields()
-	_ = providerordertokenaddressFields
-	// providerordertokenaddressDescAddress is the schema descriptor for address field.
-	providerordertokenaddressDescAddress := providerordertokenaddressFields[1].Descriptor()
-	// providerordertokenaddress.AddressValidator is a validator for the "address" field. It is called by the builders before save.
-	providerordertokenaddress.AddressValidator = providerordertokenaddressDescAddress.Validators[0].(func(string) error)
 	providerprofileMixin := schema.ProviderProfile{}.Mixin()
 	providerprofileMixinFields0 := providerprofileMixin[0].Fields()
 	_ = providerprofileMixinFields0

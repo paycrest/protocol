@@ -23,8 +23,9 @@ func (Network) Mixin() []ent.Mixin {
 func (Network) Fields() []ent.Field {
 	return []ent.Field{
 		field.Int64("chain_id"),
-		field.Enum("identifier").
-			Values("bnb-smart-chain", "polygon", "tron", "polygon-mumbai", "tron-shasta"),
+		// e.g "bnb-smart-chain", "polygon", "tron", "polygon-mumbai", "tron-shasta"
+		field.String("identifier").
+			Unique(),
 		field.String("rpc_endpoint"),
 		field.Bool("is_testnet"),
 	}

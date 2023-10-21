@@ -4,7 +4,6 @@ package ent
 
 import (
 	"context"
-	"database/sql/driver"
 	"fmt"
 	"math"
 
@@ -13,20 +12,18 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
 	"github.com/paycrest/paycrest-protocol/ent/providerordertoken"
-	"github.com/paycrest/paycrest-protocol/ent/providerordertokenaddress"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 )
 
 // ProviderOrderTokenQuery is the builder for querying ProviderOrderToken entities.
 type ProviderOrderTokenQuery struct {
 	config
-	ctx           *QueryContext
-	order         []providerordertoken.OrderOption
-	inters        []Interceptor
-	predicates    []predicate.ProviderOrderToken
-	withProvider  *ProviderProfileQuery
-	withAddresses *ProviderOrderTokenAddressQuery
-	withFKs       bool
+	ctx          *QueryContext
+	order        []providerordertoken.OrderOption
+	inters       []Interceptor
+	predicates   []predicate.ProviderOrderToken
+	withProvider *ProviderProfileQuery
+	withFKs      bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -78,28 +75,6 @@ func (potq *ProviderOrderTokenQuery) QueryProvider() *ProviderProfileQuery {
 			sqlgraph.From(providerordertoken.Table, providerordertoken.FieldID, selector),
 			sqlgraph.To(providerprofile.Table, providerprofile.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, providerordertoken.ProviderTable, providerordertoken.ProviderColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(potq.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
-}
-
-// QueryAddresses chains the current query on the "addresses" edge.
-func (potq *ProviderOrderTokenQuery) QueryAddresses() *ProviderOrderTokenAddressQuery {
-	query := (&ProviderOrderTokenAddressClient{config: potq.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := potq.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := potq.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(providerordertoken.Table, providerordertoken.FieldID, selector),
-			sqlgraph.To(providerordertokenaddress.Table, providerordertokenaddress.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, providerordertoken.AddressesTable, providerordertoken.AddressesColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(potq.driver.Dialect(), step)
 		return fromU, nil
@@ -294,13 +269,12 @@ func (potq *ProviderOrderTokenQuery) Clone() *ProviderOrderTokenQuery {
 		return nil
 	}
 	return &ProviderOrderTokenQuery{
-		config:        potq.config,
-		ctx:           potq.ctx.Clone(),
-		order:         append([]providerordertoken.OrderOption{}, potq.order...),
-		inters:        append([]Interceptor{}, potq.inters...),
-		predicates:    append([]predicate.ProviderOrderToken{}, potq.predicates...),
-		withProvider:  potq.withProvider.Clone(),
-		withAddresses: potq.withAddresses.Clone(),
+		config:       potq.config,
+		ctx:          potq.ctx.Clone(),
+		order:        append([]providerordertoken.OrderOption{}, potq.order...),
+		inters:       append([]Interceptor{}, potq.inters...),
+		predicates:   append([]predicate.ProviderOrderToken{}, potq.predicates...),
+		withProvider: potq.withProvider.Clone(),
 		// clone intermediate query.
 		sql:  potq.sql.Clone(),
 		path: potq.path,
@@ -315,17 +289,6 @@ func (potq *ProviderOrderTokenQuery) WithProvider(opts ...func(*ProviderProfileQ
 		opt(query)
 	}
 	potq.withProvider = query
-	return potq
-}
-
-// WithAddresses tells the query-builder to eager-load the nodes that are connected to
-// the "addresses" edge. The optional arguments are used to configure the query builder of the edge.
-func (potq *ProviderOrderTokenQuery) WithAddresses(opts ...func(*ProviderOrderTokenAddressQuery)) *ProviderOrderTokenQuery {
-	query := (&ProviderOrderTokenAddressClient{config: potq.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	potq.withAddresses = query
 	return potq
 }
 
@@ -408,9 +371,8 @@ func (potq *ProviderOrderTokenQuery) sqlAll(ctx context.Context, hooks ...queryH
 		nodes       = []*ProviderOrderToken{}
 		withFKs     = potq.withFKs
 		_spec       = potq.querySpec()
-		loadedTypes = [2]bool{
+		loadedTypes = [1]bool{
 			potq.withProvider != nil,
-			potq.withAddresses != nil,
 		}
 	)
 	if potq.withProvider != nil {
@@ -440,15 +402,6 @@ func (potq *ProviderOrderTokenQuery) sqlAll(ctx context.Context, hooks ...queryH
 	if query := potq.withProvider; query != nil {
 		if err := potq.loadProvider(ctx, query, nodes, nil,
 			func(n *ProviderOrderToken, e *ProviderProfile) { n.Edges.Provider = e }); err != nil {
-			return nil, err
-		}
-	}
-	if query := potq.withAddresses; query != nil {
-		if err := potq.loadAddresses(ctx, query, nodes,
-			func(n *ProviderOrderToken) { n.Edges.Addresses = []*ProviderOrderTokenAddress{} },
-			func(n *ProviderOrderToken, e *ProviderOrderTokenAddress) {
-				n.Edges.Addresses = append(n.Edges.Addresses, e)
-			}); err != nil {
 			return nil, err
 		}
 	}
@@ -484,37 +437,6 @@ func (potq *ProviderOrderTokenQuery) loadProvider(ctx context.Context, query *Pr
 		for i := range nodes {
 			assign(nodes[i], n)
 		}
-	}
-	return nil
-}
-func (potq *ProviderOrderTokenQuery) loadAddresses(ctx context.Context, query *ProviderOrderTokenAddressQuery, nodes []*ProviderOrderToken, init func(*ProviderOrderToken), assign func(*ProviderOrderToken, *ProviderOrderTokenAddress)) error {
-	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[int]*ProviderOrderToken)
-	for i := range nodes {
-		fks = append(fks, nodes[i].ID)
-		nodeids[nodes[i].ID] = nodes[i]
-		if init != nil {
-			init(nodes[i])
-		}
-	}
-	query.withFKs = true
-	query.Where(predicate.ProviderOrderTokenAddress(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(providerordertoken.AddressesColumn), fks...))
-	}))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		fk := n.provider_order_token_addresses
-		if fk == nil {
-			return fmt.Errorf(`foreign-key "provider_order_token_addresses" is nil for node %v`, n.ID)
-		}
-		node, ok := nodeids[*fk]
-		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "provider_order_token_addresses" returned %v for node %v`, *fk, n.ID)
-		}
-		assign(node, n)
 	}
 	return nil
 }

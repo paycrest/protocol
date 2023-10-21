@@ -3,7 +3,6 @@
 package network
 
 import (
-	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
@@ -69,32 +68,6 @@ var (
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
 )
-
-// Identifier defines the type for the "identifier" enum field.
-type Identifier string
-
-// Identifier values.
-const (
-	IdentifierBnbSmartChain Identifier = "bnb-smart-chain"
-	IdentifierPolygon       Identifier = "polygon"
-	IdentifierTron          Identifier = "tron"
-	IdentifierPolygonMumbai Identifier = "polygon-mumbai"
-	IdentifierTronShasta    Identifier = "tron-shasta"
-)
-
-func (i Identifier) String() string {
-	return string(i)
-}
-
-// IdentifierValidator is a validator for the "identifier" field enum values. It is called by the builders before save.
-func IdentifierValidator(i Identifier) error {
-	switch i {
-	case IdentifierBnbSmartChain, IdentifierPolygon, IdentifierTron, IdentifierPolygonMumbai, IdentifierTronShasta:
-		return nil
-	default:
-		return fmt.Errorf("network: invalid enum value for identifier field: %q", i)
-	}
-}
 
 // OrderOption defines the ordering options for the Network queries.
 type OrderOption func(*sql.Selector)

@@ -56,8 +56,8 @@ func (nc *NetworkCreate) SetChainID(i int64) *NetworkCreate {
 }
 
 // SetIdentifier sets the "identifier" field.
-func (nc *NetworkCreate) SetIdentifier(n network.Identifier) *NetworkCreate {
-	nc.mutation.SetIdentifier(n)
+func (nc *NetworkCreate) SetIdentifier(s string) *NetworkCreate {
+	nc.mutation.SetIdentifier(s)
 	return nc
 }
 
@@ -147,11 +147,6 @@ func (nc *NetworkCreate) check() error {
 	if _, ok := nc.mutation.Identifier(); !ok {
 		return &ValidationError{Name: "identifier", err: errors.New(`ent: missing required field "Network.identifier"`)}
 	}
-	if v, ok := nc.mutation.Identifier(); ok {
-		if err := network.IdentifierValidator(v); err != nil {
-			return &ValidationError{Name: "identifier", err: fmt.Errorf(`ent: validator failed for field "Network.identifier": %w`, err)}
-		}
-	}
 	if _, ok := nc.mutation.RPCEndpoint(); !ok {
 		return &ValidationError{Name: "rpc_endpoint", err: errors.New(`ent: missing required field "Network.rpc_endpoint"`)}
 	}
@@ -197,7 +192,7 @@ func (nc *NetworkCreate) createSpec() (*Network, *sqlgraph.CreateSpec) {
 		_node.ChainID = value
 	}
 	if value, ok := nc.mutation.Identifier(); ok {
-		_spec.SetField(network.FieldIdentifier, field.TypeEnum, value)
+		_spec.SetField(network.FieldIdentifier, field.TypeString, value)
 		_node.Identifier = value
 	}
 	if value, ok := nc.mutation.RPCEndpoint(); ok {
