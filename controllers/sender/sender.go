@@ -7,6 +7,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent"
 	db "github.com/paycrest/paycrest-protocol/storage"
 
+	"github.com/paycrest/paycrest-protocol/ent/network"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/token"
 	svc "github.com/paycrest/paycrest-protocol/services"
@@ -65,13 +66,16 @@ func (ctrl *SenderController) CreatePaymentOrder(ctx *gin.Context) {
 	// Get token from DB
 	token, err := db.Client.Token.
 		Query().
-		Where(token.SymbolEQ(payload.Token)).
+		Where(
+			token.SymbolEQ(payload.Token),
+			token.HasNetworkWith(network.IdentifierEQ(payload.Network)),
+		).
 		WithNetwork().
 		Only(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusBadRequest, "error",
-			"Provided crypto token is not supported", nil)
+			"Provided token is not supported", nil)
 		return
 	}
 
@@ -138,7 +142,7 @@ func (ctrl *SenderController) CreatePaymentOrder(ctx *gin.Context) {
 		&types.ReceiveAddressResponse{
 			ID:             paymentOrder.ID,
 			Amount:         paymentOrderAmount,
-			Network:        token.Edges.Network.Identifier.String(),
+			Network:        token.Edges.Network.Identifier,
 			ReceiveAddress: paymentOrder.ReceiveAddressText,
 		})
 }
