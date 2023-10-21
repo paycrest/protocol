@@ -43,10 +43,11 @@ func (m *MockIndexerService) IndexOrderDeposits(ctx context.Context, client type
 }
 
 var testCtx = struct {
-	user         *ent.User
-	token        *ent.Token
-	apiKey       *ent.APIKey
-	apiKeySecret string
+	user              *ent.User
+	token             *ent.Token
+	apiKey            *ent.APIKey
+	apiKeySecret      string
+	networkIdentifier string
 }{}
 
 func setup() error {
@@ -75,7 +76,10 @@ func setup() error {
 	}
 
 	// Create a test token
-	token, err := test.CreateTestToken(backend, nil)
+	testCtx.networkIdentifier = "polygon-mumbai" + uuid.New().String()
+	token, err := test.CreateTestToken(backend, map[string]interface{}{
+		"identifier": testCtx.networkIdentifier,
+	})
 	if err != nil {
 		return err
 	}
@@ -117,7 +121,7 @@ func TestSender(t *testing.T) {
 		// Fetch network from db
 		network, err := db.Client.Network.
 			Query().
-			Where(network.IdentifierEQ("polygon-mumbai")).
+			Where(network.IdentifierEQ(testCtx.networkIdentifier)).
 			Only(context.Background())
 		assert.NoError(t, err)
 

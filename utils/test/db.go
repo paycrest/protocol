@@ -59,6 +59,7 @@ func CreateTestToken(client types.RPCClient, overrides map[string]interface{}) (
 		"decimals":         18,
 		"networkRPC":       "http://localhost:8545",
 		"is_enabled":       true,
+		"identifier":       "polygon-mumbai" + uuid.New().String(),
 	}
 
 	// Apply overrides
@@ -69,7 +70,7 @@ func CreateTestToken(client types.RPCClient, overrides map[string]interface{}) (
 	// Create Network
 	network, err := db.Client.Network.
 		Create().
-		SetIdentifier("polygon-mumbai").
+		SetIdentifier(payload["identifier"].(string)). // randomize the identifier to avoid conflicts
 		SetChainID(1337).
 		SetRPCEndpoint(payload["networkRPC"].(string)).
 		SetIsTestnet(true).

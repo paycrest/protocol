@@ -17,6 +17,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/paycrest/paycrest-protocol/ent/enttest"
+	"github.com/paycrest/paycrest-protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/paycrest-protocol/utils/test"
 	"github.com/paycrest/paycrest-protocol/utils/token"
 	"github.com/stretchr/testify/assert"
@@ -139,41 +140,41 @@ func TestIndex(t *testing.T) {
 			assert.Contains(t, res.Body.String(), "Invalid fulfillment ID")
 		})
 
-		// t.Run("order is invalid", func(t *testing.T) {
-		// 	payload := map[string]interface{}{
-		// 		"isValid":   false,
-		// 		"errorMsg":  "Invalid transaction reference",
-		// 		"timestamp": time.Now().Unix(),
-		// 	}
+		t.Run("order is invalid", func(t *testing.T) {
+			payload := map[string]interface{}{
+				"isValid":   false,
+				"errorMsg":  "Invalid transaction reference",
+				"timestamp": time.Now().Unix(),
+			}
 
-		// 	signature := token.GenerateHMACSignature(payload, testCtx.apiKeySecret)
-		// 	headers := map[string]string{
-		// 		"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
-		// 	}
+			signature := token.GenerateHMACSignature(payload, testCtx.apiKeySecret)
+			headers := map[string]string{
+				"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
+			}
 
-		// 	// Get test lock order fulfillment
-		// 	fulfillment, err := test.CreateTestLockOrderFulfillment(nil)
-		// 	assert.NoError(t, err)
+			// Get test lock order fulfillment
+			fulfillment, err := test.CreateTestLockOrderFulfillment(nil)
+			assert.NoError(t, err)
 
-		// 	res, err := test.PerformRequest(t, "POST",
-		// 		fmt.Sprintf("/orders/%s/validate?scope=validator", fulfillment.ID.String()), payload, headers, router)
-		// 	assert.NoError(t, err)
+			res, err := test.PerformRequest(t, "POST",
+				fmt.Sprintf("/orders/%s/validate?scope=validator", fulfillment.ID.String()), payload, headers, router)
+			assert.NoError(t, err)
 
-		// 	// Assert the response body
-		// 	assert.Equal(t, http.StatusOK, res.Code)
-		// 	var response string
-		// 	err = json.Unmarshal(res.Body.Bytes(), &response)
-		// 	assert.NoError(t, err)
-		// 	assert.Equal(t, "OK", response)
+			// Assert the response body
+			assert.Equal(t, http.StatusOK, res.Code)
+			var response string
+			err = json.Unmarshal(res.Body.Bytes(), &response)
+			assert.NoError(t, err)
+			assert.Equal(t, "OK", response)
 
-		// 	fulfillment, err = db.Client.LockOrderFulfillment.
-		// 		Query().
-		// 		Where(lockorderfulfillment.IDEQ(fulfillment.ID)).
-		// 		Only(context.Background())
-		// 	assert.NoError(t, err)
+			fulfillment, err = db.Client.LockOrderFulfillment.
+				Query().
+				Where(lockorderfulfillment.IDEQ(fulfillment.ID)).
+				Only(context.Background())
+			assert.NoError(t, err)
 
-		// 	assert.Contains(t, fulfillment.ValidationErrors, "Invalid transaction reference")
-		// })
+			assert.Contains(t, fulfillment.ValidationErrors, "Invalid transaction reference")
+		})
 	})
 
 	t.Run("Currencies", func(t *testing.T) {
