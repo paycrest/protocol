@@ -70,6 +70,11 @@ func ChainID(v int64) predicate.Network {
 	return predicate.Network(sql.FieldEQ(FieldChainID, v))
 }
 
+// Identifier applies equality check predicate on the "identifier" field. It's identical to IdentifierEQ.
+func Identifier(v string) predicate.Network {
+	return predicate.Network(sql.FieldEQ(FieldIdentifier, v))
+}
+
 // RPCEndpoint applies equality check predicate on the "rpc_endpoint" field. It's identical to RPCEndpointEQ.
 func RPCEndpoint(v string) predicate.Network {
 	return predicate.Network(sql.FieldEQ(FieldRPCEndpoint, v))
@@ -201,23 +206,68 @@ func ChainIDLTE(v int64) predicate.Network {
 }
 
 // IdentifierEQ applies the EQ predicate on the "identifier" field.
-func IdentifierEQ(v Identifier) predicate.Network {
+func IdentifierEQ(v string) predicate.Network {
 	return predicate.Network(sql.FieldEQ(FieldIdentifier, v))
 }
 
 // IdentifierNEQ applies the NEQ predicate on the "identifier" field.
-func IdentifierNEQ(v Identifier) predicate.Network {
+func IdentifierNEQ(v string) predicate.Network {
 	return predicate.Network(sql.FieldNEQ(FieldIdentifier, v))
 }
 
 // IdentifierIn applies the In predicate on the "identifier" field.
-func IdentifierIn(vs ...Identifier) predicate.Network {
+func IdentifierIn(vs ...string) predicate.Network {
 	return predicate.Network(sql.FieldIn(FieldIdentifier, vs...))
 }
 
 // IdentifierNotIn applies the NotIn predicate on the "identifier" field.
-func IdentifierNotIn(vs ...Identifier) predicate.Network {
+func IdentifierNotIn(vs ...string) predicate.Network {
 	return predicate.Network(sql.FieldNotIn(FieldIdentifier, vs...))
+}
+
+// IdentifierGT applies the GT predicate on the "identifier" field.
+func IdentifierGT(v string) predicate.Network {
+	return predicate.Network(sql.FieldGT(FieldIdentifier, v))
+}
+
+// IdentifierGTE applies the GTE predicate on the "identifier" field.
+func IdentifierGTE(v string) predicate.Network {
+	return predicate.Network(sql.FieldGTE(FieldIdentifier, v))
+}
+
+// IdentifierLT applies the LT predicate on the "identifier" field.
+func IdentifierLT(v string) predicate.Network {
+	return predicate.Network(sql.FieldLT(FieldIdentifier, v))
+}
+
+// IdentifierLTE applies the LTE predicate on the "identifier" field.
+func IdentifierLTE(v string) predicate.Network {
+	return predicate.Network(sql.FieldLTE(FieldIdentifier, v))
+}
+
+// IdentifierContains applies the Contains predicate on the "identifier" field.
+func IdentifierContains(v string) predicate.Network {
+	return predicate.Network(sql.FieldContains(FieldIdentifier, v))
+}
+
+// IdentifierHasPrefix applies the HasPrefix predicate on the "identifier" field.
+func IdentifierHasPrefix(v string) predicate.Network {
+	return predicate.Network(sql.FieldHasPrefix(FieldIdentifier, v))
+}
+
+// IdentifierHasSuffix applies the HasSuffix predicate on the "identifier" field.
+func IdentifierHasSuffix(v string) predicate.Network {
+	return predicate.Network(sql.FieldHasSuffix(FieldIdentifier, v))
+}
+
+// IdentifierEqualFold applies the EqualFold predicate on the "identifier" field.
+func IdentifierEqualFold(v string) predicate.Network {
+	return predicate.Network(sql.FieldEqualFold(FieldIdentifier, v))
+}
+
+// IdentifierContainsFold applies the ContainsFold predicate on the "identifier" field.
+func IdentifierContainsFold(v string) predicate.Network {
+	return predicate.Network(sql.FieldContainsFold(FieldIdentifier, v))
 }
 
 // RPCEndpointEQ applies the EQ predicate on the "rpc_endpoint" field.

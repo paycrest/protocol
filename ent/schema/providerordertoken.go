@@ -22,8 +22,8 @@ func (ProviderOrderToken) Mixin() []ent.Mixin {
 // Fields of the ProviderOrderToken.
 func (ProviderOrderToken) Fields() []ent.Field {
 	return []ent.Field{
-		field.Enum("symbol").
-			Values("USDT", "USDC", "BUSD"),
+		field.String("symbol").
+			Unique(),
 		field.Float("fixed_conversion_rate").
 			GoType(decimal.Decimal{}),
 		field.Float("floating_conversion_rate").
@@ -34,6 +34,10 @@ func (ProviderOrderToken) Fields() []ent.Field {
 			GoType(decimal.Decimal{}),
 		field.Float("min_order_amount").
 			GoType(decimal.Decimal{}),
+		field.JSON("addresses", []struct {
+			Address string `json:"address"`
+			Network string `json:"network"`
+		}{}),
 	}
 }
 
@@ -43,7 +47,6 @@ func (ProviderOrderToken) Edges() []ent.Edge {
 		edge.From("provider", ProviderProfile.Type).
 			Ref("order_tokens").
 			Unique(),
-		edge.To("addresses", ProviderOrderTokenAddress.Type),
 	}
 }
 

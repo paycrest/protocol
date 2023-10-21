@@ -24,7 +24,6 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/paymentorderrecipient"
 	"github.com/paycrest/paycrest-protocol/ent/provideravailability"
 	"github.com/paycrest/paycrest-protocol/ent/providerordertoken"
-	"github.com/paycrest/paycrest-protocol/ent/providerordertokenaddress"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 	"github.com/paycrest/paycrest-protocol/ent/providerrating"
 	"github.com/paycrest/paycrest-protocol/ent/provisionbucket"
@@ -59,8 +58,6 @@ type Client struct {
 	ProviderAvailability *ProviderAvailabilityClient
 	// ProviderOrderToken is the client for interacting with the ProviderOrderToken builders.
 	ProviderOrderToken *ProviderOrderTokenClient
-	// ProviderOrderTokenAddress is the client for interacting with the ProviderOrderTokenAddress builders.
-	ProviderOrderTokenAddress *ProviderOrderTokenAddressClient
 	// ProviderProfile is the client for interacting with the ProviderProfile builders.
 	ProviderProfile *ProviderProfileClient
 	// ProviderRating is the client for interacting with the ProviderRating builders.
@@ -101,7 +98,6 @@ func (c *Client) init() {
 	c.PaymentOrderRecipient = NewPaymentOrderRecipientClient(c.config)
 	c.ProviderAvailability = NewProviderAvailabilityClient(c.config)
 	c.ProviderOrderToken = NewProviderOrderTokenClient(c.config)
-	c.ProviderOrderTokenAddress = NewProviderOrderTokenAddressClient(c.config)
 	c.ProviderProfile = NewProviderProfileClient(c.config)
 	c.ProviderRating = NewProviderRatingClient(c.config)
 	c.ProvisionBucket = NewProvisionBucketClient(c.config)
@@ -191,27 +187,26 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:                       ctx,
-		config:                    cfg,
-		APIKey:                    NewAPIKeyClient(cfg),
-		FiatCurrency:              NewFiatCurrencyClient(cfg),
-		LockOrderFulfillment:      NewLockOrderFulfillmentClient(cfg),
-		LockPaymentOrder:          NewLockPaymentOrderClient(cfg),
-		Network:                   NewNetworkClient(cfg),
-		PaymentOrder:              NewPaymentOrderClient(cfg),
-		PaymentOrderRecipient:     NewPaymentOrderRecipientClient(cfg),
-		ProviderAvailability:      NewProviderAvailabilityClient(cfg),
-		ProviderOrderToken:        NewProviderOrderTokenClient(cfg),
-		ProviderOrderTokenAddress: NewProviderOrderTokenAddressClient(cfg),
-		ProviderProfile:           NewProviderProfileClient(cfg),
-		ProviderRating:            NewProviderRatingClient(cfg),
-		ProvisionBucket:           NewProvisionBucketClient(cfg),
-		ReceiveAddress:            NewReceiveAddressClient(cfg),
-		SenderProfile:             NewSenderProfileClient(cfg),
-		Token:                     NewTokenClient(cfg),
-		User:                      NewUserClient(cfg),
-		ValidatorProfile:          NewValidatorProfileClient(cfg),
-		VerificationToken:         NewVerificationTokenClient(cfg),
+		ctx:                   ctx,
+		config:                cfg,
+		APIKey:                NewAPIKeyClient(cfg),
+		FiatCurrency:          NewFiatCurrencyClient(cfg),
+		LockOrderFulfillment:  NewLockOrderFulfillmentClient(cfg),
+		LockPaymentOrder:      NewLockPaymentOrderClient(cfg),
+		Network:               NewNetworkClient(cfg),
+		PaymentOrder:          NewPaymentOrderClient(cfg),
+		PaymentOrderRecipient: NewPaymentOrderRecipientClient(cfg),
+		ProviderAvailability:  NewProviderAvailabilityClient(cfg),
+		ProviderOrderToken:    NewProviderOrderTokenClient(cfg),
+		ProviderProfile:       NewProviderProfileClient(cfg),
+		ProviderRating:        NewProviderRatingClient(cfg),
+		ProvisionBucket:       NewProvisionBucketClient(cfg),
+		ReceiveAddress:        NewReceiveAddressClient(cfg),
+		SenderProfile:         NewSenderProfileClient(cfg),
+		Token:                 NewTokenClient(cfg),
+		User:                  NewUserClient(cfg),
+		ValidatorProfile:      NewValidatorProfileClient(cfg),
+		VerificationToken:     NewVerificationTokenClient(cfg),
 	}, nil
 }
 
@@ -229,27 +224,26 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:                       ctx,
-		config:                    cfg,
-		APIKey:                    NewAPIKeyClient(cfg),
-		FiatCurrency:              NewFiatCurrencyClient(cfg),
-		LockOrderFulfillment:      NewLockOrderFulfillmentClient(cfg),
-		LockPaymentOrder:          NewLockPaymentOrderClient(cfg),
-		Network:                   NewNetworkClient(cfg),
-		PaymentOrder:              NewPaymentOrderClient(cfg),
-		PaymentOrderRecipient:     NewPaymentOrderRecipientClient(cfg),
-		ProviderAvailability:      NewProviderAvailabilityClient(cfg),
-		ProviderOrderToken:        NewProviderOrderTokenClient(cfg),
-		ProviderOrderTokenAddress: NewProviderOrderTokenAddressClient(cfg),
-		ProviderProfile:           NewProviderProfileClient(cfg),
-		ProviderRating:            NewProviderRatingClient(cfg),
-		ProvisionBucket:           NewProvisionBucketClient(cfg),
-		ReceiveAddress:            NewReceiveAddressClient(cfg),
-		SenderProfile:             NewSenderProfileClient(cfg),
-		Token:                     NewTokenClient(cfg),
-		User:                      NewUserClient(cfg),
-		ValidatorProfile:          NewValidatorProfileClient(cfg),
-		VerificationToken:         NewVerificationTokenClient(cfg),
+		ctx:                   ctx,
+		config:                cfg,
+		APIKey:                NewAPIKeyClient(cfg),
+		FiatCurrency:          NewFiatCurrencyClient(cfg),
+		LockOrderFulfillment:  NewLockOrderFulfillmentClient(cfg),
+		LockPaymentOrder:      NewLockPaymentOrderClient(cfg),
+		Network:               NewNetworkClient(cfg),
+		PaymentOrder:          NewPaymentOrderClient(cfg),
+		PaymentOrderRecipient: NewPaymentOrderRecipientClient(cfg),
+		ProviderAvailability:  NewProviderAvailabilityClient(cfg),
+		ProviderOrderToken:    NewProviderOrderTokenClient(cfg),
+		ProviderProfile:       NewProviderProfileClient(cfg),
+		ProviderRating:        NewProviderRatingClient(cfg),
+		ProvisionBucket:       NewProvisionBucketClient(cfg),
+		ReceiveAddress:        NewReceiveAddressClient(cfg),
+		SenderProfile:         NewSenderProfileClient(cfg),
+		Token:                 NewTokenClient(cfg),
+		User:                  NewUserClient(cfg),
+		ValidatorProfile:      NewValidatorProfileClient(cfg),
+		VerificationToken:     NewVerificationTokenClient(cfg),
 	}, nil
 }
 
@@ -281,9 +275,9 @@ func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
 		c.APIKey, c.FiatCurrency, c.LockOrderFulfillment, c.LockPaymentOrder, c.Network,
 		c.PaymentOrder, c.PaymentOrderRecipient, c.ProviderAvailability,
-		c.ProviderOrderToken, c.ProviderOrderTokenAddress, c.ProviderProfile,
-		c.ProviderRating, c.ProvisionBucket, c.ReceiveAddress, c.SenderProfile,
-		c.Token, c.User, c.ValidatorProfile, c.VerificationToken,
+		c.ProviderOrderToken, c.ProviderProfile, c.ProviderRating, c.ProvisionBucket,
+		c.ReceiveAddress, c.SenderProfile, c.Token, c.User, c.ValidatorProfile,
+		c.VerificationToken,
 	} {
 		n.Use(hooks...)
 	}
@@ -295,9 +289,9 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
 		c.APIKey, c.FiatCurrency, c.LockOrderFulfillment, c.LockPaymentOrder, c.Network,
 		c.PaymentOrder, c.PaymentOrderRecipient, c.ProviderAvailability,
-		c.ProviderOrderToken, c.ProviderOrderTokenAddress, c.ProviderProfile,
-		c.ProviderRating, c.ProvisionBucket, c.ReceiveAddress, c.SenderProfile,
-		c.Token, c.User, c.ValidatorProfile, c.VerificationToken,
+		c.ProviderOrderToken, c.ProviderProfile, c.ProviderRating, c.ProvisionBucket,
+		c.ReceiveAddress, c.SenderProfile, c.Token, c.User, c.ValidatorProfile,
+		c.VerificationToken,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -324,8 +318,6 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.ProviderAvailability.mutate(ctx, m)
 	case *ProviderOrderTokenMutation:
 		return c.ProviderOrderToken.mutate(ctx, m)
-	case *ProviderOrderTokenAddressMutation:
-		return c.ProviderOrderTokenAddress.mutate(ctx, m)
 	case *ProviderProfileMutation:
 		return c.ProviderProfile.mutate(ctx, m)
 	case *ProviderRatingMutation:
@@ -1658,22 +1650,6 @@ func (c *ProviderOrderTokenClient) QueryProvider(pot *ProviderOrderToken) *Provi
 	return query
 }
 
-// QueryAddresses queries the addresses edge of a ProviderOrderToken.
-func (c *ProviderOrderTokenClient) QueryAddresses(pot *ProviderOrderToken) *ProviderOrderTokenAddressQuery {
-	query := (&ProviderOrderTokenAddressClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := pot.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(providerordertoken.Table, providerordertoken.FieldID, id),
-			sqlgraph.To(providerordertokenaddress.Table, providerordertokenaddress.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, providerordertoken.AddressesTable, providerordertoken.AddressesColumn),
-		)
-		fromV = sqlgraph.Neighbors(pot.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
 // Hooks returns the client hooks.
 func (c *ProviderOrderTokenClient) Hooks() []Hook {
 	return c.hooks.ProviderOrderToken
@@ -1696,140 +1672,6 @@ func (c *ProviderOrderTokenClient) mutate(ctx context.Context, m *ProviderOrderT
 		return (&ProviderOrderTokenDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown ProviderOrderToken mutation op: %q", m.Op())
-	}
-}
-
-// ProviderOrderTokenAddressClient is a client for the ProviderOrderTokenAddress schema.
-type ProviderOrderTokenAddressClient struct {
-	config
-}
-
-// NewProviderOrderTokenAddressClient returns a client for the ProviderOrderTokenAddress from the given config.
-func NewProviderOrderTokenAddressClient(c config) *ProviderOrderTokenAddressClient {
-	return &ProviderOrderTokenAddressClient{config: c}
-}
-
-// Use adds a list of mutation hooks to the hooks stack.
-// A call to `Use(f, g, h)` equals to `providerordertokenaddress.Hooks(f(g(h())))`.
-func (c *ProviderOrderTokenAddressClient) Use(hooks ...Hook) {
-	c.hooks.ProviderOrderTokenAddress = append(c.hooks.ProviderOrderTokenAddress, hooks...)
-}
-
-// Intercept adds a list of query interceptors to the interceptors stack.
-// A call to `Intercept(f, g, h)` equals to `providerordertokenaddress.Intercept(f(g(h())))`.
-func (c *ProviderOrderTokenAddressClient) Intercept(interceptors ...Interceptor) {
-	c.inters.ProviderOrderTokenAddress = append(c.inters.ProviderOrderTokenAddress, interceptors...)
-}
-
-// Create returns a builder for creating a ProviderOrderTokenAddress entity.
-func (c *ProviderOrderTokenAddressClient) Create() *ProviderOrderTokenAddressCreate {
-	mutation := newProviderOrderTokenAddressMutation(c.config, OpCreate)
-	return &ProviderOrderTokenAddressCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// CreateBulk returns a builder for creating a bulk of ProviderOrderTokenAddress entities.
-func (c *ProviderOrderTokenAddressClient) CreateBulk(builders ...*ProviderOrderTokenAddressCreate) *ProviderOrderTokenAddressCreateBulk {
-	return &ProviderOrderTokenAddressCreateBulk{config: c.config, builders: builders}
-}
-
-// Update returns an update builder for ProviderOrderTokenAddress.
-func (c *ProviderOrderTokenAddressClient) Update() *ProviderOrderTokenAddressUpdate {
-	mutation := newProviderOrderTokenAddressMutation(c.config, OpUpdate)
-	return &ProviderOrderTokenAddressUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOne returns an update builder for the given entity.
-func (c *ProviderOrderTokenAddressClient) UpdateOne(pota *ProviderOrderTokenAddress) *ProviderOrderTokenAddressUpdateOne {
-	mutation := newProviderOrderTokenAddressMutation(c.config, OpUpdateOne, withProviderOrderTokenAddress(pota))
-	return &ProviderOrderTokenAddressUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOneID returns an update builder for the given id.
-func (c *ProviderOrderTokenAddressClient) UpdateOneID(id int) *ProviderOrderTokenAddressUpdateOne {
-	mutation := newProviderOrderTokenAddressMutation(c.config, OpUpdateOne, withProviderOrderTokenAddressID(id))
-	return &ProviderOrderTokenAddressUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// Delete returns a delete builder for ProviderOrderTokenAddress.
-func (c *ProviderOrderTokenAddressClient) Delete() *ProviderOrderTokenAddressDelete {
-	mutation := newProviderOrderTokenAddressMutation(c.config, OpDelete)
-	return &ProviderOrderTokenAddressDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// DeleteOne returns a builder for deleting the given entity.
-func (c *ProviderOrderTokenAddressClient) DeleteOne(pota *ProviderOrderTokenAddress) *ProviderOrderTokenAddressDeleteOne {
-	return c.DeleteOneID(pota.ID)
-}
-
-// DeleteOneID returns a builder for deleting the given entity by its id.
-func (c *ProviderOrderTokenAddressClient) DeleteOneID(id int) *ProviderOrderTokenAddressDeleteOne {
-	builder := c.Delete().Where(providerordertokenaddress.ID(id))
-	builder.mutation.id = &id
-	builder.mutation.op = OpDeleteOne
-	return &ProviderOrderTokenAddressDeleteOne{builder}
-}
-
-// Query returns a query builder for ProviderOrderTokenAddress.
-func (c *ProviderOrderTokenAddressClient) Query() *ProviderOrderTokenAddressQuery {
-	return &ProviderOrderTokenAddressQuery{
-		config: c.config,
-		ctx:    &QueryContext{Type: TypeProviderOrderTokenAddress},
-		inters: c.Interceptors(),
-	}
-}
-
-// Get returns a ProviderOrderTokenAddress entity by its id.
-func (c *ProviderOrderTokenAddressClient) Get(ctx context.Context, id int) (*ProviderOrderTokenAddress, error) {
-	return c.Query().Where(providerordertokenaddress.ID(id)).Only(ctx)
-}
-
-// GetX is like Get, but panics if an error occurs.
-func (c *ProviderOrderTokenAddressClient) GetX(ctx context.Context, id int) *ProviderOrderTokenAddress {
-	obj, err := c.Get(ctx, id)
-	if err != nil {
-		panic(err)
-	}
-	return obj
-}
-
-// QueryProviderordertoken queries the providerordertoken edge of a ProviderOrderTokenAddress.
-func (c *ProviderOrderTokenAddressClient) QueryProviderordertoken(pota *ProviderOrderTokenAddress) *ProviderOrderTokenQuery {
-	query := (&ProviderOrderTokenClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := pota.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(providerordertokenaddress.Table, providerordertokenaddress.FieldID, id),
-			sqlgraph.To(providerordertoken.Table, providerordertoken.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, providerordertokenaddress.ProviderordertokenTable, providerordertokenaddress.ProviderordertokenColumn),
-		)
-		fromV = sqlgraph.Neighbors(pota.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// Hooks returns the client hooks.
-func (c *ProviderOrderTokenAddressClient) Hooks() []Hook {
-	return c.hooks.ProviderOrderTokenAddress
-}
-
-// Interceptors returns the client interceptors.
-func (c *ProviderOrderTokenAddressClient) Interceptors() []Interceptor {
-	return c.inters.ProviderOrderTokenAddress
-}
-
-func (c *ProviderOrderTokenAddressClient) mutate(ctx context.Context, m *ProviderOrderTokenAddressMutation) (Value, error) {
-	switch m.Op() {
-	case OpCreate:
-		return (&ProviderOrderTokenAddressCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdate:
-		return (&ProviderOrderTokenAddressUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdateOne:
-		return (&ProviderOrderTokenAddressUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpDelete, OpDeleteOne:
-		return (&ProviderOrderTokenAddressDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
-	default:
-		return nil, fmt.Errorf("ent: unknown ProviderOrderTokenAddress mutation op: %q", m.Op())
 	}
 }
 
@@ -3270,15 +3112,14 @@ type (
 	hooks struct {
 		APIKey, FiatCurrency, LockOrderFulfillment, LockPaymentOrder, Network,
 		PaymentOrder, PaymentOrderRecipient, ProviderAvailability, ProviderOrderToken,
-		ProviderOrderTokenAddress, ProviderProfile, ProviderRating, ProvisionBucket,
-		ReceiveAddress, SenderProfile, Token, User, ValidatorProfile,
-		VerificationToken []ent.Hook
+		ProviderProfile, ProviderRating, ProvisionBucket, ReceiveAddress,
+		SenderProfile, Token, User, ValidatorProfile, VerificationToken []ent.Hook
 	}
 	inters struct {
 		APIKey, FiatCurrency, LockOrderFulfillment, LockPaymentOrder, Network,
 		PaymentOrder, PaymentOrderRecipient, ProviderAvailability, ProviderOrderToken,
-		ProviderOrderTokenAddress, ProviderProfile, ProviderRating, ProvisionBucket,
-		ReceiveAddress, SenderProfile, Token, User, ValidatorProfile,
+		ProviderProfile, ProviderRating, ProvisionBucket, ReceiveAddress,
+		SenderProfile, Token, User, ValidatorProfile,
 		VerificationToken []ent.Interceptor
 	}
 )

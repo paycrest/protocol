@@ -10,10 +10,10 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
 	"github.com/paycrest/paycrest-protocol/ent/providerordertoken"
-	"github.com/paycrest/paycrest-protocol/ent/providerordertokenaddress"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 	"github.com/shopspring/decimal"
 )
@@ -38,8 +38,8 @@ func (potu *ProviderOrderTokenUpdate) SetUpdatedAt(t time.Time) *ProviderOrderTo
 }
 
 // SetSymbol sets the "symbol" field.
-func (potu *ProviderOrderTokenUpdate) SetSymbol(pr providerordertoken.Symbol) *ProviderOrderTokenUpdate {
-	potu.mutation.SetSymbol(pr)
+func (potu *ProviderOrderTokenUpdate) SetSymbol(s string) *ProviderOrderTokenUpdate {
+	potu.mutation.SetSymbol(s)
 	return potu
 }
 
@@ -101,6 +101,24 @@ func (potu *ProviderOrderTokenUpdate) AddMinOrderAmount(d decimal.Decimal) *Prov
 	return potu
 }
 
+// SetAddresses sets the "addresses" field.
+func (potu *ProviderOrderTokenUpdate) SetAddresses(s []struct {
+	Address string "json:\"address\""
+	Network string "json:\"network\""
+}) *ProviderOrderTokenUpdate {
+	potu.mutation.SetAddresses(s)
+	return potu
+}
+
+// AppendAddresses appends s to the "addresses" field.
+func (potu *ProviderOrderTokenUpdate) AppendAddresses(s []struct {
+	Address string "json:\"address\""
+	Network string "json:\"network\""
+}) *ProviderOrderTokenUpdate {
+	potu.mutation.AppendAddresses(s)
+	return potu
+}
+
 // SetProviderID sets the "provider" edge to the ProviderProfile entity by ID.
 func (potu *ProviderOrderTokenUpdate) SetProviderID(id string) *ProviderOrderTokenUpdate {
 	potu.mutation.SetProviderID(id)
@@ -120,21 +138,6 @@ func (potu *ProviderOrderTokenUpdate) SetProvider(p *ProviderProfile) *ProviderO
 	return potu.SetProviderID(p.ID)
 }
 
-// AddAddressIDs adds the "addresses" edge to the ProviderOrderTokenAddress entity by IDs.
-func (potu *ProviderOrderTokenUpdate) AddAddressIDs(ids ...int) *ProviderOrderTokenUpdate {
-	potu.mutation.AddAddressIDs(ids...)
-	return potu
-}
-
-// AddAddresses adds the "addresses" edges to the ProviderOrderTokenAddress entity.
-func (potu *ProviderOrderTokenUpdate) AddAddresses(p ...*ProviderOrderTokenAddress) *ProviderOrderTokenUpdate {
-	ids := make([]int, len(p))
-	for i := range p {
-		ids[i] = p[i].ID
-	}
-	return potu.AddAddressIDs(ids...)
-}
-
 // Mutation returns the ProviderOrderTokenMutation object of the builder.
 func (potu *ProviderOrderTokenUpdate) Mutation() *ProviderOrderTokenMutation {
 	return potu.mutation
@@ -144,27 +147,6 @@ func (potu *ProviderOrderTokenUpdate) Mutation() *ProviderOrderTokenMutation {
 func (potu *ProviderOrderTokenUpdate) ClearProvider() *ProviderOrderTokenUpdate {
 	potu.mutation.ClearProvider()
 	return potu
-}
-
-// ClearAddresses clears all "addresses" edges to the ProviderOrderTokenAddress entity.
-func (potu *ProviderOrderTokenUpdate) ClearAddresses() *ProviderOrderTokenUpdate {
-	potu.mutation.ClearAddresses()
-	return potu
-}
-
-// RemoveAddressIDs removes the "addresses" edge to ProviderOrderTokenAddress entities by IDs.
-func (potu *ProviderOrderTokenUpdate) RemoveAddressIDs(ids ...int) *ProviderOrderTokenUpdate {
-	potu.mutation.RemoveAddressIDs(ids...)
-	return potu
-}
-
-// RemoveAddresses removes "addresses" edges to ProviderOrderTokenAddress entities.
-func (potu *ProviderOrderTokenUpdate) RemoveAddresses(p ...*ProviderOrderTokenAddress) *ProviderOrderTokenUpdate {
-	ids := make([]int, len(p))
-	for i := range p {
-		ids[i] = p[i].ID
-	}
-	return potu.RemoveAddressIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -205,11 +187,6 @@ func (potu *ProviderOrderTokenUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (potu *ProviderOrderTokenUpdate) check() error {
-	if v, ok := potu.mutation.Symbol(); ok {
-		if err := providerordertoken.SymbolValidator(v); err != nil {
-			return &ValidationError{Name: "symbol", err: fmt.Errorf(`ent: validator failed for field "ProviderOrderToken.symbol": %w`, err)}
-		}
-	}
 	if v, ok := potu.mutation.ConversionRateType(); ok {
 		if err := providerordertoken.ConversionRateTypeValidator(v); err != nil {
 			return &ValidationError{Name: "conversion_rate_type", err: fmt.Errorf(`ent: validator failed for field "ProviderOrderToken.conversion_rate_type": %w`, err)}
@@ -234,7 +211,7 @@ func (potu *ProviderOrderTokenUpdate) sqlSave(ctx context.Context) (n int, err e
 		_spec.SetField(providerordertoken.FieldUpdatedAt, field.TypeTime, value)
 	}
 	if value, ok := potu.mutation.Symbol(); ok {
-		_spec.SetField(providerordertoken.FieldSymbol, field.TypeEnum, value)
+		_spec.SetField(providerordertoken.FieldSymbol, field.TypeString, value)
 	}
 	if value, ok := potu.mutation.FixedConversionRate(); ok {
 		_spec.SetField(providerordertoken.FieldFixedConversionRate, field.TypeFloat64, value)
@@ -263,6 +240,14 @@ func (potu *ProviderOrderTokenUpdate) sqlSave(ctx context.Context) (n int, err e
 	if value, ok := potu.mutation.AddedMinOrderAmount(); ok {
 		_spec.AddField(providerordertoken.FieldMinOrderAmount, field.TypeFloat64, value)
 	}
+	if value, ok := potu.mutation.Addresses(); ok {
+		_spec.SetField(providerordertoken.FieldAddresses, field.TypeJSON, value)
+	}
+	if value, ok := potu.mutation.AppendedAddresses(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, providerordertoken.FieldAddresses, value)
+		})
+	}
 	if potu.mutation.ProviderCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -285,51 +270,6 @@ func (potu *ProviderOrderTokenUpdate) sqlSave(ctx context.Context) (n int, err e
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(providerprofile.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if potu.mutation.AddressesCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   providerordertoken.AddressesTable,
-			Columns: []string{providerordertoken.AddressesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(providerordertokenaddress.FieldID, field.TypeInt),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := potu.mutation.RemovedAddressesIDs(); len(nodes) > 0 && !potu.mutation.AddressesCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   providerordertoken.AddressesTable,
-			Columns: []string{providerordertoken.AddressesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(providerordertokenaddress.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := potu.mutation.AddressesIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   providerordertoken.AddressesTable,
-			Columns: []string{providerordertoken.AddressesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(providerordertokenaddress.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -364,8 +304,8 @@ func (potuo *ProviderOrderTokenUpdateOne) SetUpdatedAt(t time.Time) *ProviderOrd
 }
 
 // SetSymbol sets the "symbol" field.
-func (potuo *ProviderOrderTokenUpdateOne) SetSymbol(pr providerordertoken.Symbol) *ProviderOrderTokenUpdateOne {
-	potuo.mutation.SetSymbol(pr)
+func (potuo *ProviderOrderTokenUpdateOne) SetSymbol(s string) *ProviderOrderTokenUpdateOne {
+	potuo.mutation.SetSymbol(s)
 	return potuo
 }
 
@@ -427,6 +367,24 @@ func (potuo *ProviderOrderTokenUpdateOne) AddMinOrderAmount(d decimal.Decimal) *
 	return potuo
 }
 
+// SetAddresses sets the "addresses" field.
+func (potuo *ProviderOrderTokenUpdateOne) SetAddresses(s []struct {
+	Address string "json:\"address\""
+	Network string "json:\"network\""
+}) *ProviderOrderTokenUpdateOne {
+	potuo.mutation.SetAddresses(s)
+	return potuo
+}
+
+// AppendAddresses appends s to the "addresses" field.
+func (potuo *ProviderOrderTokenUpdateOne) AppendAddresses(s []struct {
+	Address string "json:\"address\""
+	Network string "json:\"network\""
+}) *ProviderOrderTokenUpdateOne {
+	potuo.mutation.AppendAddresses(s)
+	return potuo
+}
+
 // SetProviderID sets the "provider" edge to the ProviderProfile entity by ID.
 func (potuo *ProviderOrderTokenUpdateOne) SetProviderID(id string) *ProviderOrderTokenUpdateOne {
 	potuo.mutation.SetProviderID(id)
@@ -446,21 +404,6 @@ func (potuo *ProviderOrderTokenUpdateOne) SetProvider(p *ProviderProfile) *Provi
 	return potuo.SetProviderID(p.ID)
 }
 
-// AddAddressIDs adds the "addresses" edge to the ProviderOrderTokenAddress entity by IDs.
-func (potuo *ProviderOrderTokenUpdateOne) AddAddressIDs(ids ...int) *ProviderOrderTokenUpdateOne {
-	potuo.mutation.AddAddressIDs(ids...)
-	return potuo
-}
-
-// AddAddresses adds the "addresses" edges to the ProviderOrderTokenAddress entity.
-func (potuo *ProviderOrderTokenUpdateOne) AddAddresses(p ...*ProviderOrderTokenAddress) *ProviderOrderTokenUpdateOne {
-	ids := make([]int, len(p))
-	for i := range p {
-		ids[i] = p[i].ID
-	}
-	return potuo.AddAddressIDs(ids...)
-}
-
 // Mutation returns the ProviderOrderTokenMutation object of the builder.
 func (potuo *ProviderOrderTokenUpdateOne) Mutation() *ProviderOrderTokenMutation {
 	return potuo.mutation
@@ -470,27 +413,6 @@ func (potuo *ProviderOrderTokenUpdateOne) Mutation() *ProviderOrderTokenMutation
 func (potuo *ProviderOrderTokenUpdateOne) ClearProvider() *ProviderOrderTokenUpdateOne {
 	potuo.mutation.ClearProvider()
 	return potuo
-}
-
-// ClearAddresses clears all "addresses" edges to the ProviderOrderTokenAddress entity.
-func (potuo *ProviderOrderTokenUpdateOne) ClearAddresses() *ProviderOrderTokenUpdateOne {
-	potuo.mutation.ClearAddresses()
-	return potuo
-}
-
-// RemoveAddressIDs removes the "addresses" edge to ProviderOrderTokenAddress entities by IDs.
-func (potuo *ProviderOrderTokenUpdateOne) RemoveAddressIDs(ids ...int) *ProviderOrderTokenUpdateOne {
-	potuo.mutation.RemoveAddressIDs(ids...)
-	return potuo
-}
-
-// RemoveAddresses removes "addresses" edges to ProviderOrderTokenAddress entities.
-func (potuo *ProviderOrderTokenUpdateOne) RemoveAddresses(p ...*ProviderOrderTokenAddress) *ProviderOrderTokenUpdateOne {
-	ids := make([]int, len(p))
-	for i := range p {
-		ids[i] = p[i].ID
-	}
-	return potuo.RemoveAddressIDs(ids...)
 }
 
 // Where appends a list predicates to the ProviderOrderTokenUpdate builder.
@@ -544,11 +466,6 @@ func (potuo *ProviderOrderTokenUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (potuo *ProviderOrderTokenUpdateOne) check() error {
-	if v, ok := potuo.mutation.Symbol(); ok {
-		if err := providerordertoken.SymbolValidator(v); err != nil {
-			return &ValidationError{Name: "symbol", err: fmt.Errorf(`ent: validator failed for field "ProviderOrderToken.symbol": %w`, err)}
-		}
-	}
 	if v, ok := potuo.mutation.ConversionRateType(); ok {
 		if err := providerordertoken.ConversionRateTypeValidator(v); err != nil {
 			return &ValidationError{Name: "conversion_rate_type", err: fmt.Errorf(`ent: validator failed for field "ProviderOrderToken.conversion_rate_type": %w`, err)}
@@ -590,7 +507,7 @@ func (potuo *ProviderOrderTokenUpdateOne) sqlSave(ctx context.Context) (_node *P
 		_spec.SetField(providerordertoken.FieldUpdatedAt, field.TypeTime, value)
 	}
 	if value, ok := potuo.mutation.Symbol(); ok {
-		_spec.SetField(providerordertoken.FieldSymbol, field.TypeEnum, value)
+		_spec.SetField(providerordertoken.FieldSymbol, field.TypeString, value)
 	}
 	if value, ok := potuo.mutation.FixedConversionRate(); ok {
 		_spec.SetField(providerordertoken.FieldFixedConversionRate, field.TypeFloat64, value)
@@ -619,6 +536,14 @@ func (potuo *ProviderOrderTokenUpdateOne) sqlSave(ctx context.Context) (_node *P
 	if value, ok := potuo.mutation.AddedMinOrderAmount(); ok {
 		_spec.AddField(providerordertoken.FieldMinOrderAmount, field.TypeFloat64, value)
 	}
+	if value, ok := potuo.mutation.Addresses(); ok {
+		_spec.SetField(providerordertoken.FieldAddresses, field.TypeJSON, value)
+	}
+	if value, ok := potuo.mutation.AppendedAddresses(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, providerordertoken.FieldAddresses, value)
+		})
+	}
 	if potuo.mutation.ProviderCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -641,51 +566,6 @@ func (potuo *ProviderOrderTokenUpdateOne) sqlSave(ctx context.Context) (_node *P
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(providerprofile.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if potuo.mutation.AddressesCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   providerordertoken.AddressesTable,
-			Columns: []string{providerordertoken.AddressesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(providerordertokenaddress.FieldID, field.TypeInt),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := potuo.mutation.RemovedAddressesIDs(); len(nodes) > 0 && !potuo.mutation.AddressesCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   providerordertoken.AddressesTable,
-			Columns: []string{providerordertoken.AddressesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(providerordertokenaddress.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := potuo.mutation.AddressesIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   providerordertoken.AddressesTable,
-			Columns: []string{providerordertoken.AddressesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(providerordertokenaddress.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

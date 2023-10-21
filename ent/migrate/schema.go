@@ -126,7 +126,7 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "chain_id", Type: field.TypeInt64},
-		{Name: "identifier", Type: field.TypeEnum, Enums: []string{"bnb-smart-chain", "polygon", "tron", "polygon-mumbai", "tron-shasta"}},
+		{Name: "identifier", Type: field.TypeString, Unique: true},
 		{Name: "rpc_endpoint", Type: field.TypeString},
 		{Name: "is_testnet", Type: field.TypeBool},
 	}
@@ -220,12 +220,13 @@ var (
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
-		{Name: "symbol", Type: field.TypeEnum, Enums: []string{"USDT", "USDC", "BUSD"}},
+		{Name: "symbol", Type: field.TypeString, Unique: true},
 		{Name: "fixed_conversion_rate", Type: field.TypeFloat64},
 		{Name: "floating_conversion_rate", Type: field.TypeFloat64},
 		{Name: "conversion_rate_type", Type: field.TypeEnum, Enums: []string{"fixed", "floating"}},
 		{Name: "max_order_amount", Type: field.TypeFloat64},
 		{Name: "min_order_amount", Type: field.TypeFloat64},
+		{Name: "addresses", Type: field.TypeJSON},
 		{Name: "provider_profile_order_tokens", Type: field.TypeString, Nullable: true},
 	}
 	// ProviderOrderTokensTable holds the schema information for the "provider_order_tokens" table.
@@ -236,30 +237,9 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "provider_order_tokens_provider_profiles_order_tokens",
-				Columns:    []*schema.Column{ProviderOrderTokensColumns[9]},
+				Columns:    []*schema.Column{ProviderOrderTokensColumns[10]},
 				RefColumns: []*schema.Column{ProviderProfilesColumns[0]},
 				OnDelete:   schema.Cascade,
-			},
-		},
-	}
-	// ProviderOrderTokenAddressesColumns holds the columns for the "provider_order_token_addresses" table.
-	ProviderOrderTokenAddressesColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeInt, Increment: true},
-		{Name: "network", Type: field.TypeEnum, Enums: []string{"bnb-smart-chain", "polygon", "tron", "polygon-mumbai", "tron-shasta"}},
-		{Name: "address", Type: field.TypeString, Size: 50},
-		{Name: "provider_order_token_addresses", Type: field.TypeInt, Nullable: true},
-	}
-	// ProviderOrderTokenAddressesTable holds the schema information for the "provider_order_token_addresses" table.
-	ProviderOrderTokenAddressesTable = &schema.Table{
-		Name:       "provider_order_token_addresses",
-		Columns:    ProviderOrderTokenAddressesColumns,
-		PrimaryKey: []*schema.Column{ProviderOrderTokenAddressesColumns[0]},
-		ForeignKeys: []*schema.ForeignKey{
-			{
-				Symbol:     "provider_order_token_addresses_provider_order_tokens_addresses",
-				Columns:    []*schema.Column{ProviderOrderTokenAddressesColumns[3]},
-				RefColumns: []*schema.Column{ProviderOrderTokensColumns[0]},
-				OnDelete:   schema.SetNull,
 			},
 		},
 	}
@@ -536,7 +516,6 @@ var (
 		PaymentOrderRecipientsTable,
 		ProviderAvailabilitiesTable,
 		ProviderOrderTokensTable,
-		ProviderOrderTokenAddressesTable,
 		ProviderProfilesTable,
 		ProviderRatingsTable,
 		ProvisionBucketsTable,
@@ -562,7 +541,6 @@ func init() {
 	PaymentOrderRecipientsTable.ForeignKeys[0].RefTable = PaymentOrdersTable
 	ProviderAvailabilitiesTable.ForeignKeys[0].RefTable = ProviderProfilesTable
 	ProviderOrderTokensTable.ForeignKeys[0].RefTable = ProviderProfilesTable
-	ProviderOrderTokenAddressesTable.ForeignKeys[0].RefTable = ProviderOrderTokensTable
 	ProviderProfilesTable.ForeignKeys[0].RefTable = FiatCurrenciesTable
 	ProviderProfilesTable.ForeignKeys[1].RefTable = UsersTable
 	ProviderRatingsTable.ForeignKeys[0].RefTable = ProviderProfilesTable

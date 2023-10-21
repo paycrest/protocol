@@ -117,18 +117,6 @@ func (f ProviderOrderTokenFunc) Mutate(ctx context.Context, m ent.Mutation) (ent
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ProviderOrderTokenMutation", m)
 }
 
-// The ProviderOrderTokenAddressFunc type is an adapter to allow the use of ordinary
-// function as ProviderOrderTokenAddress mutator.
-type ProviderOrderTokenAddressFunc func(context.Context, *ent.ProviderOrderTokenAddressMutation) (ent.Value, error)
-
-// Mutate calls f(ctx, m).
-func (f ProviderOrderTokenAddressFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
-	if mv, ok := m.(*ent.ProviderOrderTokenAddressMutation); ok {
-		return f(ctx, mv)
-	}
-	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ProviderOrderTokenAddressMutation", m)
-}
-
 // The ProviderProfileFunc type is an adapter to allow the use of ordinary
 // function as ProviderProfile mutator.
 type ProviderProfileFunc func(context.Context, *ent.ProviderProfileMutation) (ent.Value, error)

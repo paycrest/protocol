@@ -66,6 +66,11 @@ func UpdatedAt(v time.Time) predicate.ProviderOrderToken {
 	return predicate.ProviderOrderToken(sql.FieldEQ(FieldUpdatedAt, v))
 }
 
+// Symbol applies equality check predicate on the "symbol" field. It's identical to SymbolEQ.
+func Symbol(v string) predicate.ProviderOrderToken {
+	return predicate.ProviderOrderToken(sql.FieldEQ(FieldSymbol, v))
+}
+
 // FixedConversionRate applies equality check predicate on the "fixed_conversion_rate" field. It's identical to FixedConversionRateEQ.
 func FixedConversionRate(v decimal.Decimal) predicate.ProviderOrderToken {
 	return predicate.ProviderOrderToken(sql.FieldEQ(FieldFixedConversionRate, v))
@@ -167,23 +172,68 @@ func UpdatedAtLTE(v time.Time) predicate.ProviderOrderToken {
 }
 
 // SymbolEQ applies the EQ predicate on the "symbol" field.
-func SymbolEQ(v Symbol) predicate.ProviderOrderToken {
+func SymbolEQ(v string) predicate.ProviderOrderToken {
 	return predicate.ProviderOrderToken(sql.FieldEQ(FieldSymbol, v))
 }
 
 // SymbolNEQ applies the NEQ predicate on the "symbol" field.
-func SymbolNEQ(v Symbol) predicate.ProviderOrderToken {
+func SymbolNEQ(v string) predicate.ProviderOrderToken {
 	return predicate.ProviderOrderToken(sql.FieldNEQ(FieldSymbol, v))
 }
 
 // SymbolIn applies the In predicate on the "symbol" field.
-func SymbolIn(vs ...Symbol) predicate.ProviderOrderToken {
+func SymbolIn(vs ...string) predicate.ProviderOrderToken {
 	return predicate.ProviderOrderToken(sql.FieldIn(FieldSymbol, vs...))
 }
 
 // SymbolNotIn applies the NotIn predicate on the "symbol" field.
-func SymbolNotIn(vs ...Symbol) predicate.ProviderOrderToken {
+func SymbolNotIn(vs ...string) predicate.ProviderOrderToken {
 	return predicate.ProviderOrderToken(sql.FieldNotIn(FieldSymbol, vs...))
+}
+
+// SymbolGT applies the GT predicate on the "symbol" field.
+func SymbolGT(v string) predicate.ProviderOrderToken {
+	return predicate.ProviderOrderToken(sql.FieldGT(FieldSymbol, v))
+}
+
+// SymbolGTE applies the GTE predicate on the "symbol" field.
+func SymbolGTE(v string) predicate.ProviderOrderToken {
+	return predicate.ProviderOrderToken(sql.FieldGTE(FieldSymbol, v))
+}
+
+// SymbolLT applies the LT predicate on the "symbol" field.
+func SymbolLT(v string) predicate.ProviderOrderToken {
+	return predicate.ProviderOrderToken(sql.FieldLT(FieldSymbol, v))
+}
+
+// SymbolLTE applies the LTE predicate on the "symbol" field.
+func SymbolLTE(v string) predicate.ProviderOrderToken {
+	return predicate.ProviderOrderToken(sql.FieldLTE(FieldSymbol, v))
+}
+
+// SymbolContains applies the Contains predicate on the "symbol" field.
+func SymbolContains(v string) predicate.ProviderOrderToken {
+	return predicate.ProviderOrderToken(sql.FieldContains(FieldSymbol, v))
+}
+
+// SymbolHasPrefix applies the HasPrefix predicate on the "symbol" field.
+func SymbolHasPrefix(v string) predicate.ProviderOrderToken {
+	return predicate.ProviderOrderToken(sql.FieldHasPrefix(FieldSymbol, v))
+}
+
+// SymbolHasSuffix applies the HasSuffix predicate on the "symbol" field.
+func SymbolHasSuffix(v string) predicate.ProviderOrderToken {
+	return predicate.ProviderOrderToken(sql.FieldHasSuffix(FieldSymbol, v))
+}
+
+// SymbolEqualFold applies the EqualFold predicate on the "symbol" field.
+func SymbolEqualFold(v string) predicate.ProviderOrderToken {
+	return predicate.ProviderOrderToken(sql.FieldEqualFold(FieldSymbol, v))
+}
+
+// SymbolContainsFold applies the ContainsFold predicate on the "symbol" field.
+func SymbolContainsFold(v string) predicate.ProviderOrderToken {
+	return predicate.ProviderOrderToken(sql.FieldContainsFold(FieldSymbol, v))
 }
 
 // FixedConversionRateEQ applies the EQ predicate on the "fixed_conversion_rate" field.
@@ -381,29 +431,6 @@ func HasProvider() predicate.ProviderOrderToken {
 func HasProviderWith(preds ...predicate.ProviderProfile) predicate.ProviderOrderToken {
 	return predicate.ProviderOrderToken(func(s *sql.Selector) {
 		step := newProviderStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
-}
-
-// HasAddresses applies the HasEdge predicate on the "addresses" edge.
-func HasAddresses() predicate.ProviderOrderToken {
-	return predicate.ProviderOrderToken(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, AddressesTable, AddressesColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasAddressesWith applies the HasEdge predicate on the "addresses" edge with a given conditions (other predicates).
-func HasAddressesWith(preds ...predicate.ProviderOrderTokenAddress) predicate.ProviderOrderToken {
-	return predicate.ProviderOrderToken(func(s *sql.Selector) {
-		step := newAddressesStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

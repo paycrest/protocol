@@ -24,7 +24,7 @@ type Network struct {
 	// ChainID holds the value of the "chain_id" field.
 	ChainID int64 `json:"chain_id,omitempty"`
 	// Identifier holds the value of the "identifier" field.
-	Identifier network.Identifier `json:"identifier,omitempty"`
+	Identifier string `json:"identifier,omitempty"`
 	// RPCEndpoint holds the value of the "rpc_endpoint" field.
 	RPCEndpoint string `json:"rpc_endpoint,omitempty"`
 	// IsTestnet holds the value of the "is_testnet" field.
@@ -109,7 +109,7 @@ func (n *Network) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field identifier", values[i])
 			} else if value.Valid {
-				n.Identifier = network.Identifier(value.String)
+				n.Identifier = value.String
 			}
 		case network.FieldRPCEndpoint:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -174,7 +174,7 @@ func (n *Network) String() string {
 	builder.WriteString(fmt.Sprintf("%v", n.ChainID))
 	builder.WriteString(", ")
 	builder.WriteString("identifier=")
-	builder.WriteString(fmt.Sprintf("%v", n.Identifier))
+	builder.WriteString(n.Identifier)
 	builder.WriteString(", ")
 	builder.WriteString("rpc_endpoint=")
 	builder.WriteString(n.RPCEndpoint)

@@ -11,7 +11,6 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/paycrest/paycrest-protocol/ent/providerordertoken"
-	"github.com/paycrest/paycrest-protocol/ent/providerordertokenaddress"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 	"github.com/shopspring/decimal"
 )
@@ -52,8 +51,8 @@ func (potc *ProviderOrderTokenCreate) SetNillableUpdatedAt(t *time.Time) *Provid
 }
 
 // SetSymbol sets the "symbol" field.
-func (potc *ProviderOrderTokenCreate) SetSymbol(pr providerordertoken.Symbol) *ProviderOrderTokenCreate {
-	potc.mutation.SetSymbol(pr)
+func (potc *ProviderOrderTokenCreate) SetSymbol(s string) *ProviderOrderTokenCreate {
+	potc.mutation.SetSymbol(s)
 	return potc
 }
 
@@ -87,6 +86,15 @@ func (potc *ProviderOrderTokenCreate) SetMinOrderAmount(d decimal.Decimal) *Prov
 	return potc
 }
 
+// SetAddresses sets the "addresses" field.
+func (potc *ProviderOrderTokenCreate) SetAddresses(s []struct {
+	Address string "json:\"address\""
+	Network string "json:\"network\""
+}) *ProviderOrderTokenCreate {
+	potc.mutation.SetAddresses(s)
+	return potc
+}
+
 // SetProviderID sets the "provider" edge to the ProviderProfile entity by ID.
 func (potc *ProviderOrderTokenCreate) SetProviderID(id string) *ProviderOrderTokenCreate {
 	potc.mutation.SetProviderID(id)
@@ -104,21 +112,6 @@ func (potc *ProviderOrderTokenCreate) SetNillableProviderID(id *string) *Provide
 // SetProvider sets the "provider" edge to the ProviderProfile entity.
 func (potc *ProviderOrderTokenCreate) SetProvider(p *ProviderProfile) *ProviderOrderTokenCreate {
 	return potc.SetProviderID(p.ID)
-}
-
-// AddAddressIDs adds the "addresses" edge to the ProviderOrderTokenAddress entity by IDs.
-func (potc *ProviderOrderTokenCreate) AddAddressIDs(ids ...int) *ProviderOrderTokenCreate {
-	potc.mutation.AddAddressIDs(ids...)
-	return potc
-}
-
-// AddAddresses adds the "addresses" edges to the ProviderOrderTokenAddress entity.
-func (potc *ProviderOrderTokenCreate) AddAddresses(p ...*ProviderOrderTokenAddress) *ProviderOrderTokenCreate {
-	ids := make([]int, len(p))
-	for i := range p {
-		ids[i] = p[i].ID
-	}
-	return potc.AddAddressIDs(ids...)
 }
 
 // Mutation returns the ProviderOrderTokenMutation object of the builder.
@@ -177,11 +170,6 @@ func (potc *ProviderOrderTokenCreate) check() error {
 	if _, ok := potc.mutation.Symbol(); !ok {
 		return &ValidationError{Name: "symbol", err: errors.New(`ent: missing required field "ProviderOrderToken.symbol"`)}
 	}
-	if v, ok := potc.mutation.Symbol(); ok {
-		if err := providerordertoken.SymbolValidator(v); err != nil {
-			return &ValidationError{Name: "symbol", err: fmt.Errorf(`ent: validator failed for field "ProviderOrderToken.symbol": %w`, err)}
-		}
-	}
 	if _, ok := potc.mutation.FixedConversionRate(); !ok {
 		return &ValidationError{Name: "fixed_conversion_rate", err: errors.New(`ent: missing required field "ProviderOrderToken.fixed_conversion_rate"`)}
 	}
@@ -201,6 +189,9 @@ func (potc *ProviderOrderTokenCreate) check() error {
 	}
 	if _, ok := potc.mutation.MinOrderAmount(); !ok {
 		return &ValidationError{Name: "min_order_amount", err: errors.New(`ent: missing required field "ProviderOrderToken.min_order_amount"`)}
+	}
+	if _, ok := potc.mutation.Addresses(); !ok {
+		return &ValidationError{Name: "addresses", err: errors.New(`ent: missing required field "ProviderOrderToken.addresses"`)}
 	}
 	return nil
 }
@@ -237,7 +228,7 @@ func (potc *ProviderOrderTokenCreate) createSpec() (*ProviderOrderToken, *sqlgra
 		_node.UpdatedAt = value
 	}
 	if value, ok := potc.mutation.Symbol(); ok {
-		_spec.SetField(providerordertoken.FieldSymbol, field.TypeEnum, value)
+		_spec.SetField(providerordertoken.FieldSymbol, field.TypeString, value)
 		_node.Symbol = value
 	}
 	if value, ok := potc.mutation.FixedConversionRate(); ok {
@@ -260,6 +251,10 @@ func (potc *ProviderOrderTokenCreate) createSpec() (*ProviderOrderToken, *sqlgra
 		_spec.SetField(providerordertoken.FieldMinOrderAmount, field.TypeFloat64, value)
 		_node.MinOrderAmount = value
 	}
+	if value, ok := potc.mutation.Addresses(); ok {
+		_spec.SetField(providerordertoken.FieldAddresses, field.TypeJSON, value)
+		_node.Addresses = value
+	}
 	if nodes := potc.mutation.ProviderIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -275,22 +270,6 @@ func (potc *ProviderOrderTokenCreate) createSpec() (*ProviderOrderToken, *sqlgra
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.provider_profile_order_tokens = &nodes[0]
-		_spec.Edges = append(_spec.Edges, edge)
-	}
-	if nodes := potc.mutation.AddressesIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   providerordertoken.AddressesTable,
-			Columns: []string{providerordertoken.AddressesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(providerordertokenaddress.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

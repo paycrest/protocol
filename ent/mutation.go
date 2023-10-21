@@ -22,7 +22,6 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
 	"github.com/paycrest/paycrest-protocol/ent/provideravailability"
 	"github.com/paycrest/paycrest-protocol/ent/providerordertoken"
-	"github.com/paycrest/paycrest-protocol/ent/providerordertokenaddress"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 	"github.com/paycrest/paycrest-protocol/ent/providerrating"
 	"github.com/paycrest/paycrest-protocol/ent/provisionbucket"
@@ -44,25 +43,24 @@ const (
 	OpUpdateOne = ent.OpUpdateOne
 
 	// Node types.
-	TypeAPIKey                    = "APIKey"
-	TypeFiatCurrency              = "FiatCurrency"
-	TypeLockOrderFulfillment      = "LockOrderFulfillment"
-	TypeLockPaymentOrder          = "LockPaymentOrder"
-	TypeNetwork                   = "Network"
-	TypePaymentOrder              = "PaymentOrder"
-	TypePaymentOrderRecipient     = "PaymentOrderRecipient"
-	TypeProviderAvailability      = "ProviderAvailability"
-	TypeProviderOrderToken        = "ProviderOrderToken"
-	TypeProviderOrderTokenAddress = "ProviderOrderTokenAddress"
-	TypeProviderProfile           = "ProviderProfile"
-	TypeProviderRating            = "ProviderRating"
-	TypeProvisionBucket           = "ProvisionBucket"
-	TypeReceiveAddress            = "ReceiveAddress"
-	TypeSenderProfile             = "SenderProfile"
-	TypeToken                     = "Token"
-	TypeUser                      = "User"
-	TypeValidatorProfile          = "ValidatorProfile"
-	TypeVerificationToken         = "VerificationToken"
+	TypeAPIKey                = "APIKey"
+	TypeFiatCurrency          = "FiatCurrency"
+	TypeLockOrderFulfillment  = "LockOrderFulfillment"
+	TypeLockPaymentOrder      = "LockPaymentOrder"
+	TypeNetwork               = "Network"
+	TypePaymentOrder          = "PaymentOrder"
+	TypePaymentOrderRecipient = "PaymentOrderRecipient"
+	TypeProviderAvailability  = "ProviderAvailability"
+	TypeProviderOrderToken    = "ProviderOrderToken"
+	TypeProviderProfile       = "ProviderProfile"
+	TypeProviderRating        = "ProviderRating"
+	TypeProvisionBucket       = "ProvisionBucket"
+	TypeReceiveAddress        = "ReceiveAddress"
+	TypeSenderProfile         = "SenderProfile"
+	TypeToken                 = "Token"
+	TypeUser                  = "User"
+	TypeValidatorProfile      = "ValidatorProfile"
+	TypeVerificationToken     = "VerificationToken"
 )
 
 // APIKeyMutation represents an operation that mutates the APIKey nodes in the graph.
@@ -3823,7 +3821,7 @@ type NetworkMutation struct {
 	updated_at    *time.Time
 	chain_id      *int64
 	addchain_id   *int64
-	identifier    *network.Identifier
+	identifier    *string
 	rpc_endpoint  *string
 	is_testnet    *bool
 	clearedFields map[string]struct{}
@@ -4062,12 +4060,12 @@ func (m *NetworkMutation) ResetChainID() {
 }
 
 // SetIdentifier sets the "identifier" field.
-func (m *NetworkMutation) SetIdentifier(n network.Identifier) {
-	m.identifier = &n
+func (m *NetworkMutation) SetIdentifier(s string) {
+	m.identifier = &s
 }
 
 // Identifier returns the value of the "identifier" field in the mutation.
-func (m *NetworkMutation) Identifier() (r network.Identifier, exists bool) {
+func (m *NetworkMutation) Identifier() (r string, exists bool) {
 	v := m.identifier
 	if v == nil {
 		return
@@ -4078,7 +4076,7 @@ func (m *NetworkMutation) Identifier() (r network.Identifier, exists bool) {
 // OldIdentifier returns the old "identifier" field's value of the Network entity.
 // If the Network object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *NetworkMutation) OldIdentifier(ctx context.Context) (v network.Identifier, err error) {
+func (m *NetworkMutation) OldIdentifier(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldIdentifier is only allowed on UpdateOne operations")
 	}
@@ -4348,7 +4346,7 @@ func (m *NetworkMutation) SetField(name string, value ent.Value) error {
 		m.SetChainID(v)
 		return nil
 	case network.FieldIdentifier:
-		v, ok := value.(network.Identifier)
+		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -6688,7 +6686,7 @@ type ProviderOrderTokenMutation struct {
 	id                          *int
 	created_at                  *time.Time
 	updated_at                  *time.Time
-	symbol                      *providerordertoken.Symbol
+	symbol                      *string
 	fixed_conversion_rate       *decimal.Decimal
 	addfixed_conversion_rate    *decimal.Decimal
 	floating_conversion_rate    *decimal.Decimal
@@ -6698,15 +6696,20 @@ type ProviderOrderTokenMutation struct {
 	addmax_order_amount         *decimal.Decimal
 	min_order_amount            *decimal.Decimal
 	addmin_order_amount         *decimal.Decimal
-	clearedFields               map[string]struct{}
-	provider                    *string
-	clearedprovider             bool
-	addresses                   map[int]struct{}
-	removedaddresses            map[int]struct{}
-	clearedaddresses            bool
-	done                        bool
-	oldValue                    func(context.Context) (*ProviderOrderToken, error)
-	predicates                  []predicate.ProviderOrderToken
+	addresses                   *[]struct {
+		Address string "json:\"address\""
+		Network string "json:\"network\""
+	}
+	appendaddresses []struct {
+		Address string "json:\"address\""
+		Network string "json:\"network\""
+	}
+	clearedFields   map[string]struct{}
+	provider        *string
+	clearedprovider bool
+	done            bool
+	oldValue        func(context.Context) (*ProviderOrderToken, error)
+	predicates      []predicate.ProviderOrderToken
 }
 
 var _ ent.Mutation = (*ProviderOrderTokenMutation)(nil)
@@ -6880,12 +6883,12 @@ func (m *ProviderOrderTokenMutation) ResetUpdatedAt() {
 }
 
 // SetSymbol sets the "symbol" field.
-func (m *ProviderOrderTokenMutation) SetSymbol(pr providerordertoken.Symbol) {
-	m.symbol = &pr
+func (m *ProviderOrderTokenMutation) SetSymbol(s string) {
+	m.symbol = &s
 }
 
 // Symbol returns the value of the "symbol" field in the mutation.
-func (m *ProviderOrderTokenMutation) Symbol() (r providerordertoken.Symbol, exists bool) {
+func (m *ProviderOrderTokenMutation) Symbol() (r string, exists bool) {
 	v := m.symbol
 	if v == nil {
 		return
@@ -6896,7 +6899,7 @@ func (m *ProviderOrderTokenMutation) Symbol() (r providerordertoken.Symbol, exis
 // OldSymbol returns the old "symbol" field's value of the ProviderOrderToken entity.
 // If the ProviderOrderToken object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ProviderOrderTokenMutation) OldSymbol(ctx context.Context) (v providerordertoken.Symbol, err error) {
+func (m *ProviderOrderTokenMutation) OldSymbol(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldSymbol is only allowed on UpdateOne operations")
 	}
@@ -7175,6 +7178,72 @@ func (m *ProviderOrderTokenMutation) ResetMinOrderAmount() {
 	m.addmin_order_amount = nil
 }
 
+// SetAddresses sets the "addresses" field.
+func (m *ProviderOrderTokenMutation) SetAddresses(s []struct {
+	Address string "json:\"address\""
+	Network string "json:\"network\""
+}) {
+	m.addresses = &s
+	m.appendaddresses = nil
+}
+
+// Addresses returns the value of the "addresses" field in the mutation.
+func (m *ProviderOrderTokenMutation) Addresses() (r []struct {
+	Address string "json:\"address\""
+	Network string "json:\"network\""
+}, exists bool) {
+	v := m.addresses
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAddresses returns the old "addresses" field's value of the ProviderOrderToken entity.
+// If the ProviderOrderToken object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderOrderTokenMutation) OldAddresses(ctx context.Context) (v []struct {
+	Address string "json:\"address\""
+	Network string "json:\"network\""
+}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAddresses is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAddresses requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAddresses: %w", err)
+	}
+	return oldValue.Addresses, nil
+}
+
+// AppendAddresses adds s to the "addresses" field.
+func (m *ProviderOrderTokenMutation) AppendAddresses(s []struct {
+	Address string "json:\"address\""
+	Network string "json:\"network\""
+}) {
+	m.appendaddresses = append(m.appendaddresses, s...)
+}
+
+// AppendedAddresses returns the list of values that were appended to the "addresses" field in this mutation.
+func (m *ProviderOrderTokenMutation) AppendedAddresses() ([]struct {
+	Address string "json:\"address\""
+	Network string "json:\"network\""
+}, bool) {
+	if len(m.appendaddresses) == 0 {
+		return nil, false
+	}
+	return m.appendaddresses, true
+}
+
+// ResetAddresses resets all changes to the "addresses" field.
+func (m *ProviderOrderTokenMutation) ResetAddresses() {
+	m.addresses = nil
+	m.appendaddresses = nil
+}
+
 // SetProviderID sets the "provider" edge to the ProviderProfile entity by id.
 func (m *ProviderOrderTokenMutation) SetProviderID(id string) {
 	m.provider = &id
@@ -7214,60 +7283,6 @@ func (m *ProviderOrderTokenMutation) ResetProvider() {
 	m.clearedprovider = false
 }
 
-// AddAddressIDs adds the "addresses" edge to the ProviderOrderTokenAddress entity by ids.
-func (m *ProviderOrderTokenMutation) AddAddressIDs(ids ...int) {
-	if m.addresses == nil {
-		m.addresses = make(map[int]struct{})
-	}
-	for i := range ids {
-		m.addresses[ids[i]] = struct{}{}
-	}
-}
-
-// ClearAddresses clears the "addresses" edge to the ProviderOrderTokenAddress entity.
-func (m *ProviderOrderTokenMutation) ClearAddresses() {
-	m.clearedaddresses = true
-}
-
-// AddressesCleared reports if the "addresses" edge to the ProviderOrderTokenAddress entity was cleared.
-func (m *ProviderOrderTokenMutation) AddressesCleared() bool {
-	return m.clearedaddresses
-}
-
-// RemoveAddressIDs removes the "addresses" edge to the ProviderOrderTokenAddress entity by IDs.
-func (m *ProviderOrderTokenMutation) RemoveAddressIDs(ids ...int) {
-	if m.removedaddresses == nil {
-		m.removedaddresses = make(map[int]struct{})
-	}
-	for i := range ids {
-		delete(m.addresses, ids[i])
-		m.removedaddresses[ids[i]] = struct{}{}
-	}
-}
-
-// RemovedAddresses returns the removed IDs of the "addresses" edge to the ProviderOrderTokenAddress entity.
-func (m *ProviderOrderTokenMutation) RemovedAddressesIDs() (ids []int) {
-	for id := range m.removedaddresses {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// AddressesIDs returns the "addresses" edge IDs in the mutation.
-func (m *ProviderOrderTokenMutation) AddressesIDs() (ids []int) {
-	for id := range m.addresses {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// ResetAddresses resets all changes to the "addresses" edge.
-func (m *ProviderOrderTokenMutation) ResetAddresses() {
-	m.addresses = nil
-	m.clearedaddresses = false
-	m.removedaddresses = nil
-}
-
 // Where appends a list predicates to the ProviderOrderTokenMutation builder.
 func (m *ProviderOrderTokenMutation) Where(ps ...predicate.ProviderOrderToken) {
 	m.predicates = append(m.predicates, ps...)
@@ -7302,7 +7317,7 @@ func (m *ProviderOrderTokenMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ProviderOrderTokenMutation) Fields() []string {
-	fields := make([]string, 0, 8)
+	fields := make([]string, 0, 9)
 	if m.created_at != nil {
 		fields = append(fields, providerordertoken.FieldCreatedAt)
 	}
@@ -7326,6 +7341,9 @@ func (m *ProviderOrderTokenMutation) Fields() []string {
 	}
 	if m.min_order_amount != nil {
 		fields = append(fields, providerordertoken.FieldMinOrderAmount)
+	}
+	if m.addresses != nil {
+		fields = append(fields, providerordertoken.FieldAddresses)
 	}
 	return fields
 }
@@ -7351,6 +7369,8 @@ func (m *ProviderOrderTokenMutation) Field(name string) (ent.Value, bool) {
 		return m.MaxOrderAmount()
 	case providerordertoken.FieldMinOrderAmount:
 		return m.MinOrderAmount()
+	case providerordertoken.FieldAddresses:
+		return m.Addresses()
 	}
 	return nil, false
 }
@@ -7376,6 +7396,8 @@ func (m *ProviderOrderTokenMutation) OldField(ctx context.Context, name string) 
 		return m.OldMaxOrderAmount(ctx)
 	case providerordertoken.FieldMinOrderAmount:
 		return m.OldMinOrderAmount(ctx)
+	case providerordertoken.FieldAddresses:
+		return m.OldAddresses(ctx)
 	}
 	return nil, fmt.Errorf("unknown ProviderOrderToken field %s", name)
 }
@@ -7400,7 +7422,7 @@ func (m *ProviderOrderTokenMutation) SetField(name string, value ent.Value) erro
 		m.SetUpdatedAt(v)
 		return nil
 	case providerordertoken.FieldSymbol:
-		v, ok := value.(providerordertoken.Symbol)
+		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -7440,6 +7462,16 @@ func (m *ProviderOrderTokenMutation) SetField(name string, value ent.Value) erro
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetMinOrderAmount(v)
+		return nil
+	case providerordertoken.FieldAddresses:
+		v, ok := value.([]struct {
+			Address string "json:\"address\""
+			Network string "json:\"network\""
+		})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAddresses(v)
 		return nil
 	}
 	return fmt.Errorf("unknown ProviderOrderToken field %s", name)
@@ -7565,18 +7597,18 @@ func (m *ProviderOrderTokenMutation) ResetField(name string) error {
 	case providerordertoken.FieldMinOrderAmount:
 		m.ResetMinOrderAmount()
 		return nil
+	case providerordertoken.FieldAddresses:
+		m.ResetAddresses()
+		return nil
 	}
 	return fmt.Errorf("unknown ProviderOrderToken field %s", name)
 }
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ProviderOrderTokenMutation) AddedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 1)
 	if m.provider != nil {
 		edges = append(edges, providerordertoken.EdgeProvider)
-	}
-	if m.addresses != nil {
-		edges = append(edges, providerordertoken.EdgeAddresses)
 	}
 	return edges
 }
@@ -7589,47 +7621,27 @@ func (m *ProviderOrderTokenMutation) AddedIDs(name string) []ent.Value {
 		if id := m.provider; id != nil {
 			return []ent.Value{*id}
 		}
-	case providerordertoken.EdgeAddresses:
-		ids := make([]ent.Value, 0, len(m.addresses))
-		for id := range m.addresses {
-			ids = append(ids, id)
-		}
-		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *ProviderOrderTokenMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 2)
-	if m.removedaddresses != nil {
-		edges = append(edges, providerordertoken.EdgeAddresses)
-	}
+	edges := make([]string, 0, 1)
 	return edges
 }
 
 // RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
 // the given name in this mutation.
 func (m *ProviderOrderTokenMutation) RemovedIDs(name string) []ent.Value {
-	switch name {
-	case providerordertoken.EdgeAddresses:
-		ids := make([]ent.Value, 0, len(m.removedaddresses))
-		for id := range m.removedaddresses {
-			ids = append(ids, id)
-		}
-		return ids
-	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ProviderOrderTokenMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 1)
 	if m.clearedprovider {
 		edges = append(edges, providerordertoken.EdgeProvider)
-	}
-	if m.clearedaddresses {
-		edges = append(edges, providerordertoken.EdgeAddresses)
 	}
 	return edges
 }
@@ -7640,8 +7652,6 @@ func (m *ProviderOrderTokenMutation) EdgeCleared(name string) bool {
 	switch name {
 	case providerordertoken.EdgeProvider:
 		return m.clearedprovider
-	case providerordertoken.EdgeAddresses:
-		return m.clearedaddresses
 	}
 	return false
 }
@@ -7664,458 +7674,8 @@ func (m *ProviderOrderTokenMutation) ResetEdge(name string) error {
 	case providerordertoken.EdgeProvider:
 		m.ResetProvider()
 		return nil
-	case providerordertoken.EdgeAddresses:
-		m.ResetAddresses()
-		return nil
 	}
 	return fmt.Errorf("unknown ProviderOrderToken edge %s", name)
-}
-
-// ProviderOrderTokenAddressMutation represents an operation that mutates the ProviderOrderTokenAddress nodes in the graph.
-type ProviderOrderTokenAddressMutation struct {
-	config
-	op                        Op
-	typ                       string
-	id                        *int
-	network                   *providerordertokenaddress.Network
-	address                   *string
-	clearedFields             map[string]struct{}
-	providerordertoken        *int
-	clearedproviderordertoken bool
-	done                      bool
-	oldValue                  func(context.Context) (*ProviderOrderTokenAddress, error)
-	predicates                []predicate.ProviderOrderTokenAddress
-}
-
-var _ ent.Mutation = (*ProviderOrderTokenAddressMutation)(nil)
-
-// providerordertokenaddressOption allows management of the mutation configuration using functional options.
-type providerordertokenaddressOption func(*ProviderOrderTokenAddressMutation)
-
-// newProviderOrderTokenAddressMutation creates new mutation for the ProviderOrderTokenAddress entity.
-func newProviderOrderTokenAddressMutation(c config, op Op, opts ...providerordertokenaddressOption) *ProviderOrderTokenAddressMutation {
-	m := &ProviderOrderTokenAddressMutation{
-		config:        c,
-		op:            op,
-		typ:           TypeProviderOrderTokenAddress,
-		clearedFields: make(map[string]struct{}),
-	}
-	for _, opt := range opts {
-		opt(m)
-	}
-	return m
-}
-
-// withProviderOrderTokenAddressID sets the ID field of the mutation.
-func withProviderOrderTokenAddressID(id int) providerordertokenaddressOption {
-	return func(m *ProviderOrderTokenAddressMutation) {
-		var (
-			err   error
-			once  sync.Once
-			value *ProviderOrderTokenAddress
-		)
-		m.oldValue = func(ctx context.Context) (*ProviderOrderTokenAddress, error) {
-			once.Do(func() {
-				if m.done {
-					err = errors.New("querying old values post mutation is not allowed")
-				} else {
-					value, err = m.Client().ProviderOrderTokenAddress.Get(ctx, id)
-				}
-			})
-			return value, err
-		}
-		m.id = &id
-	}
-}
-
-// withProviderOrderTokenAddress sets the old ProviderOrderTokenAddress of the mutation.
-func withProviderOrderTokenAddress(node *ProviderOrderTokenAddress) providerordertokenaddressOption {
-	return func(m *ProviderOrderTokenAddressMutation) {
-		m.oldValue = func(context.Context) (*ProviderOrderTokenAddress, error) {
-			return node, nil
-		}
-		m.id = &node.ID
-	}
-}
-
-// Client returns a new `ent.Client` from the mutation. If the mutation was
-// executed in a transaction (ent.Tx), a transactional client is returned.
-func (m ProviderOrderTokenAddressMutation) Client() *Client {
-	client := &Client{config: m.config}
-	client.init()
-	return client
-}
-
-// Tx returns an `ent.Tx` for mutations that were executed in transactions;
-// it returns an error otherwise.
-func (m ProviderOrderTokenAddressMutation) Tx() (*Tx, error) {
-	if _, ok := m.driver.(*txDriver); !ok {
-		return nil, errors.New("ent: mutation is not running in a transaction")
-	}
-	tx := &Tx{config: m.config}
-	tx.init()
-	return tx, nil
-}
-
-// ID returns the ID value in the mutation. Note that the ID is only available
-// if it was provided to the builder or after it was returned from the database.
-func (m *ProviderOrderTokenAddressMutation) ID() (id int, exists bool) {
-	if m.id == nil {
-		return
-	}
-	return *m.id, true
-}
-
-// IDs queries the database and returns the entity ids that match the mutation's predicate.
-// That means, if the mutation is applied within a transaction with an isolation level such
-// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
-// or updated by the mutation.
-func (m *ProviderOrderTokenAddressMutation) IDs(ctx context.Context) ([]int, error) {
-	switch {
-	case m.op.Is(OpUpdateOne | OpDeleteOne):
-		id, exists := m.ID()
-		if exists {
-			return []int{id}, nil
-		}
-		fallthrough
-	case m.op.Is(OpUpdate | OpDelete):
-		return m.Client().ProviderOrderTokenAddress.Query().Where(m.predicates...).IDs(ctx)
-	default:
-		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
-	}
-}
-
-// SetNetwork sets the "network" field.
-func (m *ProviderOrderTokenAddressMutation) SetNetwork(pr providerordertokenaddress.Network) {
-	m.network = &pr
-}
-
-// Network returns the value of the "network" field in the mutation.
-func (m *ProviderOrderTokenAddressMutation) Network() (r providerordertokenaddress.Network, exists bool) {
-	v := m.network
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldNetwork returns the old "network" field's value of the ProviderOrderTokenAddress entity.
-// If the ProviderOrderTokenAddress object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ProviderOrderTokenAddressMutation) OldNetwork(ctx context.Context) (v providerordertokenaddress.Network, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldNetwork is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldNetwork requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldNetwork: %w", err)
-	}
-	return oldValue.Network, nil
-}
-
-// ResetNetwork resets all changes to the "network" field.
-func (m *ProviderOrderTokenAddressMutation) ResetNetwork() {
-	m.network = nil
-}
-
-// SetAddress sets the "address" field.
-func (m *ProviderOrderTokenAddressMutation) SetAddress(s string) {
-	m.address = &s
-}
-
-// Address returns the value of the "address" field in the mutation.
-func (m *ProviderOrderTokenAddressMutation) Address() (r string, exists bool) {
-	v := m.address
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldAddress returns the old "address" field's value of the ProviderOrderTokenAddress entity.
-// If the ProviderOrderTokenAddress object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ProviderOrderTokenAddressMutation) OldAddress(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldAddress is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldAddress requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldAddress: %w", err)
-	}
-	return oldValue.Address, nil
-}
-
-// ResetAddress resets all changes to the "address" field.
-func (m *ProviderOrderTokenAddressMutation) ResetAddress() {
-	m.address = nil
-}
-
-// SetProviderordertokenID sets the "providerordertoken" edge to the ProviderOrderToken entity by id.
-func (m *ProviderOrderTokenAddressMutation) SetProviderordertokenID(id int) {
-	m.providerordertoken = &id
-}
-
-// ClearProviderordertoken clears the "providerordertoken" edge to the ProviderOrderToken entity.
-func (m *ProviderOrderTokenAddressMutation) ClearProviderordertoken() {
-	m.clearedproviderordertoken = true
-}
-
-// ProviderordertokenCleared reports if the "providerordertoken" edge to the ProviderOrderToken entity was cleared.
-func (m *ProviderOrderTokenAddressMutation) ProviderordertokenCleared() bool {
-	return m.clearedproviderordertoken
-}
-
-// ProviderordertokenID returns the "providerordertoken" edge ID in the mutation.
-func (m *ProviderOrderTokenAddressMutation) ProviderordertokenID() (id int, exists bool) {
-	if m.providerordertoken != nil {
-		return *m.providerordertoken, true
-	}
-	return
-}
-
-// ProviderordertokenIDs returns the "providerordertoken" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// ProviderordertokenID instead. It exists only for internal usage by the builders.
-func (m *ProviderOrderTokenAddressMutation) ProviderordertokenIDs() (ids []int) {
-	if id := m.providerordertoken; id != nil {
-		ids = append(ids, *id)
-	}
-	return
-}
-
-// ResetProviderordertoken resets all changes to the "providerordertoken" edge.
-func (m *ProviderOrderTokenAddressMutation) ResetProviderordertoken() {
-	m.providerordertoken = nil
-	m.clearedproviderordertoken = false
-}
-
-// Where appends a list predicates to the ProviderOrderTokenAddressMutation builder.
-func (m *ProviderOrderTokenAddressMutation) Where(ps ...predicate.ProviderOrderTokenAddress) {
-	m.predicates = append(m.predicates, ps...)
-}
-
-// WhereP appends storage-level predicates to the ProviderOrderTokenAddressMutation builder. Using this method,
-// users can use type-assertion to append predicates that do not depend on any generated package.
-func (m *ProviderOrderTokenAddressMutation) WhereP(ps ...func(*sql.Selector)) {
-	p := make([]predicate.ProviderOrderTokenAddress, len(ps))
-	for i := range ps {
-		p[i] = ps[i]
-	}
-	m.Where(p...)
-}
-
-// Op returns the operation name.
-func (m *ProviderOrderTokenAddressMutation) Op() Op {
-	return m.op
-}
-
-// SetOp allows setting the mutation operation.
-func (m *ProviderOrderTokenAddressMutation) SetOp(op Op) {
-	m.op = op
-}
-
-// Type returns the node type of this mutation (ProviderOrderTokenAddress).
-func (m *ProviderOrderTokenAddressMutation) Type() string {
-	return m.typ
-}
-
-// Fields returns all fields that were changed during this mutation. Note that in
-// order to get all numeric fields that were incremented/decremented, call
-// AddedFields().
-func (m *ProviderOrderTokenAddressMutation) Fields() []string {
-	fields := make([]string, 0, 2)
-	if m.network != nil {
-		fields = append(fields, providerordertokenaddress.FieldNetwork)
-	}
-	if m.address != nil {
-		fields = append(fields, providerordertokenaddress.FieldAddress)
-	}
-	return fields
-}
-
-// Field returns the value of a field with the given name. The second boolean
-// return value indicates that this field was not set, or was not defined in the
-// schema.
-func (m *ProviderOrderTokenAddressMutation) Field(name string) (ent.Value, bool) {
-	switch name {
-	case providerordertokenaddress.FieldNetwork:
-		return m.Network()
-	case providerordertokenaddress.FieldAddress:
-		return m.Address()
-	}
-	return nil, false
-}
-
-// OldField returns the old value of the field from the database. An error is
-// returned if the mutation operation is not UpdateOne, or the query to the
-// database failed.
-func (m *ProviderOrderTokenAddressMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
-	switch name {
-	case providerordertokenaddress.FieldNetwork:
-		return m.OldNetwork(ctx)
-	case providerordertokenaddress.FieldAddress:
-		return m.OldAddress(ctx)
-	}
-	return nil, fmt.Errorf("unknown ProviderOrderTokenAddress field %s", name)
-}
-
-// SetField sets the value of a field with the given name. It returns an error if
-// the field is not defined in the schema, or if the type mismatched the field
-// type.
-func (m *ProviderOrderTokenAddressMutation) SetField(name string, value ent.Value) error {
-	switch name {
-	case providerordertokenaddress.FieldNetwork:
-		v, ok := value.(providerordertokenaddress.Network)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetNetwork(v)
-		return nil
-	case providerordertokenaddress.FieldAddress:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetAddress(v)
-		return nil
-	}
-	return fmt.Errorf("unknown ProviderOrderTokenAddress field %s", name)
-}
-
-// AddedFields returns all numeric fields that were incremented/decremented during
-// this mutation.
-func (m *ProviderOrderTokenAddressMutation) AddedFields() []string {
-	return nil
-}
-
-// AddedField returns the numeric value that was incremented/decremented on a field
-// with the given name. The second boolean return value indicates that this field
-// was not set, or was not defined in the schema.
-func (m *ProviderOrderTokenAddressMutation) AddedField(name string) (ent.Value, bool) {
-	return nil, false
-}
-
-// AddField adds the value to the field with the given name. It returns an error if
-// the field is not defined in the schema, or if the type mismatched the field
-// type.
-func (m *ProviderOrderTokenAddressMutation) AddField(name string, value ent.Value) error {
-	switch name {
-	}
-	return fmt.Errorf("unknown ProviderOrderTokenAddress numeric field %s", name)
-}
-
-// ClearedFields returns all nullable fields that were cleared during this
-// mutation.
-func (m *ProviderOrderTokenAddressMutation) ClearedFields() []string {
-	return nil
-}
-
-// FieldCleared returns a boolean indicating if a field with the given name was
-// cleared in this mutation.
-func (m *ProviderOrderTokenAddressMutation) FieldCleared(name string) bool {
-	_, ok := m.clearedFields[name]
-	return ok
-}
-
-// ClearField clears the value of the field with the given name. It returns an
-// error if the field is not defined in the schema.
-func (m *ProviderOrderTokenAddressMutation) ClearField(name string) error {
-	return fmt.Errorf("unknown ProviderOrderTokenAddress nullable field %s", name)
-}
-
-// ResetField resets all changes in the mutation for the field with the given name.
-// It returns an error if the field is not defined in the schema.
-func (m *ProviderOrderTokenAddressMutation) ResetField(name string) error {
-	switch name {
-	case providerordertokenaddress.FieldNetwork:
-		m.ResetNetwork()
-		return nil
-	case providerordertokenaddress.FieldAddress:
-		m.ResetAddress()
-		return nil
-	}
-	return fmt.Errorf("unknown ProviderOrderTokenAddress field %s", name)
-}
-
-// AddedEdges returns all edge names that were set/added in this mutation.
-func (m *ProviderOrderTokenAddressMutation) AddedEdges() []string {
-	edges := make([]string, 0, 1)
-	if m.providerordertoken != nil {
-		edges = append(edges, providerordertokenaddress.EdgeProviderordertoken)
-	}
-	return edges
-}
-
-// AddedIDs returns all IDs (to other nodes) that were added for the given edge
-// name in this mutation.
-func (m *ProviderOrderTokenAddressMutation) AddedIDs(name string) []ent.Value {
-	switch name {
-	case providerordertokenaddress.EdgeProviderordertoken:
-		if id := m.providerordertoken; id != nil {
-			return []ent.Value{*id}
-		}
-	}
-	return nil
-}
-
-// RemovedEdges returns all edge names that were removed in this mutation.
-func (m *ProviderOrderTokenAddressMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 1)
-	return edges
-}
-
-// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
-// the given name in this mutation.
-func (m *ProviderOrderTokenAddressMutation) RemovedIDs(name string) []ent.Value {
-	return nil
-}
-
-// ClearedEdges returns all edge names that were cleared in this mutation.
-func (m *ProviderOrderTokenAddressMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 1)
-	if m.clearedproviderordertoken {
-		edges = append(edges, providerordertokenaddress.EdgeProviderordertoken)
-	}
-	return edges
-}
-
-// EdgeCleared returns a boolean which indicates if the edge with the given name
-// was cleared in this mutation.
-func (m *ProviderOrderTokenAddressMutation) EdgeCleared(name string) bool {
-	switch name {
-	case providerordertokenaddress.EdgeProviderordertoken:
-		return m.clearedproviderordertoken
-	}
-	return false
-}
-
-// ClearEdge clears the value of the edge with the given name. It returns an error
-// if that edge is not defined in the schema.
-func (m *ProviderOrderTokenAddressMutation) ClearEdge(name string) error {
-	switch name {
-	case providerordertokenaddress.EdgeProviderordertoken:
-		m.ClearProviderordertoken()
-		return nil
-	}
-	return fmt.Errorf("unknown ProviderOrderTokenAddress unique edge %s", name)
-}
-
-// ResetEdge resets all changes to the edge with the given name in this mutation.
-// It returns an error if the edge is not defined in the schema.
-func (m *ProviderOrderTokenAddressMutation) ResetEdge(name string) error {
-	switch name {
-	case providerordertokenaddress.EdgeProviderordertoken:
-		m.ResetProviderordertoken()
-		return nil
-	}
-	return fmt.Errorf("unknown ProviderOrderTokenAddress edge %s", name)
 }
 
 // ProviderProfileMutation represents an operation that mutates the ProviderProfile nodes in the graph.
