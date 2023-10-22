@@ -179,19 +179,18 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 		}
 
 		// Ensure rate is within allowed deviation from the market rate
+		partnerProviderData, _ := storage.RedisClient.LIndex(ctx, fmt.Sprintf("bucket_%s_default", payload.Currency), 0).Result()
+		marketRate, _ := decimal.NewFromString(strings.Split(partnerProviderData, ":")[1])
+
 		var rate decimal.Decimal
 
 		if tokenPayload.ConversionRateType == providerordertoken.ConversionRateTypeFixed {
 			rate = tokenPayload.FixedConversionRate
 		} else {
-			partnerProviderData, _ := storage.RedisClient.LIndex(ctx, fmt.Sprintf("bucket_%s_default", payload.Currency), 0).Result()
-			marketRate, _ := decimal.NewFromString(strings.Split(partnerProviderData, ":")[1])
 			floatingRate := tokenPayload.FloatingConversionRate // in percentage
 			rate = marketRate.Mul(floatingRate.Div(decimal.NewFromInt(100)))
 		}
 
-		partnerProviderData, _ := storage.RedisClient.LIndex(ctx, fmt.Sprintf("bucket_%s_default", payload.Currency), 0).Result()
-		marketRate, _ := decimal.NewFromString(strings.Split(partnerProviderData, ":")[1])
 		allowedDeviation := decimal.NewFromFloat(0.01) // 1%
 
 		if marketRate.Cmp(decimal.Zero) != 0 {
