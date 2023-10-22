@@ -1,7 +1,9 @@
 package accounts
 
 import (
+	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/paycrest/paycrest-protocol/ent"
 	"github.com/paycrest/paycrest-protocol/ent/fiatcurrency"
@@ -13,6 +15,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/storage"
 	"github.com/paycrest/paycrest-protocol/types"
 	u "github.com/paycrest/paycrest-protocol/utils"
+	"github.com/shopspring/decimal"
 
 	"github.com/gin-gonic/gin"
 )
@@ -87,7 +90,7 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 			Where(fiatcurrency.CodeEQ(payload.Currency)).
 			Only(ctx)
 		if err != nil {
-			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Currency not supported", nil)
+			u.APIResponse(ctx, http.StatusBadRequest, "error", "Currency not supported", nil)
 			return
 		}
 		update.SetCurrency(currency)
@@ -144,7 +147,7 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 	// Update tokens
 	for _, tokenPayload := range payload.Tokens {
 		if len(tokenPayload.Addresses) == 0 {
-			u.APIResponse(ctx, http.StatusInternalServerError, "error", "No addresses provided", nil)
+			u.APIResponse(ctx, http.StatusBadRequest, "error", "No addresses provided", nil)
 			return
 		}
 
@@ -154,7 +157,7 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 			Where(token.Symbol(tokenPayload.Symbol)).
 			First(ctx)
 		if err != nil {
-			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Token not supported", nil)
+			u.APIResponse(ctx, http.StatusBadRequest, "error", "Token not supported", nil)
 			return
 		}
 
@@ -167,10 +170,34 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 			if err != nil {
 				u.APIResponse(
 					ctx,
-					http.StatusInternalServerError,
+					http.StatusBadRequest,
 					"error", "Network not supported - "+addressPayload.Network,
 					nil,
 				)
+				return
+			}
+		}
+
+		// Ensure rate is within allowed deviation from the market rate
+		var rate decimal.Decimal
+
+		if tokenPayload.ConversionRateType == providerordertoken.ConversionRateTypeFixed {
+			rate = tokenPayload.FixedConversionRate
+		} else {
+			partnerProviderData, _ := storage.RedisClient.LIndex(ctx, fmt.Sprintf("bucket_%s_default", payload.Currency), 0).Result()
+			marketRate, _ := decimal.NewFromString(strings.Split(partnerProviderData, ":")[1])
+			floatingRate := tokenPayload.FloatingConversionRate // in percentage
+			rate = marketRate.Mul(floatingRate.Div(decimal.NewFromInt(100)))
+		}
+
+		partnerProviderData, _ := storage.RedisClient.LIndex(ctx, fmt.Sprintf("bucket_%s_default", payload.Currency), 0).Result()
+		marketRate, _ := decimal.NewFromString(strings.Split(partnerProviderData, ":")[1])
+		allowedDeviation := decimal.NewFromFloat(0.01) // 1%
+
+		if marketRate.Cmp(decimal.Zero) != 0 {
+			if rate.LessThan(marketRate.Mul(decimal.NewFromFloat(1).Sub(allowedDeviation))) ||
+				rate.GreaterThan(marketRate.Mul(decimal.NewFromFloat(1).Add(allowedDeviation))) {
+				u.APIResponse(ctx, http.StatusBadRequest, "error", "Rate is too far from market rate", nil)
 				return
 			}
 		}
