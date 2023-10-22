@@ -87,7 +87,7 @@ func (s *PriorityQueueService) GetProvidersByBucket(ctx context.Context) ([]*ent
 
 // getProviderRate returns the rate for a provider
 func (s *PriorityQueueService) getProviderRate(ctx context.Context, provider *ent.ProviderProfile) (decimal.Decimal, error) {
-	// TODO: implement fetching of provider rate. this also includes calculating floating rate
+	// Fetch the token config for the provider
 	tokenConfig, err := storage.Client.ProviderOrderToken.
 		Query().
 		Where(
@@ -111,7 +111,7 @@ func (s *PriorityQueueService) getProviderRate(ctx context.Context, provider *en
 	if tokenConfig.ConversionRateType == providerordertoken.ConversionRateTypeFixed {
 		rate = tokenConfig.FixedConversionRate
 	} else {
-		// Haandle floating pricing case
+		// Handle floating rate case
 		marketRate := tokenConfig.Edges.Provider.Edges.Currency.MarketRate
 		floatingRate := tokenConfig.FloatingConversionRate // in percentage
 
@@ -143,6 +143,19 @@ func (s *PriorityQueueService) CreatePriorityQueueForBucket(ctx context.Context,
 	for _, provider := range providers {
 		providerID := provider.ID
 		rate, _ := s.getProviderRate(ctx, provider)
+
+		// Check provider's rate against the market rate to ensure it's not too far off
+		partnerProviderData, _ := storage.RedisClient.LIndex(ctx, fmt.Sprintf("bucket_%s_default", bucket.Currency), 0).Result()
+		marketRate, _ := decimal.NewFromString(strings.Split(partnerProviderData, ":")[1])
+		allowedDeviation := decimal.NewFromFloat(0.01) // 1%
+
+		if marketRate.Cmp(decimal.Zero) != 0 {
+			if rate.LessThan(marketRate.Mul(decimal.NewFromFloat(1).Sub(allowedDeviation))) ||
+				rate.GreaterThan(marketRate.Mul(decimal.NewFromFloat(1).Add(allowedDeviation))) {
+				// Skip this provider if the rate is too far off
+				continue
+			}
+		}
 
 		// Serialize the provider ID and rate into a single string
 		data := fmt.Sprintf("%s:%s", providerID, rate)
