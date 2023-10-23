@@ -29,8 +29,16 @@ func RegisterRoutes(route *gin.Engine) {
 
 	v1 := route.Group("/v1/")
 
-	v1.GET("currencies/", ctrl.GetFiatCurrencies)
-	v1.GET("institutions/:currency_code", ctrl.GetInstitutionsByCurrency)
+	v1.GET(
+		"currencies/",
+		middleware.DynamicAuthMiddleware,
+		ctrl.GetFiatCurrencies,
+	)
+	v1.GET(
+		"institutions/:currency_code",
+		middleware.DynamicAuthMiddleware,
+		ctrl.GetInstitutionsByCurrency,
+	)
 	v1.GET("rates/:token/:amount/:fiat_symbol", ctrl.GetTokenRate)
 }
 
@@ -58,6 +66,19 @@ func authRoutes(route *gin.Engine) {
 		middleware.JWTMiddleware,
 		middleware.OnlyValidatorMiddleware,
 		profileCtrl.UpdateValidatorProfile,
+	)
+
+	v1.GET(
+		"settings/provider",
+		middleware.JWTMiddleware,
+		middleware.OnlyProviderMiddleware,
+		profileCtrl.GetProviderProfile,
+	)
+	v1.PATCH(
+		"settings/provider",
+		middleware.JWTMiddleware,
+		middleware.OnlyProviderMiddleware,
+		profileCtrl.UpdateProviderProfile,
 	)
 }
 
