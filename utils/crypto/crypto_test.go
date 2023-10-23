@@ -21,6 +21,6 @@ func TestCreateEOA(t *testing.T) {
 	assert.NoError(t, err, "unexpected error")
 
 	// Assert the generated address
-	assert.Equal(t, expectedAddress, address, "incorrect address")
+	assert.Equal(t, expectedAddress, address.Hex(), "incorrect address")
 	assert.NotEmpty(t, privateKey, "private key should not be empty")
 }

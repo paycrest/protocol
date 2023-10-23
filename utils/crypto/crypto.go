@@ -3,13 +3,14 @@ package crypto
 import (
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/ecdsa"
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"io"
 
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto/ecies"
 	hdwallet "github.com/miguelmota/go-ethereum-hdwallet"
 	"github.com/paycrest/paycrest-protocol/config"
 	"golang.org/x/crypto/bcrypt"
@@ -112,33 +113,89 @@ func DecryptJSON(ciphertext []byte) (interface{}, error) {
 
 }
 
+// PublicKeyEncryptPlain encrypts plaintext using ECIES encryption algorithm
+func PublicKeyEncryptPlain(plaintext []byte, publicKey *ecdsa.PublicKey) ([]byte, error) {
+	eciesPublicKey := ecies.ImportECDSAPublic(publicKey)
+	encryptedData, err := ecies.Encrypt(rand.Reader, eciesPublicKey, plaintext, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return encryptedData, nil
+}
+
+// PublicKeyEncryptJSON encrypts JSON serializable data using ECIES encryption algorithm
+func PublicKeyEncryptJSON(data interface{}, publicKey *ecdsa.PublicKey) ([]byte, error) {
+
+	// Encode data to JSON
+	plaintext, err := json.Marshal(data)
+	if err != nil {
+		return nil, err
+	}
+
+	// Encrypt as normal
+	ciphertext, err := PublicKeyEncryptPlain(plaintext, publicKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return ciphertext, nil
+}
+
+// PublicKeyDecryptPlain decrypts ciphertext using ECIES encryption algorithm
+func PublicKeyDecryptPlain(ciphertext []byte, privateKey *ecdsa.PrivateKey) ([]byte, error) {
+	eciesPrivateKey := ecies.ImportECDSA(privateKey)
+	decryptedData, err := eciesPrivateKey.Decrypt(ciphertext, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return decryptedData, nil
+}
+
+// PublicKeyDecryptJSON decrypts JSON serializable data using ECIES encryption algorithm
+func PublicKeyDecryptJSON(ciphertext []byte, privateKey *ecdsa.PrivateKey) (interface{}, error) {
+
+	// Decrypt as normal
+	plaintext, err := PublicKeyDecryptPlain(ciphertext, privateKey)
+	if err != nil {
+		return nil, err
+	}
+
+	// Decode JSON back to dynamic type
+	var data interface{}
+	if err := json.Unmarshal(plaintext, &data); err != nil {
+		return nil, err
+	}
+
+	return data, nil
+
+}
+
 // GenerateAccountFromIndex generates a crypto wallet account from HD wallet mnemonic
-func GenerateAccountFromIndex(accountIndex int) (string, string, error) {
+func GenerateAccountFromIndex(accountIndex int) (*common.Address, *ecdsa.PrivateKey, error) {
 	//added code to test generate addrress
 	mnemonic := serverConf.HDWalletMnemonic
 
 	wallet, err := hdwallet.NewFromMnemonic(mnemonic)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to create wallet from mnemonic: %w", err)
+		return nil, nil, fmt.Errorf("failed to create wallet from mnemonic: %w", err)
 	}
 
 	path, err := hdwallet.ParseDerivationPath(fmt.Sprintf("m/44'/60'/0'/0/%d", accountIndex))
 	if err != nil {
-		return "", "", fmt.Errorf("failed to parse derivation path: %w", err)
+		return nil, nil, fmt.Errorf("failed to parse derivation path: %w", err)
 	}
 
 	account, err := wallet.Derive(path, false)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to derive account: %w", err)
+		return nil, nil, fmt.Errorf("failed to derive account: %w", err)
 	}
 
 	privateKey, err := wallet.PrivateKey(account)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to get private key: %w", err)
+		return nil, nil, fmt.Errorf("failed to get private key: %w", err)
 	}
 
-	privateKeyHex := hexutil.Encode(crypto.FromECDSA(privateKey))
-	address := account.Address.Hex()
-
-	return address, privateKeyHex, nil
+	return &account.Address, privateKey, nil
 }

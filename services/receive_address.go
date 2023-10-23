@@ -62,7 +62,7 @@ func (s *ReceiveAddressService) CreateSmartAccount(ctx context.Context, client t
 	salt := new(big.Int).SetBytes(nonce)
 
 	// Generate address
-	address, err := simpleAccountFactory.GetAddress(nil, common.HexToAddress(ownerAddress), salt)
+	address, err := simpleAccountFactory.GetAddress(nil, *ownerAddress, salt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate address: %w", err)
 	}
