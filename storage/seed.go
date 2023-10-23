@@ -115,7 +115,13 @@ func SeedDatabase() error {
 	listedCurrencies := make([]*ent.FiatCurrencyCreate, 0)
 	for _, currency := range currencies {
 
-		_, err := client.FiatCurrency.Query().Where(fiatcurrency.CodeEQ(currency.Code)).Only(ctx)
+		_, err := client.FiatCurrency.
+			Query().
+			Where(
+				fiatcurrency.IsEnabledEQ(true),
+				fiatcurrency.CodeEQ(currency.Code),
+			).
+			Only(ctx)
 		if ent.IsNotFound(err) {
 			fmt.Printf("Seeding currency - %s\n", currency.Code)
 			listedCurrencies = append(listedCurrencies, client.FiatCurrency.Create().

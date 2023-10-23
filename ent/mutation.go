@@ -671,6 +671,7 @@ type FiatCurrencyMutation struct {
 	name            *string
 	market_rate     *decimal.Decimal
 	addmarket_rate  *decimal.Decimal
+	is_enabled      *bool
 	clearedFields   map[string]struct{}
 	provider        *string
 	clearedprovider bool
@@ -1111,6 +1112,42 @@ func (m *FiatCurrencyMutation) ResetMarketRate() {
 	m.addmarket_rate = nil
 }
 
+// SetIsEnabled sets the "is_enabled" field.
+func (m *FiatCurrencyMutation) SetIsEnabled(b bool) {
+	m.is_enabled = &b
+}
+
+// IsEnabled returns the value of the "is_enabled" field in the mutation.
+func (m *FiatCurrencyMutation) IsEnabled() (r bool, exists bool) {
+	v := m.is_enabled
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIsEnabled returns the old "is_enabled" field's value of the FiatCurrency entity.
+// If the FiatCurrency object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FiatCurrencyMutation) OldIsEnabled(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIsEnabled is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIsEnabled requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIsEnabled: %w", err)
+	}
+	return oldValue.IsEnabled, nil
+}
+
+// ResetIsEnabled resets all changes to the "is_enabled" field.
+func (m *FiatCurrencyMutation) ResetIsEnabled() {
+	m.is_enabled = nil
+}
+
 // SetProviderID sets the "provider" edge to the ProviderProfile entity by id.
 func (m *FiatCurrencyMutation) SetProviderID(id string) {
 	m.provider = &id
@@ -1184,7 +1221,7 @@ func (m *FiatCurrencyMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *FiatCurrencyMutation) Fields() []string {
-	fields := make([]string, 0, 8)
+	fields := make([]string, 0, 9)
 	if m.created_at != nil {
 		fields = append(fields, fiatcurrency.FieldCreatedAt)
 	}
@@ -1208,6 +1245,9 @@ func (m *FiatCurrencyMutation) Fields() []string {
 	}
 	if m.market_rate != nil {
 		fields = append(fields, fiatcurrency.FieldMarketRate)
+	}
+	if m.is_enabled != nil {
+		fields = append(fields, fiatcurrency.FieldIsEnabled)
 	}
 	return fields
 }
@@ -1233,6 +1273,8 @@ func (m *FiatCurrencyMutation) Field(name string) (ent.Value, bool) {
 		return m.Name()
 	case fiatcurrency.FieldMarketRate:
 		return m.MarketRate()
+	case fiatcurrency.FieldIsEnabled:
+		return m.IsEnabled()
 	}
 	return nil, false
 }
@@ -1258,6 +1300,8 @@ func (m *FiatCurrencyMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldName(ctx)
 	case fiatcurrency.FieldMarketRate:
 		return m.OldMarketRate(ctx)
+	case fiatcurrency.FieldIsEnabled:
+		return m.OldIsEnabled(ctx)
 	}
 	return nil, fmt.Errorf("unknown FiatCurrency field %s", name)
 }
@@ -1322,6 +1366,13 @@ func (m *FiatCurrencyMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetMarketRate(v)
+		return nil
+	case fiatcurrency.FieldIsEnabled:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIsEnabled(v)
 		return nil
 	}
 	return fmt.Errorf("unknown FiatCurrency field %s", name)
@@ -1422,6 +1473,9 @@ func (m *FiatCurrencyMutation) ResetField(name string) error {
 		return nil
 	case fiatcurrency.FieldMarketRate:
 		m.ResetMarketRate()
+		return nil
+	case fiatcurrency.FieldIsEnabled:
+		m.ResetIsEnabled()
 		return nil
 	}
 	return fmt.Errorf("unknown FiatCurrency field %s", name)

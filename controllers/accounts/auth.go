@@ -124,7 +124,10 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 		// Fetch currency
 		currency, err := tx.FiatCurrency.
 			Query().
-			Where(fiatcurrency.CodeEQ(payload.Currency)).
+			Where(
+				fiatcurrency.IsEnabledEQ(true),
+				fiatcurrency.CodeEQ(payload.Currency),
+			).
 			Only(ctx)
 		if err != nil {
 			_ = tx.Rollback()

@@ -66,6 +66,10 @@ func init() {
 	fiatcurrencyDescDecimals := fiatcurrencyFields[3].Descriptor()
 	// fiatcurrency.DefaultDecimals holds the default value on creation for the decimals field.
 	fiatcurrency.DefaultDecimals = fiatcurrencyDescDecimals.Default.(int)
+	// fiatcurrencyDescIsEnabled is the schema descriptor for is_enabled field.
+	fiatcurrencyDescIsEnabled := fiatcurrencyFields[7].Descriptor()
+	// fiatcurrency.DefaultIsEnabled holds the default value on creation for the is_enabled field.
+	fiatcurrency.DefaultIsEnabled = fiatcurrencyDescIsEnabled.Default.(bool)
 	// fiatcurrencyDescID is the schema descriptor for id field.
 	fiatcurrencyDescID := fiatcurrencyFields[0].Descriptor()
 	// fiatcurrency.DefaultID holds the default value on creation for the id field.

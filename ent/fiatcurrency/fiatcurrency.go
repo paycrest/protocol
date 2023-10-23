@@ -31,6 +31,8 @@ const (
 	FieldName = "name"
 	// FieldMarketRate holds the string denoting the market_rate field in the database.
 	FieldMarketRate = "market_rate"
+	// FieldIsEnabled holds the string denoting the is_enabled field in the database.
+	FieldIsEnabled = "is_enabled"
 	// EdgeProvider holds the string denoting the provider edge name in mutations.
 	EdgeProvider = "provider"
 	// Table holds the table name of the fiatcurrency in the database.
@@ -55,6 +57,7 @@ var Columns = []string{
 	FieldSymbol,
 	FieldName,
 	FieldMarketRate,
+	FieldIsEnabled,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -76,6 +79,8 @@ var (
 	UpdateDefaultUpdatedAt func() time.Time
 	// DefaultDecimals holds the default value on creation for the "decimals" field.
 	DefaultDecimals int
+	// DefaultIsEnabled holds the default value on creation for the "is_enabled" field.
+	DefaultIsEnabled bool
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() uuid.UUID
 )
@@ -126,6 +131,11 @@ func ByName(opts ...sql.OrderTermOption) OrderOption {
 // ByMarketRate orders the results by the market_rate field.
 func ByMarketRate(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldMarketRate, opts...).ToFunc()
+}
+
+// ByIsEnabled orders the results by the is_enabled field.
+func ByIsEnabled(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIsEnabled, opts...).ToFunc()
 }
 
 // ByProviderField orders the results by provider field.

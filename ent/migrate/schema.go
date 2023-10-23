@@ -41,6 +41,7 @@ var (
 		{Name: "symbol", Type: field.TypeString},
 		{Name: "name", Type: field.TypeString},
 		{Name: "market_rate", Type: field.TypeFloat64},
+		{Name: "is_enabled", Type: field.TypeBool, Default: false},
 	}
 	// FiatCurrenciesTable holds the schema information for the "fiat_currencies" table.
 	FiatCurrenciesTable = &schema.Table{

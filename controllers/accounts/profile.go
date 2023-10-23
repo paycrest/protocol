@@ -87,7 +87,10 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 	if payload.Currency != "" {
 		currency, err := storage.Client.FiatCurrency.
 			Query().
-			Where(fiatcurrency.CodeEQ(payload.Currency)).
+			Where(
+				fiatcurrency.IsEnabledEQ(true),
+				fiatcurrency.CodeEQ(payload.Currency),
+			).
 			Only(ctx)
 		if err != nil {
 			u.APIResponse(ctx, http.StatusBadRequest, "error", "Currency not supported", nil)
