@@ -572,7 +572,9 @@ func (s *IndexerService) getOrderRecipientFromMessageHash(messageHash string) (*
 		return nil, fmt.Errorf("failed to decode message hash: %w", err)
 	}
 
-	message, err := cryptoUtils.DecryptJSON(messageCipher)
+	// Decrypt with the private key of the aggregator
+	_, privateKey, _ := cryptoUtils.GenerateAccountFromIndex(1)
+	message, err := cryptoUtils.PublicKeyDecryptJSON(messageCipher, privateKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decrypt message hash: %w", err)
 	}

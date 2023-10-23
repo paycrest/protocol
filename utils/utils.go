@@ -6,10 +6,7 @@ import (
 	"math/big"
 	"sort"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
-	cryptoUtils "github.com/paycrest/paycrest-protocol/utils/crypto"
 	"github.com/shopspring/decimal"
 )
 
@@ -101,28 +98,6 @@ func BigMin(x, y *big.Int) *big.Int {
 		return x
 	}
 	return y
-}
-
-// GetMasterAccount returns the master account address and private key.
-func GetMasterAccount() (*common.Address, *ecdsa.PrivateKey, error) {
-	fromAddress, privateKeyHex, err := cryptoUtils.GenerateAccountFromIndex(0)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	address := common.HexToAddress(fromAddress)
-
-	privateKeyBytes, err := hexutil.Decode(privateKeyHex)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	privateKey, err := crypto.ToECDSA(privateKeyBytes)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return &address, privateKey, nil
 }
 
 // PersonalSign is an equivalent of ethers.personal_sign for signing ethereum messages

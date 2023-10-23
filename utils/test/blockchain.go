@@ -11,7 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/paycrest/paycrest-protocol/types"
-	"github.com/paycrest/paycrest-protocol/utils"
+	"github.com/paycrest/paycrest-protocol/utils/crypto"
 	"github.com/shopspring/decimal"
 
 	"github.com/paycrest/paycrest-protocol/services/contracts"
@@ -20,7 +20,7 @@ import (
 // NewSimulatedBlockchain creates a new instance of SimulatedBackend and returns it.
 func NewSimulatedBlockchain() (*backends.SimulatedBackend, error) {
 	// Generate a private key for the simulated blockchain
-	_, privateKey, _ := utils.GetMasterAccount()
+	_, privateKey, _ := crypto.GenerateAccountFromIndex(0)
 
 	// Create a new transactor using the generated private key
 	auth, err := bind.NewKeyedTransactorWithChainID(privateKey, big.NewInt(1337))
@@ -97,7 +97,7 @@ func DeployEIP4337FactoryContract(client types.RPCClient) (*common.Address, erro
 // FundAddressWithTestToken funds an amount of a test ERC20 token from the owner account
 func FundAddressWithTestToken(client types.RPCClient, token common.Address, amount decimal.Decimal, address common.Address) error {
 	// Get master account
-	_, privateKey, _ := utils.GetMasterAccount()
+	_, privateKey, _ := crypto.GenerateAccountFromIndex(0)
 
 	// Create a new instance of the TestToken contract
 	testToken, err := contracts.NewTestToken(token, client.(bind.ContractBackend))
@@ -126,7 +126,7 @@ func FundAddressWithTestToken(client types.RPCClient, token common.Address, amou
 // prepareDeployment prepares the deployment of a contract.
 func prepareDeployment(client types.RPCClient) (*bind.TransactOpts, error) {
 	// Get master account
-	fromAddress, privateKey, _ := utils.GetMasterAccount()
+	fromAddress, privateKey, _ := crypto.GenerateAccountFromIndex(0)
 
 	// Configure the transaction
 	ctx := context.Background()

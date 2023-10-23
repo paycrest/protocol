@@ -41,7 +41,7 @@ type CreateOrderParams struct {
 	MessageHash        string
 }
 
-var fromAddress, privateKey, _ = utils.GetMasterAccount()
+var fromAddress, privateKey, _ = cryptoUtils.GenerateAccountFromIndex(0)
 
 // NewOrderService creates a new instance of OrderService.
 func NewOrderService() *OrderService {
@@ -411,7 +411,9 @@ func (s *OrderService) encryptOrderRecipient(recipient *ent.PaymentOrderRecipien
 		recipient.AccountIdentifier, recipient.AccountName, recipient.Institution, recipient.ProviderID,
 	}
 
-	messageCipher, err := cryptoUtils.EncryptJSON(message)
+	// Encrypt with the public key of the aggregator
+	_, privateKey, _ := cryptoUtils.GenerateAccountFromIndex(1)
+	messageCipher, err := cryptoUtils.PublicKeyEncryptJSON(message, &privateKey.PublicKey)
 	if err != nil {
 		return "", fmt.Errorf("failed to encrypt message: %w", err)
 	}
