@@ -95,6 +95,20 @@ func (fcc *FiatCurrencyCreate) SetMarketRate(d decimal.Decimal) *FiatCurrencyCre
 	return fcc
 }
 
+// SetIsEnabled sets the "is_enabled" field.
+func (fcc *FiatCurrencyCreate) SetIsEnabled(b bool) *FiatCurrencyCreate {
+	fcc.mutation.SetIsEnabled(b)
+	return fcc
+}
+
+// SetNillableIsEnabled sets the "is_enabled" field if the given value is not nil.
+func (fcc *FiatCurrencyCreate) SetNillableIsEnabled(b *bool) *FiatCurrencyCreate {
+	if b != nil {
+		fcc.SetIsEnabled(*b)
+	}
+	return fcc
+}
+
 // SetID sets the "id" field.
 func (fcc *FiatCurrencyCreate) SetID(u uuid.UUID) *FiatCurrencyCreate {
 	fcc.mutation.SetID(u)
@@ -175,6 +189,10 @@ func (fcc *FiatCurrencyCreate) defaults() {
 		v := fiatcurrency.DefaultDecimals
 		fcc.mutation.SetDecimals(v)
 	}
+	if _, ok := fcc.mutation.IsEnabled(); !ok {
+		v := fiatcurrency.DefaultIsEnabled
+		fcc.mutation.SetIsEnabled(v)
+	}
 	if _, ok := fcc.mutation.ID(); !ok {
 		v := fiatcurrency.DefaultID()
 		fcc.mutation.SetID(v)
@@ -206,6 +224,9 @@ func (fcc *FiatCurrencyCreate) check() error {
 	}
 	if _, ok := fcc.mutation.MarketRate(); !ok {
 		return &ValidationError{Name: "market_rate", err: errors.New(`ent: missing required field "FiatCurrency.market_rate"`)}
+	}
+	if _, ok := fcc.mutation.IsEnabled(); !ok {
+		return &ValidationError{Name: "is_enabled", err: errors.New(`ent: missing required field "FiatCurrency.is_enabled"`)}
 	}
 	return nil
 }
@@ -273,6 +294,10 @@ func (fcc *FiatCurrencyCreate) createSpec() (*FiatCurrency, *sqlgraph.CreateSpec
 	if value, ok := fcc.mutation.MarketRate(); ok {
 		_spec.SetField(fiatcurrency.FieldMarketRate, field.TypeFloat64, value)
 		_node.MarketRate = value
+	}
+	if value, ok := fcc.mutation.IsEnabled(); ok {
+		_spec.SetField(fiatcurrency.FieldIsEnabled, field.TypeBool, value)
+		_node.IsEnabled = value
 	}
 	if nodes := fcc.mutation.ProviderIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

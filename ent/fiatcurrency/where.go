@@ -97,6 +97,11 @@ func MarketRate(v decimal.Decimal) predicate.FiatCurrency {
 	return predicate.FiatCurrency(sql.FieldEQ(FieldMarketRate, v))
 }
 
+// IsEnabled applies equality check predicate on the "is_enabled" field. It's identical to IsEnabledEQ.
+func IsEnabled(v bool) predicate.FiatCurrency {
+	return predicate.FiatCurrency(sql.FieldEQ(FieldIsEnabled, v))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.FiatCurrency {
 	return predicate.FiatCurrency(sql.FieldEQ(FieldCreatedAt, v))
@@ -515,6 +520,16 @@ func MarketRateLT(v decimal.Decimal) predicate.FiatCurrency {
 // MarketRateLTE applies the LTE predicate on the "market_rate" field.
 func MarketRateLTE(v decimal.Decimal) predicate.FiatCurrency {
 	return predicate.FiatCurrency(sql.FieldLTE(FieldMarketRate, v))
+}
+
+// IsEnabledEQ applies the EQ predicate on the "is_enabled" field.
+func IsEnabledEQ(v bool) predicate.FiatCurrency {
+	return predicate.FiatCurrency(sql.FieldEQ(FieldIsEnabled, v))
+}
+
+// IsEnabledNEQ applies the NEQ predicate on the "is_enabled" field.
+func IsEnabledNEQ(v bool) predicate.FiatCurrency {
+	return predicate.FiatCurrency(sql.FieldNEQ(FieldIsEnabled, v))
 }
 
 // HasProvider applies the HasEdge predicate on the "provider" edge.

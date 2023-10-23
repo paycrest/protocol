@@ -94,6 +94,20 @@ func (fcu *FiatCurrencyUpdate) AddMarketRate(d decimal.Decimal) *FiatCurrencyUpd
 	return fcu
 }
 
+// SetIsEnabled sets the "is_enabled" field.
+func (fcu *FiatCurrencyUpdate) SetIsEnabled(b bool) *FiatCurrencyUpdate {
+	fcu.mutation.SetIsEnabled(b)
+	return fcu
+}
+
+// SetNillableIsEnabled sets the "is_enabled" field if the given value is not nil.
+func (fcu *FiatCurrencyUpdate) SetNillableIsEnabled(b *bool) *FiatCurrencyUpdate {
+	if b != nil {
+		fcu.SetIsEnabled(*b)
+	}
+	return fcu
+}
+
 // SetProviderID sets the "provider" edge to the ProviderProfile entity by ID.
 func (fcu *FiatCurrencyUpdate) SetProviderID(id string) *FiatCurrencyUpdate {
 	fcu.mutation.SetProviderID(id)
@@ -195,6 +209,9 @@ func (fcu *FiatCurrencyUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if value, ok := fcu.mutation.AddedMarketRate(); ok {
 		_spec.AddField(fiatcurrency.FieldMarketRate, field.TypeFloat64, value)
+	}
+	if value, ok := fcu.mutation.IsEnabled(); ok {
+		_spec.SetField(fiatcurrency.FieldIsEnabled, field.TypeBool, value)
 	}
 	if fcu.mutation.ProviderCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -306,6 +323,20 @@ func (fcuo *FiatCurrencyUpdateOne) SetMarketRate(d decimal.Decimal) *FiatCurrenc
 // AddMarketRate adds d to the "market_rate" field.
 func (fcuo *FiatCurrencyUpdateOne) AddMarketRate(d decimal.Decimal) *FiatCurrencyUpdateOne {
 	fcuo.mutation.AddMarketRate(d)
+	return fcuo
+}
+
+// SetIsEnabled sets the "is_enabled" field.
+func (fcuo *FiatCurrencyUpdateOne) SetIsEnabled(b bool) *FiatCurrencyUpdateOne {
+	fcuo.mutation.SetIsEnabled(b)
+	return fcuo
+}
+
+// SetNillableIsEnabled sets the "is_enabled" field if the given value is not nil.
+func (fcuo *FiatCurrencyUpdateOne) SetNillableIsEnabled(b *bool) *FiatCurrencyUpdateOne {
+	if b != nil {
+		fcuo.SetIsEnabled(*b)
+	}
 	return fcuo
 }
 
@@ -440,6 +471,9 @@ func (fcuo *FiatCurrencyUpdateOne) sqlSave(ctx context.Context) (_node *FiatCurr
 	}
 	if value, ok := fcuo.mutation.AddedMarketRate(); ok {
 		_spec.AddField(fiatcurrency.FieldMarketRate, field.TypeFloat64, value)
+	}
+	if value, ok := fcuo.mutation.IsEnabled(); ok {
+		_spec.SetField(fiatcurrency.FieldIsEnabled, field.TypeBool, value)
 	}
 	if fcuo.mutation.ProviderCleared() {
 		edge := &sqlgraph.EdgeSpec{

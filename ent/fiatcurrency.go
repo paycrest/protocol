@@ -36,6 +36,8 @@ type FiatCurrency struct {
 	Name string `json:"name,omitempty"`
 	// MarketRate holds the value of the "market_rate" field.
 	MarketRate decimal.Decimal `json:"market_rate,omitempty"`
+	// IsEnabled holds the value of the "is_enabled" field.
+	IsEnabled bool `json:"is_enabled,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the FiatCurrencyQuery when eager-loading is set.
 	Edges        FiatCurrencyEdges `json:"edges"`
@@ -71,6 +73,8 @@ func (*FiatCurrency) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case fiatcurrency.FieldMarketRate:
 			values[i] = new(decimal.Decimal)
+		case fiatcurrency.FieldIsEnabled:
+			values[i] = new(sql.NullBool)
 		case fiatcurrency.FieldDecimals:
 			values[i] = new(sql.NullInt64)
 		case fiatcurrency.FieldCode, fiatcurrency.FieldShortName, fiatcurrency.FieldSymbol, fiatcurrency.FieldName:
@@ -148,6 +152,12 @@ func (fc *FiatCurrency) assignValues(columns []string, values []any) error {
 			} else if value != nil {
 				fc.MarketRate = *value
 			}
+		case fiatcurrency.FieldIsEnabled:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field is_enabled", values[i])
+			} else if value.Valid {
+				fc.IsEnabled = value.Bool
+			}
 		default:
 			fc.selectValues.Set(columns[i], values[i])
 		}
@@ -212,6 +222,9 @@ func (fc *FiatCurrency) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("market_rate=")
 	builder.WriteString(fmt.Sprintf("%v", fc.MarketRate))
+	builder.WriteString(", ")
+	builder.WriteString("is_enabled=")
+	builder.WriteString(fmt.Sprintf("%v", fc.IsEnabled))
 	builder.WriteByte(')')
 	return builder.String()
 }

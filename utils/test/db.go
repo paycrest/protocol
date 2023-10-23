@@ -217,6 +217,7 @@ func CreateTestFiatCurrency(overrides map[string]interface{}) (*ent.FiatCurrency
 		SetSymbol(payload["symbol"].(string)).
 		SetName(payload["name"].(string)).
 		SetMarketRate(decimal.NewFromFloat(payload["market_rate"].(float64))).
+		SetIsEnabled(true).
 		Save(context.Background())
 
 	return currency, err

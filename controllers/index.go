@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent"
+	"github.com/paycrest/paycrest-protocol/ent/fiatcurrency"
 	"github.com/paycrest/paycrest-protocol/ent/lockorderfulfillment"
 	svc "github.com/paycrest/paycrest-protocol/services"
 	"github.com/paycrest/paycrest-protocol/storage"
@@ -32,7 +33,10 @@ func NewController() *Controller {
 // GetFiatCurrencies controller fetches the supported fiat currencies
 func (ctrl *Controller) GetFiatCurrencies(ctx *gin.Context) {
 	// fetch stored fiat currencies.
-	fiatcurrencies, err := storage.Client.FiatCurrency.Query().All(ctx)
+	fiatcurrencies, err := storage.Client.FiatCurrency.
+		Query().
+		Where(fiatcurrency.IsEnabledEQ(true)).
+		All(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusBadRequest, "error",

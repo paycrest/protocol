@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-co-op/gocron"
 	"github.com/paycrest/paycrest-protocol/ent"
+	"github.com/paycrest/paycrest-protocol/ent/fiatcurrency"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/providerordertoken"
 	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
@@ -118,6 +119,7 @@ func ComputeMarketRate() error {
 	// Fetch all fiat currencies
 	currencies, err := storage.Client.FiatCurrency.
 		Query().
+		Where(fiatcurrency.IsEnabledEQ(true)).
 		All(ctx)
 	if err != nil {
 		return err
