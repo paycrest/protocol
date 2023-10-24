@@ -12,6 +12,7 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/providerordertoken"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 	"github.com/paycrest/paycrest-protocol/ent/token"
+	svc "github.com/paycrest/paycrest-protocol/services"
 	"github.com/paycrest/paycrest-protocol/storage"
 	"github.com/paycrest/paycrest-protocol/types"
 	u "github.com/paycrest/paycrest-protocol/utils"
@@ -21,7 +22,16 @@ import (
 )
 
 // ProfileController is a controller type for profile settings
-type ProfileController struct{}
+type ProfileController struct {
+	apiKeyService *svc.APIKeyService
+}
+
+// NewProfileController creates a new instance of ProfileController
+func NewProfileController() *ProfileController {
+	return &ProfileController{
+		apiKeyService: svc.NewAPIKeyService(),
+	}
+}
 
 // UpdateValidatorProfile controller updates the validator profile
 func (ctrl *ProfileController) UpdateValidatorProfile(ctx *gin.Context) {
@@ -262,6 +272,7 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 	u.APIResponse(ctx, http.StatusOK, "success", "Profile updated successfully", nil)
 }
 
+// GetProviderProfile retrieves the provider profile
 func (ctrl *ProfileController) GetProviderProfile(ctx *gin.Context) {
 	// Get provider profile from the context
 	providerCtx, ok := ctx.Get("provider")
@@ -285,23 +296,12 @@ func (ctrl *ProfileController) GetProviderProfile(ctx *gin.Context) {
 		return
 	}
 
-	apiKey, err := provider.QueryAPIKey().Only(ctx)
-
-		// Decode the stored secret key to bytes
-		decodedSecret, err := base64.StdEncoding.DecodeString(apiKey.Secret)
-		if err != nil {
-			logger.Errorf("error: %v", err)
-			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to decode API key", nil)
-			return
-		}
-
-		// Decrypt the decoded secret
-		decryptedSecret, err := crypto.DecryptPlain(decodedSecret)
-		if err != nil {
-			logger.Errorf("error: %v", err)
-			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to decrypt API key", nil)
-			return
-		}
+	// Get API key
+	apiKey, err := ctrl.apiKeyService.GetAPIKey(ctx, nil, provider, nil)
+	if err != nil {
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to retrieve profile", nil)
+		return
+	}
 
 	u.APIResponse(ctx, http.StatusOK, "success", "Profile retrieved successfully", &types.ProviderProfileResponse{
 		ID:             provider.ID,
@@ -311,10 +311,7 @@ func (ctrl *ProfileController) GetProviderProfile(ctx *gin.Context) {
 		IsPartner:      provider.IsPartner,
 		Availability:   availability,
 		Tokens:         tokens,
-		APIKey: types.APIKeyResponse{
-			ID:     apiKey.ID,
-			Secret: string(decryptedSecret),
-		},
+		APIKey:         *apiKey,
 	})
 }
 
@@ -328,9 +325,17 @@ func (ctrl *ProfileController) GetValidatorProfile(ctx *gin.Context) {
 	}
 	validator := validatorCtx.(*ent.ValidatorProfile)
 
+	// Get API key
+	apiKey, err := ctrl.apiKeyService.GetAPIKey(ctx, nil, nil, validator)
+	if err != nil {
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to retrieve profile", nil)
+		return
+	}
+
 	u.APIResponse(ctx, http.StatusOK, "success", "Profile retrieved successfully", &types.ValidatorProfileResponse{
 		ID:             validator.ID,
 		WalletAddress:  validator.WalletAddress,
 		HostIdentifier: validator.HostIdentifier,
+		APIKey:         *apiKey,
 	})
 }
