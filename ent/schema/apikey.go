@@ -1,8 +1,6 @@
 package schema
 
 import (
-	"time"
-
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
@@ -25,17 +23,24 @@ func (APIKey) Fields() []ent.Field {
 			Unique(),
 		field.Bool("is_active").
 			Default(true),
-		field.Time("created_at").
-			Immutable().
-			Default(time.Now),
 	}
 }
 
 // Edges of the APIKey.
 func (APIKey) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.From("owner", User.Type).
-			Ref("api_keys").
+		edge.From("sender_profile", SenderProfile.Type).
+			Ref("api_key").
+			Unique().
+			Required().
+			Immutable(),
+		edge.From("provider_profile", ProviderProfile.Type).
+			Ref("api_key").
+			Unique().
+			Required().
+			Immutable(),
+		edge.From("validator_profile", ValidatorProfile.Type).
+			Ref("api_key").
 			Unique().
 			Required().
 			Immutable(),

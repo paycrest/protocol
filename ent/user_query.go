@@ -12,7 +12,6 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
-	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 	"github.com/paycrest/paycrest-protocol/ent/senderprofile"
@@ -28,7 +27,6 @@ type UserQuery struct {
 	order                 []user.OrderOption
 	inters                []Interceptor
 	predicates            []predicate.User
-	withAPIKeys           *APIKeyQuery
 	withSenderProfile     *SenderProfileQuery
 	withProviderProfile   *ProviderProfileQuery
 	withValidatorProfile  *ValidatorProfileQuery
@@ -67,28 +65,6 @@ func (uq *UserQuery) Unique(unique bool) *UserQuery {
 func (uq *UserQuery) Order(o ...user.OrderOption) *UserQuery {
 	uq.order = append(uq.order, o...)
 	return uq
-}
-
-// QueryAPIKeys chains the current query on the "api_keys" edge.
-func (uq *UserQuery) QueryAPIKeys() *APIKeyQuery {
-	query := (&APIKeyClient{config: uq.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := uq.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := uq.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(user.Table, user.FieldID, selector),
-			sqlgraph.To(apikey.Table, apikey.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, user.APIKeysTable, user.APIKeysColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
 }
 
 // QuerySenderProfile chains the current query on the "sender_profile" edge.
@@ -371,7 +347,6 @@ func (uq *UserQuery) Clone() *UserQuery {
 		order:                 append([]user.OrderOption{}, uq.order...),
 		inters:                append([]Interceptor{}, uq.inters...),
 		predicates:            append([]predicate.User{}, uq.predicates...),
-		withAPIKeys:           uq.withAPIKeys.Clone(),
 		withSenderProfile:     uq.withSenderProfile.Clone(),
 		withProviderProfile:   uq.withProviderProfile.Clone(),
 		withValidatorProfile:  uq.withValidatorProfile.Clone(),
@@ -380,17 +355,6 @@ func (uq *UserQuery) Clone() *UserQuery {
 		sql:  uq.sql.Clone(),
 		path: uq.path,
 	}
-}
-
-// WithAPIKeys tells the query-builder to eager-load the nodes that are connected to
-// the "api_keys" edge. The optional arguments are used to configure the query builder of the edge.
-func (uq *UserQuery) WithAPIKeys(opts ...func(*APIKeyQuery)) *UserQuery {
-	query := (&APIKeyClient{config: uq.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	uq.withAPIKeys = query
-	return uq
 }
 
 // WithSenderProfile tells the query-builder to eager-load the nodes that are connected to
@@ -515,8 +479,7 @@ func (uq *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 	var (
 		nodes       = []*User{}
 		_spec       = uq.querySpec()
-		loadedTypes = [5]bool{
-			uq.withAPIKeys != nil,
+		loadedTypes = [4]bool{
 			uq.withSenderProfile != nil,
 			uq.withProviderProfile != nil,
 			uq.withValidatorProfile != nil,
@@ -540,13 +503,6 @@ func (uq *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 	}
 	if len(nodes) == 0 {
 		return nodes, nil
-	}
-	if query := uq.withAPIKeys; query != nil {
-		if err := uq.loadAPIKeys(ctx, query, nodes,
-			func(n *User) { n.Edges.APIKeys = []*APIKey{} },
-			func(n *User, e *APIKey) { n.Edges.APIKeys = append(n.Edges.APIKeys, e) }); err != nil {
-			return nil, err
-		}
 	}
 	if query := uq.withSenderProfile; query != nil {
 		if err := uq.loadSenderProfile(ctx, query, nodes, nil,
@@ -576,37 +532,6 @@ func (uq *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 	return nodes, nil
 }
 
-func (uq *UserQuery) loadAPIKeys(ctx context.Context, query *APIKeyQuery, nodes []*User, init func(*User), assign func(*User, *APIKey)) error {
-	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[uuid.UUID]*User)
-	for i := range nodes {
-		fks = append(fks, nodes[i].ID)
-		nodeids[nodes[i].ID] = nodes[i]
-		if init != nil {
-			init(nodes[i])
-		}
-	}
-	query.withFKs = true
-	query.Where(predicate.APIKey(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(user.APIKeysColumn), fks...))
-	}))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		fk := n.user_api_keys
-		if fk == nil {
-			return fmt.Errorf(`foreign-key "user_api_keys" is nil for node %v`, n.ID)
-		}
-		node, ok := nodeids[*fk]
-		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "user_api_keys" returned %v for node %v`, *fk, n.ID)
-		}
-		assign(node, n)
-	}
-	return nil
-}
 func (uq *UserQuery) loadSenderProfile(ctx context.Context, query *SenderProfileQuery, nodes []*User, init func(*User), assign func(*User, *SenderProfile)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[uuid.UUID]*User)

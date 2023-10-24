@@ -108,16 +108,6 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 		}
 	}
 
-	// Generate the API key using the service
-	_, _, err = ctrl.apiKeyService.GenerateAPIKey(ctx, tx, user.ID)
-	if err != nil {
-		_ = tx.Rollback()
-		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusInternalServerError, "error",
-			"Failed to create new user", nil)
-		return
-	}
-
 	// Create a provider profile
 	clientType := ctx.GetHeader("Client-Type")
 	if scope == userEnt.ScopeProvider && (clientType == "web" || clientType == "mobile") {
@@ -137,7 +127,7 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 			return
 		}
 
-		_, err = tx.ProviderProfile.
+		provider, err := tx.ProviderProfile.
 			Create().
 			SetTradingName(payload.TradingName).
 			SetCurrency(currency).
@@ -151,14 +141,34 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 				"Failed to create new user", nil)
 			return
 		}
+
+		// Generate the API key using the service
+		_, _, err = ctrl.apiKeyService.GenerateAPIKey(ctx, tx, nil, provider, nil)
+		if err != nil {
+			_ = tx.Rollback()
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error",
+				"Failed to create new user", nil)
+			return
+		}
 	}
 
 	// Create a sender profile
 	if scope == userEnt.ScopeSender {
-		_, err = tx.SenderProfile.
+		sender, err := tx.SenderProfile.
 			Create().
 			SetUser(user).
 			Save(ctx)
+		if err != nil {
+			_ = tx.Rollback()
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error",
+				"Failed to create new user", nil)
+			return
+		}
+
+		// Generate the API key using the service
+		_, _, err = ctrl.apiKeyService.GenerateAPIKey(ctx, tx, sender, nil, nil)
 		if err != nil {
 			_ = tx.Rollback()
 			logger.Errorf("error: %v", err)
@@ -170,10 +180,20 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 
 	// Create a validator profile
 	if scope == userEnt.ScopeTxValidator {
-		_, err = tx.ValidatorProfile.
+		validator, err := tx.ValidatorProfile.
 			Create().
 			SetUser(user).
 			Save(ctx)
+		if err != nil {
+			_ = tx.Rollback()
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error",
+				"Failed to create new user", nil)
+			return
+		}
+
+		// Generate the API key using the service
+		_, _, err = ctrl.apiKeyService.GenerateAPIKey(ctx, tx, nil, nil, validator)
 		if err != nil {
 			_ = tx.Rollback()
 			logger.Errorf("error: %v", err)

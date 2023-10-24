@@ -10,10 +10,10 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
-	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorderrecipient"
 	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
+	"github.com/paycrest/paycrest-protocol/ent/senderprofile"
 	"github.com/paycrest/paycrest-protocol/ent/token"
 	"github.com/shopspring/decimal"
 )
@@ -41,16 +41,17 @@ type PaymentOrder struct {
 	LastUsed time.Time `json:"last_used,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the PaymentOrderQuery when eager-loading is set.
-	Edges                  PaymentOrderEdges `json:"edges"`
-	api_key_payment_orders *uuid.UUID
-	token_payment_orders   *int
-	selectValues           sql.SelectValues
+	Edges                         PaymentOrderEdges `json:"edges"`
+	api_key_payment_orders        *uuid.UUID
+	sender_profile_payment_orders *uuid.UUID
+	token_payment_orders          *int
+	selectValues                  sql.SelectValues
 }
 
 // PaymentOrderEdges holds the relations/edges for other nodes in the graph.
 type PaymentOrderEdges struct {
-	// APIKey holds the value of the api_key edge.
-	APIKey *APIKey `json:"api_key,omitempty"`
+	// SenderProfile holds the value of the sender_profile edge.
+	SenderProfile *SenderProfile `json:"sender_profile,omitempty"`
 	// Token holds the value of the token edge.
 	Token *Token `json:"token,omitempty"`
 	// ReceiveAddress holds the value of the receive_address edge.
@@ -62,17 +63,17 @@ type PaymentOrderEdges struct {
 	loadedTypes [4]bool
 }
 
-// APIKeyOrErr returns the APIKey value or an error if the edge
+// SenderProfileOrErr returns the SenderProfile value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
-func (e PaymentOrderEdges) APIKeyOrErr() (*APIKey, error) {
+func (e PaymentOrderEdges) SenderProfileOrErr() (*SenderProfile, error) {
 	if e.loadedTypes[0] {
-		if e.APIKey == nil {
+		if e.SenderProfile == nil {
 			// Edge was loaded but was not found.
-			return nil, &NotFoundError{label: apikey.Label}
+			return nil, &NotFoundError{label: senderprofile.Label}
 		}
-		return e.APIKey, nil
+		return e.SenderProfile, nil
 	}
-	return nil, &NotLoadedError{edge: "api_key"}
+	return nil, &NotLoadedError{edge: "sender_profile"}
 }
 
 // TokenOrErr returns the Token value or an error if the edge
@@ -129,7 +130,9 @@ func (*PaymentOrder) scanValues(columns []string) ([]any, error) {
 			values[i] = new(uuid.UUID)
 		case paymentorder.ForeignKeys[0]: // api_key_payment_orders
 			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
-		case paymentorder.ForeignKeys[1]: // token_payment_orders
+		case paymentorder.ForeignKeys[1]: // sender_profile_payment_orders
+			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
+		case paymentorder.ForeignKeys[2]: // token_payment_orders
 			values[i] = new(sql.NullInt64)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -208,6 +211,13 @@ func (po *PaymentOrder) assignValues(columns []string, values []any) error {
 				*po.api_key_payment_orders = *value.S.(*uuid.UUID)
 			}
 		case paymentorder.ForeignKeys[1]:
+			if value, ok := values[i].(*sql.NullScanner); !ok {
+				return fmt.Errorf("unexpected type %T for field sender_profile_payment_orders", values[i])
+			} else if value.Valid {
+				po.sender_profile_payment_orders = new(uuid.UUID)
+				*po.sender_profile_payment_orders = *value.S.(*uuid.UUID)
+			}
+		case paymentorder.ForeignKeys[2]:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for edge-field token_payment_orders", value)
 			} else if value.Valid {
@@ -227,9 +237,9 @@ func (po *PaymentOrder) Value(name string) (ent.Value, error) {
 	return po.selectValues.Get(name)
 }
 
-// QueryAPIKey queries the "api_key" edge of the PaymentOrder entity.
-func (po *PaymentOrder) QueryAPIKey() *APIKeyQuery {
-	return NewPaymentOrderClient(po.config).QueryAPIKey(po)
+// QuerySenderProfile queries the "sender_profile" edge of the PaymentOrder entity.
+func (po *PaymentOrder) QuerySenderProfile() *SenderProfileQuery {
+	return NewPaymentOrderClient(po.config).QuerySenderProfile(po)
 }
 
 // QueryToken queries the "token" edge of the PaymentOrder entity.

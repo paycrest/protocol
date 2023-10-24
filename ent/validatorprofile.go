@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
+	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/user"
 	"github.com/paycrest/paycrest-protocol/ent/validatorprofile"
 )
@@ -40,9 +41,11 @@ type ValidatorProfileEdges struct {
 	User *User `json:"user,omitempty"`
 	// ValidatedFulfillments holds the value of the validated_fulfillments edge.
 	ValidatedFulfillments []*LockOrderFulfillment `json:"validated_fulfillments,omitempty"`
+	// APIKey holds the value of the api_key edge.
+	APIKey *APIKey `json:"api_key,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [3]bool
 }
 
 // UserOrErr returns the User value or an error if the edge
@@ -65,6 +68,19 @@ func (e ValidatorProfileEdges) ValidatedFulfillmentsOrErr() ([]*LockOrderFulfill
 		return e.ValidatedFulfillments, nil
 	}
 	return nil, &NotLoadedError{edge: "validated_fulfillments"}
+}
+
+// APIKeyOrErr returns the APIKey value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ValidatorProfileEdges) APIKeyOrErr() (*APIKey, error) {
+	if e.loadedTypes[2] {
+		if e.APIKey == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: apikey.Label}
+		}
+		return e.APIKey, nil
+	}
+	return nil, &NotLoadedError{edge: "api_key"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -153,6 +169,11 @@ func (vp *ValidatorProfile) QueryUser() *UserQuery {
 // QueryValidatedFulfillments queries the "validated_fulfillments" edge of the ValidatorProfile entity.
 func (vp *ValidatorProfile) QueryValidatedFulfillments() *LockOrderFulfillmentQuery {
 	return NewValidatorProfileClient(vp.config).QueryValidatedFulfillments(vp)
+}
+
+// QueryAPIKey queries the "api_key" edge of the ValidatorProfile entity.
+func (vp *ValidatorProfile) QueryAPIKey() *APIKeyQuery {
+	return NewValidatorProfileClient(vp.config).QueryAPIKey(vp)
 }
 
 // Update returns a builder for updating this ValidatorProfile.

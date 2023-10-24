@@ -352,6 +352,29 @@ func HasValidatedFulfillmentsWith(preds ...predicate.LockOrderFulfillment) predi
 	})
 }
 
+// HasAPIKey applies the HasEdge predicate on the "api_key" edge.
+func HasAPIKey() predicate.ValidatorProfile {
+	return predicate.ValidatorProfile(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, APIKeyTable, APIKeyColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasAPIKeyWith applies the HasEdge predicate on the "api_key" edge with a given conditions (other predicates).
+func HasAPIKeyWith(preds ...predicate.APIKey) predicate.ValidatorProfile {
+	return predicate.ValidatorProfile(func(s *sql.Selector) {
+		step := newAPIKeyStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.ValidatorProfile) predicate.ValidatorProfile {
 	return predicate.ValidatorProfile(func(s *sql.Selector) {

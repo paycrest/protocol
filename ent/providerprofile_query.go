@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
+	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/fiatcurrency"
 	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
@@ -31,6 +32,7 @@ type ProviderProfileQuery struct {
 	inters               []Interceptor
 	predicates           []predicate.ProviderProfile
 	withUser             *UserQuery
+	withAPIKey           *APIKeyQuery
 	withCurrency         *FiatCurrencyQuery
 	withProvisionBuckets *ProvisionBucketQuery
 	withOrderTokens      *ProviderOrderTokenQuery
@@ -89,6 +91,28 @@ func (ppq *ProviderProfileQuery) QueryUser() *UserQuery {
 			sqlgraph.From(providerprofile.Table, providerprofile.FieldID, selector),
 			sqlgraph.To(user.Table, user.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, true, providerprofile.UserTable, providerprofile.UserColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(ppq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryAPIKey chains the current query on the "api_key" edge.
+func (ppq *ProviderProfileQuery) QueryAPIKey() *APIKeyQuery {
+	query := (&APIKeyClient{config: ppq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := ppq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := ppq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(providerprofile.Table, providerprofile.FieldID, selector),
+			sqlgraph.To(apikey.Table, apikey.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, providerprofile.APIKeyTable, providerprofile.APIKeyColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(ppq.driver.Dialect(), step)
 		return fromU, nil
@@ -421,6 +445,7 @@ func (ppq *ProviderProfileQuery) Clone() *ProviderProfileQuery {
 		inters:               append([]Interceptor{}, ppq.inters...),
 		predicates:           append([]predicate.ProviderProfile{}, ppq.predicates...),
 		withUser:             ppq.withUser.Clone(),
+		withAPIKey:           ppq.withAPIKey.Clone(),
 		withCurrency:         ppq.withCurrency.Clone(),
 		withProvisionBuckets: ppq.withProvisionBuckets.Clone(),
 		withOrderTokens:      ppq.withOrderTokens.Clone(),
@@ -441,6 +466,17 @@ func (ppq *ProviderProfileQuery) WithUser(opts ...func(*UserQuery)) *ProviderPro
 		opt(query)
 	}
 	ppq.withUser = query
+	return ppq
+}
+
+// WithAPIKey tells the query-builder to eager-load the nodes that are connected to
+// the "api_key" edge. The optional arguments are used to configure the query builder of the edge.
+func (ppq *ProviderProfileQuery) WithAPIKey(opts ...func(*APIKeyQuery)) *ProviderProfileQuery {
+	query := (&APIKeyClient{config: ppq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	ppq.withAPIKey = query
 	return ppq
 }
 
@@ -589,8 +625,9 @@ func (ppq *ProviderProfileQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 		nodes       = []*ProviderProfile{}
 		withFKs     = ppq.withFKs
 		_spec       = ppq.querySpec()
-		loadedTypes = [7]bool{
+		loadedTypes = [8]bool{
 			ppq.withUser != nil,
+			ppq.withAPIKey != nil,
 			ppq.withCurrency != nil,
 			ppq.withProvisionBuckets != nil,
 			ppq.withOrderTokens != nil,
@@ -626,6 +663,12 @@ func (ppq *ProviderProfileQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 	if query := ppq.withUser; query != nil {
 		if err := ppq.loadUser(ctx, query, nodes, nil,
 			func(n *ProviderProfile, e *User) { n.Edges.User = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := ppq.withAPIKey; query != nil {
+		if err := ppq.loadAPIKey(ctx, query, nodes, nil,
+			func(n *ProviderProfile, e *APIKey) { n.Edges.APIKey = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -704,6 +747,34 @@ func (ppq *ProviderProfileQuery) loadUser(ctx context.Context, query *UserQuery,
 		for i := range nodes {
 			assign(nodes[i], n)
 		}
+	}
+	return nil
+}
+func (ppq *ProviderProfileQuery) loadAPIKey(ctx context.Context, query *APIKeyQuery, nodes []*ProviderProfile, init func(*ProviderProfile), assign func(*ProviderProfile, *APIKey)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*ProviderProfile)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+	}
+	query.withFKs = true
+	query.Where(predicate.APIKey(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(providerprofile.APIKeyColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.provider_profile_api_key
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "provider_profile_api_key" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "provider_profile_api_key" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
 	}
 	return nil
 }

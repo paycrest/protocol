@@ -14,7 +14,9 @@ var (
 		{Name: "secret", Type: field.TypeString, Unique: true},
 		{Name: "is_active", Type: field.TypeBool, Default: true},
 		{Name: "created_at", Type: field.TypeTime},
-		{Name: "user_api_keys", Type: field.TypeUUID},
+		{Name: "provider_profile_api_key", Type: field.TypeString, Unique: true},
+		{Name: "sender_profile_api_key", Type: field.TypeUUID, Unique: true},
+		{Name: "validator_profile_api_key", Type: field.TypeUUID, Unique: true},
 	}
 	// APIKeysTable holds the schema information for the "api_keys" table.
 	APIKeysTable = &schema.Table{
@@ -23,9 +25,21 @@ var (
 		PrimaryKey: []*schema.Column{APIKeysColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "api_keys_users_api_keys",
+				Symbol:     "api_keys_provider_profiles_api_key",
 				Columns:    []*schema.Column{APIKeysColumns[4]},
-				RefColumns: []*schema.Column{UsersColumns[0]},
+				RefColumns: []*schema.Column{ProviderProfilesColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "api_keys_sender_profiles_api_key",
+				Columns:    []*schema.Column{APIKeysColumns[5]},
+				RefColumns: []*schema.Column{SenderProfilesColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "api_keys_validator_profiles_api_key",
+				Columns:    []*schema.Column{APIKeysColumns[6]},
+				RefColumns: []*schema.Column{ValidatorProfilesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 		},
@@ -148,7 +162,8 @@ var (
 		{Name: "receive_address_text", Type: field.TypeString, Size: 60},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"initiated", "pending", "settled", "cancelled", "failed", "refunded"}, Default: "initiated"},
 		{Name: "last_used", Type: field.TypeTime, Nullable: true},
-		{Name: "api_key_payment_orders", Type: field.TypeUUID},
+		{Name: "api_key_payment_orders", Type: field.TypeUUID, Nullable: true},
+		{Name: "sender_profile_payment_orders", Type: field.TypeUUID},
 		{Name: "token_payment_orders", Type: field.TypeInt},
 	}
 	// PaymentOrdersTable holds the schema information for the "payment_orders" table.
@@ -164,8 +179,14 @@ var (
 				OnDelete:   schema.SetNull,
 			},
 			{
-				Symbol:     "payment_orders_tokens_payment_orders",
+				Symbol:     "payment_orders_sender_profiles_payment_orders",
 				Columns:    []*schema.Column{PaymentOrdersColumns[10]},
+				RefColumns: []*schema.Column{SenderProfilesColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "payment_orders_tokens_payment_orders",
+				Columns:    []*schema.Column{PaymentOrdersColumns[11]},
 				RefColumns: []*schema.Column{TokensColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
@@ -532,13 +553,16 @@ var (
 )
 
 func init() {
-	APIKeysTable.ForeignKeys[0].RefTable = UsersTable
+	APIKeysTable.ForeignKeys[0].RefTable = ProviderProfilesTable
+	APIKeysTable.ForeignKeys[1].RefTable = SenderProfilesTable
+	APIKeysTable.ForeignKeys[2].RefTable = ValidatorProfilesTable
 	LockOrderFulfillmentsTable.ForeignKeys[0].RefTable = LockPaymentOrdersTable
 	LockPaymentOrdersTable.ForeignKeys[0].RefTable = ProviderProfilesTable
 	LockPaymentOrdersTable.ForeignKeys[1].RefTable = ProvisionBucketsTable
 	LockPaymentOrdersTable.ForeignKeys[2].RefTable = TokensTable
 	PaymentOrdersTable.ForeignKeys[0].RefTable = APIKeysTable
-	PaymentOrdersTable.ForeignKeys[1].RefTable = TokensTable
+	PaymentOrdersTable.ForeignKeys[1].RefTable = SenderProfilesTable
+	PaymentOrdersTable.ForeignKeys[2].RefTable = TokensTable
 	PaymentOrderRecipientsTable.ForeignKeys[0].RefTable = PaymentOrdersTable
 	ProviderAvailabilitiesTable.ForeignKeys[0].RefTable = ProviderProfilesTable
 	ProviderOrderTokensTable.ForeignKeys[0].RefTable = ProviderProfilesTable

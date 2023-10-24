@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent"
 	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
+	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/provideravailability"
 	"github.com/paycrest/paycrest-protocol/ent/providerordertoken"
 	"github.com/shopspring/decimal"
@@ -231,15 +232,16 @@ type ReceiveAddressResponse struct {
 	ReceiveAddress string    `json:"receiveAddress"`
 }
 
+// PaymentOrderResponse is the response type for a payment order
 type PaymentOrderResponse struct {
 	ID        uuid.UUID             `json:"id"`
-	Amount    float64               `json:"amount"`
+	Amount    decimal.Decimal       `json:"amount"`
 	Network   string                `json:"network"`
 	Recipient PaymentOrderRecipient `json:"recipient"`
 	CreatedAt time.Time             `json:"createdAt"`
 	UpdatedAt time.Time             `json:"updatedAt"`
 	TxHash    string                `json:"txHash"`
-	Status    string                `json:"status"`
+	Status    paymentorder.Status   `json:"status"`
 }
 
 // ConfirmEmailPayload is the payload for the confirmEmail endpoint

@@ -10,6 +10,8 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
+	"github.com/paycrest/paycrest-protocol/ent/apikey"
+	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/senderprofile"
 	"github.com/paycrest/paycrest-protocol/ent/user"
 )
@@ -64,6 +66,40 @@ func (spc *SenderProfileCreate) SetUserID(id uuid.UUID) *SenderProfileCreate {
 // SetUser sets the "user" edge to the User entity.
 func (spc *SenderProfileCreate) SetUser(u *User) *SenderProfileCreate {
 	return spc.SetUserID(u.ID)
+}
+
+// SetAPIKeyID sets the "api_key" edge to the APIKey entity by ID.
+func (spc *SenderProfileCreate) SetAPIKeyID(id uuid.UUID) *SenderProfileCreate {
+	spc.mutation.SetAPIKeyID(id)
+	return spc
+}
+
+// SetNillableAPIKeyID sets the "api_key" edge to the APIKey entity by ID if the given value is not nil.
+func (spc *SenderProfileCreate) SetNillableAPIKeyID(id *uuid.UUID) *SenderProfileCreate {
+	if id != nil {
+		spc = spc.SetAPIKeyID(*id)
+	}
+	return spc
+}
+
+// SetAPIKey sets the "api_key" edge to the APIKey entity.
+func (spc *SenderProfileCreate) SetAPIKey(a *APIKey) *SenderProfileCreate {
+	return spc.SetAPIKeyID(a.ID)
+}
+
+// AddPaymentOrderIDs adds the "payment_orders" edge to the PaymentOrder entity by IDs.
+func (spc *SenderProfileCreate) AddPaymentOrderIDs(ids ...uuid.UUID) *SenderProfileCreate {
+	spc.mutation.AddPaymentOrderIDs(ids...)
+	return spc
+}
+
+// AddPaymentOrders adds the "payment_orders" edges to the PaymentOrder entity.
+func (spc *SenderProfileCreate) AddPaymentOrders(p ...*PaymentOrder) *SenderProfileCreate {
+	ids := make([]uuid.UUID, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return spc.AddPaymentOrderIDs(ids...)
 }
 
 // Mutation returns the SenderProfileMutation object of the builder.
@@ -177,6 +213,38 @@ func (spc *SenderProfileCreate) createSpec() (*SenderProfile, *sqlgraph.CreateSp
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.user_sender_profile = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := spc.mutation.APIKeyIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   senderprofile.APIKeyTable,
+			Columns: []string{senderprofile.APIKeyColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := spc.mutation.PaymentOrdersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   senderprofile.PaymentOrdersTable,
+			Columns: []string{senderprofile.PaymentOrdersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

@@ -1,7 +1,10 @@
 package schema
 
 import (
+	"time"
+
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
@@ -20,6 +23,9 @@ func (SenderProfile) Fields() []ent.Field {
 		field.String("webhook_url").Optional(),
 		field.Strings("domain_whitelist").
 			Default([]string{}),
+		field.Time("updated_at").
+			Default(time.Now).
+			UpdateDefault(time.Now),
 	}
 }
 
@@ -31,5 +37,9 @@ func (SenderProfile) Edges() []ent.Edge {
 			Unique().
 			Required().
 			Immutable(),
+		edge.To("api_key", APIKey.Type).
+			Unique(),
+		edge.To("payment_orders", PaymentOrder.Type).
+			Annotations(entsql.OnDelete(entsql.SetNull)),
 	}
 }

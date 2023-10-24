@@ -45,7 +45,6 @@ func (User) Fields() []ent.Field {
 // Edges of the User.
 func (User) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.To("api_keys", APIKey.Type),
 		edge.To("sender_profile", SenderProfile.Type).
 			Unique().
 			Annotations(entsql.OnDelete(entsql.Cascade)),

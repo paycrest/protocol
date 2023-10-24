@@ -32,8 +32,8 @@ const (
 	FieldStatus = "status"
 	// FieldLastUsed holds the string denoting the last_used field in the database.
 	FieldLastUsed = "last_used"
-	// EdgeAPIKey holds the string denoting the api_key edge name in mutations.
-	EdgeAPIKey = "api_key"
+	// EdgeSenderProfile holds the string denoting the sender_profile edge name in mutations.
+	EdgeSenderProfile = "sender_profile"
 	// EdgeToken holds the string denoting the token edge name in mutations.
 	EdgeToken = "token"
 	// EdgeReceiveAddress holds the string denoting the receive_address edge name in mutations.
@@ -42,13 +42,13 @@ const (
 	EdgeRecipient = "recipient"
 	// Table holds the table name of the paymentorder in the database.
 	Table = "payment_orders"
-	// APIKeyTable is the table that holds the api_key relation/edge.
-	APIKeyTable = "payment_orders"
-	// APIKeyInverseTable is the table name for the APIKey entity.
-	// It exists in this package in order to avoid circular dependency with the "apikey" package.
-	APIKeyInverseTable = "api_keys"
-	// APIKeyColumn is the table column denoting the api_key relation/edge.
-	APIKeyColumn = "api_key_payment_orders"
+	// SenderProfileTable is the table that holds the sender_profile relation/edge.
+	SenderProfileTable = "payment_orders"
+	// SenderProfileInverseTable is the table name for the SenderProfile entity.
+	// It exists in this package in order to avoid circular dependency with the "senderprofile" package.
+	SenderProfileInverseTable = "sender_profiles"
+	// SenderProfileColumn is the table column denoting the sender_profile relation/edge.
+	SenderProfileColumn = "sender_profile_payment_orders"
 	// TokenTable is the table that holds the token relation/edge.
 	TokenTable = "payment_orders"
 	// TokenInverseTable is the table name for the Token entity.
@@ -89,6 +89,7 @@ var Columns = []string{
 // table and are not defined as standalone fields in the schema.
 var ForeignKeys = []string{
 	"api_key_payment_orders",
+	"sender_profile_payment_orders",
 	"token_payment_orders",
 }
 
@@ -200,10 +201,10 @@ func ByLastUsed(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldLastUsed, opts...).ToFunc()
 }
 
-// ByAPIKeyField orders the results by api_key field.
-func ByAPIKeyField(field string, opts ...sql.OrderTermOption) OrderOption {
+// BySenderProfileField orders the results by sender_profile field.
+func BySenderProfileField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newAPIKeyStep(), sql.OrderByField(field, opts...))
+		sqlgraph.OrderByNeighborTerms(s, newSenderProfileStep(), sql.OrderByField(field, opts...))
 	}
 }
 
@@ -227,11 +228,11 @@ func ByRecipientField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newRecipientStep(), sql.OrderByField(field, opts...))
 	}
 }
-func newAPIKeyStep() *sqlgraph.Step {
+func newSenderProfileStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(APIKeyInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, true, APIKeyTable, APIKeyColumn),
+		sqlgraph.To(SenderProfileInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, SenderProfileTable, SenderProfileColumn),
 	)
 }
 func newTokenStep() *sqlgraph.Step {

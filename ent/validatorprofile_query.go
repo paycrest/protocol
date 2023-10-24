@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
+	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
 	"github.com/paycrest/paycrest-protocol/ent/user"
@@ -27,6 +28,7 @@ type ValidatorProfileQuery struct {
 	predicates                []predicate.ValidatorProfile
 	withUser                  *UserQuery
 	withValidatedFulfillments *LockOrderFulfillmentQuery
+	withAPIKey                *APIKeyQuery
 	withFKs                   bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -101,6 +103,28 @@ func (vpq *ValidatorProfileQuery) QueryValidatedFulfillments() *LockOrderFulfill
 			sqlgraph.From(validatorprofile.Table, validatorprofile.FieldID, selector),
 			sqlgraph.To(lockorderfulfillment.Table, lockorderfulfillment.FieldID),
 			sqlgraph.Edge(sqlgraph.M2M, true, validatorprofile.ValidatedFulfillmentsTable, validatorprofile.ValidatedFulfillmentsPrimaryKey...),
+		)
+		fromU = sqlgraph.SetNeighbors(vpq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryAPIKey chains the current query on the "api_key" edge.
+func (vpq *ValidatorProfileQuery) QueryAPIKey() *APIKeyQuery {
+	query := (&APIKeyClient{config: vpq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := vpq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := vpq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(validatorprofile.Table, validatorprofile.FieldID, selector),
+			sqlgraph.To(apikey.Table, apikey.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, validatorprofile.APIKeyTable, validatorprofile.APIKeyColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(vpq.driver.Dialect(), step)
 		return fromU, nil
@@ -302,6 +326,7 @@ func (vpq *ValidatorProfileQuery) Clone() *ValidatorProfileQuery {
 		predicates:                append([]predicate.ValidatorProfile{}, vpq.predicates...),
 		withUser:                  vpq.withUser.Clone(),
 		withValidatedFulfillments: vpq.withValidatedFulfillments.Clone(),
+		withAPIKey:                vpq.withAPIKey.Clone(),
 		// clone intermediate query.
 		sql:  vpq.sql.Clone(),
 		path: vpq.path,
@@ -327,6 +352,17 @@ func (vpq *ValidatorProfileQuery) WithValidatedFulfillments(opts ...func(*LockOr
 		opt(query)
 	}
 	vpq.withValidatedFulfillments = query
+	return vpq
+}
+
+// WithAPIKey tells the query-builder to eager-load the nodes that are connected to
+// the "api_key" edge. The optional arguments are used to configure the query builder of the edge.
+func (vpq *ValidatorProfileQuery) WithAPIKey(opts ...func(*APIKeyQuery)) *ValidatorProfileQuery {
+	query := (&APIKeyClient{config: vpq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	vpq.withAPIKey = query
 	return vpq
 }
 
@@ -409,9 +445,10 @@ func (vpq *ValidatorProfileQuery) sqlAll(ctx context.Context, hooks ...queryHook
 		nodes       = []*ValidatorProfile{}
 		withFKs     = vpq.withFKs
 		_spec       = vpq.querySpec()
-		loadedTypes = [2]bool{
+		loadedTypes = [3]bool{
 			vpq.withUser != nil,
 			vpq.withValidatedFulfillments != nil,
+			vpq.withAPIKey != nil,
 		}
 	)
 	if vpq.withUser != nil {
@@ -450,6 +487,12 @@ func (vpq *ValidatorProfileQuery) sqlAll(ctx context.Context, hooks ...queryHook
 			func(n *ValidatorProfile, e *LockOrderFulfillment) {
 				n.Edges.ValidatedFulfillments = append(n.Edges.ValidatedFulfillments, e)
 			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := vpq.withAPIKey; query != nil {
+		if err := vpq.loadAPIKey(ctx, query, nodes, nil,
+			func(n *ValidatorProfile, e *APIKey) { n.Edges.APIKey = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -546,6 +589,34 @@ func (vpq *ValidatorProfileQuery) loadValidatedFulfillments(ctx context.Context,
 		for kn := range nodes {
 			assign(kn, n)
 		}
+	}
+	return nil
+}
+func (vpq *ValidatorProfileQuery) loadAPIKey(ctx context.Context, query *APIKeyQuery, nodes []*ValidatorProfile, init func(*ValidatorProfile), assign func(*ValidatorProfile, *APIKey)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*ValidatorProfile)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+	}
+	query.withFKs = true
+	query.Where(predicate.APIKey(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(validatorprofile.APIKeyColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.validator_profile_api_key
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "validator_profile_api_key" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "validator_profile_api_key" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
 	}
 	return nil
 }
