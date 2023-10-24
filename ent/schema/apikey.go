@@ -21,8 +21,6 @@ func (APIKey) Fields() []ent.Field {
 		field.String("secret").
 			NotEmpty().
 			Unique(),
-		field.Bool("is_active").
-			Default(true),
 	}
 }
 

@@ -70,8 +70,6 @@ type APIKeyMutation struct {
 	typ                      string
 	id                       *uuid.UUID
 	secret                   *string
-	is_active                *bool
-	created_at               *time.Time
 	clearedFields            map[string]struct{}
 	sender_profile           *uuid.UUID
 	clearedsender_profile    bool
@@ -225,78 +223,6 @@ func (m *APIKeyMutation) OldSecret(ctx context.Context) (v string, err error) {
 // ResetSecret resets all changes to the "secret" field.
 func (m *APIKeyMutation) ResetSecret() {
 	m.secret = nil
-}
-
-// SetIsActive sets the "is_active" field.
-func (m *APIKeyMutation) SetIsActive(b bool) {
-	m.is_active = &b
-}
-
-// IsActive returns the value of the "is_active" field in the mutation.
-func (m *APIKeyMutation) IsActive() (r bool, exists bool) {
-	v := m.is_active
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldIsActive returns the old "is_active" field's value of the APIKey entity.
-// If the APIKey object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *APIKeyMutation) OldIsActive(ctx context.Context) (v bool, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldIsActive is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldIsActive requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldIsActive: %w", err)
-	}
-	return oldValue.IsActive, nil
-}
-
-// ResetIsActive resets all changes to the "is_active" field.
-func (m *APIKeyMutation) ResetIsActive() {
-	m.is_active = nil
-}
-
-// SetCreatedAt sets the "created_at" field.
-func (m *APIKeyMutation) SetCreatedAt(t time.Time) {
-	m.created_at = &t
-}
-
-// CreatedAt returns the value of the "created_at" field in the mutation.
-func (m *APIKeyMutation) CreatedAt() (r time.Time, exists bool) {
-	v := m.created_at
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldCreatedAt returns the old "created_at" field's value of the APIKey entity.
-// If the APIKey object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *APIKeyMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
-	}
-	return oldValue.CreatedAt, nil
-}
-
-// ResetCreatedAt resets all changes to the "created_at" field.
-func (m *APIKeyMutation) ResetCreatedAt() {
-	m.created_at = nil
 }
 
 // SetSenderProfileID sets the "sender_profile" edge to the SenderProfile entity by id.
@@ -504,15 +430,9 @@ func (m *APIKeyMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *APIKeyMutation) Fields() []string {
-	fields := make([]string, 0, 3)
+	fields := make([]string, 0, 1)
 	if m.secret != nil {
 		fields = append(fields, apikey.FieldSecret)
-	}
-	if m.is_active != nil {
-		fields = append(fields, apikey.FieldIsActive)
-	}
-	if m.created_at != nil {
-		fields = append(fields, apikey.FieldCreatedAt)
 	}
 	return fields
 }
@@ -524,10 +444,6 @@ func (m *APIKeyMutation) Field(name string) (ent.Value, bool) {
 	switch name {
 	case apikey.FieldSecret:
 		return m.Secret()
-	case apikey.FieldIsActive:
-		return m.IsActive()
-	case apikey.FieldCreatedAt:
-		return m.CreatedAt()
 	}
 	return nil, false
 }
@@ -539,10 +455,6 @@ func (m *APIKeyMutation) OldField(ctx context.Context, name string) (ent.Value, 
 	switch name {
 	case apikey.FieldSecret:
 		return m.OldSecret(ctx)
-	case apikey.FieldIsActive:
-		return m.OldIsActive(ctx)
-	case apikey.FieldCreatedAt:
-		return m.OldCreatedAt(ctx)
 	}
 	return nil, fmt.Errorf("unknown APIKey field %s", name)
 }
@@ -558,20 +470,6 @@ func (m *APIKeyMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetSecret(v)
-		return nil
-	case apikey.FieldIsActive:
-		v, ok := value.(bool)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetIsActive(v)
-		return nil
-	case apikey.FieldCreatedAt:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetCreatedAt(v)
 		return nil
 	}
 	return fmt.Errorf("unknown APIKey field %s", name)
@@ -624,12 +522,6 @@ func (m *APIKeyMutation) ResetField(name string) error {
 	switch name {
 	case apikey.FieldSecret:
 		m.ResetSecret()
-		return nil
-	case apikey.FieldIsActive:
-		m.ResetIsActive()
-		return nil
-	case apikey.FieldCreatedAt:
-		m.ResetCreatedAt()
 		return nil
 	}
 	return fmt.Errorf("unknown APIKey field %s", name)
@@ -7856,12 +7748,11 @@ type ProviderProfileMutation struct {
 	op                       Op
 	typ                      string
 	id                       *string
-	created_at               *time.Time
-	updated_at               *time.Time
 	trading_name             *string
 	host_identifier          *string
 	provision_mode           *providerprofile.ProvisionMode
 	is_partner               *bool
+	updated_at               *time.Time
 	clearedFields            map[string]struct{}
 	user                     *uuid.UUID
 	cleareduser              bool
@@ -7989,78 +7880,6 @@ func (m *ProviderProfileMutation) IDs(ctx context.Context) ([]string, error) {
 	default:
 		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
 	}
-}
-
-// SetCreatedAt sets the "created_at" field.
-func (m *ProviderProfileMutation) SetCreatedAt(t time.Time) {
-	m.created_at = &t
-}
-
-// CreatedAt returns the value of the "created_at" field in the mutation.
-func (m *ProviderProfileMutation) CreatedAt() (r time.Time, exists bool) {
-	v := m.created_at
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldCreatedAt returns the old "created_at" field's value of the ProviderProfile entity.
-// If the ProviderProfile object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ProviderProfileMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
-	}
-	return oldValue.CreatedAt, nil
-}
-
-// ResetCreatedAt resets all changes to the "created_at" field.
-func (m *ProviderProfileMutation) ResetCreatedAt() {
-	m.created_at = nil
-}
-
-// SetUpdatedAt sets the "updated_at" field.
-func (m *ProviderProfileMutation) SetUpdatedAt(t time.Time) {
-	m.updated_at = &t
-}
-
-// UpdatedAt returns the value of the "updated_at" field in the mutation.
-func (m *ProviderProfileMutation) UpdatedAt() (r time.Time, exists bool) {
-	v := m.updated_at
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldUpdatedAt returns the old "updated_at" field's value of the ProviderProfile entity.
-// If the ProviderProfile object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ProviderProfileMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
-	}
-	return oldValue.UpdatedAt, nil
-}
-
-// ResetUpdatedAt resets all changes to the "updated_at" field.
-func (m *ProviderProfileMutation) ResetUpdatedAt() {
-	m.updated_at = nil
 }
 
 // SetTradingName sets the "trading_name" field.
@@ -8218,6 +8037,42 @@ func (m *ProviderProfileMutation) OldIsPartner(ctx context.Context) (v bool, err
 // ResetIsPartner resets all changes to the "is_partner" field.
 func (m *ProviderProfileMutation) ResetIsPartner() {
 	m.is_partner = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *ProviderProfileMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *ProviderProfileMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the ProviderProfile entity.
+// If the ProviderProfile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderProfileMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *ProviderProfileMutation) ResetUpdatedAt() {
+	m.updated_at = nil
 }
 
 // SetUserID sets the "user" edge to the User entity by id.
@@ -8611,13 +8466,7 @@ func (m *ProviderProfileMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ProviderProfileMutation) Fields() []string {
-	fields := make([]string, 0, 6)
-	if m.created_at != nil {
-		fields = append(fields, providerprofile.FieldCreatedAt)
-	}
-	if m.updated_at != nil {
-		fields = append(fields, providerprofile.FieldUpdatedAt)
-	}
+	fields := make([]string, 0, 5)
 	if m.trading_name != nil {
 		fields = append(fields, providerprofile.FieldTradingName)
 	}
@@ -8630,6 +8479,9 @@ func (m *ProviderProfileMutation) Fields() []string {
 	if m.is_partner != nil {
 		fields = append(fields, providerprofile.FieldIsPartner)
 	}
+	if m.updated_at != nil {
+		fields = append(fields, providerprofile.FieldUpdatedAt)
+	}
 	return fields
 }
 
@@ -8638,10 +8490,6 @@ func (m *ProviderProfileMutation) Fields() []string {
 // schema.
 func (m *ProviderProfileMutation) Field(name string) (ent.Value, bool) {
 	switch name {
-	case providerprofile.FieldCreatedAt:
-		return m.CreatedAt()
-	case providerprofile.FieldUpdatedAt:
-		return m.UpdatedAt()
 	case providerprofile.FieldTradingName:
 		return m.TradingName()
 	case providerprofile.FieldHostIdentifier:
@@ -8650,6 +8498,8 @@ func (m *ProviderProfileMutation) Field(name string) (ent.Value, bool) {
 		return m.ProvisionMode()
 	case providerprofile.FieldIsPartner:
 		return m.IsPartner()
+	case providerprofile.FieldUpdatedAt:
+		return m.UpdatedAt()
 	}
 	return nil, false
 }
@@ -8659,10 +8509,6 @@ func (m *ProviderProfileMutation) Field(name string) (ent.Value, bool) {
 // database failed.
 func (m *ProviderProfileMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
-	case providerprofile.FieldCreatedAt:
-		return m.OldCreatedAt(ctx)
-	case providerprofile.FieldUpdatedAt:
-		return m.OldUpdatedAt(ctx)
 	case providerprofile.FieldTradingName:
 		return m.OldTradingName(ctx)
 	case providerprofile.FieldHostIdentifier:
@@ -8671,6 +8517,8 @@ func (m *ProviderProfileMutation) OldField(ctx context.Context, name string) (en
 		return m.OldProvisionMode(ctx)
 	case providerprofile.FieldIsPartner:
 		return m.OldIsPartner(ctx)
+	case providerprofile.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
 	}
 	return nil, fmt.Errorf("unknown ProviderProfile field %s", name)
 }
@@ -8680,20 +8528,6 @@ func (m *ProviderProfileMutation) OldField(ctx context.Context, name string) (en
 // type.
 func (m *ProviderProfileMutation) SetField(name string, value ent.Value) error {
 	switch name {
-	case providerprofile.FieldCreatedAt:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetCreatedAt(v)
-		return nil
-	case providerprofile.FieldUpdatedAt:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetUpdatedAt(v)
-		return nil
 	case providerprofile.FieldTradingName:
 		v, ok := value.(string)
 		if !ok {
@@ -8721,6 +8555,13 @@ func (m *ProviderProfileMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetIsPartner(v)
+		return nil
+	case providerprofile.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
 		return nil
 	}
 	return fmt.Errorf("unknown ProviderProfile field %s", name)
@@ -8780,12 +8621,6 @@ func (m *ProviderProfileMutation) ClearField(name string) error {
 // It returns an error if the field is not defined in the schema.
 func (m *ProviderProfileMutation) ResetField(name string) error {
 	switch name {
-	case providerprofile.FieldCreatedAt:
-		m.ResetCreatedAt()
-		return nil
-	case providerprofile.FieldUpdatedAt:
-		m.ResetUpdatedAt()
-		return nil
 	case providerprofile.FieldTradingName:
 		m.ResetTradingName()
 		return nil
@@ -8797,6 +8632,9 @@ func (m *ProviderProfileMutation) ResetField(name string) error {
 		return nil
 	case providerprofile.FieldIsPartner:
 		m.ResetIsPartner()
+		return nil
+	case providerprofile.FieldUpdatedAt:
+		m.ResetUpdatedAt()
 		return nil
 	}
 	return fmt.Errorf("unknown ProviderProfile field %s", name)
@@ -11175,6 +11013,7 @@ type SenderProfileMutation struct {
 	webhook_url            *string
 	domain_whitelist       *[]string
 	appenddomain_whitelist []string
+	updated_at             *time.Time
 	clearedFields          map[string]struct{}
 	user                   *uuid.UUID
 	cleareduser            bool
@@ -11392,6 +11231,42 @@ func (m *SenderProfileMutation) ResetDomainWhitelist() {
 	m.appenddomain_whitelist = nil
 }
 
+// SetUpdatedAt sets the "updated_at" field.
+func (m *SenderProfileMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *SenderProfileMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the SenderProfile entity.
+// If the SenderProfile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SenderProfileMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *SenderProfileMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
 // SetUserID sets the "user" edge to the User entity by id.
 func (m *SenderProfileMutation) SetUserID(id uuid.UUID) {
 	m.user = &id
@@ -11558,12 +11433,15 @@ func (m *SenderProfileMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *SenderProfileMutation) Fields() []string {
-	fields := make([]string, 0, 2)
+	fields := make([]string, 0, 3)
 	if m.webhook_url != nil {
 		fields = append(fields, senderprofile.FieldWebhookURL)
 	}
 	if m.domain_whitelist != nil {
 		fields = append(fields, senderprofile.FieldDomainWhitelist)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, senderprofile.FieldUpdatedAt)
 	}
 	return fields
 }
@@ -11577,6 +11455,8 @@ func (m *SenderProfileMutation) Field(name string) (ent.Value, bool) {
 		return m.WebhookURL()
 	case senderprofile.FieldDomainWhitelist:
 		return m.DomainWhitelist()
+	case senderprofile.FieldUpdatedAt:
+		return m.UpdatedAt()
 	}
 	return nil, false
 }
@@ -11590,6 +11470,8 @@ func (m *SenderProfileMutation) OldField(ctx context.Context, name string) (ent.
 		return m.OldWebhookURL(ctx)
 	case senderprofile.FieldDomainWhitelist:
 		return m.OldDomainWhitelist(ctx)
+	case senderprofile.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
 	}
 	return nil, fmt.Errorf("unknown SenderProfile field %s", name)
 }
@@ -11612,6 +11494,13 @@ func (m *SenderProfileMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetDomainWhitelist(v)
+		return nil
+	case senderprofile.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
 		return nil
 	}
 	return fmt.Errorf("unknown SenderProfile field %s", name)
@@ -11676,6 +11565,9 @@ func (m *SenderProfileMutation) ResetField(name string) error {
 		return nil
 	case senderprofile.FieldDomainWhitelist:
 		m.ResetDomainWhitelist()
+		return nil
+	case senderprofile.FieldUpdatedAt:
+		m.ResetUpdatedAt()
 		return nil
 	}
 	return fmt.Errorf("unknown SenderProfile field %s", name)
@@ -13654,10 +13546,9 @@ type ValidatorProfileMutation struct {
 	op                            Op
 	typ                           string
 	id                            *uuid.UUID
-	created_at                    *time.Time
-	updated_at                    *time.Time
 	wallet_address                *string
 	host_identifier               *string
+	updated_at                    *time.Time
 	clearedFields                 map[string]struct{}
 	user                          *uuid.UUID
 	cleareduser                   bool
@@ -13775,78 +13666,6 @@ func (m *ValidatorProfileMutation) IDs(ctx context.Context) ([]uuid.UUID, error)
 	}
 }
 
-// SetCreatedAt sets the "created_at" field.
-func (m *ValidatorProfileMutation) SetCreatedAt(t time.Time) {
-	m.created_at = &t
-}
-
-// CreatedAt returns the value of the "created_at" field in the mutation.
-func (m *ValidatorProfileMutation) CreatedAt() (r time.Time, exists bool) {
-	v := m.created_at
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldCreatedAt returns the old "created_at" field's value of the ValidatorProfile entity.
-// If the ValidatorProfile object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ValidatorProfileMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
-	}
-	return oldValue.CreatedAt, nil
-}
-
-// ResetCreatedAt resets all changes to the "created_at" field.
-func (m *ValidatorProfileMutation) ResetCreatedAt() {
-	m.created_at = nil
-}
-
-// SetUpdatedAt sets the "updated_at" field.
-func (m *ValidatorProfileMutation) SetUpdatedAt(t time.Time) {
-	m.updated_at = &t
-}
-
-// UpdatedAt returns the value of the "updated_at" field in the mutation.
-func (m *ValidatorProfileMutation) UpdatedAt() (r time.Time, exists bool) {
-	v := m.updated_at
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldUpdatedAt returns the old "updated_at" field's value of the ValidatorProfile entity.
-// If the ValidatorProfile object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ValidatorProfileMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
-	}
-	return oldValue.UpdatedAt, nil
-}
-
-// ResetUpdatedAt resets all changes to the "updated_at" field.
-func (m *ValidatorProfileMutation) ResetUpdatedAt() {
-	m.updated_at = nil
-}
-
 // SetWalletAddress sets the "wallet_address" field.
 func (m *ValidatorProfileMutation) SetWalletAddress(s string) {
 	m.wallet_address = &s
@@ -13943,6 +13762,42 @@ func (m *ValidatorProfileMutation) HostIdentifierCleared() bool {
 func (m *ValidatorProfileMutation) ResetHostIdentifier() {
 	m.host_identifier = nil
 	delete(m.clearedFields, validatorprofile.FieldHostIdentifier)
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *ValidatorProfileMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *ValidatorProfileMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the ValidatorProfile entity.
+// If the ValidatorProfile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ValidatorProfileMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *ValidatorProfileMutation) ResetUpdatedAt() {
+	m.updated_at = nil
 }
 
 // SetUserID sets the "user" edge to the User entity by id.
@@ -14111,18 +13966,15 @@ func (m *ValidatorProfileMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ValidatorProfileMutation) Fields() []string {
-	fields := make([]string, 0, 4)
-	if m.created_at != nil {
-		fields = append(fields, validatorprofile.FieldCreatedAt)
-	}
-	if m.updated_at != nil {
-		fields = append(fields, validatorprofile.FieldUpdatedAt)
-	}
+	fields := make([]string, 0, 3)
 	if m.wallet_address != nil {
 		fields = append(fields, validatorprofile.FieldWalletAddress)
 	}
 	if m.host_identifier != nil {
 		fields = append(fields, validatorprofile.FieldHostIdentifier)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, validatorprofile.FieldUpdatedAt)
 	}
 	return fields
 }
@@ -14132,14 +13984,12 @@ func (m *ValidatorProfileMutation) Fields() []string {
 // schema.
 func (m *ValidatorProfileMutation) Field(name string) (ent.Value, bool) {
 	switch name {
-	case validatorprofile.FieldCreatedAt:
-		return m.CreatedAt()
-	case validatorprofile.FieldUpdatedAt:
-		return m.UpdatedAt()
 	case validatorprofile.FieldWalletAddress:
 		return m.WalletAddress()
 	case validatorprofile.FieldHostIdentifier:
 		return m.HostIdentifier()
+	case validatorprofile.FieldUpdatedAt:
+		return m.UpdatedAt()
 	}
 	return nil, false
 }
@@ -14149,14 +13999,12 @@ func (m *ValidatorProfileMutation) Field(name string) (ent.Value, bool) {
 // database failed.
 func (m *ValidatorProfileMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
-	case validatorprofile.FieldCreatedAt:
-		return m.OldCreatedAt(ctx)
-	case validatorprofile.FieldUpdatedAt:
-		return m.OldUpdatedAt(ctx)
 	case validatorprofile.FieldWalletAddress:
 		return m.OldWalletAddress(ctx)
 	case validatorprofile.FieldHostIdentifier:
 		return m.OldHostIdentifier(ctx)
+	case validatorprofile.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
 	}
 	return nil, fmt.Errorf("unknown ValidatorProfile field %s", name)
 }
@@ -14166,20 +14014,6 @@ func (m *ValidatorProfileMutation) OldField(ctx context.Context, name string) (e
 // type.
 func (m *ValidatorProfileMutation) SetField(name string, value ent.Value) error {
 	switch name {
-	case validatorprofile.FieldCreatedAt:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetCreatedAt(v)
-		return nil
-	case validatorprofile.FieldUpdatedAt:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetUpdatedAt(v)
-		return nil
 	case validatorprofile.FieldWalletAddress:
 		v, ok := value.(string)
 		if !ok {
@@ -14193,6 +14027,13 @@ func (m *ValidatorProfileMutation) SetField(name string, value ent.Value) error 
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetHostIdentifier(v)
+		return nil
+	case validatorprofile.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
 		return nil
 	}
 	return fmt.Errorf("unknown ValidatorProfile field %s", name)
@@ -14258,17 +14099,14 @@ func (m *ValidatorProfileMutation) ClearField(name string) error {
 // It returns an error if the field is not defined in the schema.
 func (m *ValidatorProfileMutation) ResetField(name string) error {
 	switch name {
-	case validatorprofile.FieldCreatedAt:
-		m.ResetCreatedAt()
-		return nil
-	case validatorprofile.FieldUpdatedAt:
-		m.ResetUpdatedAt()
-		return nil
 	case validatorprofile.FieldWalletAddress:
 		m.ResetWalletAddress()
 		return nil
 	case validatorprofile.FieldHostIdentifier:
 		m.ResetHostIdentifier()
+		return nil
+	case validatorprofile.FieldUpdatedAt:
+		m.ResetUpdatedAt()
 		return nil
 	}
 	return fmt.Errorf("unknown ValidatorProfile field %s", name)

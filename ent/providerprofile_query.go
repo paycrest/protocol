@@ -552,12 +552,12 @@ func (ppq *ProviderProfileQuery) WithAssignedOrders(opts ...func(*LockPaymentOrd
 // Example:
 //
 //	var v []struct {
-//		CreatedAt time.Time `json:"created_at,omitempty"`
+//		TradingName string `json:"trading_name,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.ProviderProfile.Query().
-//		GroupBy(providerprofile.FieldCreatedAt).
+//		GroupBy(providerprofile.FieldTradingName).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
 func (ppq *ProviderProfileQuery) GroupBy(field string, fields ...string) *ProviderProfileGroupBy {
@@ -575,11 +575,11 @@ func (ppq *ProviderProfileQuery) GroupBy(field string, fields ...string) *Provid
 // Example:
 //
 //	var v []struct {
-//		CreatedAt time.Time `json:"created_at,omitempty"`
+//		TradingName string `json:"trading_name,omitempty"`
 //	}
 //
 //	client.ProviderProfile.Query().
-//		Select(providerprofile.FieldCreatedAt).
+//		Select(providerprofile.FieldTradingName).
 //		Scan(ctx, &v)
 func (ppq *ProviderProfileQuery) Select(fields ...string) *ProviderProfileSelect {
 	ppq.ctx.Fields = append(ppq.ctx.Fields, fields...)

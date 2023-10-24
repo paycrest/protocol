@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -60,6 +61,12 @@ func (spu *SenderProfileUpdate) SetDomainWhitelist(s []string) *SenderProfileUpd
 // AppendDomainWhitelist appends s to the "domain_whitelist" field.
 func (spu *SenderProfileUpdate) AppendDomainWhitelist(s []string) *SenderProfileUpdate {
 	spu.mutation.AppendDomainWhitelist(s)
+	return spu
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (spu *SenderProfileUpdate) SetUpdatedAt(t time.Time) *SenderProfileUpdate {
+	spu.mutation.SetUpdatedAt(t)
 	return spu
 }
 
@@ -131,6 +138,7 @@ func (spu *SenderProfileUpdate) RemovePaymentOrders(p ...*PaymentOrder) *SenderP
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (spu *SenderProfileUpdate) Save(ctx context.Context) (int, error) {
+	spu.defaults()
 	return withHooks(ctx, spu.sqlSave, spu.mutation, spu.hooks)
 }
 
@@ -153,6 +161,14 @@ func (spu *SenderProfileUpdate) Exec(ctx context.Context) error {
 func (spu *SenderProfileUpdate) ExecX(ctx context.Context) {
 	if err := spu.Exec(ctx); err != nil {
 		panic(err)
+	}
+}
+
+// defaults sets the default values of the builder before save.
+func (spu *SenderProfileUpdate) defaults() {
+	if _, ok := spu.mutation.UpdatedAt(); !ok {
+		v := senderprofile.UpdateDefaultUpdatedAt()
+		spu.mutation.SetUpdatedAt(v)
 	}
 }
 
@@ -189,6 +205,9 @@ func (spu *SenderProfileUpdate) sqlSave(ctx context.Context) (n int, err error) 
 		_spec.AddModifier(func(u *sql.UpdateBuilder) {
 			sqljson.Append(u, senderprofile.FieldDomainWhitelist, value)
 		})
+	}
+	if value, ok := spu.mutation.UpdatedAt(); ok {
+		_spec.SetField(senderprofile.FieldUpdatedAt, field.TypeTime, value)
 	}
 	if spu.mutation.APIKeyCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -316,6 +335,12 @@ func (spuo *SenderProfileUpdateOne) AppendDomainWhitelist(s []string) *SenderPro
 	return spuo
 }
 
+// SetUpdatedAt sets the "updated_at" field.
+func (spuo *SenderProfileUpdateOne) SetUpdatedAt(t time.Time) *SenderProfileUpdateOne {
+	spuo.mutation.SetUpdatedAt(t)
+	return spuo
+}
+
 // SetAPIKeyID sets the "api_key" edge to the APIKey entity by ID.
 func (spuo *SenderProfileUpdateOne) SetAPIKeyID(id uuid.UUID) *SenderProfileUpdateOne {
 	spuo.mutation.SetAPIKeyID(id)
@@ -397,6 +422,7 @@ func (spuo *SenderProfileUpdateOne) Select(field string, fields ...string) *Send
 
 // Save executes the query and returns the updated SenderProfile entity.
 func (spuo *SenderProfileUpdateOne) Save(ctx context.Context) (*SenderProfile, error) {
+	spuo.defaults()
 	return withHooks(ctx, spuo.sqlSave, spuo.mutation, spuo.hooks)
 }
 
@@ -419,6 +445,14 @@ func (spuo *SenderProfileUpdateOne) Exec(ctx context.Context) error {
 func (spuo *SenderProfileUpdateOne) ExecX(ctx context.Context) {
 	if err := spuo.Exec(ctx); err != nil {
 		panic(err)
+	}
+}
+
+// defaults sets the default values of the builder before save.
+func (spuo *SenderProfileUpdateOne) defaults() {
+	if _, ok := spuo.mutation.UpdatedAt(); !ok {
+		v := senderprofile.UpdateDefaultUpdatedAt()
+		spuo.mutation.SetUpdatedAt(v)
 	}
 }
 
@@ -472,6 +506,9 @@ func (spuo *SenderProfileUpdateOne) sqlSave(ctx context.Context) (_node *SenderP
 		_spec.AddModifier(func(u *sql.UpdateBuilder) {
 			sqljson.Append(u, senderprofile.FieldDomainWhitelist, value)
 		})
+	}
+	if value, ok := spuo.mutation.UpdatedAt(); ok {
+		_spec.SetField(senderprofile.FieldUpdatedAt, field.TypeTime, value)
 	}
 	if spuo.mutation.APIKeyCleared() {
 		edge := &sqlgraph.EdgeSpec{

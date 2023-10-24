@@ -35,14 +35,6 @@ func init() {
 	apikeyDescSecret := apikeyFields[1].Descriptor()
 	// apikey.SecretValidator is a validator for the "secret" field. It is called by the builders before save.
 	apikey.SecretValidator = apikeyDescSecret.Validators[0].(func(string) error)
-	// apikeyDescIsActive is the schema descriptor for is_active field.
-	apikeyDescIsActive := apikeyFields[2].Descriptor()
-	// apikey.DefaultIsActive holds the default value on creation for the is_active field.
-	apikey.DefaultIsActive = apikeyDescIsActive.Default.(bool)
-	// apikeyDescCreatedAt is the schema descriptor for created_at field.
-	apikeyDescCreatedAt := apikeyFields[3].Descriptor()
-	// apikey.DefaultCreatedAt holds the default value on creation for the created_at field.
-	apikey.DefaultCreatedAt = apikeyDescCreatedAt.Default.(func() time.Time)
 	// apikeyDescID is the schema descriptor for id field.
 	apikeyDescID := apikeyFields[0].Descriptor()
 	// apikey.DefaultID holds the default value on creation for the id field.
@@ -189,21 +181,8 @@ func init() {
 	providerordertoken.DefaultUpdatedAt = providerordertokenDescUpdatedAt.Default.(func() time.Time)
 	// providerordertoken.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	providerordertoken.UpdateDefaultUpdatedAt = providerordertokenDescUpdatedAt.UpdateDefault.(func() time.Time)
-	providerprofileMixin := schema.ProviderProfile{}.Mixin()
-	providerprofileMixinFields0 := providerprofileMixin[0].Fields()
-	_ = providerprofileMixinFields0
 	providerprofileFields := schema.ProviderProfile{}.Fields()
 	_ = providerprofileFields
-	// providerprofileDescCreatedAt is the schema descriptor for created_at field.
-	providerprofileDescCreatedAt := providerprofileMixinFields0[0].Descriptor()
-	// providerprofile.DefaultCreatedAt holds the default value on creation for the created_at field.
-	providerprofile.DefaultCreatedAt = providerprofileDescCreatedAt.Default.(func() time.Time)
-	// providerprofileDescUpdatedAt is the schema descriptor for updated_at field.
-	providerprofileDescUpdatedAt := providerprofileMixinFields0[1].Descriptor()
-	// providerprofile.DefaultUpdatedAt holds the default value on creation for the updated_at field.
-	providerprofile.DefaultUpdatedAt = providerprofileDescUpdatedAt.Default.(func() time.Time)
-	// providerprofile.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
-	providerprofile.UpdateDefaultUpdatedAt = providerprofileDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// providerprofileDescTradingName is the schema descriptor for trading_name field.
 	providerprofileDescTradingName := providerprofileFields[1].Descriptor()
 	// providerprofile.TradingNameValidator is a validator for the "trading_name" field. It is called by the builders before save.
@@ -212,6 +191,12 @@ func init() {
 	providerprofileDescIsPartner := providerprofileFields[4].Descriptor()
 	// providerprofile.DefaultIsPartner holds the default value on creation for the is_partner field.
 	providerprofile.DefaultIsPartner = providerprofileDescIsPartner.Default.(bool)
+	// providerprofileDescUpdatedAt is the schema descriptor for updated_at field.
+	providerprofileDescUpdatedAt := providerprofileFields[5].Descriptor()
+	// providerprofile.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	providerprofile.DefaultUpdatedAt = providerprofileDescUpdatedAt.Default.(func() time.Time)
+	// providerprofile.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	providerprofile.UpdateDefaultUpdatedAt = providerprofileDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// providerprofileDescID is the schema descriptor for id field.
 	providerprofileDescID := providerprofileFields[0].Descriptor()
 	// providerprofile.DefaultID holds the default value on creation for the id field.
@@ -262,6 +247,12 @@ func init() {
 	senderprofileDescDomainWhitelist := senderprofileFields[2].Descriptor()
 	// senderprofile.DefaultDomainWhitelist holds the default value on creation for the domain_whitelist field.
 	senderprofile.DefaultDomainWhitelist = senderprofileDescDomainWhitelist.Default.([]string)
+	// senderprofileDescUpdatedAt is the schema descriptor for updated_at field.
+	senderprofileDescUpdatedAt := senderprofileFields[3].Descriptor()
+	// senderprofile.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	senderprofile.DefaultUpdatedAt = senderprofileDescUpdatedAt.Default.(func() time.Time)
+	// senderprofile.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	senderprofile.UpdateDefaultUpdatedAt = senderprofileDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// senderprofileDescID is the schema descriptor for id field.
 	senderprofileDescID := senderprofileFields[0].Descriptor()
 	// senderprofile.DefaultID holds the default value on creation for the id field.
@@ -326,17 +317,10 @@ func init() {
 	userDescID := userFields[0].Descriptor()
 	// user.DefaultID holds the default value on creation for the id field.
 	user.DefaultID = userDescID.Default.(func() uuid.UUID)
-	validatorprofileMixin := schema.ValidatorProfile{}.Mixin()
-	validatorprofileMixinFields0 := validatorprofileMixin[0].Fields()
-	_ = validatorprofileMixinFields0
 	validatorprofileFields := schema.ValidatorProfile{}.Fields()
 	_ = validatorprofileFields
-	// validatorprofileDescCreatedAt is the schema descriptor for created_at field.
-	validatorprofileDescCreatedAt := validatorprofileMixinFields0[0].Descriptor()
-	// validatorprofile.DefaultCreatedAt holds the default value on creation for the created_at field.
-	validatorprofile.DefaultCreatedAt = validatorprofileDescCreatedAt.Default.(func() time.Time)
 	// validatorprofileDescUpdatedAt is the schema descriptor for updated_at field.
-	validatorprofileDescUpdatedAt := validatorprofileMixinFields0[1].Descriptor()
+	validatorprofileDescUpdatedAt := validatorprofileFields[3].Descriptor()
 	// validatorprofile.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	validatorprofile.DefaultUpdatedAt = validatorprofileDescUpdatedAt.Default.(func() time.Time)
 	// validatorprofile.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

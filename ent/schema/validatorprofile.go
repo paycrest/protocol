@@ -14,13 +14,6 @@ type ValidatorProfile struct {
 	ent.Schema
 }
 
-// Mixin of the ValidatorProfile.
-func (ValidatorProfile) Mixin() []ent.Mixin {
-	return []ent.Mixin{
-		TimeMixin{},
-	}
-}
-
 // Fields of the ValidatorProfile.
 func (ValidatorProfile) Fields() []ent.Field {
 	return []ent.Field{

@@ -16,13 +16,6 @@ type ProviderProfile struct {
 	ent.Schema
 }
 
-// Mixin of the ProviderProfile.
-func (ProviderProfile) Mixin() []ent.Mixin {
-	return []ent.Mixin{
-		TimeMixin{},
-	}
-}
-
 // Fields of the ProviderProfile.
 func (ProviderProfile) Fields() []ent.Field {
 	return []ent.Field{

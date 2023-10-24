@@ -20,14 +20,12 @@ type ValidatorProfile struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID uuid.UUID `json:"id,omitempty"`
-	// CreatedAt holds the value of the "created_at" field.
-	CreatedAt time.Time `json:"created_at,omitempty"`
-	// UpdatedAt holds the value of the "updated_at" field.
-	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// WalletAddress holds the value of the "wallet_address" field.
 	WalletAddress string `json:"wallet_address,omitempty"`
 	// HostIdentifier holds the value of the "host_identifier" field.
 	HostIdentifier string `json:"host_identifier,omitempty"`
+	// UpdatedAt holds the value of the "updated_at" field.
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ValidatorProfileQuery when eager-loading is set.
 	Edges                  ValidatorProfileEdges `json:"edges"`
@@ -90,7 +88,7 @@ func (*ValidatorProfile) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case validatorprofile.FieldWalletAddress, validatorprofile.FieldHostIdentifier:
 			values[i] = new(sql.NullString)
-		case validatorprofile.FieldCreatedAt, validatorprofile.FieldUpdatedAt:
+		case validatorprofile.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
 		case validatorprofile.FieldID:
 			values[i] = new(uuid.UUID)
@@ -117,18 +115,6 @@ func (vp *ValidatorProfile) assignValues(columns []string, values []any) error {
 			} else if value != nil {
 				vp.ID = *value
 			}
-		case validatorprofile.FieldCreatedAt:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field created_at", values[i])
-			} else if value.Valid {
-				vp.CreatedAt = value.Time
-			}
-		case validatorprofile.FieldUpdatedAt:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
-			} else if value.Valid {
-				vp.UpdatedAt = value.Time
-			}
 		case validatorprofile.FieldWalletAddress:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field wallet_address", values[i])
@@ -140,6 +126,12 @@ func (vp *ValidatorProfile) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field host_identifier", values[i])
 			} else if value.Valid {
 				vp.HostIdentifier = value.String
+			}
+		case validatorprofile.FieldUpdatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
+			} else if value.Valid {
+				vp.UpdatedAt = value.Time
 			}
 		case validatorprofile.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullScanner); !ok {
@@ -199,17 +191,14 @@ func (vp *ValidatorProfile) String() string {
 	var builder strings.Builder
 	builder.WriteString("ValidatorProfile(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", vp.ID))
-	builder.WriteString("created_at=")
-	builder.WriteString(vp.CreatedAt.Format(time.ANSIC))
-	builder.WriteString(", ")
-	builder.WriteString("updated_at=")
-	builder.WriteString(vp.UpdatedAt.Format(time.ANSIC))
-	builder.WriteString(", ")
 	builder.WriteString("wallet_address=")
 	builder.WriteString(vp.WalletAddress)
 	builder.WriteString(", ")
 	builder.WriteString("host_identifier=")
 	builder.WriteString(vp.HostIdentifier)
+	builder.WriteString(", ")
+	builder.WriteString("updated_at=")
+	builder.WriteString(vp.UpdatedAt.Format(time.ANSIC))
 	builder.WriteByte(')')
 	return builder.String()
 }

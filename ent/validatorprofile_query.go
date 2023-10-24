@@ -372,12 +372,12 @@ func (vpq *ValidatorProfileQuery) WithAPIKey(opts ...func(*APIKeyQuery)) *Valida
 // Example:
 //
 //	var v []struct {
-//		CreatedAt time.Time `json:"created_at,omitempty"`
+//		WalletAddress string `json:"wallet_address,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.ValidatorProfile.Query().
-//		GroupBy(validatorprofile.FieldCreatedAt).
+//		GroupBy(validatorprofile.FieldWalletAddress).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
 func (vpq *ValidatorProfileQuery) GroupBy(field string, fields ...string) *ValidatorProfileGroupBy {
@@ -395,11 +395,11 @@ func (vpq *ValidatorProfileQuery) GroupBy(field string, fields ...string) *Valid
 // Example:
 //
 //	var v []struct {
-//		CreatedAt time.Time `json:"created_at,omitempty"`
+//		WalletAddress string `json:"wallet_address,omitempty"`
 //	}
 //
 //	client.ValidatorProfile.Query().
-//		Select(validatorprofile.FieldCreatedAt).
+//		Select(validatorprofile.FieldWalletAddress).
 //		Scan(ctx, &v)
 func (vpq *ValidatorProfileQuery) Select(fields ...string) *ValidatorProfileSelect {
 	vpq.ctx.Fields = append(vpq.ctx.Fields, fields...)

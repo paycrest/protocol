@@ -5,7 +5,6 @@ package ent
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
@@ -23,10 +22,6 @@ type APIKey struct {
 	ID uuid.UUID `json:"id,omitempty"`
 	// Secret holds the value of the "secret" field.
 	Secret string `json:"secret,omitempty"`
-	// IsActive holds the value of the "is_active" field.
-	IsActive bool `json:"is_active,omitempty"`
-	// CreatedAt holds the value of the "created_at" field.
-	CreatedAt time.Time `json:"created_at,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the APIKeyQuery when eager-loading is set.
 	Edges                     APIKeyEdges `json:"edges"`
@@ -104,12 +99,8 @@ func (*APIKey) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case apikey.FieldIsActive:
-			values[i] = new(sql.NullBool)
 		case apikey.FieldSecret:
 			values[i] = new(sql.NullString)
-		case apikey.FieldCreatedAt:
-			values[i] = new(sql.NullTime)
 		case apikey.FieldID:
 			values[i] = new(uuid.UUID)
 		case apikey.ForeignKeys[0]: // provider_profile_api_key
@@ -144,18 +135,6 @@ func (ak *APIKey) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field secret", values[i])
 			} else if value.Valid {
 				ak.Secret = value.String
-			}
-		case apikey.FieldIsActive:
-			if value, ok := values[i].(*sql.NullBool); !ok {
-				return fmt.Errorf("unexpected type %T for field is_active", values[i])
-			} else if value.Valid {
-				ak.IsActive = value.Bool
-			}
-		case apikey.FieldCreatedAt:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field created_at", values[i])
-			} else if value.Valid {
-				ak.CreatedAt = value.Time
 			}
 		case apikey.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -236,12 +215,6 @@ func (ak *APIKey) String() string {
 	builder.WriteString(fmt.Sprintf("id=%v, ", ak.ID))
 	builder.WriteString("secret=")
 	builder.WriteString(ak.Secret)
-	builder.WriteString(", ")
-	builder.WriteString("is_active=")
-	builder.WriteString(fmt.Sprintf("%v", ak.IsActive))
-	builder.WriteString(", ")
-	builder.WriteString("created_at=")
-	builder.WriteString(ak.CreatedAt.Format(time.ANSIC))
 	builder.WriteByte(')')
 	return builder.String()
 }

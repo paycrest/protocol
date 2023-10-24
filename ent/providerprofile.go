@@ -23,10 +23,6 @@ type ProviderProfile struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID string `json:"id,omitempty"`
-	// CreatedAt holds the value of the "created_at" field.
-	CreatedAt time.Time `json:"created_at,omitempty"`
-	// UpdatedAt holds the value of the "updated_at" field.
-	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// TradingName holds the value of the "trading_name" field.
 	TradingName string `json:"trading_name,omitempty"`
 	// HostIdentifier holds the value of the "host_identifier" field.
@@ -35,6 +31,8 @@ type ProviderProfile struct {
 	ProvisionMode providerprofile.ProvisionMode `json:"provision_mode,omitempty"`
 	// IsPartner holds the value of the "is_partner" field.
 	IsPartner bool `json:"is_partner,omitempty"`
+	// UpdatedAt holds the value of the "updated_at" field.
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ProviderProfileQuery when eager-loading is set.
 	Edges                  ProviderProfileEdges `json:"edges"`
@@ -167,7 +165,7 @@ func (*ProviderProfile) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullBool)
 		case providerprofile.FieldID, providerprofile.FieldTradingName, providerprofile.FieldHostIdentifier, providerprofile.FieldProvisionMode:
 			values[i] = new(sql.NullString)
-		case providerprofile.FieldCreatedAt, providerprofile.FieldUpdatedAt:
+		case providerprofile.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
 		case providerprofile.ForeignKeys[0]: // fiat_currency_provider
 			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
@@ -194,18 +192,6 @@ func (pp *ProviderProfile) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				pp.ID = value.String
 			}
-		case providerprofile.FieldCreatedAt:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field created_at", values[i])
-			} else if value.Valid {
-				pp.CreatedAt = value.Time
-			}
-		case providerprofile.FieldUpdatedAt:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
-			} else if value.Valid {
-				pp.UpdatedAt = value.Time
-			}
 		case providerprofile.FieldTradingName:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field trading_name", values[i])
@@ -229,6 +215,12 @@ func (pp *ProviderProfile) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field is_partner", values[i])
 			} else if value.Valid {
 				pp.IsPartner = value.Bool
+			}
+		case providerprofile.FieldUpdatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
+			} else if value.Valid {
+				pp.UpdatedAt = value.Time
 			}
 		case providerprofile.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullScanner); !ok {
@@ -320,12 +312,6 @@ func (pp *ProviderProfile) String() string {
 	var builder strings.Builder
 	builder.WriteString("ProviderProfile(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", pp.ID))
-	builder.WriteString("created_at=")
-	builder.WriteString(pp.CreatedAt.Format(time.ANSIC))
-	builder.WriteString(", ")
-	builder.WriteString("updated_at=")
-	builder.WriteString(pp.UpdatedAt.Format(time.ANSIC))
-	builder.WriteString(", ")
 	builder.WriteString("trading_name=")
 	builder.WriteString(pp.TradingName)
 	builder.WriteString(", ")
@@ -337,6 +323,9 @@ func (pp *ProviderProfile) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("is_partner=")
 	builder.WriteString(fmt.Sprintf("%v", pp.IsPartner))
+	builder.WriteString(", ")
+	builder.WriteString("updated_at=")
+	builder.WriteString(pp.UpdatedAt.Format(time.ANSIC))
 	builder.WriteByte(')')
 	return builder.String()
 }
