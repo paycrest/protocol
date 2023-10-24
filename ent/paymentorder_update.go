@@ -12,11 +12,11 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
-	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorderrecipient"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
 	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
+	"github.com/paycrest/paycrest-protocol/ent/senderprofile"
 	"github.com/paycrest/paycrest-protocol/ent/token"
 	"github.com/shopspring/decimal"
 )
@@ -126,15 +126,15 @@ func (pou *PaymentOrderUpdate) ClearLastUsed() *PaymentOrderUpdate {
 	return pou
 }
 
-// SetAPIKeyID sets the "api_key" edge to the APIKey entity by ID.
-func (pou *PaymentOrderUpdate) SetAPIKeyID(id uuid.UUID) *PaymentOrderUpdate {
-	pou.mutation.SetAPIKeyID(id)
+// SetSenderProfileID sets the "sender_profile" edge to the SenderProfile entity by ID.
+func (pou *PaymentOrderUpdate) SetSenderProfileID(id uuid.UUID) *PaymentOrderUpdate {
+	pou.mutation.SetSenderProfileID(id)
 	return pou
 }
 
-// SetAPIKey sets the "api_key" edge to the APIKey entity.
-func (pou *PaymentOrderUpdate) SetAPIKey(a *APIKey) *PaymentOrderUpdate {
-	return pou.SetAPIKeyID(a.ID)
+// SetSenderProfile sets the "sender_profile" edge to the SenderProfile entity.
+func (pou *PaymentOrderUpdate) SetSenderProfile(s *SenderProfile) *PaymentOrderUpdate {
+	return pou.SetSenderProfileID(s.ID)
 }
 
 // SetTokenID sets the "token" edge to the Token entity by ID.
@@ -191,9 +191,9 @@ func (pou *PaymentOrderUpdate) Mutation() *PaymentOrderMutation {
 	return pou.mutation
 }
 
-// ClearAPIKey clears the "api_key" edge to the APIKey entity.
-func (pou *PaymentOrderUpdate) ClearAPIKey() *PaymentOrderUpdate {
-	pou.mutation.ClearAPIKey()
+// ClearSenderProfile clears the "sender_profile" edge to the SenderProfile entity.
+func (pou *PaymentOrderUpdate) ClearSenderProfile() *PaymentOrderUpdate {
+	pou.mutation.ClearSenderProfile()
 	return pou
 }
 
@@ -268,8 +268,8 @@ func (pou *PaymentOrderUpdate) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.status": %w`, err)}
 		}
 	}
-	if _, ok := pou.mutation.APIKeyID(); pou.mutation.APIKeyCleared() && !ok {
-		return errors.New(`ent: clearing a required unique edge "PaymentOrder.api_key"`)
+	if _, ok := pou.mutation.SenderProfileID(); pou.mutation.SenderProfileCleared() && !ok {
+		return errors.New(`ent: clearing a required unique edge "PaymentOrder.sender_profile"`)
 	}
 	if _, ok := pou.mutation.TokenID(); pou.mutation.TokenCleared() && !ok {
 		return errors.New(`ent: clearing a required unique edge "PaymentOrder.token"`)
@@ -322,28 +322,28 @@ func (pou *PaymentOrderUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if pou.mutation.LastUsedCleared() {
 		_spec.ClearField(paymentorder.FieldLastUsed, field.TypeTime)
 	}
-	if pou.mutation.APIKeyCleared() {
+	if pou.mutation.SenderProfileCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
-			Table:   paymentorder.APIKeyTable,
-			Columns: []string{paymentorder.APIKeyColumn},
+			Table:   paymentorder.SenderProfileTable,
+			Columns: []string{paymentorder.SenderProfileColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID),
+				IDSpec: sqlgraph.NewFieldSpec(senderprofile.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := pou.mutation.APIKeyIDs(); len(nodes) > 0 {
+	if nodes := pou.mutation.SenderProfileIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
-			Table:   paymentorder.APIKeyTable,
-			Columns: []string{paymentorder.APIKeyColumn},
+			Table:   paymentorder.SenderProfileTable,
+			Columns: []string{paymentorder.SenderProfileColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID),
+				IDSpec: sqlgraph.NewFieldSpec(senderprofile.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -550,15 +550,15 @@ func (pouo *PaymentOrderUpdateOne) ClearLastUsed() *PaymentOrderUpdateOne {
 	return pouo
 }
 
-// SetAPIKeyID sets the "api_key" edge to the APIKey entity by ID.
-func (pouo *PaymentOrderUpdateOne) SetAPIKeyID(id uuid.UUID) *PaymentOrderUpdateOne {
-	pouo.mutation.SetAPIKeyID(id)
+// SetSenderProfileID sets the "sender_profile" edge to the SenderProfile entity by ID.
+func (pouo *PaymentOrderUpdateOne) SetSenderProfileID(id uuid.UUID) *PaymentOrderUpdateOne {
+	pouo.mutation.SetSenderProfileID(id)
 	return pouo
 }
 
-// SetAPIKey sets the "api_key" edge to the APIKey entity.
-func (pouo *PaymentOrderUpdateOne) SetAPIKey(a *APIKey) *PaymentOrderUpdateOne {
-	return pouo.SetAPIKeyID(a.ID)
+// SetSenderProfile sets the "sender_profile" edge to the SenderProfile entity.
+func (pouo *PaymentOrderUpdateOne) SetSenderProfile(s *SenderProfile) *PaymentOrderUpdateOne {
+	return pouo.SetSenderProfileID(s.ID)
 }
 
 // SetTokenID sets the "token" edge to the Token entity by ID.
@@ -615,9 +615,9 @@ func (pouo *PaymentOrderUpdateOne) Mutation() *PaymentOrderMutation {
 	return pouo.mutation
 }
 
-// ClearAPIKey clears the "api_key" edge to the APIKey entity.
-func (pouo *PaymentOrderUpdateOne) ClearAPIKey() *PaymentOrderUpdateOne {
-	pouo.mutation.ClearAPIKey()
+// ClearSenderProfile clears the "sender_profile" edge to the SenderProfile entity.
+func (pouo *PaymentOrderUpdateOne) ClearSenderProfile() *PaymentOrderUpdateOne {
+	pouo.mutation.ClearSenderProfile()
 	return pouo
 }
 
@@ -705,8 +705,8 @@ func (pouo *PaymentOrderUpdateOne) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.status": %w`, err)}
 		}
 	}
-	if _, ok := pouo.mutation.APIKeyID(); pouo.mutation.APIKeyCleared() && !ok {
-		return errors.New(`ent: clearing a required unique edge "PaymentOrder.api_key"`)
+	if _, ok := pouo.mutation.SenderProfileID(); pouo.mutation.SenderProfileCleared() && !ok {
+		return errors.New(`ent: clearing a required unique edge "PaymentOrder.sender_profile"`)
 	}
 	if _, ok := pouo.mutation.TokenID(); pouo.mutation.TokenCleared() && !ok {
 		return errors.New(`ent: clearing a required unique edge "PaymentOrder.token"`)
@@ -776,28 +776,28 @@ func (pouo *PaymentOrderUpdateOne) sqlSave(ctx context.Context) (_node *PaymentO
 	if pouo.mutation.LastUsedCleared() {
 		_spec.ClearField(paymentorder.FieldLastUsed, field.TypeTime)
 	}
-	if pouo.mutation.APIKeyCleared() {
+	if pouo.mutation.SenderProfileCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
-			Table:   paymentorder.APIKeyTable,
-			Columns: []string{paymentorder.APIKeyColumn},
+			Table:   paymentorder.SenderProfileTable,
+			Columns: []string{paymentorder.SenderProfileColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID),
+				IDSpec: sqlgraph.NewFieldSpec(senderprofile.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := pouo.mutation.APIKeyIDs(); len(nodes) > 0 {
+	if nodes := pouo.mutation.SenderProfileIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
-			Table:   paymentorder.APIKeyTable,
-			Columns: []string{paymentorder.APIKeyColumn},
+			Table:   paymentorder.SenderProfileTable,
+			Columns: []string{paymentorder.SenderProfileColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID),
+				IDSpec: sqlgraph.NewFieldSpec(senderprofile.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

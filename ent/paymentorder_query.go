@@ -12,11 +12,11 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
-	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorderrecipient"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
 	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
+	"github.com/paycrest/paycrest-protocol/ent/senderprofile"
 	"github.com/paycrest/paycrest-protocol/ent/token"
 )
 
@@ -27,7 +27,7 @@ type PaymentOrderQuery struct {
 	order              []paymentorder.OrderOption
 	inters             []Interceptor
 	predicates         []predicate.PaymentOrder
-	withAPIKey         *APIKeyQuery
+	withSenderProfile  *SenderProfileQuery
 	withToken          *TokenQuery
 	withReceiveAddress *ReceiveAddressQuery
 	withRecipient      *PaymentOrderRecipientQuery
@@ -68,9 +68,9 @@ func (poq *PaymentOrderQuery) Order(o ...paymentorder.OrderOption) *PaymentOrder
 	return poq
 }
 
-// QueryAPIKey chains the current query on the "api_key" edge.
-func (poq *PaymentOrderQuery) QueryAPIKey() *APIKeyQuery {
-	query := (&APIKeyClient{config: poq.config}).Query()
+// QuerySenderProfile chains the current query on the "sender_profile" edge.
+func (poq *PaymentOrderQuery) QuerySenderProfile() *SenderProfileQuery {
+	query := (&SenderProfileClient{config: poq.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := poq.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -81,8 +81,8 @@ func (poq *PaymentOrderQuery) QueryAPIKey() *APIKeyQuery {
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(paymentorder.Table, paymentorder.FieldID, selector),
-			sqlgraph.To(apikey.Table, apikey.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, paymentorder.APIKeyTable, paymentorder.APIKeyColumn),
+			sqlgraph.To(senderprofile.Table, senderprofile.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, paymentorder.SenderProfileTable, paymentorder.SenderProfileColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(poq.driver.Dialect(), step)
 		return fromU, nil
@@ -348,7 +348,7 @@ func (poq *PaymentOrderQuery) Clone() *PaymentOrderQuery {
 		order:              append([]paymentorder.OrderOption{}, poq.order...),
 		inters:             append([]Interceptor{}, poq.inters...),
 		predicates:         append([]predicate.PaymentOrder{}, poq.predicates...),
-		withAPIKey:         poq.withAPIKey.Clone(),
+		withSenderProfile:  poq.withSenderProfile.Clone(),
 		withToken:          poq.withToken.Clone(),
 		withReceiveAddress: poq.withReceiveAddress.Clone(),
 		withRecipient:      poq.withRecipient.Clone(),
@@ -358,14 +358,14 @@ func (poq *PaymentOrderQuery) Clone() *PaymentOrderQuery {
 	}
 }
 
-// WithAPIKey tells the query-builder to eager-load the nodes that are connected to
-// the "api_key" edge. The optional arguments are used to configure the query builder of the edge.
-func (poq *PaymentOrderQuery) WithAPIKey(opts ...func(*APIKeyQuery)) *PaymentOrderQuery {
-	query := (&APIKeyClient{config: poq.config}).Query()
+// WithSenderProfile tells the query-builder to eager-load the nodes that are connected to
+// the "sender_profile" edge. The optional arguments are used to configure the query builder of the edge.
+func (poq *PaymentOrderQuery) WithSenderProfile(opts ...func(*SenderProfileQuery)) *PaymentOrderQuery {
+	query := (&SenderProfileClient{config: poq.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	poq.withAPIKey = query
+	poq.withSenderProfile = query
 	return poq
 }
 
@@ -482,13 +482,13 @@ func (poq *PaymentOrderQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([
 		withFKs     = poq.withFKs
 		_spec       = poq.querySpec()
 		loadedTypes = [4]bool{
-			poq.withAPIKey != nil,
+			poq.withSenderProfile != nil,
 			poq.withToken != nil,
 			poq.withReceiveAddress != nil,
 			poq.withRecipient != nil,
 		}
 	)
-	if poq.withAPIKey != nil || poq.withToken != nil {
+	if poq.withSenderProfile != nil || poq.withToken != nil {
 		withFKs = true
 	}
 	if withFKs {
@@ -512,9 +512,9 @@ func (poq *PaymentOrderQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := poq.withAPIKey; query != nil {
-		if err := poq.loadAPIKey(ctx, query, nodes, nil,
-			func(n *PaymentOrder, e *APIKey) { n.Edges.APIKey = e }); err != nil {
+	if query := poq.withSenderProfile; query != nil {
+		if err := poq.loadSenderProfile(ctx, query, nodes, nil,
+			func(n *PaymentOrder, e *SenderProfile) { n.Edges.SenderProfile = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -539,14 +539,14 @@ func (poq *PaymentOrderQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([
 	return nodes, nil
 }
 
-func (poq *PaymentOrderQuery) loadAPIKey(ctx context.Context, query *APIKeyQuery, nodes []*PaymentOrder, init func(*PaymentOrder), assign func(*PaymentOrder, *APIKey)) error {
+func (poq *PaymentOrderQuery) loadSenderProfile(ctx context.Context, query *SenderProfileQuery, nodes []*PaymentOrder, init func(*PaymentOrder), assign func(*PaymentOrder, *SenderProfile)) error {
 	ids := make([]uuid.UUID, 0, len(nodes))
 	nodeids := make(map[uuid.UUID][]*PaymentOrder)
 	for i := range nodes {
-		if nodes[i].api_key_payment_orders == nil {
+		if nodes[i].sender_profile_payment_orders == nil {
 			continue
 		}
-		fk := *nodes[i].api_key_payment_orders
+		fk := *nodes[i].sender_profile_payment_orders
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}
@@ -555,7 +555,7 @@ func (poq *PaymentOrderQuery) loadAPIKey(ctx context.Context, query *APIKeyQuery
 	if len(ids) == 0 {
 		return nil
 	}
-	query.Where(apikey.IDIn(ids...))
+	query.Where(senderprofile.IDIn(ids...))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
@@ -563,7 +563,7 @@ func (poq *PaymentOrderQuery) loadAPIKey(ctx context.Context, query *APIKeyQuery
 	for _, n := range neighbors {
 		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "api_key_payment_orders" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "sender_profile_payment_orders" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)

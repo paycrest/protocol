@@ -1,6 +1,8 @@
 package schema
 
 import (
+	"time"
+
 	"entgo.io/ent"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
@@ -28,6 +30,9 @@ func (ValidatorProfile) Fields() []ent.Field {
 			Optional(),
 		field.String("host_identifier").
 			Optional(),
+		field.Time("updated_at").
+			Default(time.Now).
+			UpdateDefault(time.Now),
 	}
 }
 
@@ -41,5 +46,7 @@ func (ValidatorProfile) Edges() []ent.Edge {
 			Immutable(),
 		edge.From("validated_fulfillments", LockOrderFulfillment.Type).
 			Ref("validators"),
+		edge.To("api_key", APIKey.Type).
+			Unique(),
 	}
 }

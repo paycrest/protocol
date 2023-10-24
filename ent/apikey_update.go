@@ -124,8 +124,14 @@ func (aku *APIKeyUpdate) check() error {
 			return &ValidationError{Name: "secret", err: fmt.Errorf(`ent: validator failed for field "APIKey.secret": %w`, err)}
 		}
 	}
-	if _, ok := aku.mutation.OwnerID(); aku.mutation.OwnerCleared() && !ok {
-		return errors.New(`ent: clearing a required unique edge "APIKey.owner"`)
+	if _, ok := aku.mutation.SenderProfileID(); aku.mutation.SenderProfileCleared() && !ok {
+		return errors.New(`ent: clearing a required unique edge "APIKey.sender_profile"`)
+	}
+	if _, ok := aku.mutation.ProviderProfileID(); aku.mutation.ProviderProfileCleared() && !ok {
+		return errors.New(`ent: clearing a required unique edge "APIKey.provider_profile"`)
+	}
+	if _, ok := aku.mutation.ValidatorProfileID(); aku.mutation.ValidatorProfileCleared() && !ok {
+		return errors.New(`ent: clearing a required unique edge "APIKey.validator_profile"`)
 	}
 	return nil
 }
@@ -321,8 +327,14 @@ func (akuo *APIKeyUpdateOne) check() error {
 			return &ValidationError{Name: "secret", err: fmt.Errorf(`ent: validator failed for field "APIKey.secret": %w`, err)}
 		}
 	}
-	if _, ok := akuo.mutation.OwnerID(); akuo.mutation.OwnerCleared() && !ok {
-		return errors.New(`ent: clearing a required unique edge "APIKey.owner"`)
+	if _, ok := akuo.mutation.SenderProfileID(); akuo.mutation.SenderProfileCleared() && !ok {
+		return errors.New(`ent: clearing a required unique edge "APIKey.sender_profile"`)
+	}
+	if _, ok := akuo.mutation.ProviderProfileID(); akuo.mutation.ProviderProfileCleared() && !ok {
+		return errors.New(`ent: clearing a required unique edge "APIKey.provider_profile"`)
+	}
+	if _, ok := akuo.mutation.ValidatorProfileID(); akuo.mutation.ValidatorProfileCleared() && !ok {
+		return errors.New(`ent: clearing a required unique edge "APIKey.validator_profile"`)
 	}
 	return nil
 }

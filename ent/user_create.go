@@ -11,7 +11,6 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
-	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 	"github.com/paycrest/paycrest-protocol/ent/senderprofile"
 	"github.com/paycrest/paycrest-protocol/ent/user"
@@ -110,21 +109,6 @@ func (uc *UserCreate) SetNillableID(u *uuid.UUID) *UserCreate {
 		uc.SetID(*u)
 	}
 	return uc
-}
-
-// AddAPIKeyIDs adds the "api_keys" edge to the APIKey entity by IDs.
-func (uc *UserCreate) AddAPIKeyIDs(ids ...uuid.UUID) *UserCreate {
-	uc.mutation.AddAPIKeyIDs(ids...)
-	return uc
-}
-
-// AddAPIKeys adds the "api_keys" edges to the APIKey entity.
-func (uc *UserCreate) AddAPIKeys(a ...*APIKey) *UserCreate {
-	ids := make([]uuid.UUID, len(a))
-	for i := range a {
-		ids[i] = a[i].ID
-	}
-	return uc.AddAPIKeyIDs(ids...)
 }
 
 // SetSenderProfileID sets the "sender_profile" edge to the SenderProfile entity by ID.
@@ -371,22 +355,6 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 	if value, ok := uc.mutation.IsVerified(); ok {
 		_spec.SetField(user.FieldIsVerified, field.TypeBool, value)
 		_node.IsVerified = value
-	}
-	if nodes := uc.mutation.APIKeysIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   user.APIKeysTable,
-			Columns: []string{user.APIKeysColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := uc.mutation.SenderProfileIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

@@ -45,8 +45,6 @@ type User struct {
 
 // UserEdges holds the relations/edges for other nodes in the graph.
 type UserEdges struct {
-	// APIKeys holds the value of the api_keys edge.
-	APIKeys []*APIKey `json:"api_keys,omitempty"`
 	// SenderProfile holds the value of the sender_profile edge.
 	SenderProfile *SenderProfile `json:"sender_profile,omitempty"`
 	// ProviderProfile holds the value of the provider_profile edge.
@@ -57,22 +55,13 @@ type UserEdges struct {
 	VerificationToken []*VerificationToken `json:"verification_token,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [5]bool
-}
-
-// APIKeysOrErr returns the APIKeys value or an error if the edge
-// was not loaded in eager-loading.
-func (e UserEdges) APIKeysOrErr() ([]*APIKey, error) {
-	if e.loadedTypes[0] {
-		return e.APIKeys, nil
-	}
-	return nil, &NotLoadedError{edge: "api_keys"}
+	loadedTypes [4]bool
 }
 
 // SenderProfileOrErr returns the SenderProfile value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e UserEdges) SenderProfileOrErr() (*SenderProfile, error) {
-	if e.loadedTypes[1] {
+	if e.loadedTypes[0] {
 		if e.SenderProfile == nil {
 			// Edge was loaded but was not found.
 			return nil, &NotFoundError{label: senderprofile.Label}
@@ -85,7 +74,7 @@ func (e UserEdges) SenderProfileOrErr() (*SenderProfile, error) {
 // ProviderProfileOrErr returns the ProviderProfile value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e UserEdges) ProviderProfileOrErr() (*ProviderProfile, error) {
-	if e.loadedTypes[2] {
+	if e.loadedTypes[1] {
 		if e.ProviderProfile == nil {
 			// Edge was loaded but was not found.
 			return nil, &NotFoundError{label: providerprofile.Label}
@@ -98,7 +87,7 @@ func (e UserEdges) ProviderProfileOrErr() (*ProviderProfile, error) {
 // ValidatorProfileOrErr returns the ValidatorProfile value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e UserEdges) ValidatorProfileOrErr() (*ValidatorProfile, error) {
-	if e.loadedTypes[3] {
+	if e.loadedTypes[2] {
 		if e.ValidatorProfile == nil {
 			// Edge was loaded but was not found.
 			return nil, &NotFoundError{label: validatorprofile.Label}
@@ -111,7 +100,7 @@ func (e UserEdges) ValidatorProfileOrErr() (*ValidatorProfile, error) {
 // VerificationTokenOrErr returns the VerificationToken value or an error if the edge
 // was not loaded in eager-loading.
 func (e UserEdges) VerificationTokenOrErr() ([]*VerificationToken, error) {
-	if e.loadedTypes[4] {
+	if e.loadedTypes[3] {
 		return e.VerificationToken, nil
 	}
 	return nil, &NotLoadedError{edge: "verification_token"}
@@ -210,11 +199,6 @@ func (u *User) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (u *User) Value(name string) (ent.Value, error) {
 	return u.selectValues.Get(name)
-}
-
-// QueryAPIKeys queries the "api_keys" edge of the User entity.
-func (u *User) QueryAPIKeys() *APIKeyQuery {
-	return NewUserClient(u.config).QueryAPIKeys(u)
 }
 
 // QuerySenderProfile queries the "sender_profile" edge of the User entity.

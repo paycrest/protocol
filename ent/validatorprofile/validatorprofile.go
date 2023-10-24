@@ -27,6 +27,8 @@ const (
 	EdgeUser = "user"
 	// EdgeValidatedFulfillments holds the string denoting the validated_fulfillments edge name in mutations.
 	EdgeValidatedFulfillments = "validated_fulfillments"
+	// EdgeAPIKey holds the string denoting the api_key edge name in mutations.
+	EdgeAPIKey = "api_key"
 	// Table holds the table name of the validatorprofile in the database.
 	Table = "validator_profiles"
 	// UserTable is the table that holds the user relation/edge.
@@ -41,6 +43,13 @@ const (
 	// ValidatedFulfillmentsInverseTable is the table name for the LockOrderFulfillment entity.
 	// It exists in this package in order to avoid circular dependency with the "lockorderfulfillment" package.
 	ValidatedFulfillmentsInverseTable = "lock_order_fulfillments"
+	// APIKeyTable is the table that holds the api_key relation/edge.
+	APIKeyTable = "api_keys"
+	// APIKeyInverseTable is the table name for the APIKey entity.
+	// It exists in this package in order to avoid circular dependency with the "apikey" package.
+	APIKeyInverseTable = "api_keys"
+	// APIKeyColumn is the table column denoting the api_key relation/edge.
+	APIKeyColumn = "validator_profile_api_key"
 )
 
 // Columns holds all SQL columns for validatorprofile fields.
@@ -138,6 +147,13 @@ func ByValidatedFulfillments(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOp
 		sqlgraph.OrderByNeighborTerms(s, newValidatedFulfillmentsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByAPIKeyField orders the results by api_key field.
+func ByAPIKeyField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newAPIKeyStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newUserStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -150,5 +166,12 @@ func newValidatedFulfillmentsStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(ValidatedFulfillmentsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2M, true, ValidatedFulfillmentsTable, ValidatedFulfillmentsPrimaryKey...),
+	)
+}
+func newAPIKeyStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(APIKeyInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, false, APIKeyTable, APIKeyColumn),
 	)
 }

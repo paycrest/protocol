@@ -12,7 +12,6 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
-	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 	"github.com/paycrest/paycrest-protocol/ent/senderprofile"
@@ -82,21 +81,6 @@ func (uu *UserUpdate) SetNillableIsVerified(b *bool) *UserUpdate {
 		uu.SetIsVerified(*b)
 	}
 	return uu
-}
-
-// AddAPIKeyIDs adds the "api_keys" edge to the APIKey entity by IDs.
-func (uu *UserUpdate) AddAPIKeyIDs(ids ...uuid.UUID) *UserUpdate {
-	uu.mutation.AddAPIKeyIDs(ids...)
-	return uu
-}
-
-// AddAPIKeys adds the "api_keys" edges to the APIKey entity.
-func (uu *UserUpdate) AddAPIKeys(a ...*APIKey) *UserUpdate {
-	ids := make([]uuid.UUID, len(a))
-	for i := range a {
-		ids[i] = a[i].ID
-	}
-	return uu.AddAPIKeyIDs(ids...)
 }
 
 // SetSenderProfileID sets the "sender_profile" edge to the SenderProfile entity by ID.
@@ -174,27 +158,6 @@ func (uu *UserUpdate) AddVerificationToken(v ...*VerificationToken) *UserUpdate 
 // Mutation returns the UserMutation object of the builder.
 func (uu *UserUpdate) Mutation() *UserMutation {
 	return uu.mutation
-}
-
-// ClearAPIKeys clears all "api_keys" edges to the APIKey entity.
-func (uu *UserUpdate) ClearAPIKeys() *UserUpdate {
-	uu.mutation.ClearAPIKeys()
-	return uu
-}
-
-// RemoveAPIKeyIDs removes the "api_keys" edge to APIKey entities by IDs.
-func (uu *UserUpdate) RemoveAPIKeyIDs(ids ...uuid.UUID) *UserUpdate {
-	uu.mutation.RemoveAPIKeyIDs(ids...)
-	return uu
-}
-
-// RemoveAPIKeys removes "api_keys" edges to APIKey entities.
-func (uu *UserUpdate) RemoveAPIKeys(a ...*APIKey) *UserUpdate {
-	ids := make([]uuid.UUID, len(a))
-	for i := range a {
-		ids[i] = a[i].ID
-	}
-	return uu.RemoveAPIKeyIDs(ids...)
 }
 
 // ClearSenderProfile clears the "sender_profile" edge to the SenderProfile entity.
@@ -330,51 +293,6 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if value, ok := uu.mutation.IsVerified(); ok {
 		_spec.SetField(user.FieldIsVerified, field.TypeBool, value)
-	}
-	if uu.mutation.APIKeysCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   user.APIKeysTable,
-			Columns: []string{user.APIKeysColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := uu.mutation.RemovedAPIKeysIDs(); len(nodes) > 0 && !uu.mutation.APIKeysCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   user.APIKeysTable,
-			Columns: []string{user.APIKeysColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := uu.mutation.APIKeysIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   user.APIKeysTable,
-			Columns: []string{user.APIKeysColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if uu.mutation.SenderProfileCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -578,21 +496,6 @@ func (uuo *UserUpdateOne) SetNillableIsVerified(b *bool) *UserUpdateOne {
 	return uuo
 }
 
-// AddAPIKeyIDs adds the "api_keys" edge to the APIKey entity by IDs.
-func (uuo *UserUpdateOne) AddAPIKeyIDs(ids ...uuid.UUID) *UserUpdateOne {
-	uuo.mutation.AddAPIKeyIDs(ids...)
-	return uuo
-}
-
-// AddAPIKeys adds the "api_keys" edges to the APIKey entity.
-func (uuo *UserUpdateOne) AddAPIKeys(a ...*APIKey) *UserUpdateOne {
-	ids := make([]uuid.UUID, len(a))
-	for i := range a {
-		ids[i] = a[i].ID
-	}
-	return uuo.AddAPIKeyIDs(ids...)
-}
-
 // SetSenderProfileID sets the "sender_profile" edge to the SenderProfile entity by ID.
 func (uuo *UserUpdateOne) SetSenderProfileID(id uuid.UUID) *UserUpdateOne {
 	uuo.mutation.SetSenderProfileID(id)
@@ -668,27 +571,6 @@ func (uuo *UserUpdateOne) AddVerificationToken(v ...*VerificationToken) *UserUpd
 // Mutation returns the UserMutation object of the builder.
 func (uuo *UserUpdateOne) Mutation() *UserMutation {
 	return uuo.mutation
-}
-
-// ClearAPIKeys clears all "api_keys" edges to the APIKey entity.
-func (uuo *UserUpdateOne) ClearAPIKeys() *UserUpdateOne {
-	uuo.mutation.ClearAPIKeys()
-	return uuo
-}
-
-// RemoveAPIKeyIDs removes the "api_keys" edge to APIKey entities by IDs.
-func (uuo *UserUpdateOne) RemoveAPIKeyIDs(ids ...uuid.UUID) *UserUpdateOne {
-	uuo.mutation.RemoveAPIKeyIDs(ids...)
-	return uuo
-}
-
-// RemoveAPIKeys removes "api_keys" edges to APIKey entities.
-func (uuo *UserUpdateOne) RemoveAPIKeys(a ...*APIKey) *UserUpdateOne {
-	ids := make([]uuid.UUID, len(a))
-	for i := range a {
-		ids[i] = a[i].ID
-	}
-	return uuo.RemoveAPIKeyIDs(ids...)
 }
 
 // ClearSenderProfile clears the "sender_profile" edge to the SenderProfile entity.
@@ -854,51 +736,6 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 	}
 	if value, ok := uuo.mutation.IsVerified(); ok {
 		_spec.SetField(user.FieldIsVerified, field.TypeBool, value)
-	}
-	if uuo.mutation.APIKeysCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   user.APIKeysTable,
-			Columns: []string{user.APIKeysColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := uuo.mutation.RemovedAPIKeysIDs(); len(nodes) > 0 && !uuo.mutation.APIKeysCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   user.APIKeysTable,
-			Columns: []string{user.APIKeysColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := uuo.mutation.APIKeysIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   user.APIKeysTable,
-			Columns: []string{user.APIKeysColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if uuo.mutation.SenderProfileCleared() {
 		edge := &sqlgraph.EdgeSpec{

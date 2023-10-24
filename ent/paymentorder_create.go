@@ -11,10 +11,10 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
-	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorderrecipient"
 	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
+	"github.com/paycrest/paycrest-protocol/ent/senderprofile"
 	"github.com/paycrest/paycrest-protocol/ent/token"
 	"github.com/shopspring/decimal"
 )
@@ -128,15 +128,15 @@ func (poc *PaymentOrderCreate) SetNillableID(u *uuid.UUID) *PaymentOrderCreate {
 	return poc
 }
 
-// SetAPIKeyID sets the "api_key" edge to the APIKey entity by ID.
-func (poc *PaymentOrderCreate) SetAPIKeyID(id uuid.UUID) *PaymentOrderCreate {
-	poc.mutation.SetAPIKeyID(id)
+// SetSenderProfileID sets the "sender_profile" edge to the SenderProfile entity by ID.
+func (poc *PaymentOrderCreate) SetSenderProfileID(id uuid.UUID) *PaymentOrderCreate {
+	poc.mutation.SetSenderProfileID(id)
 	return poc
 }
 
-// SetAPIKey sets the "api_key" edge to the APIKey entity.
-func (poc *PaymentOrderCreate) SetAPIKey(a *APIKey) *PaymentOrderCreate {
-	return poc.SetAPIKeyID(a.ID)
+// SetSenderProfile sets the "sender_profile" edge to the SenderProfile entity.
+func (poc *PaymentOrderCreate) SetSenderProfile(s *SenderProfile) *PaymentOrderCreate {
+	return poc.SetSenderProfileID(s.ID)
 }
 
 // SetTokenID sets the "token" edge to the Token entity by ID.
@@ -276,8 +276,8 @@ func (poc *PaymentOrderCreate) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.status": %w`, err)}
 		}
 	}
-	if _, ok := poc.mutation.APIKeyID(); !ok {
-		return &ValidationError{Name: "api_key", err: errors.New(`ent: missing required edge "PaymentOrder.api_key"`)}
+	if _, ok := poc.mutation.SenderProfileID(); !ok {
+		return &ValidationError{Name: "sender_profile", err: errors.New(`ent: missing required edge "PaymentOrder.sender_profile"`)}
 	}
 	if _, ok := poc.mutation.TokenID(); !ok {
 		return &ValidationError{Name: "token", err: errors.New(`ent: missing required edge "PaymentOrder.token"`)}
@@ -349,21 +349,21 @@ func (poc *PaymentOrderCreate) createSpec() (*PaymentOrder, *sqlgraph.CreateSpec
 		_spec.SetField(paymentorder.FieldLastUsed, field.TypeTime, value)
 		_node.LastUsed = value
 	}
-	if nodes := poc.mutation.APIKeyIDs(); len(nodes) > 0 {
+	if nodes := poc.mutation.SenderProfileIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
-			Table:   paymentorder.APIKeyTable,
-			Columns: []string{paymentorder.APIKeyColumn},
+			Table:   paymentorder.SenderProfileTable,
+			Columns: []string{paymentorder.SenderProfileColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID),
+				IDSpec: sqlgraph.NewFieldSpec(senderprofile.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.api_key_payment_orders = &nodes[0]
+		_node.sender_profile_payment_orders = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := poc.mutation.TokenIDs(); len(nodes) > 0 {

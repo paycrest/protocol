@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
+	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/fiatcurrency"
 	"github.com/paycrest/paycrest-protocol/ent/provideravailability"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
@@ -46,6 +47,8 @@ type ProviderProfile struct {
 type ProviderProfileEdges struct {
 	// User holds the value of the user edge.
 	User *User `json:"user,omitempty"`
+	// APIKey holds the value of the api_key edge.
+	APIKey *APIKey `json:"api_key,omitempty"`
 	// Currency holds the value of the currency edge.
 	Currency *FiatCurrency `json:"currency,omitempty"`
 	// ProvisionBuckets holds the value of the provision_buckets edge.
@@ -60,7 +63,7 @@ type ProviderProfileEdges struct {
 	AssignedOrders []*LockPaymentOrder `json:"assigned_orders,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [7]bool
+	loadedTypes [8]bool
 }
 
 // UserOrErr returns the User value or an error if the edge
@@ -76,10 +79,23 @@ func (e ProviderProfileEdges) UserOrErr() (*User, error) {
 	return nil, &NotLoadedError{edge: "user"}
 }
 
+// APIKeyOrErr returns the APIKey value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ProviderProfileEdges) APIKeyOrErr() (*APIKey, error) {
+	if e.loadedTypes[1] {
+		if e.APIKey == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: apikey.Label}
+		}
+		return e.APIKey, nil
+	}
+	return nil, &NotLoadedError{edge: "api_key"}
+}
+
 // CurrencyOrErr returns the Currency value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e ProviderProfileEdges) CurrencyOrErr() (*FiatCurrency, error) {
-	if e.loadedTypes[1] {
+	if e.loadedTypes[2] {
 		if e.Currency == nil {
 			// Edge was loaded but was not found.
 			return nil, &NotFoundError{label: fiatcurrency.Label}
@@ -92,7 +108,7 @@ func (e ProviderProfileEdges) CurrencyOrErr() (*FiatCurrency, error) {
 // ProvisionBucketsOrErr returns the ProvisionBuckets value or an error if the edge
 // was not loaded in eager-loading.
 func (e ProviderProfileEdges) ProvisionBucketsOrErr() ([]*ProvisionBucket, error) {
-	if e.loadedTypes[2] {
+	if e.loadedTypes[3] {
 		return e.ProvisionBuckets, nil
 	}
 	return nil, &NotLoadedError{edge: "provision_buckets"}
@@ -101,7 +117,7 @@ func (e ProviderProfileEdges) ProvisionBucketsOrErr() ([]*ProvisionBucket, error
 // OrderTokensOrErr returns the OrderTokens value or an error if the edge
 // was not loaded in eager-loading.
 func (e ProviderProfileEdges) OrderTokensOrErr() ([]*ProviderOrderToken, error) {
-	if e.loadedTypes[3] {
+	if e.loadedTypes[4] {
 		return e.OrderTokens, nil
 	}
 	return nil, &NotLoadedError{edge: "order_tokens"}
@@ -110,7 +126,7 @@ func (e ProviderProfileEdges) OrderTokensOrErr() ([]*ProviderOrderToken, error) 
 // AvailabilityOrErr returns the Availability value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e ProviderProfileEdges) AvailabilityOrErr() (*ProviderAvailability, error) {
-	if e.loadedTypes[4] {
+	if e.loadedTypes[5] {
 		if e.Availability == nil {
 			// Edge was loaded but was not found.
 			return nil, &NotFoundError{label: provideravailability.Label}
@@ -123,7 +139,7 @@ func (e ProviderProfileEdges) AvailabilityOrErr() (*ProviderAvailability, error)
 // ProviderRatingOrErr returns the ProviderRating value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e ProviderProfileEdges) ProviderRatingOrErr() (*ProviderRating, error) {
-	if e.loadedTypes[5] {
+	if e.loadedTypes[6] {
 		if e.ProviderRating == nil {
 			// Edge was loaded but was not found.
 			return nil, &NotFoundError{label: providerrating.Label}
@@ -136,7 +152,7 @@ func (e ProviderProfileEdges) ProviderRatingOrErr() (*ProviderRating, error) {
 // AssignedOrdersOrErr returns the AssignedOrders value or an error if the edge
 // was not loaded in eager-loading.
 func (e ProviderProfileEdges) AssignedOrdersOrErr() ([]*LockPaymentOrder, error) {
-	if e.loadedTypes[6] {
+	if e.loadedTypes[7] {
 		return e.AssignedOrders, nil
 	}
 	return nil, &NotLoadedError{edge: "assigned_orders"}
@@ -244,6 +260,11 @@ func (pp *ProviderProfile) Value(name string) (ent.Value, error) {
 // QueryUser queries the "user" edge of the ProviderProfile entity.
 func (pp *ProviderProfile) QueryUser() *UserQuery {
 	return NewProviderProfileClient(pp.config).QueryUser(pp)
+}
+
+// QueryAPIKey queries the "api_key" edge of the ProviderProfile entity.
+func (pp *ProviderProfile) QueryAPIKey() *APIKeyQuery {
+	return NewProviderProfileClient(pp.config).QueryAPIKey(pp)
 }
 
 // QueryCurrency queries the "currency" edge of the ProviderProfile entity.

@@ -21,19 +21,37 @@ const (
 	FieldIsActive = "is_active"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
-	// EdgeOwner holds the string denoting the owner edge name in mutations.
-	EdgeOwner = "owner"
+	// EdgeSenderProfile holds the string denoting the sender_profile edge name in mutations.
+	EdgeSenderProfile = "sender_profile"
+	// EdgeProviderProfile holds the string denoting the provider_profile edge name in mutations.
+	EdgeProviderProfile = "provider_profile"
+	// EdgeValidatorProfile holds the string denoting the validator_profile edge name in mutations.
+	EdgeValidatorProfile = "validator_profile"
 	// EdgePaymentOrders holds the string denoting the payment_orders edge name in mutations.
 	EdgePaymentOrders = "payment_orders"
 	// Table holds the table name of the apikey in the database.
 	Table = "api_keys"
-	// OwnerTable is the table that holds the owner relation/edge.
-	OwnerTable = "api_keys"
-	// OwnerInverseTable is the table name for the User entity.
-	// It exists in this package in order to avoid circular dependency with the "user" package.
-	OwnerInverseTable = "users"
-	// OwnerColumn is the table column denoting the owner relation/edge.
-	OwnerColumn = "user_api_keys"
+	// SenderProfileTable is the table that holds the sender_profile relation/edge.
+	SenderProfileTable = "api_keys"
+	// SenderProfileInverseTable is the table name for the SenderProfile entity.
+	// It exists in this package in order to avoid circular dependency with the "senderprofile" package.
+	SenderProfileInverseTable = "sender_profiles"
+	// SenderProfileColumn is the table column denoting the sender_profile relation/edge.
+	SenderProfileColumn = "sender_profile_api_key"
+	// ProviderProfileTable is the table that holds the provider_profile relation/edge.
+	ProviderProfileTable = "api_keys"
+	// ProviderProfileInverseTable is the table name for the ProviderProfile entity.
+	// It exists in this package in order to avoid circular dependency with the "providerprofile" package.
+	ProviderProfileInverseTable = "provider_profiles"
+	// ProviderProfileColumn is the table column denoting the provider_profile relation/edge.
+	ProviderProfileColumn = "provider_profile_api_key"
+	// ValidatorProfileTable is the table that holds the validator_profile relation/edge.
+	ValidatorProfileTable = "api_keys"
+	// ValidatorProfileInverseTable is the table name for the ValidatorProfile entity.
+	// It exists in this package in order to avoid circular dependency with the "validatorprofile" package.
+	ValidatorProfileInverseTable = "validator_profiles"
+	// ValidatorProfileColumn is the table column denoting the validator_profile relation/edge.
+	ValidatorProfileColumn = "validator_profile_api_key"
 	// PaymentOrdersTable is the table that holds the payment_orders relation/edge.
 	PaymentOrdersTable = "payment_orders"
 	// PaymentOrdersInverseTable is the table name for the PaymentOrder entity.
@@ -54,7 +72,9 @@ var Columns = []string{
 // ForeignKeys holds the SQL foreign-keys that are owned by the "api_keys"
 // table and are not defined as standalone fields in the schema.
 var ForeignKeys = []string{
-	"user_api_keys",
+	"provider_profile_api_key",
+	"sender_profile_api_key",
+	"validator_profile_api_key",
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -106,10 +126,24 @@ func ByCreatedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCreatedAt, opts...).ToFunc()
 }
 
-// ByOwnerField orders the results by owner field.
-func ByOwnerField(field string, opts ...sql.OrderTermOption) OrderOption {
+// BySenderProfileField orders the results by sender_profile field.
+func BySenderProfileField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newOwnerStep(), sql.OrderByField(field, opts...))
+		sqlgraph.OrderByNeighborTerms(s, newSenderProfileStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByProviderProfileField orders the results by provider_profile field.
+func ByProviderProfileField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newProviderProfileStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByValidatorProfileField orders the results by validator_profile field.
+func ByValidatorProfileField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newValidatorProfileStep(), sql.OrderByField(field, opts...))
 	}
 }
 
@@ -126,11 +160,25 @@ func ByPaymentOrders(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newPaymentOrdersStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
-func newOwnerStep() *sqlgraph.Step {
+func newSenderProfileStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(OwnerInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, true, OwnerTable, OwnerColumn),
+		sqlgraph.To(SenderProfileInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, true, SenderProfileTable, SenderProfileColumn),
+	)
+}
+func newProviderProfileStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ProviderProfileInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, true, ProviderProfileTable, ProviderProfileColumn),
+	)
+}
+func newValidatorProfileStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ValidatorProfileInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, true, ValidatorProfileTable, ValidatorProfileColumn),
 	)
 }
 func newPaymentOrdersStep() *sqlgraph.Step {

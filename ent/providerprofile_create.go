@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
+	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/fiatcurrency"
 	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/provideravailability"
@@ -127,6 +128,25 @@ func (ppc *ProviderProfileCreate) SetUserID(id uuid.UUID) *ProviderProfileCreate
 // SetUser sets the "user" edge to the User entity.
 func (ppc *ProviderProfileCreate) SetUser(u *User) *ProviderProfileCreate {
 	return ppc.SetUserID(u.ID)
+}
+
+// SetAPIKeyID sets the "api_key" edge to the APIKey entity by ID.
+func (ppc *ProviderProfileCreate) SetAPIKeyID(id uuid.UUID) *ProviderProfileCreate {
+	ppc.mutation.SetAPIKeyID(id)
+	return ppc
+}
+
+// SetNillableAPIKeyID sets the "api_key" edge to the APIKey entity by ID if the given value is not nil.
+func (ppc *ProviderProfileCreate) SetNillableAPIKeyID(id *uuid.UUID) *ProviderProfileCreate {
+	if id != nil {
+		ppc = ppc.SetAPIKeyID(*id)
+	}
+	return ppc
+}
+
+// SetAPIKey sets the "api_key" edge to the APIKey entity.
+func (ppc *ProviderProfileCreate) SetAPIKey(a *APIKey) *ProviderProfileCreate {
+	return ppc.SetAPIKeyID(a.ID)
 }
 
 // SetCurrencyID sets the "currency" edge to the FiatCurrency entity by ID.
@@ -387,6 +407,22 @@ func (ppc *ProviderProfileCreate) createSpec() (*ProviderProfile, *sqlgraph.Crea
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.user_provider_profile = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := ppc.mutation.APIKeyIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   providerprofile.APIKeyTable,
+			Columns: []string{providerprofile.APIKeyColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := ppc.mutation.CurrencyIDs(); len(nodes) > 0 {

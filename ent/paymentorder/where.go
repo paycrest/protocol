@@ -462,21 +462,21 @@ func LastUsedNotNil() predicate.PaymentOrder {
 	return predicate.PaymentOrder(sql.FieldNotNull(FieldLastUsed))
 }
 
-// HasAPIKey applies the HasEdge predicate on the "api_key" edge.
-func HasAPIKey() predicate.PaymentOrder {
+// HasSenderProfile applies the HasEdge predicate on the "sender_profile" edge.
+func HasSenderProfile() predicate.PaymentOrder {
 	return predicate.PaymentOrder(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, APIKeyTable, APIKeyColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, SenderProfileTable, SenderProfileColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasAPIKeyWith applies the HasEdge predicate on the "api_key" edge with a given conditions (other predicates).
-func HasAPIKeyWith(preds ...predicate.APIKey) predicate.PaymentOrder {
+// HasSenderProfileWith applies the HasEdge predicate on the "sender_profile" edge with a given conditions (other predicates).
+func HasSenderProfileWith(preds ...predicate.SenderProfile) predicate.PaymentOrder {
 	return predicate.PaymentOrder(func(s *sql.Selector) {
-		step := newAPIKeyStep()
+		step := newSenderProfileStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

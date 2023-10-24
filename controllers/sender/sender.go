@@ -9,6 +9,7 @@ import (
 
 	"github.com/paycrest/paycrest-protocol/ent/network"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
+	"github.com/paycrest/paycrest-protocol/ent/senderprofile"
 	"github.com/paycrest/paycrest-protocol/ent/token"
 	svc "github.com/paycrest/paycrest-protocol/services"
 	"github.com/paycrest/paycrest-protocol/types"
@@ -54,14 +55,13 @@ func (ctrl *SenderController) CreatePaymentOrder(ctx *gin.Context) {
 		return
 	}
 
-	// Generate receive address
-	receiveAddress, err := ctrl.receiveAddressService.CreateSmartAccount(ctx, nil, nil)
-	if err != nil {
-		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusInternalServerError, "error",
-			"Failed to initiate payment order", nil)
+	// Get sender profile from the context
+	senderCtx, ok := ctx.Get("sender")
+	if !ok {
+		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid API key", nil)
 		return
 	}
+	sender := senderCtx.(*ent.SenderProfile)
 
 	// Get token from DB
 	token, err := db.Client.Token.
@@ -79,6 +79,15 @@ func (ctrl *SenderController) CreatePaymentOrder(ctx *gin.Context) {
 		return
 	}
 
+	// Generate receive address
+	receiveAddress, err := ctrl.receiveAddressService.CreateSmartAccount(ctx, nil, nil)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error",
+			"Failed to initiate payment order", nil)
+		return
+	}
+
 	// Create payment order and recipient in a transaction
 	tx, err := db.Client.Tx(ctx)
 	if err != nil {
@@ -89,11 +98,9 @@ func (ctrl *SenderController) CreatePaymentOrder(ctx *gin.Context) {
 	}
 
 	// Create payment order
-	apiKey, _ := ctx.Get("api_key")
-
 	paymentOrder, err := tx.PaymentOrder.
 		Create().
-		SetAPIKey(apiKey.(*ent.APIKey)).
+		SetSenderProfile(sender).
 		SetAmount(payload.Amount).
 		SetAmountPaid(decimal.NewFromInt(0)).
 		SetToken(token).
@@ -161,15 +168,26 @@ func (ctrl *SenderController) GetPaymentOrderByID(ctx *gin.Context) {
 		return
 	}
 
+	// Get sender profile from the context
+	senderCtx, ok := ctx.Get("sender")
+	if !ok {
+		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid API key", nil)
+		return
+	}
+	sender := senderCtx.(*ent.SenderProfile)
+
 	// Fetch payment order from the database
 	paymentOrder, err := db.Client.PaymentOrder.
 		Query().
-		Where(paymentorder.ID(id)).
+		Where(
+			paymentorder.IDEQ(id),
+			paymentorder.HasSenderProfileWith(senderprofile.IDEQ(sender.ID)),
+		).
 		WithRecipient().
 		WithToken(func(tq *ent.TokenQuery) {
 			tq.WithNetwork()
 		}).
-		First(ctx)
+		Only(ctx)
 
 	if err != nil {
 		logger.Errorf("error: %v", err)
@@ -178,13 +196,11 @@ func (ctrl *SenderController) GetPaymentOrderByID(ctx *gin.Context) {
 		return
 	}
 
-	paymentOrderAmount, _ := paymentOrder.Amount.Float64()
-
 	u.APIResponse(ctx, http.StatusOK, "success", "The order has been successfully retrieved",
 		&types.PaymentOrderResponse{
 			ID:      paymentOrder.ID,
-			Amount:  paymentOrderAmount,
-			Network: paymentOrder.Edges.Token.Edges.Network.String(),
+			Amount:  paymentOrder.Amount,
+			Network: paymentOrder.Edges.Token.Edges.Network.Identifier,
 			Recipient: types.PaymentOrderRecipient{
 				Institution:       paymentOrder.Edges.Recipient.Institution,
 				AccountIdentifier: paymentOrder.Edges.Recipient.AccountIdentifier,
@@ -194,6 +210,6 @@ func (ctrl *SenderController) GetPaymentOrderByID(ctx *gin.Context) {
 			CreatedAt: paymentOrder.CreatedAt,
 			UpdatedAt: paymentOrder.UpdatedAt,
 			TxHash:    paymentOrder.TxHash,
-			Status:    paymentOrder.Status.String(),
+			Status:    paymentOrder.Status,
 		})
 }

@@ -13,7 +13,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
-	"github.com/paycrest/paycrest-protocol/ent/user"
+	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
+	"github.com/paycrest/paycrest-protocol/ent/senderprofile"
+	"github.com/paycrest/paycrest-protocol/ent/validatorprofile"
 )
 
 // APIKeyCreate is the builder for creating a APIKey entity.
@@ -71,15 +73,37 @@ func (akc *APIKeyCreate) SetNillableID(u *uuid.UUID) *APIKeyCreate {
 	return akc
 }
 
-// SetOwnerID sets the "owner" edge to the User entity by ID.
-func (akc *APIKeyCreate) SetOwnerID(id uuid.UUID) *APIKeyCreate {
-	akc.mutation.SetOwnerID(id)
+// SetSenderProfileID sets the "sender_profile" edge to the SenderProfile entity by ID.
+func (akc *APIKeyCreate) SetSenderProfileID(id uuid.UUID) *APIKeyCreate {
+	akc.mutation.SetSenderProfileID(id)
 	return akc
 }
 
-// SetOwner sets the "owner" edge to the User entity.
-func (akc *APIKeyCreate) SetOwner(u *User) *APIKeyCreate {
-	return akc.SetOwnerID(u.ID)
+// SetSenderProfile sets the "sender_profile" edge to the SenderProfile entity.
+func (akc *APIKeyCreate) SetSenderProfile(s *SenderProfile) *APIKeyCreate {
+	return akc.SetSenderProfileID(s.ID)
+}
+
+// SetProviderProfileID sets the "provider_profile" edge to the ProviderProfile entity by ID.
+func (akc *APIKeyCreate) SetProviderProfileID(id string) *APIKeyCreate {
+	akc.mutation.SetProviderProfileID(id)
+	return akc
+}
+
+// SetProviderProfile sets the "provider_profile" edge to the ProviderProfile entity.
+func (akc *APIKeyCreate) SetProviderProfile(p *ProviderProfile) *APIKeyCreate {
+	return akc.SetProviderProfileID(p.ID)
+}
+
+// SetValidatorProfileID sets the "validator_profile" edge to the ValidatorProfile entity by ID.
+func (akc *APIKeyCreate) SetValidatorProfileID(id uuid.UUID) *APIKeyCreate {
+	akc.mutation.SetValidatorProfileID(id)
+	return akc
+}
+
+// SetValidatorProfile sets the "validator_profile" edge to the ValidatorProfile entity.
+func (akc *APIKeyCreate) SetValidatorProfile(v *ValidatorProfile) *APIKeyCreate {
+	return akc.SetValidatorProfileID(v.ID)
 }
 
 // AddPaymentOrderIDs adds the "payment_orders" edge to the PaymentOrder entity by IDs.
@@ -162,8 +186,14 @@ func (akc *APIKeyCreate) check() error {
 	if _, ok := akc.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "APIKey.created_at"`)}
 	}
-	if _, ok := akc.mutation.OwnerID(); !ok {
-		return &ValidationError{Name: "owner", err: errors.New(`ent: missing required edge "APIKey.owner"`)}
+	if _, ok := akc.mutation.SenderProfileID(); !ok {
+		return &ValidationError{Name: "sender_profile", err: errors.New(`ent: missing required edge "APIKey.sender_profile"`)}
+	}
+	if _, ok := akc.mutation.ProviderProfileID(); !ok {
+		return &ValidationError{Name: "provider_profile", err: errors.New(`ent: missing required edge "APIKey.provider_profile"`)}
+	}
+	if _, ok := akc.mutation.ValidatorProfileID(); !ok {
+		return &ValidationError{Name: "validator_profile", err: errors.New(`ent: missing required edge "APIKey.validator_profile"`)}
 	}
 	return nil
 }
@@ -212,21 +242,55 @@ func (akc *APIKeyCreate) createSpec() (*APIKey, *sqlgraph.CreateSpec) {
 		_spec.SetField(apikey.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
 	}
-	if nodes := akc.mutation.OwnerIDs(); len(nodes) > 0 {
+	if nodes := akc.mutation.SenderProfileIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
+			Rel:     sqlgraph.O2O,
 			Inverse: true,
-			Table:   apikey.OwnerTable,
-			Columns: []string{apikey.OwnerColumn},
+			Table:   apikey.SenderProfileTable,
+			Columns: []string{apikey.SenderProfileColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
+				IDSpec: sqlgraph.NewFieldSpec(senderprofile.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.user_api_keys = &nodes[0]
+		_node.sender_profile_api_key = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := akc.mutation.ProviderProfileIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   apikey.ProviderProfileTable,
+			Columns: []string{apikey.ProviderProfileColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(providerprofile.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.provider_profile_api_key = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := akc.mutation.ValidatorProfileIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   apikey.ValidatorProfileTable,
+			Columns: []string{apikey.ValidatorProfileColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(validatorprofile.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.validator_profile_api_key = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := akc.mutation.PaymentOrdersIDs(); len(nodes) > 0 {

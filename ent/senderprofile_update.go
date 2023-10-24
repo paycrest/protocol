@@ -11,6 +11,9 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
+	"github.com/paycrest/paycrest-protocol/ent/apikey"
+	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
 	"github.com/paycrest/paycrest-protocol/ent/senderprofile"
 )
@@ -60,9 +63,70 @@ func (spu *SenderProfileUpdate) AppendDomainWhitelist(s []string) *SenderProfile
 	return spu
 }
 
+// SetAPIKeyID sets the "api_key" edge to the APIKey entity by ID.
+func (spu *SenderProfileUpdate) SetAPIKeyID(id uuid.UUID) *SenderProfileUpdate {
+	spu.mutation.SetAPIKeyID(id)
+	return spu
+}
+
+// SetNillableAPIKeyID sets the "api_key" edge to the APIKey entity by ID if the given value is not nil.
+func (spu *SenderProfileUpdate) SetNillableAPIKeyID(id *uuid.UUID) *SenderProfileUpdate {
+	if id != nil {
+		spu = spu.SetAPIKeyID(*id)
+	}
+	return spu
+}
+
+// SetAPIKey sets the "api_key" edge to the APIKey entity.
+func (spu *SenderProfileUpdate) SetAPIKey(a *APIKey) *SenderProfileUpdate {
+	return spu.SetAPIKeyID(a.ID)
+}
+
+// AddPaymentOrderIDs adds the "payment_orders" edge to the PaymentOrder entity by IDs.
+func (spu *SenderProfileUpdate) AddPaymentOrderIDs(ids ...uuid.UUID) *SenderProfileUpdate {
+	spu.mutation.AddPaymentOrderIDs(ids...)
+	return spu
+}
+
+// AddPaymentOrders adds the "payment_orders" edges to the PaymentOrder entity.
+func (spu *SenderProfileUpdate) AddPaymentOrders(p ...*PaymentOrder) *SenderProfileUpdate {
+	ids := make([]uuid.UUID, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return spu.AddPaymentOrderIDs(ids...)
+}
+
 // Mutation returns the SenderProfileMutation object of the builder.
 func (spu *SenderProfileUpdate) Mutation() *SenderProfileMutation {
 	return spu.mutation
+}
+
+// ClearAPIKey clears the "api_key" edge to the APIKey entity.
+func (spu *SenderProfileUpdate) ClearAPIKey() *SenderProfileUpdate {
+	spu.mutation.ClearAPIKey()
+	return spu
+}
+
+// ClearPaymentOrders clears all "payment_orders" edges to the PaymentOrder entity.
+func (spu *SenderProfileUpdate) ClearPaymentOrders() *SenderProfileUpdate {
+	spu.mutation.ClearPaymentOrders()
+	return spu
+}
+
+// RemovePaymentOrderIDs removes the "payment_orders" edge to PaymentOrder entities by IDs.
+func (spu *SenderProfileUpdate) RemovePaymentOrderIDs(ids ...uuid.UUID) *SenderProfileUpdate {
+	spu.mutation.RemovePaymentOrderIDs(ids...)
+	return spu
+}
+
+// RemovePaymentOrders removes "payment_orders" edges to PaymentOrder entities.
+func (spu *SenderProfileUpdate) RemovePaymentOrders(p ...*PaymentOrder) *SenderProfileUpdate {
+	ids := make([]uuid.UUID, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return spu.RemovePaymentOrderIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -126,6 +190,80 @@ func (spu *SenderProfileUpdate) sqlSave(ctx context.Context) (n int, err error) 
 			sqljson.Append(u, senderprofile.FieldDomainWhitelist, value)
 		})
 	}
+	if spu.mutation.APIKeyCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   senderprofile.APIKeyTable,
+			Columns: []string{senderprofile.APIKeyColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := spu.mutation.APIKeyIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   senderprofile.APIKeyTable,
+			Columns: []string{senderprofile.APIKeyColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if spu.mutation.PaymentOrdersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   senderprofile.PaymentOrdersTable,
+			Columns: []string{senderprofile.PaymentOrdersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := spu.mutation.RemovedPaymentOrdersIDs(); len(nodes) > 0 && !spu.mutation.PaymentOrdersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   senderprofile.PaymentOrdersTable,
+			Columns: []string{senderprofile.PaymentOrdersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := spu.mutation.PaymentOrdersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   senderprofile.PaymentOrdersTable,
+			Columns: []string{senderprofile.PaymentOrdersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, spu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{senderprofile.Label}
@@ -178,9 +316,70 @@ func (spuo *SenderProfileUpdateOne) AppendDomainWhitelist(s []string) *SenderPro
 	return spuo
 }
 
+// SetAPIKeyID sets the "api_key" edge to the APIKey entity by ID.
+func (spuo *SenderProfileUpdateOne) SetAPIKeyID(id uuid.UUID) *SenderProfileUpdateOne {
+	spuo.mutation.SetAPIKeyID(id)
+	return spuo
+}
+
+// SetNillableAPIKeyID sets the "api_key" edge to the APIKey entity by ID if the given value is not nil.
+func (spuo *SenderProfileUpdateOne) SetNillableAPIKeyID(id *uuid.UUID) *SenderProfileUpdateOne {
+	if id != nil {
+		spuo = spuo.SetAPIKeyID(*id)
+	}
+	return spuo
+}
+
+// SetAPIKey sets the "api_key" edge to the APIKey entity.
+func (spuo *SenderProfileUpdateOne) SetAPIKey(a *APIKey) *SenderProfileUpdateOne {
+	return spuo.SetAPIKeyID(a.ID)
+}
+
+// AddPaymentOrderIDs adds the "payment_orders" edge to the PaymentOrder entity by IDs.
+func (spuo *SenderProfileUpdateOne) AddPaymentOrderIDs(ids ...uuid.UUID) *SenderProfileUpdateOne {
+	spuo.mutation.AddPaymentOrderIDs(ids...)
+	return spuo
+}
+
+// AddPaymentOrders adds the "payment_orders" edges to the PaymentOrder entity.
+func (spuo *SenderProfileUpdateOne) AddPaymentOrders(p ...*PaymentOrder) *SenderProfileUpdateOne {
+	ids := make([]uuid.UUID, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return spuo.AddPaymentOrderIDs(ids...)
+}
+
 // Mutation returns the SenderProfileMutation object of the builder.
 func (spuo *SenderProfileUpdateOne) Mutation() *SenderProfileMutation {
 	return spuo.mutation
+}
+
+// ClearAPIKey clears the "api_key" edge to the APIKey entity.
+func (spuo *SenderProfileUpdateOne) ClearAPIKey() *SenderProfileUpdateOne {
+	spuo.mutation.ClearAPIKey()
+	return spuo
+}
+
+// ClearPaymentOrders clears all "payment_orders" edges to the PaymentOrder entity.
+func (spuo *SenderProfileUpdateOne) ClearPaymentOrders() *SenderProfileUpdateOne {
+	spuo.mutation.ClearPaymentOrders()
+	return spuo
+}
+
+// RemovePaymentOrderIDs removes the "payment_orders" edge to PaymentOrder entities by IDs.
+func (spuo *SenderProfileUpdateOne) RemovePaymentOrderIDs(ids ...uuid.UUID) *SenderProfileUpdateOne {
+	spuo.mutation.RemovePaymentOrderIDs(ids...)
+	return spuo
+}
+
+// RemovePaymentOrders removes "payment_orders" edges to PaymentOrder entities.
+func (spuo *SenderProfileUpdateOne) RemovePaymentOrders(p ...*PaymentOrder) *SenderProfileUpdateOne {
+	ids := make([]uuid.UUID, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return spuo.RemovePaymentOrderIDs(ids...)
 }
 
 // Where appends a list predicates to the SenderProfileUpdate builder.
@@ -273,6 +472,80 @@ func (spuo *SenderProfileUpdateOne) sqlSave(ctx context.Context) (_node *SenderP
 		_spec.AddModifier(func(u *sql.UpdateBuilder) {
 			sqljson.Append(u, senderprofile.FieldDomainWhitelist, value)
 		})
+	}
+	if spuo.mutation.APIKeyCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   senderprofile.APIKeyTable,
+			Columns: []string{senderprofile.APIKeyColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := spuo.mutation.APIKeyIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   senderprofile.APIKeyTable,
+			Columns: []string{senderprofile.APIKeyColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if spuo.mutation.PaymentOrdersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   senderprofile.PaymentOrdersTable,
+			Columns: []string{senderprofile.PaymentOrdersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := spuo.mutation.RemovedPaymentOrdersIDs(); len(nodes) > 0 && !spuo.mutation.PaymentOrdersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   senderprofile.PaymentOrdersTable,
+			Columns: []string{senderprofile.PaymentOrdersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := spuo.mutation.PaymentOrdersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   senderprofile.PaymentOrdersTable,
+			Columns: []string{senderprofile.PaymentOrdersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &SenderProfile{config: spuo.config}
 	_spec.Assign = _node.assignValues

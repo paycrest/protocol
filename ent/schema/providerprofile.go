@@ -3,6 +3,7 @@ package schema
 import (
 	"hash/maphash"
 	"math/rand"
+	"time"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/entsql"
@@ -35,6 +36,9 @@ func (ProviderProfile) Fields() []ent.Field {
 			Values("manual", "auto").
 			Default("auto"),
 		field.Bool("is_partner").Default(false),
+		field.Time("updated_at").
+			Default(time.Now).
+			UpdateDefault(time.Now),
 	}
 }
 
@@ -46,6 +50,8 @@ func (ProviderProfile) Edges() []ent.Edge {
 			Unique().
 			Required().
 			Immutable(),
+		edge.To("api_key", APIKey.Type).
+			Unique(),
 		edge.From("currency", FiatCurrency.Type).
 			Ref("provider").
 			Unique().

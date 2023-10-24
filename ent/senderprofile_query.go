@@ -4,6 +4,7 @@ package ent
 
 import (
 	"context"
+	"database/sql/driver"
 	"fmt"
 	"math"
 
@@ -11,6 +12,8 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
+	"github.com/paycrest/paycrest-protocol/ent/apikey"
+	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
 	"github.com/paycrest/paycrest-protocol/ent/senderprofile"
 	"github.com/paycrest/paycrest-protocol/ent/user"
@@ -19,12 +22,14 @@ import (
 // SenderProfileQuery is the builder for querying SenderProfile entities.
 type SenderProfileQuery struct {
 	config
-	ctx        *QueryContext
-	order      []senderprofile.OrderOption
-	inters     []Interceptor
-	predicates []predicate.SenderProfile
-	withUser   *UserQuery
-	withFKs    bool
+	ctx               *QueryContext
+	order             []senderprofile.OrderOption
+	inters            []Interceptor
+	predicates        []predicate.SenderProfile
+	withUser          *UserQuery
+	withAPIKey        *APIKeyQuery
+	withPaymentOrders *PaymentOrderQuery
+	withFKs           bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -76,6 +81,50 @@ func (spq *SenderProfileQuery) QueryUser() *UserQuery {
 			sqlgraph.From(senderprofile.Table, senderprofile.FieldID, selector),
 			sqlgraph.To(user.Table, user.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, true, senderprofile.UserTable, senderprofile.UserColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(spq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryAPIKey chains the current query on the "api_key" edge.
+func (spq *SenderProfileQuery) QueryAPIKey() *APIKeyQuery {
+	query := (&APIKeyClient{config: spq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := spq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := spq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(senderprofile.Table, senderprofile.FieldID, selector),
+			sqlgraph.To(apikey.Table, apikey.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, senderprofile.APIKeyTable, senderprofile.APIKeyColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(spq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryPaymentOrders chains the current query on the "payment_orders" edge.
+func (spq *SenderProfileQuery) QueryPaymentOrders() *PaymentOrderQuery {
+	query := (&PaymentOrderClient{config: spq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := spq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := spq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(senderprofile.Table, senderprofile.FieldID, selector),
+			sqlgraph.To(paymentorder.Table, paymentorder.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, senderprofile.PaymentOrdersTable, senderprofile.PaymentOrdersColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(spq.driver.Dialect(), step)
 		return fromU, nil
@@ -270,12 +319,14 @@ func (spq *SenderProfileQuery) Clone() *SenderProfileQuery {
 		return nil
 	}
 	return &SenderProfileQuery{
-		config:     spq.config,
-		ctx:        spq.ctx.Clone(),
-		order:      append([]senderprofile.OrderOption{}, spq.order...),
-		inters:     append([]Interceptor{}, spq.inters...),
-		predicates: append([]predicate.SenderProfile{}, spq.predicates...),
-		withUser:   spq.withUser.Clone(),
+		config:            spq.config,
+		ctx:               spq.ctx.Clone(),
+		order:             append([]senderprofile.OrderOption{}, spq.order...),
+		inters:            append([]Interceptor{}, spq.inters...),
+		predicates:        append([]predicate.SenderProfile{}, spq.predicates...),
+		withUser:          spq.withUser.Clone(),
+		withAPIKey:        spq.withAPIKey.Clone(),
+		withPaymentOrders: spq.withPaymentOrders.Clone(),
 		// clone intermediate query.
 		sql:  spq.sql.Clone(),
 		path: spq.path,
@@ -290,6 +341,28 @@ func (spq *SenderProfileQuery) WithUser(opts ...func(*UserQuery)) *SenderProfile
 		opt(query)
 	}
 	spq.withUser = query
+	return spq
+}
+
+// WithAPIKey tells the query-builder to eager-load the nodes that are connected to
+// the "api_key" edge. The optional arguments are used to configure the query builder of the edge.
+func (spq *SenderProfileQuery) WithAPIKey(opts ...func(*APIKeyQuery)) *SenderProfileQuery {
+	query := (&APIKeyClient{config: spq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	spq.withAPIKey = query
+	return spq
+}
+
+// WithPaymentOrders tells the query-builder to eager-load the nodes that are connected to
+// the "payment_orders" edge. The optional arguments are used to configure the query builder of the edge.
+func (spq *SenderProfileQuery) WithPaymentOrders(opts ...func(*PaymentOrderQuery)) *SenderProfileQuery {
+	query := (&PaymentOrderClient{config: spq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	spq.withPaymentOrders = query
 	return spq
 }
 
@@ -372,8 +445,10 @@ func (spq *SenderProfileQuery) sqlAll(ctx context.Context, hooks ...queryHook) (
 		nodes       = []*SenderProfile{}
 		withFKs     = spq.withFKs
 		_spec       = spq.querySpec()
-		loadedTypes = [1]bool{
+		loadedTypes = [3]bool{
 			spq.withUser != nil,
+			spq.withAPIKey != nil,
+			spq.withPaymentOrders != nil,
 		}
 	)
 	if spq.withUser != nil {
@@ -403,6 +478,19 @@ func (spq *SenderProfileQuery) sqlAll(ctx context.Context, hooks ...queryHook) (
 	if query := spq.withUser; query != nil {
 		if err := spq.loadUser(ctx, query, nodes, nil,
 			func(n *SenderProfile, e *User) { n.Edges.User = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := spq.withAPIKey; query != nil {
+		if err := spq.loadAPIKey(ctx, query, nodes, nil,
+			func(n *SenderProfile, e *APIKey) { n.Edges.APIKey = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := spq.withPaymentOrders; query != nil {
+		if err := spq.loadPaymentOrders(ctx, query, nodes,
+			func(n *SenderProfile) { n.Edges.PaymentOrders = []*PaymentOrder{} },
+			func(n *SenderProfile, e *PaymentOrder) { n.Edges.PaymentOrders = append(n.Edges.PaymentOrders, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -438,6 +526,65 @@ func (spq *SenderProfileQuery) loadUser(ctx context.Context, query *UserQuery, n
 		for i := range nodes {
 			assign(nodes[i], n)
 		}
+	}
+	return nil
+}
+func (spq *SenderProfileQuery) loadAPIKey(ctx context.Context, query *APIKeyQuery, nodes []*SenderProfile, init func(*SenderProfile), assign func(*SenderProfile, *APIKey)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*SenderProfile)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+	}
+	query.withFKs = true
+	query.Where(predicate.APIKey(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(senderprofile.APIKeyColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.sender_profile_api_key
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "sender_profile_api_key" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "sender_profile_api_key" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (spq *SenderProfileQuery) loadPaymentOrders(ctx context.Context, query *PaymentOrderQuery, nodes []*SenderProfile, init func(*SenderProfile), assign func(*SenderProfile, *PaymentOrder)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*SenderProfile)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.PaymentOrder(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(senderprofile.PaymentOrdersColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.sender_profile_payment_orders
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "sender_profile_payment_orders" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "sender_profile_payment_orders" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
 	}
 	return nil
 }

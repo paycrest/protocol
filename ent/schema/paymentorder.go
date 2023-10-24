@@ -45,7 +45,7 @@ func (PaymentOrder) Fields() []ent.Field {
 // Edges of the PaymentOrder.
 func (PaymentOrder) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.From("api_key", APIKey.Type).
+		edge.From("sender_profile", SenderProfile.Type).
 			Ref("payment_orders").
 			Unique().
 			Required(),

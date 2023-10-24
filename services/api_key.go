@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"fmt"
 
-	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/ent"
 	"github.com/paycrest/paycrest-protocol/ent/user"
 	"github.com/paycrest/paycrest-protocol/storage"
@@ -22,7 +21,14 @@ func NewAPIKeyService() *APIKeyService {
 }
 
 // GenerateAPIKey generates a new API key for the user.
-func (s *APIKeyService) GenerateAPIKey(ctx context.Context, tx *ent.Tx, userID uuid.UUID) (*ent.APIKey, string, error) {
+func (s *APIKeyService) GenerateAPIKey(
+	ctx context.Context,
+	tx *ent.Tx,
+	sender *ent.SenderProfile,
+	provider *ent.ProviderProfile,
+	validator *ent.ValidatorProfile,
+) (*ent.APIKey, string, error) {
+
 	// Generate a new secret key
 	secretKey, err := token.GeneratePrivateKey()
 	if err != nil {

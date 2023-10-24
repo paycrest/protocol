@@ -33,8 +33,6 @@ const (
 	FieldScope = "scope"
 	// FieldIsVerified holds the string denoting the is_verified field in the database.
 	FieldIsVerified = "is_verified"
-	// EdgeAPIKeys holds the string denoting the api_keys edge name in mutations.
-	EdgeAPIKeys = "api_keys"
 	// EdgeSenderProfile holds the string denoting the sender_profile edge name in mutations.
 	EdgeSenderProfile = "sender_profile"
 	// EdgeProviderProfile holds the string denoting the provider_profile edge name in mutations.
@@ -45,13 +43,6 @@ const (
 	EdgeVerificationToken = "verification_token"
 	// Table holds the table name of the user in the database.
 	Table = "users"
-	// APIKeysTable is the table that holds the api_keys relation/edge.
-	APIKeysTable = "api_keys"
-	// APIKeysInverseTable is the table name for the APIKey entity.
-	// It exists in this package in order to avoid circular dependency with the "apikey" package.
-	APIKeysInverseTable = "api_keys"
-	// APIKeysColumn is the table column denoting the api_keys relation/edge.
-	APIKeysColumn = "user_api_keys"
 	// SenderProfileTable is the table that holds the sender_profile relation/edge.
 	SenderProfileTable = "sender_profiles"
 	// SenderProfileInverseTable is the table name for the SenderProfile entity.
@@ -200,20 +191,6 @@ func ByIsVerified(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldIsVerified, opts...).ToFunc()
 }
 
-// ByAPIKeysCount orders the results by api_keys count.
-func ByAPIKeysCount(opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newAPIKeysStep(), opts...)
-	}
-}
-
-// ByAPIKeys orders the results by api_keys terms.
-func ByAPIKeys(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newAPIKeysStep(), append([]sql.OrderTerm{term}, terms...)...)
-	}
-}
-
 // BySenderProfileField orders the results by sender_profile field.
 func BySenderProfileField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -247,13 +224,6 @@ func ByVerificationToken(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newVerificationTokenStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
-}
-func newAPIKeysStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(APIKeysInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, APIKeysTable, APIKeysColumn),
-	)
 }
 func newSenderProfileStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(

@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
+	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
 	"github.com/paycrest/paycrest-protocol/ent/validatorprofile"
@@ -91,6 +92,25 @@ func (vpu *ValidatorProfileUpdate) AddValidatedFulfillments(l ...*LockOrderFulfi
 	return vpu.AddValidatedFulfillmentIDs(ids...)
 }
 
+// SetAPIKeyID sets the "api_key" edge to the APIKey entity by ID.
+func (vpu *ValidatorProfileUpdate) SetAPIKeyID(id uuid.UUID) *ValidatorProfileUpdate {
+	vpu.mutation.SetAPIKeyID(id)
+	return vpu
+}
+
+// SetNillableAPIKeyID sets the "api_key" edge to the APIKey entity by ID if the given value is not nil.
+func (vpu *ValidatorProfileUpdate) SetNillableAPIKeyID(id *uuid.UUID) *ValidatorProfileUpdate {
+	if id != nil {
+		vpu = vpu.SetAPIKeyID(*id)
+	}
+	return vpu
+}
+
+// SetAPIKey sets the "api_key" edge to the APIKey entity.
+func (vpu *ValidatorProfileUpdate) SetAPIKey(a *APIKey) *ValidatorProfileUpdate {
+	return vpu.SetAPIKeyID(a.ID)
+}
+
 // Mutation returns the ValidatorProfileMutation object of the builder.
 func (vpu *ValidatorProfileUpdate) Mutation() *ValidatorProfileMutation {
 	return vpu.mutation
@@ -115,6 +135,12 @@ func (vpu *ValidatorProfileUpdate) RemoveValidatedFulfillments(l ...*LockOrderFu
 		ids[i] = l[i].ID
 	}
 	return vpu.RemoveValidatedFulfillmentIDs(ids...)
+}
+
+// ClearAPIKey clears the "api_key" edge to the APIKey entity.
+func (vpu *ValidatorProfileUpdate) ClearAPIKey() *ValidatorProfileUpdate {
+	vpu.mutation.ClearAPIKey()
+	return vpu
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -233,6 +259,35 @@ func (vpu *ValidatorProfileUpdate) sqlSave(ctx context.Context) (n int, err erro
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if vpu.mutation.APIKeyCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   validatorprofile.APIKeyTable,
+			Columns: []string{validatorprofile.APIKeyColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := vpu.mutation.APIKeyIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   validatorprofile.APIKeyTable,
+			Columns: []string{validatorprofile.APIKeyColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, vpu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{validatorprofile.Label}
@@ -314,6 +369,25 @@ func (vpuo *ValidatorProfileUpdateOne) AddValidatedFulfillments(l ...*LockOrderF
 	return vpuo.AddValidatedFulfillmentIDs(ids...)
 }
 
+// SetAPIKeyID sets the "api_key" edge to the APIKey entity by ID.
+func (vpuo *ValidatorProfileUpdateOne) SetAPIKeyID(id uuid.UUID) *ValidatorProfileUpdateOne {
+	vpuo.mutation.SetAPIKeyID(id)
+	return vpuo
+}
+
+// SetNillableAPIKeyID sets the "api_key" edge to the APIKey entity by ID if the given value is not nil.
+func (vpuo *ValidatorProfileUpdateOne) SetNillableAPIKeyID(id *uuid.UUID) *ValidatorProfileUpdateOne {
+	if id != nil {
+		vpuo = vpuo.SetAPIKeyID(*id)
+	}
+	return vpuo
+}
+
+// SetAPIKey sets the "api_key" edge to the APIKey entity.
+func (vpuo *ValidatorProfileUpdateOne) SetAPIKey(a *APIKey) *ValidatorProfileUpdateOne {
+	return vpuo.SetAPIKeyID(a.ID)
+}
+
 // Mutation returns the ValidatorProfileMutation object of the builder.
 func (vpuo *ValidatorProfileUpdateOne) Mutation() *ValidatorProfileMutation {
 	return vpuo.mutation
@@ -338,6 +412,12 @@ func (vpuo *ValidatorProfileUpdateOne) RemoveValidatedFulfillments(l ...*LockOrd
 		ids[i] = l[i].ID
 	}
 	return vpuo.RemoveValidatedFulfillmentIDs(ids...)
+}
+
+// ClearAPIKey clears the "api_key" edge to the APIKey entity.
+func (vpuo *ValidatorProfileUpdateOne) ClearAPIKey() *ValidatorProfileUpdateOne {
+	vpuo.mutation.ClearAPIKey()
+	return vpuo
 }
 
 // Where appends a list predicates to the ValidatorProfileUpdate builder.
@@ -479,6 +559,35 @@ func (vpuo *ValidatorProfileUpdateOne) sqlSave(ctx context.Context) (_node *Vali
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(lockorderfulfillment.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if vpuo.mutation.APIKeyCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   validatorprofile.APIKeyTable,
+			Columns: []string{validatorprofile.APIKeyColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := vpuo.mutation.APIKeyIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   validatorprofile.APIKeyTable,
+			Columns: []string{validatorprofile.APIKeyColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

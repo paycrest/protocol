@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
+	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/paycrest-protocol/ent/user"
 	"github.com/paycrest/paycrest-protocol/ent/validatorprofile"
@@ -117,6 +118,25 @@ func (vpc *ValidatorProfileCreate) AddValidatedFulfillments(l ...*LockOrderFulfi
 		ids[i] = l[i].ID
 	}
 	return vpc.AddValidatedFulfillmentIDs(ids...)
+}
+
+// SetAPIKeyID sets the "api_key" edge to the APIKey entity by ID.
+func (vpc *ValidatorProfileCreate) SetAPIKeyID(id uuid.UUID) *ValidatorProfileCreate {
+	vpc.mutation.SetAPIKeyID(id)
+	return vpc
+}
+
+// SetNillableAPIKeyID sets the "api_key" edge to the APIKey entity by ID if the given value is not nil.
+func (vpc *ValidatorProfileCreate) SetNillableAPIKeyID(id *uuid.UUID) *ValidatorProfileCreate {
+	if id != nil {
+		vpc = vpc.SetAPIKeyID(*id)
+	}
+	return vpc
+}
+
+// SetAPIKey sets the "api_key" edge to the APIKey entity.
+func (vpc *ValidatorProfileCreate) SetAPIKey(a *APIKey) *ValidatorProfileCreate {
+	return vpc.SetAPIKeyID(a.ID)
 }
 
 // Mutation returns the ValidatorProfileMutation object of the builder.
@@ -256,6 +276,22 @@ func (vpc *ValidatorProfileCreate) createSpec() (*ValidatorProfile, *sqlgraph.Cr
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(lockorderfulfillment.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := vpc.mutation.APIKeyIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   validatorprofile.APIKeyTable,
+			Columns: []string{validatorprofile.APIKeyColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(apikey.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

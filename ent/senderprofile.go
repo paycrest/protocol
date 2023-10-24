@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
+	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/senderprofile"
 	"github.com/paycrest/paycrest-protocol/ent/user"
 )
@@ -34,9 +35,13 @@ type SenderProfile struct {
 type SenderProfileEdges struct {
 	// User holds the value of the user edge.
 	User *User `json:"user,omitempty"`
+	// APIKey holds the value of the api_key edge.
+	APIKey *APIKey `json:"api_key,omitempty"`
+	// PaymentOrders holds the value of the payment_orders edge.
+	PaymentOrders []*PaymentOrder `json:"payment_orders,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [3]bool
 }
 
 // UserOrErr returns the User value or an error if the edge
@@ -50,6 +55,28 @@ func (e SenderProfileEdges) UserOrErr() (*User, error) {
 		return e.User, nil
 	}
 	return nil, &NotLoadedError{edge: "user"}
+}
+
+// APIKeyOrErr returns the APIKey value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e SenderProfileEdges) APIKeyOrErr() (*APIKey, error) {
+	if e.loadedTypes[1] {
+		if e.APIKey == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: apikey.Label}
+		}
+		return e.APIKey, nil
+	}
+	return nil, &NotLoadedError{edge: "api_key"}
+}
+
+// PaymentOrdersOrErr returns the PaymentOrders value or an error if the edge
+// was not loaded in eager-loading.
+func (e SenderProfileEdges) PaymentOrdersOrErr() ([]*PaymentOrder, error) {
+	if e.loadedTypes[2] {
+		return e.PaymentOrders, nil
+	}
+	return nil, &NotLoadedError{edge: "payment_orders"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -123,6 +150,16 @@ func (sp *SenderProfile) Value(name string) (ent.Value, error) {
 // QueryUser queries the "user" edge of the SenderProfile entity.
 func (sp *SenderProfile) QueryUser() *UserQuery {
 	return NewSenderProfileClient(sp.config).QueryUser(sp)
+}
+
+// QueryAPIKey queries the "api_key" edge of the SenderProfile entity.
+func (sp *SenderProfile) QueryAPIKey() *APIKeyQuery {
+	return NewSenderProfileClient(sp.config).QueryAPIKey(sp)
+}
+
+// QueryPaymentOrders queries the "payment_orders" edge of the SenderProfile entity.
+func (sp *SenderProfile) QueryPaymentOrders() *PaymentOrderQuery {
+	return NewSenderProfileClient(sp.config).QueryPaymentOrders(sp)
 }
 
 // Update returns a builder for updating this SenderProfile.
