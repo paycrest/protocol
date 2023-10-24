@@ -6,8 +6,7 @@ import (
 	"fmt"
 
 	"github.com/paycrest/paycrest-protocol/ent"
-	"github.com/paycrest/paycrest-protocol/ent/user"
-	"github.com/paycrest/paycrest-protocol/storage"
+	"github.com/paycrest/paycrest-protocol/types"
 	"github.com/paycrest/paycrest-protocol/utils/crypto"
 	"github.com/paycrest/paycrest-protocol/utils/token"
 )
@@ -28,7 +27,6 @@ func (s *APIKeyService) GenerateAPIKey(
 	provider *ent.ProviderProfile,
 	validator *ent.ValidatorProfile,
 ) (*ent.APIKey, string, error) {
-
 	// Generate a new secret key
 	secretKey, err := token.GeneratePrivateKey()
 	if err != nil {
@@ -36,55 +34,91 @@ func (s *APIKeyService) GenerateAPIKey(
 	}
 
 	// Encrypt the secret key
-	encryptedSecret, err := crypto.EncryptPlain([]byte(secretKey))
-	if err != nil {
-		return nil, "", fmt.Errorf("failed to encrypt API key: %w", err)
-	}
-
-	// Encode the encrypted secret to base64
+	encryptedSecret, _ := crypto.EncryptPlain([]byte(secretKey))
 	encodedSecret := base64.StdEncoding.EncodeToString(encryptedSecret)
 
 	var apiKey *ent.APIKey
 
-	if tx == nil {
-		// Fetch the User entity from the database using the userID value
-		user, err := storage.Client.User.
-			Query().
-			Where(user.IDEQ(userID)).
-			Only(ctx)
-		if err != nil {
-			return nil, "", fmt.Errorf("failed to fetch user: %w", err)
-		}
-
-		// Create a new APIKey entity
-		apiKey, err = storage.Client.APIKey.
+	if sender != nil {
+		apiKey, err := tx.APIKey.
 			Create().
 			SetSecret(encodedSecret).
-			SetOwner(user).
+			SetSenderProfile(sender).
+			Save(ctx)
+		if err != nil {
+			return nil, "", fmt.Errorf("failed to create API key: %w", err)
+		}
+		_, err = sender.
+			Update().
+			SetAPIKey(apiKey).
+			Save(ctx)
+		if err != nil {
+			return nil, "", fmt.Errorf("failed to create API key: %w", err)
+		}
+	} else if provider != nil {
+		apiKey, err := tx.APIKey.
+			Create().
+			SetSecret(encodedSecret).
+			SetProviderProfile(provider).
+			Save(ctx)
+		if err != nil {
+			return nil, "", fmt.Errorf("failed to create API key: %w", err)
+		}
+		_, err = provider.
+			Update().
+			SetAPIKey(apiKey).
+			Save(ctx)
+		if err != nil {
+			return nil, "", fmt.Errorf("failed to create API key: %w", err)
+		}
+	} else if validator != nil {
+		apiKey, err := tx.APIKey.
+			Create().
+			SetSecret(encodedSecret).
+			SetValidatorProfile(validator).
+			Save(ctx)
+		if err != nil {
+			return nil, "", fmt.Errorf("failed to create API key: %w", err)
+		}
+		_, err = validator.
+			Update().
+			SetAPIKey(apiKey).
 			Save(ctx)
 		if err != nil {
 			return nil, "", fmt.Errorf("failed to create API key: %w", err)
 		}
 	} else {
-		// Fetch the User entity from the database using the userID value
-		user, err := tx.User.
-			Query().
-			Where(user.IDEQ(userID)).
-			Only(ctx)
-		if err != nil {
-			return nil, "", fmt.Errorf("failed to fetch user: %w", err)
-		}
-
-		// Create a new APIKey entity
-		apiKey, err = tx.APIKey.
-			Create().
-			SetSecret(encodedSecret).
-			SetOwner(user).
-			Save(ctx)
-		if err != nil {
-			return nil, "", fmt.Errorf("failed to create API key: %w", err)
-		}
+		return nil, "", fmt.Errorf("profile not provided")
 	}
 
 	return apiKey, secretKey, nil
+}
+
+// GetAPIKey gets the API key for a user profile.
+func (s *APIKeyService) GetAPIKey(
+	ctx context.Context,
+	sender *ent.SenderProfile,
+	provider *ent.ProviderProfile,
+	validator *ent.ValidatorProfile,
+) (*types.APIKeyResponse, error) {
+	var apiKey *ent.APIKey
+
+	if sender != nil {
+		apiKey, _ = sender.QueryAPIKey().Only(ctx)
+	} else if provider != nil {
+		apiKey, _ = provider.QueryAPIKey().Only(ctx)
+	} else if validator != nil {
+		apiKey, _ = validator.QueryAPIKey().Only(ctx)
+	} else {
+		return nil, fmt.Errorf("profile not provided")
+	}
+
+	// Decrypt the secret key
+	decodedSecret, _ := base64.StdEncoding.DecodeString(apiKey.Secret)
+	decryptedSecret, _ := crypto.DecryptPlain(decodedSecret)
+
+	return &types.APIKeyResponse{
+		ID:     apiKey.ID,
+		Secret: string(decryptedSecret),
+	}, nil
 }

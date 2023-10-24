@@ -339,9 +339,7 @@ func (ctrl *AuthController) ListAPIKeys(ctx *gin.Context) {
 		}
 		apiKeyResponses[i] = types.APIKeyResponse{
 			ID:        apiKey.ID,
-			CreatedAt: apiKey.CreatedAt,
 			Secret:    string(decryptedSecret),
-			IsActive:  apiKey.IsActive,
 		}
 	}
 

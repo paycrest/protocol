@@ -282,6 +282,24 @@ func (ctrl *ProfileController) GetProviderProfile(ctx *gin.Context) {
 		return
 	}
 
+	apiKey, err := provider.QueryAPIKey().Only(ctx)
+
+		// Decode the stored secret key to bytes
+		decodedSecret, err := base64.StdEncoding.DecodeString(apiKey.Secret)
+		if err != nil {
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to decode API key", nil)
+			return
+		}
+
+		// Decrypt the decoded secret
+		decryptedSecret, err := crypto.DecryptPlain(decodedSecret)
+		if err != nil {
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to decrypt API key", nil)
+			return
+		}
+
 	u.APIResponse(ctx, http.StatusOK, "success", "Profile retrieved successfully", &types.ProviderProfileResponse{
 		ID:             provider.ID,
 		TradingName:    provider.TradingName,
@@ -290,6 +308,10 @@ func (ctrl *ProfileController) GetProviderProfile(ctx *gin.Context) {
 		IsPartner:      provider.IsPartner,
 		Availability:   availability,
 		Tokens:         tokens,
+		APIKey: types.APIKeyResponse{
+			ID:     apiKey.ID,
+			Secret: string(decryptedSecret),
+		},
 	})
 }
 
