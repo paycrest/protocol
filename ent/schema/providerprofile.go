@@ -44,7 +44,8 @@ func (ProviderProfile) Edges() []ent.Edge {
 			Required().
 			Immutable(),
 		edge.To("api_key", APIKey.Type).
-			Unique(),
+			Unique().
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.From("currency", FiatCurrency.Type).
 			Ref("provider").
 			Unique().

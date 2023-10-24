@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
@@ -40,6 +41,7 @@ func (ValidatorProfile) Edges() []ent.Edge {
 		edge.From("validated_fulfillments", LockOrderFulfillment.Type).
 			Ref("validators"),
 		edge.To("api_key", APIKey.Type).
-			Unique(),
+			Unique().
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }

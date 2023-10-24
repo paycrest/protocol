@@ -38,7 +38,8 @@ func (SenderProfile) Edges() []ent.Edge {
 			Required().
 			Immutable(),
 		edge.To("api_key", APIKey.Type).
-			Unique(),
+			Unique().
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("payment_orders", PaymentOrder.Type).
 			Annotations(entsql.OnDelete(entsql.SetNull)),
 	}
