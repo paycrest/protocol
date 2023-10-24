@@ -24,34 +24,6 @@ type ValidatorProfileCreate struct {
 	hooks    []Hook
 }
 
-// SetCreatedAt sets the "created_at" field.
-func (vpc *ValidatorProfileCreate) SetCreatedAt(t time.Time) *ValidatorProfileCreate {
-	vpc.mutation.SetCreatedAt(t)
-	return vpc
-}
-
-// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
-func (vpc *ValidatorProfileCreate) SetNillableCreatedAt(t *time.Time) *ValidatorProfileCreate {
-	if t != nil {
-		vpc.SetCreatedAt(*t)
-	}
-	return vpc
-}
-
-// SetUpdatedAt sets the "updated_at" field.
-func (vpc *ValidatorProfileCreate) SetUpdatedAt(t time.Time) *ValidatorProfileCreate {
-	vpc.mutation.SetUpdatedAt(t)
-	return vpc
-}
-
-// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
-func (vpc *ValidatorProfileCreate) SetNillableUpdatedAt(t *time.Time) *ValidatorProfileCreate {
-	if t != nil {
-		vpc.SetUpdatedAt(*t)
-	}
-	return vpc
-}
-
 // SetWalletAddress sets the "wallet_address" field.
 func (vpc *ValidatorProfileCreate) SetWalletAddress(s string) *ValidatorProfileCreate {
 	vpc.mutation.SetWalletAddress(s)
@@ -76,6 +48,20 @@ func (vpc *ValidatorProfileCreate) SetHostIdentifier(s string) *ValidatorProfile
 func (vpc *ValidatorProfileCreate) SetNillableHostIdentifier(s *string) *ValidatorProfileCreate {
 	if s != nil {
 		vpc.SetHostIdentifier(*s)
+	}
+	return vpc
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (vpc *ValidatorProfileCreate) SetUpdatedAt(t time.Time) *ValidatorProfileCreate {
+	vpc.mutation.SetUpdatedAt(t)
+	return vpc
+}
+
+// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
+func (vpc *ValidatorProfileCreate) SetNillableUpdatedAt(t *time.Time) *ValidatorProfileCreate {
+	if t != nil {
+		vpc.SetUpdatedAt(*t)
 	}
 	return vpc
 }
@@ -174,10 +160,6 @@ func (vpc *ValidatorProfileCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (vpc *ValidatorProfileCreate) defaults() {
-	if _, ok := vpc.mutation.CreatedAt(); !ok {
-		v := validatorprofile.DefaultCreatedAt()
-		vpc.mutation.SetCreatedAt(v)
-	}
 	if _, ok := vpc.mutation.UpdatedAt(); !ok {
 		v := validatorprofile.DefaultUpdatedAt()
 		vpc.mutation.SetUpdatedAt(v)
@@ -190,9 +172,6 @@ func (vpc *ValidatorProfileCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (vpc *ValidatorProfileCreate) check() error {
-	if _, ok := vpc.mutation.CreatedAt(); !ok {
-		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "ValidatorProfile.created_at"`)}
-	}
 	if _, ok := vpc.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "ValidatorProfile.updated_at"`)}
 	}
@@ -234,14 +213,6 @@ func (vpc *ValidatorProfileCreate) createSpec() (*ValidatorProfile, *sqlgraph.Cr
 		_node.ID = id
 		_spec.ID.Value = &id
 	}
-	if value, ok := vpc.mutation.CreatedAt(); ok {
-		_spec.SetField(validatorprofile.FieldCreatedAt, field.TypeTime, value)
-		_node.CreatedAt = value
-	}
-	if value, ok := vpc.mutation.UpdatedAt(); ok {
-		_spec.SetField(validatorprofile.FieldUpdatedAt, field.TypeTime, value)
-		_node.UpdatedAt = value
-	}
 	if value, ok := vpc.mutation.WalletAddress(); ok {
 		_spec.SetField(validatorprofile.FieldWalletAddress, field.TypeString, value)
 		_node.WalletAddress = value
@@ -249,6 +220,10 @@ func (vpc *ValidatorProfileCreate) createSpec() (*ValidatorProfile, *sqlgraph.Cr
 	if value, ok := vpc.mutation.HostIdentifier(); ok {
 		_spec.SetField(validatorprofile.FieldHostIdentifier, field.TypeString, value)
 		_node.HostIdentifier = value
+	}
+	if value, ok := vpc.mutation.UpdatedAt(); ok {
+		_spec.SetField(validatorprofile.FieldUpdatedAt, field.TypeTime, value)
+		_node.UpdatedAt = value
 	}
 	if nodes := vpc.mutation.UserIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

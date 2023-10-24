@@ -3,6 +3,8 @@
 package senderprofile
 
 import (
+	"time"
+
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/google/uuid"
@@ -17,6 +19,8 @@ const (
 	FieldWebhookURL = "webhook_url"
 	// FieldDomainWhitelist holds the string denoting the domain_whitelist field in the database.
 	FieldDomainWhitelist = "domain_whitelist"
+	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
+	FieldUpdatedAt = "updated_at"
 	// EdgeUser holds the string denoting the user edge name in mutations.
 	EdgeUser = "user"
 	// EdgeAPIKey holds the string denoting the api_key edge name in mutations.
@@ -53,6 +57,7 @@ var Columns = []string{
 	FieldID,
 	FieldWebhookURL,
 	FieldDomainWhitelist,
+	FieldUpdatedAt,
 }
 
 // ForeignKeys holds the SQL foreign-keys that are owned by the "sender_profiles"
@@ -79,6 +84,10 @@ func ValidColumn(column string) bool {
 var (
 	// DefaultDomainWhitelist holds the default value on creation for the "domain_whitelist" field.
 	DefaultDomainWhitelist []string
+	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
+	DefaultUpdatedAt func() time.Time
+	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
+	UpdateDefaultUpdatedAt func() time.Time
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() uuid.UUID
 )
@@ -94,6 +103,11 @@ func ByID(opts ...sql.OrderTermOption) OrderOption {
 // ByWebhookURL orders the results by the webhook_url field.
 func ByWebhookURL(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldWebhookURL, opts...).ToFunc()
+}
+
+// ByUpdatedAt orders the results by the updated_at field.
+func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUpdatedAt, opts...).ToFunc()
 }
 
 // ByUserField orders the results by user field.

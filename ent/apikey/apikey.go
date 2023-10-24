@@ -3,8 +3,6 @@
 package apikey
 
 import (
-	"time"
-
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/google/uuid"
@@ -17,10 +15,6 @@ const (
 	FieldID = "id"
 	// FieldSecret holds the string denoting the secret field in the database.
 	FieldSecret = "secret"
-	// FieldIsActive holds the string denoting the is_active field in the database.
-	FieldIsActive = "is_active"
-	// FieldCreatedAt holds the string denoting the created_at field in the database.
-	FieldCreatedAt = "created_at"
 	// EdgeSenderProfile holds the string denoting the sender_profile edge name in mutations.
 	EdgeSenderProfile = "sender_profile"
 	// EdgeProviderProfile holds the string denoting the provider_profile edge name in mutations.
@@ -65,8 +59,6 @@ const (
 var Columns = []string{
 	FieldID,
 	FieldSecret,
-	FieldIsActive,
-	FieldCreatedAt,
 }
 
 // ForeignKeys holds the SQL foreign-keys that are owned by the "api_keys"
@@ -95,10 +87,6 @@ func ValidColumn(column string) bool {
 var (
 	// SecretValidator is a validator for the "secret" field. It is called by the builders before save.
 	SecretValidator func(string) error
-	// DefaultIsActive holds the default value on creation for the "is_active" field.
-	DefaultIsActive bool
-	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
-	DefaultCreatedAt func() time.Time
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() uuid.UUID
 )
@@ -114,16 +102,6 @@ func ByID(opts ...sql.OrderTermOption) OrderOption {
 // BySecret orders the results by the secret field.
 func BySecret(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSecret, opts...).ToFunc()
-}
-
-// ByIsActive orders the results by the is_active field.
-func ByIsActive(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldIsActive, opts...).ToFunc()
-}
-
-// ByCreatedAt orders the results by the created_at field.
-func ByCreatedAt(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldCreatedAt, opts...).ToFunc()
 }
 
 // BySenderProfileField orders the results by sender_profile field.

@@ -36,12 +36,6 @@ func (ppu *ProviderProfileUpdate) Where(ps ...predicate.ProviderProfile) *Provid
 	return ppu
 }
 
-// SetUpdatedAt sets the "updated_at" field.
-func (ppu *ProviderProfileUpdate) SetUpdatedAt(t time.Time) *ProviderProfileUpdate {
-	ppu.mutation.SetUpdatedAt(t)
-	return ppu
-}
-
 // SetTradingName sets the "trading_name" field.
 func (ppu *ProviderProfileUpdate) SetTradingName(s string) *ProviderProfileUpdate {
 	ppu.mutation.SetTradingName(s)
@@ -93,6 +87,12 @@ func (ppu *ProviderProfileUpdate) SetNillableIsPartner(b *bool) *ProviderProfile
 	if b != nil {
 		ppu.SetIsPartner(*b)
 	}
+	return ppu
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (ppu *ProviderProfileUpdate) SetUpdatedAt(t time.Time) *ProviderProfileUpdate {
+	ppu.mutation.SetUpdatedAt(t)
 	return ppu
 }
 
@@ -370,9 +370,6 @@ func (ppu *ProviderProfileUpdate) sqlSave(ctx context.Context) (n int, err error
 			}
 		}
 	}
-	if value, ok := ppu.mutation.UpdatedAt(); ok {
-		_spec.SetField(providerprofile.FieldUpdatedAt, field.TypeTime, value)
-	}
 	if value, ok := ppu.mutation.TradingName(); ok {
 		_spec.SetField(providerprofile.FieldTradingName, field.TypeString, value)
 	}
@@ -387,6 +384,9 @@ func (ppu *ProviderProfileUpdate) sqlSave(ctx context.Context) (n int, err error
 	}
 	if value, ok := ppu.mutation.IsPartner(); ok {
 		_spec.SetField(providerprofile.FieldIsPartner, field.TypeBool, value)
+	}
+	if value, ok := ppu.mutation.UpdatedAt(); ok {
+		_spec.SetField(providerprofile.FieldUpdatedAt, field.TypeTime, value)
 	}
 	if ppu.mutation.APIKeyCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -659,12 +659,6 @@ type ProviderProfileUpdateOne struct {
 	mutation *ProviderProfileMutation
 }
 
-// SetUpdatedAt sets the "updated_at" field.
-func (ppuo *ProviderProfileUpdateOne) SetUpdatedAt(t time.Time) *ProviderProfileUpdateOne {
-	ppuo.mutation.SetUpdatedAt(t)
-	return ppuo
-}
-
 // SetTradingName sets the "trading_name" field.
 func (ppuo *ProviderProfileUpdateOne) SetTradingName(s string) *ProviderProfileUpdateOne {
 	ppuo.mutation.SetTradingName(s)
@@ -716,6 +710,12 @@ func (ppuo *ProviderProfileUpdateOne) SetNillableIsPartner(b *bool) *ProviderPro
 	if b != nil {
 		ppuo.SetIsPartner(*b)
 	}
+	return ppuo
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (ppuo *ProviderProfileUpdateOne) SetUpdatedAt(t time.Time) *ProviderProfileUpdateOne {
+	ppuo.mutation.SetUpdatedAt(t)
 	return ppuo
 }
 
@@ -1023,9 +1023,6 @@ func (ppuo *ProviderProfileUpdateOne) sqlSave(ctx context.Context) (_node *Provi
 			}
 		}
 	}
-	if value, ok := ppuo.mutation.UpdatedAt(); ok {
-		_spec.SetField(providerprofile.FieldUpdatedAt, field.TypeTime, value)
-	}
 	if value, ok := ppuo.mutation.TradingName(); ok {
 		_spec.SetField(providerprofile.FieldTradingName, field.TypeString, value)
 	}
@@ -1040,6 +1037,9 @@ func (ppuo *ProviderProfileUpdateOne) sqlSave(ctx context.Context) (_node *Provi
 	}
 	if value, ok := ppuo.mutation.IsPartner(); ok {
 		_spec.SetField(providerprofile.FieldIsPartner, field.TypeBool, value)
+	}
+	if value, ok := ppuo.mutation.UpdatedAt(); ok {
+		_spec.SetField(providerprofile.FieldUpdatedAt, field.TypeTime, value)
 	}
 	if ppuo.mutation.APIKeyCleared() {
 		edge := &sqlgraph.EdgeSpec{

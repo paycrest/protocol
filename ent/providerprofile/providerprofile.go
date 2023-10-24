@@ -15,10 +15,6 @@ const (
 	Label = "provider_profile"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
-	// FieldCreatedAt holds the string denoting the created_at field in the database.
-	FieldCreatedAt = "created_at"
-	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
-	FieldUpdatedAt = "updated_at"
 	// FieldTradingName holds the string denoting the trading_name field in the database.
 	FieldTradingName = "trading_name"
 	// FieldHostIdentifier holds the string denoting the host_identifier field in the database.
@@ -27,6 +23,8 @@ const (
 	FieldProvisionMode = "provision_mode"
 	// FieldIsPartner holds the string denoting the is_partner field in the database.
 	FieldIsPartner = "is_partner"
+	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
+	FieldUpdatedAt = "updated_at"
 	// EdgeUser holds the string denoting the user edge name in mutations.
 	EdgeUser = "user"
 	// EdgeAPIKey holds the string denoting the api_key edge name in mutations.
@@ -104,12 +102,11 @@ const (
 // Columns holds all SQL columns for providerprofile fields.
 var Columns = []string{
 	FieldID,
-	FieldCreatedAt,
-	FieldUpdatedAt,
 	FieldTradingName,
 	FieldHostIdentifier,
 	FieldProvisionMode,
 	FieldIsPartner,
+	FieldUpdatedAt,
 }
 
 // ForeignKeys holds the SQL foreign-keys that are owned by the "provider_profiles"
@@ -141,16 +138,14 @@ func ValidColumn(column string) bool {
 }
 
 var (
-	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
-	DefaultCreatedAt func() time.Time
-	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
-	DefaultUpdatedAt func() time.Time
-	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
-	UpdateDefaultUpdatedAt func() time.Time
 	// TradingNameValidator is a validator for the "trading_name" field. It is called by the builders before save.
 	TradingNameValidator func(string) error
 	// DefaultIsPartner holds the default value on creation for the "is_partner" field.
 	DefaultIsPartner bool
+	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
+	DefaultUpdatedAt func() time.Time
+	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
+	UpdateDefaultUpdatedAt func() time.Time
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
@@ -189,16 +184,6 @@ func ByID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldID, opts...).ToFunc()
 }
 
-// ByCreatedAt orders the results by the created_at field.
-func ByCreatedAt(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldCreatedAt, opts...).ToFunc()
-}
-
-// ByUpdatedAt orders the results by the updated_at field.
-func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldUpdatedAt, opts...).ToFunc()
-}
-
 // ByTradingName orders the results by the trading_name field.
 func ByTradingName(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldTradingName, opts...).ToFunc()
@@ -217,6 +202,11 @@ func ByProvisionMode(opts ...sql.OrderTermOption) OrderOption {
 // ByIsPartner orders the results by the is_partner field.
 func ByIsPartner(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldIsPartner, opts...).ToFunc()
+}
+
+// ByUpdatedAt orders the results by the updated_at field.
+func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUpdatedAt, opts...).ToFunc()
 }
 
 // ByUserField orders the results by user field.

@@ -29,34 +29,6 @@ type ProviderProfileCreate struct {
 	hooks    []Hook
 }
 
-// SetCreatedAt sets the "created_at" field.
-func (ppc *ProviderProfileCreate) SetCreatedAt(t time.Time) *ProviderProfileCreate {
-	ppc.mutation.SetCreatedAt(t)
-	return ppc
-}
-
-// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
-func (ppc *ProviderProfileCreate) SetNillableCreatedAt(t *time.Time) *ProviderProfileCreate {
-	if t != nil {
-		ppc.SetCreatedAt(*t)
-	}
-	return ppc
-}
-
-// SetUpdatedAt sets the "updated_at" field.
-func (ppc *ProviderProfileCreate) SetUpdatedAt(t time.Time) *ProviderProfileCreate {
-	ppc.mutation.SetUpdatedAt(t)
-	return ppc
-}
-
-// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
-func (ppc *ProviderProfileCreate) SetNillableUpdatedAt(t *time.Time) *ProviderProfileCreate {
-	if t != nil {
-		ppc.SetUpdatedAt(*t)
-	}
-	return ppc
-}
-
 // SetTradingName sets the "trading_name" field.
 func (ppc *ProviderProfileCreate) SetTradingName(s string) *ProviderProfileCreate {
 	ppc.mutation.SetTradingName(s)
@@ -101,6 +73,20 @@ func (ppc *ProviderProfileCreate) SetIsPartner(b bool) *ProviderProfileCreate {
 func (ppc *ProviderProfileCreate) SetNillableIsPartner(b *bool) *ProviderProfileCreate {
 	if b != nil {
 		ppc.SetIsPartner(*b)
+	}
+	return ppc
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (ppc *ProviderProfileCreate) SetUpdatedAt(t time.Time) *ProviderProfileCreate {
+	ppc.mutation.SetUpdatedAt(t)
+	return ppc
+}
+
+// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
+func (ppc *ProviderProfileCreate) SetNillableUpdatedAt(t *time.Time) *ProviderProfileCreate {
+	if t != nil {
+		ppc.SetUpdatedAt(*t)
 	}
 	return ppc
 }
@@ -278,14 +264,6 @@ func (ppc *ProviderProfileCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (ppc *ProviderProfileCreate) defaults() {
-	if _, ok := ppc.mutation.CreatedAt(); !ok {
-		v := providerprofile.DefaultCreatedAt()
-		ppc.mutation.SetCreatedAt(v)
-	}
-	if _, ok := ppc.mutation.UpdatedAt(); !ok {
-		v := providerprofile.DefaultUpdatedAt()
-		ppc.mutation.SetUpdatedAt(v)
-	}
 	if _, ok := ppc.mutation.ProvisionMode(); !ok {
 		v := providerprofile.DefaultProvisionMode
 		ppc.mutation.SetProvisionMode(v)
@@ -293,6 +271,10 @@ func (ppc *ProviderProfileCreate) defaults() {
 	if _, ok := ppc.mutation.IsPartner(); !ok {
 		v := providerprofile.DefaultIsPartner
 		ppc.mutation.SetIsPartner(v)
+	}
+	if _, ok := ppc.mutation.UpdatedAt(); !ok {
+		v := providerprofile.DefaultUpdatedAt()
+		ppc.mutation.SetUpdatedAt(v)
 	}
 	if _, ok := ppc.mutation.ID(); !ok {
 		v := providerprofile.DefaultID()
@@ -302,12 +284,6 @@ func (ppc *ProviderProfileCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (ppc *ProviderProfileCreate) check() error {
-	if _, ok := ppc.mutation.CreatedAt(); !ok {
-		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "ProviderProfile.created_at"`)}
-	}
-	if _, ok := ppc.mutation.UpdatedAt(); !ok {
-		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "ProviderProfile.updated_at"`)}
-	}
 	if _, ok := ppc.mutation.TradingName(); !ok {
 		return &ValidationError{Name: "trading_name", err: errors.New(`ent: missing required field "ProviderProfile.trading_name"`)}
 	}
@@ -326,6 +302,9 @@ func (ppc *ProviderProfileCreate) check() error {
 	}
 	if _, ok := ppc.mutation.IsPartner(); !ok {
 		return &ValidationError{Name: "is_partner", err: errors.New(`ent: missing required field "ProviderProfile.is_partner"`)}
+	}
+	if _, ok := ppc.mutation.UpdatedAt(); !ok {
+		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "ProviderProfile.updated_at"`)}
 	}
 	if _, ok := ppc.mutation.UserID(); !ok {
 		return &ValidationError{Name: "user", err: errors.New(`ent: missing required edge "ProviderProfile.user"`)}
@@ -368,14 +347,6 @@ func (ppc *ProviderProfileCreate) createSpec() (*ProviderProfile, *sqlgraph.Crea
 		_node.ID = id
 		_spec.ID.Value = id
 	}
-	if value, ok := ppc.mutation.CreatedAt(); ok {
-		_spec.SetField(providerprofile.FieldCreatedAt, field.TypeTime, value)
-		_node.CreatedAt = value
-	}
-	if value, ok := ppc.mutation.UpdatedAt(); ok {
-		_spec.SetField(providerprofile.FieldUpdatedAt, field.TypeTime, value)
-		_node.UpdatedAt = value
-	}
 	if value, ok := ppc.mutation.TradingName(); ok {
 		_spec.SetField(providerprofile.FieldTradingName, field.TypeString, value)
 		_node.TradingName = value
@@ -391,6 +362,10 @@ func (ppc *ProviderProfileCreate) createSpec() (*ProviderProfile, *sqlgraph.Crea
 	if value, ok := ppc.mutation.IsPartner(); ok {
 		_spec.SetField(providerprofile.FieldIsPartner, field.TypeBool, value)
 		_node.IsPartner = value
+	}
+	if value, ok := ppc.mutation.UpdatedAt(); ok {
+		_spec.SetField(providerprofile.FieldUpdatedAt, field.TypeTime, value)
+		_node.UpdatedAt = value
 	}
 	if nodes := ppc.mutation.UserIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

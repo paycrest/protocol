@@ -3,8 +3,6 @@
 package apikey
 
 import (
-	"time"
-
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/google/uuid"
@@ -59,16 +57,6 @@ func IDLTE(id uuid.UUID) predicate.APIKey {
 // Secret applies equality check predicate on the "secret" field. It's identical to SecretEQ.
 func Secret(v string) predicate.APIKey {
 	return predicate.APIKey(sql.FieldEQ(FieldSecret, v))
-}
-
-// IsActive applies equality check predicate on the "is_active" field. It's identical to IsActiveEQ.
-func IsActive(v bool) predicate.APIKey {
-	return predicate.APIKey(sql.FieldEQ(FieldIsActive, v))
-}
-
-// CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
-func CreatedAt(v time.Time) predicate.APIKey {
-	return predicate.APIKey(sql.FieldEQ(FieldCreatedAt, v))
 }
 
 // SecretEQ applies the EQ predicate on the "secret" field.
@@ -134,56 +122,6 @@ func SecretEqualFold(v string) predicate.APIKey {
 // SecretContainsFold applies the ContainsFold predicate on the "secret" field.
 func SecretContainsFold(v string) predicate.APIKey {
 	return predicate.APIKey(sql.FieldContainsFold(FieldSecret, v))
-}
-
-// IsActiveEQ applies the EQ predicate on the "is_active" field.
-func IsActiveEQ(v bool) predicate.APIKey {
-	return predicate.APIKey(sql.FieldEQ(FieldIsActive, v))
-}
-
-// IsActiveNEQ applies the NEQ predicate on the "is_active" field.
-func IsActiveNEQ(v bool) predicate.APIKey {
-	return predicate.APIKey(sql.FieldNEQ(FieldIsActive, v))
-}
-
-// CreatedAtEQ applies the EQ predicate on the "created_at" field.
-func CreatedAtEQ(v time.Time) predicate.APIKey {
-	return predicate.APIKey(sql.FieldEQ(FieldCreatedAt, v))
-}
-
-// CreatedAtNEQ applies the NEQ predicate on the "created_at" field.
-func CreatedAtNEQ(v time.Time) predicate.APIKey {
-	return predicate.APIKey(sql.FieldNEQ(FieldCreatedAt, v))
-}
-
-// CreatedAtIn applies the In predicate on the "created_at" field.
-func CreatedAtIn(vs ...time.Time) predicate.APIKey {
-	return predicate.APIKey(sql.FieldIn(FieldCreatedAt, vs...))
-}
-
-// CreatedAtNotIn applies the NotIn predicate on the "created_at" field.
-func CreatedAtNotIn(vs ...time.Time) predicate.APIKey {
-	return predicate.APIKey(sql.FieldNotIn(FieldCreatedAt, vs...))
-}
-
-// CreatedAtGT applies the GT predicate on the "created_at" field.
-func CreatedAtGT(v time.Time) predicate.APIKey {
-	return predicate.APIKey(sql.FieldGT(FieldCreatedAt, v))
-}
-
-// CreatedAtGTE applies the GTE predicate on the "created_at" field.
-func CreatedAtGTE(v time.Time) predicate.APIKey {
-	return predicate.APIKey(sql.FieldGTE(FieldCreatedAt, v))
-}
-
-// CreatedAtLT applies the LT predicate on the "created_at" field.
-func CreatedAtLT(v time.Time) predicate.APIKey {
-	return predicate.APIKey(sql.FieldLT(FieldCreatedAt, v))
-}
-
-// CreatedAtLTE applies the LTE predicate on the "created_at" field.
-func CreatedAtLTE(v time.Time) predicate.APIKey {
-	return predicate.APIKey(sql.FieldLTE(FieldCreatedAt, v))
 }
 
 // HasSenderProfile applies the HasEdge predicate on the "sender_profile" edge.

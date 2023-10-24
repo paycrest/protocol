@@ -157,13 +157,15 @@ type ProviderProfileResponse struct {
 	IsPartner      bool                      `json:"isPartner"`
 	Availability   *ent.ProviderAvailability `json:"availability"`
 	Tokens         []*ent.ProviderOrderToken `json:"tokens"`
+	APIKey         APIKeyResponse            `json:"apiKey"`
 }
 
 // ValidatorProfileResponse is the response for the validator profile endpoint
 type ValidatorProfileResponse struct {
-	ID             uuid.UUID `json:"id"`
-	WalletAddress  string    `json:"walletAddress"`
-	HostIdentifier string    `json:"hostIdentifier"`
+	ID             uuid.UUID      `json:"id"`
+	WalletAddress  string         `json:"walletAddress"`
+	HostIdentifier string         `json:"hostIdentifier"`
+	APIKey         APIKeyResponse `json:"apiKey"`
 }
 
 // RefreshResponse is the response for the refresh endpoint
@@ -173,11 +175,8 @@ type RefreshResponse struct {
 
 // APIKeyResponse is the response type for an API key
 type APIKeyResponse struct {
-	ID        uuid.UUID `json:"id"`
-	CreatedAt time.Time `json:"createdAt"`
-	Name      string    `json:"name"`
-	Secret    string    `json:"secret"`
-	IsActive  bool      `json:"isActive"`
+	ID     uuid.UUID `json:"id"`
+	Secret string    `json:"secret"`
 }
 
 // ERC20Transfer is the Transfer event of an ERC20 smart contract

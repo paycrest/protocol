@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
@@ -24,6 +25,8 @@ type SenderProfile struct {
 	WebhookURL string `json:"webhook_url,omitempty"`
 	// DomainWhitelist holds the value of the "domain_whitelist" field.
 	DomainWhitelist []string `json:"domain_whitelist,omitempty"`
+	// UpdatedAt holds the value of the "updated_at" field.
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the SenderProfileQuery when eager-loading is set.
 	Edges               SenderProfileEdges `json:"edges"`
@@ -88,6 +91,8 @@ func (*SenderProfile) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case senderprofile.FieldWebhookURL:
 			values[i] = new(sql.NullString)
+		case senderprofile.FieldUpdatedAt:
+			values[i] = new(sql.NullTime)
 		case senderprofile.FieldID:
 			values[i] = new(uuid.UUID)
 		case senderprofile.ForeignKeys[0]: // user_sender_profile
@@ -126,6 +131,12 @@ func (sp *SenderProfile) assignValues(columns []string, values []any) error {
 				if err := json.Unmarshal(*value, &sp.DomainWhitelist); err != nil {
 					return fmt.Errorf("unmarshal field domain_whitelist: %w", err)
 				}
+			}
+		case senderprofile.FieldUpdatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
+			} else if value.Valid {
+				sp.UpdatedAt = value.Time
 			}
 		case senderprofile.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullScanner); !ok {
@@ -190,6 +201,9 @@ func (sp *SenderProfile) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("domain_whitelist=")
 	builder.WriteString(fmt.Sprintf("%v", sp.DomainWhitelist))
+	builder.WriteString(", ")
+	builder.WriteString("updated_at=")
+	builder.WriteString(sp.UpdatedAt.Format(time.ANSIC))
 	builder.WriteByte(')')
 	return builder.String()
 }

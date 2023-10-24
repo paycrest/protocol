@@ -31,12 +31,6 @@ func (vpu *ValidatorProfileUpdate) Where(ps ...predicate.ValidatorProfile) *Vali
 	return vpu
 }
 
-// SetUpdatedAt sets the "updated_at" field.
-func (vpu *ValidatorProfileUpdate) SetUpdatedAt(t time.Time) *ValidatorProfileUpdate {
-	vpu.mutation.SetUpdatedAt(t)
-	return vpu
-}
-
 // SetWalletAddress sets the "wallet_address" field.
 func (vpu *ValidatorProfileUpdate) SetWalletAddress(s string) *ValidatorProfileUpdate {
 	vpu.mutation.SetWalletAddress(s)
@@ -74,6 +68,12 @@ func (vpu *ValidatorProfileUpdate) SetNillableHostIdentifier(s *string) *Validat
 // ClearHostIdentifier clears the value of the "host_identifier" field.
 func (vpu *ValidatorProfileUpdate) ClearHostIdentifier() *ValidatorProfileUpdate {
 	vpu.mutation.ClearHostIdentifier()
+	return vpu
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (vpu *ValidatorProfileUpdate) SetUpdatedAt(t time.Time) *ValidatorProfileUpdate {
+	vpu.mutation.SetUpdatedAt(t)
 	return vpu
 }
 
@@ -199,9 +199,6 @@ func (vpu *ValidatorProfileUpdate) sqlSave(ctx context.Context) (n int, err erro
 			}
 		}
 	}
-	if value, ok := vpu.mutation.UpdatedAt(); ok {
-		_spec.SetField(validatorprofile.FieldUpdatedAt, field.TypeTime, value)
-	}
 	if value, ok := vpu.mutation.WalletAddress(); ok {
 		_spec.SetField(validatorprofile.FieldWalletAddress, field.TypeString, value)
 	}
@@ -213,6 +210,9 @@ func (vpu *ValidatorProfileUpdate) sqlSave(ctx context.Context) (n int, err erro
 	}
 	if vpu.mutation.HostIdentifierCleared() {
 		_spec.ClearField(validatorprofile.FieldHostIdentifier, field.TypeString)
+	}
+	if value, ok := vpu.mutation.UpdatedAt(); ok {
+		_spec.SetField(validatorprofile.FieldUpdatedAt, field.TypeTime, value)
 	}
 	if vpu.mutation.ValidatedFulfillmentsCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -308,12 +308,6 @@ type ValidatorProfileUpdateOne struct {
 	mutation *ValidatorProfileMutation
 }
 
-// SetUpdatedAt sets the "updated_at" field.
-func (vpuo *ValidatorProfileUpdateOne) SetUpdatedAt(t time.Time) *ValidatorProfileUpdateOne {
-	vpuo.mutation.SetUpdatedAt(t)
-	return vpuo
-}
-
 // SetWalletAddress sets the "wallet_address" field.
 func (vpuo *ValidatorProfileUpdateOne) SetWalletAddress(s string) *ValidatorProfileUpdateOne {
 	vpuo.mutation.SetWalletAddress(s)
@@ -351,6 +345,12 @@ func (vpuo *ValidatorProfileUpdateOne) SetNillableHostIdentifier(s *string) *Val
 // ClearHostIdentifier clears the value of the "host_identifier" field.
 func (vpuo *ValidatorProfileUpdateOne) ClearHostIdentifier() *ValidatorProfileUpdateOne {
 	vpuo.mutation.ClearHostIdentifier()
+	return vpuo
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (vpuo *ValidatorProfileUpdateOne) SetUpdatedAt(t time.Time) *ValidatorProfileUpdateOne {
+	vpuo.mutation.SetUpdatedAt(t)
 	return vpuo
 }
 
@@ -506,9 +506,6 @@ func (vpuo *ValidatorProfileUpdateOne) sqlSave(ctx context.Context) (_node *Vali
 			}
 		}
 	}
-	if value, ok := vpuo.mutation.UpdatedAt(); ok {
-		_spec.SetField(validatorprofile.FieldUpdatedAt, field.TypeTime, value)
-	}
 	if value, ok := vpuo.mutation.WalletAddress(); ok {
 		_spec.SetField(validatorprofile.FieldWalletAddress, field.TypeString, value)
 	}
@@ -520,6 +517,9 @@ func (vpuo *ValidatorProfileUpdateOne) sqlSave(ctx context.Context) (_node *Vali
 	}
 	if vpuo.mutation.HostIdentifierCleared() {
 		_spec.ClearField(validatorprofile.FieldHostIdentifier, field.TypeString)
+	}
+	if value, ok := vpuo.mutation.UpdatedAt(); ok {
+		_spec.SetField(validatorprofile.FieldUpdatedAt, field.TypeTime, value)
 	}
 	if vpuo.mutation.ValidatedFulfillmentsCleared() {
 		edge := &sqlgraph.EdgeSpec{

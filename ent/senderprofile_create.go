@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
@@ -40,6 +41,20 @@ func (spc *SenderProfileCreate) SetNillableWebhookURL(s *string) *SenderProfileC
 // SetDomainWhitelist sets the "domain_whitelist" field.
 func (spc *SenderProfileCreate) SetDomainWhitelist(s []string) *SenderProfileCreate {
 	spc.mutation.SetDomainWhitelist(s)
+	return spc
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (spc *SenderProfileCreate) SetUpdatedAt(t time.Time) *SenderProfileCreate {
+	spc.mutation.SetUpdatedAt(t)
+	return spc
+}
+
+// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
+func (spc *SenderProfileCreate) SetNillableUpdatedAt(t *time.Time) *SenderProfileCreate {
+	if t != nil {
+		spc.SetUpdatedAt(*t)
+	}
 	return spc
 }
 
@@ -141,6 +156,10 @@ func (spc *SenderProfileCreate) defaults() {
 		v := senderprofile.DefaultDomainWhitelist
 		spc.mutation.SetDomainWhitelist(v)
 	}
+	if _, ok := spc.mutation.UpdatedAt(); !ok {
+		v := senderprofile.DefaultUpdatedAt()
+		spc.mutation.SetUpdatedAt(v)
+	}
 	if _, ok := spc.mutation.ID(); !ok {
 		v := senderprofile.DefaultID()
 		spc.mutation.SetID(v)
@@ -151,6 +170,9 @@ func (spc *SenderProfileCreate) defaults() {
 func (spc *SenderProfileCreate) check() error {
 	if _, ok := spc.mutation.DomainWhitelist(); !ok {
 		return &ValidationError{Name: "domain_whitelist", err: errors.New(`ent: missing required field "SenderProfile.domain_whitelist"`)}
+	}
+	if _, ok := spc.mutation.UpdatedAt(); !ok {
+		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "SenderProfile.updated_at"`)}
 	}
 	if _, ok := spc.mutation.UserID(); !ok {
 		return &ValidationError{Name: "user", err: errors.New(`ent: missing required edge "SenderProfile.user"`)}
@@ -197,6 +219,10 @@ func (spc *SenderProfileCreate) createSpec() (*SenderProfile, *sqlgraph.CreateSp
 	if value, ok := spc.mutation.DomainWhitelist(); ok {
 		_spec.SetField(senderprofile.FieldDomainWhitelist, field.TypeJSON, value)
 		_node.DomainWhitelist = value
+	}
+	if value, ok := spc.mutation.UpdatedAt(); ok {
+		_spec.SetField(senderprofile.FieldUpdatedAt, field.TypeTime, value)
+		_node.UpdatedAt = value
 	}
 	if nodes := spc.mutation.UserIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

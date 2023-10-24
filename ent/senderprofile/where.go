@@ -3,6 +3,8 @@
 package senderprofile
 
 import (
+	"time"
+
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/google/uuid"
@@ -57,6 +59,11 @@ func IDLTE(id uuid.UUID) predicate.SenderProfile {
 // WebhookURL applies equality check predicate on the "webhook_url" field. It's identical to WebhookURLEQ.
 func WebhookURL(v string) predicate.SenderProfile {
 	return predicate.SenderProfile(sql.FieldEQ(FieldWebhookURL, v))
+}
+
+// UpdatedAt applies equality check predicate on the "updated_at" field. It's identical to UpdatedAtEQ.
+func UpdatedAt(v time.Time) predicate.SenderProfile {
+	return predicate.SenderProfile(sql.FieldEQ(FieldUpdatedAt, v))
 }
 
 // WebhookURLEQ applies the EQ predicate on the "webhook_url" field.
@@ -132,6 +139,46 @@ func WebhookURLEqualFold(v string) predicate.SenderProfile {
 // WebhookURLContainsFold applies the ContainsFold predicate on the "webhook_url" field.
 func WebhookURLContainsFold(v string) predicate.SenderProfile {
 	return predicate.SenderProfile(sql.FieldContainsFold(FieldWebhookURL, v))
+}
+
+// UpdatedAtEQ applies the EQ predicate on the "updated_at" field.
+func UpdatedAtEQ(v time.Time) predicate.SenderProfile {
+	return predicate.SenderProfile(sql.FieldEQ(FieldUpdatedAt, v))
+}
+
+// UpdatedAtNEQ applies the NEQ predicate on the "updated_at" field.
+func UpdatedAtNEQ(v time.Time) predicate.SenderProfile {
+	return predicate.SenderProfile(sql.FieldNEQ(FieldUpdatedAt, v))
+}
+
+// UpdatedAtIn applies the In predicate on the "updated_at" field.
+func UpdatedAtIn(vs ...time.Time) predicate.SenderProfile {
+	return predicate.SenderProfile(sql.FieldIn(FieldUpdatedAt, vs...))
+}
+
+// UpdatedAtNotIn applies the NotIn predicate on the "updated_at" field.
+func UpdatedAtNotIn(vs ...time.Time) predicate.SenderProfile {
+	return predicate.SenderProfile(sql.FieldNotIn(FieldUpdatedAt, vs...))
+}
+
+// UpdatedAtGT applies the GT predicate on the "updated_at" field.
+func UpdatedAtGT(v time.Time) predicate.SenderProfile {
+	return predicate.SenderProfile(sql.FieldGT(FieldUpdatedAt, v))
+}
+
+// UpdatedAtGTE applies the GTE predicate on the "updated_at" field.
+func UpdatedAtGTE(v time.Time) predicate.SenderProfile {
+	return predicate.SenderProfile(sql.FieldGTE(FieldUpdatedAt, v))
+}
+
+// UpdatedAtLT applies the LT predicate on the "updated_at" field.
+func UpdatedAtLT(v time.Time) predicate.SenderProfile {
+	return predicate.SenderProfile(sql.FieldLT(FieldUpdatedAt, v))
+}
+
+// UpdatedAtLTE applies the LTE predicate on the "updated_at" field.
+func UpdatedAtLTE(v time.Time) predicate.SenderProfile {
+	return predicate.SenderProfile(sql.FieldLTE(FieldUpdatedAt, v))
 }
 
 // HasUser applies the HasEdge predicate on the "user" edge.

@@ -35,20 +35,6 @@ func (aku *APIKeyUpdate) SetSecret(s string) *APIKeyUpdate {
 	return aku
 }
 
-// SetIsActive sets the "is_active" field.
-func (aku *APIKeyUpdate) SetIsActive(b bool) *APIKeyUpdate {
-	aku.mutation.SetIsActive(b)
-	return aku
-}
-
-// SetNillableIsActive sets the "is_active" field if the given value is not nil.
-func (aku *APIKeyUpdate) SetNillableIsActive(b *bool) *APIKeyUpdate {
-	if b != nil {
-		aku.SetIsActive(*b)
-	}
-	return aku
-}
-
 // AddPaymentOrderIDs adds the "payment_orders" edge to the PaymentOrder entity by IDs.
 func (aku *APIKeyUpdate) AddPaymentOrderIDs(ids ...uuid.UUID) *APIKeyUpdate {
 	aku.mutation.AddPaymentOrderIDs(ids...)
@@ -151,9 +137,6 @@ func (aku *APIKeyUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if value, ok := aku.mutation.Secret(); ok {
 		_spec.SetField(apikey.FieldSecret, field.TypeString, value)
 	}
-	if value, ok := aku.mutation.IsActive(); ok {
-		_spec.SetField(apikey.FieldIsActive, field.TypeBool, value)
-	}
 	if aku.mutation.PaymentOrdersCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
@@ -222,20 +205,6 @@ type APIKeyUpdateOne struct {
 // SetSecret sets the "secret" field.
 func (akuo *APIKeyUpdateOne) SetSecret(s string) *APIKeyUpdateOne {
 	akuo.mutation.SetSecret(s)
-	return akuo
-}
-
-// SetIsActive sets the "is_active" field.
-func (akuo *APIKeyUpdateOne) SetIsActive(b bool) *APIKeyUpdateOne {
-	akuo.mutation.SetIsActive(b)
-	return akuo
-}
-
-// SetNillableIsActive sets the "is_active" field if the given value is not nil.
-func (akuo *APIKeyUpdateOne) SetNillableIsActive(b *bool) *APIKeyUpdateOne {
-	if b != nil {
-		akuo.SetIsActive(*b)
-	}
 	return akuo
 }
 
@@ -370,9 +339,6 @@ func (akuo *APIKeyUpdateOne) sqlSave(ctx context.Context) (_node *APIKey, err er
 	}
 	if value, ok := akuo.mutation.Secret(); ok {
 		_spec.SetField(apikey.FieldSecret, field.TypeString, value)
-	}
-	if value, ok := akuo.mutation.IsActive(); ok {
-		_spec.SetField(apikey.FieldIsActive, field.TypeBool, value)
 	}
 	if akuo.mutation.PaymentOrdersCleared() {
 		edge := &sqlgraph.EdgeSpec{
