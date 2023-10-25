@@ -165,6 +165,32 @@ func CreateTestLockOrderFulfillment(overrides map[string]interface{}) (*ent.Lock
 	return fulfillment, err
 }
 
+// CreateTestSenderProfile creates a test SenderProfile with defaults or custom values
+func CreateTestSenderProfile(overrides map[string]interface{}) (*ent.SenderProfile, error) {
+
+	// Default payload
+	payload := map[string]interface{}{
+		"webhook_url":      "https://example.com/hook",
+		"domain_whitelist": []string{"example.com"},
+		"user_id":          nil,
+	}
+
+	// Apply overrides
+	for key, value := range overrides {
+		payload[key] = value
+	}
+
+	// Create SenderProfile
+	profile, err := db.Client.SenderProfile.
+		Create().
+		SetWebhookURL(payload["webhook_url"].(string)).
+		SetDomainWhitelist(payload["domain_whitelist"].([]string)).
+		SetUserID(payload["user_id"].(uuid.UUID)).
+		Save(context.Background())
+
+	return profile, err
+}
+
 // CreateTestValidatorProfile creates a test ValidatorProfile with defaults or custom values
 func CreateTestValidatorProfile(overrides map[string]interface{}) (*ent.ValidatorProfile, error) {
 

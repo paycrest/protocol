@@ -149,6 +149,7 @@ type ProviderProfilePayload struct {
 	Tokens         []ProviderOrderTokenPayload `json:"tokens"`
 }
 
+// ProviderProfileResponse is the response for the provider profile endpoint
 type ProviderProfileResponse struct {
 	ID             string                    `json:"id"`
 	TradingName    string                    `json:"tradingName"`

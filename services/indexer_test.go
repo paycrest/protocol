@@ -90,11 +90,20 @@ func setup() error {
 		return err
 	}
 
+	senderProfile, err := test.CreateTestSenderProfile(map[string]interface{}{
+		"user_id": user.ID,
+	})
+	if err != nil {
+		return err
+	}
+
 	apiKeyService := NewAPIKeyService()
-	apiKey, _, err := apiKeyService.GenerateAPIKey(
+	_, _, err = apiKeyService.GenerateAPIKey(
 		context.Background(),
 		nil,
-		user.ID,
+		senderProfile,
+		nil,
+		nil,
 	)
 	if err != nil {
 		return err
@@ -103,7 +112,7 @@ func setup() error {
 	// Create a payment order
 	paymentOrder, err := db.Client.PaymentOrder.
 		Create().
-		SetAPIKey(apiKey).
+		SetSenderProfile(senderProfile).
 		SetAmount(amount).
 		SetAmountPaid(decimal.NewFromInt(0)).
 		SetToken(token).

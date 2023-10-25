@@ -182,7 +182,6 @@ func Median(data []decimal.Decimal) decimal.Decimal {
 	// Handle even length slices
 	if l%2 == 0 {
 		result = result.Add(data[middle-1])
-		fmt.Println("middle-1: ", result)
 		result = result.Div(decimal.NewFromInt(2))
 	}
 

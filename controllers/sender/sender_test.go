@@ -58,16 +58,25 @@ func setup() error {
 	}
 	testCtx.user = user
 
+	senderProfile, err := test.CreateTestSenderProfile(map[string]interface{}{
+		"user_id": user.ID,
+	})
+	if err != nil {
+		return err
+	}
+
 	apiKeyService := services.NewAPIKeyService()
 	apiKey, secretKey, err := apiKeyService.GenerateAPIKey(
 		context.Background(),
 		nil,
-		user.ID,
+		senderProfile,
+		nil,
+		nil,
 	)
-	testCtx.apiKey = apiKey
 	if err != nil {
 		return err
 	}
+	testCtx.apiKey = apiKey
 
 	// Set up test blockchain client
 	backend, err := test.NewSimulatedBlockchain()
