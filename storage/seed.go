@@ -56,11 +56,32 @@ func SeedDatabase() error {
 		return fmt.Errorf("failed seeding token: %w", err)
 	}
 
-	// Seed Provision Buckets
-	for _, currency := range []string{"NGN", "KES"} {
-		sampleBuckets := make([]*ent.ProvisionBucketCreate, 0, 6)
+	// Seed Fiat Currencies and Provision Buckets
+	currencies := []types.SupportedCurrencies{
+		{Code: "NGN", Decimals: 2, Name: "Nigerian naira", ShortName: "Naira", Symbol: "₦"},
+		{Code: "KES", Decimals: 2, Name: "Kenyan shilling", ShortName: "Swahili", Symbol: "/="},
+	}
+	listedCurrencies := make([]*ent.FiatCurrencyCreate, 0)
+	sampleBuckets := make([]*ent.ProvisionBucketCreate, 0, 6)
 
-		// Add sample provision buckets.
+	for _, currencyVal := range currencies {
+		currency, err := client.FiatCurrency.
+			Query().
+			Where(
+				fiatcurrency.IsEnabledEQ(true),
+				fiatcurrency.CodeEQ(currencyVal.Code),
+			).
+			Only(ctx)
+		if ent.IsNotFound(err) {
+			fmt.Printf("Seeding currency - %s\n", currency.Code)
+			listedCurrencies = append(listedCurrencies, client.FiatCurrency.Create().
+				SetCode(currency.Code).
+				SetShortName(currency.ShortName).
+				SetSymbol(currency.Symbol).
+				SetName(currency.Name),
+			)
+		}
+
 		sampleBuckets = append(sampleBuckets, client.ProvisionBucket.
 			Create().
 			SetMinAmount(decimal.NewFromFloat(20000001.00)).
@@ -98,45 +119,19 @@ func SeedDatabase() error {
 			SetCurrency(currency),
 		)
 
-		_, err := client.ProvisionBucket.
-			CreateBulk(sampleBuckets...).
-			Save(ctx)
-		if err != nil {
-			return fmt.Errorf("failed seeding provision buckets: %w", err)
-		}
-	}
-
-	// Seed Fiat Currencies
-	currencies := []types.SupportedCurrencies{
-		{Code: "NGN", Decimals: 2, Name: "Nigerian naira", ShortName: "Naira", Symbol: "₦"},
-		{Code: "KES", Decimals: 2, Name: "Kenyan shilling", ShortName: "Swahili", Symbol: "/="},
-	}
-
-	listedCurrencies := make([]*ent.FiatCurrencyCreate, 0)
-	for _, currency := range currencies {
-
-		_, err := client.FiatCurrency.
-			Query().
-			Where(
-				fiatcurrency.IsEnabledEQ(true),
-				fiatcurrency.CodeEQ(currency.Code),
-			).
-			Only(ctx)
-		if ent.IsNotFound(err) {
-			fmt.Printf("Seeding currency - %s\n", currency.Code)
-			listedCurrencies = append(listedCurrencies, client.FiatCurrency.Create().
-				SetCode(currency.Code).
-				SetShortName(currency.ShortName).
-				SetSymbol(currency.Symbol).
-				SetName(currency.Name),
-			)
-		}
 	}
 
 	if len(listedCurrencies) > 0 {
 		_, err = client.FiatCurrency.CreateBulk(listedCurrencies...).Save(ctx)
 		if err != nil {
 			return fmt.Errorf("failed seeding fiat currencies: %w", err)
+		}
+
+		_, err = client.ProvisionBucket.
+			CreateBulk(sampleBuckets...).
+			Save(ctx)
+		if err != nil {
+			return fmt.Errorf("failed seeding provision buckets: %w", err)
 		}
 	}
 

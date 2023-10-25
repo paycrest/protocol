@@ -706,6 +706,7 @@ func (s *IndexerService) getProvisionBucket(ctx context.Context, client types.RP
 				fiatcurrency.IDEQ(currency.ID),
 			),
 		).
+		WithCurrency().
 		Only(ctx)
 	if err != nil {
 		logger.Errorf("failed to fetch provision bucket: %v", err)
