@@ -40,7 +40,7 @@ func (s *APIKeyService) GenerateAPIKey(
 	var apiKey *ent.APIKey
 
 	if sender != nil {
-		apiKey, err := tx.APIKey.
+		apiKey, err = tx.APIKey.
 			Create().
 			SetSecret(encodedSecret).
 			SetSenderProfile(sender).
@@ -48,15 +48,8 @@ func (s *APIKeyService) GenerateAPIKey(
 		if err != nil {
 			return nil, "", fmt.Errorf("failed to create API key: %w", err)
 		}
-		_, err = sender.
-			Update().
-			SetAPIKey(apiKey).
-			Save(ctx)
-		if err != nil {
-			return nil, "", fmt.Errorf("failed to create API key: %w", err)
-		}
 	} else if provider != nil {
-		apiKey, err := tx.APIKey.
+		apiKey, err = tx.APIKey.
 			Create().
 			SetSecret(encodedSecret).
 			SetProviderProfile(provider).
@@ -64,25 +57,11 @@ func (s *APIKeyService) GenerateAPIKey(
 		if err != nil {
 			return nil, "", fmt.Errorf("failed to create API key: %w", err)
 		}
-		_, err = provider.
-			Update().
-			SetAPIKey(apiKey).
-			Save(ctx)
-		if err != nil {
-			return nil, "", fmt.Errorf("failed to create API key: %w", err)
-		}
 	} else if validator != nil {
-		apiKey, err := tx.APIKey.
+		apiKey, err = tx.APIKey.
 			Create().
 			SetSecret(encodedSecret).
 			SetValidatorProfile(validator).
-			Save(ctx)
-		if err != nil {
-			return nil, "", fmt.Errorf("failed to create API key: %w", err)
-		}
-		_, err = validator.
-			Update().
-			SetAPIKey(apiKey).
 			Save(ctx)
 		if err != nil {
 			return nil, "", fmt.Errorf("failed to create API key: %w", err)

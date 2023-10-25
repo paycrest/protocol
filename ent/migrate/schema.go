@@ -12,9 +12,9 @@ var (
 	APIKeysColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
 		{Name: "secret", Type: field.TypeString, Unique: true},
-		{Name: "provider_profile_api_key", Type: field.TypeString, Unique: true},
-		{Name: "sender_profile_api_key", Type: field.TypeUUID, Unique: true},
-		{Name: "validator_profile_api_key", Type: field.TypeUUID, Unique: true},
+		{Name: "provider_profile_api_key", Type: field.TypeString, Unique: true, Nullable: true},
+		{Name: "sender_profile_api_key", Type: field.TypeUUID, Unique: true, Nullable: true},
+		{Name: "validator_profile_api_key", Type: field.TypeUUID, Unique: true, Nullable: true},
 	}
 	// APIKeysTable holds the schema information for the "api_keys" table.
 	APIKeysTable = &schema.Table{
@@ -26,19 +26,19 @@ var (
 				Symbol:     "api_keys_provider_profiles_api_key",
 				Columns:    []*schema.Column{APIKeysColumns[2]},
 				RefColumns: []*schema.Column{ProviderProfilesColumns[0]},
-				OnDelete:   schema.NoAction,
+				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "api_keys_sender_profiles_api_key",
 				Columns:    []*schema.Column{APIKeysColumns[3]},
 				RefColumns: []*schema.Column{SenderProfilesColumns[0]},
-				OnDelete:   schema.NoAction,
+				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "api_keys_validator_profiles_api_key",
 				Columns:    []*schema.Column{APIKeysColumns[4]},
 				RefColumns: []*schema.Column{ValidatorProfilesColumns[0]},
-				OnDelete:   schema.NoAction,
+				OnDelete:   schema.Cascade,
 			},
 		},
 	}

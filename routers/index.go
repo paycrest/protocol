@@ -52,8 +52,6 @@ func authRoutes(route *gin.Engine) {
 	v1.POST("auth/confirm-account/", authCtrl.ConfirmEmail)
 	v1.POST("auth/resend-token/", authCtrl.ResendVerificationToken)
 	v1.POST("auth/refresh/", middleware.JWTMiddleware, authCtrl.RefreshJWT)
-	v1.GET("auth/api-keys/", middleware.JWTMiddleware, authCtrl.ListAPIKeys)
-	v1.DELETE("auth/api-keys/:id", middleware.JWTMiddleware, authCtrl.DeleteAPIKey)
 
 	v1.GET(
 		"settings/validator",
