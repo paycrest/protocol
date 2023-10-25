@@ -2,9 +2,11 @@ package tasks
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/go-co-op/gocron"
+	"github.com/paycrest/paycrest-protocol/config"
 	"github.com/paycrest/paycrest-protocol/ent"
 	"github.com/paycrest/paycrest-protocol/ent/fiatcurrency"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
@@ -194,12 +196,21 @@ func ComputeMarketRate() error {
 
 // StartCronJobs starts cron jobs
 func StartCronJobs() {
+	ctx := context.Background()
+	conf := config.OrderConfig()
 	scheduler := gocron.NewScheduler(time.UTC)
 
 	// Compute market rate four times a day - starting at 6AM
 	_, err := scheduler.Cron("0 6,12,18,0 * * *").Do(ComputeMarketRate)
 	if err != nil {
 		logger.Errorf("failed to schedule compute market rate task => %v\n", err)
+	}
+
+	// Refresh provision bucket priority queues every X minutes
+	_, err = scheduler.Cron(fmt.Sprintf("0 */%d * * *", conf.BucketQueueRebuildInterval)).
+		Do(services.NewPriorityQueueService().ProcessBucketQueues(ctx))
+	if err != nil {
+		logger.Errorf("failed to schedule refresh priority queues task => %v\n", err)
 	}
 
 	// Start scheduler
