@@ -15,16 +15,18 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent/fiatcurrency"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
+	"github.com/paycrest/paycrest-protocol/ent/provisionbucket"
 )
 
 // FiatCurrencyQuery is the builder for querying FiatCurrency entities.
 type FiatCurrencyQuery struct {
 	config
-	ctx          *QueryContext
-	order        []fiatcurrency.OrderOption
-	inters       []Interceptor
-	predicates   []predicate.FiatCurrency
-	withProvider *ProviderProfileQuery
+	ctx                  *QueryContext
+	order                []fiatcurrency.OrderOption
+	inters               []Interceptor
+	predicates           []predicate.FiatCurrency
+	withProvider         *ProviderProfileQuery
+	withProvisionBuckets *ProvisionBucketQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -76,6 +78,28 @@ func (fcq *FiatCurrencyQuery) QueryProvider() *ProviderProfileQuery {
 			sqlgraph.From(fiatcurrency.Table, fiatcurrency.FieldID, selector),
 			sqlgraph.To(providerprofile.Table, providerprofile.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, false, fiatcurrency.ProviderTable, fiatcurrency.ProviderColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(fcq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryProvisionBuckets chains the current query on the "provision_buckets" edge.
+func (fcq *FiatCurrencyQuery) QueryProvisionBuckets() *ProvisionBucketQuery {
+	query := (&ProvisionBucketClient{config: fcq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := fcq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := fcq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(fiatcurrency.Table, fiatcurrency.FieldID, selector),
+			sqlgraph.To(provisionbucket.Table, provisionbucket.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, fiatcurrency.ProvisionBucketsTable, fiatcurrency.ProvisionBucketsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(fcq.driver.Dialect(), step)
 		return fromU, nil
@@ -270,12 +294,13 @@ func (fcq *FiatCurrencyQuery) Clone() *FiatCurrencyQuery {
 		return nil
 	}
 	return &FiatCurrencyQuery{
-		config:       fcq.config,
-		ctx:          fcq.ctx.Clone(),
-		order:        append([]fiatcurrency.OrderOption{}, fcq.order...),
-		inters:       append([]Interceptor{}, fcq.inters...),
-		predicates:   append([]predicate.FiatCurrency{}, fcq.predicates...),
-		withProvider: fcq.withProvider.Clone(),
+		config:               fcq.config,
+		ctx:                  fcq.ctx.Clone(),
+		order:                append([]fiatcurrency.OrderOption{}, fcq.order...),
+		inters:               append([]Interceptor{}, fcq.inters...),
+		predicates:           append([]predicate.FiatCurrency{}, fcq.predicates...),
+		withProvider:         fcq.withProvider.Clone(),
+		withProvisionBuckets: fcq.withProvisionBuckets.Clone(),
 		// clone intermediate query.
 		sql:  fcq.sql.Clone(),
 		path: fcq.path,
@@ -290,6 +315,17 @@ func (fcq *FiatCurrencyQuery) WithProvider(opts ...func(*ProviderProfileQuery)) 
 		opt(query)
 	}
 	fcq.withProvider = query
+	return fcq
+}
+
+// WithProvisionBuckets tells the query-builder to eager-load the nodes that are connected to
+// the "provision_buckets" edge. The optional arguments are used to configure the query builder of the edge.
+func (fcq *FiatCurrencyQuery) WithProvisionBuckets(opts ...func(*ProvisionBucketQuery)) *FiatCurrencyQuery {
+	query := (&ProvisionBucketClient{config: fcq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	fcq.withProvisionBuckets = query
 	return fcq
 }
 
@@ -371,8 +407,9 @@ func (fcq *FiatCurrencyQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([
 	var (
 		nodes       = []*FiatCurrency{}
 		_spec       = fcq.querySpec()
-		loadedTypes = [1]bool{
+		loadedTypes = [2]bool{
 			fcq.withProvider != nil,
+			fcq.withProvisionBuckets != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -396,6 +433,15 @@ func (fcq *FiatCurrencyQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([
 	if query := fcq.withProvider; query != nil {
 		if err := fcq.loadProvider(ctx, query, nodes, nil,
 			func(n *FiatCurrency, e *ProviderProfile) { n.Edges.Provider = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := fcq.withProvisionBuckets; query != nil {
+		if err := fcq.loadProvisionBuckets(ctx, query, nodes,
+			func(n *FiatCurrency) { n.Edges.ProvisionBuckets = []*ProvisionBucket{} },
+			func(n *FiatCurrency, e *ProvisionBucket) {
+				n.Edges.ProvisionBuckets = append(n.Edges.ProvisionBuckets, e)
+			}); err != nil {
 			return nil, err
 		}
 	}
@@ -425,6 +471,37 @@ func (fcq *FiatCurrencyQuery) loadProvider(ctx context.Context, query *ProviderP
 		node, ok := nodeids[*fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "fiat_currency_provider" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (fcq *FiatCurrencyQuery) loadProvisionBuckets(ctx context.Context, query *ProvisionBucketQuery, nodes []*FiatCurrency, init func(*FiatCurrency), assign func(*FiatCurrency, *ProvisionBucket)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*FiatCurrency)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.ProvisionBucket(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(fiatcurrency.ProvisionBucketsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.fiat_currency_provision_buckets
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "fiat_currency_provision_buckets" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "fiat_currency_provision_buckets" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}

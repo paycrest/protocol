@@ -11,6 +11,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
+	"github.com/paycrest/paycrest-protocol/ent/fiatcurrency"
 	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
@@ -24,8 +26,10 @@ type ProvisionBucketQuery struct {
 	order                 []provisionbucket.OrderOption
 	inters                []Interceptor
 	predicates            []predicate.ProvisionBucket
+	withCurrency          *FiatCurrencyQuery
 	withLockPaymentOrders *LockPaymentOrderQuery
 	withProviderProfiles  *ProviderProfileQuery
+	withFKs               bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -60,6 +64,28 @@ func (pbq *ProvisionBucketQuery) Unique(unique bool) *ProvisionBucketQuery {
 func (pbq *ProvisionBucketQuery) Order(o ...provisionbucket.OrderOption) *ProvisionBucketQuery {
 	pbq.order = append(pbq.order, o...)
 	return pbq
+}
+
+// QueryCurrency chains the current query on the "currency" edge.
+func (pbq *ProvisionBucketQuery) QueryCurrency() *FiatCurrencyQuery {
+	query := (&FiatCurrencyClient{config: pbq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := pbq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := pbq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(provisionbucket.Table, provisionbucket.FieldID, selector),
+			sqlgraph.To(fiatcurrency.Table, fiatcurrency.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, provisionbucket.CurrencyTable, provisionbucket.CurrencyColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(pbq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // QueryLockPaymentOrders chains the current query on the "lock_payment_orders" edge.
@@ -298,12 +324,24 @@ func (pbq *ProvisionBucketQuery) Clone() *ProvisionBucketQuery {
 		order:                 append([]provisionbucket.OrderOption{}, pbq.order...),
 		inters:                append([]Interceptor{}, pbq.inters...),
 		predicates:            append([]predicate.ProvisionBucket{}, pbq.predicates...),
+		withCurrency:          pbq.withCurrency.Clone(),
 		withLockPaymentOrders: pbq.withLockPaymentOrders.Clone(),
 		withProviderProfiles:  pbq.withProviderProfiles.Clone(),
 		// clone intermediate query.
 		sql:  pbq.sql.Clone(),
 		path: pbq.path,
 	}
+}
+
+// WithCurrency tells the query-builder to eager-load the nodes that are connected to
+// the "currency" edge. The optional arguments are used to configure the query builder of the edge.
+func (pbq *ProvisionBucketQuery) WithCurrency(opts ...func(*FiatCurrencyQuery)) *ProvisionBucketQuery {
+	query := (&FiatCurrencyClient{config: pbq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	pbq.withCurrency = query
+	return pbq
 }
 
 // WithLockPaymentOrders tells the query-builder to eager-load the nodes that are connected to
@@ -405,12 +443,20 @@ func (pbq *ProvisionBucketQuery) prepareQuery(ctx context.Context) error {
 func (pbq *ProvisionBucketQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*ProvisionBucket, error) {
 	var (
 		nodes       = []*ProvisionBucket{}
+		withFKs     = pbq.withFKs
 		_spec       = pbq.querySpec()
-		loadedTypes = [2]bool{
+		loadedTypes = [3]bool{
+			pbq.withCurrency != nil,
 			pbq.withLockPaymentOrders != nil,
 			pbq.withProviderProfiles != nil,
 		}
 	)
+	if pbq.withCurrency != nil {
+		withFKs = true
+	}
+	if withFKs {
+		_spec.Node.Columns = append(_spec.Node.Columns, provisionbucket.ForeignKeys...)
+	}
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*ProvisionBucket).scanValues(nil, columns)
 	}
@@ -428,6 +474,12 @@ func (pbq *ProvisionBucketQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 	}
 	if len(nodes) == 0 {
 		return nodes, nil
+	}
+	if query := pbq.withCurrency; query != nil {
+		if err := pbq.loadCurrency(ctx, query, nodes, nil,
+			func(n *ProvisionBucket, e *FiatCurrency) { n.Edges.Currency = e }); err != nil {
+			return nil, err
+		}
 	}
 	if query := pbq.withLockPaymentOrders; query != nil {
 		if err := pbq.loadLockPaymentOrders(ctx, query, nodes,
@@ -450,6 +502,38 @@ func (pbq *ProvisionBucketQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 	return nodes, nil
 }
 
+func (pbq *ProvisionBucketQuery) loadCurrency(ctx context.Context, query *FiatCurrencyQuery, nodes []*ProvisionBucket, init func(*ProvisionBucket), assign func(*ProvisionBucket, *FiatCurrency)) error {
+	ids := make([]uuid.UUID, 0, len(nodes))
+	nodeids := make(map[uuid.UUID][]*ProvisionBucket)
+	for i := range nodes {
+		if nodes[i].fiat_currency_provision_buckets == nil {
+			continue
+		}
+		fk := *nodes[i].fiat_currency_provision_buckets
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(fiatcurrency.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "fiat_currency_provision_buckets" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
 func (pbq *ProvisionBucketQuery) loadLockPaymentOrders(ctx context.Context, query *LockPaymentOrderQuery, nodes []*ProvisionBucket, init func(*ProvisionBucket), assign func(*ProvisionBucket, *LockPaymentOrder)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[int]*ProvisionBucket)

@@ -22,8 +22,6 @@ func (ProvisionBucket) Fields() []ent.Field {
 			GoType(decimal.Decimal{}),
 		field.Float("max_amount").
 			GoType(decimal.Decimal{}),
-		field.String("currency").
-			MaxLen(3), // https://en.wikipedia.org/wiki/ISO_4217
 		field.Time("created_at").
 			Immutable().
 			Default(time.Now),
@@ -33,6 +31,10 @@ func (ProvisionBucket) Fields() []ent.Field {
 // Edges of the ProvisionBucket.
 func (ProvisionBucket) Edges() []ent.Edge {
 	return []ent.Edge{
+		edge.From("currency", FiatCurrency.Type).
+			Ref("provision_buckets").
+			Unique().
+			Required(),
 		edge.To("lock_payment_orders", LockPaymentOrder.Type).
 			Annotations(entsql.OnDelete(entsql.SetNull)),
 		edge.To("provider_profiles", ProviderProfile.Type),

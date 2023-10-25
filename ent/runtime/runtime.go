@@ -218,12 +218,8 @@ func init() {
 	providerrating.UpdateDefaultUpdatedAt = providerratingDescUpdatedAt.UpdateDefault.(func() time.Time)
 	provisionbucketFields := schema.ProvisionBucket{}.Fields()
 	_ = provisionbucketFields
-	// provisionbucketDescCurrency is the schema descriptor for currency field.
-	provisionbucketDescCurrency := provisionbucketFields[2].Descriptor()
-	// provisionbucket.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
-	provisionbucket.CurrencyValidator = provisionbucketDescCurrency.Validators[0].(func(string) error)
 	// provisionbucketDescCreatedAt is the schema descriptor for created_at field.
-	provisionbucketDescCreatedAt := provisionbucketFields[3].Descriptor()
+	provisionbucketDescCreatedAt := provisionbucketFields[2].Descriptor()
 	// provisionbucket.DefaultCreatedAt holds the default value on creation for the created_at field.
 	provisionbucket.DefaultCreatedAt = provisionbucketDescCreatedAt.Default.(func() time.Time)
 	receiveaddressMixin := schema.ReceiveAddress{}.Mixin()

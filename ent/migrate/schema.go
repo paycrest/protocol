@@ -321,14 +321,22 @@ var (
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "min_amount", Type: field.TypeFloat64},
 		{Name: "max_amount", Type: field.TypeFloat64},
-		{Name: "currency", Type: field.TypeString, Size: 3},
 		{Name: "created_at", Type: field.TypeTime},
+		{Name: "fiat_currency_provision_buckets", Type: field.TypeUUID},
 	}
 	// ProvisionBucketsTable holds the schema information for the "provision_buckets" table.
 	ProvisionBucketsTable = &schema.Table{
 		Name:       "provision_buckets",
 		Columns:    ProvisionBucketsColumns,
 		PrimaryKey: []*schema.Column{ProvisionBucketsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "provision_buckets_fiat_currencies_provision_buckets",
+				Columns:    []*schema.Column{ProvisionBucketsColumns[4]},
+				RefColumns: []*schema.Column{FiatCurrenciesColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
 	}
 	// ReceiveAddressesColumns holds the columns for the "receive_addresses" table.
 	ReceiveAddressesColumns = []*schema.Column{
@@ -566,6 +574,7 @@ func init() {
 	ProviderProfilesTable.ForeignKeys[0].RefTable = FiatCurrenciesTable
 	ProviderProfilesTable.ForeignKeys[1].RefTable = UsersTable
 	ProviderRatingsTable.ForeignKeys[0].RefTable = ProviderProfilesTable
+	ProvisionBucketsTable.ForeignKeys[0].RefTable = FiatCurrenciesTable
 	ReceiveAddressesTable.ForeignKeys[0].RefTable = PaymentOrdersTable
 	SenderProfilesTable.ForeignKeys[0].RefTable = UsersTable
 	TokensTable.ForeignKeys[0].RefTable = NetworksTable

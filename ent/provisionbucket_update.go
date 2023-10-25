@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
+	"github.com/paycrest/paycrest-protocol/ent/fiatcurrency"
 	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
@@ -57,10 +58,15 @@ func (pbu *ProvisionBucketUpdate) AddMaxAmount(d decimal.Decimal) *ProvisionBuck
 	return pbu
 }
 
-// SetCurrency sets the "currency" field.
-func (pbu *ProvisionBucketUpdate) SetCurrency(s string) *ProvisionBucketUpdate {
-	pbu.mutation.SetCurrency(s)
+// SetCurrencyID sets the "currency" edge to the FiatCurrency entity by ID.
+func (pbu *ProvisionBucketUpdate) SetCurrencyID(id uuid.UUID) *ProvisionBucketUpdate {
+	pbu.mutation.SetCurrencyID(id)
 	return pbu
+}
+
+// SetCurrency sets the "currency" edge to the FiatCurrency entity.
+func (pbu *ProvisionBucketUpdate) SetCurrency(f *FiatCurrency) *ProvisionBucketUpdate {
+	return pbu.SetCurrencyID(f.ID)
 }
 
 // AddLockPaymentOrderIDs adds the "lock_payment_orders" edge to the LockPaymentOrder entity by IDs.
@@ -96,6 +102,12 @@ func (pbu *ProvisionBucketUpdate) AddProviderProfiles(p ...*ProviderProfile) *Pr
 // Mutation returns the ProvisionBucketMutation object of the builder.
 func (pbu *ProvisionBucketUpdate) Mutation() *ProvisionBucketMutation {
 	return pbu.mutation
+}
+
+// ClearCurrency clears the "currency" edge to the FiatCurrency entity.
+func (pbu *ProvisionBucketUpdate) ClearCurrency() *ProvisionBucketUpdate {
+	pbu.mutation.ClearCurrency()
+	return pbu
 }
 
 // ClearLockPaymentOrders clears all "lock_payment_orders" edges to the LockPaymentOrder entity.
@@ -169,10 +181,8 @@ func (pbu *ProvisionBucketUpdate) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (pbu *ProvisionBucketUpdate) check() error {
-	if v, ok := pbu.mutation.Currency(); ok {
-		if err := provisionbucket.CurrencyValidator(v); err != nil {
-			return &ValidationError{Name: "currency", err: fmt.Errorf(`ent: validator failed for field "ProvisionBucket.currency": %w`, err)}
-		}
+	if _, ok := pbu.mutation.CurrencyID(); pbu.mutation.CurrencyCleared() && !ok {
+		return errors.New(`ent: clearing a required unique edge "ProvisionBucket.currency"`)
 	}
 	return nil
 }
@@ -201,8 +211,34 @@ func (pbu *ProvisionBucketUpdate) sqlSave(ctx context.Context) (n int, err error
 	if value, ok := pbu.mutation.AddedMaxAmount(); ok {
 		_spec.AddField(provisionbucket.FieldMaxAmount, field.TypeFloat64, value)
 	}
-	if value, ok := pbu.mutation.Currency(); ok {
-		_spec.SetField(provisionbucket.FieldCurrency, field.TypeString, value)
+	if pbu.mutation.CurrencyCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   provisionbucket.CurrencyTable,
+			Columns: []string{provisionbucket.CurrencyColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(fiatcurrency.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := pbu.mutation.CurrencyIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   provisionbucket.CurrencyTable,
+			Columns: []string{provisionbucket.CurrencyColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(fiatcurrency.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if pbu.mutation.LockPaymentOrdersCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -340,10 +376,15 @@ func (pbuo *ProvisionBucketUpdateOne) AddMaxAmount(d decimal.Decimal) *Provision
 	return pbuo
 }
 
-// SetCurrency sets the "currency" field.
-func (pbuo *ProvisionBucketUpdateOne) SetCurrency(s string) *ProvisionBucketUpdateOne {
-	pbuo.mutation.SetCurrency(s)
+// SetCurrencyID sets the "currency" edge to the FiatCurrency entity by ID.
+func (pbuo *ProvisionBucketUpdateOne) SetCurrencyID(id uuid.UUID) *ProvisionBucketUpdateOne {
+	pbuo.mutation.SetCurrencyID(id)
 	return pbuo
+}
+
+// SetCurrency sets the "currency" edge to the FiatCurrency entity.
+func (pbuo *ProvisionBucketUpdateOne) SetCurrency(f *FiatCurrency) *ProvisionBucketUpdateOne {
+	return pbuo.SetCurrencyID(f.ID)
 }
 
 // AddLockPaymentOrderIDs adds the "lock_payment_orders" edge to the LockPaymentOrder entity by IDs.
@@ -379,6 +420,12 @@ func (pbuo *ProvisionBucketUpdateOne) AddProviderProfiles(p ...*ProviderProfile)
 // Mutation returns the ProvisionBucketMutation object of the builder.
 func (pbuo *ProvisionBucketUpdateOne) Mutation() *ProvisionBucketMutation {
 	return pbuo.mutation
+}
+
+// ClearCurrency clears the "currency" edge to the FiatCurrency entity.
+func (pbuo *ProvisionBucketUpdateOne) ClearCurrency() *ProvisionBucketUpdateOne {
+	pbuo.mutation.ClearCurrency()
+	return pbuo
 }
 
 // ClearLockPaymentOrders clears all "lock_payment_orders" edges to the LockPaymentOrder entity.
@@ -465,10 +512,8 @@ func (pbuo *ProvisionBucketUpdateOne) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (pbuo *ProvisionBucketUpdateOne) check() error {
-	if v, ok := pbuo.mutation.Currency(); ok {
-		if err := provisionbucket.CurrencyValidator(v); err != nil {
-			return &ValidationError{Name: "currency", err: fmt.Errorf(`ent: validator failed for field "ProvisionBucket.currency": %w`, err)}
-		}
+	if _, ok := pbuo.mutation.CurrencyID(); pbuo.mutation.CurrencyCleared() && !ok {
+		return errors.New(`ent: clearing a required unique edge "ProvisionBucket.currency"`)
 	}
 	return nil
 }
@@ -514,8 +559,34 @@ func (pbuo *ProvisionBucketUpdateOne) sqlSave(ctx context.Context) (_node *Provi
 	if value, ok := pbuo.mutation.AddedMaxAmount(); ok {
 		_spec.AddField(provisionbucket.FieldMaxAmount, field.TypeFloat64, value)
 	}
-	if value, ok := pbuo.mutation.Currency(); ok {
-		_spec.SetField(provisionbucket.FieldCurrency, field.TypeString, value)
+	if pbuo.mutation.CurrencyCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   provisionbucket.CurrencyTable,
+			Columns: []string{provisionbucket.CurrencyColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(fiatcurrency.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := pbuo.mutation.CurrencyIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   provisionbucket.CurrencyTable,
+			Columns: []string{provisionbucket.CurrencyColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(fiatcurrency.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if pbuo.mutation.LockPaymentOrdersCleared() {
 		edge := &sqlgraph.EdgeSpec{
