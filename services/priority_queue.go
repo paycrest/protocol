@@ -77,6 +77,7 @@ func (s *PriorityQueueService) GetProvidersByBucket(ctx context.Context) ([]*ent
 				),
 			)
 		}).
+		WithCurrency().
 		All(ctx)
 	if err != nil {
 		return nil, err
@@ -133,7 +134,7 @@ func (s *PriorityQueueService) CreatePriorityQueueForBucket(ctx context.Context,
 	})
 
 	// Enqueue provider ID and rate as a single string into the circular queue
-	redisKey := fmt.Sprintf("bucket_%s_%d_%d", bucket.Currency, bucket.MinAmount, bucket.MaxAmount)
+	redisKey := fmt.Sprintf("bucket_%s_%d_%d", bucket.Edges.Currency.Code, bucket.MinAmount, bucket.MaxAmount)
 
 	_, err := storage.RedisClient.Del(ctx, redisKey).Result() // delete existing queue
 	if err != nil {
@@ -145,7 +146,7 @@ func (s *PriorityQueueService) CreatePriorityQueueForBucket(ctx context.Context,
 		rate, _ := s.getProviderRate(ctx, provider)
 
 		// Check provider's rate against the market rate to ensure it's not too far off
-		partnerProviderData, _ := storage.RedisClient.LIndex(ctx, fmt.Sprintf("bucket_%s_default", bucket.Currency), 0).Result()
+		partnerProviderData, _ := storage.RedisClient.LIndex(ctx, fmt.Sprintf("bucket_%s_default", bucket.Edges.Currency.Code), 0).Result()
 		marketRate, _ := decimal.NewFromString(strings.Split(partnerProviderData, ":")[1])
 		allowedDeviation := decimal.NewFromFloat(0.01) // 1%
 
@@ -203,7 +204,7 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 	go s.ReassignUnfulfilledLockOrders(ctx)
 
 	// Get the first provider from the circular queue
-	redisKey := fmt.Sprintf("bucket_%s_%d_%d", order.ProvisionBucket.Currency, order.ProvisionBucket.MinAmount, order.ProvisionBucket.MaxAmount)
+	redisKey := fmt.Sprintf("bucket_%s_%d_%d", order.ProvisionBucket.Edges.Currency.Code, order.ProvisionBucket.MinAmount, order.ProvisionBucket.MaxAmount)
 
 	// Start a Redis transaction
 	pipe := storage.RedisClient.TxPipeline()
@@ -378,14 +379,14 @@ func (s *PriorityQueueService) notifyProvider(ctx context.Context, orderRequestD
 // AssignLockOrderToDefaultBucket assigns lock payment orders to providers in the default bucket
 func (s *PriorityQueueService) AssignLockOrderToDefaultBucket(ctx context.Context, order types.LockPaymentOrderFields) error {
 	pipe := storage.RedisClient.TxPipeline()
-	data, err := pipe.LPop(ctx, fmt.Sprintf("bucket_%s_default", order.ProvisionBucket.Currency)).Result()
+	data, err := pipe.LPop(ctx, fmt.Sprintf("bucket_%s_default", order.ProvisionBucket.Edges.Currency.Code)).Result()
 	if err != nil {
 		logger.Errorf("failed to dequeue from circular queue: %v", err)
 		return err
 	}
 
 	// Enqueue data to the end of the queue
-	err = pipe.RPush(ctx, fmt.Sprintf("bucket_%s_default", order.ProvisionBucket.Currency), data).Err()
+	err = pipe.RPush(ctx, fmt.Sprintf("bucket_%s_default", order.ProvisionBucket.Edges.Currency.Code), data).Err()
 	if err != nil {
 		logger.Errorf("failed to enqueue to circular queue: %v", err)
 		return err
