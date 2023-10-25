@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"regexp"
 	"testing"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/jarcoal/httpmock"
@@ -18,9 +17,9 @@ import (
 	"github.com/paycrest/paycrest-protocol/types"
 
 	"github.com/gin-gonic/gin"
-	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/enttest"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
+	"github.com/paycrest/paycrest-protocol/ent/senderprofile"
 	"github.com/paycrest/paycrest-protocol/ent/user"
 	"github.com/paycrest/paycrest-protocol/ent/verificationtoken"
 	"github.com/paycrest/paycrest-protocol/utils/test"
@@ -59,8 +58,6 @@ func TestAuth(t *testing.T) {
 	router.POST("/confirm-account", ctrl.ConfirmEmail)
 	router.POST("/resend-token", ctrl.ResendVerificationToken)
 	router.POST("/refresh", middleware.JWTMiddleware, ctrl.RefreshJWT)
-	router.GET("/api-keys", middleware.JWTMiddleware, ctrl.ListAPIKeys)
-	router.DELETE("/api-keys/:id", middleware.JWTMiddleware, ctrl.DeleteAPIKey)
 
 	var userID string
 
@@ -98,10 +95,23 @@ func TestAuth(t *testing.T) {
 			if !match {
 				t.Errorf("Expected '%s' to be a valid UUID", data["id"].(string))
 			}
-			userID = data["id"].(string)
+			// Parse the user ID string to uuid.UUID
+			userUUID, err := uuid.Parse(data["id"].(string))
+			assert.NoError(t, err)
 			assert.Equal(t, payload.Email, data["email"].(string))
 			assert.Equal(t, payload.FirstName, data["firstName"].(string))
 			assert.Equal(t, payload.LastName, data["lastName"].(string))
+
+			// Query the database to check if API key and profile were created for the sender
+			senderProfile, err := db.Client.SenderProfile.
+				Query().
+				Where(senderprofile.HasUserWith(user.ID(userUUID))).
+				WithAPIKey().
+				Only(context.Background())
+			assert.NoError(t, err)
+
+			assert.NotNil(t, senderProfile.Edges.APIKey)
+			assert.NotNil(t, senderProfile)
 		})
 
 		t.Run("from the provider app", func(t *testing.T) {
@@ -140,19 +150,14 @@ func TestAuth(t *testing.T) {
 			assert.NoError(t, err)
 
 			// Query the database to check if API key and profile were created for the provider
-			apiKey, err := db.Client.APIKey.
-				Query().
-				Where(apikey.HasOwnerWith(user.ID(userUUID))).
-				Only(context.Background())
-			assert.NoError(t, err)
-
 			providerProfile, err := db.Client.ProviderProfile.
 				Query().
 				Where(providerprofile.HasUserWith(user.ID(userUUID))).
+				WithAPIKey().
 				Only(context.Background())
 			assert.NoError(t, err)
 
-			assert.NotNil(t, apiKey)
+			assert.NotNil(t, providerProfile.Edges.APIKey)
 			assert.NotNil(t, providerProfile)
 		})
 
@@ -354,94 +359,6 @@ func TestAuth(t *testing.T) {
 			err = json.Unmarshal(res.Body.Bytes(), &response)
 			assert.NoError(t, err)
 			assert.Equal(t, "Invalid or expired refresh token", response.Message)
-		})
-	})
-
-	t.Run("ListAPIKeys", func(t *testing.T) {
-		accessToken, _ := token.GenerateAccessJWT(userID)
-		headers := map[string]string{
-			"Authorization": "Bearer " + accessToken,
-		}
-		res, err := test.PerformRequest(t, "GET", "/api-keys?scope=sender", nil, headers, router)
-		assert.NoError(t, err)
-
-		// Assert the response body
-		assert.Equal(t, http.StatusOK, res.Code)
-
-		var response types.Response
-		err = json.Unmarshal(res.Body.Bytes(), &response)
-		assert.NoError(t, err)
-		assert.Equal(t, "Successfully retrieved API keys", response.Message)
-		assert.Equal(t, "success", response.Status)
-		data, ok := response.Data.([]interface{})
-		assert.True(t, ok, "response.Data is not of type []interface{}")
-		assert.NotNil(t, data, "response.Data is nil")
-
-		assert.Len(t, data, 1)
-		dataMap, ok := data[0].(map[string]interface{})
-		assert.True(t, ok, "error is not of type map[string]interface{}")
-		assert.Contains(t, dataMap, "secret")
-		assert.Contains(t, dataMap, "id")
-	})
-
-	t.Run("DeleteAPIKey", func(t *testing.T) {
-		accessToken, _ := token.GenerateAccessJWT(userID)
-
-		t.Run("with a valid API key", func(t *testing.T) {
-
-			userUUID, err := uuid.Parse(userID)
-			assert.NoError(t, err)
-
-			// Create a context with a timeout of 5 seconds
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			defer cancel()
-
-			// BEFORE: Query the user's API keys
-			apiKeys, err := client.User.
-				Query().
-				Where(user.IDEQ(userUUID)).
-				QueryAPIKeys().
-				All(ctx)
-
-			assert.NoError(t, err)
-			assert.Len(t, apiKeys, 1)
-
-			headers := map[string]string{
-				"Authorization": "Bearer " + accessToken,
-			}
-
-			res, err := test.PerformRequest(t, "DELETE", "/api-keys/"+apiKeys[0].ID.String()+"?scope=sender", nil, headers, router)
-			assert.NoError(t, err)
-
-			assert.Equal(t, http.StatusNoContent, res.Code)
-
-			// AFTER: Query the user's API keys again
-			apiKeysAgain, err := client.User.
-				Query().
-				Where(user.IDEQ(userUUID)).
-				QueryAPIKeys().
-				All(ctx)
-
-			assert.NoError(t, err)
-			assert.Len(t, apiKeysAgain, 0)
-		})
-
-		t.Run("with an invalid API key", func(t *testing.T) {
-
-			headers := map[string]string{
-				"Authorization": "Bearer " + accessToken,
-			}
-			res, err := test.PerformRequest(t, "DELETE", "/api-keys/invalid-api-key?scope=sender", nil, headers, router)
-			assert.NoError(t, err)
-
-			// Assert the response body
-			assert.Equal(t, http.StatusBadRequest, res.Code)
-
-			var response types.Response
-			err = json.Unmarshal(res.Body.Bytes(), &response)
-			assert.NoError(t, err)
-			assert.Equal(t, "error", response.Status)
-			assert.Equal(t, "Invalid API key ID", response.Message)
 		})
 	})
 

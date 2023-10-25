@@ -50,6 +50,14 @@ func (akc *APIKeyCreate) SetSenderProfileID(id uuid.UUID) *APIKeyCreate {
 	return akc
 }
 
+// SetNillableSenderProfileID sets the "sender_profile" edge to the SenderProfile entity by ID if the given value is not nil.
+func (akc *APIKeyCreate) SetNillableSenderProfileID(id *uuid.UUID) *APIKeyCreate {
+	if id != nil {
+		akc = akc.SetSenderProfileID(*id)
+	}
+	return akc
+}
+
 // SetSenderProfile sets the "sender_profile" edge to the SenderProfile entity.
 func (akc *APIKeyCreate) SetSenderProfile(s *SenderProfile) *APIKeyCreate {
 	return akc.SetSenderProfileID(s.ID)
@@ -61,6 +69,14 @@ func (akc *APIKeyCreate) SetProviderProfileID(id string) *APIKeyCreate {
 	return akc
 }
 
+// SetNillableProviderProfileID sets the "provider_profile" edge to the ProviderProfile entity by ID if the given value is not nil.
+func (akc *APIKeyCreate) SetNillableProviderProfileID(id *string) *APIKeyCreate {
+	if id != nil {
+		akc = akc.SetProviderProfileID(*id)
+	}
+	return akc
+}
+
 // SetProviderProfile sets the "provider_profile" edge to the ProviderProfile entity.
 func (akc *APIKeyCreate) SetProviderProfile(p *ProviderProfile) *APIKeyCreate {
 	return akc.SetProviderProfileID(p.ID)
@@ -69,6 +85,14 @@ func (akc *APIKeyCreate) SetProviderProfile(p *ProviderProfile) *APIKeyCreate {
 // SetValidatorProfileID sets the "validator_profile" edge to the ValidatorProfile entity by ID.
 func (akc *APIKeyCreate) SetValidatorProfileID(id uuid.UUID) *APIKeyCreate {
 	akc.mutation.SetValidatorProfileID(id)
+	return akc
+}
+
+// SetNillableValidatorProfileID sets the "validator_profile" edge to the ValidatorProfile entity by ID if the given value is not nil.
+func (akc *APIKeyCreate) SetNillableValidatorProfileID(id *uuid.UUID) *APIKeyCreate {
+	if id != nil {
+		akc = akc.SetValidatorProfileID(*id)
+	}
 	return akc
 }
 
@@ -142,15 +166,6 @@ func (akc *APIKeyCreate) check() error {
 		if err := apikey.SecretValidator(v); err != nil {
 			return &ValidationError{Name: "secret", err: fmt.Errorf(`ent: validator failed for field "APIKey.secret": %w`, err)}
 		}
-	}
-	if _, ok := akc.mutation.SenderProfileID(); !ok {
-		return &ValidationError{Name: "sender_profile", err: errors.New(`ent: missing required edge "APIKey.sender_profile"`)}
-	}
-	if _, ok := akc.mutation.ProviderProfileID(); !ok {
-		return &ValidationError{Name: "provider_profile", err: errors.New(`ent: missing required edge "APIKey.provider_profile"`)}
-	}
-	if _, ok := akc.mutation.ValidatorProfileID(); !ok {
-		return &ValidationError{Name: "validator_profile", err: errors.New(`ent: missing required edge "APIKey.validator_profile"`)}
 	}
 	return nil
 }

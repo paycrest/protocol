@@ -15,7 +15,10 @@ import (
 	"github.com/paycrest/paycrest-protocol/ent"
 	"github.com/paycrest/paycrest-protocol/ent/apikey"
 	"github.com/paycrest/paycrest-protocol/ent/predicate"
+	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
+	"github.com/paycrest/paycrest-protocol/ent/senderprofile"
 	"github.com/paycrest/paycrest-protocol/ent/user"
+	"github.com/paycrest/paycrest-protocol/ent/validatorprofile"
 	"github.com/paycrest/paycrest-protocol/storage"
 	u "github.com/paycrest/paycrest-protocol/utils"
 	"github.com/paycrest/paycrest-protocol/utils/crypto"
@@ -248,25 +251,25 @@ func OnlySenderMiddleware(c *gin.Context) {
 	apiKeyCtx, apiKeyOk := c.Get("api_key")
 	userID, userOk := c.Get("user_id")
 
-	user, err := storage.Client.User.
+	senderProfile, err := storage.Client.SenderProfile.
 		Query().
 		Where(
-			user.ScopeEQ(user.ScopeSender),
-			func() predicate.User {
+			func() predicate.SenderProfile {
 				if apiKeyOk {
 					// HMAC auth was used
-					return user.HasAPIKeysWith(
+					return senderprofile.HasAPIKeyWith(
 						apikey.IDEQ(apiKeyCtx.(*ent.APIKey).ID),
 					)
 				} else if userOk {
 					// JWT auth was used
 					userUUID, _ := uuid.Parse(userID.(string))
-					return user.IDEQ(userUUID)
+					return senderprofile.HasUserWith(
+						user.IDEQ(userUUID),
+					)
 				}
 				return nil
 			}(),
 		).
-		WithSenderProfile().
 		Only(c)
 	if err != nil {
 		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid API key", nil)
@@ -274,7 +277,7 @@ func OnlySenderMiddleware(c *gin.Context) {
 		return
 	}
 
-	c.Set("sender", user.Edges.SenderProfile)
+	c.Set("sender", senderProfile)
 	c.Next()
 }
 
@@ -283,25 +286,25 @@ func OnlyProviderMiddleware(c *gin.Context) {
 	apiKeyCtx, apiKeyOk := c.Get("api_key")
 	userID, userOk := c.Get("user_id")
 
-	user, err := storage.Client.User.
+	providerProfile, err := storage.Client.ProviderProfile.
 		Query().
 		Where(
-			user.ScopeEQ(user.ScopeProvider),
-			func() predicate.User {
+			func() predicate.ProviderProfile {
 				if apiKeyOk {
 					// HMAC auth was used
-					return user.HasAPIKeysWith(
+					return providerprofile.HasAPIKeyWith(
 						apikey.IDEQ(apiKeyCtx.(*ent.APIKey).ID),
 					)
 				} else if userOk {
 					// JWT auth was used
 					userUUID, _ := uuid.Parse(userID.(string))
-					return user.IDEQ(userUUID)
+					return providerprofile.HasUserWith(
+						user.IDEQ(userUUID),
+					)
 				}
 				return nil
 			}(),
 		).
-		WithProviderProfile().
 		Only(c)
 	if err != nil {
 		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid API key", nil)
@@ -309,7 +312,7 @@ func OnlyProviderMiddleware(c *gin.Context) {
 		return
 	}
 
-	c.Set("provider", user.Edges.ProviderProfile)
+	c.Set("provider", providerProfile)
 	c.Next()
 }
 
@@ -318,25 +321,25 @@ func OnlyValidatorMiddleware(c *gin.Context) {
 	apiKeyCtx, apiKeyOk := c.Get("api_key")
 	userID, userOk := c.Get("user_id")
 
-	user, err := storage.Client.User.
+	validatorProfile, err := storage.Client.ValidatorProfile.
 		Query().
 		Where(
-			user.ScopeEQ(user.ScopeTxValidator),
-			func() predicate.User {
+			func() predicate.ValidatorProfile {
 				if apiKeyOk {
 					// HMAC auth was used
-					return user.HasAPIKeysWith(
+					return validatorprofile.HasAPIKeyWith(
 						apikey.IDEQ(apiKeyCtx.(*ent.APIKey).ID),
 					)
 				} else if userOk {
 					// JWT auth was used
 					userUUID, _ := uuid.Parse(userID.(string))
-					return user.IDEQ(userUUID)
+					return validatorprofile.HasUserWith(
+						user.IDEQ(userUUID),
+					)
 				}
 				return nil
 			}(),
 		).
-		WithValidatorProfile().
 		Only(c)
 	if err != nil {
 		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid API key", nil)
@@ -344,6 +347,6 @@ func OnlyValidatorMiddleware(c *gin.Context) {
 		return
 	}
 
-	c.Set("validator", user.Edges.ValidatorProfile)
+	c.Set("validator", validatorProfile)
 	c.Next()
 }
