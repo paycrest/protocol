@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
+	"github.com/paycrest/paycrest-protocol/ent/fiatcurrency"
 	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
 	"github.com/paycrest/paycrest-protocol/ent/provisionbucket"
@@ -36,12 +37,6 @@ func (pbc *ProvisionBucketCreate) SetMaxAmount(d decimal.Decimal) *ProvisionBuck
 	return pbc
 }
 
-// SetCurrency sets the "currency" field.
-func (pbc *ProvisionBucketCreate) SetCurrency(s string) *ProvisionBucketCreate {
-	pbc.mutation.SetCurrency(s)
-	return pbc
-}
-
 // SetCreatedAt sets the "created_at" field.
 func (pbc *ProvisionBucketCreate) SetCreatedAt(t time.Time) *ProvisionBucketCreate {
 	pbc.mutation.SetCreatedAt(t)
@@ -54,6 +49,17 @@ func (pbc *ProvisionBucketCreate) SetNillableCreatedAt(t *time.Time) *ProvisionB
 		pbc.SetCreatedAt(*t)
 	}
 	return pbc
+}
+
+// SetCurrencyID sets the "currency" edge to the FiatCurrency entity by ID.
+func (pbc *ProvisionBucketCreate) SetCurrencyID(id uuid.UUID) *ProvisionBucketCreate {
+	pbc.mutation.SetCurrencyID(id)
+	return pbc
+}
+
+// SetCurrency sets the "currency" edge to the FiatCurrency entity.
+func (pbc *ProvisionBucketCreate) SetCurrency(f *FiatCurrency) *ProvisionBucketCreate {
+	return pbc.SetCurrencyID(f.ID)
 }
 
 // AddLockPaymentOrderIDs adds the "lock_payment_orders" edge to the LockPaymentOrder entity by IDs.
@@ -135,16 +141,11 @@ func (pbc *ProvisionBucketCreate) check() error {
 	if _, ok := pbc.mutation.MaxAmount(); !ok {
 		return &ValidationError{Name: "max_amount", err: errors.New(`ent: missing required field "ProvisionBucket.max_amount"`)}
 	}
-	if _, ok := pbc.mutation.Currency(); !ok {
-		return &ValidationError{Name: "currency", err: errors.New(`ent: missing required field "ProvisionBucket.currency"`)}
-	}
-	if v, ok := pbc.mutation.Currency(); ok {
-		if err := provisionbucket.CurrencyValidator(v); err != nil {
-			return &ValidationError{Name: "currency", err: fmt.Errorf(`ent: validator failed for field "ProvisionBucket.currency": %w`, err)}
-		}
-	}
 	if _, ok := pbc.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "ProvisionBucket.created_at"`)}
+	}
+	if _, ok := pbc.mutation.CurrencyID(); !ok {
+		return &ValidationError{Name: "currency", err: errors.New(`ent: missing required edge "ProvisionBucket.currency"`)}
 	}
 	return nil
 }
@@ -180,13 +181,26 @@ func (pbc *ProvisionBucketCreate) createSpec() (*ProvisionBucket, *sqlgraph.Crea
 		_spec.SetField(provisionbucket.FieldMaxAmount, field.TypeFloat64, value)
 		_node.MaxAmount = value
 	}
-	if value, ok := pbc.mutation.Currency(); ok {
-		_spec.SetField(provisionbucket.FieldCurrency, field.TypeString, value)
-		_node.Currency = value
-	}
 	if value, ok := pbc.mutation.CreatedAt(); ok {
 		_spec.SetField(provisionbucket.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
+	}
+	if nodes := pbc.mutation.CurrencyIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   provisionbucket.CurrencyTable,
+			Columns: []string{provisionbucket.CurrencyColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(fiatcurrency.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.fiat_currency_provision_buckets = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := pbc.mutation.LockPaymentOrdersIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

@@ -18,16 +18,23 @@ const (
 	FieldMinAmount = "min_amount"
 	// FieldMaxAmount holds the string denoting the max_amount field in the database.
 	FieldMaxAmount = "max_amount"
-	// FieldCurrency holds the string denoting the currency field in the database.
-	FieldCurrency = "currency"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
+	// EdgeCurrency holds the string denoting the currency edge name in mutations.
+	EdgeCurrency = "currency"
 	// EdgeLockPaymentOrders holds the string denoting the lock_payment_orders edge name in mutations.
 	EdgeLockPaymentOrders = "lock_payment_orders"
 	// EdgeProviderProfiles holds the string denoting the provider_profiles edge name in mutations.
 	EdgeProviderProfiles = "provider_profiles"
 	// Table holds the table name of the provisionbucket in the database.
 	Table = "provision_buckets"
+	// CurrencyTable is the table that holds the currency relation/edge.
+	CurrencyTable = "provision_buckets"
+	// CurrencyInverseTable is the table name for the FiatCurrency entity.
+	// It exists in this package in order to avoid circular dependency with the "fiatcurrency" package.
+	CurrencyInverseTable = "fiat_currencies"
+	// CurrencyColumn is the table column denoting the currency relation/edge.
+	CurrencyColumn = "fiat_currency_provision_buckets"
 	// LockPaymentOrdersTable is the table that holds the lock_payment_orders relation/edge.
 	LockPaymentOrdersTable = "lock_payment_orders"
 	// LockPaymentOrdersInverseTable is the table name for the LockPaymentOrder entity.
@@ -47,8 +54,13 @@ var Columns = []string{
 	FieldID,
 	FieldMinAmount,
 	FieldMaxAmount,
-	FieldCurrency,
 	FieldCreatedAt,
+}
+
+// ForeignKeys holds the SQL foreign-keys that are owned by the "provision_buckets"
+// table and are not defined as standalone fields in the schema.
+var ForeignKeys = []string{
+	"fiat_currency_provision_buckets",
 }
 
 var (
@@ -64,12 +76,15 @@ func ValidColumn(column string) bool {
 			return true
 		}
 	}
+	for i := range ForeignKeys {
+		if column == ForeignKeys[i] {
+			return true
+		}
+	}
 	return false
 }
 
 var (
-	// CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
-	CurrencyValidator func(string) error
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt func() time.Time
 )
@@ -92,14 +107,16 @@ func ByMaxAmount(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldMaxAmount, opts...).ToFunc()
 }
 
-// ByCurrency orders the results by the currency field.
-func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldCurrency, opts...).ToFunc()
-}
-
 // ByCreatedAt orders the results by the created_at field.
 func ByCreatedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCreatedAt, opts...).ToFunc()
+}
+
+// ByCurrencyField orders the results by currency field.
+func ByCurrencyField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newCurrencyStep(), sql.OrderByField(field, opts...))
+	}
 }
 
 // ByLockPaymentOrdersCount orders the results by lock_payment_orders count.
@@ -128,6 +145,13 @@ func ByProviderProfiles(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption 
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newProviderProfilesStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
+}
+func newCurrencyStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(CurrencyInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, CurrencyTable, CurrencyColumn),
+	)
 }
 func newLockPaymentOrdersStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(

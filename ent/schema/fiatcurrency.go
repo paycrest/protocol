@@ -26,7 +26,7 @@ func (FiatCurrency) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
 			Default(uuid.New),
-		field.String("code").Unique(),
+		field.String("code").Unique(), // https://en.wikipedia.org/wiki/ISO_4217
 		field.String("short_name").Unique(),
 		field.Int("decimals").Default(2),
 		field.String("symbol"),
@@ -43,5 +43,7 @@ func (FiatCurrency) Edges() []ent.Edge {
 		edge.To("provider", ProviderProfile.Type).
 			Unique().
 			Annotations(entsql.OnDelete(entsql.SetNull)),
+		edge.To("provision_buckets", ProvisionBucket.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }

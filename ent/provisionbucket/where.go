@@ -66,11 +66,6 @@ func MaxAmount(v decimal.Decimal) predicate.ProvisionBucket {
 	return predicate.ProvisionBucket(sql.FieldEQ(FieldMaxAmount, v))
 }
 
-// Currency applies equality check predicate on the "currency" field. It's identical to CurrencyEQ.
-func Currency(v string) predicate.ProvisionBucket {
-	return predicate.ProvisionBucket(sql.FieldEQ(FieldCurrency, v))
-}
-
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
 func CreatedAt(v time.Time) predicate.ProvisionBucket {
 	return predicate.ProvisionBucket(sql.FieldEQ(FieldCreatedAt, v))
@@ -156,71 +151,6 @@ func MaxAmountLTE(v decimal.Decimal) predicate.ProvisionBucket {
 	return predicate.ProvisionBucket(sql.FieldLTE(FieldMaxAmount, v))
 }
 
-// CurrencyEQ applies the EQ predicate on the "currency" field.
-func CurrencyEQ(v string) predicate.ProvisionBucket {
-	return predicate.ProvisionBucket(sql.FieldEQ(FieldCurrency, v))
-}
-
-// CurrencyNEQ applies the NEQ predicate on the "currency" field.
-func CurrencyNEQ(v string) predicate.ProvisionBucket {
-	return predicate.ProvisionBucket(sql.FieldNEQ(FieldCurrency, v))
-}
-
-// CurrencyIn applies the In predicate on the "currency" field.
-func CurrencyIn(vs ...string) predicate.ProvisionBucket {
-	return predicate.ProvisionBucket(sql.FieldIn(FieldCurrency, vs...))
-}
-
-// CurrencyNotIn applies the NotIn predicate on the "currency" field.
-func CurrencyNotIn(vs ...string) predicate.ProvisionBucket {
-	return predicate.ProvisionBucket(sql.FieldNotIn(FieldCurrency, vs...))
-}
-
-// CurrencyGT applies the GT predicate on the "currency" field.
-func CurrencyGT(v string) predicate.ProvisionBucket {
-	return predicate.ProvisionBucket(sql.FieldGT(FieldCurrency, v))
-}
-
-// CurrencyGTE applies the GTE predicate on the "currency" field.
-func CurrencyGTE(v string) predicate.ProvisionBucket {
-	return predicate.ProvisionBucket(sql.FieldGTE(FieldCurrency, v))
-}
-
-// CurrencyLT applies the LT predicate on the "currency" field.
-func CurrencyLT(v string) predicate.ProvisionBucket {
-	return predicate.ProvisionBucket(sql.FieldLT(FieldCurrency, v))
-}
-
-// CurrencyLTE applies the LTE predicate on the "currency" field.
-func CurrencyLTE(v string) predicate.ProvisionBucket {
-	return predicate.ProvisionBucket(sql.FieldLTE(FieldCurrency, v))
-}
-
-// CurrencyContains applies the Contains predicate on the "currency" field.
-func CurrencyContains(v string) predicate.ProvisionBucket {
-	return predicate.ProvisionBucket(sql.FieldContains(FieldCurrency, v))
-}
-
-// CurrencyHasPrefix applies the HasPrefix predicate on the "currency" field.
-func CurrencyHasPrefix(v string) predicate.ProvisionBucket {
-	return predicate.ProvisionBucket(sql.FieldHasPrefix(FieldCurrency, v))
-}
-
-// CurrencyHasSuffix applies the HasSuffix predicate on the "currency" field.
-func CurrencyHasSuffix(v string) predicate.ProvisionBucket {
-	return predicate.ProvisionBucket(sql.FieldHasSuffix(FieldCurrency, v))
-}
-
-// CurrencyEqualFold applies the EqualFold predicate on the "currency" field.
-func CurrencyEqualFold(v string) predicate.ProvisionBucket {
-	return predicate.ProvisionBucket(sql.FieldEqualFold(FieldCurrency, v))
-}
-
-// CurrencyContainsFold applies the ContainsFold predicate on the "currency" field.
-func CurrencyContainsFold(v string) predicate.ProvisionBucket {
-	return predicate.ProvisionBucket(sql.FieldContainsFold(FieldCurrency, v))
-}
-
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.ProvisionBucket {
 	return predicate.ProvisionBucket(sql.FieldEQ(FieldCreatedAt, v))
@@ -259,6 +189,29 @@ func CreatedAtLT(v time.Time) predicate.ProvisionBucket {
 // CreatedAtLTE applies the LTE predicate on the "created_at" field.
 func CreatedAtLTE(v time.Time) predicate.ProvisionBucket {
 	return predicate.ProvisionBucket(sql.FieldLTE(FieldCreatedAt, v))
+}
+
+// HasCurrency applies the HasEdge predicate on the "currency" edge.
+func HasCurrency() predicate.ProvisionBucket {
+	return predicate.ProvisionBucket(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, CurrencyTable, CurrencyColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasCurrencyWith applies the HasEdge predicate on the "currency" edge with a given conditions (other predicates).
+func HasCurrencyWith(preds ...predicate.FiatCurrency) predicate.ProvisionBucket {
+	return predicate.ProvisionBucket(func(s *sql.Selector) {
+		step := newCurrencyStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
 }
 
 // HasLockPaymentOrders applies the HasEdge predicate on the "lock_payment_orders" edge.

@@ -9,6 +9,8 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/google/uuid"
+	"github.com/paycrest/paycrest-protocol/ent/fiatcurrency"
 	"github.com/paycrest/paycrest-protocol/ent/provisionbucket"
 	"github.com/shopspring/decimal"
 )
@@ -22,31 +24,45 @@ type ProvisionBucket struct {
 	MinAmount decimal.Decimal `json:"min_amount,omitempty"`
 	// MaxAmount holds the value of the "max_amount" field.
 	MaxAmount decimal.Decimal `json:"max_amount,omitempty"`
-	// Currency holds the value of the "currency" field.
-	Currency string `json:"currency,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ProvisionBucketQuery when eager-loading is set.
-	Edges        ProvisionBucketEdges `json:"edges"`
-	selectValues sql.SelectValues
+	Edges                           ProvisionBucketEdges `json:"edges"`
+	fiat_currency_provision_buckets *uuid.UUID
+	selectValues                    sql.SelectValues
 }
 
 // ProvisionBucketEdges holds the relations/edges for other nodes in the graph.
 type ProvisionBucketEdges struct {
+	// Currency holds the value of the currency edge.
+	Currency *FiatCurrency `json:"currency,omitempty"`
 	// LockPaymentOrders holds the value of the lock_payment_orders edge.
 	LockPaymentOrders []*LockPaymentOrder `json:"lock_payment_orders,omitempty"`
 	// ProviderProfiles holds the value of the provider_profiles edge.
 	ProviderProfiles []*ProviderProfile `json:"provider_profiles,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [3]bool
+}
+
+// CurrencyOrErr returns the Currency value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ProvisionBucketEdges) CurrencyOrErr() (*FiatCurrency, error) {
+	if e.loadedTypes[0] {
+		if e.Currency == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: fiatcurrency.Label}
+		}
+		return e.Currency, nil
+	}
+	return nil, &NotLoadedError{edge: "currency"}
 }
 
 // LockPaymentOrdersOrErr returns the LockPaymentOrders value or an error if the edge
 // was not loaded in eager-loading.
 func (e ProvisionBucketEdges) LockPaymentOrdersOrErr() ([]*LockPaymentOrder, error) {
-	if e.loadedTypes[0] {
+	if e.loadedTypes[1] {
 		return e.LockPaymentOrders, nil
 	}
 	return nil, &NotLoadedError{edge: "lock_payment_orders"}
@@ -55,7 +71,7 @@ func (e ProvisionBucketEdges) LockPaymentOrdersOrErr() ([]*LockPaymentOrder, err
 // ProviderProfilesOrErr returns the ProviderProfiles value or an error if the edge
 // was not loaded in eager-loading.
 func (e ProvisionBucketEdges) ProviderProfilesOrErr() ([]*ProviderProfile, error) {
-	if e.loadedTypes[1] {
+	if e.loadedTypes[2] {
 		return e.ProviderProfiles, nil
 	}
 	return nil, &NotLoadedError{edge: "provider_profiles"}
@@ -70,10 +86,10 @@ func (*ProvisionBucket) scanValues(columns []string) ([]any, error) {
 			values[i] = new(decimal.Decimal)
 		case provisionbucket.FieldID:
 			values[i] = new(sql.NullInt64)
-		case provisionbucket.FieldCurrency:
-			values[i] = new(sql.NullString)
 		case provisionbucket.FieldCreatedAt:
 			values[i] = new(sql.NullTime)
+		case provisionbucket.ForeignKeys[0]: // fiat_currency_provision_buckets
+			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -107,17 +123,18 @@ func (pb *ProvisionBucket) assignValues(columns []string, values []any) error {
 			} else if value != nil {
 				pb.MaxAmount = *value
 			}
-		case provisionbucket.FieldCurrency:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field currency", values[i])
-			} else if value.Valid {
-				pb.Currency = value.String
-			}
 		case provisionbucket.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
 				pb.CreatedAt = value.Time
+			}
+		case provisionbucket.ForeignKeys[0]:
+			if value, ok := values[i].(*sql.NullScanner); !ok {
+				return fmt.Errorf("unexpected type %T for field fiat_currency_provision_buckets", values[i])
+			} else if value.Valid {
+				pb.fiat_currency_provision_buckets = new(uuid.UUID)
+				*pb.fiat_currency_provision_buckets = *value.S.(*uuid.UUID)
 			}
 		default:
 			pb.selectValues.Set(columns[i], values[i])
@@ -130,6 +147,11 @@ func (pb *ProvisionBucket) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (pb *ProvisionBucket) Value(name string) (ent.Value, error) {
 	return pb.selectValues.Get(name)
+}
+
+// QueryCurrency queries the "currency" edge of the ProvisionBucket entity.
+func (pb *ProvisionBucket) QueryCurrency() *FiatCurrencyQuery {
+	return NewProvisionBucketClient(pb.config).QueryCurrency(pb)
 }
 
 // QueryLockPaymentOrders queries the "lock_payment_orders" edge of the ProvisionBucket entity.
@@ -170,9 +192,6 @@ func (pb *ProvisionBucket) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("max_amount=")
 	builder.WriteString(fmt.Sprintf("%v", pb.MaxAmount))
-	builder.WriteString(", ")
-	builder.WriteString("currency=")
-	builder.WriteString(pb.Currency)
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(pb.CreatedAt.Format(time.ANSIC))

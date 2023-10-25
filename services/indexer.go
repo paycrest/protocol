@@ -18,6 +18,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/paycrest/paycrest-protocol/config"
 	"github.com/paycrest/paycrest-protocol/ent"
+	"github.com/paycrest/paycrest-protocol/ent/fiatcurrency"
 	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
 	networkent "github.com/paycrest/paycrest-protocol/ent/network"
 	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
@@ -621,8 +622,16 @@ func (s *IndexerService) createLockPaymentOrder(ctx context.Context, client type
 		return fmt.Errorf("failed to fetch institution: %w", err)
 	}
 
+	currency, err := db.Client.FiatCurrency.
+		Query().
+		Where(
+			fiatcurrency.IsEnabledEQ(true),
+			fiatcurrency.CodeEQ(utils.Byte32ToString(institution.Currency)),
+		).
+		Only(ctx)
+
 	provisionBucket, err := s.getProvisionBucket(
-		ctx, nil, amountInDecimals, utils.Byte32ToString(institution.Currency),
+		ctx, nil, amountInDecimals, currency,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to fetch provision bucket: %w", err)
@@ -643,9 +652,17 @@ func (s *IndexerService) createLockPaymentOrder(ctx context.Context, client type
 	}
 
 	if provisionBucket == nil {
+		currency, err := db.Client.FiatCurrency.
+			Query().
+			Where(
+				fiatcurrency.IsEnabledEQ(true),
+				fiatcurrency.CodeEQ(utils.Byte32ToString(institution.Currency)),
+			).
+			Only(ctx)
+
 		// Split lock payment order into multiple orders
-		err := s.splitLockPaymentOrder(
-			ctx, lockPaymentOrder, utils.Byte32ToString(institution.Currency),
+		err = s.splitLockPaymentOrder(
+			ctx, lockPaymentOrder, currency,
 		)
 		if err != nil {
 			return fmt.Errorf("failed to split lock payment order: %w", err)
@@ -678,13 +695,16 @@ func (s *IndexerService) createLockPaymentOrder(ctx context.Context, client type
 }
 
 // getProvisionBucket returns the provision bucket for a lock payment order
-func (s *IndexerService) getProvisionBucket(ctx context.Context, client types.RPCClient, amount decimal.Decimal, currency string) (*ent.ProvisionBucket, error) {
+func (s *IndexerService) getProvisionBucket(ctx context.Context, client types.RPCClient, amount decimal.Decimal, currency *ent.FiatCurrency) (*ent.ProvisionBucket, error) {
+
 	provisionBucket, err := db.Client.ProvisionBucket.
 		Query().
 		Where(
 			provisionbucket.MaxAmountGTE(amount),
 			provisionbucket.MinAmountLTE(amount),
-			provisionbucket.CurrencyEQ(currency),
+			provisionbucket.HasCurrencyWith(
+				fiatcurrency.IDEQ(currency.ID),
+			),
 		).
 		Only(ctx)
 	if err != nil {
@@ -711,10 +731,12 @@ func (s *IndexerService) getInstitutionByCode(ctx context.Context, client types.
 }
 
 // splitLockPaymentOrder splits a lock payment order into multiple orders
-func (s *IndexerService) splitLockPaymentOrder(ctx context.Context, lockPaymentOrder types.LockPaymentOrderFields, currency string) error {
+func (s *IndexerService) splitLockPaymentOrder(ctx context.Context, lockPaymentOrder types.LockPaymentOrderFields, currency *ent.FiatCurrency) error {
 	buckets, err := db.Client.ProvisionBucket.
 		Query().
-		Where(provisionbucket.CurrencyEQ(currency)).
+		Where(provisionbucket.HasCurrencyWith(
+			fiatcurrency.IDEQ(currency.ID),
+		)).
 		WithProviderProfiles().
 		Order(ent.Desc(provisionbucket.FieldMaxAmount)).
 		All(ctx)

@@ -555,6 +555,29 @@ func HasProviderWith(preds ...predicate.ProviderProfile) predicate.FiatCurrency 
 	})
 }
 
+// HasProvisionBuckets applies the HasEdge predicate on the "provision_buckets" edge.
+func HasProvisionBuckets() predicate.FiatCurrency {
+	return predicate.FiatCurrency(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ProvisionBucketsTable, ProvisionBucketsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasProvisionBucketsWith applies the HasEdge predicate on the "provision_buckets" edge with a given conditions (other predicates).
+func HasProvisionBucketsWith(preds ...predicate.ProvisionBucket) predicate.FiatCurrency {
+	return predicate.FiatCurrency(func(s *sql.Selector) {
+		step := newProvisionBucketsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.FiatCurrency) predicate.FiatCurrency {
 	return predicate.FiatCurrency(func(s *sql.Selector) {

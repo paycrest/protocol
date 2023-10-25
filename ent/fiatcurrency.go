@@ -48,9 +48,11 @@ type FiatCurrency struct {
 type FiatCurrencyEdges struct {
 	// Provider holds the value of the provider edge.
 	Provider *ProviderProfile `json:"provider,omitempty"`
+	// ProvisionBuckets holds the value of the provision_buckets edge.
+	ProvisionBuckets []*ProvisionBucket `json:"provision_buckets,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
 }
 
 // ProviderOrErr returns the Provider value or an error if the edge
@@ -64,6 +66,15 @@ func (e FiatCurrencyEdges) ProviderOrErr() (*ProviderProfile, error) {
 		return e.Provider, nil
 	}
 	return nil, &NotLoadedError{edge: "provider"}
+}
+
+// ProvisionBucketsOrErr returns the ProvisionBuckets value or an error if the edge
+// was not loaded in eager-loading.
+func (e FiatCurrencyEdges) ProvisionBucketsOrErr() ([]*ProvisionBucket, error) {
+	if e.loadedTypes[1] {
+		return e.ProvisionBuckets, nil
+	}
+	return nil, &NotLoadedError{edge: "provision_buckets"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -174,6 +185,11 @@ func (fc *FiatCurrency) Value(name string) (ent.Value, error) {
 // QueryProvider queries the "provider" edge of the FiatCurrency entity.
 func (fc *FiatCurrency) QueryProvider() *ProviderProfileQuery {
 	return NewFiatCurrencyClient(fc.config).QueryProvider(fc)
+}
+
+// QueryProvisionBuckets queries the "provision_buckets" edge of the FiatCurrency entity.
+func (fc *FiatCurrency) QueryProvisionBuckets() *ProvisionBucketQuery {
+	return NewFiatCurrencyClient(fc.config).QueryProvisionBuckets(fc)
 }
 
 // Update returns a builder for updating this FiatCurrency.

@@ -668,26 +668,29 @@ func (m *APIKeyMutation) ResetEdge(name string) error {
 // FiatCurrencyMutation represents an operation that mutates the FiatCurrency nodes in the graph.
 type FiatCurrencyMutation struct {
 	config
-	op              Op
-	typ             string
-	id              *uuid.UUID
-	created_at      *time.Time
-	updated_at      *time.Time
-	code            *string
-	short_name      *string
-	decimals        *int
-	adddecimals     *int
-	symbol          *string
-	name            *string
-	market_rate     *decimal.Decimal
-	addmarket_rate  *decimal.Decimal
-	is_enabled      *bool
-	clearedFields   map[string]struct{}
-	provider        *string
-	clearedprovider bool
-	done            bool
-	oldValue        func(context.Context) (*FiatCurrency, error)
-	predicates      []predicate.FiatCurrency
+	op                       Op
+	typ                      string
+	id                       *uuid.UUID
+	created_at               *time.Time
+	updated_at               *time.Time
+	code                     *string
+	short_name               *string
+	decimals                 *int
+	adddecimals              *int
+	symbol                   *string
+	name                     *string
+	market_rate              *decimal.Decimal
+	addmarket_rate           *decimal.Decimal
+	is_enabled               *bool
+	clearedFields            map[string]struct{}
+	provider                 *string
+	clearedprovider          bool
+	provision_buckets        map[int]struct{}
+	removedprovision_buckets map[int]struct{}
+	clearedprovision_buckets bool
+	done                     bool
+	oldValue                 func(context.Context) (*FiatCurrency, error)
+	predicates               []predicate.FiatCurrency
 }
 
 var _ ent.Mutation = (*FiatCurrencyMutation)(nil)
@@ -1197,6 +1200,60 @@ func (m *FiatCurrencyMutation) ResetProvider() {
 	m.clearedprovider = false
 }
 
+// AddProvisionBucketIDs adds the "provision_buckets" edge to the ProvisionBucket entity by ids.
+func (m *FiatCurrencyMutation) AddProvisionBucketIDs(ids ...int) {
+	if m.provision_buckets == nil {
+		m.provision_buckets = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.provision_buckets[ids[i]] = struct{}{}
+	}
+}
+
+// ClearProvisionBuckets clears the "provision_buckets" edge to the ProvisionBucket entity.
+func (m *FiatCurrencyMutation) ClearProvisionBuckets() {
+	m.clearedprovision_buckets = true
+}
+
+// ProvisionBucketsCleared reports if the "provision_buckets" edge to the ProvisionBucket entity was cleared.
+func (m *FiatCurrencyMutation) ProvisionBucketsCleared() bool {
+	return m.clearedprovision_buckets
+}
+
+// RemoveProvisionBucketIDs removes the "provision_buckets" edge to the ProvisionBucket entity by IDs.
+func (m *FiatCurrencyMutation) RemoveProvisionBucketIDs(ids ...int) {
+	if m.removedprovision_buckets == nil {
+		m.removedprovision_buckets = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.provision_buckets, ids[i])
+		m.removedprovision_buckets[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedProvisionBuckets returns the removed IDs of the "provision_buckets" edge to the ProvisionBucket entity.
+func (m *FiatCurrencyMutation) RemovedProvisionBucketsIDs() (ids []int) {
+	for id := range m.removedprovision_buckets {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ProvisionBucketsIDs returns the "provision_buckets" edge IDs in the mutation.
+func (m *FiatCurrencyMutation) ProvisionBucketsIDs() (ids []int) {
+	for id := range m.provision_buckets {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetProvisionBuckets resets all changes to the "provision_buckets" edge.
+func (m *FiatCurrencyMutation) ResetProvisionBuckets() {
+	m.provision_buckets = nil
+	m.clearedprovision_buckets = false
+	m.removedprovision_buckets = nil
+}
+
 // Where appends a list predicates to the FiatCurrencyMutation builder.
 func (m *FiatCurrencyMutation) Where(ps ...predicate.FiatCurrency) {
 	m.predicates = append(m.predicates, ps...)
@@ -1493,9 +1550,12 @@ func (m *FiatCurrencyMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *FiatCurrencyMutation) AddedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.provider != nil {
 		edges = append(edges, fiatcurrency.EdgeProvider)
+	}
+	if m.provision_buckets != nil {
+		edges = append(edges, fiatcurrency.EdgeProvisionBuckets)
 	}
 	return edges
 }
@@ -1508,27 +1568,47 @@ func (m *FiatCurrencyMutation) AddedIDs(name string) []ent.Value {
 		if id := m.provider; id != nil {
 			return []ent.Value{*id}
 		}
+	case fiatcurrency.EdgeProvisionBuckets:
+		ids := make([]ent.Value, 0, len(m.provision_buckets))
+		for id := range m.provision_buckets {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *FiatCurrencyMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
+	if m.removedprovision_buckets != nil {
+		edges = append(edges, fiatcurrency.EdgeProvisionBuckets)
+	}
 	return edges
 }
 
 // RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
 // the given name in this mutation.
 func (m *FiatCurrencyMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case fiatcurrency.EdgeProvisionBuckets:
+		ids := make([]ent.Value, 0, len(m.removedprovision_buckets))
+		for id := range m.removedprovision_buckets {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *FiatCurrencyMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.clearedprovider {
 		edges = append(edges, fiatcurrency.EdgeProvider)
+	}
+	if m.clearedprovision_buckets {
+		edges = append(edges, fiatcurrency.EdgeProvisionBuckets)
 	}
 	return edges
 }
@@ -1539,6 +1619,8 @@ func (m *FiatCurrencyMutation) EdgeCleared(name string) bool {
 	switch name {
 	case fiatcurrency.EdgeProvider:
 		return m.clearedprovider
+	case fiatcurrency.EdgeProvisionBuckets:
+		return m.clearedprovision_buckets
 	}
 	return false
 }
@@ -1560,6 +1642,9 @@ func (m *FiatCurrencyMutation) ResetEdge(name string) error {
 	switch name {
 	case fiatcurrency.EdgeProvider:
 		m.ResetProvider()
+		return nil
+	case fiatcurrency.EdgeProvisionBuckets:
+		m.ResetProvisionBuckets()
 		return nil
 	}
 	return fmt.Errorf("unknown FiatCurrency edge %s", name)
@@ -9413,9 +9498,10 @@ type ProvisionBucketMutation struct {
 	addmin_amount              *decimal.Decimal
 	max_amount                 *decimal.Decimal
 	addmax_amount              *decimal.Decimal
-	currency                   *string
 	created_at                 *time.Time
 	clearedFields              map[string]struct{}
+	currency                   *uuid.UUID
+	clearedcurrency            bool
 	lock_payment_orders        map[uuid.UUID]struct{}
 	removedlock_payment_orders map[uuid.UUID]struct{}
 	clearedlock_payment_orders bool
@@ -9637,42 +9723,6 @@ func (m *ProvisionBucketMutation) ResetMaxAmount() {
 	m.addmax_amount = nil
 }
 
-// SetCurrency sets the "currency" field.
-func (m *ProvisionBucketMutation) SetCurrency(s string) {
-	m.currency = &s
-}
-
-// Currency returns the value of the "currency" field in the mutation.
-func (m *ProvisionBucketMutation) Currency() (r string, exists bool) {
-	v := m.currency
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldCurrency returns the old "currency" field's value of the ProvisionBucket entity.
-// If the ProvisionBucket object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ProvisionBucketMutation) OldCurrency(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCurrency is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCurrency requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCurrency: %w", err)
-	}
-	return oldValue.Currency, nil
-}
-
-// ResetCurrency resets all changes to the "currency" field.
-func (m *ProvisionBucketMutation) ResetCurrency() {
-	m.currency = nil
-}
-
 // SetCreatedAt sets the "created_at" field.
 func (m *ProvisionBucketMutation) SetCreatedAt(t time.Time) {
 	m.created_at = &t
@@ -9707,6 +9757,45 @@ func (m *ProvisionBucketMutation) OldCreatedAt(ctx context.Context) (v time.Time
 // ResetCreatedAt resets all changes to the "created_at" field.
 func (m *ProvisionBucketMutation) ResetCreatedAt() {
 	m.created_at = nil
+}
+
+// SetCurrencyID sets the "currency" edge to the FiatCurrency entity by id.
+func (m *ProvisionBucketMutation) SetCurrencyID(id uuid.UUID) {
+	m.currency = &id
+}
+
+// ClearCurrency clears the "currency" edge to the FiatCurrency entity.
+func (m *ProvisionBucketMutation) ClearCurrency() {
+	m.clearedcurrency = true
+}
+
+// CurrencyCleared reports if the "currency" edge to the FiatCurrency entity was cleared.
+func (m *ProvisionBucketMutation) CurrencyCleared() bool {
+	return m.clearedcurrency
+}
+
+// CurrencyID returns the "currency" edge ID in the mutation.
+func (m *ProvisionBucketMutation) CurrencyID() (id uuid.UUID, exists bool) {
+	if m.currency != nil {
+		return *m.currency, true
+	}
+	return
+}
+
+// CurrencyIDs returns the "currency" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// CurrencyID instead. It exists only for internal usage by the builders.
+func (m *ProvisionBucketMutation) CurrencyIDs() (ids []uuid.UUID) {
+	if id := m.currency; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetCurrency resets all changes to the "currency" edge.
+func (m *ProvisionBucketMutation) ResetCurrency() {
+	m.currency = nil
+	m.clearedcurrency = false
 }
 
 // AddLockPaymentOrderIDs adds the "lock_payment_orders" edge to the LockPaymentOrder entity by ids.
@@ -9851,15 +9940,12 @@ func (m *ProvisionBucketMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ProvisionBucketMutation) Fields() []string {
-	fields := make([]string, 0, 4)
+	fields := make([]string, 0, 3)
 	if m.min_amount != nil {
 		fields = append(fields, provisionbucket.FieldMinAmount)
 	}
 	if m.max_amount != nil {
 		fields = append(fields, provisionbucket.FieldMaxAmount)
-	}
-	if m.currency != nil {
-		fields = append(fields, provisionbucket.FieldCurrency)
 	}
 	if m.created_at != nil {
 		fields = append(fields, provisionbucket.FieldCreatedAt)
@@ -9876,8 +9962,6 @@ func (m *ProvisionBucketMutation) Field(name string) (ent.Value, bool) {
 		return m.MinAmount()
 	case provisionbucket.FieldMaxAmount:
 		return m.MaxAmount()
-	case provisionbucket.FieldCurrency:
-		return m.Currency()
 	case provisionbucket.FieldCreatedAt:
 		return m.CreatedAt()
 	}
@@ -9893,8 +9977,6 @@ func (m *ProvisionBucketMutation) OldField(ctx context.Context, name string) (en
 		return m.OldMinAmount(ctx)
 	case provisionbucket.FieldMaxAmount:
 		return m.OldMaxAmount(ctx)
-	case provisionbucket.FieldCurrency:
-		return m.OldCurrency(ctx)
 	case provisionbucket.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
 	}
@@ -9919,13 +10001,6 @@ func (m *ProvisionBucketMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetMaxAmount(v)
-		return nil
-	case provisionbucket.FieldCurrency:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetCurrency(v)
 		return nil
 	case provisionbucket.FieldCreatedAt:
 		v, ok := value.(time.Time)
@@ -10016,9 +10091,6 @@ func (m *ProvisionBucketMutation) ResetField(name string) error {
 	case provisionbucket.FieldMaxAmount:
 		m.ResetMaxAmount()
 		return nil
-	case provisionbucket.FieldCurrency:
-		m.ResetCurrency()
-		return nil
 	case provisionbucket.FieldCreatedAt:
 		m.ResetCreatedAt()
 		return nil
@@ -10028,7 +10100,10 @@ func (m *ProvisionBucketMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ProvisionBucketMutation) AddedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
+	if m.currency != nil {
+		edges = append(edges, provisionbucket.EdgeCurrency)
+	}
 	if m.lock_payment_orders != nil {
 		edges = append(edges, provisionbucket.EdgeLockPaymentOrders)
 	}
@@ -10042,6 +10117,10 @@ func (m *ProvisionBucketMutation) AddedEdges() []string {
 // name in this mutation.
 func (m *ProvisionBucketMutation) AddedIDs(name string) []ent.Value {
 	switch name {
+	case provisionbucket.EdgeCurrency:
+		if id := m.currency; id != nil {
+			return []ent.Value{*id}
+		}
 	case provisionbucket.EdgeLockPaymentOrders:
 		ids := make([]ent.Value, 0, len(m.lock_payment_orders))
 		for id := range m.lock_payment_orders {
@@ -10060,7 +10139,7 @@ func (m *ProvisionBucketMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *ProvisionBucketMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.removedlock_payment_orders != nil {
 		edges = append(edges, provisionbucket.EdgeLockPaymentOrders)
 	}
@@ -10092,7 +10171,10 @@ func (m *ProvisionBucketMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ProvisionBucketMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
+	if m.clearedcurrency {
+		edges = append(edges, provisionbucket.EdgeCurrency)
+	}
 	if m.clearedlock_payment_orders {
 		edges = append(edges, provisionbucket.EdgeLockPaymentOrders)
 	}
@@ -10106,6 +10188,8 @@ func (m *ProvisionBucketMutation) ClearedEdges() []string {
 // was cleared in this mutation.
 func (m *ProvisionBucketMutation) EdgeCleared(name string) bool {
 	switch name {
+	case provisionbucket.EdgeCurrency:
+		return m.clearedcurrency
 	case provisionbucket.EdgeLockPaymentOrders:
 		return m.clearedlock_payment_orders
 	case provisionbucket.EdgeProviderProfiles:
@@ -10118,6 +10202,9 @@ func (m *ProvisionBucketMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *ProvisionBucketMutation) ClearEdge(name string) error {
 	switch name {
+	case provisionbucket.EdgeCurrency:
+		m.ClearCurrency()
+		return nil
 	}
 	return fmt.Errorf("unknown ProvisionBucket unique edge %s", name)
 }
@@ -10126,6 +10213,9 @@ func (m *ProvisionBucketMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *ProvisionBucketMutation) ResetEdge(name string) error {
 	switch name {
+	case provisionbucket.EdgeCurrency:
+		m.ResetCurrency()
+		return nil
 	case provisionbucket.EdgeLockPaymentOrders:
 		m.ResetLockPaymentOrders()
 		return nil

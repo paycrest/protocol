@@ -632,6 +632,22 @@ func (c *FiatCurrencyClient) QueryProvider(fc *FiatCurrency) *ProviderProfileQue
 	return query
 }
 
+// QueryProvisionBuckets queries the provision_buckets edge of a FiatCurrency.
+func (c *FiatCurrencyClient) QueryProvisionBuckets(fc *FiatCurrency) *ProvisionBucketQuery {
+	query := (&ProvisionBucketClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := fc.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(fiatcurrency.Table, fiatcurrency.FieldID, id),
+			sqlgraph.To(provisionbucket.Table, provisionbucket.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, fiatcurrency.ProvisionBucketsTable, fiatcurrency.ProvisionBucketsColumn),
+		)
+		fromV = sqlgraph.Neighbors(fc.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *FiatCurrencyClient) Hooks() []Hook {
 	return c.hooks.FiatCurrency
@@ -2178,6 +2194,22 @@ func (c *ProvisionBucketClient) GetX(ctx context.Context, id int) *ProvisionBuck
 		panic(err)
 	}
 	return obj
+}
+
+// QueryCurrency queries the currency edge of a ProvisionBucket.
+func (c *ProvisionBucketClient) QueryCurrency(pb *ProvisionBucket) *FiatCurrencyQuery {
+	query := (&FiatCurrencyClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := pb.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(provisionbucket.Table, provisionbucket.FieldID, id),
+			sqlgraph.To(fiatcurrency.Table, fiatcurrency.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, provisionbucket.CurrencyTable, provisionbucket.CurrencyColumn),
+		)
+		fromV = sqlgraph.Neighbors(pb.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
 }
 
 // QueryLockPaymentOrders queries the lock_payment_orders edge of a ProvisionBucket.
