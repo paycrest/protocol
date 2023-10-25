@@ -118,6 +118,12 @@ type ValidatorProfilePayload struct {
 	HostIdentifier string `json:"hostIdentifier"`
 }
 
+// SenderProfilePayload is the payload for the sender profile endpoint
+type SenderProfilePayload struct {
+	WebhookURL      string   `json:"webhookUrl"`
+	DomainWhitelist []string `json:"domainWhitelist"`
+}
+
 // ProviderAvailabilityPayload defines the setting for a provider availability
 type ProviderAvailabilityPayload struct {
 	Cadence   provideravailability.Cadence `json:"cadence" binding:"required"`
@@ -167,6 +173,14 @@ type ValidatorProfileResponse struct {
 	WalletAddress  string         `json:"walletAddress"`
 	HostIdentifier string         `json:"hostIdentifier"`
 	APIKey         APIKeyResponse `json:"apiKey"`
+}
+
+// SenderProfileResponse is the response for the sender profile endpoint
+type SenderProfileResponse struct {
+	ID              uuid.UUID      `json:"id"`
+	WebhookURL      string         `json:"webhookUrl"`
+	DomainWhitelist []string       `json:"domainWhitelist"`
+	APIKey          APIKeyResponse `json:"apiKey"`
 }
 
 // RefreshResponse is the response for the refresh endpoint
