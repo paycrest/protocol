@@ -3,7 +3,6 @@ package accounts
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"regexp"
 	"testing"
@@ -72,7 +71,6 @@ func TestAuth(t *testing.T) {
 			}
 
 			res, err := test.PerformRequest(t, "POST", "/register?scope=sender", payload, nil, router)
-			fmt.Println(res.Body)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -95,8 +93,11 @@ func TestAuth(t *testing.T) {
 			if !match {
 				t.Errorf("Expected '%s' to be a valid UUID", data["id"].(string))
 			}
+
+			userID = data["id"].(string)
+
 			// Parse the user ID string to uuid.UUID
-			userUUID, err := uuid.Parse(data["id"].(string))
+			userUUID, err := uuid.Parse(userID)
 			assert.NoError(t, err)
 			assert.Equal(t, payload.Email, data["email"].(string))
 			assert.Equal(t, payload.FirstName, data["firstName"].(string))
@@ -221,7 +222,13 @@ func TestAuth(t *testing.T) {
 
 	t.Run("ConfirmEmail", func(t *testing.T) {
 		// fetch user
-		user, fetchUserErr := db.Client.User.Query().Where(user.IDEQ(uuid.MustParse(userID))).Only(context.Background())
+		userUUID, err := uuid.Parse(userID)
+		assert.NoError(t, err)
+
+		user, fetchUserErr := db.Client.User.
+			Query().
+			Where(user.IDEQ(userUUID)).
+			Only(context.Background())
 		assert.NoError(t, fetchUserErr, "failed to fetch user by userID")
 
 		// generate verificationToken

@@ -8,6 +8,7 @@ import (
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/paycrest/paycrest-protocol/routers/middleware"
+	"github.com/paycrest/paycrest-protocol/services"
 	db "github.com/paycrest/paycrest-protocol/storage"
 	"github.com/paycrest/paycrest-protocol/types"
 
@@ -93,10 +94,20 @@ func TestProfile(t *testing.T) {
 		})
 		assert.NoError(t, err)
 
-		_, err = test.CreateTestValidatorProfile(map[string]interface{}{
+		validator, err := test.CreateTestValidatorProfile(map[string]interface{}{
 			"wallet_address": "0x0000000000",
 			"user_id":        testUser.ID,
 		})
+		assert.NoError(t, err)
+
+		apiKeyService := services.NewAPIKeyService()
+		_, _, err = apiKeyService.GenerateAPIKey(
+			context.Background(),
+			nil,
+			nil,
+			nil,
+			validator,
+		)
 		assert.NoError(t, err)
 
 		accessToken, _ := token.GenerateAccessJWT(testUser.ID.String())

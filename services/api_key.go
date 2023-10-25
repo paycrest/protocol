@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/paycrest/paycrest-protocol/ent"
+	"github.com/paycrest/paycrest-protocol/storage"
 	"github.com/paycrest/paycrest-protocol/types"
 	"github.com/paycrest/paycrest-protocol/utils/crypto"
 	"github.com/paycrest/paycrest-protocol/utils/token"
@@ -40,31 +41,64 @@ func (s *APIKeyService) GenerateAPIKey(
 	var apiKey *ent.APIKey
 
 	if sender != nil {
-		apiKey, err = tx.APIKey.
-			Create().
-			SetSecret(encodedSecret).
-			SetSenderProfile(sender).
-			Save(ctx)
-		if err != nil {
-			return nil, "", fmt.Errorf("failed to create API key: %w", err)
+		if tx != nil {
+			apiKey, err = tx.APIKey.
+				Create().
+				SetSecret(encodedSecret).
+				SetSenderProfile(sender).
+				Save(ctx)
+			if err != nil {
+				return nil, "", fmt.Errorf("failed to create API key: %w", err)
+			}
+		} else {
+			apiKey, err = storage.Client.APIKey.
+				Create().
+				SetSecret(encodedSecret).
+				SetSenderProfile(sender).
+				Save(ctx)
+			if err != nil {
+				return nil, "", fmt.Errorf("failed to create API key: %w", err)
+			}
 		}
 	} else if provider != nil {
-		apiKey, err = tx.APIKey.
-			Create().
-			SetSecret(encodedSecret).
-			SetProviderProfile(provider).
-			Save(ctx)
-		if err != nil {
-			return nil, "", fmt.Errorf("failed to create API key: %w", err)
+		if tx != nil {
+			apiKey, err = tx.APIKey.
+				Create().
+				SetSecret(encodedSecret).
+				SetProviderProfile(provider).
+				Save(ctx)
+			if err != nil {
+				return nil, "", fmt.Errorf("failed to create API key: %w", err)
+			}
+		} else {
+			apiKey, err = storage.Client.APIKey.
+				Create().
+				SetSecret(encodedSecret).
+				SetProviderProfile(provider).
+				Save(ctx)
+			if err != nil {
+				return nil, "", fmt.Errorf("failed to create API key: %w", err)
+			}
 		}
 	} else if validator != nil {
-		apiKey, err = tx.APIKey.
-			Create().
-			SetSecret(encodedSecret).
-			SetValidatorProfile(validator).
-			Save(ctx)
-		if err != nil {
-			return nil, "", fmt.Errorf("failed to create API key: %w", err)
+		if tx != nil {
+			apiKey, err = tx.APIKey.
+				Create().
+				SetSecret(encodedSecret).
+				SetValidatorProfile(validator).
+				Save(ctx)
+			if err != nil {
+				return nil, "", fmt.Errorf("failed to create API key: %w", err)
+			}
+		} else {
+			apiKey, err = storage.Client.APIKey.
+				Create().
+				SetSecret(encodedSecret).
+				SetValidatorProfile(validator).
+				Save(ctx)
+			if err != nil {
+				return nil, "", fmt.Errorf("failed to create API key: %w", err)
+			}
 		}
 	} else {
 		return nil, "", fmt.Errorf("profile not provided")

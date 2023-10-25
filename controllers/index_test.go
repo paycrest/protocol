@@ -37,17 +37,6 @@ func setup() error {
 	})
 	testCtx.user = user
 
-	apiKeyService := services.NewAPIKeyService()
-	apiKey, secretKey, err := apiKeyService.GenerateAPIKey(
-		context.Background(),
-		nil,
-		user.ID,
-	)
-	if err != nil {
-		return err
-	}
-	testCtx.apiKey = apiKey
-
 	validator, err := test.CreateTestValidatorProfile(map[string]interface{}{
 		"user_id": user.ID,
 	})
@@ -55,6 +44,19 @@ func setup() error {
 		return err
 	}
 	testCtx.validatorProfile = validator
+
+	apiKeyService := services.NewAPIKeyService()
+	apiKey, secretKey, err := apiKeyService.GenerateAPIKey(
+		context.Background(),
+		nil,
+		nil,
+		nil,
+		validator,
+	)
+	if err != nil {
+		return err
+	}
+	testCtx.apiKey = apiKey
 
 	testCtx.apiKeySecret = secretKey
 
