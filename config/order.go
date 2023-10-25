@@ -24,6 +24,8 @@ type OrderConfiguration struct {
 func OrderConfig() *OrderConfiguration {
 	viper.SetDefault("RECEIVE_ADDRESS_VALIDITY", 30)
 	viper.SetDefault("ORDER_REQUEST_VALIDITY", 120)
+	viper.SetDefault("ORDER_FULFILLMENT_VALIDITY", 10)
+	viper.SetDefault("BUCKET_QUEUE_REBUILD_INTERVAL", 1)
 
 	return &OrderConfiguration{
 		OrderFulfillmentValidity:     time.Duration(viper.GetInt("ORDER_FULFILLMENT_VALIDITY")) * time.Minute,
