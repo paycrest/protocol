@@ -33,6 +33,43 @@ func NewProfileController() *ProfileController {
 	}
 }
 
+// UpdateSenderProfile controller updates the sender profile
+func (ctrl *ProfileController) UpdateSenderProfile(ctx *gin.Context) {
+	var payload types.SenderProfilePayload
+
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		u.APIResponse(ctx, http.StatusBadRequest, "error",
+			"Failed to validate payload", u.GetErrorData(err))
+		return
+	}
+
+	// Get sender profile from the context
+	senderCtx, ok := ctx.Get("sender")
+	if !ok {
+		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid API key", nil)
+		return
+	}
+	sender := senderCtx.(*ent.SenderProfile)
+
+	update := sender.Update()
+
+	if payload.WebhookURL != "" {
+		update.SetWebhookURL(payload.WebhookURL)
+	}
+
+	if payload.DomainWhitelist != nil {
+		update.SetDomainWhitelist(payload.DomainWhitelist)
+	}
+
+	_, err := update.Save(ctx)
+	if err != nil {
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update profile", nil)
+		return
+	}
+
+	u.APIResponse(ctx, http.StatusOK, "success", "Profile updated successfully", nil)
+}
+
 // UpdateValidatorProfile controller updates the validator profile
 func (ctrl *ProfileController) UpdateValidatorProfile(ctx *gin.Context) {
 	var payload types.ValidatorProfilePayload
@@ -270,6 +307,31 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 	}
 
 	u.APIResponse(ctx, http.StatusOK, "success", "Profile updated successfully", nil)
+}
+
+// GetSenderProfile retrieves the sender profile
+func (ctrl *ProfileController) GetSenderProfile(ctx *gin.Context) {
+	// Get sender profile from the context
+	senderCtx, ok := ctx.Get("sender")
+	if !ok {
+		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid API key", nil)
+		return
+	}
+	sender := senderCtx.(*ent.SenderProfile)
+
+	// Get API key
+	apiKey, err := ctrl.apiKeyService.GetAPIKey(ctx, sender, nil, nil)
+	if err != nil {
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to retrieve profile", nil)
+		return
+	}
+
+	u.APIResponse(ctx, http.StatusOK, "success", "Profile retrieved successfully", &types.SenderProfileResponse{
+		ID:              sender.ID,
+		WebhookURL:      sender.WebhookURL,
+		DomainWhitelist: sender.DomainWhitelist,
+		APIKey:          *apiKey,
+	})
 }
 
 // GetProviderProfile retrieves the provider profile
