@@ -96,7 +96,7 @@ func authRoutes(route *gin.Engine) {
 func senderRoutes(route *gin.Engine) {
 	var senderCtrl sender.SenderController
 
-	v1 := route.Group("/v1/")
+	v1 := route.Group("/v1/sender/")
 	v1.Use(middleware.HMACVerificationMiddleware)
 	v1.Use(middleware.OnlySenderMiddleware)
 
@@ -107,7 +107,7 @@ func senderRoutes(route *gin.Engine) {
 func providerRoutes(route *gin.Engine) {
 	var providerCtrl provider.ProviderController
 
-	v1 := route.Group("/v1/")
+	v1 := route.Group("/v1/provider/")
 	v1.Use(middleware.DynamicAuthMiddleware)
 	v1.Use(middleware.OnlyProviderMiddleware)
 
@@ -122,7 +122,7 @@ func providerRoutes(route *gin.Engine) {
 func validatorRoutes(route *gin.Engine) {
 	var ctrl controllers.Controller
 
-	v1 := route.Group("/v1/")
+	v1 := route.Group("/v1/validator/")
 	v1.Use(middleware.HMACVerificationMiddleware)
 	v1.Use(middleware.OnlyValidatorMiddleware)
 
