@@ -238,6 +238,14 @@ type ValidateOrderPayload struct {
 	ErrorMsg string `json:"errorMsg"`
 }
 
+// FulfillmentMessage is the payload for the messages sent to validators
+type FulfillmentMessage struct {
+	TxID                    string
+	TxReceiptImage          string
+	Institution             string
+	MaxConcurrentValidators int
+}
+
 // ReceiveAddressResponse is the response type for a receive address
 type ReceiveAddressResponse struct {
 	ID             uuid.UUID `json:"id"`

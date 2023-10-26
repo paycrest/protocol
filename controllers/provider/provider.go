@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/paycrest/paycrest-protocol/config"
 	"github.com/paycrest/paycrest-protocol/ent"
 	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
 	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
@@ -29,8 +30,16 @@ func (ctrl *ProviderController) GetOrders(ctx *gin.Context) {
 
 // AcceptOrder controller accepts an order
 func (ctrl *ProviderController) AcceptOrder(ctx *gin.Context) {
+	// Get provider profile from the context
+	providerCtx, ok := ctx.Get("provider")
+	if !ok {
+		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid API key", nil)
+		return
+	}
+	provider := providerCtx.(*ent.ProviderProfile)
+
 	// Parse the order payload
-	orderID, err := parseOrderPayload(ctx)
+	orderID, err := parseOrderPayload(ctx, provider)
 	if err != nil {
 		return
 	}
@@ -42,14 +51,6 @@ func (ctrl *ProviderController) AcceptOrder(ctx *gin.Context) {
 		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to accept order request", nil)
 		return
 	}
-
-	// Get provider profile from the context
-	providerCtx, ok := ctx.Get("provider")
-	if !ok {
-		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid API key", nil)
-		return
-	}
-	provider := providerCtx.(*ent.ProviderProfile)
 
 	// Update lock order status to processing
 	order, err := storage.Client.LockPaymentOrder.
@@ -77,12 +78,6 @@ func (ctrl *ProviderController) AcceptOrder(ctx *gin.Context) {
 
 // DeclineOrder controller declines an order
 func (ctrl *ProviderController) DeclineOrder(ctx *gin.Context) {
-	// Parse the order payload
-	orderID, err := parseOrderPayload(ctx)
-	if err != nil {
-		return
-	}
-
 	// Get provider profile from the context
 	providerCtx, ok := ctx.Get("provider")
 	if !ok {
@@ -90,6 +85,12 @@ func (ctrl *ProviderController) DeclineOrder(ctx *gin.Context) {
 		return
 	}
 	provider := providerCtx.(*ent.ProviderProfile)
+
+	// Parse the order payload
+	orderID, err := parseOrderPayload(ctx, provider)
+	if err != nil {
+		return
+	}
 
 	// Delete order request from Redis
 	_, err = storage.RedisClient.Del(ctx, fmt.Sprintf("order_request_%d", orderID)).Result()
@@ -123,7 +124,16 @@ func (ctrl *ProviderController) FulfillOrder(ctx *gin.Context) {
 		return
 	}
 
-	orderID, err := parseOrderPayload(ctx)
+	// Get provider profile from the context
+	providerCtx, ok := ctx.Get("provider")
+	if !ok {
+		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid API key", nil)
+		return
+	}
+	provider := providerCtx.(*ent.ProviderProfile)
+
+	// Parse the order payload
+	orderID, err := parseOrderPayload(ctx, provider)
 	if err != nil {
 		return
 	}
@@ -174,6 +184,20 @@ func (ctrl *ProviderController) FulfillOrder(ctx *gin.Context) {
 		logger.Errorf("error deleting order exclude list from Redis: %v", err)
 	}
 
+	// Publish fulfillment to validators
+	// TODO: figure out if we need to wait for XX minutes before posting to avoid "pending" responses
+	conf := config.OrderConfig()
+	message := types.FulfillmentMessage{
+		TxID:                    payload.TxID,
+		TxReceiptImage:          payload.TxReceiptImage,
+		Institution:             payload.Institution,
+		MaxConcurrentValidators: conf.MaxConcurrentValidators,
+	}
+	err = storage.RedisClient.Publish(ctx, "order_fulfillments", message).Err()
+	if err != nil {
+		logger.Errorf("error publishing to validators: %v", err)
+	}
+
 	u.APIResponse(ctx, http.StatusOK, "success", "Order fulfilled successfully", nil)
 }
 
@@ -189,11 +213,6 @@ func (ctrl *ProviderController) CancelOrder(ctx *gin.Context) {
 		return
 	}
 
-	orderID, err := parseOrderPayload(ctx)
-	if err != nil {
-		return
-	}
-
 	// Get provider profile from the context
 	providerCtx, ok := ctx.Get("provider")
 	if !ok {
@@ -201,6 +220,12 @@ func (ctrl *ProviderController) CancelOrder(ctx *gin.Context) {
 		return
 	}
 	provider := providerCtx.(*ent.ProviderProfile)
+
+	// Parse the order payload
+	orderID, err := parseOrderPayload(ctx, provider)
+	if err != nil {
+		return
+	}
 
 	// Fetch lock payment order from db
 	order, err := storage.Client.LockPaymentOrder.
@@ -280,15 +305,15 @@ func (ctrl *ProviderController) GetMarketRate(ctx *gin.Context) {
 }
 
 // parseOrderPayload parses the order payload
-func parseOrderPayload(ctx *gin.Context) (uuid.UUID, error) {
+func parseOrderPayload(ctx *gin.Context, provider *ent.ProviderProfile) (uuid.UUID, error) {
 	// Get lock order ID from URL
 	orderID := ctx.Param("id")
 
 	// Parse the Order ID string into a UUID
 	orderUUID, err := uuid.Parse(orderID)
 	if err != nil {
-		logger.Errorf("error parsing API key ID: %v", err)
-		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid API key ID", nil)
+		logger.Errorf("error parsing order ID: %v", err)
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid Order ID", nil)
 		return uuid.UUID{}, err
 	}
 
@@ -300,7 +325,7 @@ func parseOrderPayload(ctx *gin.Context) (uuid.UUID, error) {
 		return uuid.UUID{}, err
 	}
 
-	if len(result) == 0 {
+	if result["provider_id"] != provider.ID || len(result) == 0 {
 		logger.Errorf("order request not found in Redis: %d", orderUUID)
 		u.APIResponse(ctx, http.StatusNotFound, "error", "Order request not found or is expired", nil)
 		return uuid.UUID{}, err
