@@ -12,11 +12,11 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
-	"github.com/paycrest/paycrest-protocol/ent/fiatcurrency"
-	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
-	"github.com/paycrest/paycrest-protocol/ent/predicate"
-	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
-	"github.com/paycrest/paycrest-protocol/ent/provisionbucket"
+	"github.com/paycrest/protocol/ent/fiatcurrency"
+	"github.com/paycrest/protocol/ent/lockpaymentorder"
+	"github.com/paycrest/protocol/ent/predicate"
+	"github.com/paycrest/protocol/ent/providerprofile"
+	"github.com/paycrest/protocol/ent/provisionbucket"
 )
 
 // ProvisionBucketQuery is the builder for querying ProvisionBucket entities.

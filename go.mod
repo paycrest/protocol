@@ -1,4 +1,4 @@
-module github.com/paycrest/paycrest-protocol
+module github.com/paycrest/protocol
 
 go 1.20
 

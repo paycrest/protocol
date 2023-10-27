@@ -10,11 +10,11 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
-	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
-	"github.com/paycrest/paycrest-protocol/ent/paymentorderrecipient"
-	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
-	"github.com/paycrest/paycrest-protocol/ent/senderprofile"
-	"github.com/paycrest/paycrest-protocol/ent/token"
+	"github.com/paycrest/protocol/ent/paymentorder"
+	"github.com/paycrest/protocol/ent/paymentorderrecipient"
+	"github.com/paycrest/protocol/ent/receiveaddress"
+	"github.com/paycrest/protocol/ent/senderprofile"
+	"github.com/paycrest/protocol/ent/token"
 	"github.com/shopspring/decimal"
 )
 

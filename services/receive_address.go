@@ -9,12 +9,12 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/paycrest/paycrest-protocol/ent"
-	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
-	"github.com/paycrest/paycrest-protocol/services/contracts"
-	db "github.com/paycrest/paycrest-protocol/storage"
-	"github.com/paycrest/paycrest-protocol/types"
-	cryptoUtils "github.com/paycrest/paycrest-protocol/utils/crypto"
+	"github.com/paycrest/protocol/ent"
+	"github.com/paycrest/protocol/ent/receiveaddress"
+	"github.com/paycrest/protocol/services/contracts"
+	db "github.com/paycrest/protocol/storage"
+	"github.com/paycrest/protocol/types"
+	cryptoUtils "github.com/paycrest/protocol/utils/crypto"
 )
 
 // ReceiveAddressService provides functionality related to managing receive addresses

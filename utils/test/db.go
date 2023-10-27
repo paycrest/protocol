@@ -5,11 +5,11 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/paycrest/paycrest-protocol/ent"
-	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
-	"github.com/paycrest/paycrest-protocol/ent/user"
-	db "github.com/paycrest/paycrest-protocol/storage"
-	"github.com/paycrest/paycrest-protocol/types"
+	"github.com/paycrest/protocol/ent"
+	"github.com/paycrest/protocol/ent/lockpaymentorder"
+	"github.com/paycrest/protocol/ent/user"
+	db "github.com/paycrest/protocol/storage"
+	"github.com/paycrest/protocol/types"
 	"github.com/shopspring/decimal"
 )
 

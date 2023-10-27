@@ -10,8 +10,8 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/paycrest/paycrest-protocol/ent/provideravailability"
-	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
+	"github.com/paycrest/protocol/ent/provideravailability"
+	"github.com/paycrest/protocol/ent/providerprofile"
 )
 
 // ProviderAvailabilityCreate is the builder for creating a ProviderAvailability entity.

@@ -1,9 +1,9 @@
 package routers
 
 import (
-	"github.com/paycrest/paycrest-protocol/config"
-	"github.com/paycrest/paycrest-protocol/routers/middleware"
-	"github.com/paycrest/paycrest-protocol/utils/logger"
+	"github.com/paycrest/protocol/config"
+	"github.com/paycrest/protocol/routers/middleware"
+	"github.com/paycrest/protocol/utils/logger"
 
 	"github.com/gin-gonic/gin"
 )

@@ -10,11 +10,11 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
-	"github.com/paycrest/paycrest-protocol/types"
-	"github.com/paycrest/paycrest-protocol/utils/crypto"
+	"github.com/paycrest/protocol/types"
+	"github.com/paycrest/protocol/utils/crypto"
 	"github.com/shopspring/decimal"
 
-	"github.com/paycrest/paycrest-protocol/services/contracts"
+	"github.com/paycrest/protocol/services/contracts"
 )
 
 // NewSimulatedBlockchain creates a new instance of SimulatedBackend and returns it.

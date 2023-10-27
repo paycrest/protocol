@@ -11,8 +11,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/paycrest/paycrest-protocol/ent/predicate"
-	"github.com/paycrest/paycrest-protocol/ent/provideravailability"
+	"github.com/paycrest/protocol/ent/predicate"
+	"github.com/paycrest/protocol/ent/provideravailability"
 )
 
 // ProviderAvailabilityUpdate is the builder for updating ProviderAvailability entities.

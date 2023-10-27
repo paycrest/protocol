@@ -4,17 +4,17 @@ import (
 	"os"
 
 	"github.com/cosmos/go-bip39"
-	"github.com/paycrest/paycrest-protocol/utils/logger"
+	"github.com/paycrest/protocol/utils/logger"
 	"github.com/spf13/viper"
 )
 
 // Configuration type
 type Configuration struct {
-	Server   ServerConfiguration
-	Database DatabaseConfiguration
-	Auth     AuthConfiguration
-	Order    OrderConfiguration
-	Notification    NotificationConfiguration
+	Server       ServerConfiguration
+	Database     DatabaseConfiguration
+	Auth         AuthConfiguration
+	Order        OrderConfiguration
+	Notification NotificationConfiguration
 }
 
 // SetupConfig configuration

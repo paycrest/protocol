@@ -11,9 +11,9 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/paycrest/paycrest-protocol/ent/network"
-	"github.com/paycrest/paycrest-protocol/ent/predicate"
-	"github.com/paycrest/paycrest-protocol/ent/token"
+	"github.com/paycrest/protocol/ent/network"
+	"github.com/paycrest/protocol/ent/predicate"
+	"github.com/paycrest/protocol/ent/token"
 )
 
 // NetworkUpdate is the builder for updating Network entities.

@@ -5,9 +5,9 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/paycrest/paycrest-protocol/ent"
-	"github.com/paycrest/paycrest-protocol/ent/fiatcurrency"
-	"github.com/paycrest/paycrest-protocol/types"
+	"github.com/paycrest/protocol/ent"
+	"github.com/paycrest/protocol/ent/fiatcurrency"
+	"github.com/paycrest/protocol/types"
 	"github.com/shopspring/decimal"
 )
 

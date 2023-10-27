@@ -10,8 +10,8 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
-	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
-	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
+	"github.com/paycrest/protocol/ent/paymentorder"
+	"github.com/paycrest/protocol/ent/receiveaddress"
 )
 
 // ReceiveAddress is the model entity for the ReceiveAddress schema.

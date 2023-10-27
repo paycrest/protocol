@@ -12,11 +12,11 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
-	"github.com/paycrest/paycrest-protocol/ent/apikey"
-	"github.com/paycrest/paycrest-protocol/ent/lockorderfulfillment"
-	"github.com/paycrest/paycrest-protocol/ent/predicate"
-	"github.com/paycrest/paycrest-protocol/ent/user"
-	"github.com/paycrest/paycrest-protocol/ent/validatorprofile"
+	"github.com/paycrest/protocol/ent/apikey"
+	"github.com/paycrest/protocol/ent/lockorderfulfillment"
+	"github.com/paycrest/protocol/ent/predicate"
+	"github.com/paycrest/protocol/ent/user"
+	"github.com/paycrest/protocol/ent/validatorprofile"
 )
 
 // ValidatorProfileQuery is the builder for querying ValidatorProfile entities.

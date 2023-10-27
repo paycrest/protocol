@@ -1,7 +1,7 @@
 package config
 
 import (
-	"github.com/paycrest/paycrest-protocol/utils/logger"
+	"github.com/paycrest/protocol/utils/logger"
 	"github.com/spf13/viper"
 )
 

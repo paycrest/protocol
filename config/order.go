@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/paycrest/paycrest-protocol/utils/logger"
+	"github.com/paycrest/protocol/utils/logger"
 	"github.com/spf13/viper"
 )
 

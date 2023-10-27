@@ -12,12 +12,12 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
-	"github.com/paycrest/paycrest-protocol/ent/lockorderfulfillment"
-	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
-	"github.com/paycrest/paycrest-protocol/ent/predicate"
-	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
-	"github.com/paycrest/paycrest-protocol/ent/provisionbucket"
-	"github.com/paycrest/paycrest-protocol/ent/token"
+	"github.com/paycrest/protocol/ent/lockorderfulfillment"
+	"github.com/paycrest/protocol/ent/lockpaymentorder"
+	"github.com/paycrest/protocol/ent/predicate"
+	"github.com/paycrest/protocol/ent/providerprofile"
+	"github.com/paycrest/protocol/ent/provisionbucket"
+	"github.com/paycrest/protocol/ent/token"
 )
 
 // LockPaymentOrderQuery is the builder for querying LockPaymentOrder entities.

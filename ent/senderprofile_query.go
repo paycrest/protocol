@@ -12,11 +12,11 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
-	"github.com/paycrest/paycrest-protocol/ent/apikey"
-	"github.com/paycrest/paycrest-protocol/ent/paymentorder"
-	"github.com/paycrest/paycrest-protocol/ent/predicate"
-	"github.com/paycrest/paycrest-protocol/ent/senderprofile"
-	"github.com/paycrest/paycrest-protocol/ent/user"
+	"github.com/paycrest/protocol/ent/apikey"
+	"github.com/paycrest/protocol/ent/paymentorder"
+	"github.com/paycrest/protocol/ent/predicate"
+	"github.com/paycrest/protocol/ent/senderprofile"
+	"github.com/paycrest/protocol/ent/user"
 )
 
 // SenderProfileQuery is the builder for querying SenderProfile entities.

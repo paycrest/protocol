@@ -9,7 +9,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/paycrest/paycrest-protocol/ent/network"
+	"github.com/paycrest/protocol/ent/network"
 )
 
 // Network is the model entity for the Network schema.

@@ -5,11 +5,11 @@ import (
 	"encoding/base64"
 	"fmt"
 
-	"github.com/paycrest/paycrest-protocol/ent"
-	"github.com/paycrest/paycrest-protocol/storage"
-	"github.com/paycrest/paycrest-protocol/types"
-	"github.com/paycrest/paycrest-protocol/utils/crypto"
-	"github.com/paycrest/paycrest-protocol/utils/token"
+	"github.com/paycrest/protocol/ent"
+	"github.com/paycrest/protocol/storage"
+	"github.com/paycrest/protocol/types"
+	"github.com/paycrest/protocol/utils/crypto"
+	"github.com/paycrest/protocol/utils/token"
 )
 
 // APIKeyService provides functionality related to API keys.

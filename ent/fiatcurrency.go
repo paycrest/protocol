@@ -10,8 +10,8 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
-	"github.com/paycrest/paycrest-protocol/ent/fiatcurrency"
-	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
+	"github.com/paycrest/protocol/ent/fiatcurrency"
+	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/shopspring/decimal"
 )
 

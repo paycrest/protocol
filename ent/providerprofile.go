@@ -10,12 +10,12 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
-	"github.com/paycrest/paycrest-protocol/ent/apikey"
-	"github.com/paycrest/paycrest-protocol/ent/fiatcurrency"
-	"github.com/paycrest/paycrest-protocol/ent/provideravailability"
-	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
-	"github.com/paycrest/paycrest-protocol/ent/providerrating"
-	"github.com/paycrest/paycrest-protocol/ent/user"
+	"github.com/paycrest/protocol/ent/apikey"
+	"github.com/paycrest/protocol/ent/fiatcurrency"
+	"github.com/paycrest/protocol/ent/provideravailability"
+	"github.com/paycrest/protocol/ent/providerprofile"
+	"github.com/paycrest/protocol/ent/providerrating"
+	"github.com/paycrest/protocol/ent/user"
 )
 
 // ProviderProfile is the model entity for the ProviderProfile schema.

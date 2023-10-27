@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	mailgunv3 "github.com/mailgun/mailgun-go/v3"
-	"github.com/paycrest/paycrest-protocol/config"
-	"github.com/paycrest/paycrest-protocol/types"
+	"github.com/paycrest/protocol/config"
+	"github.com/paycrest/protocol/types"
 )
 
 var (

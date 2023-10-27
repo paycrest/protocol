@@ -9,8 +9,8 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/paycrest/paycrest-protocol/ent/provideravailability"
-	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
+	"github.com/paycrest/protocol/ent/provideravailability"
+	"github.com/paycrest/protocol/ent/providerprofile"
 )
 
 // ProviderAvailability is the model entity for the ProviderAvailability schema.

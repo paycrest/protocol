@@ -12,7 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto/ecies"
 	hdwallet "github.com/miguelmota/go-ethereum-hdwallet"
-	"github.com/paycrest/paycrest-protocol/config"
+	"github.com/paycrest/protocol/config"
 	"golang.org/x/crypto/bcrypt"
 )
 

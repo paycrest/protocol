@@ -13,7 +13,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
-	"github.com/paycrest/paycrest-protocol/types"
+	"github.com/paycrest/protocol/types"
 )
 
 // APIResponse is a helper function to return an API response

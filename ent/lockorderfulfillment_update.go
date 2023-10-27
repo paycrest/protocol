@@ -13,10 +13,10 @@ import (
 	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
-	"github.com/paycrest/paycrest-protocol/ent/lockorderfulfillment"
-	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
-	"github.com/paycrest/paycrest-protocol/ent/predicate"
-	"github.com/paycrest/paycrest-protocol/ent/validatorprofile"
+	"github.com/paycrest/protocol/ent/lockorderfulfillment"
+	"github.com/paycrest/protocol/ent/lockpaymentorder"
+	"github.com/paycrest/protocol/ent/predicate"
+	"github.com/paycrest/protocol/ent/validatorprofile"
 )
 
 // LockOrderFulfillmentUpdate is the builder for updating LockOrderFulfillment entities.

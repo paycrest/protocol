@@ -5,9 +5,9 @@ import (
 	"log"
 
 	"entgo.io/ent/dialect"
-	"github.com/paycrest/paycrest-protocol/ent"
-	"github.com/paycrest/paycrest-protocol/ent/migrate"
-	_ "github.com/paycrest/paycrest-protocol/ent/runtime" // ent runtime
+	"github.com/paycrest/protocol/ent"
+	"github.com/paycrest/protocol/ent/migrate"
+	_ "github.com/paycrest/protocol/ent/runtime" // ent runtime
 
 	_ "github.com/lib/pq" // postgres driver
 )

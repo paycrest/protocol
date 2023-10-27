@@ -9,8 +9,8 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
-	gen "github.com/paycrest/paycrest-protocol/ent"
-	"github.com/paycrest/paycrest-protocol/ent/hook"
+	gen "github.com/paycrest/protocol/ent"
+	"github.com/paycrest/protocol/ent/hook"
 	"golang.org/x/crypto/bcrypt"
 )
 

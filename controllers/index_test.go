@@ -9,17 +9,17 @@ import (
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/paycrest/paycrest-protocol/ent"
-	"github.com/paycrest/paycrest-protocol/routers/middleware"
-	"github.com/paycrest/paycrest-protocol/services"
-	db "github.com/paycrest/paycrest-protocol/storage"
-	"github.com/paycrest/paycrest-protocol/types"
+	"github.com/paycrest/protocol/ent"
+	"github.com/paycrest/protocol/routers/middleware"
+	"github.com/paycrest/protocol/services"
+	db "github.com/paycrest/protocol/storage"
+	"github.com/paycrest/protocol/types"
 
 	"github.com/gin-gonic/gin"
-	"github.com/paycrest/paycrest-protocol/ent/enttest"
-	"github.com/paycrest/paycrest-protocol/ent/lockorderfulfillment"
-	"github.com/paycrest/paycrest-protocol/utils/test"
-	"github.com/paycrest/paycrest-protocol/utils/token"
+	"github.com/paycrest/protocol/ent/enttest"
+	"github.com/paycrest/protocol/ent/lockorderfulfillment"
+	"github.com/paycrest/protocol/utils/test"
+	"github.com/paycrest/protocol/utils/token"
 	"github.com/stretchr/testify/assert"
 )
 

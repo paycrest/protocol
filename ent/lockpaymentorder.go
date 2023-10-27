@@ -11,11 +11,11 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
-	"github.com/paycrest/paycrest-protocol/ent/lockorderfulfillment"
-	"github.com/paycrest/paycrest-protocol/ent/lockpaymentorder"
-	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
-	"github.com/paycrest/paycrest-protocol/ent/provisionbucket"
-	"github.com/paycrest/paycrest-protocol/ent/token"
+	"github.com/paycrest/protocol/ent/lockorderfulfillment"
+	"github.com/paycrest/protocol/ent/lockpaymentorder"
+	"github.com/paycrest/protocol/ent/providerprofile"
+	"github.com/paycrest/protocol/ent/provisionbucket"
+	"github.com/paycrest/protocol/ent/token"
 	"github.com/shopspring/decimal"
 )
 

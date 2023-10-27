@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/paycrest/paycrest-protocol/config"
-	"github.com/paycrest/paycrest-protocol/routers"
-	"github.com/paycrest/paycrest-protocol/storage"
-	"github.com/paycrest/paycrest-protocol/tasks"
-	"github.com/paycrest/paycrest-protocol/utils/logger"
+	"github.com/paycrest/protocol/config"
+	"github.com/paycrest/protocol/routers"
+	"github.com/paycrest/protocol/storage"
+	"github.com/paycrest/protocol/tasks"
+	"github.com/paycrest/protocol/utils/logger"
 )
 
 func main() {

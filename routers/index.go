@@ -4,12 +4,12 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/paycrest/paycrest-protocol/controllers"
-	"github.com/paycrest/paycrest-protocol/controllers/accounts"
-	"github.com/paycrest/paycrest-protocol/controllers/provider"
-	"github.com/paycrest/paycrest-protocol/controllers/sender"
-	"github.com/paycrest/paycrest-protocol/routers/middleware"
-	u "github.com/paycrest/paycrest-protocol/utils"
+	"github.com/paycrest/protocol/controllers"
+	"github.com/paycrest/protocol/controllers/accounts"
+	"github.com/paycrest/protocol/controllers/provider"
+	"github.com/paycrest/protocol/controllers/sender"
+	"github.com/paycrest/protocol/routers/middleware"
+	u "github.com/paycrest/protocol/utils"
 )
 
 // RegisterRoutes add all routing list here automatically get main router

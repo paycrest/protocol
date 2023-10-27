@@ -9,8 +9,8 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
-	"github.com/paycrest/paycrest-protocol/ent/providerrating"
+	"github.com/paycrest/protocol/ent/providerprofile"
+	"github.com/paycrest/protocol/ent/providerrating"
 	"github.com/shopspring/decimal"
 )
 

@@ -10,10 +10,10 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
-	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
-	"github.com/paycrest/paycrest-protocol/ent/senderprofile"
-	"github.com/paycrest/paycrest-protocol/ent/user"
-	"github.com/paycrest/paycrest-protocol/ent/validatorprofile"
+	"github.com/paycrest/protocol/ent/providerprofile"
+	"github.com/paycrest/protocol/ent/senderprofile"
+	"github.com/paycrest/protocol/ent/user"
+	"github.com/paycrest/protocol/ent/validatorprofile"
 )
 
 // User is the model entity for the User schema.

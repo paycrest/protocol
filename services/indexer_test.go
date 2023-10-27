@@ -5,12 +5,12 @@ import (
 	"testing"
 
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/paycrest/paycrest-protocol/ent"
-	"github.com/paycrest/paycrest-protocol/ent/enttest"
-	"github.com/paycrest/paycrest-protocol/ent/receiveaddress"
-	db "github.com/paycrest/paycrest-protocol/storage"
-	"github.com/paycrest/paycrest-protocol/types"
-	"github.com/paycrest/paycrest-protocol/utils/test"
+	"github.com/paycrest/protocol/ent"
+	"github.com/paycrest/protocol/ent/enttest"
+	"github.com/paycrest/protocol/ent/receiveaddress"
+	db "github.com/paycrest/protocol/storage"
+	"github.com/paycrest/protocol/types"
+	"github.com/paycrest/protocol/utils/test"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 )

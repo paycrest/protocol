@@ -5,17 +5,17 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/paycrest/paycrest-protocol/ent/fiatcurrency"
-	"github.com/paycrest/paycrest-protocol/ent/providerprofile"
-	userEnt "github.com/paycrest/paycrest-protocol/ent/user"
-	"github.com/paycrest/paycrest-protocol/ent/verificationtoken"
-	svc "github.com/paycrest/paycrest-protocol/services"
-	db "github.com/paycrest/paycrest-protocol/storage"
-	"github.com/paycrest/paycrest-protocol/types"
-	u "github.com/paycrest/paycrest-protocol/utils"
-	"github.com/paycrest/paycrest-protocol/utils/crypto"
-	"github.com/paycrest/paycrest-protocol/utils/logger"
-	"github.com/paycrest/paycrest-protocol/utils/token"
+	"github.com/paycrest/protocol/ent/fiatcurrency"
+	"github.com/paycrest/protocol/ent/providerprofile"
+	userEnt "github.com/paycrest/protocol/ent/user"
+	"github.com/paycrest/protocol/ent/verificationtoken"
+	svc "github.com/paycrest/protocol/services"
+	db "github.com/paycrest/protocol/storage"
+	"github.com/paycrest/protocol/types"
+	u "github.com/paycrest/protocol/utils"
+	"github.com/paycrest/protocol/utils/crypto"
+	"github.com/paycrest/protocol/utils/logger"
+	"github.com/paycrest/protocol/utils/token"
 )
 
 // AuthController is the controller type for the auth endpoints

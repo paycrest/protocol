@@ -10,9 +10,9 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
-	"github.com/paycrest/paycrest-protocol/ent/apikey"
-	"github.com/paycrest/paycrest-protocol/ent/user"
-	"github.com/paycrest/paycrest-protocol/ent/validatorprofile"
+	"github.com/paycrest/protocol/ent/apikey"
+	"github.com/paycrest/protocol/ent/user"
+	"github.com/paycrest/protocol/ent/validatorprofile"
 )
 
 // ValidatorProfile is the model entity for the ValidatorProfile schema.

@@ -10,8 +10,8 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/paycrest/paycrest-protocol/ent/network"
-	"github.com/paycrest/paycrest-protocol/ent/token"
+	"github.com/paycrest/protocol/ent/network"
+	"github.com/paycrest/protocol/ent/token"
 )
 
 // NetworkCreate is the builder for creating a Network entity.
