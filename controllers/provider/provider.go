@@ -146,7 +146,7 @@ func (ctrl *ProviderController) FulfillOrder(ctx *gin.Context) {
 	}
 
 	// Save lock order fulfillment
-	_, err = tx.LockOrderFulfillment.
+	fulfillment, err := tx.LockOrderFulfillment.
 		Create().
 		SetOrderID(orderID).
 		SetTxID(payload.TxID).
@@ -188,12 +188,13 @@ func (ctrl *ProviderController) FulfillOrder(ctx *gin.Context) {
 	// TODO: figure out if we need to wait for XX minutes before posting to avoid "pending" responses
 	conf := config.OrderConfig()
 	message := types.FulfillmentMessage{
+		ID:                      fulfillment.ID,
 		TxID:                    payload.TxID,
 		TxReceiptImage:          payload.TxReceiptImage,
 		Institution:             payload.Institution,
 		MaxConcurrentValidators: conf.MaxConcurrentValidators,
 	}
-	err = storage.RedisClient.Publish(ctx, "order_fulfillments", message).Err()
+	err = storage.RedisClient.Publish(ctx, "order_fulfillments", &message).Err()
 	if err != nil {
 		logger.Errorf("error publishing to validators: %v", err)
 	}

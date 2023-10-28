@@ -2,6 +2,7 @@ package types
 
 import (
 	"context"
+	"encoding/json"
 	"math/big"
 	"time"
 
@@ -240,10 +241,18 @@ type ValidateOrderPayload struct {
 
 // FulfillmentMessage is the payload for the messages sent to validators
 type FulfillmentMessage struct {
-	TxID                    string
-	TxReceiptImage          string
-	Institution             string
-	MaxConcurrentValidators int
+	ID                      uuid.UUID `json:"id"`
+	TxID                    string    `json:"txId"`
+	TxReceiptImage          string    `json:"txReceiptImage"`
+	Institution             string    `json:"institution"`
+	MaxConcurrentValidators int       `json:"maxConcurrentValidators"`
+}
+
+// MarshalBinary encodes the message to binary
+func (m *FulfillmentMessage) MarshalBinary() ([]byte, error) {
+	// Encode as JSON
+	data, _ := json.Marshal(m)
+	return data, nil
 }
 
 // ReceiveAddressResponse is the response type for a receive address
