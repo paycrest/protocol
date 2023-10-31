@@ -10,13 +10,11 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
 	"github.com/paycrest/protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	"github.com/paycrest/protocol/ent/predicate"
-	"github.com/paycrest/protocol/ent/validatorprofile"
 )
 
 // LockOrderFulfillmentUpdate is the builder for updating LockOrderFulfillment entities.
@@ -71,15 +69,37 @@ func (lofu *LockOrderFulfillmentUpdate) AddConfirmations(i int) *LockOrderFulfil
 	return lofu
 }
 
-// SetValidationErrors sets the "validation_errors" field.
-func (lofu *LockOrderFulfillmentUpdate) SetValidationErrors(s []string) *LockOrderFulfillmentUpdate {
-	lofu.mutation.SetValidationErrors(s)
+// SetValidationStatus sets the "validation_status" field.
+func (lofu *LockOrderFulfillmentUpdate) SetValidationStatus(ls lockorderfulfillment.ValidationStatus) *LockOrderFulfillmentUpdate {
+	lofu.mutation.SetValidationStatus(ls)
 	return lofu
 }
 
-// AppendValidationErrors appends s to the "validation_errors" field.
-func (lofu *LockOrderFulfillmentUpdate) AppendValidationErrors(s []string) *LockOrderFulfillmentUpdate {
-	lofu.mutation.AppendValidationErrors(s)
+// SetNillableValidationStatus sets the "validation_status" field if the given value is not nil.
+func (lofu *LockOrderFulfillmentUpdate) SetNillableValidationStatus(ls *lockorderfulfillment.ValidationStatus) *LockOrderFulfillmentUpdate {
+	if ls != nil {
+		lofu.SetValidationStatus(*ls)
+	}
+	return lofu
+}
+
+// SetValidationError sets the "validation_error" field.
+func (lofu *LockOrderFulfillmentUpdate) SetValidationError(s string) *LockOrderFulfillmentUpdate {
+	lofu.mutation.SetValidationError(s)
+	return lofu
+}
+
+// SetNillableValidationError sets the "validation_error" field if the given value is not nil.
+func (lofu *LockOrderFulfillmentUpdate) SetNillableValidationError(s *string) *LockOrderFulfillmentUpdate {
+	if s != nil {
+		lofu.SetValidationError(*s)
+	}
+	return lofu
+}
+
+// ClearValidationError clears the value of the "validation_error" field.
+func (lofu *LockOrderFulfillmentUpdate) ClearValidationError() *LockOrderFulfillmentUpdate {
+	lofu.mutation.ClearValidationError()
 	return lofu
 }
 
@@ -94,21 +114,6 @@ func (lofu *LockOrderFulfillmentUpdate) SetOrder(l *LockPaymentOrder) *LockOrder
 	return lofu.SetOrderID(l.ID)
 }
 
-// AddValidatorIDs adds the "validators" edge to the ValidatorProfile entity by IDs.
-func (lofu *LockOrderFulfillmentUpdate) AddValidatorIDs(ids ...uuid.UUID) *LockOrderFulfillmentUpdate {
-	lofu.mutation.AddValidatorIDs(ids...)
-	return lofu
-}
-
-// AddValidators adds the "validators" edges to the ValidatorProfile entity.
-func (lofu *LockOrderFulfillmentUpdate) AddValidators(v ...*ValidatorProfile) *LockOrderFulfillmentUpdate {
-	ids := make([]uuid.UUID, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return lofu.AddValidatorIDs(ids...)
-}
-
 // Mutation returns the LockOrderFulfillmentMutation object of the builder.
 func (lofu *LockOrderFulfillmentUpdate) Mutation() *LockOrderFulfillmentMutation {
 	return lofu.mutation
@@ -118,27 +123,6 @@ func (lofu *LockOrderFulfillmentUpdate) Mutation() *LockOrderFulfillmentMutation
 func (lofu *LockOrderFulfillmentUpdate) ClearOrder() *LockOrderFulfillmentUpdate {
 	lofu.mutation.ClearOrder()
 	return lofu
-}
-
-// ClearValidators clears all "validators" edges to the ValidatorProfile entity.
-func (lofu *LockOrderFulfillmentUpdate) ClearValidators() *LockOrderFulfillmentUpdate {
-	lofu.mutation.ClearValidators()
-	return lofu
-}
-
-// RemoveValidatorIDs removes the "validators" edge to ValidatorProfile entities by IDs.
-func (lofu *LockOrderFulfillmentUpdate) RemoveValidatorIDs(ids ...uuid.UUID) *LockOrderFulfillmentUpdate {
-	lofu.mutation.RemoveValidatorIDs(ids...)
-	return lofu
-}
-
-// RemoveValidators removes "validators" edges to ValidatorProfile entities.
-func (lofu *LockOrderFulfillmentUpdate) RemoveValidators(v ...*ValidatorProfile) *LockOrderFulfillmentUpdate {
-	ids := make([]uuid.UUID, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return lofu.RemoveValidatorIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -179,6 +163,11 @@ func (lofu *LockOrderFulfillmentUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (lofu *LockOrderFulfillmentUpdate) check() error {
+	if v, ok := lofu.mutation.ValidationStatus(); ok {
+		if err := lockorderfulfillment.ValidationStatusValidator(v); err != nil {
+			return &ValidationError{Name: "validation_status", err: fmt.Errorf(`ent: validator failed for field "LockOrderFulfillment.validation_status": %w`, err)}
+		}
+	}
 	if _, ok := lofu.mutation.OrderID(); lofu.mutation.OrderCleared() && !ok {
 		return errors.New(`ent: clearing a required unique edge "LockOrderFulfillment.order"`)
 	}
@@ -212,13 +201,14 @@ func (lofu *LockOrderFulfillmentUpdate) sqlSave(ctx context.Context) (n int, err
 	if value, ok := lofu.mutation.AddedConfirmations(); ok {
 		_spec.AddField(lockorderfulfillment.FieldConfirmations, field.TypeInt, value)
 	}
-	if value, ok := lofu.mutation.ValidationErrors(); ok {
-		_spec.SetField(lockorderfulfillment.FieldValidationErrors, field.TypeJSON, value)
+	if value, ok := lofu.mutation.ValidationStatus(); ok {
+		_spec.SetField(lockorderfulfillment.FieldValidationStatus, field.TypeEnum, value)
 	}
-	if value, ok := lofu.mutation.AppendedValidationErrors(); ok {
-		_spec.AddModifier(func(u *sql.UpdateBuilder) {
-			sqljson.Append(u, lockorderfulfillment.FieldValidationErrors, value)
-		})
+	if value, ok := lofu.mutation.ValidationError(); ok {
+		_spec.SetField(lockorderfulfillment.FieldValidationError, field.TypeString, value)
+	}
+	if lofu.mutation.ValidationErrorCleared() {
+		_spec.ClearField(lockorderfulfillment.FieldValidationError, field.TypeString)
 	}
 	if lofu.mutation.OrderCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -242,51 +232,6 @@ func (lofu *LockOrderFulfillmentUpdate) sqlSave(ctx context.Context) (n int, err
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(lockpaymentorder.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if lofu.mutation.ValidatorsCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: false,
-			Table:   lockorderfulfillment.ValidatorsTable,
-			Columns: lockorderfulfillment.ValidatorsPrimaryKey,
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(validatorprofile.FieldID, field.TypeUUID),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := lofu.mutation.RemovedValidatorsIDs(); len(nodes) > 0 && !lofu.mutation.ValidatorsCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: false,
-			Table:   lockorderfulfillment.ValidatorsTable,
-			Columns: lockorderfulfillment.ValidatorsPrimaryKey,
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(validatorprofile.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := lofu.mutation.ValidatorsIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: false,
-			Table:   lockorderfulfillment.ValidatorsTable,
-			Columns: lockorderfulfillment.ValidatorsPrimaryKey,
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(validatorprofile.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -353,15 +298,37 @@ func (lofuo *LockOrderFulfillmentUpdateOne) AddConfirmations(i int) *LockOrderFu
 	return lofuo
 }
 
-// SetValidationErrors sets the "validation_errors" field.
-func (lofuo *LockOrderFulfillmentUpdateOne) SetValidationErrors(s []string) *LockOrderFulfillmentUpdateOne {
-	lofuo.mutation.SetValidationErrors(s)
+// SetValidationStatus sets the "validation_status" field.
+func (lofuo *LockOrderFulfillmentUpdateOne) SetValidationStatus(ls lockorderfulfillment.ValidationStatus) *LockOrderFulfillmentUpdateOne {
+	lofuo.mutation.SetValidationStatus(ls)
 	return lofuo
 }
 
-// AppendValidationErrors appends s to the "validation_errors" field.
-func (lofuo *LockOrderFulfillmentUpdateOne) AppendValidationErrors(s []string) *LockOrderFulfillmentUpdateOne {
-	lofuo.mutation.AppendValidationErrors(s)
+// SetNillableValidationStatus sets the "validation_status" field if the given value is not nil.
+func (lofuo *LockOrderFulfillmentUpdateOne) SetNillableValidationStatus(ls *lockorderfulfillment.ValidationStatus) *LockOrderFulfillmentUpdateOne {
+	if ls != nil {
+		lofuo.SetValidationStatus(*ls)
+	}
+	return lofuo
+}
+
+// SetValidationError sets the "validation_error" field.
+func (lofuo *LockOrderFulfillmentUpdateOne) SetValidationError(s string) *LockOrderFulfillmentUpdateOne {
+	lofuo.mutation.SetValidationError(s)
+	return lofuo
+}
+
+// SetNillableValidationError sets the "validation_error" field if the given value is not nil.
+func (lofuo *LockOrderFulfillmentUpdateOne) SetNillableValidationError(s *string) *LockOrderFulfillmentUpdateOne {
+	if s != nil {
+		lofuo.SetValidationError(*s)
+	}
+	return lofuo
+}
+
+// ClearValidationError clears the value of the "validation_error" field.
+func (lofuo *LockOrderFulfillmentUpdateOne) ClearValidationError() *LockOrderFulfillmentUpdateOne {
+	lofuo.mutation.ClearValidationError()
 	return lofuo
 }
 
@@ -376,21 +343,6 @@ func (lofuo *LockOrderFulfillmentUpdateOne) SetOrder(l *LockPaymentOrder) *LockO
 	return lofuo.SetOrderID(l.ID)
 }
 
-// AddValidatorIDs adds the "validators" edge to the ValidatorProfile entity by IDs.
-func (lofuo *LockOrderFulfillmentUpdateOne) AddValidatorIDs(ids ...uuid.UUID) *LockOrderFulfillmentUpdateOne {
-	lofuo.mutation.AddValidatorIDs(ids...)
-	return lofuo
-}
-
-// AddValidators adds the "validators" edges to the ValidatorProfile entity.
-func (lofuo *LockOrderFulfillmentUpdateOne) AddValidators(v ...*ValidatorProfile) *LockOrderFulfillmentUpdateOne {
-	ids := make([]uuid.UUID, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return lofuo.AddValidatorIDs(ids...)
-}
-
 // Mutation returns the LockOrderFulfillmentMutation object of the builder.
 func (lofuo *LockOrderFulfillmentUpdateOne) Mutation() *LockOrderFulfillmentMutation {
 	return lofuo.mutation
@@ -400,27 +352,6 @@ func (lofuo *LockOrderFulfillmentUpdateOne) Mutation() *LockOrderFulfillmentMuta
 func (lofuo *LockOrderFulfillmentUpdateOne) ClearOrder() *LockOrderFulfillmentUpdateOne {
 	lofuo.mutation.ClearOrder()
 	return lofuo
-}
-
-// ClearValidators clears all "validators" edges to the ValidatorProfile entity.
-func (lofuo *LockOrderFulfillmentUpdateOne) ClearValidators() *LockOrderFulfillmentUpdateOne {
-	lofuo.mutation.ClearValidators()
-	return lofuo
-}
-
-// RemoveValidatorIDs removes the "validators" edge to ValidatorProfile entities by IDs.
-func (lofuo *LockOrderFulfillmentUpdateOne) RemoveValidatorIDs(ids ...uuid.UUID) *LockOrderFulfillmentUpdateOne {
-	lofuo.mutation.RemoveValidatorIDs(ids...)
-	return lofuo
-}
-
-// RemoveValidators removes "validators" edges to ValidatorProfile entities.
-func (lofuo *LockOrderFulfillmentUpdateOne) RemoveValidators(v ...*ValidatorProfile) *LockOrderFulfillmentUpdateOne {
-	ids := make([]uuid.UUID, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return lofuo.RemoveValidatorIDs(ids...)
 }
 
 // Where appends a list predicates to the LockOrderFulfillmentUpdate builder.
@@ -474,6 +405,11 @@ func (lofuo *LockOrderFulfillmentUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (lofuo *LockOrderFulfillmentUpdateOne) check() error {
+	if v, ok := lofuo.mutation.ValidationStatus(); ok {
+		if err := lockorderfulfillment.ValidationStatusValidator(v); err != nil {
+			return &ValidationError{Name: "validation_status", err: fmt.Errorf(`ent: validator failed for field "LockOrderFulfillment.validation_status": %w`, err)}
+		}
+	}
 	if _, ok := lofuo.mutation.OrderID(); lofuo.mutation.OrderCleared() && !ok {
 		return errors.New(`ent: clearing a required unique edge "LockOrderFulfillment.order"`)
 	}
@@ -524,13 +460,14 @@ func (lofuo *LockOrderFulfillmentUpdateOne) sqlSave(ctx context.Context) (_node 
 	if value, ok := lofuo.mutation.AddedConfirmations(); ok {
 		_spec.AddField(lockorderfulfillment.FieldConfirmations, field.TypeInt, value)
 	}
-	if value, ok := lofuo.mutation.ValidationErrors(); ok {
-		_spec.SetField(lockorderfulfillment.FieldValidationErrors, field.TypeJSON, value)
+	if value, ok := lofuo.mutation.ValidationStatus(); ok {
+		_spec.SetField(lockorderfulfillment.FieldValidationStatus, field.TypeEnum, value)
 	}
-	if value, ok := lofuo.mutation.AppendedValidationErrors(); ok {
-		_spec.AddModifier(func(u *sql.UpdateBuilder) {
-			sqljson.Append(u, lockorderfulfillment.FieldValidationErrors, value)
-		})
+	if value, ok := lofuo.mutation.ValidationError(); ok {
+		_spec.SetField(lockorderfulfillment.FieldValidationError, field.TypeString, value)
+	}
+	if lofuo.mutation.ValidationErrorCleared() {
+		_spec.ClearField(lockorderfulfillment.FieldValidationError, field.TypeString)
 	}
 	if lofuo.mutation.OrderCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -554,51 +491,6 @@ func (lofuo *LockOrderFulfillmentUpdateOne) sqlSave(ctx context.Context) (_node 
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(lockpaymentorder.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if lofuo.mutation.ValidatorsCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: false,
-			Table:   lockorderfulfillment.ValidatorsTable,
-			Columns: lockorderfulfillment.ValidatorsPrimaryKey,
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(validatorprofile.FieldID, field.TypeUUID),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := lofuo.mutation.RemovedValidatorsIDs(); len(nodes) > 0 && !lofuo.mutation.ValidatorsCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: false,
-			Table:   lockorderfulfillment.ValidatorsTable,
-			Columns: lockorderfulfillment.ValidatorsPrimaryKey,
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(validatorprofile.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := lofuo.mutation.ValidatorsIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: false,
-			Table:   lockorderfulfillment.ValidatorsTable,
-			Columns: lockorderfulfillment.ValidatorsPrimaryKey,
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(validatorprofile.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

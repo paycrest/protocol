@@ -629,6 +629,9 @@ func (s *IndexerService) createLockPaymentOrder(ctx context.Context, client type
 			fiatcurrency.CodeEQ(utils.Byte32ToString(institution.Currency)),
 		).
 		Only(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to fetch fiat currency: %w", err)
+	}
 
 	provisionBucket, err := s.getProvisionBucket(
 		ctx, nil, amountInDecimals, currency,
@@ -659,6 +662,9 @@ func (s *IndexerService) createLockPaymentOrder(ctx context.Context, client type
 				fiatcurrency.CodeEQ(utils.Byte32ToString(institution.Currency)),
 			).
 			Only(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to fetch fiat currency: %w", err)
+		}
 
 		// Split lock payment order into multiple orders
 		err = s.splitLockPaymentOrder(

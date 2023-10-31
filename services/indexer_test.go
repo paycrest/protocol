@@ -103,7 +103,6 @@ func setup() error {
 		nil,
 		senderProfile,
 		nil,
-		nil,
 	)
 	if err != nil {
 		return err

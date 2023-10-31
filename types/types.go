@@ -2,7 +2,6 @@ package types
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"time"
 
@@ -12,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/google/uuid"
 	"github.com/paycrest/protocol/ent"
+	"github.com/paycrest/protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	"github.com/paycrest/protocol/ent/paymentorder"
 	"github.com/paycrest/protocol/ent/provideravailability"
@@ -86,9 +86,11 @@ type LockOrderResponse struct {
 
 // FulfillLockOrderPayload is the payload for the fulfill order endpoint
 type FulfillLockOrderPayload struct {
-	TxID           string `json:"txId" binding:"required"`
-	TxReceiptImage string `json:"txReceiptImage" binding:"required"`
-	Institution    string `json:"institution" binding:"required"`
+	TxID             string                                `json:"txId" binding:"required"`
+	TxReceiptImage   string                                `json:"txReceiptImage" binding:"required"`
+	Institution      string                                `json:"institution" binding:"required"`
+	ValidationStatus lockorderfulfillment.ValidationStatus `json:"validationStatus"`
+	ValidationError  string                                `json:"validationError"`
 }
 
 // CancelLockOrderPayload is the payload for the cancel order endpoint
@@ -231,28 +233,6 @@ type NewPaymentOrderPayload struct {
 	Token     string                `json:"token" binding:"required"`
 	Network   string                `json:"network" binding:"required"`
 	Recipient PaymentOrderRecipient `json:"recipient" binding:"required"`
-}
-
-// ValidateOrderPayload is the payload for the validate order endpoint
-type ValidateOrderPayload struct {
-	IsValid  bool   `json:"isValid"`
-	ErrorMsg string `json:"errorMsg"`
-}
-
-// FulfillmentMessage is the payload for the messages sent to validators
-type FulfillmentMessage struct {
-	ID                      uuid.UUID `json:"id"`
-	TxID                    string    `json:"txId"`
-	TxReceiptImage          string    `json:"txReceiptImage"`
-	Institution             string    `json:"institution"`
-	MaxConcurrentValidators int       `json:"maxConcurrentValidators"`
-}
-
-// MarshalBinary encodes the message to binary
-func (m *FulfillmentMessage) MarshalBinary() ([]byte, error) {
-	// Encode as JSON
-	data, _ := json.Marshal(m)
-	return data, nil
 }
 
 // ReceiveAddressResponse is the response type for a receive address

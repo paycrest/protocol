@@ -31,7 +31,6 @@ import (
 	"github.com/paycrest/protocol/ent/senderprofile"
 	"github.com/paycrest/protocol/ent/token"
 	"github.com/paycrest/protocol/ent/user"
-	"github.com/paycrest/protocol/ent/validatorprofile"
 	"github.com/paycrest/protocol/ent/verificationtoken"
 )
 
@@ -72,8 +71,6 @@ type Client struct {
 	Token *TokenClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
-	// ValidatorProfile is the client for interacting with the ValidatorProfile builders.
-	ValidatorProfile *ValidatorProfileClient
 	// VerificationToken is the client for interacting with the VerificationToken builders.
 	VerificationToken *VerificationTokenClient
 }
@@ -105,7 +102,6 @@ func (c *Client) init() {
 	c.SenderProfile = NewSenderProfileClient(c.config)
 	c.Token = NewTokenClient(c.config)
 	c.User = NewUserClient(c.config)
-	c.ValidatorProfile = NewValidatorProfileClient(c.config)
 	c.VerificationToken = NewVerificationTokenClient(c.config)
 }
 
@@ -205,7 +201,6 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		SenderProfile:         NewSenderProfileClient(cfg),
 		Token:                 NewTokenClient(cfg),
 		User:                  NewUserClient(cfg),
-		ValidatorProfile:      NewValidatorProfileClient(cfg),
 		VerificationToken:     NewVerificationTokenClient(cfg),
 	}, nil
 }
@@ -242,7 +237,6 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		SenderProfile:         NewSenderProfileClient(cfg),
 		Token:                 NewTokenClient(cfg),
 		User:                  NewUserClient(cfg),
-		ValidatorProfile:      NewValidatorProfileClient(cfg),
 		VerificationToken:     NewVerificationTokenClient(cfg),
 	}, nil
 }
@@ -276,8 +270,7 @@ func (c *Client) Use(hooks ...Hook) {
 		c.APIKey, c.FiatCurrency, c.LockOrderFulfillment, c.LockPaymentOrder, c.Network,
 		c.PaymentOrder, c.PaymentOrderRecipient, c.ProviderAvailability,
 		c.ProviderOrderToken, c.ProviderProfile, c.ProviderRating, c.ProvisionBucket,
-		c.ReceiveAddress, c.SenderProfile, c.Token, c.User, c.ValidatorProfile,
-		c.VerificationToken,
+		c.ReceiveAddress, c.SenderProfile, c.Token, c.User, c.VerificationToken,
 	} {
 		n.Use(hooks...)
 	}
@@ -290,8 +283,7 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.APIKey, c.FiatCurrency, c.LockOrderFulfillment, c.LockPaymentOrder, c.Network,
 		c.PaymentOrder, c.PaymentOrderRecipient, c.ProviderAvailability,
 		c.ProviderOrderToken, c.ProviderProfile, c.ProviderRating, c.ProvisionBucket,
-		c.ReceiveAddress, c.SenderProfile, c.Token, c.User, c.ValidatorProfile,
-		c.VerificationToken,
+		c.ReceiveAddress, c.SenderProfile, c.Token, c.User, c.VerificationToken,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -332,8 +324,6 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Token.mutate(ctx, m)
 	case *UserMutation:
 		return c.User.mutate(ctx, m)
-	case *ValidatorProfileMutation:
-		return c.ValidatorProfile.mutate(ctx, m)
 	case *VerificationTokenMutation:
 		return c.VerificationToken.mutate(ctx, m)
 	default:
@@ -459,22 +449,6 @@ func (c *APIKeyClient) QueryProviderProfile(ak *APIKey) *ProviderProfileQuery {
 			sqlgraph.From(apikey.Table, apikey.FieldID, id),
 			sqlgraph.To(providerprofile.Table, providerprofile.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, true, apikey.ProviderProfileTable, apikey.ProviderProfileColumn),
-		)
-		fromV = sqlgraph.Neighbors(ak.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// QueryValidatorProfile queries the validator_profile edge of a APIKey.
-func (c *APIKeyClient) QueryValidatorProfile(ak *APIKey) *ValidatorProfileQuery {
-	query := (&ValidatorProfileClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := ak.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(apikey.Table, apikey.FieldID, id),
-			sqlgraph.To(validatorprofile.Table, validatorprofile.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, apikey.ValidatorProfileTable, apikey.ValidatorProfileColumn),
 		)
 		fromV = sqlgraph.Neighbors(ak.driver.Dialect(), step)
 		return fromV, nil
@@ -775,22 +749,6 @@ func (c *LockOrderFulfillmentClient) QueryOrder(lof *LockOrderFulfillment) *Lock
 			sqlgraph.From(lockorderfulfillment.Table, lockorderfulfillment.FieldID, id),
 			sqlgraph.To(lockpaymentorder.Table, lockpaymentorder.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, true, lockorderfulfillment.OrderTable, lockorderfulfillment.OrderColumn),
-		)
-		fromV = sqlgraph.Neighbors(lof.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// QueryValidators queries the validators edge of a LockOrderFulfillment.
-func (c *LockOrderFulfillmentClient) QueryValidators(lof *LockOrderFulfillment) *ValidatorProfileQuery {
-	query := (&ValidatorProfileClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := lof.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(lockorderfulfillment.Table, lockorderfulfillment.FieldID, id),
-			sqlgraph.To(validatorprofile.Table, validatorprofile.FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, false, lockorderfulfillment.ValidatorsTable, lockorderfulfillment.ValidatorsPrimaryKey...),
 		)
 		fromV = sqlgraph.Neighbors(lof.driver.Dialect(), step)
 		return fromV, nil
@@ -2860,22 +2818,6 @@ func (c *UserClient) QueryProviderProfile(u *User) *ProviderProfileQuery {
 	return query
 }
 
-// QueryValidatorProfile queries the validator_profile edge of a User.
-func (c *UserClient) QueryValidatorProfile(u *User) *ValidatorProfileQuery {
-	query := (&ValidatorProfileClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := u.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(user.Table, user.FieldID, id),
-			sqlgraph.To(validatorprofile.Table, validatorprofile.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, user.ValidatorProfileTable, user.ValidatorProfileColumn),
-		)
-		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
 // QueryVerificationToken queries the verification_token edge of a User.
 func (c *UserClient) QueryVerificationToken(u *User) *VerificationTokenQuery {
 	query := (&VerificationTokenClient{config: c.config}).Query()
@@ -2915,172 +2857,6 @@ func (c *UserClient) mutate(ctx context.Context, m *UserMutation) (Value, error)
 		return (&UserDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown User mutation op: %q", m.Op())
-	}
-}
-
-// ValidatorProfileClient is a client for the ValidatorProfile schema.
-type ValidatorProfileClient struct {
-	config
-}
-
-// NewValidatorProfileClient returns a client for the ValidatorProfile from the given config.
-func NewValidatorProfileClient(c config) *ValidatorProfileClient {
-	return &ValidatorProfileClient{config: c}
-}
-
-// Use adds a list of mutation hooks to the hooks stack.
-// A call to `Use(f, g, h)` equals to `validatorprofile.Hooks(f(g(h())))`.
-func (c *ValidatorProfileClient) Use(hooks ...Hook) {
-	c.hooks.ValidatorProfile = append(c.hooks.ValidatorProfile, hooks...)
-}
-
-// Intercept adds a list of query interceptors to the interceptors stack.
-// A call to `Intercept(f, g, h)` equals to `validatorprofile.Intercept(f(g(h())))`.
-func (c *ValidatorProfileClient) Intercept(interceptors ...Interceptor) {
-	c.inters.ValidatorProfile = append(c.inters.ValidatorProfile, interceptors...)
-}
-
-// Create returns a builder for creating a ValidatorProfile entity.
-func (c *ValidatorProfileClient) Create() *ValidatorProfileCreate {
-	mutation := newValidatorProfileMutation(c.config, OpCreate)
-	return &ValidatorProfileCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// CreateBulk returns a builder for creating a bulk of ValidatorProfile entities.
-func (c *ValidatorProfileClient) CreateBulk(builders ...*ValidatorProfileCreate) *ValidatorProfileCreateBulk {
-	return &ValidatorProfileCreateBulk{config: c.config, builders: builders}
-}
-
-// Update returns an update builder for ValidatorProfile.
-func (c *ValidatorProfileClient) Update() *ValidatorProfileUpdate {
-	mutation := newValidatorProfileMutation(c.config, OpUpdate)
-	return &ValidatorProfileUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOne returns an update builder for the given entity.
-func (c *ValidatorProfileClient) UpdateOne(vp *ValidatorProfile) *ValidatorProfileUpdateOne {
-	mutation := newValidatorProfileMutation(c.config, OpUpdateOne, withValidatorProfile(vp))
-	return &ValidatorProfileUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOneID returns an update builder for the given id.
-func (c *ValidatorProfileClient) UpdateOneID(id uuid.UUID) *ValidatorProfileUpdateOne {
-	mutation := newValidatorProfileMutation(c.config, OpUpdateOne, withValidatorProfileID(id))
-	return &ValidatorProfileUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// Delete returns a delete builder for ValidatorProfile.
-func (c *ValidatorProfileClient) Delete() *ValidatorProfileDelete {
-	mutation := newValidatorProfileMutation(c.config, OpDelete)
-	return &ValidatorProfileDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// DeleteOne returns a builder for deleting the given entity.
-func (c *ValidatorProfileClient) DeleteOne(vp *ValidatorProfile) *ValidatorProfileDeleteOne {
-	return c.DeleteOneID(vp.ID)
-}
-
-// DeleteOneID returns a builder for deleting the given entity by its id.
-func (c *ValidatorProfileClient) DeleteOneID(id uuid.UUID) *ValidatorProfileDeleteOne {
-	builder := c.Delete().Where(validatorprofile.ID(id))
-	builder.mutation.id = &id
-	builder.mutation.op = OpDeleteOne
-	return &ValidatorProfileDeleteOne{builder}
-}
-
-// Query returns a query builder for ValidatorProfile.
-func (c *ValidatorProfileClient) Query() *ValidatorProfileQuery {
-	return &ValidatorProfileQuery{
-		config: c.config,
-		ctx:    &QueryContext{Type: TypeValidatorProfile},
-		inters: c.Interceptors(),
-	}
-}
-
-// Get returns a ValidatorProfile entity by its id.
-func (c *ValidatorProfileClient) Get(ctx context.Context, id uuid.UUID) (*ValidatorProfile, error) {
-	return c.Query().Where(validatorprofile.ID(id)).Only(ctx)
-}
-
-// GetX is like Get, but panics if an error occurs.
-func (c *ValidatorProfileClient) GetX(ctx context.Context, id uuid.UUID) *ValidatorProfile {
-	obj, err := c.Get(ctx, id)
-	if err != nil {
-		panic(err)
-	}
-	return obj
-}
-
-// QueryUser queries the user edge of a ValidatorProfile.
-func (c *ValidatorProfileClient) QueryUser(vp *ValidatorProfile) *UserQuery {
-	query := (&UserClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := vp.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(validatorprofile.Table, validatorprofile.FieldID, id),
-			sqlgraph.To(user.Table, user.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, validatorprofile.UserTable, validatorprofile.UserColumn),
-		)
-		fromV = sqlgraph.Neighbors(vp.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// QueryValidatedFulfillments queries the validated_fulfillments edge of a ValidatorProfile.
-func (c *ValidatorProfileClient) QueryValidatedFulfillments(vp *ValidatorProfile) *LockOrderFulfillmentQuery {
-	query := (&LockOrderFulfillmentClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := vp.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(validatorprofile.Table, validatorprofile.FieldID, id),
-			sqlgraph.To(lockorderfulfillment.Table, lockorderfulfillment.FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, true, validatorprofile.ValidatedFulfillmentsTable, validatorprofile.ValidatedFulfillmentsPrimaryKey...),
-		)
-		fromV = sqlgraph.Neighbors(vp.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// QueryAPIKey queries the api_key edge of a ValidatorProfile.
-func (c *ValidatorProfileClient) QueryAPIKey(vp *ValidatorProfile) *APIKeyQuery {
-	query := (&APIKeyClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := vp.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(validatorprofile.Table, validatorprofile.FieldID, id),
-			sqlgraph.To(apikey.Table, apikey.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, validatorprofile.APIKeyTable, validatorprofile.APIKeyColumn),
-		)
-		fromV = sqlgraph.Neighbors(vp.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// Hooks returns the client hooks.
-func (c *ValidatorProfileClient) Hooks() []Hook {
-	return c.hooks.ValidatorProfile
-}
-
-// Interceptors returns the client interceptors.
-func (c *ValidatorProfileClient) Interceptors() []Interceptor {
-	return c.inters.ValidatorProfile
-}
-
-func (c *ValidatorProfileClient) mutate(ctx context.Context, m *ValidatorProfileMutation) (Value, error) {
-	switch m.Op() {
-	case OpCreate:
-		return (&ValidatorProfileCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdate:
-		return (&ValidatorProfileUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdateOne:
-		return (&ValidatorProfileUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpDelete, OpDeleteOne:
-		return (&ValidatorProfileDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
-	default:
-		return nil, fmt.Errorf("ent: unknown ValidatorProfile mutation op: %q", m.Op())
 	}
 }
 
@@ -3225,13 +3001,12 @@ type (
 		APIKey, FiatCurrency, LockOrderFulfillment, LockPaymentOrder, Network,
 		PaymentOrder, PaymentOrderRecipient, ProviderAvailability, ProviderOrderToken,
 		ProviderProfile, ProviderRating, ProvisionBucket, ReceiveAddress,
-		SenderProfile, Token, User, ValidatorProfile, VerificationToken []ent.Hook
+		SenderProfile, Token, User, VerificationToken []ent.Hook
 	}
 	inters struct {
 		APIKey, FiatCurrency, LockOrderFulfillment, LockPaymentOrder, Network,
 		PaymentOrder, PaymentOrderRecipient, ProviderAvailability, ProviderOrderToken,
 		ProviderProfile, ProviderRating, ProvisionBucket, ReceiveAddress,
-		SenderProfile, Token, User, ValidatorProfile,
-		VerificationToken []ent.Interceptor
+		SenderProfile, Token, User, VerificationToken []ent.Interceptor
 	}
 )

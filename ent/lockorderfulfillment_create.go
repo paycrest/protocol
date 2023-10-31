@@ -13,7 +13,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/paycrest/protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
-	"github.com/paycrest/protocol/ent/validatorprofile"
 )
 
 // LockOrderFulfillmentCreate is the builder for creating a LockOrderFulfillment entity.
@@ -77,9 +76,31 @@ func (lofc *LockOrderFulfillmentCreate) SetNillableConfirmations(i *int) *LockOr
 	return lofc
 }
 
-// SetValidationErrors sets the "validation_errors" field.
-func (lofc *LockOrderFulfillmentCreate) SetValidationErrors(s []string) *LockOrderFulfillmentCreate {
-	lofc.mutation.SetValidationErrors(s)
+// SetValidationStatus sets the "validation_status" field.
+func (lofc *LockOrderFulfillmentCreate) SetValidationStatus(ls lockorderfulfillment.ValidationStatus) *LockOrderFulfillmentCreate {
+	lofc.mutation.SetValidationStatus(ls)
+	return lofc
+}
+
+// SetNillableValidationStatus sets the "validation_status" field if the given value is not nil.
+func (lofc *LockOrderFulfillmentCreate) SetNillableValidationStatus(ls *lockorderfulfillment.ValidationStatus) *LockOrderFulfillmentCreate {
+	if ls != nil {
+		lofc.SetValidationStatus(*ls)
+	}
+	return lofc
+}
+
+// SetValidationError sets the "validation_error" field.
+func (lofc *LockOrderFulfillmentCreate) SetValidationError(s string) *LockOrderFulfillmentCreate {
+	lofc.mutation.SetValidationError(s)
+	return lofc
+}
+
+// SetNillableValidationError sets the "validation_error" field if the given value is not nil.
+func (lofc *LockOrderFulfillmentCreate) SetNillableValidationError(s *string) *LockOrderFulfillmentCreate {
+	if s != nil {
+		lofc.SetValidationError(*s)
+	}
 	return lofc
 }
 
@@ -106,21 +127,6 @@ func (lofc *LockOrderFulfillmentCreate) SetOrderID(id uuid.UUID) *LockOrderFulfi
 // SetOrder sets the "order" edge to the LockPaymentOrder entity.
 func (lofc *LockOrderFulfillmentCreate) SetOrder(l *LockPaymentOrder) *LockOrderFulfillmentCreate {
 	return lofc.SetOrderID(l.ID)
-}
-
-// AddValidatorIDs adds the "validators" edge to the ValidatorProfile entity by IDs.
-func (lofc *LockOrderFulfillmentCreate) AddValidatorIDs(ids ...uuid.UUID) *LockOrderFulfillmentCreate {
-	lofc.mutation.AddValidatorIDs(ids...)
-	return lofc
-}
-
-// AddValidators adds the "validators" edges to the ValidatorProfile entity.
-func (lofc *LockOrderFulfillmentCreate) AddValidators(v ...*ValidatorProfile) *LockOrderFulfillmentCreate {
-	ids := make([]uuid.UUID, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return lofc.AddValidatorIDs(ids...)
 }
 
 // Mutation returns the LockOrderFulfillmentMutation object of the builder.
@@ -170,9 +176,9 @@ func (lofc *LockOrderFulfillmentCreate) defaults() {
 		v := lockorderfulfillment.DefaultConfirmations
 		lofc.mutation.SetConfirmations(v)
 	}
-	if _, ok := lofc.mutation.ValidationErrors(); !ok {
-		v := lockorderfulfillment.DefaultValidationErrors
-		lofc.mutation.SetValidationErrors(v)
+	if _, ok := lofc.mutation.ValidationStatus(); !ok {
+		v := lockorderfulfillment.DefaultValidationStatus
+		lofc.mutation.SetValidationStatus(v)
 	}
 	if _, ok := lofc.mutation.ID(); !ok {
 		v := lockorderfulfillment.DefaultID()
@@ -197,8 +203,13 @@ func (lofc *LockOrderFulfillmentCreate) check() error {
 	if _, ok := lofc.mutation.Confirmations(); !ok {
 		return &ValidationError{Name: "confirmations", err: errors.New(`ent: missing required field "LockOrderFulfillment.confirmations"`)}
 	}
-	if _, ok := lofc.mutation.ValidationErrors(); !ok {
-		return &ValidationError{Name: "validation_errors", err: errors.New(`ent: missing required field "LockOrderFulfillment.validation_errors"`)}
+	if _, ok := lofc.mutation.ValidationStatus(); !ok {
+		return &ValidationError{Name: "validation_status", err: errors.New(`ent: missing required field "LockOrderFulfillment.validation_status"`)}
+	}
+	if v, ok := lofc.mutation.ValidationStatus(); ok {
+		if err := lockorderfulfillment.ValidationStatusValidator(v); err != nil {
+			return &ValidationError{Name: "validation_status", err: fmt.Errorf(`ent: validator failed for field "LockOrderFulfillment.validation_status": %w`, err)}
+		}
 	}
 	if _, ok := lofc.mutation.OrderID(); !ok {
 		return &ValidationError{Name: "order", err: errors.New(`ent: missing required edge "LockOrderFulfillment.order"`)}
@@ -258,9 +269,13 @@ func (lofc *LockOrderFulfillmentCreate) createSpec() (*LockOrderFulfillment, *sq
 		_spec.SetField(lockorderfulfillment.FieldConfirmations, field.TypeInt, value)
 		_node.Confirmations = value
 	}
-	if value, ok := lofc.mutation.ValidationErrors(); ok {
-		_spec.SetField(lockorderfulfillment.FieldValidationErrors, field.TypeJSON, value)
-		_node.ValidationErrors = value
+	if value, ok := lofc.mutation.ValidationStatus(); ok {
+		_spec.SetField(lockorderfulfillment.FieldValidationStatus, field.TypeEnum, value)
+		_node.ValidationStatus = value
+	}
+	if value, ok := lofc.mutation.ValidationError(); ok {
+		_spec.SetField(lockorderfulfillment.FieldValidationError, field.TypeString, value)
+		_node.ValidationError = value
 	}
 	if nodes := lofc.mutation.OrderIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -277,22 +292,6 @@ func (lofc *LockOrderFulfillmentCreate) createSpec() (*LockOrderFulfillment, *sq
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.lock_payment_order_fulfillment = &nodes[0]
-		_spec.Edges = append(_spec.Edges, edge)
-	}
-	if nodes := lofc.mutation.ValidatorsIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: false,
-			Table:   lockorderfulfillment.ValidatorsTable,
-			Columns: lockorderfulfillment.ValidatorsPrimaryKey,
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(validatorprofile.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

@@ -13,7 +13,6 @@ import (
 	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/senderprofile"
 	"github.com/paycrest/protocol/ent/user"
-	"github.com/paycrest/protocol/ent/validatorprofile"
 )
 
 // User is the model entity for the User schema.
@@ -49,13 +48,11 @@ type UserEdges struct {
 	SenderProfile *SenderProfile `json:"sender_profile,omitempty"`
 	// ProviderProfile holds the value of the provider_profile edge.
 	ProviderProfile *ProviderProfile `json:"provider_profile,omitempty"`
-	// ValidatorProfile holds the value of the validator_profile edge.
-	ValidatorProfile *ValidatorProfile `json:"validator_profile,omitempty"`
 	// VerificationToken holds the value of the verification_token edge.
 	VerificationToken []*VerificationToken `json:"verification_token,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [4]bool
+	loadedTypes [3]bool
 }
 
 // SenderProfileOrErr returns the SenderProfile value or an error if the edge
@@ -84,23 +81,10 @@ func (e UserEdges) ProviderProfileOrErr() (*ProviderProfile, error) {
 	return nil, &NotLoadedError{edge: "provider_profile"}
 }
 
-// ValidatorProfileOrErr returns the ValidatorProfile value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e UserEdges) ValidatorProfileOrErr() (*ValidatorProfile, error) {
-	if e.loadedTypes[2] {
-		if e.ValidatorProfile == nil {
-			// Edge was loaded but was not found.
-			return nil, &NotFoundError{label: validatorprofile.Label}
-		}
-		return e.ValidatorProfile, nil
-	}
-	return nil, &NotLoadedError{edge: "validator_profile"}
-}
-
 // VerificationTokenOrErr returns the VerificationToken value or an error if the edge
 // was not loaded in eager-loading.
 func (e UserEdges) VerificationTokenOrErr() ([]*VerificationToken, error) {
-	if e.loadedTypes[3] {
+	if e.loadedTypes[2] {
 		return e.VerificationToken, nil
 	}
 	return nil, &NotLoadedError{edge: "verification_token"}
@@ -209,11 +193,6 @@ func (u *User) QuerySenderProfile() *SenderProfileQuery {
 // QueryProviderProfile queries the "provider_profile" edge of the User entity.
 func (u *User) QueryProviderProfile() *ProviderProfileQuery {
 	return NewUserClient(u.config).QueryProviderProfile(u)
-}
-
-// QueryValidatorProfile queries the "validator_profile" edge of the User entity.
-func (u *User) QueryValidatorProfile() *ValidatorProfileQuery {
-	return NewUserClient(u.config).QueryValidatorProfile(u)
 }
 
 // QueryVerificationToken queries the "verification_token" edge of the User entity.

@@ -26,7 +26,6 @@ func (s *APIKeyService) GenerateAPIKey(
 	tx *ent.Tx,
 	sender *ent.SenderProfile,
 	provider *ent.ProviderProfile,
-	validator *ent.ValidatorProfile,
 ) (*ent.APIKey, string, error) {
 	// Generate a new secret key
 	secretKey, err := token.GeneratePrivateKey()
@@ -80,26 +79,6 @@ func (s *APIKeyService) GenerateAPIKey(
 				return nil, "", fmt.Errorf("failed to create API key: %w", err)
 			}
 		}
-	} else if validator != nil {
-		if tx != nil {
-			apiKey, err = tx.APIKey.
-				Create().
-				SetSecret(encodedSecret).
-				SetValidatorProfile(validator).
-				Save(ctx)
-			if err != nil {
-				return nil, "", fmt.Errorf("failed to create API key: %w", err)
-			}
-		} else {
-			apiKey, err = storage.Client.APIKey.
-				Create().
-				SetSecret(encodedSecret).
-				SetValidatorProfile(validator).
-				Save(ctx)
-			if err != nil {
-				return nil, "", fmt.Errorf("failed to create API key: %w", err)
-			}
-		}
 	} else {
 		return nil, "", fmt.Errorf("profile not provided")
 	}
@@ -112,7 +91,6 @@ func (s *APIKeyService) GetAPIKey(
 	ctx context.Context,
 	sender *ent.SenderProfile,
 	provider *ent.ProviderProfile,
-	validator *ent.ValidatorProfile,
 ) (*types.APIKeyResponse, error) {
 	var apiKey *ent.APIKey
 
@@ -120,8 +98,6 @@ func (s *APIKeyService) GetAPIKey(
 		apiKey, _ = sender.QueryAPIKey().Only(ctx)
 	} else if provider != nil {
 		apiKey, _ = provider.QueryAPIKey().Only(ctx)
-	} else if validator != nil {
-		apiKey, _ = validator.QueryAPIKey().Only(ctx)
 	} else {
 		return nil, fmt.Errorf("profile not provided")
 	}

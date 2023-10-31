@@ -14,7 +14,6 @@ var (
 		{Name: "secret", Type: field.TypeString, Unique: true},
 		{Name: "provider_profile_api_key", Type: field.TypeString, Unique: true, Nullable: true},
 		{Name: "sender_profile_api_key", Type: field.TypeUUID, Unique: true, Nullable: true},
-		{Name: "validator_profile_api_key", Type: field.TypeUUID, Unique: true, Nullable: true},
 	}
 	// APIKeysTable holds the schema information for the "api_keys" table.
 	APIKeysTable = &schema.Table{
@@ -32,12 +31,6 @@ var (
 				Symbol:     "api_keys_sender_profiles_api_key",
 				Columns:    []*schema.Column{APIKeysColumns[3]},
 				RefColumns: []*schema.Column{SenderProfilesColumns[0]},
-				OnDelete:   schema.Cascade,
-			},
-			{
-				Symbol:     "api_keys_validator_profiles_api_key",
-				Columns:    []*schema.Column{APIKeysColumns[4]},
-				RefColumns: []*schema.Column{ValidatorProfilesColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 		},
@@ -69,7 +62,8 @@ var (
 		{Name: "tx_id", Type: field.TypeString},
 		{Name: "tx_receipt_image", Type: field.TypeString},
 		{Name: "confirmations", Type: field.TypeInt, Default: 0},
-		{Name: "validation_errors", Type: field.TypeJSON},
+		{Name: "validation_status", Type: field.TypeEnum, Enums: []string{"pending", "success", "failure"}, Default: "pending"},
+		{Name: "validation_error", Type: field.TypeString, Nullable: true},
 		{Name: "lock_payment_order_fulfillment", Type: field.TypeUUID, Unique: true},
 	}
 	// LockOrderFulfillmentsTable holds the schema information for the "lock_order_fulfillments" table.
@@ -80,7 +74,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "lock_order_fulfillments_lock_payment_orders_fulfillment",
-				Columns:    []*schema.Column{LockOrderFulfillmentsColumns[7]},
+				Columns:    []*schema.Column{LockOrderFulfillmentsColumns[8]},
 				RefColumns: []*schema.Column{LockPaymentOrdersColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
@@ -437,28 +431,6 @@ var (
 			},
 		},
 	}
-	// ValidatorProfilesColumns holds the columns for the "validator_profiles" table.
-	ValidatorProfilesColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeUUID},
-		{Name: "wallet_address", Type: field.TypeString, Nullable: true},
-		{Name: "host_identifier", Type: field.TypeString, Nullable: true},
-		{Name: "updated_at", Type: field.TypeTime},
-		{Name: "user_validator_profile", Type: field.TypeUUID, Unique: true},
-	}
-	// ValidatorProfilesTable holds the schema information for the "validator_profiles" table.
-	ValidatorProfilesTable = &schema.Table{
-		Name:       "validator_profiles",
-		Columns:    ValidatorProfilesColumns,
-		PrimaryKey: []*schema.Column{ValidatorProfilesColumns[0]},
-		ForeignKeys: []*schema.ForeignKey{
-			{
-				Symbol:     "validator_profiles_users_validator_profile",
-				Columns:    []*schema.Column{ValidatorProfilesColumns[4]},
-				RefColumns: []*schema.Column{UsersColumns[0]},
-				OnDelete:   schema.Cascade,
-			},
-		},
-	}
 	// VerificationTokensColumns holds the columns for the "verification_tokens" table.
 	VerificationTokensColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -479,31 +451,6 @@ var (
 				Columns:    []*schema.Column{VerificationTokensColumns[5]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.NoAction,
-			},
-		},
-	}
-	// LockOrderFulfillmentValidatorsColumns holds the columns for the "lock_order_fulfillment_validators" table.
-	LockOrderFulfillmentValidatorsColumns = []*schema.Column{
-		{Name: "lock_order_fulfillment_id", Type: field.TypeUUID},
-		{Name: "validator_profile_id", Type: field.TypeUUID},
-	}
-	// LockOrderFulfillmentValidatorsTable holds the schema information for the "lock_order_fulfillment_validators" table.
-	LockOrderFulfillmentValidatorsTable = &schema.Table{
-		Name:       "lock_order_fulfillment_validators",
-		Columns:    LockOrderFulfillmentValidatorsColumns,
-		PrimaryKey: []*schema.Column{LockOrderFulfillmentValidatorsColumns[0], LockOrderFulfillmentValidatorsColumns[1]},
-		ForeignKeys: []*schema.ForeignKey{
-			{
-				Symbol:     "lock_order_fulfillment_validators_lock_order_fulfillment_id",
-				Columns:    []*schema.Column{LockOrderFulfillmentValidatorsColumns[0]},
-				RefColumns: []*schema.Column{LockOrderFulfillmentsColumns[0]},
-				OnDelete:   schema.Cascade,
-			},
-			{
-				Symbol:     "lock_order_fulfillment_validators_validator_profile_id",
-				Columns:    []*schema.Column{LockOrderFulfillmentValidatorsColumns[1]},
-				RefColumns: []*schema.Column{ValidatorProfilesColumns[0]},
-				OnDelete:   schema.Cascade,
 			},
 		},
 	}
@@ -550,9 +497,7 @@ var (
 		SenderProfilesTable,
 		TokensTable,
 		UsersTable,
-		ValidatorProfilesTable,
 		VerificationTokensTable,
-		LockOrderFulfillmentValidatorsTable,
 		ProvisionBucketProviderProfilesTable,
 	}
 )
@@ -560,7 +505,6 @@ var (
 func init() {
 	APIKeysTable.ForeignKeys[0].RefTable = ProviderProfilesTable
 	APIKeysTable.ForeignKeys[1].RefTable = SenderProfilesTable
-	APIKeysTable.ForeignKeys[2].RefTable = ValidatorProfilesTable
 	LockOrderFulfillmentsTable.ForeignKeys[0].RefTable = LockPaymentOrdersTable
 	LockPaymentOrdersTable.ForeignKeys[0].RefTable = ProviderProfilesTable
 	LockPaymentOrdersTable.ForeignKeys[1].RefTable = ProvisionBucketsTable
@@ -578,10 +522,7 @@ func init() {
 	ReceiveAddressesTable.ForeignKeys[0].RefTable = PaymentOrdersTable
 	SenderProfilesTable.ForeignKeys[0].RefTable = UsersTable
 	TokensTable.ForeignKeys[0].RefTable = NetworksTable
-	ValidatorProfilesTable.ForeignKeys[0].RefTable = UsersTable
 	VerificationTokensTable.ForeignKeys[0].RefTable = UsersTable
-	LockOrderFulfillmentValidatorsTable.ForeignKeys[0].RefTable = LockOrderFulfillmentsTable
-	LockOrderFulfillmentValidatorsTable.ForeignKeys[1].RefTable = ValidatorProfilesTable
 	ProvisionBucketProviderProfilesTable.ForeignKeys[0].RefTable = ProvisionBucketsTable
 	ProvisionBucketProviderProfilesTable.ForeignKeys[1].RefTable = ProviderProfilesTable
 }

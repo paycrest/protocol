@@ -507,29 +507,6 @@ func HasProviderProfileWith(preds ...predicate.ProviderProfile) predicate.User {
 	})
 }
 
-// HasValidatorProfile applies the HasEdge predicate on the "validator_profile" edge.
-func HasValidatorProfile() predicate.User {
-	return predicate.User(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, ValidatorProfileTable, ValidatorProfileColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasValidatorProfileWith applies the HasEdge predicate on the "validator_profile" edge with a given conditions (other predicates).
-func HasValidatorProfileWith(preds ...predicate.ValidatorProfile) predicate.User {
-	return predicate.User(func(s *sql.Selector) {
-		step := newValidatorProfileStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
-}
-
 // HasVerificationToken applies the HasEdge predicate on the "verification_token" edge.
 func HasVerificationToken() predicate.User {
 	return predicate.User(func(s *sql.Selector) {

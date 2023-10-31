@@ -18,7 +18,6 @@ import (
 	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/senderprofile"
 	"github.com/paycrest/protocol/ent/user"
-	"github.com/paycrest/protocol/ent/validatorprofile"
 	"github.com/paycrest/protocol/storage"
 	u "github.com/paycrest/protocol/utils"
 	"github.com/paycrest/protocol/utils/crypto"
@@ -313,40 +312,5 @@ func OnlyProviderMiddleware(c *gin.Context) {
 	}
 
 	c.Set("provider", providerProfile)
-	c.Next()
-}
-
-// OnlyValidatorMiddleware is a middleware that checks if the user scope is validator.
-func OnlyValidatorMiddleware(c *gin.Context) {
-	apiKeyCtx, apiKeyOk := c.Get("api_key")
-	userID, userOk := c.Get("user_id")
-
-	validatorProfile, err := storage.Client.ValidatorProfile.
-		Query().
-		Where(
-			func() predicate.ValidatorProfile {
-				if apiKeyOk {
-					// HMAC auth was used
-					return validatorprofile.HasAPIKeyWith(
-						apikey.IDEQ(apiKeyCtx.(*ent.APIKey).ID),
-					)
-				} else if userOk {
-					// JWT auth was used
-					userUUID, _ := uuid.Parse(userID.(string))
-					return validatorprofile.HasUserWith(
-						user.IDEQ(userUUID),
-					)
-				}
-				return nil
-			}(),
-		).
-		Only(c)
-	if err != nil {
-		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid API key", nil)
-		c.Abort()
-		return
-	}
-
-	c.Set("validator", validatorProfile)
 	c.Next()
 }

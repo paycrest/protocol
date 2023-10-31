@@ -16,7 +16,6 @@ import (
 	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/senderprofile"
 	"github.com/paycrest/protocol/ent/user"
-	"github.com/paycrest/protocol/ent/validatorprofile"
 	"github.com/paycrest/protocol/ent/verificationtoken"
 )
 
@@ -121,25 +120,6 @@ func (uu *UserUpdate) SetProviderProfile(p *ProviderProfile) *UserUpdate {
 	return uu.SetProviderProfileID(p.ID)
 }
 
-// SetValidatorProfileID sets the "validator_profile" edge to the ValidatorProfile entity by ID.
-func (uu *UserUpdate) SetValidatorProfileID(id uuid.UUID) *UserUpdate {
-	uu.mutation.SetValidatorProfileID(id)
-	return uu
-}
-
-// SetNillableValidatorProfileID sets the "validator_profile" edge to the ValidatorProfile entity by ID if the given value is not nil.
-func (uu *UserUpdate) SetNillableValidatorProfileID(id *uuid.UUID) *UserUpdate {
-	if id != nil {
-		uu = uu.SetValidatorProfileID(*id)
-	}
-	return uu
-}
-
-// SetValidatorProfile sets the "validator_profile" edge to the ValidatorProfile entity.
-func (uu *UserUpdate) SetValidatorProfile(v *ValidatorProfile) *UserUpdate {
-	return uu.SetValidatorProfileID(v.ID)
-}
-
 // AddVerificationTokenIDs adds the "verification_token" edge to the VerificationToken entity by IDs.
 func (uu *UserUpdate) AddVerificationTokenIDs(ids ...uuid.UUID) *UserUpdate {
 	uu.mutation.AddVerificationTokenIDs(ids...)
@@ -169,12 +149,6 @@ func (uu *UserUpdate) ClearSenderProfile() *UserUpdate {
 // ClearProviderProfile clears the "provider_profile" edge to the ProviderProfile entity.
 func (uu *UserUpdate) ClearProviderProfile() *UserUpdate {
 	uu.mutation.ClearProviderProfile()
-	return uu
-}
-
-// ClearValidatorProfile clears the "validator_profile" edge to the ValidatorProfile entity.
-func (uu *UserUpdate) ClearValidatorProfile() *UserUpdate {
-	uu.mutation.ClearValidatorProfile()
 	return uu
 }
 
@@ -352,35 +326,6 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if uu.mutation.ValidatorProfileCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: false,
-			Table:   user.ValidatorProfileTable,
-			Columns: []string{user.ValidatorProfileColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(validatorprofile.FieldID, field.TypeUUID),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := uu.mutation.ValidatorProfileIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: false,
-			Table:   user.ValidatorProfileTable,
-			Columns: []string{user.ValidatorProfileColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(validatorprofile.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
 	if uu.mutation.VerificationTokenCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
@@ -534,25 +479,6 @@ func (uuo *UserUpdateOne) SetProviderProfile(p *ProviderProfile) *UserUpdateOne 
 	return uuo.SetProviderProfileID(p.ID)
 }
 
-// SetValidatorProfileID sets the "validator_profile" edge to the ValidatorProfile entity by ID.
-func (uuo *UserUpdateOne) SetValidatorProfileID(id uuid.UUID) *UserUpdateOne {
-	uuo.mutation.SetValidatorProfileID(id)
-	return uuo
-}
-
-// SetNillableValidatorProfileID sets the "validator_profile" edge to the ValidatorProfile entity by ID if the given value is not nil.
-func (uuo *UserUpdateOne) SetNillableValidatorProfileID(id *uuid.UUID) *UserUpdateOne {
-	if id != nil {
-		uuo = uuo.SetValidatorProfileID(*id)
-	}
-	return uuo
-}
-
-// SetValidatorProfile sets the "validator_profile" edge to the ValidatorProfile entity.
-func (uuo *UserUpdateOne) SetValidatorProfile(v *ValidatorProfile) *UserUpdateOne {
-	return uuo.SetValidatorProfileID(v.ID)
-}
-
 // AddVerificationTokenIDs adds the "verification_token" edge to the VerificationToken entity by IDs.
 func (uuo *UserUpdateOne) AddVerificationTokenIDs(ids ...uuid.UUID) *UserUpdateOne {
 	uuo.mutation.AddVerificationTokenIDs(ids...)
@@ -582,12 +508,6 @@ func (uuo *UserUpdateOne) ClearSenderProfile() *UserUpdateOne {
 // ClearProviderProfile clears the "provider_profile" edge to the ProviderProfile entity.
 func (uuo *UserUpdateOne) ClearProviderProfile() *UserUpdateOne {
 	uuo.mutation.ClearProviderProfile()
-	return uuo
-}
-
-// ClearValidatorProfile clears the "validator_profile" edge to the ValidatorProfile entity.
-func (uuo *UserUpdateOne) ClearValidatorProfile() *UserUpdateOne {
-	uuo.mutation.ClearValidatorProfile()
 	return uuo
 }
 
@@ -788,35 +708,6 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(providerprofile.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if uuo.mutation.ValidatorProfileCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: false,
-			Table:   user.ValidatorProfileTable,
-			Columns: []string{user.ValidatorProfileColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(validatorprofile.FieldID, field.TypeUUID),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := uuo.mutation.ValidatorProfileIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: false,
-			Table:   user.ValidatorProfileTable,
-			Columns: []string{user.ValidatorProfileColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(validatorprofile.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

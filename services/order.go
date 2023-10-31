@@ -180,9 +180,7 @@ func (s *OrderService) SettleOrder(ctx context.Context, client types.RPCClient, 
 		WithToken(func(tq *ent.TokenQuery) {
 			tq.WithNetwork()
 		}).
-		WithFulfillment(func(lofq *ent.LockOrderFulfillmentQuery) {
-			lofq.WithValidators()
-		}).
+		WithFulfillment().
 		WithProvider().
 		Only(ctx)
 	if err != nil {
@@ -229,12 +227,6 @@ func (s *OrderService) SettleOrder(ctx context.Context, client types.RPCClient, 
 		return fmt.Errorf("failed to initialize paycrest order contract: %w", err)
 	}
 
-	// Fetch validators
-	validators := make([]common.Address, len(order.Edges.Fulfillment.Edges.Validators))
-	for _, v := range order.Edges.Fulfillment.Edges.Validators {
-		validators = append(validators, common.HexToAddress(v.WalletAddress))
-	}
-
 	var orderPercent *big.Int
 
 	if order.OrderPercent.IsZero() {
@@ -248,7 +240,7 @@ func (s *OrderService) SettleOrder(ctx context.Context, client types.RPCClient, 
 		nil,
 		utils.StringToByte32(order.ID.String()),
 		utils.StringToByte32(order.OrderID),
-		validators,
+		nil, // TODO: remove validators input from contract
 		common.HexToAddress(providerAddress),
 		orderPercent,
 	)

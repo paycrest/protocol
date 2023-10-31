@@ -17,21 +17,19 @@ import (
 	"github.com/paycrest/protocol/ent/predicate"
 	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/senderprofile"
-	"github.com/paycrest/protocol/ent/validatorprofile"
 )
 
 // APIKeyQuery is the builder for querying APIKey entities.
 type APIKeyQuery struct {
 	config
-	ctx                  *QueryContext
-	order                []apikey.OrderOption
-	inters               []Interceptor
-	predicates           []predicate.APIKey
-	withSenderProfile    *SenderProfileQuery
-	withProviderProfile  *ProviderProfileQuery
-	withValidatorProfile *ValidatorProfileQuery
-	withPaymentOrders    *PaymentOrderQuery
-	withFKs              bool
+	ctx                 *QueryContext
+	order               []apikey.OrderOption
+	inters              []Interceptor
+	predicates          []predicate.APIKey
+	withSenderProfile   *SenderProfileQuery
+	withProviderProfile *ProviderProfileQuery
+	withPaymentOrders   *PaymentOrderQuery
+	withFKs             bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -105,28 +103,6 @@ func (akq *APIKeyQuery) QueryProviderProfile() *ProviderProfileQuery {
 			sqlgraph.From(apikey.Table, apikey.FieldID, selector),
 			sqlgraph.To(providerprofile.Table, providerprofile.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, true, apikey.ProviderProfileTable, apikey.ProviderProfileColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(akq.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
-}
-
-// QueryValidatorProfile chains the current query on the "validator_profile" edge.
-func (akq *APIKeyQuery) QueryValidatorProfile() *ValidatorProfileQuery {
-	query := (&ValidatorProfileClient{config: akq.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := akq.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := akq.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(apikey.Table, apikey.FieldID, selector),
-			sqlgraph.To(validatorprofile.Table, validatorprofile.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, apikey.ValidatorProfileTable, apikey.ValidatorProfileColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(akq.driver.Dialect(), step)
 		return fromU, nil
@@ -343,15 +319,14 @@ func (akq *APIKeyQuery) Clone() *APIKeyQuery {
 		return nil
 	}
 	return &APIKeyQuery{
-		config:               akq.config,
-		ctx:                  akq.ctx.Clone(),
-		order:                append([]apikey.OrderOption{}, akq.order...),
-		inters:               append([]Interceptor{}, akq.inters...),
-		predicates:           append([]predicate.APIKey{}, akq.predicates...),
-		withSenderProfile:    akq.withSenderProfile.Clone(),
-		withProviderProfile:  akq.withProviderProfile.Clone(),
-		withValidatorProfile: akq.withValidatorProfile.Clone(),
-		withPaymentOrders:    akq.withPaymentOrders.Clone(),
+		config:              akq.config,
+		ctx:                 akq.ctx.Clone(),
+		order:               append([]apikey.OrderOption{}, akq.order...),
+		inters:              append([]Interceptor{}, akq.inters...),
+		predicates:          append([]predicate.APIKey{}, akq.predicates...),
+		withSenderProfile:   akq.withSenderProfile.Clone(),
+		withProviderProfile: akq.withProviderProfile.Clone(),
+		withPaymentOrders:   akq.withPaymentOrders.Clone(),
 		// clone intermediate query.
 		sql:  akq.sql.Clone(),
 		path: akq.path,
@@ -377,17 +352,6 @@ func (akq *APIKeyQuery) WithProviderProfile(opts ...func(*ProviderProfileQuery))
 		opt(query)
 	}
 	akq.withProviderProfile = query
-	return akq
-}
-
-// WithValidatorProfile tells the query-builder to eager-load the nodes that are connected to
-// the "validator_profile" edge. The optional arguments are used to configure the query builder of the edge.
-func (akq *APIKeyQuery) WithValidatorProfile(opts ...func(*ValidatorProfileQuery)) *APIKeyQuery {
-	query := (&ValidatorProfileClient{config: akq.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	akq.withValidatorProfile = query
 	return akq
 }
 
@@ -481,14 +445,13 @@ func (akq *APIKeyQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*APIK
 		nodes       = []*APIKey{}
 		withFKs     = akq.withFKs
 		_spec       = akq.querySpec()
-		loadedTypes = [4]bool{
+		loadedTypes = [3]bool{
 			akq.withSenderProfile != nil,
 			akq.withProviderProfile != nil,
-			akq.withValidatorProfile != nil,
 			akq.withPaymentOrders != nil,
 		}
 	)
-	if akq.withSenderProfile != nil || akq.withProviderProfile != nil || akq.withValidatorProfile != nil {
+	if akq.withSenderProfile != nil || akq.withProviderProfile != nil {
 		withFKs = true
 	}
 	if withFKs {
@@ -521,12 +484,6 @@ func (akq *APIKeyQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*APIK
 	if query := akq.withProviderProfile; query != nil {
 		if err := akq.loadProviderProfile(ctx, query, nodes, nil,
 			func(n *APIKey, e *ProviderProfile) { n.Edges.ProviderProfile = e }); err != nil {
-			return nil, err
-		}
-	}
-	if query := akq.withValidatorProfile; query != nil {
-		if err := akq.loadValidatorProfile(ctx, query, nodes, nil,
-			func(n *APIKey, e *ValidatorProfile) { n.Edges.ValidatorProfile = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -597,38 +554,6 @@ func (akq *APIKeyQuery) loadProviderProfile(ctx context.Context, query *Provider
 		nodes, ok := nodeids[n.ID]
 		if !ok {
 			return fmt.Errorf(`unexpected foreign-key "provider_profile_api_key" returned %v`, n.ID)
-		}
-		for i := range nodes {
-			assign(nodes[i], n)
-		}
-	}
-	return nil
-}
-func (akq *APIKeyQuery) loadValidatorProfile(ctx context.Context, query *ValidatorProfileQuery, nodes []*APIKey, init func(*APIKey), assign func(*APIKey, *ValidatorProfile)) error {
-	ids := make([]uuid.UUID, 0, len(nodes))
-	nodeids := make(map[uuid.UUID][]*APIKey)
-	for i := range nodes {
-		if nodes[i].validator_profile_api_key == nil {
-			continue
-		}
-		fk := *nodes[i].validator_profile_api_key
-		if _, ok := nodeids[fk]; !ok {
-			ids = append(ids, fk)
-		}
-		nodeids[fk] = append(nodeids[fk], nodes[i])
-	}
-	if len(ids) == 0 {
-		return nil
-	}
-	query.Where(validatorprofile.IDIn(ids...))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		nodes, ok := nodeids[n.ID]
-		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "validator_profile_api_key" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
