@@ -48,27 +48,6 @@ func (lofu *LockOrderFulfillmentUpdate) SetTxReceiptImage(s string) *LockOrderFu
 	return lofu
 }
 
-// SetConfirmations sets the "confirmations" field.
-func (lofu *LockOrderFulfillmentUpdate) SetConfirmations(i int) *LockOrderFulfillmentUpdate {
-	lofu.mutation.ResetConfirmations()
-	lofu.mutation.SetConfirmations(i)
-	return lofu
-}
-
-// SetNillableConfirmations sets the "confirmations" field if the given value is not nil.
-func (lofu *LockOrderFulfillmentUpdate) SetNillableConfirmations(i *int) *LockOrderFulfillmentUpdate {
-	if i != nil {
-		lofu.SetConfirmations(*i)
-	}
-	return lofu
-}
-
-// AddConfirmations adds i to the "confirmations" field.
-func (lofu *LockOrderFulfillmentUpdate) AddConfirmations(i int) *LockOrderFulfillmentUpdate {
-	lofu.mutation.AddConfirmations(i)
-	return lofu
-}
-
 // SetValidationStatus sets the "validation_status" field.
 func (lofu *LockOrderFulfillmentUpdate) SetValidationStatus(ls lockorderfulfillment.ValidationStatus) *LockOrderFulfillmentUpdate {
 	lofu.mutation.SetValidationStatus(ls)
@@ -195,12 +174,6 @@ func (lofu *LockOrderFulfillmentUpdate) sqlSave(ctx context.Context) (n int, err
 	if value, ok := lofu.mutation.TxReceiptImage(); ok {
 		_spec.SetField(lockorderfulfillment.FieldTxReceiptImage, field.TypeString, value)
 	}
-	if value, ok := lofu.mutation.Confirmations(); ok {
-		_spec.SetField(lockorderfulfillment.FieldConfirmations, field.TypeInt, value)
-	}
-	if value, ok := lofu.mutation.AddedConfirmations(); ok {
-		_spec.AddField(lockorderfulfillment.FieldConfirmations, field.TypeInt, value)
-	}
 	if value, ok := lofu.mutation.ValidationStatus(); ok {
 		_spec.SetField(lockorderfulfillment.FieldValidationStatus, field.TypeEnum, value)
 	}
@@ -274,27 +247,6 @@ func (lofuo *LockOrderFulfillmentUpdateOne) SetTxID(s string) *LockOrderFulfillm
 // SetTxReceiptImage sets the "tx_receipt_image" field.
 func (lofuo *LockOrderFulfillmentUpdateOne) SetTxReceiptImage(s string) *LockOrderFulfillmentUpdateOne {
 	lofuo.mutation.SetTxReceiptImage(s)
-	return lofuo
-}
-
-// SetConfirmations sets the "confirmations" field.
-func (lofuo *LockOrderFulfillmentUpdateOne) SetConfirmations(i int) *LockOrderFulfillmentUpdateOne {
-	lofuo.mutation.ResetConfirmations()
-	lofuo.mutation.SetConfirmations(i)
-	return lofuo
-}
-
-// SetNillableConfirmations sets the "confirmations" field if the given value is not nil.
-func (lofuo *LockOrderFulfillmentUpdateOne) SetNillableConfirmations(i *int) *LockOrderFulfillmentUpdateOne {
-	if i != nil {
-		lofuo.SetConfirmations(*i)
-	}
-	return lofuo
-}
-
-// AddConfirmations adds i to the "confirmations" field.
-func (lofuo *LockOrderFulfillmentUpdateOne) AddConfirmations(i int) *LockOrderFulfillmentUpdateOne {
-	lofuo.mutation.AddConfirmations(i)
 	return lofuo
 }
 
@@ -453,12 +405,6 @@ func (lofuo *LockOrderFulfillmentUpdateOne) sqlSave(ctx context.Context) (_node 
 	}
 	if value, ok := lofuo.mutation.TxReceiptImage(); ok {
 		_spec.SetField(lockorderfulfillment.FieldTxReceiptImage, field.TypeString, value)
-	}
-	if value, ok := lofuo.mutation.Confirmations(); ok {
-		_spec.SetField(lockorderfulfillment.FieldConfirmations, field.TypeInt, value)
-	}
-	if value, ok := lofuo.mutation.AddedConfirmations(); ok {
-		_spec.AddField(lockorderfulfillment.FieldConfirmations, field.TypeInt, value)
 	}
 	if value, ok := lofuo.mutation.ValidationStatus(); ok {
 		_spec.SetField(lockorderfulfillment.FieldValidationStatus, field.TypeEnum, value)

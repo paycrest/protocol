@@ -140,7 +140,6 @@ func CreateTestLockOrderFulfillment(overrides map[string]interface{}) (*ent.Lock
 	payload := map[string]interface{}{
 		"tx_id":             "0x123...",
 		"tx_receipt_image":  "https://picsum.photos/200",
-		"confirmations":     0,
 		"validation_errors": []string{},
 	}
 
@@ -157,7 +156,6 @@ func CreateTestLockOrderFulfillment(overrides map[string]interface{}) (*ent.Lock
 		Create().
 		SetTxID(payload["tx_id"].(string)).
 		SetTxReceiptImage(payload["tx_receipt_image"].(string)).
-		SetConfirmations(payload["confirmations"].(int)).
 		SetOrderID(order.ID).
 		Save(context.Background())
 

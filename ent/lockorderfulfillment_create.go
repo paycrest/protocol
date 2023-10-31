@@ -62,20 +62,6 @@ func (lofc *LockOrderFulfillmentCreate) SetTxReceiptImage(s string) *LockOrderFu
 	return lofc
 }
 
-// SetConfirmations sets the "confirmations" field.
-func (lofc *LockOrderFulfillmentCreate) SetConfirmations(i int) *LockOrderFulfillmentCreate {
-	lofc.mutation.SetConfirmations(i)
-	return lofc
-}
-
-// SetNillableConfirmations sets the "confirmations" field if the given value is not nil.
-func (lofc *LockOrderFulfillmentCreate) SetNillableConfirmations(i *int) *LockOrderFulfillmentCreate {
-	if i != nil {
-		lofc.SetConfirmations(*i)
-	}
-	return lofc
-}
-
 // SetValidationStatus sets the "validation_status" field.
 func (lofc *LockOrderFulfillmentCreate) SetValidationStatus(ls lockorderfulfillment.ValidationStatus) *LockOrderFulfillmentCreate {
 	lofc.mutation.SetValidationStatus(ls)
@@ -172,10 +158,6 @@ func (lofc *LockOrderFulfillmentCreate) defaults() {
 		v := lockorderfulfillment.DefaultUpdatedAt()
 		lofc.mutation.SetUpdatedAt(v)
 	}
-	if _, ok := lofc.mutation.Confirmations(); !ok {
-		v := lockorderfulfillment.DefaultConfirmations
-		lofc.mutation.SetConfirmations(v)
-	}
 	if _, ok := lofc.mutation.ValidationStatus(); !ok {
 		v := lockorderfulfillment.DefaultValidationStatus
 		lofc.mutation.SetValidationStatus(v)
@@ -199,9 +181,6 @@ func (lofc *LockOrderFulfillmentCreate) check() error {
 	}
 	if _, ok := lofc.mutation.TxReceiptImage(); !ok {
 		return &ValidationError{Name: "tx_receipt_image", err: errors.New(`ent: missing required field "LockOrderFulfillment.tx_receipt_image"`)}
-	}
-	if _, ok := lofc.mutation.Confirmations(); !ok {
-		return &ValidationError{Name: "confirmations", err: errors.New(`ent: missing required field "LockOrderFulfillment.confirmations"`)}
 	}
 	if _, ok := lofc.mutation.ValidationStatus(); !ok {
 		return &ValidationError{Name: "validation_status", err: errors.New(`ent: missing required field "LockOrderFulfillment.validation_status"`)}
@@ -264,10 +243,6 @@ func (lofc *LockOrderFulfillmentCreate) createSpec() (*LockOrderFulfillment, *sq
 	if value, ok := lofc.mutation.TxReceiptImage(); ok {
 		_spec.SetField(lockorderfulfillment.FieldTxReceiptImage, field.TypeString, value)
 		_node.TxReceiptImage = value
-	}
-	if value, ok := lofc.mutation.Confirmations(); ok {
-		_spec.SetField(lockorderfulfillment.FieldConfirmations, field.TypeInt, value)
-		_node.Confirmations = value
 	}
 	if value, ok := lofc.mutation.ValidationStatus(); ok {
 		_spec.SetField(lockorderfulfillment.FieldValidationStatus, field.TypeEnum, value)

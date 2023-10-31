@@ -94,7 +94,7 @@ type FulfillLockOrderPayload struct {
 }
 
 // CancelLockOrderPayload is the payload for the cancel order endpoint
-type CancelLockOrderPayload struct {
+type CancelLockOrderPayload struct { 
 	Reason string `json:"reason" binding:"required"`
 }
 

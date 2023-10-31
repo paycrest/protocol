@@ -6,13 +6,12 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/ent"
+	"github.com/paycrest/protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
-	"github.com/paycrest/protocol/utils"
 	u "github.com/paycrest/protocol/utils"
 	"github.com/paycrest/protocol/utils/logger"
 	"github.com/shopspring/decimal"
@@ -145,30 +144,78 @@ func (ctrl *ProviderController) FulfillOrder(ctx *gin.Context) {
 		return
 	}
 
-	// Save lock order fulfillment
+	updateLockOrder := tx.LockPaymentOrder.UpdateOneID(orderID)
+
+	// Query or create lock order fulfillment
 	fulfillment, err := tx.LockOrderFulfillment.
-		Create().
-		SetOrderID(orderID).
-		SetTxID(payload.TxID).
-		SetTxReceiptImage(payload.TxReceiptImage).
-		Save(ctx)
+		Query().
+		Where(lockorderfulfillment.TxIDEQ(payload.TxID)).
+		Only(ctx)
 	if err != nil {
-		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update lock order status", nil)
-		_ = tx.Rollback()
-		return
+		if ent.IsNotFound(err) {
+			fulfillment, err = tx.LockOrderFulfillment.
+				Create().
+				SetOrderID(orderID).
+				SetTxID(payload.TxID).
+				SetTxReceiptImage(payload.TxReceiptImage).
+				Save(ctx)
+			if err != nil {
+				logger.Errorf("error: %v", err)
+				u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update lock order status", nil)
+				_ = tx.Rollback()
+				return
+			}
+		} else {
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update lock order status", nil)
+			_ = tx.Rollback()
+			return
+		}
 	}
 
-	// Update lock order status to fulfilled
-	_, err = tx.LockPaymentOrder.
-		UpdateOneID(orderID).
-		SetStatus(lockpaymentorder.StatusFulfilled).
-		Save(ctx)
-	if err != nil {
-		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update lock order status", nil)
-		_ = tx.Rollback()
-		return
+	if payload.ValidationStatus == lockorderfulfillment.ValidationStatusSuccess {
+		_, err := fulfillment.Update().
+			SetValidationStatus(lockorderfulfillment.ValidationStatusSuccess).
+			Save(ctx)
+		if err != nil {
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update lock order status", nil)
+			_ = tx.Rollback()
+			return
+		}
+
+		_, err = updateLockOrder.
+			SetStatus(lockpaymentorder.StatusValidated).
+			Save(ctx)
+		if err != nil {
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update lock order status", nil)
+			_ = tx.Rollback()
+			return
+		}
+
+	} else if payload.ValidationStatus == lockorderfulfillment.ValidationStatusFailure {
+		_, err := fulfillment.Update().
+			SetValidationStatus(lockorderfulfillment.ValidationStatusFailure).
+			SetValidationError(payload.ValidationError).
+			Save(ctx)
+		if err != nil {
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update lock order status", nil)
+			_ = tx.Rollback()
+			return
+		}
+
+	} else {
+		_, err := updateLockOrder.
+			SetStatus(lockpaymentorder.StatusFulfilled).
+			Save(ctx)
+		if err != nil {
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update lock order status", nil)
+			_ = tx.Rollback()
+			return
+		}
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -182,21 +229,6 @@ func (ctrl *ProviderController) FulfillOrder(ctx *gin.Context) {
 	_, err = storage.RedisClient.Del(ctx, orderKey).Result()
 	if err != nil {
 		logger.Errorf("error deleting order exclude list from Redis: %v", err)
-	}
-
-	// Publish fulfillment to validators
-	// TODO: figure out if we need to wait for XX minutes before posting to avoid "pending" responses
-	conf := config.OrderConfig()
-	message := types.FulfillmentMessage{
-		ID:                      fulfillment.ID,
-		TxID:                    payload.TxID,
-		TxReceiptImage:          payload.TxReceiptImage,
-		Institution:             payload.Institution,
-		MaxConcurrentValidators: conf.MaxConcurrentValidators,
-	}
-	err = storage.RedisClient.Publish(ctx, "order_fulfillments", &message).Err()
-	if err != nil {
-		logger.Errorf("error publishing to validators: %v", err)
 	}
 
 	u.APIResponse(ctx, http.StatusOK, "success", "Order fulfilled successfully", nil)
@@ -272,13 +304,13 @@ func (ctrl *ProviderController) CancelOrder(ctx *gin.Context) {
 func (ctrl *ProviderController) GetMarketRate(ctx *gin.Context) {
 	// Parse path parameters
 	token := ctx.Param("token")
-	tokenIsValid := utils.ContainsString([]string{"USDT", "USDC"}, token) // TODO: fetch supported tokens from db
+	tokenIsValid := u.ContainsString([]string{"USDT", "USDC"}, token) // TODO: fetch supported tokens from db
 	if !tokenIsValid {
 		u.APIResponse(ctx, http.StatusBadRequest, "error", "Token is not supported", nil)
 	}
 
 	fiatSymbol := ctx.Param("fiat")
-	fiatIsValid := utils.ContainsString([]string{"NGN"}, fiatSymbol) // TODO: fetch supported fiat currencies from db
+	fiatIsValid := u.ContainsString([]string{"NGN"}, fiatSymbol) // TODO: fetch supported fiat currencies from db
 	if !fiatIsValid {
 		u.APIResponse(ctx, http.StatusBadRequest, "error", "Fiat currency is not supported", nil)
 	}
