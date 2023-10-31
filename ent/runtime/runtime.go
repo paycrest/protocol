@@ -80,10 +80,6 @@ func init() {
 	lockorderfulfillment.DefaultUpdatedAt = lockorderfulfillmentDescUpdatedAt.Default.(func() time.Time)
 	// lockorderfulfillment.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	lockorderfulfillment.UpdateDefaultUpdatedAt = lockorderfulfillmentDescUpdatedAt.UpdateDefault.(func() time.Time)
-	// lockorderfulfillmentDescConfirmations is the schema descriptor for confirmations field.
-	lockorderfulfillmentDescConfirmations := lockorderfulfillmentFields[3].Descriptor()
-	// lockorderfulfillment.DefaultConfirmations holds the default value on creation for the confirmations field.
-	lockorderfulfillment.DefaultConfirmations = lockorderfulfillmentDescConfirmations.Default.(int)
 	// lockorderfulfillmentDescID is the schema descriptor for id field.
 	lockorderfulfillmentDescID := lockorderfulfillmentFields[0].Descriptor()
 	// lockorderfulfillment.DefaultID holds the default value on creation for the id field.

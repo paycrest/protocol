@@ -24,8 +24,6 @@ const (
 	FieldTxID = "tx_id"
 	// FieldTxReceiptImage holds the string denoting the tx_receipt_image field in the database.
 	FieldTxReceiptImage = "tx_receipt_image"
-	// FieldConfirmations holds the string denoting the confirmations field in the database.
-	FieldConfirmations = "confirmations"
 	// FieldValidationStatus holds the string denoting the validation_status field in the database.
 	FieldValidationStatus = "validation_status"
 	// FieldValidationError holds the string denoting the validation_error field in the database.
@@ -50,7 +48,6 @@ var Columns = []string{
 	FieldUpdatedAt,
 	FieldTxID,
 	FieldTxReceiptImage,
-	FieldConfirmations,
 	FieldValidationStatus,
 	FieldValidationError,
 }
@@ -83,8 +80,6 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
-	// DefaultConfirmations holds the default value on creation for the "confirmations" field.
-	DefaultConfirmations int
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() uuid.UUID
 )
@@ -142,11 +137,6 @@ func ByTxID(opts ...sql.OrderTermOption) OrderOption {
 // ByTxReceiptImage orders the results by the tx_receipt_image field.
 func ByTxReceiptImage(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldTxReceiptImage, opts...).ToFunc()
-}
-
-// ByConfirmations orders the results by the confirmations field.
-func ByConfirmations(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldConfirmations, opts...).ToFunc()
 }
 
 // ByValidationStatus orders the results by the validation_status field.

@@ -24,10 +24,9 @@ func (LockOrderFulfillment) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
 			Default(uuid.New),
-		field.String("tx_id"),
+		field.String("tx_id").
+			Unique(),
 		field.String("tx_receipt_image"),
-		field.Int("confirmations").
-			Default(0),
 		field.Enum("validation_status").
 			Values("pending", "success", "failure").
 			Default("pending"),

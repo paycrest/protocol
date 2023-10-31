@@ -27,8 +27,6 @@ type LockOrderFulfillment struct {
 	TxID string `json:"tx_id,omitempty"`
 	// TxReceiptImage holds the value of the "tx_receipt_image" field.
 	TxReceiptImage string `json:"tx_receipt_image,omitempty"`
-	// Confirmations holds the value of the "confirmations" field.
-	Confirmations int `json:"confirmations,omitempty"`
 	// ValidationStatus holds the value of the "validation_status" field.
 	ValidationStatus lockorderfulfillment.ValidationStatus `json:"validation_status,omitempty"`
 	// ValidationError holds the value of the "validation_error" field.
@@ -67,8 +65,6 @@ func (*LockOrderFulfillment) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case lockorderfulfillment.FieldConfirmations:
-			values[i] = new(sql.NullInt64)
 		case lockorderfulfillment.FieldTxID, lockorderfulfillment.FieldTxReceiptImage, lockorderfulfillment.FieldValidationStatus, lockorderfulfillment.FieldValidationError:
 			values[i] = new(sql.NullString)
 		case lockorderfulfillment.FieldCreatedAt, lockorderfulfillment.FieldUpdatedAt:
@@ -121,12 +117,6 @@ func (lof *LockOrderFulfillment) assignValues(columns []string, values []any) er
 				return fmt.Errorf("unexpected type %T for field tx_receipt_image", values[i])
 			} else if value.Valid {
 				lof.TxReceiptImage = value.String
-			}
-		case lockorderfulfillment.FieldConfirmations:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for field confirmations", values[i])
-			} else if value.Valid {
-				lof.Confirmations = int(value.Int64)
 			}
 		case lockorderfulfillment.FieldValidationStatus:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -199,9 +189,6 @@ func (lof *LockOrderFulfillment) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("tx_receipt_image=")
 	builder.WriteString(lof.TxReceiptImage)
-	builder.WriteString(", ")
-	builder.WriteString("confirmations=")
-	builder.WriteString(fmt.Sprintf("%v", lof.Confirmations))
 	builder.WriteString(", ")
 	builder.WriteString("validation_status=")
 	builder.WriteString(fmt.Sprintf("%v", lof.ValidationStatus))

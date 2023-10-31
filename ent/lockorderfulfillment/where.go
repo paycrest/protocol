@@ -76,11 +76,6 @@ func TxReceiptImage(v string) predicate.LockOrderFulfillment {
 	return predicate.LockOrderFulfillment(sql.FieldEQ(FieldTxReceiptImage, v))
 }
 
-// Confirmations applies equality check predicate on the "confirmations" field. It's identical to ConfirmationsEQ.
-func Confirmations(v int) predicate.LockOrderFulfillment {
-	return predicate.LockOrderFulfillment(sql.FieldEQ(FieldConfirmations, v))
-}
-
 // ValidationError applies equality check predicate on the "validation_error" field. It's identical to ValidationErrorEQ.
 func ValidationError(v string) predicate.LockOrderFulfillment {
 	return predicate.LockOrderFulfillment(sql.FieldEQ(FieldValidationError, v))
@@ -294,46 +289,6 @@ func TxReceiptImageEqualFold(v string) predicate.LockOrderFulfillment {
 // TxReceiptImageContainsFold applies the ContainsFold predicate on the "tx_receipt_image" field.
 func TxReceiptImageContainsFold(v string) predicate.LockOrderFulfillment {
 	return predicate.LockOrderFulfillment(sql.FieldContainsFold(FieldTxReceiptImage, v))
-}
-
-// ConfirmationsEQ applies the EQ predicate on the "confirmations" field.
-func ConfirmationsEQ(v int) predicate.LockOrderFulfillment {
-	return predicate.LockOrderFulfillment(sql.FieldEQ(FieldConfirmations, v))
-}
-
-// ConfirmationsNEQ applies the NEQ predicate on the "confirmations" field.
-func ConfirmationsNEQ(v int) predicate.LockOrderFulfillment {
-	return predicate.LockOrderFulfillment(sql.FieldNEQ(FieldConfirmations, v))
-}
-
-// ConfirmationsIn applies the In predicate on the "confirmations" field.
-func ConfirmationsIn(vs ...int) predicate.LockOrderFulfillment {
-	return predicate.LockOrderFulfillment(sql.FieldIn(FieldConfirmations, vs...))
-}
-
-// ConfirmationsNotIn applies the NotIn predicate on the "confirmations" field.
-func ConfirmationsNotIn(vs ...int) predicate.LockOrderFulfillment {
-	return predicate.LockOrderFulfillment(sql.FieldNotIn(FieldConfirmations, vs...))
-}
-
-// ConfirmationsGT applies the GT predicate on the "confirmations" field.
-func ConfirmationsGT(v int) predicate.LockOrderFulfillment {
-	return predicate.LockOrderFulfillment(sql.FieldGT(FieldConfirmations, v))
-}
-
-// ConfirmationsGTE applies the GTE predicate on the "confirmations" field.
-func ConfirmationsGTE(v int) predicate.LockOrderFulfillment {
-	return predicate.LockOrderFulfillment(sql.FieldGTE(FieldConfirmations, v))
-}
-
-// ConfirmationsLT applies the LT predicate on the "confirmations" field.
-func ConfirmationsLT(v int) predicate.LockOrderFulfillment {
-	return predicate.LockOrderFulfillment(sql.FieldLT(FieldConfirmations, v))
-}
-
-// ConfirmationsLTE applies the LTE predicate on the "confirmations" field.
-func ConfirmationsLTE(v int) predicate.LockOrderFulfillment {
-	return predicate.LockOrderFulfillment(sql.FieldLTE(FieldConfirmations, v))
 }
 
 // ValidationStatusEQ applies the EQ predicate on the "validation_status" field.

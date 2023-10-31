@@ -59,9 +59,8 @@ var (
 		{Name: "id", Type: field.TypeUUID},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
-		{Name: "tx_id", Type: field.TypeString},
+		{Name: "tx_id", Type: field.TypeString, Unique: true},
 		{Name: "tx_receipt_image", Type: field.TypeString},
-		{Name: "confirmations", Type: field.TypeInt, Default: 0},
 		{Name: "validation_status", Type: field.TypeEnum, Enums: []string{"pending", "success", "failure"}, Default: "pending"},
 		{Name: "validation_error", Type: field.TypeString, Nullable: true},
 		{Name: "lock_payment_order_fulfillment", Type: field.TypeUUID, Unique: true},
@@ -74,7 +73,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "lock_order_fulfillments_lock_payment_orders_fulfillment",
-				Columns:    []*schema.Column{LockOrderFulfillmentsColumns[8]},
+				Columns:    []*schema.Column{LockOrderFulfillmentsColumns[7]},
 				RefColumns: []*schema.Column{LockPaymentOrdersColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
