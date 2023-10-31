@@ -81,6 +81,11 @@ func Confirmations(v int) predicate.LockOrderFulfillment {
 	return predicate.LockOrderFulfillment(sql.FieldEQ(FieldConfirmations, v))
 }
 
+// ValidationError applies equality check predicate on the "validation_error" field. It's identical to ValidationErrorEQ.
+func ValidationError(v string) predicate.LockOrderFulfillment {
+	return predicate.LockOrderFulfillment(sql.FieldEQ(FieldValidationError, v))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.LockOrderFulfillment {
 	return predicate.LockOrderFulfillment(sql.FieldEQ(FieldCreatedAt, v))
@@ -331,6 +336,101 @@ func ConfirmationsLTE(v int) predicate.LockOrderFulfillment {
 	return predicate.LockOrderFulfillment(sql.FieldLTE(FieldConfirmations, v))
 }
 
+// ValidationStatusEQ applies the EQ predicate on the "validation_status" field.
+func ValidationStatusEQ(v ValidationStatus) predicate.LockOrderFulfillment {
+	return predicate.LockOrderFulfillment(sql.FieldEQ(FieldValidationStatus, v))
+}
+
+// ValidationStatusNEQ applies the NEQ predicate on the "validation_status" field.
+func ValidationStatusNEQ(v ValidationStatus) predicate.LockOrderFulfillment {
+	return predicate.LockOrderFulfillment(sql.FieldNEQ(FieldValidationStatus, v))
+}
+
+// ValidationStatusIn applies the In predicate on the "validation_status" field.
+func ValidationStatusIn(vs ...ValidationStatus) predicate.LockOrderFulfillment {
+	return predicate.LockOrderFulfillment(sql.FieldIn(FieldValidationStatus, vs...))
+}
+
+// ValidationStatusNotIn applies the NotIn predicate on the "validation_status" field.
+func ValidationStatusNotIn(vs ...ValidationStatus) predicate.LockOrderFulfillment {
+	return predicate.LockOrderFulfillment(sql.FieldNotIn(FieldValidationStatus, vs...))
+}
+
+// ValidationErrorEQ applies the EQ predicate on the "validation_error" field.
+func ValidationErrorEQ(v string) predicate.LockOrderFulfillment {
+	return predicate.LockOrderFulfillment(sql.FieldEQ(FieldValidationError, v))
+}
+
+// ValidationErrorNEQ applies the NEQ predicate on the "validation_error" field.
+func ValidationErrorNEQ(v string) predicate.LockOrderFulfillment {
+	return predicate.LockOrderFulfillment(sql.FieldNEQ(FieldValidationError, v))
+}
+
+// ValidationErrorIn applies the In predicate on the "validation_error" field.
+func ValidationErrorIn(vs ...string) predicate.LockOrderFulfillment {
+	return predicate.LockOrderFulfillment(sql.FieldIn(FieldValidationError, vs...))
+}
+
+// ValidationErrorNotIn applies the NotIn predicate on the "validation_error" field.
+func ValidationErrorNotIn(vs ...string) predicate.LockOrderFulfillment {
+	return predicate.LockOrderFulfillment(sql.FieldNotIn(FieldValidationError, vs...))
+}
+
+// ValidationErrorGT applies the GT predicate on the "validation_error" field.
+func ValidationErrorGT(v string) predicate.LockOrderFulfillment {
+	return predicate.LockOrderFulfillment(sql.FieldGT(FieldValidationError, v))
+}
+
+// ValidationErrorGTE applies the GTE predicate on the "validation_error" field.
+func ValidationErrorGTE(v string) predicate.LockOrderFulfillment {
+	return predicate.LockOrderFulfillment(sql.FieldGTE(FieldValidationError, v))
+}
+
+// ValidationErrorLT applies the LT predicate on the "validation_error" field.
+func ValidationErrorLT(v string) predicate.LockOrderFulfillment {
+	return predicate.LockOrderFulfillment(sql.FieldLT(FieldValidationError, v))
+}
+
+// ValidationErrorLTE applies the LTE predicate on the "validation_error" field.
+func ValidationErrorLTE(v string) predicate.LockOrderFulfillment {
+	return predicate.LockOrderFulfillment(sql.FieldLTE(FieldValidationError, v))
+}
+
+// ValidationErrorContains applies the Contains predicate on the "validation_error" field.
+func ValidationErrorContains(v string) predicate.LockOrderFulfillment {
+	return predicate.LockOrderFulfillment(sql.FieldContains(FieldValidationError, v))
+}
+
+// ValidationErrorHasPrefix applies the HasPrefix predicate on the "validation_error" field.
+func ValidationErrorHasPrefix(v string) predicate.LockOrderFulfillment {
+	return predicate.LockOrderFulfillment(sql.FieldHasPrefix(FieldValidationError, v))
+}
+
+// ValidationErrorHasSuffix applies the HasSuffix predicate on the "validation_error" field.
+func ValidationErrorHasSuffix(v string) predicate.LockOrderFulfillment {
+	return predicate.LockOrderFulfillment(sql.FieldHasSuffix(FieldValidationError, v))
+}
+
+// ValidationErrorIsNil applies the IsNil predicate on the "validation_error" field.
+func ValidationErrorIsNil() predicate.LockOrderFulfillment {
+	return predicate.LockOrderFulfillment(sql.FieldIsNull(FieldValidationError))
+}
+
+// ValidationErrorNotNil applies the NotNil predicate on the "validation_error" field.
+func ValidationErrorNotNil() predicate.LockOrderFulfillment {
+	return predicate.LockOrderFulfillment(sql.FieldNotNull(FieldValidationError))
+}
+
+// ValidationErrorEqualFold applies the EqualFold predicate on the "validation_error" field.
+func ValidationErrorEqualFold(v string) predicate.LockOrderFulfillment {
+	return predicate.LockOrderFulfillment(sql.FieldEqualFold(FieldValidationError, v))
+}
+
+// ValidationErrorContainsFold applies the ContainsFold predicate on the "validation_error" field.
+func ValidationErrorContainsFold(v string) predicate.LockOrderFulfillment {
+	return predicate.LockOrderFulfillment(sql.FieldContainsFold(FieldValidationError, v))
+}
+
 // HasOrder applies the HasEdge predicate on the "order" edge.
 func HasOrder() predicate.LockOrderFulfillment {
 	return predicate.LockOrderFulfillment(func(s *sql.Selector) {
@@ -346,29 +446,6 @@ func HasOrder() predicate.LockOrderFulfillment {
 func HasOrderWith(preds ...predicate.LockPaymentOrder) predicate.LockOrderFulfillment {
 	return predicate.LockOrderFulfillment(func(s *sql.Selector) {
 		step := newOrderStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
-}
-
-// HasValidators applies the HasEdge predicate on the "validators" edge.
-func HasValidators() predicate.LockOrderFulfillment {
-	return predicate.LockOrderFulfillment(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, false, ValidatorsTable, ValidatorsPrimaryKey...),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasValidatorsWith applies the HasEdge predicate on the "validators" edge with a given conditions (other predicates).
-func HasValidatorsWith(preds ...predicate.ValidatorProfile) predicate.LockOrderFulfillment {
-	return predicate.LockOrderFulfillment(func(s *sql.Selector) {
-		step := newValidatorsStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

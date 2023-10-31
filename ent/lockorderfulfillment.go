@@ -3,7 +3,6 @@
 package ent
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -30,8 +29,10 @@ type LockOrderFulfillment struct {
 	TxReceiptImage string `json:"tx_receipt_image,omitempty"`
 	// Confirmations holds the value of the "confirmations" field.
 	Confirmations int `json:"confirmations,omitempty"`
-	// ValidationErrors holds the value of the "validation_errors" field.
-	ValidationErrors []string `json:"validation_errors,omitempty"`
+	// ValidationStatus holds the value of the "validation_status" field.
+	ValidationStatus lockorderfulfillment.ValidationStatus `json:"validation_status,omitempty"`
+	// ValidationError holds the value of the "validation_error" field.
+	ValidationError string `json:"validation_error,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the LockOrderFulfillmentQuery when eager-loading is set.
 	Edges                          LockOrderFulfillmentEdges `json:"edges"`
@@ -43,11 +44,9 @@ type LockOrderFulfillment struct {
 type LockOrderFulfillmentEdges struct {
 	// Order holds the value of the order edge.
 	Order *LockPaymentOrder `json:"order,omitempty"`
-	// Validators holds the value of the validators edge.
-	Validators []*ValidatorProfile `json:"validators,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [1]bool
 }
 
 // OrderOrErr returns the Order value or an error if the edge
@@ -63,25 +62,14 @@ func (e LockOrderFulfillmentEdges) OrderOrErr() (*LockPaymentOrder, error) {
 	return nil, &NotLoadedError{edge: "order"}
 }
 
-// ValidatorsOrErr returns the Validators value or an error if the edge
-// was not loaded in eager-loading.
-func (e LockOrderFulfillmentEdges) ValidatorsOrErr() ([]*ValidatorProfile, error) {
-	if e.loadedTypes[1] {
-		return e.Validators, nil
-	}
-	return nil, &NotLoadedError{edge: "validators"}
-}
-
 // scanValues returns the types for scanning values from sql.Rows.
 func (*LockOrderFulfillment) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case lockorderfulfillment.FieldValidationErrors:
-			values[i] = new([]byte)
 		case lockorderfulfillment.FieldConfirmations:
 			values[i] = new(sql.NullInt64)
-		case lockorderfulfillment.FieldTxID, lockorderfulfillment.FieldTxReceiptImage:
+		case lockorderfulfillment.FieldTxID, lockorderfulfillment.FieldTxReceiptImage, lockorderfulfillment.FieldValidationStatus, lockorderfulfillment.FieldValidationError:
 			values[i] = new(sql.NullString)
 		case lockorderfulfillment.FieldCreatedAt, lockorderfulfillment.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -140,13 +128,17 @@ func (lof *LockOrderFulfillment) assignValues(columns []string, values []any) er
 			} else if value.Valid {
 				lof.Confirmations = int(value.Int64)
 			}
-		case lockorderfulfillment.FieldValidationErrors:
-			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field validation_errors", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &lof.ValidationErrors); err != nil {
-					return fmt.Errorf("unmarshal field validation_errors: %w", err)
-				}
+		case lockorderfulfillment.FieldValidationStatus:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field validation_status", values[i])
+			} else if value.Valid {
+				lof.ValidationStatus = lockorderfulfillment.ValidationStatus(value.String)
+			}
+		case lockorderfulfillment.FieldValidationError:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field validation_error", values[i])
+			} else if value.Valid {
+				lof.ValidationError = value.String
 			}
 		case lockorderfulfillment.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullScanner); !ok {
@@ -171,11 +163,6 @@ func (lof *LockOrderFulfillment) Value(name string) (ent.Value, error) {
 // QueryOrder queries the "order" edge of the LockOrderFulfillment entity.
 func (lof *LockOrderFulfillment) QueryOrder() *LockPaymentOrderQuery {
 	return NewLockOrderFulfillmentClient(lof.config).QueryOrder(lof)
-}
-
-// QueryValidators queries the "validators" edge of the LockOrderFulfillment entity.
-func (lof *LockOrderFulfillment) QueryValidators() *ValidatorProfileQuery {
-	return NewLockOrderFulfillmentClient(lof.config).QueryValidators(lof)
 }
 
 // Update returns a builder for updating this LockOrderFulfillment.
@@ -216,8 +203,11 @@ func (lof *LockOrderFulfillment) String() string {
 	builder.WriteString("confirmations=")
 	builder.WriteString(fmt.Sprintf("%v", lof.Confirmations))
 	builder.WriteString(", ")
-	builder.WriteString("validation_errors=")
-	builder.WriteString(fmt.Sprintf("%v", lof.ValidationErrors))
+	builder.WriteString("validation_status=")
+	builder.WriteString(fmt.Sprintf("%v", lof.ValidationStatus))
+	builder.WriteString(", ")
+	builder.WriteString("validation_error=")
+	builder.WriteString(lof.ValidationError)
 	builder.WriteByte(')')
 	return builder.String()
 }

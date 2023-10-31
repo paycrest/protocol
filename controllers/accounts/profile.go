@@ -70,43 +70,6 @@ func (ctrl *ProfileController) UpdateSenderProfile(ctx *gin.Context) {
 	u.APIResponse(ctx, http.StatusOK, "success", "Profile updated successfully", nil)
 }
 
-// UpdateValidatorProfile controller updates the validator profile
-func (ctrl *ProfileController) UpdateValidatorProfile(ctx *gin.Context) {
-	var payload types.ValidatorProfilePayload
-
-	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		u.APIResponse(ctx, http.StatusBadRequest, "error",
-			"Failed to validate payload", u.GetErrorData(err))
-		return
-	}
-
-	// Get validator profile from the context
-	validatorCtx, ok := ctx.Get("validator")
-	if !ok {
-		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid API key", nil)
-		return
-	}
-	validator := validatorCtx.(*ent.ValidatorProfile)
-
-	update := validator.Update()
-
-	if payload.WalletAddress != "" {
-		update.SetWalletAddress(payload.WalletAddress)
-	}
-
-	if payload.HostIdentifier != "" {
-		update.SetHostIdentifier(payload.HostIdentifier)
-	}
-
-	_, err := update.Save(ctx)
-	if err != nil {
-		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update profile", nil)
-		return
-	}
-
-	u.APIResponse(ctx, http.StatusOK, "success", "Profile updated successfully", nil)
-}
-
 // UpdateProviderProfile controller updates the provider profile
 func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 	var payload types.ProviderProfilePayload
@@ -320,7 +283,7 @@ func (ctrl *ProfileController) GetSenderProfile(ctx *gin.Context) {
 	sender := senderCtx.(*ent.SenderProfile)
 
 	// Get API key
-	apiKey, err := ctrl.apiKeyService.GetAPIKey(ctx, sender, nil, nil)
+	apiKey, err := ctrl.apiKeyService.GetAPIKey(ctx, sender, nil)
 	if err != nil {
 		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to retrieve profile", nil)
 		return
@@ -359,7 +322,7 @@ func (ctrl *ProfileController) GetProviderProfile(ctx *gin.Context) {
 	}
 
 	// Get API key
-	apiKey, err := ctrl.apiKeyService.GetAPIKey(ctx, nil, provider, nil)
+	apiKey, err := ctrl.apiKeyService.GetAPIKey(ctx, nil, provider)
 	if err != nil {
 		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to retrieve profile", nil)
 		return
@@ -373,31 +336,6 @@ func (ctrl *ProfileController) GetProviderProfile(ctx *gin.Context) {
 		IsPartner:      provider.IsPartner,
 		Availability:   availability,
 		Tokens:         tokens,
-		APIKey:         *apiKey,
-	})
-}
-
-// GetValidatorProfile retrieves the validator profile
-func (ctrl *ProfileController) GetValidatorProfile(ctx *gin.Context) {
-	// Get validator profile from the context
-	validatorCtx, ok := ctx.Get("validator")
-	if !ok {
-		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid API key", nil)
-		return
-	}
-	validator := validatorCtx.(*ent.ValidatorProfile)
-
-	// Get API key
-	apiKey, err := ctrl.apiKeyService.GetAPIKey(ctx, nil, nil, validator)
-	if err != nil {
-		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to retrieve profile", nil)
-		return
-	}
-
-	u.APIResponse(ctx, http.StatusOK, "success", "Profile retrieved successfully", &types.ValidatorProfileResponse{
-		ID:             validator.ID,
-		WalletAddress:  validator.WalletAddress,
-		HostIdentifier: validator.HostIdentifier,
 		APIKey:         *apiKey,
 	})
 }

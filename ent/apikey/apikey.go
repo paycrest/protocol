@@ -19,8 +19,6 @@ const (
 	EdgeSenderProfile = "sender_profile"
 	// EdgeProviderProfile holds the string denoting the provider_profile edge name in mutations.
 	EdgeProviderProfile = "provider_profile"
-	// EdgeValidatorProfile holds the string denoting the validator_profile edge name in mutations.
-	EdgeValidatorProfile = "validator_profile"
 	// EdgePaymentOrders holds the string denoting the payment_orders edge name in mutations.
 	EdgePaymentOrders = "payment_orders"
 	// Table holds the table name of the apikey in the database.
@@ -39,13 +37,6 @@ const (
 	ProviderProfileInverseTable = "provider_profiles"
 	// ProviderProfileColumn is the table column denoting the provider_profile relation/edge.
 	ProviderProfileColumn = "provider_profile_api_key"
-	// ValidatorProfileTable is the table that holds the validator_profile relation/edge.
-	ValidatorProfileTable = "api_keys"
-	// ValidatorProfileInverseTable is the table name for the ValidatorProfile entity.
-	// It exists in this package in order to avoid circular dependency with the "validatorprofile" package.
-	ValidatorProfileInverseTable = "validator_profiles"
-	// ValidatorProfileColumn is the table column denoting the validator_profile relation/edge.
-	ValidatorProfileColumn = "validator_profile_api_key"
 	// PaymentOrdersTable is the table that holds the payment_orders relation/edge.
 	PaymentOrdersTable = "payment_orders"
 	// PaymentOrdersInverseTable is the table name for the PaymentOrder entity.
@@ -66,7 +57,6 @@ var Columns = []string{
 var ForeignKeys = []string{
 	"provider_profile_api_key",
 	"sender_profile_api_key",
-	"validator_profile_api_key",
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -118,13 +108,6 @@ func ByProviderProfileField(field string, opts ...sql.OrderTermOption) OrderOpti
 	}
 }
 
-// ByValidatorProfileField orders the results by validator_profile field.
-func ByValidatorProfileField(field string, opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newValidatorProfileStep(), sql.OrderByField(field, opts...))
-	}
-}
-
 // ByPaymentOrdersCount orders the results by payment_orders count.
 func ByPaymentOrdersCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -150,13 +133,6 @@ func newProviderProfileStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(ProviderProfileInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2O, true, ProviderProfileTable, ProviderProfileColumn),
-	)
-}
-func newValidatorProfileStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(ValidatorProfileInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2O, true, ValidatorProfileTable, ValidatorProfileColumn),
 	)
 }
 func newPaymentOrdersStep() *sqlgraph.Step {

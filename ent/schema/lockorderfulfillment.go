@@ -28,8 +28,11 @@ func (LockOrderFulfillment) Fields() []ent.Field {
 		field.String("tx_receipt_image"),
 		field.Int("confirmations").
 			Default(0),
-		field.Strings("validation_errors").
-			Default([]string{}),
+		field.Enum("validation_status").
+			Values("pending", "success", "failure").
+			Default("pending"),
+		field.String("validation_error").
+			Optional(),
 	}
 }
 
@@ -40,6 +43,5 @@ func (LockOrderFulfillment) Edges() []ent.Edge {
 			Ref("fulfillment").
 			Unique().
 			Required(),
-		edge.To("validators", ValidatorProfile.Type),
 	}
 }

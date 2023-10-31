@@ -138,7 +138,7 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 		}
 
 		// Generate the API key using the service
-		_, _, err = ctrl.apiKeyService.GenerateAPIKey(ctx, tx, nil, provider, nil)
+		_, _, err = ctrl.apiKeyService.GenerateAPIKey(ctx, tx, nil, provider)
 		if err != nil {
 			_ = tx.Rollback()
 			logger.Errorf("error: %v", err)
@@ -163,32 +163,7 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 		}
 
 		// Generate the API key using the service
-		_, _, err = ctrl.apiKeyService.GenerateAPIKey(ctx, tx, sender, nil, nil)
-		if err != nil {
-			_ = tx.Rollback()
-			logger.Errorf("error: %v", err)
-			u.APIResponse(ctx, http.StatusInternalServerError, "error",
-				"Failed to create new user", nil)
-			return
-		}
-	}
-
-	// Create a validator profile
-	if scope == userEnt.ScopeTxValidator {
-		validator, err := tx.ValidatorProfile.
-			Create().
-			SetUser(user).
-			Save(ctx)
-		if err != nil {
-			_ = tx.Rollback()
-			logger.Errorf("error: %v", err)
-			u.APIResponse(ctx, http.StatusInternalServerError, "error",
-				"Failed to create new user", nil)
-			return
-		}
-
-		// Generate the API key using the service
-		_, _, err = ctrl.apiKeyService.GenerateAPIKey(ctx, tx, nil, nil, validator)
+		_, _, err = ctrl.apiKeyService.GenerateAPIKey(ctx, tx, sender, nil)
 		if err != nil {
 			_ = tx.Rollback()
 			logger.Errorf("error: %v", err)

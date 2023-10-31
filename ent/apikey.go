@@ -12,7 +12,6 @@ import (
 	"github.com/paycrest/protocol/ent/apikey"
 	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/senderprofile"
-	"github.com/paycrest/protocol/ent/validatorprofile"
 )
 
 // APIKey is the model entity for the APIKey schema.
@@ -24,11 +23,10 @@ type APIKey struct {
 	Secret string `json:"secret,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the APIKeyQuery when eager-loading is set.
-	Edges                     APIKeyEdges `json:"edges"`
-	provider_profile_api_key  *string
-	sender_profile_api_key    *uuid.UUID
-	validator_profile_api_key *uuid.UUID
-	selectValues              sql.SelectValues
+	Edges                    APIKeyEdges `json:"edges"`
+	provider_profile_api_key *string
+	sender_profile_api_key   *uuid.UUID
+	selectValues             sql.SelectValues
 }
 
 // APIKeyEdges holds the relations/edges for other nodes in the graph.
@@ -37,13 +35,11 @@ type APIKeyEdges struct {
 	SenderProfile *SenderProfile `json:"sender_profile,omitempty"`
 	// ProviderProfile holds the value of the provider_profile edge.
 	ProviderProfile *ProviderProfile `json:"provider_profile,omitempty"`
-	// ValidatorProfile holds the value of the validator_profile edge.
-	ValidatorProfile *ValidatorProfile `json:"validator_profile,omitempty"`
 	// PaymentOrders holds the value of the payment_orders edge.
 	PaymentOrders []*PaymentOrder `json:"payment_orders,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [4]bool
+	loadedTypes [3]bool
 }
 
 // SenderProfileOrErr returns the SenderProfile value or an error if the edge
@@ -72,23 +68,10 @@ func (e APIKeyEdges) ProviderProfileOrErr() (*ProviderProfile, error) {
 	return nil, &NotLoadedError{edge: "provider_profile"}
 }
 
-// ValidatorProfileOrErr returns the ValidatorProfile value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e APIKeyEdges) ValidatorProfileOrErr() (*ValidatorProfile, error) {
-	if e.loadedTypes[2] {
-		if e.ValidatorProfile == nil {
-			// Edge was loaded but was not found.
-			return nil, &NotFoundError{label: validatorprofile.Label}
-		}
-		return e.ValidatorProfile, nil
-	}
-	return nil, &NotLoadedError{edge: "validator_profile"}
-}
-
 // PaymentOrdersOrErr returns the PaymentOrders value or an error if the edge
 // was not loaded in eager-loading.
 func (e APIKeyEdges) PaymentOrdersOrErr() ([]*PaymentOrder, error) {
-	if e.loadedTypes[3] {
+	if e.loadedTypes[2] {
 		return e.PaymentOrders, nil
 	}
 	return nil, &NotLoadedError{edge: "payment_orders"}
@@ -106,8 +89,6 @@ func (*APIKey) scanValues(columns []string) ([]any, error) {
 		case apikey.ForeignKeys[0]: // provider_profile_api_key
 			values[i] = new(sql.NullString)
 		case apikey.ForeignKeys[1]: // sender_profile_api_key
-			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
-		case apikey.ForeignKeys[2]: // validator_profile_api_key
 			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		default:
 			values[i] = new(sql.UnknownType)
@@ -150,13 +131,6 @@ func (ak *APIKey) assignValues(columns []string, values []any) error {
 				ak.sender_profile_api_key = new(uuid.UUID)
 				*ak.sender_profile_api_key = *value.S.(*uuid.UUID)
 			}
-		case apikey.ForeignKeys[2]:
-			if value, ok := values[i].(*sql.NullScanner); !ok {
-				return fmt.Errorf("unexpected type %T for field validator_profile_api_key", values[i])
-			} else if value.Valid {
-				ak.validator_profile_api_key = new(uuid.UUID)
-				*ak.validator_profile_api_key = *value.S.(*uuid.UUID)
-			}
 		default:
 			ak.selectValues.Set(columns[i], values[i])
 		}
@@ -178,11 +152,6 @@ func (ak *APIKey) QuerySenderProfile() *SenderProfileQuery {
 // QueryProviderProfile queries the "provider_profile" edge of the APIKey entity.
 func (ak *APIKey) QueryProviderProfile() *ProviderProfileQuery {
 	return NewAPIKeyClient(ak.config).QueryProviderProfile(ak)
-}
-
-// QueryValidatorProfile queries the "validator_profile" edge of the APIKey entity.
-func (ak *APIKey) QueryValidatorProfile() *ValidatorProfileQuery {
-	return NewAPIKeyClient(ak.config).QueryValidatorProfile(ak)
 }
 
 // QueryPaymentOrders queries the "payment_orders" edge of the APIKey entity.

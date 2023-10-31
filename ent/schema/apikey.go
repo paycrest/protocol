@@ -35,10 +35,6 @@ func (APIKey) Edges() []ent.Edge {
 			Ref("api_key").
 			Unique().
 			Immutable(),
-		edge.From("validator_profile", ValidatorProfile.Type).
-			Ref("api_key").
-			Unique().
-			Immutable(),
 		edge.To("payment_orders", PaymentOrder.Type).
 			Annotations(entsql.OnDelete(entsql.SetNull)),
 	}

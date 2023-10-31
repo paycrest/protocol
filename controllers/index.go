@@ -4,10 +4,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/uuid"
-	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/fiatcurrency"
-	"github.com/paycrest/protocol/ent/lockorderfulfillment"
 	svc "github.com/paycrest/protocol/services"
 	"github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
@@ -144,73 +141,4 @@ func (ctrl *Controller) GetTokenRate(ctx *gin.Context) {
 	}
 
 	u.APIResponse(ctx, http.StatusOK, "success", "Rates fetched successfully", rateResponse)
-}
-
-// ValidateOrder is a hook to receive validation decisions from validators
-func (ctrl *Controller) ValidateOrder(ctx *gin.Context) {
-	var payload types.ValidateOrderPayload
-
-	// Parse the payload
-	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusBadRequest, "error",
-			"Failed to validate payload", u.GetErrorData(err))
-		return
-	}
-
-	// Get lock order fulfillment ID from URL
-	fulfillmentID := ctx.Param("fulfillment_id")
-
-	// Parse the order fulfillment ID string into a UUID
-	fulfillmentUUID, err := uuid.Parse(fulfillmentID)
-	if err != nil {
-		logger.Errorf("error parsing fulfillment ID: %v", err)
-		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid fulfillment ID", nil)
-		return
-	}
-
-	// Get validator profile from the context
-	validatorCtx, ok := ctx.Get("validator")
-	if !ok {
-		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid API key", nil)
-		return
-	}
-	validator := validatorCtx.(*ent.ValidatorProfile)
-
-	// Fetch order fulfillment from db
-	fulfillment, err := storage.Client.LockOrderFulfillment.
-		Query().
-		Where(
-			lockorderfulfillment.IDEQ(fulfillmentUUID),
-		).
-		Only(ctx)
-	if err != nil {
-		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusNotFound, "error", "Could not find order fulfillment", nil)
-		return
-	}
-
-	// Update lock order fulfillment status
-	if payload.IsValid {
-		_, err = fulfillment.Update().
-			SetConfirmations(fulfillment.Confirmations + 1).
-			AddValidatorIDs(validator.ID).
-			Save(ctx)
-		if err != nil {
-			logger.Errorf("error: %v", err)
-			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to validate order fulfillment", nil)
-			return
-		}
-	} else {
-		_, err = fulfillment.Update().
-			AppendValidationErrors([]string{payload.ErrorMsg}).
-			Save(ctx)
-		if err != nil {
-			logger.Errorf("error: %v", err)
-			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to validate order fulfillment", nil)
-			return
-		}
-	}
-
-	ctx.JSON(http.StatusOK, "OK")
 }

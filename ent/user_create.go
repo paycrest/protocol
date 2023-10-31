@@ -14,7 +14,6 @@ import (
 	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/senderprofile"
 	"github.com/paycrest/protocol/ent/user"
-	"github.com/paycrest/protocol/ent/validatorprofile"
 	"github.com/paycrest/protocol/ent/verificationtoken"
 )
 
@@ -147,25 +146,6 @@ func (uc *UserCreate) SetNillableProviderProfileID(id *string) *UserCreate {
 // SetProviderProfile sets the "provider_profile" edge to the ProviderProfile entity.
 func (uc *UserCreate) SetProviderProfile(p *ProviderProfile) *UserCreate {
 	return uc.SetProviderProfileID(p.ID)
-}
-
-// SetValidatorProfileID sets the "validator_profile" edge to the ValidatorProfile entity by ID.
-func (uc *UserCreate) SetValidatorProfileID(id uuid.UUID) *UserCreate {
-	uc.mutation.SetValidatorProfileID(id)
-	return uc
-}
-
-// SetNillableValidatorProfileID sets the "validator_profile" edge to the ValidatorProfile entity by ID if the given value is not nil.
-func (uc *UserCreate) SetNillableValidatorProfileID(id *uuid.UUID) *UserCreate {
-	if id != nil {
-		uc = uc.SetValidatorProfileID(*id)
-	}
-	return uc
-}
-
-// SetValidatorProfile sets the "validator_profile" edge to the ValidatorProfile entity.
-func (uc *UserCreate) SetValidatorProfile(v *ValidatorProfile) *UserCreate {
-	return uc.SetValidatorProfileID(v.ID)
 }
 
 // AddVerificationTokenIDs adds the "verification_token" edge to the VerificationToken entity by IDs.
@@ -381,22 +361,6 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(providerprofile.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges = append(_spec.Edges, edge)
-	}
-	if nodes := uc.mutation.ValidatorProfileIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: false,
-			Table:   user.ValidatorProfileTable,
-			Columns: []string{user.ValidatorProfileColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(validatorprofile.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

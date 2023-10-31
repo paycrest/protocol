@@ -158,7 +158,6 @@ func CreateTestLockOrderFulfillment(overrides map[string]interface{}) (*ent.Lock
 		SetTxID(payload["tx_id"].(string)).
 		SetTxReceiptImage(payload["tx_receipt_image"].(string)).
 		SetConfirmations(payload["confirmations"].(int)).
-		SetValidationErrors(payload["validation_errors"].([]string)).
 		SetOrderID(order.ID).
 		Save(context.Background())
 
@@ -185,32 +184,6 @@ func CreateTestSenderProfile(overrides map[string]interface{}) (*ent.SenderProfi
 		Create().
 		SetWebhookURL(payload["webhook_url"].(string)).
 		SetDomainWhitelist(payload["domain_whitelist"].([]string)).
-		SetUserID(payload["user_id"].(uuid.UUID)).
-		Save(context.Background())
-
-	return profile, err
-}
-
-// CreateTestValidatorProfile creates a test ValidatorProfile with defaults or custom values
-func CreateTestValidatorProfile(overrides map[string]interface{}) (*ent.ValidatorProfile, error) {
-
-	// Default payload
-	payload := map[string]interface{}{
-		"wallet_address":  "0x000000000000000000000000000000000000dEaD",
-		"host_identifier": "example.com",
-		"user_id":         nil,
-	}
-
-	// Apply overrides
-	for key, value := range overrides {
-		payload[key] = value
-	}
-
-	// Create ValidatorProfile
-	profile, err := db.Client.ValidatorProfile.
-		Create().
-		SetWalletAddress(payload["wallet_address"].(string)).
-		SetHostIdentifier(payload["host_identifier"].(string)).
 		SetUserID(payload["user_id"].(uuid.UUID)).
 		Save(context.Background())
 

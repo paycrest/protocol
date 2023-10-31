@@ -14,7 +14,6 @@ import (
 	"github.com/paycrest/protocol/ent/paymentorder"
 	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/senderprofile"
-	"github.com/paycrest/protocol/ent/validatorprofile"
 )
 
 // APIKeyCreate is the builder for creating a APIKey entity.
@@ -80,25 +79,6 @@ func (akc *APIKeyCreate) SetNillableProviderProfileID(id *string) *APIKeyCreate 
 // SetProviderProfile sets the "provider_profile" edge to the ProviderProfile entity.
 func (akc *APIKeyCreate) SetProviderProfile(p *ProviderProfile) *APIKeyCreate {
 	return akc.SetProviderProfileID(p.ID)
-}
-
-// SetValidatorProfileID sets the "validator_profile" edge to the ValidatorProfile entity by ID.
-func (akc *APIKeyCreate) SetValidatorProfileID(id uuid.UUID) *APIKeyCreate {
-	akc.mutation.SetValidatorProfileID(id)
-	return akc
-}
-
-// SetNillableValidatorProfileID sets the "validator_profile" edge to the ValidatorProfile entity by ID if the given value is not nil.
-func (akc *APIKeyCreate) SetNillableValidatorProfileID(id *uuid.UUID) *APIKeyCreate {
-	if id != nil {
-		akc = akc.SetValidatorProfileID(*id)
-	}
-	return akc
-}
-
-// SetValidatorProfile sets the "validator_profile" edge to the ValidatorProfile entity.
-func (akc *APIKeyCreate) SetValidatorProfile(v *ValidatorProfile) *APIKeyCreate {
-	return akc.SetValidatorProfileID(v.ID)
 }
 
 // AddPaymentOrderIDs adds the "payment_orders" edge to the PaymentOrder entity by IDs.
@@ -238,23 +218,6 @@ func (akc *APIKeyCreate) createSpec() (*APIKey, *sqlgraph.CreateSpec) {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.provider_profile_api_key = &nodes[0]
-		_spec.Edges = append(_spec.Edges, edge)
-	}
-	if nodes := akc.mutation.ValidatorProfileIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: true,
-			Table:   apikey.ValidatorProfileTable,
-			Columns: []string{apikey.ValidatorProfileColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(validatorprofile.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_node.validator_profile_api_key = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := akc.mutation.PaymentOrdersIDs(); len(nodes) > 0 {

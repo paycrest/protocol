@@ -29,7 +29,6 @@ import (
 	"github.com/paycrest/protocol/ent/senderprofile"
 	"github.com/paycrest/protocol/ent/token"
 	"github.com/paycrest/protocol/ent/user"
-	"github.com/paycrest/protocol/ent/validatorprofile"
 	"github.com/paycrest/protocol/ent/verificationtoken"
 	"github.com/shopspring/decimal"
 )
@@ -59,30 +58,27 @@ const (
 	TypeSenderProfile         = "SenderProfile"
 	TypeToken                 = "Token"
 	TypeUser                  = "User"
-	TypeValidatorProfile      = "ValidatorProfile"
 	TypeVerificationToken     = "VerificationToken"
 )
 
 // APIKeyMutation represents an operation that mutates the APIKey nodes in the graph.
 type APIKeyMutation struct {
 	config
-	op                       Op
-	typ                      string
-	id                       *uuid.UUID
-	secret                   *string
-	clearedFields            map[string]struct{}
-	sender_profile           *uuid.UUID
-	clearedsender_profile    bool
-	provider_profile         *string
-	clearedprovider_profile  bool
-	validator_profile        *uuid.UUID
-	clearedvalidator_profile bool
-	payment_orders           map[uuid.UUID]struct{}
-	removedpayment_orders    map[uuid.UUID]struct{}
-	clearedpayment_orders    bool
-	done                     bool
-	oldValue                 func(context.Context) (*APIKey, error)
-	predicates               []predicate.APIKey
+	op                      Op
+	typ                     string
+	id                      *uuid.UUID
+	secret                  *string
+	clearedFields           map[string]struct{}
+	sender_profile          *uuid.UUID
+	clearedsender_profile   bool
+	provider_profile        *string
+	clearedprovider_profile bool
+	payment_orders          map[uuid.UUID]struct{}
+	removedpayment_orders   map[uuid.UUID]struct{}
+	clearedpayment_orders   bool
+	done                    bool
+	oldValue                func(context.Context) (*APIKey, error)
+	predicates              []predicate.APIKey
 }
 
 var _ ent.Mutation = (*APIKeyMutation)(nil)
@@ -303,45 +299,6 @@ func (m *APIKeyMutation) ResetProviderProfile() {
 	m.clearedprovider_profile = false
 }
 
-// SetValidatorProfileID sets the "validator_profile" edge to the ValidatorProfile entity by id.
-func (m *APIKeyMutation) SetValidatorProfileID(id uuid.UUID) {
-	m.validator_profile = &id
-}
-
-// ClearValidatorProfile clears the "validator_profile" edge to the ValidatorProfile entity.
-func (m *APIKeyMutation) ClearValidatorProfile() {
-	m.clearedvalidator_profile = true
-}
-
-// ValidatorProfileCleared reports if the "validator_profile" edge to the ValidatorProfile entity was cleared.
-func (m *APIKeyMutation) ValidatorProfileCleared() bool {
-	return m.clearedvalidator_profile
-}
-
-// ValidatorProfileID returns the "validator_profile" edge ID in the mutation.
-func (m *APIKeyMutation) ValidatorProfileID() (id uuid.UUID, exists bool) {
-	if m.validator_profile != nil {
-		return *m.validator_profile, true
-	}
-	return
-}
-
-// ValidatorProfileIDs returns the "validator_profile" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// ValidatorProfileID instead. It exists only for internal usage by the builders.
-func (m *APIKeyMutation) ValidatorProfileIDs() (ids []uuid.UUID) {
-	if id := m.validator_profile; id != nil {
-		ids = append(ids, *id)
-	}
-	return
-}
-
-// ResetValidatorProfile resets all changes to the "validator_profile" edge.
-func (m *APIKeyMutation) ResetValidatorProfile() {
-	m.validator_profile = nil
-	m.clearedvalidator_profile = false
-}
-
 // AddPaymentOrderIDs adds the "payment_orders" edge to the PaymentOrder entity by ids.
 func (m *APIKeyMutation) AddPaymentOrderIDs(ids ...uuid.UUID) {
 	if m.payment_orders == nil {
@@ -529,15 +486,12 @@ func (m *APIKeyMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *APIKeyMutation) AddedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 3)
 	if m.sender_profile != nil {
 		edges = append(edges, apikey.EdgeSenderProfile)
 	}
 	if m.provider_profile != nil {
 		edges = append(edges, apikey.EdgeProviderProfile)
-	}
-	if m.validator_profile != nil {
-		edges = append(edges, apikey.EdgeValidatorProfile)
 	}
 	if m.payment_orders != nil {
 		edges = append(edges, apikey.EdgePaymentOrders)
@@ -557,10 +511,6 @@ func (m *APIKeyMutation) AddedIDs(name string) []ent.Value {
 		if id := m.provider_profile; id != nil {
 			return []ent.Value{*id}
 		}
-	case apikey.EdgeValidatorProfile:
-		if id := m.validator_profile; id != nil {
-			return []ent.Value{*id}
-		}
 	case apikey.EdgePaymentOrders:
 		ids := make([]ent.Value, 0, len(m.payment_orders))
 		for id := range m.payment_orders {
@@ -573,7 +523,7 @@ func (m *APIKeyMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *APIKeyMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 3)
 	if m.removedpayment_orders != nil {
 		edges = append(edges, apikey.EdgePaymentOrders)
 	}
@@ -596,15 +546,12 @@ func (m *APIKeyMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *APIKeyMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 3)
 	if m.clearedsender_profile {
 		edges = append(edges, apikey.EdgeSenderProfile)
 	}
 	if m.clearedprovider_profile {
 		edges = append(edges, apikey.EdgeProviderProfile)
-	}
-	if m.clearedvalidator_profile {
-		edges = append(edges, apikey.EdgeValidatorProfile)
 	}
 	if m.clearedpayment_orders {
 		edges = append(edges, apikey.EdgePaymentOrders)
@@ -620,8 +567,6 @@ func (m *APIKeyMutation) EdgeCleared(name string) bool {
 		return m.clearedsender_profile
 	case apikey.EdgeProviderProfile:
 		return m.clearedprovider_profile
-	case apikey.EdgeValidatorProfile:
-		return m.clearedvalidator_profile
 	case apikey.EdgePaymentOrders:
 		return m.clearedpayment_orders
 	}
@@ -638,9 +583,6 @@ func (m *APIKeyMutation) ClearEdge(name string) error {
 	case apikey.EdgeProviderProfile:
 		m.ClearProviderProfile()
 		return nil
-	case apikey.EdgeValidatorProfile:
-		m.ClearValidatorProfile()
-		return nil
 	}
 	return fmt.Errorf("unknown APIKey unique edge %s", name)
 }
@@ -654,9 +596,6 @@ func (m *APIKeyMutation) ResetEdge(name string) error {
 		return nil
 	case apikey.EdgeProviderProfile:
 		m.ResetProviderProfile()
-		return nil
-	case apikey.EdgeValidatorProfile:
-		m.ResetValidatorProfile()
 		return nil
 	case apikey.EdgePaymentOrders:
 		m.ResetPaymentOrders()
@@ -1653,26 +1592,23 @@ func (m *FiatCurrencyMutation) ResetEdge(name string) error {
 // LockOrderFulfillmentMutation represents an operation that mutates the LockOrderFulfillment nodes in the graph.
 type LockOrderFulfillmentMutation struct {
 	config
-	op                      Op
-	typ                     string
-	id                      *uuid.UUID
-	created_at              *time.Time
-	updated_at              *time.Time
-	tx_id                   *string
-	tx_receipt_image        *string
-	confirmations           *int
-	addconfirmations        *int
-	validation_errors       *[]string
-	appendvalidation_errors []string
-	clearedFields           map[string]struct{}
-	_order                  *uuid.UUID
-	cleared_order           bool
-	validators              map[uuid.UUID]struct{}
-	removedvalidators       map[uuid.UUID]struct{}
-	clearedvalidators       bool
-	done                    bool
-	oldValue                func(context.Context) (*LockOrderFulfillment, error)
-	predicates              []predicate.LockOrderFulfillment
+	op                Op
+	typ               string
+	id                *uuid.UUID
+	created_at        *time.Time
+	updated_at        *time.Time
+	tx_id             *string
+	tx_receipt_image  *string
+	confirmations     *int
+	addconfirmations  *int
+	validation_status *lockorderfulfillment.ValidationStatus
+	validation_error  *string
+	clearedFields     map[string]struct{}
+	_order            *uuid.UUID
+	cleared_order     bool
+	done              bool
+	oldValue          func(context.Context) (*LockOrderFulfillment, error)
+	predicates        []predicate.LockOrderFulfillment
 }
 
 var _ ent.Mutation = (*LockOrderFulfillmentMutation)(nil)
@@ -1979,55 +1915,89 @@ func (m *LockOrderFulfillmentMutation) ResetConfirmations() {
 	m.addconfirmations = nil
 }
 
-// SetValidationErrors sets the "validation_errors" field.
-func (m *LockOrderFulfillmentMutation) SetValidationErrors(s []string) {
-	m.validation_errors = &s
-	m.appendvalidation_errors = nil
+// SetValidationStatus sets the "validation_status" field.
+func (m *LockOrderFulfillmentMutation) SetValidationStatus(ls lockorderfulfillment.ValidationStatus) {
+	m.validation_status = &ls
 }
 
-// ValidationErrors returns the value of the "validation_errors" field in the mutation.
-func (m *LockOrderFulfillmentMutation) ValidationErrors() (r []string, exists bool) {
-	v := m.validation_errors
+// ValidationStatus returns the value of the "validation_status" field in the mutation.
+func (m *LockOrderFulfillmentMutation) ValidationStatus() (r lockorderfulfillment.ValidationStatus, exists bool) {
+	v := m.validation_status
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldValidationErrors returns the old "validation_errors" field's value of the LockOrderFulfillment entity.
+// OldValidationStatus returns the old "validation_status" field's value of the LockOrderFulfillment entity.
 // If the LockOrderFulfillment object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *LockOrderFulfillmentMutation) OldValidationErrors(ctx context.Context) (v []string, err error) {
+func (m *LockOrderFulfillmentMutation) OldValidationStatus(ctx context.Context) (v lockorderfulfillment.ValidationStatus, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldValidationErrors is only allowed on UpdateOne operations")
+		return v, errors.New("OldValidationStatus is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldValidationErrors requires an ID field in the mutation")
+		return v, errors.New("OldValidationStatus requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldValidationErrors: %w", err)
+		return v, fmt.Errorf("querying old value for OldValidationStatus: %w", err)
 	}
-	return oldValue.ValidationErrors, nil
+	return oldValue.ValidationStatus, nil
 }
 
-// AppendValidationErrors adds s to the "validation_errors" field.
-func (m *LockOrderFulfillmentMutation) AppendValidationErrors(s []string) {
-	m.appendvalidation_errors = append(m.appendvalidation_errors, s...)
+// ResetValidationStatus resets all changes to the "validation_status" field.
+func (m *LockOrderFulfillmentMutation) ResetValidationStatus() {
+	m.validation_status = nil
 }
 
-// AppendedValidationErrors returns the list of values that were appended to the "validation_errors" field in this mutation.
-func (m *LockOrderFulfillmentMutation) AppendedValidationErrors() ([]string, bool) {
-	if len(m.appendvalidation_errors) == 0 {
-		return nil, false
+// SetValidationError sets the "validation_error" field.
+func (m *LockOrderFulfillmentMutation) SetValidationError(s string) {
+	m.validation_error = &s
+}
+
+// ValidationError returns the value of the "validation_error" field in the mutation.
+func (m *LockOrderFulfillmentMutation) ValidationError() (r string, exists bool) {
+	v := m.validation_error
+	if v == nil {
+		return
 	}
-	return m.appendvalidation_errors, true
+	return *v, true
 }
 
-// ResetValidationErrors resets all changes to the "validation_errors" field.
-func (m *LockOrderFulfillmentMutation) ResetValidationErrors() {
-	m.validation_errors = nil
-	m.appendvalidation_errors = nil
+// OldValidationError returns the old "validation_error" field's value of the LockOrderFulfillment entity.
+// If the LockOrderFulfillment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LockOrderFulfillmentMutation) OldValidationError(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldValidationError is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldValidationError requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldValidationError: %w", err)
+	}
+	return oldValue.ValidationError, nil
+}
+
+// ClearValidationError clears the value of the "validation_error" field.
+func (m *LockOrderFulfillmentMutation) ClearValidationError() {
+	m.validation_error = nil
+	m.clearedFields[lockorderfulfillment.FieldValidationError] = struct{}{}
+}
+
+// ValidationErrorCleared returns if the "validation_error" field was cleared in this mutation.
+func (m *LockOrderFulfillmentMutation) ValidationErrorCleared() bool {
+	_, ok := m.clearedFields[lockorderfulfillment.FieldValidationError]
+	return ok
+}
+
+// ResetValidationError resets all changes to the "validation_error" field.
+func (m *LockOrderFulfillmentMutation) ResetValidationError() {
+	m.validation_error = nil
+	delete(m.clearedFields, lockorderfulfillment.FieldValidationError)
 }
 
 // SetOrderID sets the "order" edge to the LockPaymentOrder entity by id.
@@ -2069,60 +2039,6 @@ func (m *LockOrderFulfillmentMutation) ResetOrder() {
 	m.cleared_order = false
 }
 
-// AddValidatorIDs adds the "validators" edge to the ValidatorProfile entity by ids.
-func (m *LockOrderFulfillmentMutation) AddValidatorIDs(ids ...uuid.UUID) {
-	if m.validators == nil {
-		m.validators = make(map[uuid.UUID]struct{})
-	}
-	for i := range ids {
-		m.validators[ids[i]] = struct{}{}
-	}
-}
-
-// ClearValidators clears the "validators" edge to the ValidatorProfile entity.
-func (m *LockOrderFulfillmentMutation) ClearValidators() {
-	m.clearedvalidators = true
-}
-
-// ValidatorsCleared reports if the "validators" edge to the ValidatorProfile entity was cleared.
-func (m *LockOrderFulfillmentMutation) ValidatorsCleared() bool {
-	return m.clearedvalidators
-}
-
-// RemoveValidatorIDs removes the "validators" edge to the ValidatorProfile entity by IDs.
-func (m *LockOrderFulfillmentMutation) RemoveValidatorIDs(ids ...uuid.UUID) {
-	if m.removedvalidators == nil {
-		m.removedvalidators = make(map[uuid.UUID]struct{})
-	}
-	for i := range ids {
-		delete(m.validators, ids[i])
-		m.removedvalidators[ids[i]] = struct{}{}
-	}
-}
-
-// RemovedValidators returns the removed IDs of the "validators" edge to the ValidatorProfile entity.
-func (m *LockOrderFulfillmentMutation) RemovedValidatorsIDs() (ids []uuid.UUID) {
-	for id := range m.removedvalidators {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// ValidatorsIDs returns the "validators" edge IDs in the mutation.
-func (m *LockOrderFulfillmentMutation) ValidatorsIDs() (ids []uuid.UUID) {
-	for id := range m.validators {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// ResetValidators resets all changes to the "validators" edge.
-func (m *LockOrderFulfillmentMutation) ResetValidators() {
-	m.validators = nil
-	m.clearedvalidators = false
-	m.removedvalidators = nil
-}
-
 // Where appends a list predicates to the LockOrderFulfillmentMutation builder.
 func (m *LockOrderFulfillmentMutation) Where(ps ...predicate.LockOrderFulfillment) {
 	m.predicates = append(m.predicates, ps...)
@@ -2157,7 +2073,7 @@ func (m *LockOrderFulfillmentMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *LockOrderFulfillmentMutation) Fields() []string {
-	fields := make([]string, 0, 6)
+	fields := make([]string, 0, 7)
 	if m.created_at != nil {
 		fields = append(fields, lockorderfulfillment.FieldCreatedAt)
 	}
@@ -2173,8 +2089,11 @@ func (m *LockOrderFulfillmentMutation) Fields() []string {
 	if m.confirmations != nil {
 		fields = append(fields, lockorderfulfillment.FieldConfirmations)
 	}
-	if m.validation_errors != nil {
-		fields = append(fields, lockorderfulfillment.FieldValidationErrors)
+	if m.validation_status != nil {
+		fields = append(fields, lockorderfulfillment.FieldValidationStatus)
+	}
+	if m.validation_error != nil {
+		fields = append(fields, lockorderfulfillment.FieldValidationError)
 	}
 	return fields
 }
@@ -2194,8 +2113,10 @@ func (m *LockOrderFulfillmentMutation) Field(name string) (ent.Value, bool) {
 		return m.TxReceiptImage()
 	case lockorderfulfillment.FieldConfirmations:
 		return m.Confirmations()
-	case lockorderfulfillment.FieldValidationErrors:
-		return m.ValidationErrors()
+	case lockorderfulfillment.FieldValidationStatus:
+		return m.ValidationStatus()
+	case lockorderfulfillment.FieldValidationError:
+		return m.ValidationError()
 	}
 	return nil, false
 }
@@ -2215,8 +2136,10 @@ func (m *LockOrderFulfillmentMutation) OldField(ctx context.Context, name string
 		return m.OldTxReceiptImage(ctx)
 	case lockorderfulfillment.FieldConfirmations:
 		return m.OldConfirmations(ctx)
-	case lockorderfulfillment.FieldValidationErrors:
-		return m.OldValidationErrors(ctx)
+	case lockorderfulfillment.FieldValidationStatus:
+		return m.OldValidationStatus(ctx)
+	case lockorderfulfillment.FieldValidationError:
+		return m.OldValidationError(ctx)
 	}
 	return nil, fmt.Errorf("unknown LockOrderFulfillment field %s", name)
 }
@@ -2261,12 +2184,19 @@ func (m *LockOrderFulfillmentMutation) SetField(name string, value ent.Value) er
 		}
 		m.SetConfirmations(v)
 		return nil
-	case lockorderfulfillment.FieldValidationErrors:
-		v, ok := value.([]string)
+	case lockorderfulfillment.FieldValidationStatus:
+		v, ok := value.(lockorderfulfillment.ValidationStatus)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetValidationErrors(v)
+		m.SetValidationStatus(v)
+		return nil
+	case lockorderfulfillment.FieldValidationError:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetValidationError(v)
 		return nil
 	}
 	return fmt.Errorf("unknown LockOrderFulfillment field %s", name)
@@ -2312,7 +2242,11 @@ func (m *LockOrderFulfillmentMutation) AddField(name string, value ent.Value) er
 // ClearedFields returns all nullable fields that were cleared during this
 // mutation.
 func (m *LockOrderFulfillmentMutation) ClearedFields() []string {
-	return nil
+	var fields []string
+	if m.FieldCleared(lockorderfulfillment.FieldValidationError) {
+		fields = append(fields, lockorderfulfillment.FieldValidationError)
+	}
+	return fields
 }
 
 // FieldCleared returns a boolean indicating if a field with the given name was
@@ -2325,6 +2259,11 @@ func (m *LockOrderFulfillmentMutation) FieldCleared(name string) bool {
 // ClearField clears the value of the field with the given name. It returns an
 // error if the field is not defined in the schema.
 func (m *LockOrderFulfillmentMutation) ClearField(name string) error {
+	switch name {
+	case lockorderfulfillment.FieldValidationError:
+		m.ClearValidationError()
+		return nil
+	}
 	return fmt.Errorf("unknown LockOrderFulfillment nullable field %s", name)
 }
 
@@ -2347,8 +2286,11 @@ func (m *LockOrderFulfillmentMutation) ResetField(name string) error {
 	case lockorderfulfillment.FieldConfirmations:
 		m.ResetConfirmations()
 		return nil
-	case lockorderfulfillment.FieldValidationErrors:
-		m.ResetValidationErrors()
+	case lockorderfulfillment.FieldValidationStatus:
+		m.ResetValidationStatus()
+		return nil
+	case lockorderfulfillment.FieldValidationError:
+		m.ResetValidationError()
 		return nil
 	}
 	return fmt.Errorf("unknown LockOrderFulfillment field %s", name)
@@ -2356,12 +2298,9 @@ func (m *LockOrderFulfillmentMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *LockOrderFulfillmentMutation) AddedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 1)
 	if m._order != nil {
 		edges = append(edges, lockorderfulfillment.EdgeOrder)
-	}
-	if m.validators != nil {
-		edges = append(edges, lockorderfulfillment.EdgeValidators)
 	}
 	return edges
 }
@@ -2374,47 +2313,27 @@ func (m *LockOrderFulfillmentMutation) AddedIDs(name string) []ent.Value {
 		if id := m._order; id != nil {
 			return []ent.Value{*id}
 		}
-	case lockorderfulfillment.EdgeValidators:
-		ids := make([]ent.Value, 0, len(m.validators))
-		for id := range m.validators {
-			ids = append(ids, id)
-		}
-		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *LockOrderFulfillmentMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 2)
-	if m.removedvalidators != nil {
-		edges = append(edges, lockorderfulfillment.EdgeValidators)
-	}
+	edges := make([]string, 0, 1)
 	return edges
 }
 
 // RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
 // the given name in this mutation.
 func (m *LockOrderFulfillmentMutation) RemovedIDs(name string) []ent.Value {
-	switch name {
-	case lockorderfulfillment.EdgeValidators:
-		ids := make([]ent.Value, 0, len(m.removedvalidators))
-		for id := range m.removedvalidators {
-			ids = append(ids, id)
-		}
-		return ids
-	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *LockOrderFulfillmentMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 1)
 	if m.cleared_order {
 		edges = append(edges, lockorderfulfillment.EdgeOrder)
-	}
-	if m.clearedvalidators {
-		edges = append(edges, lockorderfulfillment.EdgeValidators)
 	}
 	return edges
 }
@@ -2425,8 +2344,6 @@ func (m *LockOrderFulfillmentMutation) EdgeCleared(name string) bool {
 	switch name {
 	case lockorderfulfillment.EdgeOrder:
 		return m.cleared_order
-	case lockorderfulfillment.EdgeValidators:
-		return m.clearedvalidators
 	}
 	return false
 }
@@ -2448,9 +2365,6 @@ func (m *LockOrderFulfillmentMutation) ResetEdge(name string) error {
 	switch name {
 	case lockorderfulfillment.EdgeOrder:
 		m.ResetOrder()
-		return nil
-	case lockorderfulfillment.EdgeValidators:
-		m.ResetValidators()
 		return nil
 	}
 	return fmt.Errorf("unknown LockOrderFulfillment edge %s", name)
@@ -12669,8 +12583,6 @@ type UserMutation struct {
 	clearedsender_profile     bool
 	provider_profile          *string
 	clearedprovider_profile   bool
-	validator_profile         *uuid.UUID
-	clearedvalidator_profile  bool
 	verification_token        map[uuid.UUID]struct{}
 	removedverification_token map[uuid.UUID]struct{}
 	clearedverification_token bool
@@ -13149,45 +13061,6 @@ func (m *UserMutation) ResetProviderProfile() {
 	m.clearedprovider_profile = false
 }
 
-// SetValidatorProfileID sets the "validator_profile" edge to the ValidatorProfile entity by id.
-func (m *UserMutation) SetValidatorProfileID(id uuid.UUID) {
-	m.validator_profile = &id
-}
-
-// ClearValidatorProfile clears the "validator_profile" edge to the ValidatorProfile entity.
-func (m *UserMutation) ClearValidatorProfile() {
-	m.clearedvalidator_profile = true
-}
-
-// ValidatorProfileCleared reports if the "validator_profile" edge to the ValidatorProfile entity was cleared.
-func (m *UserMutation) ValidatorProfileCleared() bool {
-	return m.clearedvalidator_profile
-}
-
-// ValidatorProfileID returns the "validator_profile" edge ID in the mutation.
-func (m *UserMutation) ValidatorProfileID() (id uuid.UUID, exists bool) {
-	if m.validator_profile != nil {
-		return *m.validator_profile, true
-	}
-	return
-}
-
-// ValidatorProfileIDs returns the "validator_profile" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// ValidatorProfileID instead. It exists only for internal usage by the builders.
-func (m *UserMutation) ValidatorProfileIDs() (ids []uuid.UUID) {
-	if id := m.validator_profile; id != nil {
-		ids = append(ids, *id)
-	}
-	return
-}
-
-// ResetValidatorProfile resets all changes to the "validator_profile" edge.
-func (m *UserMutation) ResetValidatorProfile() {
-	m.validator_profile = nil
-	m.clearedvalidator_profile = false
-}
-
 // AddVerificationTokenIDs adds the "verification_token" edge to the VerificationToken entity by ids.
 func (m *UserMutation) AddVerificationTokenIDs(ids ...uuid.UUID) {
 	if m.verification_token == nil {
@@ -13494,15 +13367,12 @@ func (m *UserMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *UserMutation) AddedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 3)
 	if m.sender_profile != nil {
 		edges = append(edges, user.EdgeSenderProfile)
 	}
 	if m.provider_profile != nil {
 		edges = append(edges, user.EdgeProviderProfile)
-	}
-	if m.validator_profile != nil {
-		edges = append(edges, user.EdgeValidatorProfile)
 	}
 	if m.verification_token != nil {
 		edges = append(edges, user.EdgeVerificationToken)
@@ -13522,10 +13392,6 @@ func (m *UserMutation) AddedIDs(name string) []ent.Value {
 		if id := m.provider_profile; id != nil {
 			return []ent.Value{*id}
 		}
-	case user.EdgeValidatorProfile:
-		if id := m.validator_profile; id != nil {
-			return []ent.Value{*id}
-		}
 	case user.EdgeVerificationToken:
 		ids := make([]ent.Value, 0, len(m.verification_token))
 		for id := range m.verification_token {
@@ -13538,7 +13404,7 @@ func (m *UserMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *UserMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 3)
 	if m.removedverification_token != nil {
 		edges = append(edges, user.EdgeVerificationToken)
 	}
@@ -13561,15 +13427,12 @@ func (m *UserMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *UserMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 3)
 	if m.clearedsender_profile {
 		edges = append(edges, user.EdgeSenderProfile)
 	}
 	if m.clearedprovider_profile {
 		edges = append(edges, user.EdgeProviderProfile)
-	}
-	if m.clearedvalidator_profile {
-		edges = append(edges, user.EdgeValidatorProfile)
 	}
 	if m.clearedverification_token {
 		edges = append(edges, user.EdgeVerificationToken)
@@ -13585,8 +13448,6 @@ func (m *UserMutation) EdgeCleared(name string) bool {
 		return m.clearedsender_profile
 	case user.EdgeProviderProfile:
 		return m.clearedprovider_profile
-	case user.EdgeValidatorProfile:
-		return m.clearedvalidator_profile
 	case user.EdgeVerificationToken:
 		return m.clearedverification_token
 	}
@@ -13603,9 +13464,6 @@ func (m *UserMutation) ClearEdge(name string) error {
 	case user.EdgeProviderProfile:
 		m.ClearProviderProfile()
 		return nil
-	case user.EdgeValidatorProfile:
-		m.ClearValidatorProfile()
-		return nil
 	}
 	return fmt.Errorf("unknown User unique edge %s", name)
 }
@@ -13620,706 +13478,11 @@ func (m *UserMutation) ResetEdge(name string) error {
 	case user.EdgeProviderProfile:
 		m.ResetProviderProfile()
 		return nil
-	case user.EdgeValidatorProfile:
-		m.ResetValidatorProfile()
-		return nil
 	case user.EdgeVerificationToken:
 		m.ResetVerificationToken()
 		return nil
 	}
 	return fmt.Errorf("unknown User edge %s", name)
-}
-
-// ValidatorProfileMutation represents an operation that mutates the ValidatorProfile nodes in the graph.
-type ValidatorProfileMutation struct {
-	config
-	op                            Op
-	typ                           string
-	id                            *uuid.UUID
-	wallet_address                *string
-	host_identifier               *string
-	updated_at                    *time.Time
-	clearedFields                 map[string]struct{}
-	user                          *uuid.UUID
-	cleareduser                   bool
-	validated_fulfillments        map[uuid.UUID]struct{}
-	removedvalidated_fulfillments map[uuid.UUID]struct{}
-	clearedvalidated_fulfillments bool
-	api_key                       *uuid.UUID
-	clearedapi_key                bool
-	done                          bool
-	oldValue                      func(context.Context) (*ValidatorProfile, error)
-	predicates                    []predicate.ValidatorProfile
-}
-
-var _ ent.Mutation = (*ValidatorProfileMutation)(nil)
-
-// validatorprofileOption allows management of the mutation configuration using functional options.
-type validatorprofileOption func(*ValidatorProfileMutation)
-
-// newValidatorProfileMutation creates new mutation for the ValidatorProfile entity.
-func newValidatorProfileMutation(c config, op Op, opts ...validatorprofileOption) *ValidatorProfileMutation {
-	m := &ValidatorProfileMutation{
-		config:        c,
-		op:            op,
-		typ:           TypeValidatorProfile,
-		clearedFields: make(map[string]struct{}),
-	}
-	for _, opt := range opts {
-		opt(m)
-	}
-	return m
-}
-
-// withValidatorProfileID sets the ID field of the mutation.
-func withValidatorProfileID(id uuid.UUID) validatorprofileOption {
-	return func(m *ValidatorProfileMutation) {
-		var (
-			err   error
-			once  sync.Once
-			value *ValidatorProfile
-		)
-		m.oldValue = func(ctx context.Context) (*ValidatorProfile, error) {
-			once.Do(func() {
-				if m.done {
-					err = errors.New("querying old values post mutation is not allowed")
-				} else {
-					value, err = m.Client().ValidatorProfile.Get(ctx, id)
-				}
-			})
-			return value, err
-		}
-		m.id = &id
-	}
-}
-
-// withValidatorProfile sets the old ValidatorProfile of the mutation.
-func withValidatorProfile(node *ValidatorProfile) validatorprofileOption {
-	return func(m *ValidatorProfileMutation) {
-		m.oldValue = func(context.Context) (*ValidatorProfile, error) {
-			return node, nil
-		}
-		m.id = &node.ID
-	}
-}
-
-// Client returns a new `ent.Client` from the mutation. If the mutation was
-// executed in a transaction (ent.Tx), a transactional client is returned.
-func (m ValidatorProfileMutation) Client() *Client {
-	client := &Client{config: m.config}
-	client.init()
-	return client
-}
-
-// Tx returns an `ent.Tx` for mutations that were executed in transactions;
-// it returns an error otherwise.
-func (m ValidatorProfileMutation) Tx() (*Tx, error) {
-	if _, ok := m.driver.(*txDriver); !ok {
-		return nil, errors.New("ent: mutation is not running in a transaction")
-	}
-	tx := &Tx{config: m.config}
-	tx.init()
-	return tx, nil
-}
-
-// SetID sets the value of the id field. Note that this
-// operation is only accepted on creation of ValidatorProfile entities.
-func (m *ValidatorProfileMutation) SetID(id uuid.UUID) {
-	m.id = &id
-}
-
-// ID returns the ID value in the mutation. Note that the ID is only available
-// if it was provided to the builder or after it was returned from the database.
-func (m *ValidatorProfileMutation) ID() (id uuid.UUID, exists bool) {
-	if m.id == nil {
-		return
-	}
-	return *m.id, true
-}
-
-// IDs queries the database and returns the entity ids that match the mutation's predicate.
-// That means, if the mutation is applied within a transaction with an isolation level such
-// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
-// or updated by the mutation.
-func (m *ValidatorProfileMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
-	switch {
-	case m.op.Is(OpUpdateOne | OpDeleteOne):
-		id, exists := m.ID()
-		if exists {
-			return []uuid.UUID{id}, nil
-		}
-		fallthrough
-	case m.op.Is(OpUpdate | OpDelete):
-		return m.Client().ValidatorProfile.Query().Where(m.predicates...).IDs(ctx)
-	default:
-		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
-	}
-}
-
-// SetWalletAddress sets the "wallet_address" field.
-func (m *ValidatorProfileMutation) SetWalletAddress(s string) {
-	m.wallet_address = &s
-}
-
-// WalletAddress returns the value of the "wallet_address" field in the mutation.
-func (m *ValidatorProfileMutation) WalletAddress() (r string, exists bool) {
-	v := m.wallet_address
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldWalletAddress returns the old "wallet_address" field's value of the ValidatorProfile entity.
-// If the ValidatorProfile object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ValidatorProfileMutation) OldWalletAddress(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldWalletAddress is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldWalletAddress requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldWalletAddress: %w", err)
-	}
-	return oldValue.WalletAddress, nil
-}
-
-// ClearWalletAddress clears the value of the "wallet_address" field.
-func (m *ValidatorProfileMutation) ClearWalletAddress() {
-	m.wallet_address = nil
-	m.clearedFields[validatorprofile.FieldWalletAddress] = struct{}{}
-}
-
-// WalletAddressCleared returns if the "wallet_address" field was cleared in this mutation.
-func (m *ValidatorProfileMutation) WalletAddressCleared() bool {
-	_, ok := m.clearedFields[validatorprofile.FieldWalletAddress]
-	return ok
-}
-
-// ResetWalletAddress resets all changes to the "wallet_address" field.
-func (m *ValidatorProfileMutation) ResetWalletAddress() {
-	m.wallet_address = nil
-	delete(m.clearedFields, validatorprofile.FieldWalletAddress)
-}
-
-// SetHostIdentifier sets the "host_identifier" field.
-func (m *ValidatorProfileMutation) SetHostIdentifier(s string) {
-	m.host_identifier = &s
-}
-
-// HostIdentifier returns the value of the "host_identifier" field in the mutation.
-func (m *ValidatorProfileMutation) HostIdentifier() (r string, exists bool) {
-	v := m.host_identifier
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldHostIdentifier returns the old "host_identifier" field's value of the ValidatorProfile entity.
-// If the ValidatorProfile object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ValidatorProfileMutation) OldHostIdentifier(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldHostIdentifier is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldHostIdentifier requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldHostIdentifier: %w", err)
-	}
-	return oldValue.HostIdentifier, nil
-}
-
-// ClearHostIdentifier clears the value of the "host_identifier" field.
-func (m *ValidatorProfileMutation) ClearHostIdentifier() {
-	m.host_identifier = nil
-	m.clearedFields[validatorprofile.FieldHostIdentifier] = struct{}{}
-}
-
-// HostIdentifierCleared returns if the "host_identifier" field was cleared in this mutation.
-func (m *ValidatorProfileMutation) HostIdentifierCleared() bool {
-	_, ok := m.clearedFields[validatorprofile.FieldHostIdentifier]
-	return ok
-}
-
-// ResetHostIdentifier resets all changes to the "host_identifier" field.
-func (m *ValidatorProfileMutation) ResetHostIdentifier() {
-	m.host_identifier = nil
-	delete(m.clearedFields, validatorprofile.FieldHostIdentifier)
-}
-
-// SetUpdatedAt sets the "updated_at" field.
-func (m *ValidatorProfileMutation) SetUpdatedAt(t time.Time) {
-	m.updated_at = &t
-}
-
-// UpdatedAt returns the value of the "updated_at" field in the mutation.
-func (m *ValidatorProfileMutation) UpdatedAt() (r time.Time, exists bool) {
-	v := m.updated_at
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldUpdatedAt returns the old "updated_at" field's value of the ValidatorProfile entity.
-// If the ValidatorProfile object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ValidatorProfileMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
-	}
-	return oldValue.UpdatedAt, nil
-}
-
-// ResetUpdatedAt resets all changes to the "updated_at" field.
-func (m *ValidatorProfileMutation) ResetUpdatedAt() {
-	m.updated_at = nil
-}
-
-// SetUserID sets the "user" edge to the User entity by id.
-func (m *ValidatorProfileMutation) SetUserID(id uuid.UUID) {
-	m.user = &id
-}
-
-// ClearUser clears the "user" edge to the User entity.
-func (m *ValidatorProfileMutation) ClearUser() {
-	m.cleareduser = true
-}
-
-// UserCleared reports if the "user" edge to the User entity was cleared.
-func (m *ValidatorProfileMutation) UserCleared() bool {
-	return m.cleareduser
-}
-
-// UserID returns the "user" edge ID in the mutation.
-func (m *ValidatorProfileMutation) UserID() (id uuid.UUID, exists bool) {
-	if m.user != nil {
-		return *m.user, true
-	}
-	return
-}
-
-// UserIDs returns the "user" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// UserID instead. It exists only for internal usage by the builders.
-func (m *ValidatorProfileMutation) UserIDs() (ids []uuid.UUID) {
-	if id := m.user; id != nil {
-		ids = append(ids, *id)
-	}
-	return
-}
-
-// ResetUser resets all changes to the "user" edge.
-func (m *ValidatorProfileMutation) ResetUser() {
-	m.user = nil
-	m.cleareduser = false
-}
-
-// AddValidatedFulfillmentIDs adds the "validated_fulfillments" edge to the LockOrderFulfillment entity by ids.
-func (m *ValidatorProfileMutation) AddValidatedFulfillmentIDs(ids ...uuid.UUID) {
-	if m.validated_fulfillments == nil {
-		m.validated_fulfillments = make(map[uuid.UUID]struct{})
-	}
-	for i := range ids {
-		m.validated_fulfillments[ids[i]] = struct{}{}
-	}
-}
-
-// ClearValidatedFulfillments clears the "validated_fulfillments" edge to the LockOrderFulfillment entity.
-func (m *ValidatorProfileMutation) ClearValidatedFulfillments() {
-	m.clearedvalidated_fulfillments = true
-}
-
-// ValidatedFulfillmentsCleared reports if the "validated_fulfillments" edge to the LockOrderFulfillment entity was cleared.
-func (m *ValidatorProfileMutation) ValidatedFulfillmentsCleared() bool {
-	return m.clearedvalidated_fulfillments
-}
-
-// RemoveValidatedFulfillmentIDs removes the "validated_fulfillments" edge to the LockOrderFulfillment entity by IDs.
-func (m *ValidatorProfileMutation) RemoveValidatedFulfillmentIDs(ids ...uuid.UUID) {
-	if m.removedvalidated_fulfillments == nil {
-		m.removedvalidated_fulfillments = make(map[uuid.UUID]struct{})
-	}
-	for i := range ids {
-		delete(m.validated_fulfillments, ids[i])
-		m.removedvalidated_fulfillments[ids[i]] = struct{}{}
-	}
-}
-
-// RemovedValidatedFulfillments returns the removed IDs of the "validated_fulfillments" edge to the LockOrderFulfillment entity.
-func (m *ValidatorProfileMutation) RemovedValidatedFulfillmentsIDs() (ids []uuid.UUID) {
-	for id := range m.removedvalidated_fulfillments {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// ValidatedFulfillmentsIDs returns the "validated_fulfillments" edge IDs in the mutation.
-func (m *ValidatorProfileMutation) ValidatedFulfillmentsIDs() (ids []uuid.UUID) {
-	for id := range m.validated_fulfillments {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// ResetValidatedFulfillments resets all changes to the "validated_fulfillments" edge.
-func (m *ValidatorProfileMutation) ResetValidatedFulfillments() {
-	m.validated_fulfillments = nil
-	m.clearedvalidated_fulfillments = false
-	m.removedvalidated_fulfillments = nil
-}
-
-// SetAPIKeyID sets the "api_key" edge to the APIKey entity by id.
-func (m *ValidatorProfileMutation) SetAPIKeyID(id uuid.UUID) {
-	m.api_key = &id
-}
-
-// ClearAPIKey clears the "api_key" edge to the APIKey entity.
-func (m *ValidatorProfileMutation) ClearAPIKey() {
-	m.clearedapi_key = true
-}
-
-// APIKeyCleared reports if the "api_key" edge to the APIKey entity was cleared.
-func (m *ValidatorProfileMutation) APIKeyCleared() bool {
-	return m.clearedapi_key
-}
-
-// APIKeyID returns the "api_key" edge ID in the mutation.
-func (m *ValidatorProfileMutation) APIKeyID() (id uuid.UUID, exists bool) {
-	if m.api_key != nil {
-		return *m.api_key, true
-	}
-	return
-}
-
-// APIKeyIDs returns the "api_key" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// APIKeyID instead. It exists only for internal usage by the builders.
-func (m *ValidatorProfileMutation) APIKeyIDs() (ids []uuid.UUID) {
-	if id := m.api_key; id != nil {
-		ids = append(ids, *id)
-	}
-	return
-}
-
-// ResetAPIKey resets all changes to the "api_key" edge.
-func (m *ValidatorProfileMutation) ResetAPIKey() {
-	m.api_key = nil
-	m.clearedapi_key = false
-}
-
-// Where appends a list predicates to the ValidatorProfileMutation builder.
-func (m *ValidatorProfileMutation) Where(ps ...predicate.ValidatorProfile) {
-	m.predicates = append(m.predicates, ps...)
-}
-
-// WhereP appends storage-level predicates to the ValidatorProfileMutation builder. Using this method,
-// users can use type-assertion to append predicates that do not depend on any generated package.
-func (m *ValidatorProfileMutation) WhereP(ps ...func(*sql.Selector)) {
-	p := make([]predicate.ValidatorProfile, len(ps))
-	for i := range ps {
-		p[i] = ps[i]
-	}
-	m.Where(p...)
-}
-
-// Op returns the operation name.
-func (m *ValidatorProfileMutation) Op() Op {
-	return m.op
-}
-
-// SetOp allows setting the mutation operation.
-func (m *ValidatorProfileMutation) SetOp(op Op) {
-	m.op = op
-}
-
-// Type returns the node type of this mutation (ValidatorProfile).
-func (m *ValidatorProfileMutation) Type() string {
-	return m.typ
-}
-
-// Fields returns all fields that were changed during this mutation. Note that in
-// order to get all numeric fields that were incremented/decremented, call
-// AddedFields().
-func (m *ValidatorProfileMutation) Fields() []string {
-	fields := make([]string, 0, 3)
-	if m.wallet_address != nil {
-		fields = append(fields, validatorprofile.FieldWalletAddress)
-	}
-	if m.host_identifier != nil {
-		fields = append(fields, validatorprofile.FieldHostIdentifier)
-	}
-	if m.updated_at != nil {
-		fields = append(fields, validatorprofile.FieldUpdatedAt)
-	}
-	return fields
-}
-
-// Field returns the value of a field with the given name. The second boolean
-// return value indicates that this field was not set, or was not defined in the
-// schema.
-func (m *ValidatorProfileMutation) Field(name string) (ent.Value, bool) {
-	switch name {
-	case validatorprofile.FieldWalletAddress:
-		return m.WalletAddress()
-	case validatorprofile.FieldHostIdentifier:
-		return m.HostIdentifier()
-	case validatorprofile.FieldUpdatedAt:
-		return m.UpdatedAt()
-	}
-	return nil, false
-}
-
-// OldField returns the old value of the field from the database. An error is
-// returned if the mutation operation is not UpdateOne, or the query to the
-// database failed.
-func (m *ValidatorProfileMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
-	switch name {
-	case validatorprofile.FieldWalletAddress:
-		return m.OldWalletAddress(ctx)
-	case validatorprofile.FieldHostIdentifier:
-		return m.OldHostIdentifier(ctx)
-	case validatorprofile.FieldUpdatedAt:
-		return m.OldUpdatedAt(ctx)
-	}
-	return nil, fmt.Errorf("unknown ValidatorProfile field %s", name)
-}
-
-// SetField sets the value of a field with the given name. It returns an error if
-// the field is not defined in the schema, or if the type mismatched the field
-// type.
-func (m *ValidatorProfileMutation) SetField(name string, value ent.Value) error {
-	switch name {
-	case validatorprofile.FieldWalletAddress:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetWalletAddress(v)
-		return nil
-	case validatorprofile.FieldHostIdentifier:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetHostIdentifier(v)
-		return nil
-	case validatorprofile.FieldUpdatedAt:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetUpdatedAt(v)
-		return nil
-	}
-	return fmt.Errorf("unknown ValidatorProfile field %s", name)
-}
-
-// AddedFields returns all numeric fields that were incremented/decremented during
-// this mutation.
-func (m *ValidatorProfileMutation) AddedFields() []string {
-	return nil
-}
-
-// AddedField returns the numeric value that was incremented/decremented on a field
-// with the given name. The second boolean return value indicates that this field
-// was not set, or was not defined in the schema.
-func (m *ValidatorProfileMutation) AddedField(name string) (ent.Value, bool) {
-	return nil, false
-}
-
-// AddField adds the value to the field with the given name. It returns an error if
-// the field is not defined in the schema, or if the type mismatched the field
-// type.
-func (m *ValidatorProfileMutation) AddField(name string, value ent.Value) error {
-	switch name {
-	}
-	return fmt.Errorf("unknown ValidatorProfile numeric field %s", name)
-}
-
-// ClearedFields returns all nullable fields that were cleared during this
-// mutation.
-func (m *ValidatorProfileMutation) ClearedFields() []string {
-	var fields []string
-	if m.FieldCleared(validatorprofile.FieldWalletAddress) {
-		fields = append(fields, validatorprofile.FieldWalletAddress)
-	}
-	if m.FieldCleared(validatorprofile.FieldHostIdentifier) {
-		fields = append(fields, validatorprofile.FieldHostIdentifier)
-	}
-	return fields
-}
-
-// FieldCleared returns a boolean indicating if a field with the given name was
-// cleared in this mutation.
-func (m *ValidatorProfileMutation) FieldCleared(name string) bool {
-	_, ok := m.clearedFields[name]
-	return ok
-}
-
-// ClearField clears the value of the field with the given name. It returns an
-// error if the field is not defined in the schema.
-func (m *ValidatorProfileMutation) ClearField(name string) error {
-	switch name {
-	case validatorprofile.FieldWalletAddress:
-		m.ClearWalletAddress()
-		return nil
-	case validatorprofile.FieldHostIdentifier:
-		m.ClearHostIdentifier()
-		return nil
-	}
-	return fmt.Errorf("unknown ValidatorProfile nullable field %s", name)
-}
-
-// ResetField resets all changes in the mutation for the field with the given name.
-// It returns an error if the field is not defined in the schema.
-func (m *ValidatorProfileMutation) ResetField(name string) error {
-	switch name {
-	case validatorprofile.FieldWalletAddress:
-		m.ResetWalletAddress()
-		return nil
-	case validatorprofile.FieldHostIdentifier:
-		m.ResetHostIdentifier()
-		return nil
-	case validatorprofile.FieldUpdatedAt:
-		m.ResetUpdatedAt()
-		return nil
-	}
-	return fmt.Errorf("unknown ValidatorProfile field %s", name)
-}
-
-// AddedEdges returns all edge names that were set/added in this mutation.
-func (m *ValidatorProfileMutation) AddedEdges() []string {
-	edges := make([]string, 0, 3)
-	if m.user != nil {
-		edges = append(edges, validatorprofile.EdgeUser)
-	}
-	if m.validated_fulfillments != nil {
-		edges = append(edges, validatorprofile.EdgeValidatedFulfillments)
-	}
-	if m.api_key != nil {
-		edges = append(edges, validatorprofile.EdgeAPIKey)
-	}
-	return edges
-}
-
-// AddedIDs returns all IDs (to other nodes) that were added for the given edge
-// name in this mutation.
-func (m *ValidatorProfileMutation) AddedIDs(name string) []ent.Value {
-	switch name {
-	case validatorprofile.EdgeUser:
-		if id := m.user; id != nil {
-			return []ent.Value{*id}
-		}
-	case validatorprofile.EdgeValidatedFulfillments:
-		ids := make([]ent.Value, 0, len(m.validated_fulfillments))
-		for id := range m.validated_fulfillments {
-			ids = append(ids, id)
-		}
-		return ids
-	case validatorprofile.EdgeAPIKey:
-		if id := m.api_key; id != nil {
-			return []ent.Value{*id}
-		}
-	}
-	return nil
-}
-
-// RemovedEdges returns all edge names that were removed in this mutation.
-func (m *ValidatorProfileMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 3)
-	if m.removedvalidated_fulfillments != nil {
-		edges = append(edges, validatorprofile.EdgeValidatedFulfillments)
-	}
-	return edges
-}
-
-// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
-// the given name in this mutation.
-func (m *ValidatorProfileMutation) RemovedIDs(name string) []ent.Value {
-	switch name {
-	case validatorprofile.EdgeValidatedFulfillments:
-		ids := make([]ent.Value, 0, len(m.removedvalidated_fulfillments))
-		for id := range m.removedvalidated_fulfillments {
-			ids = append(ids, id)
-		}
-		return ids
-	}
-	return nil
-}
-
-// ClearedEdges returns all edge names that were cleared in this mutation.
-func (m *ValidatorProfileMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 3)
-	if m.cleareduser {
-		edges = append(edges, validatorprofile.EdgeUser)
-	}
-	if m.clearedvalidated_fulfillments {
-		edges = append(edges, validatorprofile.EdgeValidatedFulfillments)
-	}
-	if m.clearedapi_key {
-		edges = append(edges, validatorprofile.EdgeAPIKey)
-	}
-	return edges
-}
-
-// EdgeCleared returns a boolean which indicates if the edge with the given name
-// was cleared in this mutation.
-func (m *ValidatorProfileMutation) EdgeCleared(name string) bool {
-	switch name {
-	case validatorprofile.EdgeUser:
-		return m.cleareduser
-	case validatorprofile.EdgeValidatedFulfillments:
-		return m.clearedvalidated_fulfillments
-	case validatorprofile.EdgeAPIKey:
-		return m.clearedapi_key
-	}
-	return false
-}
-
-// ClearEdge clears the value of the edge with the given name. It returns an error
-// if that edge is not defined in the schema.
-func (m *ValidatorProfileMutation) ClearEdge(name string) error {
-	switch name {
-	case validatorprofile.EdgeUser:
-		m.ClearUser()
-		return nil
-	case validatorprofile.EdgeAPIKey:
-		m.ClearAPIKey()
-		return nil
-	}
-	return fmt.Errorf("unknown ValidatorProfile unique edge %s", name)
-}
-
-// ResetEdge resets all changes to the edge with the given name in this mutation.
-// It returns an error if the edge is not defined in the schema.
-func (m *ValidatorProfileMutation) ResetEdge(name string) error {
-	switch name {
-	case validatorprofile.EdgeUser:
-		m.ResetUser()
-		return nil
-	case validatorprofile.EdgeValidatedFulfillments:
-		m.ResetValidatedFulfillments()
-		return nil
-	case validatorprofile.EdgeAPIKey:
-		m.ResetAPIKey()
-		return nil
-	}
-	return fmt.Errorf("unknown ValidatorProfile edge %s", name)
 }
 
 // VerificationTokenMutation represents an operation that mutates the VerificationToken nodes in the graph.

@@ -37,8 +37,6 @@ const (
 	EdgeSenderProfile = "sender_profile"
 	// EdgeProviderProfile holds the string denoting the provider_profile edge name in mutations.
 	EdgeProviderProfile = "provider_profile"
-	// EdgeValidatorProfile holds the string denoting the validator_profile edge name in mutations.
-	EdgeValidatorProfile = "validator_profile"
 	// EdgeVerificationToken holds the string denoting the verification_token edge name in mutations.
 	EdgeVerificationToken = "verification_token"
 	// Table holds the table name of the user in the database.
@@ -57,13 +55,6 @@ const (
 	ProviderProfileInverseTable = "provider_profiles"
 	// ProviderProfileColumn is the table column denoting the provider_profile relation/edge.
 	ProviderProfileColumn = "user_provider_profile"
-	// ValidatorProfileTable is the table that holds the validator_profile relation/edge.
-	ValidatorProfileTable = "validator_profiles"
-	// ValidatorProfileInverseTable is the table name for the ValidatorProfile entity.
-	// It exists in this package in order to avoid circular dependency with the "validatorprofile" package.
-	ValidatorProfileInverseTable = "validator_profiles"
-	// ValidatorProfileColumn is the table column denoting the validator_profile relation/edge.
-	ValidatorProfileColumn = "user_validator_profile"
 	// VerificationTokenTable is the table that holds the verification_token relation/edge.
 	VerificationTokenTable = "verification_tokens"
 	// VerificationTokenInverseTable is the table name for the VerificationToken entity.
@@ -205,13 +196,6 @@ func ByProviderProfileField(field string, opts ...sql.OrderTermOption) OrderOpti
 	}
 }
 
-// ByValidatorProfileField orders the results by validator_profile field.
-func ByValidatorProfileField(field string, opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newValidatorProfileStep(), sql.OrderByField(field, opts...))
-	}
-}
-
 // ByVerificationTokenCount orders the results by verification_token count.
 func ByVerificationTokenCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -237,13 +221,6 @@ func newProviderProfileStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(ProviderProfileInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2O, false, ProviderProfileTable, ProviderProfileColumn),
-	)
-}
-func newValidatorProfileStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(ValidatorProfileInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2O, false, ValidatorProfileTable, ValidatorProfileColumn),
 	)
 }
 func newVerificationTokenStep() *sqlgraph.Step {

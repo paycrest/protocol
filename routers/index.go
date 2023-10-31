@@ -23,7 +23,6 @@ func RegisterRoutes(route *gin.Engine) {
 	authRoutes(route)
 	senderRoutes(route)
 	providerRoutes(route)
-	validatorRoutes(route)
 
 	var ctrl controllers.Controller
 
@@ -52,19 +51,6 @@ func authRoutes(route *gin.Engine) {
 	v1.POST("auth/confirm-account/", authCtrl.ConfirmEmail)
 	v1.POST("auth/resend-token/", authCtrl.ResendVerificationToken)
 	v1.POST("auth/refresh/", middleware.JWTMiddleware, authCtrl.RefreshJWT)
-
-	v1.GET(
-		"settings/validator",
-		middleware.JWTMiddleware,
-		middleware.OnlyValidatorMiddleware,
-		profileCtrl.GetValidatorProfile,
-	)
-	v1.PATCH(
-		"settings/validator",
-		middleware.JWTMiddleware,
-		middleware.OnlyValidatorMiddleware,
-		profileCtrl.UpdateValidatorProfile,
-	)
 
 	v1.GET(
 		"settings/provider",
@@ -117,14 +103,4 @@ func providerRoutes(route *gin.Engine) {
 	v1.POST("orders/:id/fulfill", providerCtrl.FulfillOrder)
 	v1.POST("orders/:id/cancel", providerCtrl.CancelOrder)
 	v1.GET("rates/:token/:fiat_symbol", providerCtrl.GetMarketRate)
-}
-
-func validatorRoutes(route *gin.Engine) {
-	var ctrl controllers.Controller
-
-	v1 := route.Group("/v1/validator/")
-	v1.Use(middleware.HMACVerificationMiddleware)
-	v1.Use(middleware.OnlyValidatorMiddleware)
-
-	v1.POST("orders/:fulfillment_id/validate", ctrl.ValidateOrder)
 }
