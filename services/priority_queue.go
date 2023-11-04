@@ -315,6 +315,7 @@ func (s *PriorityQueueService) notifyProvider(ctx context.Context, orderRequestD
 		Where(
 			providerprofile.IDEQ(providerID),
 		).
+		WithAPIKey().
 		Select(providerprofile.FieldProvisionMode, providerprofile.FieldHostIdentifier).
 		Only(ctx)
 	if err != nil {
@@ -328,7 +329,9 @@ func (s *PriorityQueueService) notifyProvider(ctx context.Context, orderRequestD
 			"POST",
 			fmt.Sprintf("%s/new_order", provider.HostIdentifier),
 			orderRequestData,
-			nil,
+			map[string]string{
+				"Client-Id": provider.Edges.APIKey.ID.String(),
+			},
 		)
 		if err != nil {
 			return err

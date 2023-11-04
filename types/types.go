@@ -84,6 +84,15 @@ type LockOrderResponse struct {
 	UpdatedAt         time.Time               `json:"updatedAt"`
 }
 
+// AcceptOrderResponse is the response for the accept order endpoint
+type AcceptOrderResponse struct {
+	ID                uuid.UUID       `json:"id"`
+	Amount            decimal.Decimal `json:"amount"`
+	Institution       string          `json:"institution"`
+	AccountIdentifier string          `json:"accountIdentifier"`
+	AccountName       string          `json:"accountName"`
+}
+
 // FulfillLockOrderPayload is the payload for the fulfill order endpoint
 type FulfillLockOrderPayload struct {
 	TxID             string                                `json:"txId" binding:"required"`
@@ -94,7 +103,7 @@ type FulfillLockOrderPayload struct {
 }
 
 // CancelLockOrderPayload is the payload for the cancel order endpoint
-type CancelLockOrderPayload struct { 
+type CancelLockOrderPayload struct {
 	Reason string `json:"reason" binding:"required"`
 }
 

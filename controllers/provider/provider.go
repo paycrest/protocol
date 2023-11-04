@@ -63,15 +63,12 @@ func (ctrl *ProviderController) AcceptOrder(ctx *gin.Context) {
 		return
 	}
 
-	u.APIResponse(ctx, http.StatusCreated, "success", "Order request accepted successfully", &types.LockOrderResponse{
+	u.APIResponse(ctx, http.StatusCreated, "success", "Order request accepted successfully", &types.AcceptOrderResponse{
 		ID:                orderID,
 		Amount:            order.Amount.Mul(order.Rate),
-		Token:             order.Edges.Token.Symbol,
 		Institution:       order.Institution,
 		AccountIdentifier: order.AccountIdentifier,
 		AccountName:       order.AccountName,
-		Status:            lockpaymentorder.StatusProcessing,
-		UpdatedAt:         order.UpdatedAt,
 	})
 }
 
