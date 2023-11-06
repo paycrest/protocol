@@ -264,8 +264,13 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 
 			// Assign the order to the provider and save it to Redis
 			orderKey := fmt.Sprintf("order_request_%d", order.ID)
+
+			// Converts 1500.73 to 1500.00
+			approxAmount := order.Amount.Mul(order.Rate).Floor()
+			approxAmount = approxAmount.Round(2)
+
 			orderRequestData := map[string]interface{}{
-				"amount":      order.Amount.Mul(order.Rate),
+				"amount":      approxAmount,
 				"token":       order.Token.Symbol,
 				"institution": order.Institution,
 				"provider_id": providerID,

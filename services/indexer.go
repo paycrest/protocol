@@ -611,6 +611,8 @@ func (s *IndexerService) createLockPaymentOrder(ctx context.Context, client type
 
 	// Get provision bucket
 	amountInDecimals := utils.FromSubunit(deposit.Amount, token.Decimals)
+	approxAmountInDecimals := amountInDecimals.Floor()
+	approxAmountInDecimals = approxAmountInDecimals.Round(2)
 	institution, err := s.getInstitutionByCode(ctx, client, deposit.InstitutionCode)
 	if err != nil {
 		return fmt.Errorf("failed to fetch institution: %w", err)
@@ -638,7 +640,7 @@ func (s *IndexerService) createLockPaymentOrder(ctx context.Context, client type
 	lockPaymentOrder := types.LockPaymentOrderFields{
 		Token:             token,
 		OrderID:           fmt.Sprintf("0x%v", hex.EncodeToString(deposit.OrderId[:])),
-		Amount:            amountInDecimals,
+		Amount:            approxAmountInDecimals,
 		Rate:              decimal.NewFromBigInt(deposit.Rate, 0),
 		Label:             utils.Byte32ToString(deposit.Label),
 		BlockNumber:       int64(deposit.Raw.BlockNumber),
