@@ -24,6 +24,8 @@ type PaymentOrderRecipient struct {
 	AccountIdentifier string `json:"account_identifier,omitempty"`
 	// AccountName holds the value of the "account_name" field.
 	AccountName string `json:"account_name,omitempty"`
+	// Memo holds the value of the "memo" field.
+	Memo string `json:"memo,omitempty"`
 	// ProviderID holds the value of the "provider_id" field.
 	ProviderID string `json:"provider_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -62,7 +64,7 @@ func (*PaymentOrderRecipient) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case paymentorderrecipient.FieldID:
 			values[i] = new(sql.NullInt64)
-		case paymentorderrecipient.FieldInstitution, paymentorderrecipient.FieldAccountIdentifier, paymentorderrecipient.FieldAccountName, paymentorderrecipient.FieldProviderID:
+		case paymentorderrecipient.FieldInstitution, paymentorderrecipient.FieldAccountIdentifier, paymentorderrecipient.FieldAccountName, paymentorderrecipient.FieldMemo, paymentorderrecipient.FieldProviderID:
 			values[i] = new(sql.NullString)
 		case paymentorderrecipient.ForeignKeys[0]: // payment_order_recipient
 			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
@@ -104,6 +106,12 @@ func (por *PaymentOrderRecipient) assignValues(columns []string, values []any) e
 				return fmt.Errorf("unexpected type %T for field account_name", values[i])
 			} else if value.Valid {
 				por.AccountName = value.String
+			}
+		case paymentorderrecipient.FieldMemo:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field memo", values[i])
+			} else if value.Valid {
+				por.Memo = value.String
 			}
 		case paymentorderrecipient.FieldProviderID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -167,6 +175,9 @@ func (por *PaymentOrderRecipient) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("account_name=")
 	builder.WriteString(por.AccountName)
+	builder.WriteString(", ")
+	builder.WriteString("memo=")
+	builder.WriteString(por.Memo)
 	builder.WriteString(", ")
 	builder.WriteString("provider_id=")
 	builder.WriteString(por.ProviderID)

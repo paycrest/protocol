@@ -36,13 +36,6 @@ import (
 
 var OrderConf = config.OrderConfig()
 
-type orderRecipient struct {
-	AccountIdentifier string
-	AccountName       string
-	Institution       string
-	ProviderID        string
-}
-
 // Indexer is an interface for indexing blockchain data to the database.
 type Indexer interface {
 	IndexERC20Transfer(ctx context.Context, client types.RPCClient, receiveAddress *ent.ReceiveAddress, done chan<- bool) error
@@ -567,7 +560,7 @@ func (s *IndexerService) indexMissedBlocksForSettlements(ctx context.Context, cl
 }
 
 // getOrderRecipientFromMessageHash decrypts the message hash and returns the order recipient
-func (s *IndexerService) getOrderRecipientFromMessageHash(messageHash string) (*orderRecipient, error) {
+func (s *IndexerService) getOrderRecipientFromMessageHash(messageHash string) (*types.PaymentOrderRecipient, error) {
 	messageCipher, err := hex.DecodeString(strings.TrimPrefix(messageHash, "0x"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode message hash: %w", err)
@@ -585,7 +578,7 @@ func (s *IndexerService) getOrderRecipientFromMessageHash(messageHash string) (*
 		return nil, err
 	}
 
-	var recipient *orderRecipient
+	var recipient *types.PaymentOrderRecipient
 	if err := json.Unmarshal(messageBytes, &recipient); err != nil {
 		return nil, fmt.Errorf("%w", err)
 	}

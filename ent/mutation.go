@@ -2302,6 +2302,7 @@ type LockPaymentOrderMutation struct {
 	institution                *string
 	account_identifier         *string
 	account_name               *string
+	memo                       *string
 	cancellation_count         *int
 	addcancellation_count      *int
 	cancellation_reasons       *[]string
@@ -2963,6 +2964,55 @@ func (m *LockPaymentOrderMutation) ResetAccountName() {
 	m.account_name = nil
 }
 
+// SetMemo sets the "memo" field.
+func (m *LockPaymentOrderMutation) SetMemo(s string) {
+	m.memo = &s
+}
+
+// Memo returns the value of the "memo" field in the mutation.
+func (m *LockPaymentOrderMutation) Memo() (r string, exists bool) {
+	v := m.memo
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMemo returns the old "memo" field's value of the LockPaymentOrder entity.
+// If the LockPaymentOrder object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LockPaymentOrderMutation) OldMemo(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMemo is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMemo requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMemo: %w", err)
+	}
+	return oldValue.Memo, nil
+}
+
+// ClearMemo clears the value of the "memo" field.
+func (m *LockPaymentOrderMutation) ClearMemo() {
+	m.memo = nil
+	m.clearedFields[lockpaymentorder.FieldMemo] = struct{}{}
+}
+
+// MemoCleared returns if the "memo" field was cleared in this mutation.
+func (m *LockPaymentOrderMutation) MemoCleared() bool {
+	_, ok := m.clearedFields[lockpaymentorder.FieldMemo]
+	return ok
+}
+
+// ResetMemo resets all changes to the "memo" field.
+func (m *LockPaymentOrderMutation) ResetMemo() {
+	m.memo = nil
+	delete(m.clearedFields, lockpaymentorder.FieldMemo)
+}
+
 // SetCancellationCount sets the "cancellation_count" field.
 func (m *LockPaymentOrderMutation) SetCancellationCount(i int) {
 	m.cancellation_count = &i
@@ -3260,7 +3310,7 @@ func (m *LockPaymentOrderMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *LockPaymentOrderMutation) Fields() []string {
-	fields := make([]string, 0, 14)
+	fields := make([]string, 0, 15)
 	if m.created_at != nil {
 		fields = append(fields, lockpaymentorder.FieldCreatedAt)
 	}
@@ -3296,6 +3346,9 @@ func (m *LockPaymentOrderMutation) Fields() []string {
 	}
 	if m.account_name != nil {
 		fields = append(fields, lockpaymentorder.FieldAccountName)
+	}
+	if m.memo != nil {
+		fields = append(fields, lockpaymentorder.FieldMemo)
 	}
 	if m.cancellation_count != nil {
 		fields = append(fields, lockpaymentorder.FieldCancellationCount)
@@ -3335,6 +3388,8 @@ func (m *LockPaymentOrderMutation) Field(name string) (ent.Value, bool) {
 		return m.AccountIdentifier()
 	case lockpaymentorder.FieldAccountName:
 		return m.AccountName()
+	case lockpaymentorder.FieldMemo:
+		return m.Memo()
 	case lockpaymentorder.FieldCancellationCount:
 		return m.CancellationCount()
 	case lockpaymentorder.FieldCancellationReasons:
@@ -3372,6 +3427,8 @@ func (m *LockPaymentOrderMutation) OldField(ctx context.Context, name string) (e
 		return m.OldAccountIdentifier(ctx)
 	case lockpaymentorder.FieldAccountName:
 		return m.OldAccountName(ctx)
+	case lockpaymentorder.FieldMemo:
+		return m.OldMemo(ctx)
 	case lockpaymentorder.FieldCancellationCount:
 		return m.OldCancellationCount(ctx)
 	case lockpaymentorder.FieldCancellationReasons:
@@ -3468,6 +3525,13 @@ func (m *LockPaymentOrderMutation) SetField(name string, value ent.Value) error 
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetAccountName(v)
+		return nil
+	case lockpaymentorder.FieldMemo:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMemo(v)
 		return nil
 	case lockpaymentorder.FieldCancellationCount:
 		v, ok := value.(int)
@@ -3582,6 +3646,9 @@ func (m *LockPaymentOrderMutation) ClearedFields() []string {
 	if m.FieldCleared(lockpaymentorder.FieldTxHash) {
 		fields = append(fields, lockpaymentorder.FieldTxHash)
 	}
+	if m.FieldCleared(lockpaymentorder.FieldMemo) {
+		fields = append(fields, lockpaymentorder.FieldMemo)
+	}
 	return fields
 }
 
@@ -3601,6 +3668,9 @@ func (m *LockPaymentOrderMutation) ClearField(name string) error {
 		return nil
 	case lockpaymentorder.FieldTxHash:
 		m.ClearTxHash()
+		return nil
+	case lockpaymentorder.FieldMemo:
+		m.ClearMemo()
 		return nil
 	}
 	return fmt.Errorf("unknown LockPaymentOrder nullable field %s", name)
@@ -3645,6 +3715,9 @@ func (m *LockPaymentOrderMutation) ResetField(name string) error {
 		return nil
 	case lockpaymentorder.FieldAccountName:
 		m.ResetAccountName()
+		return nil
+	case lockpaymentorder.FieldMemo:
+		m.ResetMemo()
 		return nil
 	case lockpaymentorder.FieldCancellationCount:
 		m.ResetCancellationCount()
@@ -5582,6 +5655,7 @@ type PaymentOrderRecipientMutation struct {
 	institution          *string
 	account_identifier   *string
 	account_name         *string
+	memo                 *string
 	provider_id          *string
 	clearedFields        map[string]struct{}
 	payment_order        *uuid.UUID
@@ -5797,6 +5871,55 @@ func (m *PaymentOrderRecipientMutation) ResetAccountName() {
 	m.account_name = nil
 }
 
+// SetMemo sets the "memo" field.
+func (m *PaymentOrderRecipientMutation) SetMemo(s string) {
+	m.memo = &s
+}
+
+// Memo returns the value of the "memo" field in the mutation.
+func (m *PaymentOrderRecipientMutation) Memo() (r string, exists bool) {
+	v := m.memo
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMemo returns the old "memo" field's value of the PaymentOrderRecipient entity.
+// If the PaymentOrderRecipient object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PaymentOrderRecipientMutation) OldMemo(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMemo is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMemo requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMemo: %w", err)
+	}
+	return oldValue.Memo, nil
+}
+
+// ClearMemo clears the value of the "memo" field.
+func (m *PaymentOrderRecipientMutation) ClearMemo() {
+	m.memo = nil
+	m.clearedFields[paymentorderrecipient.FieldMemo] = struct{}{}
+}
+
+// MemoCleared returns if the "memo" field was cleared in this mutation.
+func (m *PaymentOrderRecipientMutation) MemoCleared() bool {
+	_, ok := m.clearedFields[paymentorderrecipient.FieldMemo]
+	return ok
+}
+
+// ResetMemo resets all changes to the "memo" field.
+func (m *PaymentOrderRecipientMutation) ResetMemo() {
+	m.memo = nil
+	delete(m.clearedFields, paymentorderrecipient.FieldMemo)
+}
+
 // SetProviderID sets the "provider_id" field.
 func (m *PaymentOrderRecipientMutation) SetProviderID(s string) {
 	m.provider_id = &s
@@ -5919,7 +6042,7 @@ func (m *PaymentOrderRecipientMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *PaymentOrderRecipientMutation) Fields() []string {
-	fields := make([]string, 0, 4)
+	fields := make([]string, 0, 5)
 	if m.institution != nil {
 		fields = append(fields, paymentorderrecipient.FieldInstitution)
 	}
@@ -5928,6 +6051,9 @@ func (m *PaymentOrderRecipientMutation) Fields() []string {
 	}
 	if m.account_name != nil {
 		fields = append(fields, paymentorderrecipient.FieldAccountName)
+	}
+	if m.memo != nil {
+		fields = append(fields, paymentorderrecipient.FieldMemo)
 	}
 	if m.provider_id != nil {
 		fields = append(fields, paymentorderrecipient.FieldProviderID)
@@ -5946,6 +6072,8 @@ func (m *PaymentOrderRecipientMutation) Field(name string) (ent.Value, bool) {
 		return m.AccountIdentifier()
 	case paymentorderrecipient.FieldAccountName:
 		return m.AccountName()
+	case paymentorderrecipient.FieldMemo:
+		return m.Memo()
 	case paymentorderrecipient.FieldProviderID:
 		return m.ProviderID()
 	}
@@ -5963,6 +6091,8 @@ func (m *PaymentOrderRecipientMutation) OldField(ctx context.Context, name strin
 		return m.OldAccountIdentifier(ctx)
 	case paymentorderrecipient.FieldAccountName:
 		return m.OldAccountName(ctx)
+	case paymentorderrecipient.FieldMemo:
+		return m.OldMemo(ctx)
 	case paymentorderrecipient.FieldProviderID:
 		return m.OldProviderID(ctx)
 	}
@@ -5994,6 +6124,13 @@ func (m *PaymentOrderRecipientMutation) SetField(name string, value ent.Value) e
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetAccountName(v)
+		return nil
+	case paymentorderrecipient.FieldMemo:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMemo(v)
 		return nil
 	case paymentorderrecipient.FieldProviderID:
 		v, ok := value.(string)
@@ -6032,6 +6169,9 @@ func (m *PaymentOrderRecipientMutation) AddField(name string, value ent.Value) e
 // mutation.
 func (m *PaymentOrderRecipientMutation) ClearedFields() []string {
 	var fields []string
+	if m.FieldCleared(paymentorderrecipient.FieldMemo) {
+		fields = append(fields, paymentorderrecipient.FieldMemo)
+	}
 	if m.FieldCleared(paymentorderrecipient.FieldProviderID) {
 		fields = append(fields, paymentorderrecipient.FieldProviderID)
 	}
@@ -6049,6 +6189,9 @@ func (m *PaymentOrderRecipientMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *PaymentOrderRecipientMutation) ClearField(name string) error {
 	switch name {
+	case paymentorderrecipient.FieldMemo:
+		m.ClearMemo()
+		return nil
 	case paymentorderrecipient.FieldProviderID:
 		m.ClearProviderID()
 		return nil
@@ -6068,6 +6211,9 @@ func (m *PaymentOrderRecipientMutation) ResetField(name string) error {
 		return nil
 	case paymentorderrecipient.FieldAccountName:
 		m.ResetAccountName()
+		return nil
+	case paymentorderrecipient.FieldMemo:
+		m.ResetMemo()
 		return nil
 	case paymentorderrecipient.FieldProviderID:
 		m.ResetProviderID()

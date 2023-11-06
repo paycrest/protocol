@@ -17,6 +17,8 @@ func (PaymentOrderRecipient) Fields() []ent.Field {
 		field.String("institution"),
 		field.String("account_identifier"),
 		field.String("account_name"),
+		field.String("memo").
+			Optional(),
 		field.String("provider_id").
 			Optional(),
 	}

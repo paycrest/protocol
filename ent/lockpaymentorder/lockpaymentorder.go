@@ -40,6 +40,8 @@ const (
 	FieldAccountIdentifier = "account_identifier"
 	// FieldAccountName holds the string denoting the account_name field in the database.
 	FieldAccountName = "account_name"
+	// FieldMemo holds the string denoting the memo field in the database.
+	FieldMemo = "memo"
 	// FieldCancellationCount holds the string denoting the cancellation_count field in the database.
 	FieldCancellationCount = "cancellation_count"
 	// FieldCancellationReasons holds the string denoting the cancellation_reasons field in the database.
@@ -99,6 +101,7 @@ var Columns = []string{
 	FieldInstitution,
 	FieldAccountIdentifier,
 	FieldAccountName,
+	FieldMemo,
 	FieldCancellationCount,
 	FieldCancellationReasons,
 }
@@ -239,6 +242,11 @@ func ByAccountIdentifier(opts ...sql.OrderTermOption) OrderOption {
 // ByAccountName orders the results by the account_name field.
 func ByAccountName(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAccountName, opts...).ToFunc()
+}
+
+// ByMemo orders the results by the memo field.
+func ByMemo(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldMemo, opts...).ToFunc()
 }
 
 // ByCancellationCount orders the results by the cancellation_count field.

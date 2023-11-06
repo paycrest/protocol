@@ -165,6 +165,26 @@ func (lpou *LockPaymentOrderUpdate) SetAccountName(s string) *LockPaymentOrderUp
 	return lpou
 }
 
+// SetMemo sets the "memo" field.
+func (lpou *LockPaymentOrderUpdate) SetMemo(s string) *LockPaymentOrderUpdate {
+	lpou.mutation.SetMemo(s)
+	return lpou
+}
+
+// SetNillableMemo sets the "memo" field if the given value is not nil.
+func (lpou *LockPaymentOrderUpdate) SetNillableMemo(s *string) *LockPaymentOrderUpdate {
+	if s != nil {
+		lpou.SetMemo(*s)
+	}
+	return lpou
+}
+
+// ClearMemo clears the value of the "memo" field.
+func (lpou *LockPaymentOrderUpdate) ClearMemo() *LockPaymentOrderUpdate {
+	lpou.mutation.ClearMemo()
+	return lpou
+}
+
 // SetCancellationCount sets the "cancellation_count" field.
 func (lpou *LockPaymentOrderUpdate) SetCancellationCount(i int) *LockPaymentOrderUpdate {
 	lpou.mutation.ResetCancellationCount()
@@ -411,6 +431,12 @@ func (lpou *LockPaymentOrderUpdate) sqlSave(ctx context.Context) (n int, err err
 	}
 	if value, ok := lpou.mutation.AccountName(); ok {
 		_spec.SetField(lockpaymentorder.FieldAccountName, field.TypeString, value)
+	}
+	if value, ok := lpou.mutation.Memo(); ok {
+		_spec.SetField(lockpaymentorder.FieldMemo, field.TypeString, value)
+	}
+	if lpou.mutation.MemoCleared() {
+		_spec.ClearField(lockpaymentorder.FieldMemo, field.TypeString)
 	}
 	if value, ok := lpou.mutation.CancellationCount(); ok {
 		_spec.SetField(lockpaymentorder.FieldCancellationCount, field.TypeInt, value)
@@ -692,6 +718,26 @@ func (lpouo *LockPaymentOrderUpdateOne) SetAccountName(s string) *LockPaymentOrd
 	return lpouo
 }
 
+// SetMemo sets the "memo" field.
+func (lpouo *LockPaymentOrderUpdateOne) SetMemo(s string) *LockPaymentOrderUpdateOne {
+	lpouo.mutation.SetMemo(s)
+	return lpouo
+}
+
+// SetNillableMemo sets the "memo" field if the given value is not nil.
+func (lpouo *LockPaymentOrderUpdateOne) SetNillableMemo(s *string) *LockPaymentOrderUpdateOne {
+	if s != nil {
+		lpouo.SetMemo(*s)
+	}
+	return lpouo
+}
+
+// ClearMemo clears the value of the "memo" field.
+func (lpouo *LockPaymentOrderUpdateOne) ClearMemo() *LockPaymentOrderUpdateOne {
+	lpouo.mutation.ClearMemo()
+	return lpouo
+}
+
 // SetCancellationCount sets the "cancellation_count" field.
 func (lpouo *LockPaymentOrderUpdateOne) SetCancellationCount(i int) *LockPaymentOrderUpdateOne {
 	lpouo.mutation.ResetCancellationCount()
@@ -968,6 +1014,12 @@ func (lpouo *LockPaymentOrderUpdateOne) sqlSave(ctx context.Context) (_node *Loc
 	}
 	if value, ok := lpouo.mutation.AccountName(); ok {
 		_spec.SetField(lockpaymentorder.FieldAccountName, field.TypeString, value)
+	}
+	if value, ok := lpouo.mutation.Memo(); ok {
+		_spec.SetField(lockpaymentorder.FieldMemo, field.TypeString, value)
+	}
+	if lpouo.mutation.MemoCleared() {
+		_spec.ClearField(lockpaymentorder.FieldMemo, field.TypeString)
 	}
 	if value, ok := lpouo.mutation.CancellationCount(); ok {
 		_spec.SetField(lockpaymentorder.FieldCancellationCount, field.TypeInt, value)
