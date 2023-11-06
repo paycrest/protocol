@@ -141,6 +141,7 @@ func TestSender(t *testing.T) {
 				"institution":       "First Bank Nigeria PLC",
 				"accountIdentifier": "1234567890",
 				"accountName":       "John Doe",
+				"memo":              "Shola Kehinde - rent for May 2021",
 			},
 			"timestamp": time.Now().Unix(),
 		}
@@ -182,6 +183,7 @@ func TestSender(t *testing.T) {
 
 		assert.NotNil(t, paymentOrder.Edges.Recipient)
 		assert.Equal(t, paymentOrder.Edges.Recipient.AccountIdentifier, payload["recipient"].(map[string]interface{})["accountIdentifier"])
+		assert.Equal(t, paymentOrder.Edges.Recipient.Memo, payload["recipient"].(map[string]interface{})["memo"])
 	})
 
 	t.Run("GetPaymentOrder", func(t *testing.T) {
