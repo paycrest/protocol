@@ -59,6 +59,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, client types.RPCClient, 
 		WithToken(func(tq *ent.TokenQuery) {
 			tq.WithNetwork()
 		}).
+		WithSenderProfile().
 		WithRecipient().
 		WithReceiveAddress().
 		Only(ctx)
@@ -338,6 +339,10 @@ func (s *OrderService) createOrderCallData(order *ent.PaymentOrder) ([]byte, err
 		return nil, fmt.Errorf("failed to encrypt recipient details: %w", err)
 	}
 
+	// Calculate sender fee
+	feePerTokenUnit := order.Edges.SenderProfile.FeePerTokenUnit
+	senderFee := feePerTokenUnit.Mul(order.Amount)
+
 	// Define params
 	params := &CreateOrderParams{
 		Token:              common.HexToAddress(order.Edges.Token.ContractAddress),
@@ -345,8 +350,8 @@ func (s *OrderService) createOrderCallData(order *ent.PaymentOrder) ([]byte, err
 		InstitutionCode:    utils.StringToByte32(order.Edges.Recipient.Institution),
 		Rate:               big.NewInt(930), // TODO: fetch actual market rate from aggregator
 		SenderFeeRecipient: *fromAddress,    // TODO: fetch this from the sender profile
-		SenderFee:          big.NewInt(0),   // TODO: fetch this from the sender profile
-		RefundAddress:      *fromAddress,    // TODO: fetch this from the sender profile
+		SenderFee:          utils.ToSubunit(senderFee, order.Edges.Token.Decimals),
+		RefundAddress:      *fromAddress, // TODO: fetch this from the sender profile
 		MessageHash:        encryptedOrderRecipient,
 	}
 

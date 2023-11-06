@@ -61,6 +61,10 @@ func (ctrl *ProfileController) UpdateSenderProfile(ctx *gin.Context) {
 		update.SetDomainWhitelist(payload.DomainWhitelist)
 	}
 
+	if payload.FeePerTokenUnit != decimal.Zero {
+		update.SetFeePerTokenUnit(payload.FeePerTokenUnit)
+	}
+
 	_, err := update.Save(ctx)
 	if err != nil {
 		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update profile", nil)
@@ -293,6 +297,7 @@ func (ctrl *ProfileController) GetSenderProfile(ctx *gin.Context) {
 		ID:              sender.ID,
 		WebhookURL:      sender.WebhookURL,
 		DomainWhitelist: sender.DomainWhitelist,
+		FeePerTokenUnit: sender.FeePerTokenUnit,
 		APIKey:          *apiKey,
 	})
 }
