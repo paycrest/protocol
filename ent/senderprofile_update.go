@@ -17,6 +17,7 @@ import (
 	"github.com/paycrest/protocol/ent/paymentorder"
 	"github.com/paycrest/protocol/ent/predicate"
 	"github.com/paycrest/protocol/ent/senderprofile"
+	"github.com/shopspring/decimal"
 )
 
 // SenderProfileUpdate is the builder for updating SenderProfile entities.
@@ -49,6 +50,19 @@ func (spu *SenderProfileUpdate) SetNillableWebhookURL(s *string) *SenderProfileU
 // ClearWebhookURL clears the value of the "webhook_url" field.
 func (spu *SenderProfileUpdate) ClearWebhookURL() *SenderProfileUpdate {
 	spu.mutation.ClearWebhookURL()
+	return spu
+}
+
+// SetFeePerTokenUnit sets the "fee_per_token_unit" field.
+func (spu *SenderProfileUpdate) SetFeePerTokenUnit(d decimal.Decimal) *SenderProfileUpdate {
+	spu.mutation.ResetFeePerTokenUnit()
+	spu.mutation.SetFeePerTokenUnit(d)
+	return spu
+}
+
+// AddFeePerTokenUnit adds d to the "fee_per_token_unit" field.
+func (spu *SenderProfileUpdate) AddFeePerTokenUnit(d decimal.Decimal) *SenderProfileUpdate {
+	spu.mutation.AddFeePerTokenUnit(d)
 	return spu
 }
 
@@ -198,6 +212,12 @@ func (spu *SenderProfileUpdate) sqlSave(ctx context.Context) (n int, err error) 
 	if spu.mutation.WebhookURLCleared() {
 		_spec.ClearField(senderprofile.FieldWebhookURL, field.TypeString)
 	}
+	if value, ok := spu.mutation.FeePerTokenUnit(); ok {
+		_spec.SetField(senderprofile.FieldFeePerTokenUnit, field.TypeFloat64, value)
+	}
+	if value, ok := spu.mutation.AddedFeePerTokenUnit(); ok {
+		_spec.AddField(senderprofile.FieldFeePerTokenUnit, field.TypeFloat64, value)
+	}
 	if value, ok := spu.mutation.DomainWhitelist(); ok {
 		_spec.SetField(senderprofile.FieldDomainWhitelist, field.TypeJSON, value)
 	}
@@ -320,6 +340,19 @@ func (spuo *SenderProfileUpdateOne) SetNillableWebhookURL(s *string) *SenderProf
 // ClearWebhookURL clears the value of the "webhook_url" field.
 func (spuo *SenderProfileUpdateOne) ClearWebhookURL() *SenderProfileUpdateOne {
 	spuo.mutation.ClearWebhookURL()
+	return spuo
+}
+
+// SetFeePerTokenUnit sets the "fee_per_token_unit" field.
+func (spuo *SenderProfileUpdateOne) SetFeePerTokenUnit(d decimal.Decimal) *SenderProfileUpdateOne {
+	spuo.mutation.ResetFeePerTokenUnit()
+	spuo.mutation.SetFeePerTokenUnit(d)
+	return spuo
+}
+
+// AddFeePerTokenUnit adds d to the "fee_per_token_unit" field.
+func (spuo *SenderProfileUpdateOne) AddFeePerTokenUnit(d decimal.Decimal) *SenderProfileUpdateOne {
+	spuo.mutation.AddFeePerTokenUnit(d)
 	return spuo
 }
 
@@ -498,6 +531,12 @@ func (spuo *SenderProfileUpdateOne) sqlSave(ctx context.Context) (_node *SenderP
 	}
 	if spuo.mutation.WebhookURLCleared() {
 		_spec.ClearField(senderprofile.FieldWebhookURL, field.TypeString)
+	}
+	if value, ok := spuo.mutation.FeePerTokenUnit(); ok {
+		_spec.SetField(senderprofile.FieldFeePerTokenUnit, field.TypeFloat64, value)
+	}
+	if value, ok := spuo.mutation.AddedFeePerTokenUnit(); ok {
+		_spec.AddField(senderprofile.FieldFeePerTokenUnit, field.TypeFloat64, value)
 	}
 	if value, ok := spuo.mutation.DomainWhitelist(); ok {
 		_spec.SetField(senderprofile.FieldDomainWhitelist, field.TypeJSON, value)

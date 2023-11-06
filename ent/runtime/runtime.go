@@ -231,11 +231,11 @@ func init() {
 	senderprofileFields := schema.SenderProfile{}.Fields()
 	_ = senderprofileFields
 	// senderprofileDescDomainWhitelist is the schema descriptor for domain_whitelist field.
-	senderprofileDescDomainWhitelist := senderprofileFields[2].Descriptor()
+	senderprofileDescDomainWhitelist := senderprofileFields[3].Descriptor()
 	// senderprofile.DefaultDomainWhitelist holds the default value on creation for the domain_whitelist field.
 	senderprofile.DefaultDomainWhitelist = senderprofileDescDomainWhitelist.Default.([]string)
 	// senderprofileDescUpdatedAt is the schema descriptor for updated_at field.
-	senderprofileDescUpdatedAt := senderprofileFields[3].Descriptor()
+	senderprofileDescUpdatedAt := senderprofileFields[4].Descriptor()
 	// senderprofile.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	senderprofile.DefaultUpdatedAt = senderprofileDescUpdatedAt.Default.(func() time.Time)
 	// senderprofile.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

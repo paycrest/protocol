@@ -15,6 +15,7 @@ import (
 	"github.com/paycrest/protocol/ent/paymentorder"
 	"github.com/paycrest/protocol/ent/senderprofile"
 	"github.com/paycrest/protocol/ent/user"
+	"github.com/shopspring/decimal"
 )
 
 // SenderProfileCreate is the builder for creating a SenderProfile entity.
@@ -35,6 +36,12 @@ func (spc *SenderProfileCreate) SetNillableWebhookURL(s *string) *SenderProfileC
 	if s != nil {
 		spc.SetWebhookURL(*s)
 	}
+	return spc
+}
+
+// SetFeePerTokenUnit sets the "fee_per_token_unit" field.
+func (spc *SenderProfileCreate) SetFeePerTokenUnit(d decimal.Decimal) *SenderProfileCreate {
+	spc.mutation.SetFeePerTokenUnit(d)
 	return spc
 }
 
@@ -168,6 +175,9 @@ func (spc *SenderProfileCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (spc *SenderProfileCreate) check() error {
+	if _, ok := spc.mutation.FeePerTokenUnit(); !ok {
+		return &ValidationError{Name: "fee_per_token_unit", err: errors.New(`ent: missing required field "SenderProfile.fee_per_token_unit"`)}
+	}
 	if _, ok := spc.mutation.DomainWhitelist(); !ok {
 		return &ValidationError{Name: "domain_whitelist", err: errors.New(`ent: missing required field "SenderProfile.domain_whitelist"`)}
 	}
@@ -215,6 +225,10 @@ func (spc *SenderProfileCreate) createSpec() (*SenderProfile, *sqlgraph.CreateSp
 	if value, ok := spc.mutation.WebhookURL(); ok {
 		_spec.SetField(senderprofile.FieldWebhookURL, field.TypeString, value)
 		_node.WebhookURL = value
+	}
+	if value, ok := spc.mutation.FeePerTokenUnit(); ok {
+		_spec.SetField(senderprofile.FieldFeePerTokenUnit, field.TypeFloat64, value)
+		_node.FeePerTokenUnit = value
 	}
 	if value, ok := spc.mutation.DomainWhitelist(); ok {
 		_spec.SetField(senderprofile.FieldDomainWhitelist, field.TypeJSON, value)

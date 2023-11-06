@@ -11071,6 +11071,8 @@ type SenderProfileMutation struct {
 	typ                    string
 	id                     *uuid.UUID
 	webhook_url            *string
+	fee_per_token_unit     *decimal.Decimal
+	addfee_per_token_unit  *decimal.Decimal
 	domain_whitelist       *[]string
 	appenddomain_whitelist []string
 	updated_at             *time.Time
@@ -11238,6 +11240,62 @@ func (m *SenderProfileMutation) WebhookURLCleared() bool {
 func (m *SenderProfileMutation) ResetWebhookURL() {
 	m.webhook_url = nil
 	delete(m.clearedFields, senderprofile.FieldWebhookURL)
+}
+
+// SetFeePerTokenUnit sets the "fee_per_token_unit" field.
+func (m *SenderProfileMutation) SetFeePerTokenUnit(d decimal.Decimal) {
+	m.fee_per_token_unit = &d
+	m.addfee_per_token_unit = nil
+}
+
+// FeePerTokenUnit returns the value of the "fee_per_token_unit" field in the mutation.
+func (m *SenderProfileMutation) FeePerTokenUnit() (r decimal.Decimal, exists bool) {
+	v := m.fee_per_token_unit
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFeePerTokenUnit returns the old "fee_per_token_unit" field's value of the SenderProfile entity.
+// If the SenderProfile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SenderProfileMutation) OldFeePerTokenUnit(ctx context.Context) (v decimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFeePerTokenUnit is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFeePerTokenUnit requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFeePerTokenUnit: %w", err)
+	}
+	return oldValue.FeePerTokenUnit, nil
+}
+
+// AddFeePerTokenUnit adds d to the "fee_per_token_unit" field.
+func (m *SenderProfileMutation) AddFeePerTokenUnit(d decimal.Decimal) {
+	if m.addfee_per_token_unit != nil {
+		*m.addfee_per_token_unit = m.addfee_per_token_unit.Add(d)
+	} else {
+		m.addfee_per_token_unit = &d
+	}
+}
+
+// AddedFeePerTokenUnit returns the value that was added to the "fee_per_token_unit" field in this mutation.
+func (m *SenderProfileMutation) AddedFeePerTokenUnit() (r decimal.Decimal, exists bool) {
+	v := m.addfee_per_token_unit
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetFeePerTokenUnit resets all changes to the "fee_per_token_unit" field.
+func (m *SenderProfileMutation) ResetFeePerTokenUnit() {
+	m.fee_per_token_unit = nil
+	m.addfee_per_token_unit = nil
 }
 
 // SetDomainWhitelist sets the "domain_whitelist" field.
@@ -11493,9 +11551,12 @@ func (m *SenderProfileMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *SenderProfileMutation) Fields() []string {
-	fields := make([]string, 0, 3)
+	fields := make([]string, 0, 4)
 	if m.webhook_url != nil {
 		fields = append(fields, senderprofile.FieldWebhookURL)
+	}
+	if m.fee_per_token_unit != nil {
+		fields = append(fields, senderprofile.FieldFeePerTokenUnit)
 	}
 	if m.domain_whitelist != nil {
 		fields = append(fields, senderprofile.FieldDomainWhitelist)
@@ -11513,6 +11574,8 @@ func (m *SenderProfileMutation) Field(name string) (ent.Value, bool) {
 	switch name {
 	case senderprofile.FieldWebhookURL:
 		return m.WebhookURL()
+	case senderprofile.FieldFeePerTokenUnit:
+		return m.FeePerTokenUnit()
 	case senderprofile.FieldDomainWhitelist:
 		return m.DomainWhitelist()
 	case senderprofile.FieldUpdatedAt:
@@ -11528,6 +11591,8 @@ func (m *SenderProfileMutation) OldField(ctx context.Context, name string) (ent.
 	switch name {
 	case senderprofile.FieldWebhookURL:
 		return m.OldWebhookURL(ctx)
+	case senderprofile.FieldFeePerTokenUnit:
+		return m.OldFeePerTokenUnit(ctx)
 	case senderprofile.FieldDomainWhitelist:
 		return m.OldDomainWhitelist(ctx)
 	case senderprofile.FieldUpdatedAt:
@@ -11547,6 +11612,13 @@ func (m *SenderProfileMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetWebhookURL(v)
+		return nil
+	case senderprofile.FieldFeePerTokenUnit:
+		v, ok := value.(decimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFeePerTokenUnit(v)
 		return nil
 	case senderprofile.FieldDomainWhitelist:
 		v, ok := value.([]string)
@@ -11569,13 +11641,21 @@ func (m *SenderProfileMutation) SetField(name string, value ent.Value) error {
 // AddedFields returns all numeric fields that were incremented/decremented during
 // this mutation.
 func (m *SenderProfileMutation) AddedFields() []string {
-	return nil
+	var fields []string
+	if m.addfee_per_token_unit != nil {
+		fields = append(fields, senderprofile.FieldFeePerTokenUnit)
+	}
+	return fields
 }
 
 // AddedField returns the numeric value that was incremented/decremented on a field
 // with the given name. The second boolean return value indicates that this field
 // was not set, or was not defined in the schema.
 func (m *SenderProfileMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case senderprofile.FieldFeePerTokenUnit:
+		return m.AddedFeePerTokenUnit()
+	}
 	return nil, false
 }
 
@@ -11584,6 +11664,13 @@ func (m *SenderProfileMutation) AddedField(name string) (ent.Value, bool) {
 // type.
 func (m *SenderProfileMutation) AddField(name string, value ent.Value) error {
 	switch name {
+	case senderprofile.FieldFeePerTokenUnit:
+		v, ok := value.(decimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddFeePerTokenUnit(v)
+		return nil
 	}
 	return fmt.Errorf("unknown SenderProfile numeric field %s", name)
 }
@@ -11622,6 +11709,9 @@ func (m *SenderProfileMutation) ResetField(name string) error {
 	switch name {
 	case senderprofile.FieldWebhookURL:
 		m.ResetWebhookURL()
+		return nil
+	case senderprofile.FieldFeePerTokenUnit:
+		m.ResetFeePerTokenUnit()
 		return nil
 	case senderprofile.FieldDomainWhitelist:
 		m.ResetDomainWhitelist()

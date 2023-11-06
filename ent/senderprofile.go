@@ -14,6 +14,7 @@ import (
 	"github.com/paycrest/protocol/ent/apikey"
 	"github.com/paycrest/protocol/ent/senderprofile"
 	"github.com/paycrest/protocol/ent/user"
+	"github.com/shopspring/decimal"
 )
 
 // SenderProfile is the model entity for the SenderProfile schema.
@@ -23,6 +24,8 @@ type SenderProfile struct {
 	ID uuid.UUID `json:"id,omitempty"`
 	// WebhookURL holds the value of the "webhook_url" field.
 	WebhookURL string `json:"webhook_url,omitempty"`
+	// FeePerTokenUnit holds the value of the "fee_per_token_unit" field.
+	FeePerTokenUnit decimal.Decimal `json:"fee_per_token_unit,omitempty"`
 	// DomainWhitelist holds the value of the "domain_whitelist" field.
 	DomainWhitelist []string `json:"domain_whitelist,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
@@ -89,6 +92,8 @@ func (*SenderProfile) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case senderprofile.FieldDomainWhitelist:
 			values[i] = new([]byte)
+		case senderprofile.FieldFeePerTokenUnit:
+			values[i] = new(decimal.Decimal)
 		case senderprofile.FieldWebhookURL:
 			values[i] = new(sql.NullString)
 		case senderprofile.FieldUpdatedAt:
@@ -123,6 +128,12 @@ func (sp *SenderProfile) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field webhook_url", values[i])
 			} else if value.Valid {
 				sp.WebhookURL = value.String
+			}
+		case senderprofile.FieldFeePerTokenUnit:
+			if value, ok := values[i].(*decimal.Decimal); !ok {
+				return fmt.Errorf("unexpected type %T for field fee_per_token_unit", values[i])
+			} else if value != nil {
+				sp.FeePerTokenUnit = *value
 			}
 		case senderprofile.FieldDomainWhitelist:
 			if value, ok := values[i].(*[]byte); !ok {
@@ -198,6 +209,9 @@ func (sp *SenderProfile) String() string {
 	builder.WriteString(fmt.Sprintf("id=%v, ", sp.ID))
 	builder.WriteString("webhook_url=")
 	builder.WriteString(sp.WebhookURL)
+	builder.WriteString(", ")
+	builder.WriteString("fee_per_token_unit=")
+	builder.WriteString(fmt.Sprintf("%v", sp.FeePerTokenUnit))
 	builder.WriteString(", ")
 	builder.WriteString("domain_whitelist=")
 	builder.WriteString(fmt.Sprintf("%v", sp.DomainWhitelist))

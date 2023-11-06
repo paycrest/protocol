@@ -9,6 +9,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/google/uuid"
 	"github.com/paycrest/protocol/ent/predicate"
+	"github.com/shopspring/decimal"
 )
 
 // ID filters vertices based on their ID field.
@@ -59,6 +60,11 @@ func IDLTE(id uuid.UUID) predicate.SenderProfile {
 // WebhookURL applies equality check predicate on the "webhook_url" field. It's identical to WebhookURLEQ.
 func WebhookURL(v string) predicate.SenderProfile {
 	return predicate.SenderProfile(sql.FieldEQ(FieldWebhookURL, v))
+}
+
+// FeePerTokenUnit applies equality check predicate on the "fee_per_token_unit" field. It's identical to FeePerTokenUnitEQ.
+func FeePerTokenUnit(v decimal.Decimal) predicate.SenderProfile {
+	return predicate.SenderProfile(sql.FieldEQ(FieldFeePerTokenUnit, v))
 }
 
 // UpdatedAt applies equality check predicate on the "updated_at" field. It's identical to UpdatedAtEQ.
@@ -139,6 +145,46 @@ func WebhookURLEqualFold(v string) predicate.SenderProfile {
 // WebhookURLContainsFold applies the ContainsFold predicate on the "webhook_url" field.
 func WebhookURLContainsFold(v string) predicate.SenderProfile {
 	return predicate.SenderProfile(sql.FieldContainsFold(FieldWebhookURL, v))
+}
+
+// FeePerTokenUnitEQ applies the EQ predicate on the "fee_per_token_unit" field.
+func FeePerTokenUnitEQ(v decimal.Decimal) predicate.SenderProfile {
+	return predicate.SenderProfile(sql.FieldEQ(FieldFeePerTokenUnit, v))
+}
+
+// FeePerTokenUnitNEQ applies the NEQ predicate on the "fee_per_token_unit" field.
+func FeePerTokenUnitNEQ(v decimal.Decimal) predicate.SenderProfile {
+	return predicate.SenderProfile(sql.FieldNEQ(FieldFeePerTokenUnit, v))
+}
+
+// FeePerTokenUnitIn applies the In predicate on the "fee_per_token_unit" field.
+func FeePerTokenUnitIn(vs ...decimal.Decimal) predicate.SenderProfile {
+	return predicate.SenderProfile(sql.FieldIn(FieldFeePerTokenUnit, vs...))
+}
+
+// FeePerTokenUnitNotIn applies the NotIn predicate on the "fee_per_token_unit" field.
+func FeePerTokenUnitNotIn(vs ...decimal.Decimal) predicate.SenderProfile {
+	return predicate.SenderProfile(sql.FieldNotIn(FieldFeePerTokenUnit, vs...))
+}
+
+// FeePerTokenUnitGT applies the GT predicate on the "fee_per_token_unit" field.
+func FeePerTokenUnitGT(v decimal.Decimal) predicate.SenderProfile {
+	return predicate.SenderProfile(sql.FieldGT(FieldFeePerTokenUnit, v))
+}
+
+// FeePerTokenUnitGTE applies the GTE predicate on the "fee_per_token_unit" field.
+func FeePerTokenUnitGTE(v decimal.Decimal) predicate.SenderProfile {
+	return predicate.SenderProfile(sql.FieldGTE(FieldFeePerTokenUnit, v))
+}
+
+// FeePerTokenUnitLT applies the LT predicate on the "fee_per_token_unit" field.
+func FeePerTokenUnitLT(v decimal.Decimal) predicate.SenderProfile {
+	return predicate.SenderProfile(sql.FieldLT(FieldFeePerTokenUnit, v))
+}
+
+// FeePerTokenUnitLTE applies the LTE predicate on the "fee_per_token_unit" field.
+func FeePerTokenUnitLTE(v decimal.Decimal) predicate.SenderProfile {
+	return predicate.SenderProfile(sql.FieldLTE(FieldFeePerTokenUnit, v))
 }
 
 // UpdatedAtEQ applies the EQ predicate on the "updated_at" field.

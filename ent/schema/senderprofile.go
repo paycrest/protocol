@@ -8,6 +8,7 @@ import (
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 )
 
 // SenderProfile holds the schema definition for the SenderProfile entity.
@@ -21,6 +22,8 @@ func (SenderProfile) Fields() []ent.Field {
 		field.UUID("id", uuid.UUID{}).
 			Default(uuid.New),
 		field.String("webhook_url").Optional(),
+		field.Float("fee_per_token_unit").
+			GoType(decimal.Decimal{}),
 		field.Strings("domain_whitelist").
 			Default([]string{}),
 		field.Time("updated_at").
