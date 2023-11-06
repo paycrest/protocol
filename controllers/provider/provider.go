@@ -69,6 +69,7 @@ func (ctrl *ProviderController) AcceptOrder(ctx *gin.Context) {
 		Institution:       order.Institution,
 		AccountIdentifier: order.AccountIdentifier,
 		AccountName:       order.AccountName,
+		Memo:              order.Memo,
 	})
 }
 

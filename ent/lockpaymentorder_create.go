@@ -138,6 +138,20 @@ func (lpoc *LockPaymentOrderCreate) SetAccountName(s string) *LockPaymentOrderCr
 	return lpoc
 }
 
+// SetMemo sets the "memo" field.
+func (lpoc *LockPaymentOrderCreate) SetMemo(s string) *LockPaymentOrderCreate {
+	lpoc.mutation.SetMemo(s)
+	return lpoc
+}
+
+// SetNillableMemo sets the "memo" field if the given value is not nil.
+func (lpoc *LockPaymentOrderCreate) SetNillableMemo(s *string) *LockPaymentOrderCreate {
+	if s != nil {
+		lpoc.SetMemo(*s)
+	}
+	return lpoc
+}
+
 // SetCancellationCount sets the "cancellation_count" field.
 func (lpoc *LockPaymentOrderCreate) SetCancellationCount(i int) *LockPaymentOrderCreate {
 	lpoc.mutation.SetCancellationCount(i)
@@ -434,6 +448,10 @@ func (lpoc *LockPaymentOrderCreate) createSpec() (*LockPaymentOrder, *sqlgraph.C
 	if value, ok := lpoc.mutation.AccountName(); ok {
 		_spec.SetField(lockpaymentorder.FieldAccountName, field.TypeString, value)
 		_node.AccountName = value
+	}
+	if value, ok := lpoc.mutation.Memo(); ok {
+		_spec.SetField(lockpaymentorder.FieldMemo, field.TypeString, value)
+		_node.Memo = value
 	}
 	if value, ok := lpoc.mutation.CancellationCount(); ok {
 		_spec.SetField(lockpaymentorder.FieldCancellationCount, field.TypeInt, value)

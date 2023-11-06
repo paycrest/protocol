@@ -47,6 +47,26 @@ func (poru *PaymentOrderRecipientUpdate) SetAccountName(s string) *PaymentOrderR
 	return poru
 }
 
+// SetMemo sets the "memo" field.
+func (poru *PaymentOrderRecipientUpdate) SetMemo(s string) *PaymentOrderRecipientUpdate {
+	poru.mutation.SetMemo(s)
+	return poru
+}
+
+// SetNillableMemo sets the "memo" field if the given value is not nil.
+func (poru *PaymentOrderRecipientUpdate) SetNillableMemo(s *string) *PaymentOrderRecipientUpdate {
+	if s != nil {
+		poru.SetMemo(*s)
+	}
+	return poru
+}
+
+// ClearMemo clears the value of the "memo" field.
+func (poru *PaymentOrderRecipientUpdate) ClearMemo() *PaymentOrderRecipientUpdate {
+	poru.mutation.ClearMemo()
+	return poru
+}
+
 // SetProviderID sets the "provider_id" field.
 func (poru *PaymentOrderRecipientUpdate) SetProviderID(s string) *PaymentOrderRecipientUpdate {
 	poru.mutation.SetProviderID(s)
@@ -145,6 +165,12 @@ func (poru *PaymentOrderRecipientUpdate) sqlSave(ctx context.Context) (n int, er
 	if value, ok := poru.mutation.AccountName(); ok {
 		_spec.SetField(paymentorderrecipient.FieldAccountName, field.TypeString, value)
 	}
+	if value, ok := poru.mutation.Memo(); ok {
+		_spec.SetField(paymentorderrecipient.FieldMemo, field.TypeString, value)
+	}
+	if poru.mutation.MemoCleared() {
+		_spec.ClearField(paymentorderrecipient.FieldMemo, field.TypeString)
+	}
 	if value, ok := poru.mutation.ProviderID(); ok {
 		_spec.SetField(paymentorderrecipient.FieldProviderID, field.TypeString, value)
 	}
@@ -215,6 +241,26 @@ func (poruo *PaymentOrderRecipientUpdateOne) SetAccountIdentifier(s string) *Pay
 // SetAccountName sets the "account_name" field.
 func (poruo *PaymentOrderRecipientUpdateOne) SetAccountName(s string) *PaymentOrderRecipientUpdateOne {
 	poruo.mutation.SetAccountName(s)
+	return poruo
+}
+
+// SetMemo sets the "memo" field.
+func (poruo *PaymentOrderRecipientUpdateOne) SetMemo(s string) *PaymentOrderRecipientUpdateOne {
+	poruo.mutation.SetMemo(s)
+	return poruo
+}
+
+// SetNillableMemo sets the "memo" field if the given value is not nil.
+func (poruo *PaymentOrderRecipientUpdateOne) SetNillableMemo(s *string) *PaymentOrderRecipientUpdateOne {
+	if s != nil {
+		poruo.SetMemo(*s)
+	}
+	return poruo
+}
+
+// ClearMemo clears the value of the "memo" field.
+func (poruo *PaymentOrderRecipientUpdateOne) ClearMemo() *PaymentOrderRecipientUpdateOne {
+	poruo.mutation.ClearMemo()
 	return poruo
 }
 
@@ -345,6 +391,12 @@ func (poruo *PaymentOrderRecipientUpdateOne) sqlSave(ctx context.Context) (_node
 	}
 	if value, ok := poruo.mutation.AccountName(); ok {
 		_spec.SetField(paymentorderrecipient.FieldAccountName, field.TypeString, value)
+	}
+	if value, ok := poruo.mutation.Memo(); ok {
+		_spec.SetField(paymentorderrecipient.FieldMemo, field.TypeString, value)
+	}
+	if poruo.mutation.MemoCleared() {
+		_spec.ClearField(paymentorderrecipient.FieldMemo, field.TypeString)
 	}
 	if value, ok := poruo.mutation.ProviderID(); ok {
 		_spec.SetField(paymentorderrecipient.FieldProviderID, field.TypeString, value)

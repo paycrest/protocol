@@ -39,6 +39,20 @@ func (porc *PaymentOrderRecipientCreate) SetAccountName(s string) *PaymentOrderR
 	return porc
 }
 
+// SetMemo sets the "memo" field.
+func (porc *PaymentOrderRecipientCreate) SetMemo(s string) *PaymentOrderRecipientCreate {
+	porc.mutation.SetMemo(s)
+	return porc
+}
+
+// SetNillableMemo sets the "memo" field if the given value is not nil.
+func (porc *PaymentOrderRecipientCreate) SetNillableMemo(s *string) *PaymentOrderRecipientCreate {
+	if s != nil {
+		porc.SetMemo(*s)
+	}
+	return porc
+}
+
 // SetProviderID sets the "provider_id" field.
 func (porc *PaymentOrderRecipientCreate) SetProviderID(s string) *PaymentOrderRecipientCreate {
 	porc.mutation.SetProviderID(s)
@@ -147,6 +161,10 @@ func (porc *PaymentOrderRecipientCreate) createSpec() (*PaymentOrderRecipient, *
 	if value, ok := porc.mutation.AccountName(); ok {
 		_spec.SetField(paymentorderrecipient.FieldAccountName, field.TypeString, value)
 		_node.AccountName = value
+	}
+	if value, ok := porc.mutation.Memo(); ok {
+		_spec.SetField(paymentorderrecipient.FieldMemo, field.TypeString, value)
+		_node.Memo = value
 	}
 	if value, ok := porc.mutation.ProviderID(); ok {
 		_spec.SetField(paymentorderrecipient.FieldProviderID, field.TypeString, value)

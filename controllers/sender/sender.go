@@ -122,6 +122,7 @@ func (ctrl *SenderController) CreatePaymentOrder(ctx *gin.Context) {
 		SetAccountIdentifier(payload.Recipient.AccountIdentifier).
 		SetAccountName(payload.Recipient.AccountName).
 		SetProviderID(payload.Recipient.ProviderID).
+		SetMemo(payload.Recipient.Memo).
 		SetPaymentOrder(paymentOrder).
 		Save(ctx)
 	if err != nil {
@@ -196,20 +197,20 @@ func (ctrl *SenderController) GetPaymentOrderByID(ctx *gin.Context) {
 		return
 	}
 
-	u.APIResponse(ctx, http.StatusOK, "success", "The order has been successfully retrieved",
-		&types.PaymentOrderResponse{
-			ID:      paymentOrder.ID,
-			Amount:  paymentOrder.Amount,
-			Network: paymentOrder.Edges.Token.Edges.Network.Identifier,
-			Recipient: types.PaymentOrderRecipient{
-				Institution:       paymentOrder.Edges.Recipient.Institution,
-				AccountIdentifier: paymentOrder.Edges.Recipient.AccountIdentifier,
-				AccountName:       paymentOrder.Edges.Recipient.AccountName,
-				ProviderID:        paymentOrder.Edges.Recipient.ProviderID,
-			},
-			CreatedAt: paymentOrder.CreatedAt,
-			UpdatedAt: paymentOrder.UpdatedAt,
-			TxHash:    paymentOrder.TxHash,
-			Status:    paymentOrder.Status,
-		})
+	u.APIResponse(ctx, http.StatusOK, "success", "The order has been successfully retrieved", &types.PaymentOrderResponse{
+		ID:      paymentOrder.ID,
+		Amount:  paymentOrder.Amount,
+		Network: paymentOrder.Edges.Token.Edges.Network.Identifier,
+		Recipient: types.PaymentOrderRecipient{
+			Institution:       paymentOrder.Edges.Recipient.Institution,
+			AccountIdentifier: paymentOrder.Edges.Recipient.AccountIdentifier,
+			AccountName:       paymentOrder.Edges.Recipient.AccountName,
+			ProviderID:        paymentOrder.Edges.Recipient.ProviderID,
+			Memo:              paymentOrder.Edges.Recipient.Memo,
+		},
+		CreatedAt: paymentOrder.CreatedAt,
+		UpdatedAt: paymentOrder.UpdatedAt,
+		TxHash:    paymentOrder.TxHash,
+		Status:    paymentOrder.Status,
+	})
 }

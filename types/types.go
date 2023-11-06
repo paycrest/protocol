@@ -91,6 +91,7 @@ type AcceptOrderResponse struct {
 	Institution       string          `json:"institution"`
 	AccountIdentifier string          `json:"accountIdentifier"`
 	AccountName       string          `json:"accountName"`
+	Memo              string          `json:"memo"`
 }
 
 // FulfillLockOrderPayload is the payload for the fulfill order endpoint
@@ -234,6 +235,7 @@ type PaymentOrderRecipient struct {
 	AccountIdentifier string `json:"accountIdentifier" binding:"required"`
 	AccountName       string `json:"accountName" binding:"required"`
 	ProviderID        string `json:"providerId"`
+	Memo              string `json:"memo"`
 }
 
 // NewPaymentOrderPayload is the payload for the create payment order endpoint
