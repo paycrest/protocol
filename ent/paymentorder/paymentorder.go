@@ -28,6 +28,8 @@ const (
 	FieldTxHash = "tx_hash"
 	// FieldReceiveAddressText holds the string denoting the receive_address_text field in the database.
 	FieldReceiveAddressText = "receive_address_text"
+	// FieldLabel holds the string denoting the label field in the database.
+	FieldLabel = "label"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
 	// FieldLastUsed holds the string denoting the last_used field in the database.
@@ -81,6 +83,7 @@ var Columns = []string{
 	FieldAmountPaid,
 	FieldTxHash,
 	FieldReceiveAddressText,
+	FieldLabel,
 	FieldStatus,
 	FieldLastUsed,
 }
@@ -189,6 +192,11 @@ func ByTxHash(opts ...sql.OrderTermOption) OrderOption {
 // ByReceiveAddressText orders the results by the receive_address_text field.
 func ByReceiveAddressText(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldReceiveAddressText, opts...).ToFunc()
+}
+
+// ByLabel orders the results by the label field.
+func ByLabel(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLabel, opts...).ToFunc()
 }
 
 // ByStatus orders the results by the status field.

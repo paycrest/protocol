@@ -38,6 +38,8 @@ type LockPaymentOrder struct {
 	OrderPercent decimal.Decimal `json:"order_percent,omitempty"`
 	// TxHash holds the value of the "tx_hash" field.
 	TxHash string `json:"tx_hash,omitempty"`
+	// Label holds the value of the "label" field.
+	Label string `json:"label,omitempty"`
 	// Status holds the value of the "status" field.
 	Status lockpaymentorder.Status `json:"status,omitempty"`
 	// BlockNumber holds the value of the "block_number" field.
@@ -141,7 +143,7 @@ func (*LockPaymentOrder) scanValues(columns []string) ([]any, error) {
 			values[i] = new(decimal.Decimal)
 		case lockpaymentorder.FieldBlockNumber, lockpaymentorder.FieldCancellationCount:
 			values[i] = new(sql.NullInt64)
-		case lockpaymentorder.FieldOrderID, lockpaymentorder.FieldTxHash, lockpaymentorder.FieldStatus, lockpaymentorder.FieldInstitution, lockpaymentorder.FieldAccountIdentifier, lockpaymentorder.FieldAccountName, lockpaymentorder.FieldMemo:
+		case lockpaymentorder.FieldOrderID, lockpaymentorder.FieldTxHash, lockpaymentorder.FieldLabel, lockpaymentorder.FieldStatus, lockpaymentorder.FieldInstitution, lockpaymentorder.FieldAccountIdentifier, lockpaymentorder.FieldAccountName, lockpaymentorder.FieldMemo:
 			values[i] = new(sql.NullString)
 		case lockpaymentorder.FieldCreatedAt, lockpaymentorder.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -215,6 +217,12 @@ func (lpo *LockPaymentOrder) assignValues(columns []string, values []any) error 
 				return fmt.Errorf("unexpected type %T for field tx_hash", values[i])
 			} else if value.Valid {
 				lpo.TxHash = value.String
+			}
+		case lockpaymentorder.FieldLabel:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field label", values[i])
+			} else if value.Valid {
+				lpo.Label = value.String
 			}
 		case lockpaymentorder.FieldStatus:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -363,6 +371,9 @@ func (lpo *LockPaymentOrder) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("tx_hash=")
 	builder.WriteString(lpo.TxHash)
+	builder.WriteString(", ")
+	builder.WriteString("label=")
+	builder.WriteString(lpo.Label)
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(fmt.Sprintf("%v", lpo.Status))

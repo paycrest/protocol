@@ -34,6 +34,7 @@ type CreateOrderParams struct {
 	Token              common.Address
 	Amount             *big.Int
 	InstitutionCode    [32]byte
+	Label              [32]byte
 	Rate               *big.Int
 	SenderFeeRecipient common.Address
 	SenderFee          *big.Int
@@ -229,22 +230,18 @@ func (s *OrderService) SettleOrder(ctx context.Context, client types.RPCClient, 
 		return fmt.Errorf("failed to initialize paycrest order contract: %w", err)
 	}
 
-	var orderPercent *big.Int
-
-	if order.OrderPercent.IsZero() {
-		orderPercent = big.NewInt(100)
-	} else {
-		orderPercent = utils.ToSubunit(order.OrderPercent, 2)
-	}
+	orderPercent, _ := order.OrderPercent.Float64()
 
 	// Settle order
 	tx, err := orderContract.Settle(
 		nil,
 		utils.StringToByte32(order.ID.String()),
 		utils.StringToByte32(order.OrderID),
+		utils.StringToByte32(order.Label),
 		nil, // TODO: remove validators input from contract
 		common.HexToAddress(providerAddress),
-		orderPercent,
+		uint64(orderPercent),
+		order.Edges.Provider.IsPartner,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to settle order: %w", err)
@@ -349,6 +346,7 @@ func (s *OrderService) createOrderCallData(order *ent.PaymentOrder) ([]byte, err
 		Token:              common.HexToAddress(order.Edges.Token.ContractAddress),
 		Amount:             utils.ToSubunit(order.Amount, order.Edges.Token.Decimals),
 		InstitutionCode:    utils.StringToByte32(order.Edges.Recipient.Institution),
+		Label:              utils.StringToByte32(order.Label),
 		Rate:               big.NewInt(930), // TODO: fetch actual market rate from aggregator
 		SenderFeeRecipient: *fromAddress,    // TODO: fetch this from the sender profile
 		SenderFee:          utils.ToSubunit(senderFee, order.Edges.Token.Decimals),
@@ -368,6 +366,7 @@ func (s *OrderService) createOrderCallData(order *ent.PaymentOrder) ([]byte, err
 		params.Token,
 		params.Amount,
 		params.InstitutionCode,
+		params.Label,
 		params.Rate,
 		params.SenderFeeRecipient,
 		params.SenderFee,
