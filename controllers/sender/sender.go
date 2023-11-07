@@ -105,6 +105,7 @@ func (ctrl *SenderController) CreatePaymentOrder(ctx *gin.Context) {
 		SetAmountPaid(decimal.NewFromInt(0)).
 		SetToken(token).
 		SetLabel(payload.Label).
+		SetRate(payload.Rate).
 		SetReceiveAddress(receiveAddress).
 		SetReceiveAddressText(receiveAddress.Address).
 		Save(ctx)
@@ -201,6 +202,7 @@ func (ctrl *SenderController) GetPaymentOrderByID(ctx *gin.Context) {
 	u.APIResponse(ctx, http.StatusOK, "success", "The order has been successfully retrieved", &types.PaymentOrderResponse{
 		ID:      paymentOrder.ID,
 		Amount:  paymentOrder.Amount,
+		Rate:    paymentOrder.Rate,
 		Network: paymentOrder.Edges.Token.Edges.Network.Identifier,
 		Recipient: types.PaymentOrderRecipient{
 			Institution:       paymentOrder.Edges.Recipient.Institution,

@@ -347,9 +347,9 @@ func (s *OrderService) createOrderCallData(order *ent.PaymentOrder) ([]byte, err
 		Amount:             utils.ToSubunit(order.Amount, order.Edges.Token.Decimals),
 		InstitutionCode:    utils.StringToByte32(order.Edges.Recipient.Institution),
 		Label:              utils.StringToByte32(order.Label),
-		Rate:               big.NewInt(930), // TODO: fetch actual market rate from aggregator
+		Rate:               order.Rate.BigInt(),
 		SenderFeeRecipient: common.HexToAddress(order.Edges.SenderProfile.FeeAddress),
-		SenderFee:          utils.ToSubunit(senderFee, order.Edges.Token.Decimals),
+		SenderFee:          senderFee.BigInt(),
 		RefundAddress:      common.HexToAddress(order.Edges.SenderProfile.RefundAddress),
 		MessageHash:        encryptedOrderRecipient,
 	}

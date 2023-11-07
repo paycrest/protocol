@@ -151,6 +151,7 @@ var (
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "amount", Type: field.TypeFloat64},
 		{Name: "amount_paid", Type: field.TypeFloat64},
+		{Name: "rate", Type: field.TypeFloat64},
 		{Name: "tx_hash", Type: field.TypeString, Nullable: true, Size: 70},
 		{Name: "receive_address_text", Type: field.TypeString, Size: 60},
 		{Name: "label", Type: field.TypeString},

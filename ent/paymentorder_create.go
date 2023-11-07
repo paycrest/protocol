@@ -66,6 +66,12 @@ func (poc *PaymentOrderCreate) SetAmountPaid(d decimal.Decimal) *PaymentOrderCre
 	return poc
 }
 
+// SetRate sets the "rate" field.
+func (poc *PaymentOrderCreate) SetRate(d decimal.Decimal) *PaymentOrderCreate {
+	poc.mutation.SetRate(d)
+	return poc
+}
+
 // SetTxHash sets the "tx_hash" field.
 func (poc *PaymentOrderCreate) SetTxHash(s string) *PaymentOrderCreate {
 	poc.mutation.SetTxHash(s)
@@ -261,6 +267,9 @@ func (poc *PaymentOrderCreate) check() error {
 	if _, ok := poc.mutation.AmountPaid(); !ok {
 		return &ValidationError{Name: "amount_paid", err: errors.New(`ent: missing required field "PaymentOrder.amount_paid"`)}
 	}
+	if _, ok := poc.mutation.Rate(); !ok {
+		return &ValidationError{Name: "rate", err: errors.New(`ent: missing required field "PaymentOrder.rate"`)}
+	}
 	if v, ok := poc.mutation.TxHash(); ok {
 		if err := paymentorder.TxHashValidator(v); err != nil {
 			return &ValidationError{Name: "tx_hash", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.tx_hash": %w`, err)}
@@ -341,6 +350,10 @@ func (poc *PaymentOrderCreate) createSpec() (*PaymentOrder, *sqlgraph.CreateSpec
 	if value, ok := poc.mutation.AmountPaid(); ok {
 		_spec.SetField(paymentorder.FieldAmountPaid, field.TypeFloat64, value)
 		_node.AmountPaid = value
+	}
+	if value, ok := poc.mutation.Rate(); ok {
+		_spec.SetField(paymentorder.FieldRate, field.TypeFloat64, value)
+		_node.Rate = value
 	}
 	if value, ok := poc.mutation.TxHash(); ok {
 		_spec.SetField(paymentorder.FieldTxHash, field.TypeString, value)
