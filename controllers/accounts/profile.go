@@ -61,8 +61,16 @@ func (ctrl *ProfileController) UpdateSenderProfile(ctx *gin.Context) {
 		update.SetDomainWhitelist(payload.DomainWhitelist)
 	}
 
-	if payload.FeePerTokenUnit != decimal.Zero {
+	if payload.FeePerTokenUnit.IsZero() {
 		update.SetFeePerTokenUnit(payload.FeePerTokenUnit)
+	}
+
+	if payload.FeeAddress != "" {
+		update.SetFeeAddress(payload.FeeAddress)
+	}
+
+	if payload.RefundAddress != "" {
+		update.SetRefundAddress(payload.RefundAddress)
 	}
 
 	_, err := update.Save(ctx)

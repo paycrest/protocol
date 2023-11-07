@@ -249,6 +249,7 @@ type PaymentOrderRecipient struct {
 type NewPaymentOrderPayload struct {
 	Amount    decimal.Decimal       `json:"amount" binding:"required"`
 	Token     string                `json:"token" binding:"required"`
+	Rate      decimal.Decimal       `json:"rate" binding:"required"`
 	Network   string                `json:"network" binding:"required"`
 	Recipient PaymentOrderRecipient `json:"recipient" binding:"required"`
 	Label     string                `json:"label" binding:"required"`
@@ -266,6 +267,7 @@ type ReceiveAddressResponse struct {
 type PaymentOrderResponse struct {
 	ID        uuid.UUID             `json:"id"`
 	Amount    decimal.Decimal       `json:"amount"`
+	Rate      decimal.Decimal       `json:"rate"`
 	Network   string                `json:"network"`
 	Label     string                `json:"label"`
 	Recipient PaymentOrderRecipient `json:"recipient"`

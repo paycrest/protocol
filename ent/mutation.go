@@ -4648,6 +4648,8 @@ type PaymentOrderMutation struct {
 	addamount              *decimal.Decimal
 	amount_paid            *decimal.Decimal
 	addamount_paid         *decimal.Decimal
+	rate                   *decimal.Decimal
+	addrate                *decimal.Decimal
 	tx_hash                *string
 	receive_address_text   *string
 	label                  *string
@@ -4953,6 +4955,62 @@ func (m *PaymentOrderMutation) AddedAmountPaid() (r decimal.Decimal, exists bool
 func (m *PaymentOrderMutation) ResetAmountPaid() {
 	m.amount_paid = nil
 	m.addamount_paid = nil
+}
+
+// SetRate sets the "rate" field.
+func (m *PaymentOrderMutation) SetRate(d decimal.Decimal) {
+	m.rate = &d
+	m.addrate = nil
+}
+
+// Rate returns the value of the "rate" field in the mutation.
+func (m *PaymentOrderMutation) Rate() (r decimal.Decimal, exists bool) {
+	v := m.rate
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRate returns the old "rate" field's value of the PaymentOrder entity.
+// If the PaymentOrder object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PaymentOrderMutation) OldRate(ctx context.Context) (v decimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRate is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRate requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRate: %w", err)
+	}
+	return oldValue.Rate, nil
+}
+
+// AddRate adds d to the "rate" field.
+func (m *PaymentOrderMutation) AddRate(d decimal.Decimal) {
+	if m.addrate != nil {
+		*m.addrate = m.addrate.Add(d)
+	} else {
+		m.addrate = &d
+	}
+}
+
+// AddedRate returns the value that was added to the "rate" field in this mutation.
+func (m *PaymentOrderMutation) AddedRate() (r decimal.Decimal, exists bool) {
+	v := m.addrate
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetRate resets all changes to the "rate" field.
+func (m *PaymentOrderMutation) ResetRate() {
+	m.rate = nil
+	m.addrate = nil
 }
 
 // SetTxHash sets the "tx_hash" field.
@@ -5364,6 +5422,9 @@ func (m *PaymentOrderMutation) Fields() []string {
 	if m.amount_paid != nil {
 		fields = append(fields, paymentorder.FieldAmountPaid)
 	}
+	if m.rate != nil {
+		fields = append(fields, paymentorder.FieldRate)
+	}
 	if m.tx_hash != nil {
 		fields = append(fields, paymentorder.FieldTxHash)
 	}
@@ -5395,6 +5456,8 @@ func (m *PaymentOrderMutation) Field(name string) (ent.Value, bool) {
 		return m.Amount()
 	case paymentorder.FieldAmountPaid:
 		return m.AmountPaid()
+	case paymentorder.FieldRate:
+		return m.Rate()
 	case paymentorder.FieldTxHash:
 		return m.TxHash()
 	case paymentorder.FieldReceiveAddressText:
@@ -5422,6 +5485,8 @@ func (m *PaymentOrderMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldAmount(ctx)
 	case paymentorder.FieldAmountPaid:
 		return m.OldAmountPaid(ctx)
+	case paymentorder.FieldRate:
+		return m.OldRate(ctx)
 	case paymentorder.FieldTxHash:
 		return m.OldTxHash(ctx)
 	case paymentorder.FieldReceiveAddressText:
@@ -5468,6 +5533,13 @@ func (m *PaymentOrderMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetAmountPaid(v)
+		return nil
+	case paymentorder.FieldRate:
+		v, ok := value.(decimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRate(v)
 		return nil
 	case paymentorder.FieldTxHash:
 		v, ok := value.(string)
@@ -5518,6 +5590,9 @@ func (m *PaymentOrderMutation) AddedFields() []string {
 	if m.addamount_paid != nil {
 		fields = append(fields, paymentorder.FieldAmountPaid)
 	}
+	if m.addrate != nil {
+		fields = append(fields, paymentorder.FieldRate)
+	}
 	return fields
 }
 
@@ -5530,6 +5605,8 @@ func (m *PaymentOrderMutation) AddedField(name string) (ent.Value, bool) {
 		return m.AddedAmount()
 	case paymentorder.FieldAmountPaid:
 		return m.AddedAmountPaid()
+	case paymentorder.FieldRate:
+		return m.AddedRate()
 	}
 	return nil, false
 }
@@ -5552,6 +5629,13 @@ func (m *PaymentOrderMutation) AddField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.AddAmountPaid(v)
+		return nil
+	case paymentorder.FieldRate:
+		v, ok := value.(decimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddRate(v)
 		return nil
 	}
 	return fmt.Errorf("unknown PaymentOrder numeric field %s", name)
@@ -5606,6 +5690,9 @@ func (m *PaymentOrderMutation) ResetField(name string) error {
 		return nil
 	case paymentorder.FieldAmountPaid:
 		m.ResetAmountPaid()
+		return nil
+	case paymentorder.FieldRate:
+		m.ResetRate()
 		return nil
 	case paymentorder.FieldTxHash:
 		m.ResetTxHash()

@@ -77,6 +77,11 @@ func AmountPaid(v decimal.Decimal) predicate.PaymentOrder {
 	return predicate.PaymentOrder(sql.FieldEQ(FieldAmountPaid, v))
 }
 
+// Rate applies equality check predicate on the "rate" field. It's identical to RateEQ.
+func Rate(v decimal.Decimal) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldEQ(FieldRate, v))
+}
+
 // TxHash applies equality check predicate on the "tx_hash" field. It's identical to TxHashEQ.
 func TxHash(v string) predicate.PaymentOrder {
 	return predicate.PaymentOrder(sql.FieldEQ(FieldTxHash, v))
@@ -250,6 +255,46 @@ func AmountPaidLT(v decimal.Decimal) predicate.PaymentOrder {
 // AmountPaidLTE applies the LTE predicate on the "amount_paid" field.
 func AmountPaidLTE(v decimal.Decimal) predicate.PaymentOrder {
 	return predicate.PaymentOrder(sql.FieldLTE(FieldAmountPaid, v))
+}
+
+// RateEQ applies the EQ predicate on the "rate" field.
+func RateEQ(v decimal.Decimal) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldEQ(FieldRate, v))
+}
+
+// RateNEQ applies the NEQ predicate on the "rate" field.
+func RateNEQ(v decimal.Decimal) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldNEQ(FieldRate, v))
+}
+
+// RateIn applies the In predicate on the "rate" field.
+func RateIn(vs ...decimal.Decimal) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldIn(FieldRate, vs...))
+}
+
+// RateNotIn applies the NotIn predicate on the "rate" field.
+func RateNotIn(vs ...decimal.Decimal) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldNotIn(FieldRate, vs...))
+}
+
+// RateGT applies the GT predicate on the "rate" field.
+func RateGT(v decimal.Decimal) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldGT(FieldRate, v))
+}
+
+// RateGTE applies the GTE predicate on the "rate" field.
+func RateGTE(v decimal.Decimal) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldGTE(FieldRate, v))
+}
+
+// RateLT applies the LT predicate on the "rate" field.
+func RateLT(v decimal.Decimal) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldLT(FieldRate, v))
+}
+
+// RateLTE applies the LTE predicate on the "rate" field.
+func RateLTE(v decimal.Decimal) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldLTE(FieldRate, v))
 }
 
 // TxHashEQ applies the EQ predicate on the "tx_hash" field.

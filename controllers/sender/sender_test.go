@@ -141,6 +141,7 @@ func TestSender(t *testing.T) {
 		payload := map[string]interface{}{
 			"amount":  100.0,
 			"token":   testCtx.token.Symbol,
+			"rate":    750.0,
 			"network": network.Identifier,
 			"recipient": map[string]interface{}{
 				"institution":       "First Bank Nigeria PLC",

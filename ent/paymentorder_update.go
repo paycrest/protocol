@@ -66,6 +66,19 @@ func (pou *PaymentOrderUpdate) AddAmountPaid(d decimal.Decimal) *PaymentOrderUpd
 	return pou
 }
 
+// SetRate sets the "rate" field.
+func (pou *PaymentOrderUpdate) SetRate(d decimal.Decimal) *PaymentOrderUpdate {
+	pou.mutation.ResetRate()
+	pou.mutation.SetRate(d)
+	return pou
+}
+
+// AddRate adds d to the "rate" field.
+func (pou *PaymentOrderUpdate) AddRate(d decimal.Decimal) *PaymentOrderUpdate {
+	pou.mutation.AddRate(d)
+	return pou
+}
+
 // SetTxHash sets the "tx_hash" field.
 func (pou *PaymentOrderUpdate) SetTxHash(s string) *PaymentOrderUpdate {
 	pou.mutation.SetTxHash(s)
@@ -310,6 +323,12 @@ func (pou *PaymentOrderUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if value, ok := pou.mutation.AddedAmountPaid(); ok {
 		_spec.AddField(paymentorder.FieldAmountPaid, field.TypeFloat64, value)
 	}
+	if value, ok := pou.mutation.Rate(); ok {
+		_spec.SetField(paymentorder.FieldRate, field.TypeFloat64, value)
+	}
+	if value, ok := pou.mutation.AddedRate(); ok {
+		_spec.AddField(paymentorder.FieldRate, field.TypeFloat64, value)
+	}
 	if value, ok := pou.mutation.TxHash(); ok {
 		_spec.SetField(paymentorder.FieldTxHash, field.TypeString, value)
 	}
@@ -496,6 +515,19 @@ func (pouo *PaymentOrderUpdateOne) SetAmountPaid(d decimal.Decimal) *PaymentOrde
 // AddAmountPaid adds d to the "amount_paid" field.
 func (pouo *PaymentOrderUpdateOne) AddAmountPaid(d decimal.Decimal) *PaymentOrderUpdateOne {
 	pouo.mutation.AddAmountPaid(d)
+	return pouo
+}
+
+// SetRate sets the "rate" field.
+func (pouo *PaymentOrderUpdateOne) SetRate(d decimal.Decimal) *PaymentOrderUpdateOne {
+	pouo.mutation.ResetRate()
+	pouo.mutation.SetRate(d)
+	return pouo
+}
+
+// AddRate adds d to the "rate" field.
+func (pouo *PaymentOrderUpdateOne) AddRate(d decimal.Decimal) *PaymentOrderUpdateOne {
+	pouo.mutation.AddRate(d)
 	return pouo
 }
 
@@ -772,6 +804,12 @@ func (pouo *PaymentOrderUpdateOne) sqlSave(ctx context.Context) (_node *PaymentO
 	}
 	if value, ok := pouo.mutation.AddedAmountPaid(); ok {
 		_spec.AddField(paymentorder.FieldAmountPaid, field.TypeFloat64, value)
+	}
+	if value, ok := pouo.mutation.Rate(); ok {
+		_spec.SetField(paymentorder.FieldRate, field.TypeFloat64, value)
+	}
+	if value, ok := pouo.mutation.AddedRate(); ok {
+		_spec.AddField(paymentorder.FieldRate, field.TypeFloat64, value)
 	}
 	if value, ok := pouo.mutation.TxHash(); ok {
 		_spec.SetField(paymentorder.FieldTxHash, field.TypeString, value)
