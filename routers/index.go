@@ -90,6 +90,7 @@ func senderRoutes(route *gin.Engine) {
 
 	v1.POST("orders/", senderCtrl.CreatePaymentOrder)
 	v1.GET("orders/:id", senderCtrl.GetPaymentOrderByID)
+	v1.GET("orders/", senderCtrl.GetPaymentOrders)
 }
 
 func providerRoutes(route *gin.Engine) {

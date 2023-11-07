@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
+	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/user"
 	db "github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
@@ -191,6 +192,38 @@ func CreateTestSenderProfile(overrides map[string]interface{}) (*ent.SenderProfi
 		SetFeeAddress(payload["fee_address"].(string)).
 		SetRefundAddress(payload["refund_address"].(string)).
 		SetUserID(payload["user_id"].(uuid.UUID)).
+		Save(context.Background())
+
+	return profile, err
+}
+
+// CreateTestProviderProfile creates a test ProviderProfile with defaults or custom values
+func CreateTestProviderProfile(overrides map[string]interface{}, user *ent.User, currency *ent.FiatCurrency) (*ent.ProviderProfile, error) {
+
+	// Default payload
+	payload := map[string]interface{}{
+		"user_id":         uuid.New(),
+		"trading_name":    "Elon Musk Trading Co.",
+		"host_identifier": "https://example.com/hook",
+		"provision_mode":  "auto",
+		"is_partner":      false,
+	}
+
+	// Apply overrides
+	for key, value := range overrides {
+		payload[key] = value
+	}
+
+	// Create ProviderProfile
+	profile, err := db.Client.ProviderProfile.
+		Create().
+		SetID(payload["user_id"].(uuid.UUID).String()).
+		SetTradingName(payload["trading_name"].(string)).
+		SetHostIdentifier(payload["host_identifier"].(string)).
+		SetProvisionMode(providerprofile.ProvisionMode(payload["provision_mode"].(string))).
+		SetIsPartner(payload["is_partner"].(bool)).
+		SetUser(user).
+		SetCurrency(currency).
 		Save(context.Background())
 
 	return profile, err

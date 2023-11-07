@@ -422,7 +422,7 @@ var (
 		{Name: "last_name", Type: field.TypeString, Size: 80},
 		{Name: "email", Type: field.TypeString},
 		{Name: "password", Type: field.TypeString},
-		{Name: "scope", Type: field.TypeEnum, Enums: []string{"sender", "provider", "tx_validator"}},
+		{Name: "scope", Type: field.TypeEnum, Enums: []string{"sender", "provider"}},
 		{Name: "is_verified", Type: field.TypeBool, Default: false},
 	}
 	// UsersTable holds the schema information for the "users" table.

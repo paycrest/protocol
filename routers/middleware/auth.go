@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -198,6 +199,7 @@ func DynamicAuthMiddleware(c *gin.Context) {
 	// Check the request headers to determine the desired authentication method
 	clientType := c.GetHeader("Client-Type")
 
+	fmt.Println(clientType)
 	// Select the authentication middleware based on the client type
 	switch clientType {
 	case "web":

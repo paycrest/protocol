@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"math/big"
 	"sort"
+	"strconv"
 
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/gin-gonic/gin"
 	"github.com/shopspring/decimal"
 )
 
@@ -161,4 +163,24 @@ func Median(data []decimal.Decimal) decimal.Decimal {
 	}
 
 	return result
+}
+
+// Paginate parses the pagination query params and returns the offset(page) and limit(pageSize)
+func Paginate(ctx *gin.Context) (page int, pageSize int) {
+	// Parse pagination query params
+	page, _ = strconv.Atoi(ctx.Query("page"))
+	pageSize, _ = strconv.Atoi(ctx.Query("pageSize"))
+
+	// Set defaults if not provided
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 10
+	}
+
+	// Calculate offsets
+	page = (page - 1) * pageSize
+
+	return page, pageSize
 }
