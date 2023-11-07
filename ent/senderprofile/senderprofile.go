@@ -19,6 +19,10 @@ const (
 	FieldWebhookURL = "webhook_url"
 	// FieldFeePerTokenUnit holds the string denoting the fee_per_token_unit field in the database.
 	FieldFeePerTokenUnit = "fee_per_token_unit"
+	// FieldFeeAddress holds the string denoting the fee_address field in the database.
+	FieldFeeAddress = "fee_address"
+	// FieldRefundAddress holds the string denoting the refund_address field in the database.
+	FieldRefundAddress = "refund_address"
 	// FieldDomainWhitelist holds the string denoting the domain_whitelist field in the database.
 	FieldDomainWhitelist = "domain_whitelist"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
@@ -59,6 +63,8 @@ var Columns = []string{
 	FieldID,
 	FieldWebhookURL,
 	FieldFeePerTokenUnit,
+	FieldFeeAddress,
+	FieldRefundAddress,
 	FieldDomainWhitelist,
 	FieldUpdatedAt,
 }
@@ -111,6 +117,16 @@ func ByWebhookURL(opts ...sql.OrderTermOption) OrderOption {
 // ByFeePerTokenUnit orders the results by the fee_per_token_unit field.
 func ByFeePerTokenUnit(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldFeePerTokenUnit, opts...).ToFunc()
+}
+
+// ByFeeAddress orders the results by the fee_address field.
+func ByFeeAddress(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFeeAddress, opts...).ToFunc()
+}
+
+// ByRefundAddress orders the results by the refund_address field.
+func ByRefundAddress(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldRefundAddress, opts...).ToFunc()
 }
 
 // ByUpdatedAt orders the results by the updated_at field.

@@ -66,6 +66,46 @@ func (spu *SenderProfileUpdate) AddFeePerTokenUnit(d decimal.Decimal) *SenderPro
 	return spu
 }
 
+// SetFeeAddress sets the "fee_address" field.
+func (spu *SenderProfileUpdate) SetFeeAddress(s string) *SenderProfileUpdate {
+	spu.mutation.SetFeeAddress(s)
+	return spu
+}
+
+// SetNillableFeeAddress sets the "fee_address" field if the given value is not nil.
+func (spu *SenderProfileUpdate) SetNillableFeeAddress(s *string) *SenderProfileUpdate {
+	if s != nil {
+		spu.SetFeeAddress(*s)
+	}
+	return spu
+}
+
+// ClearFeeAddress clears the value of the "fee_address" field.
+func (spu *SenderProfileUpdate) ClearFeeAddress() *SenderProfileUpdate {
+	spu.mutation.ClearFeeAddress()
+	return spu
+}
+
+// SetRefundAddress sets the "refund_address" field.
+func (spu *SenderProfileUpdate) SetRefundAddress(s string) *SenderProfileUpdate {
+	spu.mutation.SetRefundAddress(s)
+	return spu
+}
+
+// SetNillableRefundAddress sets the "refund_address" field if the given value is not nil.
+func (spu *SenderProfileUpdate) SetNillableRefundAddress(s *string) *SenderProfileUpdate {
+	if s != nil {
+		spu.SetRefundAddress(*s)
+	}
+	return spu
+}
+
+// ClearRefundAddress clears the value of the "refund_address" field.
+func (spu *SenderProfileUpdate) ClearRefundAddress() *SenderProfileUpdate {
+	spu.mutation.ClearRefundAddress()
+	return spu
+}
+
 // SetDomainWhitelist sets the "domain_whitelist" field.
 func (spu *SenderProfileUpdate) SetDomainWhitelist(s []string) *SenderProfileUpdate {
 	spu.mutation.SetDomainWhitelist(s)
@@ -218,6 +258,18 @@ func (spu *SenderProfileUpdate) sqlSave(ctx context.Context) (n int, err error) 
 	if value, ok := spu.mutation.AddedFeePerTokenUnit(); ok {
 		_spec.AddField(senderprofile.FieldFeePerTokenUnit, field.TypeFloat64, value)
 	}
+	if value, ok := spu.mutation.FeeAddress(); ok {
+		_spec.SetField(senderprofile.FieldFeeAddress, field.TypeString, value)
+	}
+	if spu.mutation.FeeAddressCleared() {
+		_spec.ClearField(senderprofile.FieldFeeAddress, field.TypeString)
+	}
+	if value, ok := spu.mutation.RefundAddress(); ok {
+		_spec.SetField(senderprofile.FieldRefundAddress, field.TypeString, value)
+	}
+	if spu.mutation.RefundAddressCleared() {
+		_spec.ClearField(senderprofile.FieldRefundAddress, field.TypeString)
+	}
 	if value, ok := spu.mutation.DomainWhitelist(); ok {
 		_spec.SetField(senderprofile.FieldDomainWhitelist, field.TypeJSON, value)
 	}
@@ -353,6 +405,46 @@ func (spuo *SenderProfileUpdateOne) SetFeePerTokenUnit(d decimal.Decimal) *Sende
 // AddFeePerTokenUnit adds d to the "fee_per_token_unit" field.
 func (spuo *SenderProfileUpdateOne) AddFeePerTokenUnit(d decimal.Decimal) *SenderProfileUpdateOne {
 	spuo.mutation.AddFeePerTokenUnit(d)
+	return spuo
+}
+
+// SetFeeAddress sets the "fee_address" field.
+func (spuo *SenderProfileUpdateOne) SetFeeAddress(s string) *SenderProfileUpdateOne {
+	spuo.mutation.SetFeeAddress(s)
+	return spuo
+}
+
+// SetNillableFeeAddress sets the "fee_address" field if the given value is not nil.
+func (spuo *SenderProfileUpdateOne) SetNillableFeeAddress(s *string) *SenderProfileUpdateOne {
+	if s != nil {
+		spuo.SetFeeAddress(*s)
+	}
+	return spuo
+}
+
+// ClearFeeAddress clears the value of the "fee_address" field.
+func (spuo *SenderProfileUpdateOne) ClearFeeAddress() *SenderProfileUpdateOne {
+	spuo.mutation.ClearFeeAddress()
+	return spuo
+}
+
+// SetRefundAddress sets the "refund_address" field.
+func (spuo *SenderProfileUpdateOne) SetRefundAddress(s string) *SenderProfileUpdateOne {
+	spuo.mutation.SetRefundAddress(s)
+	return spuo
+}
+
+// SetNillableRefundAddress sets the "refund_address" field if the given value is not nil.
+func (spuo *SenderProfileUpdateOne) SetNillableRefundAddress(s *string) *SenderProfileUpdateOne {
+	if s != nil {
+		spuo.SetRefundAddress(*s)
+	}
+	return spuo
+}
+
+// ClearRefundAddress clears the value of the "refund_address" field.
+func (spuo *SenderProfileUpdateOne) ClearRefundAddress() *SenderProfileUpdateOne {
+	spuo.mutation.ClearRefundAddress()
 	return spuo
 }
 
@@ -537,6 +629,18 @@ func (spuo *SenderProfileUpdateOne) sqlSave(ctx context.Context) (_node *SenderP
 	}
 	if value, ok := spuo.mutation.AddedFeePerTokenUnit(); ok {
 		_spec.AddField(senderprofile.FieldFeePerTokenUnit, field.TypeFloat64, value)
+	}
+	if value, ok := spuo.mutation.FeeAddress(); ok {
+		_spec.SetField(senderprofile.FieldFeeAddress, field.TypeString, value)
+	}
+	if spuo.mutation.FeeAddressCleared() {
+		_spec.ClearField(senderprofile.FieldFeeAddress, field.TypeString)
+	}
+	if value, ok := spuo.mutation.RefundAddress(); ok {
+		_spec.SetField(senderprofile.FieldRefundAddress, field.TypeString, value)
+	}
+	if spuo.mutation.RefundAddressCleared() {
+		_spec.ClearField(senderprofile.FieldRefundAddress, field.TypeString)
 	}
 	if value, ok := spuo.mutation.DomainWhitelist(); ok {
 		_spec.SetField(senderprofile.FieldDomainWhitelist, field.TypeJSON, value)
