@@ -171,6 +171,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, client types.RPCClient, 
 	return nil
 }
 
+// SettleOrder settles a payment order on-chain.
 func (s *OrderService) SettleOrder(ctx context.Context, client types.RPCClient, orderID uuid.UUID) error {
 	var err error
 
