@@ -10,6 +10,7 @@ import (
 	"github.com/paycrest/protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	"github.com/paycrest/protocol/ent/providerprofile"
+	"github.com/paycrest/protocol/services"
 	"github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
 	u "github.com/paycrest/protocol/utils"
@@ -20,7 +21,16 @@ import (
 )
 
 // ProviderController is a controller type for provider endpoints
-type ProviderController struct{}
+type ProviderController struct {
+	orderService *services.OrderService
+}
+
+// NewProviderController creates a new instance of ProviderController with injected services
+func NewProviderController() *ProviderController {
+	return &ProviderController{
+		orderService: services.NewOrderService(),
+	}
+}
 
 // GetOrders controller fetches all assigned orders
 func (ctrl *ProviderController) GetOrders(ctx *gin.Context) {
@@ -190,6 +200,12 @@ func (ctrl *ProviderController) FulfillOrder(ctx *gin.Context) {
 			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update lock order status", nil)
 			_ = tx.Rollback()
 			return
+		}
+
+		// Settle order or fail silently
+		err = ctrl.orderService.SettleOrder(ctx, nil, orderID)
+		if err != nil {
+			logger.Errorf("FulfillOrder.SettleOrder: %v", err)
 		}
 
 	} else if payload.ValidationStatus == lockorderfulfillment.ValidationStatusFailure {
