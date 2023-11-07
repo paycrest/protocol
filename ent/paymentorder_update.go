@@ -92,6 +92,12 @@ func (pou *PaymentOrderUpdate) SetReceiveAddressText(s string) *PaymentOrderUpda
 	return pou
 }
 
+// SetLabel sets the "label" field.
+func (pou *PaymentOrderUpdate) SetLabel(s string) *PaymentOrderUpdate {
+	pou.mutation.SetLabel(s)
+	return pou
+}
+
 // SetStatus sets the "status" field.
 func (pou *PaymentOrderUpdate) SetStatus(pa paymentorder.Status) *PaymentOrderUpdate {
 	pou.mutation.SetStatus(pa)
@@ -313,6 +319,9 @@ func (pou *PaymentOrderUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if value, ok := pou.mutation.ReceiveAddressText(); ok {
 		_spec.SetField(paymentorder.FieldReceiveAddressText, field.TypeString, value)
 	}
+	if value, ok := pou.mutation.Label(); ok {
+		_spec.SetField(paymentorder.FieldLabel, field.TypeString, value)
+	}
 	if value, ok := pou.mutation.Status(); ok {
 		_spec.SetField(paymentorder.FieldStatus, field.TypeEnum, value)
 	}
@@ -513,6 +522,12 @@ func (pouo *PaymentOrderUpdateOne) ClearTxHash() *PaymentOrderUpdateOne {
 // SetReceiveAddressText sets the "receive_address_text" field.
 func (pouo *PaymentOrderUpdateOne) SetReceiveAddressText(s string) *PaymentOrderUpdateOne {
 	pouo.mutation.SetReceiveAddressText(s)
+	return pouo
+}
+
+// SetLabel sets the "label" field.
+func (pouo *PaymentOrderUpdateOne) SetLabel(s string) *PaymentOrderUpdateOne {
+	pouo.mutation.SetLabel(s)
 	return pouo
 }
 
@@ -766,6 +781,9 @@ func (pouo *PaymentOrderUpdateOne) sqlSave(ctx context.Context) (_node *PaymentO
 	}
 	if value, ok := pouo.mutation.ReceiveAddressText(); ok {
 		_spec.SetField(paymentorder.FieldReceiveAddressText, field.TypeString, value)
+	}
+	if value, ok := pouo.mutation.Label(); ok {
+		_spec.SetField(paymentorder.FieldLabel, field.TypeString, value)
 	}
 	if value, ok := pouo.mutation.Status(); ok {
 		_spec.SetField(paymentorder.FieldStatus, field.TypeEnum, value)

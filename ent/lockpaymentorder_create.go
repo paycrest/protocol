@@ -100,6 +100,12 @@ func (lpoc *LockPaymentOrderCreate) SetNillableTxHash(s *string) *LockPaymentOrd
 	return lpoc
 }
 
+// SetLabel sets the "label" field.
+func (lpoc *LockPaymentOrderCreate) SetLabel(s string) *LockPaymentOrderCreate {
+	lpoc.mutation.SetLabel(s)
+	return lpoc
+}
+
 // SetStatus sets the "status" field.
 func (lpoc *LockPaymentOrderCreate) SetStatus(l lockpaymentorder.Status) *LockPaymentOrderCreate {
 	lpoc.mutation.SetStatus(l)
@@ -337,6 +343,9 @@ func (lpoc *LockPaymentOrderCreate) check() error {
 			return &ValidationError{Name: "tx_hash", err: fmt.Errorf(`ent: validator failed for field "LockPaymentOrder.tx_hash": %w`, err)}
 		}
 	}
+	if _, ok := lpoc.mutation.Label(); !ok {
+		return &ValidationError{Name: "label", err: errors.New(`ent: missing required field "LockPaymentOrder.label"`)}
+	}
 	if _, ok := lpoc.mutation.Status(); !ok {
 		return &ValidationError{Name: "status", err: errors.New(`ent: missing required field "LockPaymentOrder.status"`)}
 	}
@@ -428,6 +437,10 @@ func (lpoc *LockPaymentOrderCreate) createSpec() (*LockPaymentOrder, *sqlgraph.C
 	if value, ok := lpoc.mutation.TxHash(); ok {
 		_spec.SetField(lockpaymentorder.FieldTxHash, field.TypeString, value)
 		_node.TxHash = value
+	}
+	if value, ok := lpoc.mutation.Label(); ok {
+		_spec.SetField(lockpaymentorder.FieldLabel, field.TypeString, value)
+		_node.Label = value
 	}
 	if value, ok := lpoc.mutation.Status(); ok {
 		_spec.SetField(lockpaymentorder.FieldStatus, field.TypeEnum, value)

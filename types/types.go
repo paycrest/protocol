@@ -221,6 +221,7 @@ type LockPaymentOrderFields struct {
 	OrderID           string
 	Amount            decimal.Decimal
 	Rate              decimal.Decimal
+	Label             string
 	BlockNumber       int64
 	Institution       string
 	AccountIdentifier string
@@ -244,6 +245,7 @@ type NewPaymentOrderPayload struct {
 	Token     string                `json:"token" binding:"required"`
 	Network   string                `json:"network" binding:"required"`
 	Recipient PaymentOrderRecipient `json:"recipient" binding:"required"`
+	Label     string                `json:"label" binding:"required"`
 }
 
 // ReceiveAddressResponse is the response type for a receive address
@@ -259,6 +261,7 @@ type PaymentOrderResponse struct {
 	ID        uuid.UUID             `json:"id"`
 	Amount    decimal.Decimal       `json:"amount"`
 	Network   string                `json:"network"`
+	Label     string                `json:"label"`
 	Recipient PaymentOrderRecipient `json:"recipient"`
 	CreatedAt time.Time             `json:"createdAt"`
 	UpdatedAt time.Time             `json:"updatedAt"`

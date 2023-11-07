@@ -120,6 +120,12 @@ func (lpou *LockPaymentOrderUpdate) ClearTxHash() *LockPaymentOrderUpdate {
 	return lpou
 }
 
+// SetLabel sets the "label" field.
+func (lpou *LockPaymentOrderUpdate) SetLabel(s string) *LockPaymentOrderUpdate {
+	lpou.mutation.SetLabel(s)
+	return lpou
+}
+
 // SetStatus sets the "status" field.
 func (lpou *LockPaymentOrderUpdate) SetStatus(l lockpaymentorder.Status) *LockPaymentOrderUpdate {
 	lpou.mutation.SetStatus(l)
@@ -414,6 +420,9 @@ func (lpou *LockPaymentOrderUpdate) sqlSave(ctx context.Context) (n int, err err
 	if lpou.mutation.TxHashCleared() {
 		_spec.ClearField(lockpaymentorder.FieldTxHash, field.TypeString)
 	}
+	if value, ok := lpou.mutation.Label(); ok {
+		_spec.SetField(lockpaymentorder.FieldLabel, field.TypeString, value)
+	}
 	if value, ok := lpou.mutation.Status(); ok {
 		_spec.SetField(lockpaymentorder.FieldStatus, field.TypeEnum, value)
 	}
@@ -670,6 +679,12 @@ func (lpouo *LockPaymentOrderUpdateOne) SetNillableTxHash(s *string) *LockPaymen
 // ClearTxHash clears the value of the "tx_hash" field.
 func (lpouo *LockPaymentOrderUpdateOne) ClearTxHash() *LockPaymentOrderUpdateOne {
 	lpouo.mutation.ClearTxHash()
+	return lpouo
+}
+
+// SetLabel sets the "label" field.
+func (lpouo *LockPaymentOrderUpdateOne) SetLabel(s string) *LockPaymentOrderUpdateOne {
+	lpouo.mutation.SetLabel(s)
 	return lpouo
 }
 
@@ -996,6 +1011,9 @@ func (lpouo *LockPaymentOrderUpdateOne) sqlSave(ctx context.Context) (_node *Loc
 	}
 	if lpouo.mutation.TxHashCleared() {
 		_spec.ClearField(lockpaymentorder.FieldTxHash, field.TypeString)
+	}
+	if value, ok := lpouo.mutation.Label(); ok {
+		_spec.SetField(lockpaymentorder.FieldLabel, field.TypeString, value)
 	}
 	if value, ok := lpouo.mutation.Status(); ok {
 		_spec.SetField(lockpaymentorder.FieldStatus, field.TypeEnum, value)

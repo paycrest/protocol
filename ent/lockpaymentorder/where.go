@@ -472,6 +472,71 @@ func TxHashContainsFold(v string) predicate.LockPaymentOrder {
 	return predicate.LockPaymentOrder(sql.FieldContainsFold(FieldTxHash, v))
 }
 
+// LabelEQ applies the EQ predicate on the "label" field.
+func LabelEQ(v string) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(sql.FieldEQ(FieldLabel, v))
+}
+
+// LabelNEQ applies the NEQ predicate on the "label" field.
+func LabelNEQ(v string) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(sql.FieldNEQ(FieldLabel, v))
+}
+
+// LabelIn applies the In predicate on the "label" field.
+func LabelIn(vs ...string) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(sql.FieldIn(FieldLabel, vs...))
+}
+
+// LabelNotIn applies the NotIn predicate on the "label" field.
+func LabelNotIn(vs ...string) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(sql.FieldNotIn(FieldLabel, vs...))
+}
+
+// LabelGT applies the GT predicate on the "label" field.
+func LabelGT(v string) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(sql.FieldGT(FieldLabel, v))
+}
+
+// LabelGTE applies the GTE predicate on the "label" field.
+func LabelGTE(v string) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(sql.FieldGTE(FieldLabel, v))
+}
+
+// LabelLT applies the LT predicate on the "label" field.
+func LabelLT(v string) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(sql.FieldLT(FieldLabel, v))
+}
+
+// LabelLTE applies the LTE predicate on the "label" field.
+func LabelLTE(v string) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(sql.FieldLTE(FieldLabel, v))
+}
+
+// LabelContains applies the Contains predicate on the "label" field.
+func LabelContains(v string) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(sql.FieldContains(FieldLabel, v))
+}
+
+// LabelHasPrefix applies the HasPrefix predicate on the "label" field.
+func LabelHasPrefix(v string) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(sql.FieldHasPrefix(FieldLabel, v))
+}
+
+// LabelHasSuffix applies the HasSuffix predicate on the "label" field.
+func LabelHasSuffix(v string) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(sql.FieldHasSuffix(FieldLabel, v))
+}
+
+// LabelEqualFold applies the EqualFold predicate on the "label" field.
+func LabelEqualFold(v string) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(sql.FieldEqualFold(FieldLabel, v))
+}
+
+// LabelContainsFold applies the ContainsFold predicate on the "label" field.
+func LabelContainsFold(v string) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(sql.FieldContainsFold(FieldLabel, v))
+}
+
 // StatusEQ applies the EQ predicate on the "status" field.
 func StatusEQ(v Status) predicate.LockPaymentOrder {
 	return predicate.LockPaymentOrder(sql.FieldEQ(FieldStatus, v))

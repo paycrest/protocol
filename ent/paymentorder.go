@@ -35,6 +35,8 @@ type PaymentOrder struct {
 	TxHash string `json:"tx_hash,omitempty"`
 	// ReceiveAddressText holds the value of the "receive_address_text" field.
 	ReceiveAddressText string `json:"receive_address_text,omitempty"`
+	// Label holds the value of the "label" field.
+	Label string `json:"label,omitempty"`
 	// Status holds the value of the "status" field.
 	Status paymentorder.Status `json:"status,omitempty"`
 	// LastUsed holds the value of the "last_used" field.
@@ -122,7 +124,7 @@ func (*PaymentOrder) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case paymentorder.FieldAmount, paymentorder.FieldAmountPaid:
 			values[i] = new(decimal.Decimal)
-		case paymentorder.FieldTxHash, paymentorder.FieldReceiveAddressText, paymentorder.FieldStatus:
+		case paymentorder.FieldTxHash, paymentorder.FieldReceiveAddressText, paymentorder.FieldLabel, paymentorder.FieldStatus:
 			values[i] = new(sql.NullString)
 		case paymentorder.FieldCreatedAt, paymentorder.FieldUpdatedAt, paymentorder.FieldLastUsed:
 			values[i] = new(sql.NullTime)
@@ -190,6 +192,12 @@ func (po *PaymentOrder) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field receive_address_text", values[i])
 			} else if value.Valid {
 				po.ReceiveAddressText = value.String
+			}
+		case paymentorder.FieldLabel:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field label", values[i])
+			} else if value.Valid {
+				po.Label = value.String
 			}
 		case paymentorder.FieldStatus:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -297,6 +305,9 @@ func (po *PaymentOrder) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("receive_address_text=")
 	builder.WriteString(po.ReceiveAddressText)
+	builder.WriteString(", ")
+	builder.WriteString("label=")
+	builder.WriteString(po.Label)
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(fmt.Sprintf("%v", po.Status))

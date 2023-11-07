@@ -40,6 +40,7 @@ var OrderConf = config.OrderConfig()
 type Indexer interface {
 	IndexERC20Transfer(ctx context.Context, client types.RPCClient, receiveAddress *ent.ReceiveAddress, done chan<- bool) error
 	IndexOrderDeposits(ctx context.Context, client types.RPCClient, network *ent.Network) error
+	IndexOrderSettlements(ctx context.Context, client types.RPCClient, network *ent.Network) error
 }
 
 // IndexerService performs blockchain to database extract, transform, load (ETL) operations.
@@ -639,6 +640,7 @@ func (s *IndexerService) createLockPaymentOrder(ctx context.Context, client type
 		OrderID:           fmt.Sprintf("0x%v", hex.EncodeToString(deposit.OrderId[:])),
 		Amount:            amountInDecimals,
 		Rate:              decimal.NewFromBigInt(deposit.Rate, 0),
+		Label:             utils.Byte32ToString(deposit.Label),
 		BlockNumber:       int64(deposit.Raw.BlockNumber),
 		Institution:       utils.Byte32ToString(deposit.InstitutionCode),
 		AccountIdentifier: recipient.AccountIdentifier,

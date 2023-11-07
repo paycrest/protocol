@@ -42,6 +42,11 @@ func (m *MockIndexerService) IndexOrderDeposits(ctx context.Context, client type
 	return nil
 }
 
+// IndexOrderSettlements mocks the IndexOrderSettlements method
+func (m *MockIndexerService) IndexOrderSettlements(ctx context.Context, client types.RPCClient, network *ent.Network) error {
+	return nil
+}
+
 var testCtx = struct {
 	user              *ent.User
 	token             *ent.Token
@@ -143,6 +148,7 @@ func TestSender(t *testing.T) {
 				"accountName":       "John Doe",
 				"memo":              "Shola Kehinde - rent for May 2021",
 			},
+			"label":     "cc334ncldfa",
 			"timestamp": time.Now().Unix(),
 		}
 

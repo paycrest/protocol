@@ -37,6 +37,7 @@ func (LockPaymentOrder) Fields() []ent.Field {
 		field.String("tx_hash").
 			MaxLen(70).
 			Optional(),
+		field.String("label"),
 		field.Enum("status").
 			Values("pending", "processing", "cancelled", "fulfilled", "validated", "settled").
 			Default("pending"),

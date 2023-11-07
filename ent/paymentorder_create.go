@@ -86,6 +86,12 @@ func (poc *PaymentOrderCreate) SetReceiveAddressText(s string) *PaymentOrderCrea
 	return poc
 }
 
+// SetLabel sets the "label" field.
+func (poc *PaymentOrderCreate) SetLabel(s string) *PaymentOrderCreate {
+	poc.mutation.SetLabel(s)
+	return poc
+}
+
 // SetStatus sets the "status" field.
 func (poc *PaymentOrderCreate) SetStatus(pa paymentorder.Status) *PaymentOrderCreate {
 	poc.mutation.SetStatus(pa)
@@ -268,6 +274,9 @@ func (poc *PaymentOrderCreate) check() error {
 			return &ValidationError{Name: "receive_address_text", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.receive_address_text": %w`, err)}
 		}
 	}
+	if _, ok := poc.mutation.Label(); !ok {
+		return &ValidationError{Name: "label", err: errors.New(`ent: missing required field "PaymentOrder.label"`)}
+	}
 	if _, ok := poc.mutation.Status(); !ok {
 		return &ValidationError{Name: "status", err: errors.New(`ent: missing required field "PaymentOrder.status"`)}
 	}
@@ -340,6 +349,10 @@ func (poc *PaymentOrderCreate) createSpec() (*PaymentOrder, *sqlgraph.CreateSpec
 	if value, ok := poc.mutation.ReceiveAddressText(); ok {
 		_spec.SetField(paymentorder.FieldReceiveAddressText, field.TypeString, value)
 		_node.ReceiveAddressText = value
+	}
+	if value, ok := poc.mutation.Label(); ok {
+		_spec.SetField(paymentorder.FieldLabel, field.TypeString, value)
+		_node.Label = value
 	}
 	if value, ok := poc.mutation.Status(); ok {
 		_spec.SetField(paymentorder.FieldStatus, field.TypeEnum, value)

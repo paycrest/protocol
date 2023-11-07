@@ -35,6 +35,7 @@ func (PaymentOrder) Fields() []ent.Field {
 			Optional(),
 		field.String("receive_address_text").
 			MaxLen(60),
+		field.String("label"),
 		field.Enum("status").
 			Values("initiated", "pending", "settled", "cancelled", "failed", "refunded").
 			Default("initiated"),

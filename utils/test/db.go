@@ -100,6 +100,7 @@ func CreateTestLockPaymentOrder(overrides map[string]interface{}) (*ent.LockPaym
 		"order_id":           "order-123",
 		"amount":             100.50,
 		"rate":               750.0,
+		"label":              "thisisatestlabel",
 		"status":             "pending",
 		"block_number":       12345,
 		"institution":        "Test Bank",
@@ -123,6 +124,7 @@ func CreateTestLockPaymentOrder(overrides map[string]interface{}) (*ent.LockPaym
 		SetAmount(decimal.NewFromFloat(payload["amount"].(float64))).
 		SetRate(decimal.NewFromFloat(payload["rate"].(float64))).
 		SetStatus(lockpaymentorder.Status(payload["status"].(string))).
+		SetLabel(payload["label"].(string)).
 		SetBlockNumber(int64(payload["block_number"].(int))).
 		SetInstitution(payload["institution"].(string)).
 		SetAccountIdentifier(payload["account_identifier"].(string)).

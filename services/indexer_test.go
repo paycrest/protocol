@@ -115,6 +115,7 @@ func setup() error {
 		SetAmount(amount).
 		SetAmountPaid(decimal.NewFromInt(0)).
 		SetToken(token).
+		SetLabel("test payment order").
 		SetReceiveAddress(receiveAddress).
 		SetReceiveAddressText(receiveAddress.Address).
 		Save(context.Background())

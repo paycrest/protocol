@@ -104,6 +104,7 @@ func (ctrl *SenderController) CreatePaymentOrder(ctx *gin.Context) {
 		SetAmount(payload.Amount).
 		SetAmountPaid(decimal.NewFromInt(0)).
 		SetToken(token).
+		SetLabel(payload.Label).
 		SetReceiveAddress(receiveAddress).
 		SetReceiveAddressText(receiveAddress.Address).
 		Save(ctx)
@@ -208,6 +209,7 @@ func (ctrl *SenderController) GetPaymentOrderByID(ctx *gin.Context) {
 			ProviderID:        paymentOrder.Edges.Recipient.ProviderID,
 			Memo:              paymentOrder.Edges.Recipient.Memo,
 		},
+		Label:     paymentOrder.Label,
 		CreatedAt: paymentOrder.CreatedAt,
 		UpdatedAt: paymentOrder.UpdatedAt,
 		TxHash:    paymentOrder.TxHash,

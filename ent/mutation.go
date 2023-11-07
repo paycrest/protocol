@@ -2296,6 +2296,7 @@ type LockPaymentOrderMutation struct {
 	order_percent              *decimal.Decimal
 	addorder_percent           *decimal.Decimal
 	tx_hash                    *string
+	label                      *string
 	status                     *lockpaymentorder.Status
 	block_number               *int64
 	addblock_number            *int64
@@ -2762,6 +2763,42 @@ func (m *LockPaymentOrderMutation) TxHashCleared() bool {
 func (m *LockPaymentOrderMutation) ResetTxHash() {
 	m.tx_hash = nil
 	delete(m.clearedFields, lockpaymentorder.FieldTxHash)
+}
+
+// SetLabel sets the "label" field.
+func (m *LockPaymentOrderMutation) SetLabel(s string) {
+	m.label = &s
+}
+
+// Label returns the value of the "label" field in the mutation.
+func (m *LockPaymentOrderMutation) Label() (r string, exists bool) {
+	v := m.label
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLabel returns the old "label" field's value of the LockPaymentOrder entity.
+// If the LockPaymentOrder object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LockPaymentOrderMutation) OldLabel(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLabel is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLabel requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLabel: %w", err)
+	}
+	return oldValue.Label, nil
+}
+
+// ResetLabel resets all changes to the "label" field.
+func (m *LockPaymentOrderMutation) ResetLabel() {
+	m.label = nil
 }
 
 // SetStatus sets the "status" field.
@@ -3310,7 +3347,7 @@ func (m *LockPaymentOrderMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *LockPaymentOrderMutation) Fields() []string {
-	fields := make([]string, 0, 15)
+	fields := make([]string, 0, 16)
 	if m.created_at != nil {
 		fields = append(fields, lockpaymentorder.FieldCreatedAt)
 	}
@@ -3331,6 +3368,9 @@ func (m *LockPaymentOrderMutation) Fields() []string {
 	}
 	if m.tx_hash != nil {
 		fields = append(fields, lockpaymentorder.FieldTxHash)
+	}
+	if m.label != nil {
+		fields = append(fields, lockpaymentorder.FieldLabel)
 	}
 	if m.status != nil {
 		fields = append(fields, lockpaymentorder.FieldStatus)
@@ -3378,6 +3418,8 @@ func (m *LockPaymentOrderMutation) Field(name string) (ent.Value, bool) {
 		return m.OrderPercent()
 	case lockpaymentorder.FieldTxHash:
 		return m.TxHash()
+	case lockpaymentorder.FieldLabel:
+		return m.Label()
 	case lockpaymentorder.FieldStatus:
 		return m.Status()
 	case lockpaymentorder.FieldBlockNumber:
@@ -3417,6 +3459,8 @@ func (m *LockPaymentOrderMutation) OldField(ctx context.Context, name string) (e
 		return m.OldOrderPercent(ctx)
 	case lockpaymentorder.FieldTxHash:
 		return m.OldTxHash(ctx)
+	case lockpaymentorder.FieldLabel:
+		return m.OldLabel(ctx)
 	case lockpaymentorder.FieldStatus:
 		return m.OldStatus(ctx)
 	case lockpaymentorder.FieldBlockNumber:
@@ -3490,6 +3534,13 @@ func (m *LockPaymentOrderMutation) SetField(name string, value ent.Value) error 
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetTxHash(v)
+		return nil
+	case lockpaymentorder.FieldLabel:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLabel(v)
 		return nil
 	case lockpaymentorder.FieldStatus:
 		v, ok := value.(lockpaymentorder.Status)
@@ -3700,6 +3751,9 @@ func (m *LockPaymentOrderMutation) ResetField(name string) error {
 		return nil
 	case lockpaymentorder.FieldTxHash:
 		m.ResetTxHash()
+		return nil
+	case lockpaymentorder.FieldLabel:
+		m.ResetLabel()
 		return nil
 	case lockpaymentorder.FieldStatus:
 		m.ResetStatus()
@@ -4596,6 +4650,7 @@ type PaymentOrderMutation struct {
 	addamount_paid         *decimal.Decimal
 	tx_hash                *string
 	receive_address_text   *string
+	label                  *string
 	status                 *paymentorder.Status
 	last_used              *time.Time
 	clearedFields          map[string]struct{}
@@ -4985,6 +5040,42 @@ func (m *PaymentOrderMutation) ResetReceiveAddressText() {
 	m.receive_address_text = nil
 }
 
+// SetLabel sets the "label" field.
+func (m *PaymentOrderMutation) SetLabel(s string) {
+	m.label = &s
+}
+
+// Label returns the value of the "label" field in the mutation.
+func (m *PaymentOrderMutation) Label() (r string, exists bool) {
+	v := m.label
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLabel returns the old "label" field's value of the PaymentOrder entity.
+// If the PaymentOrder object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PaymentOrderMutation) OldLabel(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLabel is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLabel requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLabel: %w", err)
+	}
+	return oldValue.Label, nil
+}
+
+// ResetLabel resets all changes to the "label" field.
+func (m *PaymentOrderMutation) ResetLabel() {
+	m.label = nil
+}
+
 // SetStatus sets the "status" field.
 func (m *PaymentOrderMutation) SetStatus(pa paymentorder.Status) {
 	m.status = &pa
@@ -5260,7 +5351,7 @@ func (m *PaymentOrderMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *PaymentOrderMutation) Fields() []string {
-	fields := make([]string, 0, 8)
+	fields := make([]string, 0, 9)
 	if m.created_at != nil {
 		fields = append(fields, paymentorder.FieldCreatedAt)
 	}
@@ -5278,6 +5369,9 @@ func (m *PaymentOrderMutation) Fields() []string {
 	}
 	if m.receive_address_text != nil {
 		fields = append(fields, paymentorder.FieldReceiveAddressText)
+	}
+	if m.label != nil {
+		fields = append(fields, paymentorder.FieldLabel)
 	}
 	if m.status != nil {
 		fields = append(fields, paymentorder.FieldStatus)
@@ -5305,6 +5399,8 @@ func (m *PaymentOrderMutation) Field(name string) (ent.Value, bool) {
 		return m.TxHash()
 	case paymentorder.FieldReceiveAddressText:
 		return m.ReceiveAddressText()
+	case paymentorder.FieldLabel:
+		return m.Label()
 	case paymentorder.FieldStatus:
 		return m.Status()
 	case paymentorder.FieldLastUsed:
@@ -5330,6 +5426,8 @@ func (m *PaymentOrderMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldTxHash(ctx)
 	case paymentorder.FieldReceiveAddressText:
 		return m.OldReceiveAddressText(ctx)
+	case paymentorder.FieldLabel:
+		return m.OldLabel(ctx)
 	case paymentorder.FieldStatus:
 		return m.OldStatus(ctx)
 	case paymentorder.FieldLastUsed:
@@ -5384,6 +5482,13 @@ func (m *PaymentOrderMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetReceiveAddressText(v)
+		return nil
+	case paymentorder.FieldLabel:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLabel(v)
 		return nil
 	case paymentorder.FieldStatus:
 		v, ok := value.(paymentorder.Status)
@@ -5507,6 +5612,9 @@ func (m *PaymentOrderMutation) ResetField(name string) error {
 		return nil
 	case paymentorder.FieldReceiveAddressText:
 		m.ResetReceiveAddressText()
+		return nil
+	case paymentorder.FieldLabel:
+		m.ResetLabel()
 		return nil
 	case paymentorder.FieldStatus:
 		m.ResetStatus()
