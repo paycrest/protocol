@@ -42,7 +42,7 @@ func RegisterRoutes(route *gin.Engine) {
 }
 
 func authRoutes(route *gin.Engine) {
-	var authCtrl accounts.AuthController
+	authCtrl := accounts.NewAuthController()
 	var profileCtrl accounts.ProfileController
 
 	v1 := route.Group("/v1/")
@@ -51,6 +51,8 @@ func authRoutes(route *gin.Engine) {
 	v1.POST("auth/confirm-account/", authCtrl.ConfirmEmail)
 	v1.POST("auth/resend-token/", authCtrl.ResendVerificationToken)
 	v1.POST("auth/refresh/", middleware.JWTMiddleware, authCtrl.RefreshJWT)
+	v1.POST("auth/reset-password-token", middleware.JWTMiddleware, authCtrl.ResetPasswordToken)
+	v1.PATCH("auth/reset-password", middleware.JWTMiddleware, authCtrl.ResetPassword)
 
 	v1.GET(
 		"settings/provider",

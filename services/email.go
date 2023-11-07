@@ -16,8 +16,9 @@ var (
 )
 
 const (
-	_DefaultFromAddress       = "Paycrest <no-reply@paycrest.io>"
-	_EmailVerificationSubject = "Your Paycrest Email Verification Token"
+	_DefaultFromAddress        = "Paycrest <no-reply@paycrest.io>"
+	_EmailVerificationSubject  = "Your Paycrest Email Verification Token"
+	_PasswordResetEmailSubject = "Reset Password confirmation"
 )
 
 type MailProvider string
@@ -58,7 +59,20 @@ func (m *EmailService) SendVerificationEmail(ctx context.Context, token, email s
 		Subject:     _EmailVerificationSubject,
 		Body:        bodyTemplate,
 	}
+	return m.SendEmail(ctx, payload)
+}
 
+// SendPasswordResetEmail performs the actions for sending a password reset token to the user email.
+func (m *EmailService) SendPasswordResetEmail(ctx context.Context, token, email string) (types.SendEmailResponse, error) {
+	// TODO: add custom HTML email verification template.
+	bodyTemplate := fmt.Sprintf("Please confirm your password reset request with this token : %s", token)
+
+	payload := types.SendEmailPayload{
+		FromAddress: _DefaultFromAddress,
+		ToAddress:   email,
+		Subject:     _PasswordResetEmailSubject,
+		Body:        bodyTemplate,
+	}
 	return m.SendEmail(ctx, payload)
 }
 

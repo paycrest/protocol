@@ -57,6 +57,8 @@ func TestAuth(t *testing.T) {
 	router.POST("/confirm-account", ctrl.ConfirmEmail)
 	router.POST("/resend-token", ctrl.ResendVerificationToken)
 	router.POST("/refresh", middleware.JWTMiddleware, ctrl.RefreshJWT)
+	router.POST("/reset-password-token", middleware.JWTMiddleware, ctrl.ResetPasswordToken)
+	router.PATCH("/reset-password", middleware.JWTMiddleware, ctrl.ResetPassword)
 
 	var userID string
 
@@ -220,6 +222,31 @@ func TestAuth(t *testing.T) {
 		})
 	})
 
+	t.Run("ResetPasswordToken", func(t *testing.T) {
+		t.Run("password reset token should be set in db", func(t *testing.T) {
+			refreshTokenForHeader, err := token.GenerateAccessJWT(userID)
+			assert.NoError(t, err, "failed to generate refresh token")
+
+			headers := map[string]string{
+				"Authorization": "Bearer " + refreshTokenForHeader,
+			}
+
+			res, err := test.PerformRequest(t, "POST", "/reset-password-token?scope=sender", nil, headers, router)
+
+			assert.NoError(t, err)
+
+			// Assert the response body
+			assert.Equal(t, http.StatusOK, res.Code)
+
+			// There should be 1 scoped reset-password verification token
+			amount := db.Client.VerificationToken.Query().
+				Where(verificationtoken.ScopeEQ(verificationtoken.ScopeResetPassword)).
+				CountX(context.Background())
+
+			assert.Equal(t, 1, amount)
+		})
+	})
+
 	t.Run("ConfirmEmail", func(t *testing.T) {
 		// fetch user
 		userUUID, err := uuid.Parse(userID)
@@ -380,7 +407,7 @@ func TestAuth(t *testing.T) {
 		t.Run("verification token should be resent", func(t *testing.T) {
 			// construct resend verification token payload
 			payload := types.ResendTokenPayload{
-				Scope: verificationtoken.ScopeVerification.String(),
+				Scope: verificationtoken.ScopeEmailVerification.String(),
 				Email: user.Email,
 			}
 
@@ -395,4 +422,5 @@ func TestAuth(t *testing.T) {
 			assert.Equal(t, 2, amount)
 		})
 	})
+
 }

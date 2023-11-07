@@ -25,6 +25,8 @@ const (
 	FieldToken = "token"
 	// FieldScope holds the string denoting the scope field in the database.
 	FieldScope = "scope"
+	// FieldExpiryAt holds the string denoting the expiry_at field in the database.
+	FieldExpiryAt = "expiry_at"
 	// EdgeOwner holds the string denoting the owner edge name in mutations.
 	EdgeOwner = "owner"
 	// Table holds the table name of the verificationtoken in the database.
@@ -45,6 +47,7 @@ var Columns = []string{
 	FieldUpdatedAt,
 	FieldToken,
 	FieldScope,
+	FieldExpiryAt,
 }
 
 // ForeignKeys holds the SQL foreign-keys that are owned by the "verification_tokens"
@@ -81,6 +84,8 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
+	// DefaultExpiryAt holds the default value on creation for the "expiry_at" field.
+	DefaultExpiryAt time.Time
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() uuid.UUID
 )
@@ -90,7 +95,8 @@ type Scope string
 
 // Scope values.
 const (
-	ScopeVerification Scope = "verification"
+	ScopeEmailVerification Scope = "email-verification"
+	ScopeResetPassword     Scope = "reset-password"
 )
 
 func (s Scope) String() string {
@@ -100,7 +106,7 @@ func (s Scope) String() string {
 // ScopeValidator is a validator for the "scope" field enum values. It is called by the builders before save.
 func ScopeValidator(s Scope) error {
 	switch s {
-	case ScopeVerification:
+	case ScopeEmailVerification, ScopeResetPassword:
 		return nil
 	default:
 		return fmt.Errorf("verificationtoken: invalid enum value for scope field: %q", s)
@@ -133,6 +139,11 @@ func ByToken(opts ...sql.OrderTermOption) OrderOption {
 // ByScope orders the results by the scope field.
 func ByScope(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldScope, opts...).ToFunc()
+}
+
+// ByExpiryAt orders the results by the expiry_at field.
+func ByExpiryAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldExpiryAt, opts...).ToFunc()
 }
 
 // ByOwnerField orders the results by owner field.

@@ -71,6 +71,11 @@ func Token(v string) predicate.VerificationToken {
 	return predicate.VerificationToken(sql.FieldEQ(FieldToken, v))
 }
 
+// ExpiryAt applies equality check predicate on the "expiry_at" field. It's identical to ExpiryAtEQ.
+func ExpiryAt(v time.Time) predicate.VerificationToken {
+	return predicate.VerificationToken(sql.FieldEQ(FieldExpiryAt, v))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.VerificationToken {
 	return predicate.VerificationToken(sql.FieldEQ(FieldCreatedAt, v))
@@ -234,6 +239,46 @@ func ScopeIn(vs ...Scope) predicate.VerificationToken {
 // ScopeNotIn applies the NotIn predicate on the "scope" field.
 func ScopeNotIn(vs ...Scope) predicate.VerificationToken {
 	return predicate.VerificationToken(sql.FieldNotIn(FieldScope, vs...))
+}
+
+// ExpiryAtEQ applies the EQ predicate on the "expiry_at" field.
+func ExpiryAtEQ(v time.Time) predicate.VerificationToken {
+	return predicate.VerificationToken(sql.FieldEQ(FieldExpiryAt, v))
+}
+
+// ExpiryAtNEQ applies the NEQ predicate on the "expiry_at" field.
+func ExpiryAtNEQ(v time.Time) predicate.VerificationToken {
+	return predicate.VerificationToken(sql.FieldNEQ(FieldExpiryAt, v))
+}
+
+// ExpiryAtIn applies the In predicate on the "expiry_at" field.
+func ExpiryAtIn(vs ...time.Time) predicate.VerificationToken {
+	return predicate.VerificationToken(sql.FieldIn(FieldExpiryAt, vs...))
+}
+
+// ExpiryAtNotIn applies the NotIn predicate on the "expiry_at" field.
+func ExpiryAtNotIn(vs ...time.Time) predicate.VerificationToken {
+	return predicate.VerificationToken(sql.FieldNotIn(FieldExpiryAt, vs...))
+}
+
+// ExpiryAtGT applies the GT predicate on the "expiry_at" field.
+func ExpiryAtGT(v time.Time) predicate.VerificationToken {
+	return predicate.VerificationToken(sql.FieldGT(FieldExpiryAt, v))
+}
+
+// ExpiryAtGTE applies the GTE predicate on the "expiry_at" field.
+func ExpiryAtGTE(v time.Time) predicate.VerificationToken {
+	return predicate.VerificationToken(sql.FieldGTE(FieldExpiryAt, v))
+}
+
+// ExpiryAtLT applies the LT predicate on the "expiry_at" field.
+func ExpiryAtLT(v time.Time) predicate.VerificationToken {
+	return predicate.VerificationToken(sql.FieldLT(FieldExpiryAt, v))
+}
+
+// ExpiryAtLTE applies the LTE predicate on the "expiry_at" field.
+func ExpiryAtLTE(v time.Time) predicate.VerificationToken {
+	return predicate.VerificationToken(sql.FieldLTE(FieldExpiryAt, v))
 }
 
 // HasOwner applies the HasEdge predicate on the "owner" edge.

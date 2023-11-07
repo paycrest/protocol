@@ -13982,6 +13982,7 @@ type VerificationTokenMutation struct {
 	updated_at    *time.Time
 	token         *string
 	scope         *verificationtoken.Scope
+	expiry_at     *time.Time
 	clearedFields map[string]struct{}
 	owner         *uuid.UUID
 	clearedowner  bool
@@ -14238,6 +14239,42 @@ func (m *VerificationTokenMutation) ResetScope() {
 	m.scope = nil
 }
 
+// SetExpiryAt sets the "expiry_at" field.
+func (m *VerificationTokenMutation) SetExpiryAt(t time.Time) {
+	m.expiry_at = &t
+}
+
+// ExpiryAt returns the value of the "expiry_at" field in the mutation.
+func (m *VerificationTokenMutation) ExpiryAt() (r time.Time, exists bool) {
+	v := m.expiry_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldExpiryAt returns the old "expiry_at" field's value of the VerificationToken entity.
+// If the VerificationToken object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *VerificationTokenMutation) OldExpiryAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldExpiryAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldExpiryAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldExpiryAt: %w", err)
+	}
+	return oldValue.ExpiryAt, nil
+}
+
+// ResetExpiryAt resets all changes to the "expiry_at" field.
+func (m *VerificationTokenMutation) ResetExpiryAt() {
+	m.expiry_at = nil
+}
+
 // SetOwnerID sets the "owner" edge to the User entity by id.
 func (m *VerificationTokenMutation) SetOwnerID(id uuid.UUID) {
 	m.owner = &id
@@ -14311,7 +14348,7 @@ func (m *VerificationTokenMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *VerificationTokenMutation) Fields() []string {
-	fields := make([]string, 0, 4)
+	fields := make([]string, 0, 5)
 	if m.created_at != nil {
 		fields = append(fields, verificationtoken.FieldCreatedAt)
 	}
@@ -14323,6 +14360,9 @@ func (m *VerificationTokenMutation) Fields() []string {
 	}
 	if m.scope != nil {
 		fields = append(fields, verificationtoken.FieldScope)
+	}
+	if m.expiry_at != nil {
+		fields = append(fields, verificationtoken.FieldExpiryAt)
 	}
 	return fields
 }
@@ -14340,6 +14380,8 @@ func (m *VerificationTokenMutation) Field(name string) (ent.Value, bool) {
 		return m.Token()
 	case verificationtoken.FieldScope:
 		return m.Scope()
+	case verificationtoken.FieldExpiryAt:
+		return m.ExpiryAt()
 	}
 	return nil, false
 }
@@ -14357,6 +14399,8 @@ func (m *VerificationTokenMutation) OldField(ctx context.Context, name string) (
 		return m.OldToken(ctx)
 	case verificationtoken.FieldScope:
 		return m.OldScope(ctx)
+	case verificationtoken.FieldExpiryAt:
+		return m.OldExpiryAt(ctx)
 	}
 	return nil, fmt.Errorf("unknown VerificationToken field %s", name)
 }
@@ -14393,6 +14437,13 @@ func (m *VerificationTokenMutation) SetField(name string, value ent.Value) error
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetScope(v)
+		return nil
+	case verificationtoken.FieldExpiryAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetExpiryAt(v)
 		return nil
 	}
 	return fmt.Errorf("unknown VerificationToken field %s", name)
@@ -14454,6 +14505,9 @@ func (m *VerificationTokenMutation) ResetField(name string) error {
 		return nil
 	case verificationtoken.FieldScope:
 		m.ResetScope()
+		return nil
+	case verificationtoken.FieldExpiryAt:
+		m.ResetExpiryAt()
 		return nil
 	}
 	return fmt.Errorf("unknown VerificationToken field %s", name)

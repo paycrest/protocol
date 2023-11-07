@@ -62,6 +62,20 @@ func (vtc *VerificationTokenCreate) SetScope(v verificationtoken.Scope) *Verific
 	return vtc
 }
 
+// SetExpiryAt sets the "expiry_at" field.
+func (vtc *VerificationTokenCreate) SetExpiryAt(t time.Time) *VerificationTokenCreate {
+	vtc.mutation.SetExpiryAt(t)
+	return vtc
+}
+
+// SetNillableExpiryAt sets the "expiry_at" field if the given value is not nil.
+func (vtc *VerificationTokenCreate) SetNillableExpiryAt(t *time.Time) *VerificationTokenCreate {
+	if t != nil {
+		vtc.SetExpiryAt(*t)
+	}
+	return vtc
+}
+
 // SetID sets the "id" field.
 func (vtc *VerificationTokenCreate) SetID(u uuid.UUID) *VerificationTokenCreate {
 	vtc.mutation.SetID(u)
@@ -138,6 +152,10 @@ func (vtc *VerificationTokenCreate) defaults() error {
 		v := verificationtoken.DefaultUpdatedAt()
 		vtc.mutation.SetUpdatedAt(v)
 	}
+	if _, ok := vtc.mutation.ExpiryAt(); !ok {
+		v := verificationtoken.DefaultExpiryAt
+		vtc.mutation.SetExpiryAt(v)
+	}
 	if _, ok := vtc.mutation.ID(); !ok {
 		if verificationtoken.DefaultID == nil {
 			return fmt.Errorf("ent: uninitialized verificationtoken.DefaultID (forgotten import ent/runtime?)")
@@ -166,6 +184,9 @@ func (vtc *VerificationTokenCreate) check() error {
 		if err := verificationtoken.ScopeValidator(v); err != nil {
 			return &ValidationError{Name: "scope", err: fmt.Errorf(`ent: validator failed for field "VerificationToken.scope": %w`, err)}
 		}
+	}
+	if _, ok := vtc.mutation.ExpiryAt(); !ok {
+		return &ValidationError{Name: "expiry_at", err: errors.New(`ent: missing required field "VerificationToken.expiry_at"`)}
 	}
 	if _, ok := vtc.mutation.OwnerID(); !ok {
 		return &ValidationError{Name: "owner", err: errors.New(`ent: missing required edge "VerificationToken.owner"`)}
@@ -220,6 +241,10 @@ func (vtc *VerificationTokenCreate) createSpec() (*VerificationToken, *sqlgraph.
 	if value, ok := vtc.mutation.Scope(); ok {
 		_spec.SetField(verificationtoken.FieldScope, field.TypeEnum, value)
 		_node.Scope = value
+	}
+	if value, ok := vtc.mutation.ExpiryAt(); ok {
+		_spec.SetField(verificationtoken.FieldExpiryAt, field.TypeTime, value)
+		_node.ExpiryAt = value
 	}
 	if nodes := vtc.mutation.OwnerIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

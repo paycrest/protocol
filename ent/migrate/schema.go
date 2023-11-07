@@ -444,7 +444,8 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "token", Type: field.TypeString},
-		{Name: "scope", Type: field.TypeEnum, Enums: []string{"verification"}},
+		{Name: "scope", Type: field.TypeEnum, Enums: []string{"email-verification", "reset-password"}},
+		{Name: "expiry_at", Type: field.TypeTime},
 		{Name: "user_verification_token", Type: field.TypeUUID},
 	}
 	// VerificationTokensTable holds the schema information for the "verification_tokens" table.
@@ -455,7 +456,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "verification_tokens_users_verification_token",
-				Columns:    []*schema.Column{VerificationTokensColumns[5]},
+				Columns:    []*schema.Column{VerificationTokensColumns[6]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},

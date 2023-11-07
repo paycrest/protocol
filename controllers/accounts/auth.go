@@ -3,8 +3,11 @@ package accounts
 import (
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/ent/fiatcurrency"
 	"github.com/paycrest/protocol/ent/providerprofile"
 	userEnt "github.com/paycrest/protocol/ent/user"
@@ -18,6 +21,8 @@ import (
 	"github.com/paycrest/protocol/utils/token"
 	"github.com/shopspring/decimal"
 )
+
+var conf = config.AuthConfig()
 
 // AuthController is the controller type for the auth endpoints
 type AuthController struct {
@@ -92,7 +97,7 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 	verificationToken, err := tx.VerificationToken.
 		Create().
 		SetOwner(user).
-		SetScope(verificationtoken.ScopeVerification).
+		SetScope(verificationtoken.ScopeEmailVerification).
 		Save(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
@@ -336,4 +341,75 @@ func (ctrl *AuthController) ResendVerificationToken(ctx *gin.Context) {
 
 	// Return a success response
 	u.APIResponse(ctx, http.StatusOK, "success", "Verification token has been sent to your email", nil)
+}
+
+// Resets user's password. A valid token is required to set new password
+func (ctrl *AuthController) ResetPassword(ctx *gin.Context) {
+
+	// Get current authenticated userID from context
+	ID, _ := ctx.Get("user_id")
+	userID, _ := uuid.Parse(ID.(string))
+
+	var payload types.ResetPasswordPayload
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusBadRequest, "error",
+			"Failed to validate payload", u.GetErrorData(err))
+		return
+	}
+
+	// Get authenticated user account
+	user, userErr := db.Client.User.Query().Where(userEnt.IDEQ(userID)).Only(ctx)
+	if userErr != nil {
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid credential", userErr.Error())
+	}
+
+	// Verify reset token
+	token, rtErr := db.Client.VerificationToken.
+		Query().
+		Where(verificationtoken.TokenEQ(payload.ResetToken)).
+		Where(verificationtoken.ScopeEQ(verificationtoken.ScopeResetPassword)).
+		Where(verificationtoken.ExpiryAtGTE(time.Now())).
+		WithOwner().
+		Only(ctx)
+	if rtErr != nil || token == nil || token.Edges.Owner.ID != userID {
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid password reset token", rtErr.Error())
+		return
+	}
+
+	if _, err := db.Client.User.UpdateOne(user).SetPassword(payload.Password).Save(ctx); err != nil {
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to reset password", err.Error())
+		return
+	}
+
+	// Return a success response
+	u.APIResponse(ctx, http.StatusOK, "success", "Password reset was successful", nil)
+}
+
+// Sends reset password token to user's email
+func (ctrl *AuthController) ResetPasswordToken(ctx *gin.Context) {
+
+	ID, _ := ctx.Get("user_id")
+	userID, _ := uuid.Parse(ID.(string))
+
+	// Get authenticated user account.
+	user, userErr := db.Client.User.Query().Where(userEnt.IDEQ(userID)).Only(ctx)
+	if userErr != nil {
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid credential", userErr.Error())
+	}
+
+	// Generate password reset token.
+	passwordResetToken, rtErr := db.Client.VerificationToken.Create().SetOwner(user).SetScope(verificationtoken.ScopeResetPassword).SetExpiryAt(time.Now().Add(conf.PasswordResetLifespan)).Save(ctx)
+	if rtErr != nil || passwordResetToken == nil {
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to generate reset password token", rtErr.Error())
+		return
+	}
+
+	if _, err := ctrl.emailService.SendPasswordResetEmail(ctx, passwordResetToken.Token, user.Email); err != nil {
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to send reset password token", err.Error())
+		return
+	}
+
+	// Return a success response
+	u.APIResponse(ctx, http.StatusOK, "success", "A reset token has been sent to your email", map[string]string{"email": user.Email})
 }
