@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"testing"
 	"time"
 
@@ -127,6 +128,7 @@ func TestSender(t *testing.T) {
 	ctrl := NewSenderController(mockIndexerService)
 	router.POST("/orders", ctrl.CreatePaymentOrder)
 	router.GET("/orders/:id", ctrl.GetPaymentOrderByID)
+	router.GET("/orders/", ctrl.GetPaymentOrders)
 
 	var paymentOrderUUID uuid.UUID
 
@@ -193,7 +195,7 @@ func TestSender(t *testing.T) {
 		assert.Equal(t, paymentOrder.Edges.Recipient.Memo, payload["recipient"].(map[string]interface{})["memo"])
 	})
 
-	t.Run("GetPaymentOrder", func(t *testing.T) {
+	t.Run("GetPaymentOrderByID", func(t *testing.T) {
 		var payload = map[string]interface{}{
 			"timestamp": time.Now().Unix(),
 		}
@@ -219,4 +221,46 @@ func TestSender(t *testing.T) {
 		assert.NotNil(t, data, "response.Data is nil")
 
 	})
+
+	t.Run("GetPaymentOrders", func(t *testing.T) {
+		var payload = map[string]interface{}{
+			"timestamp": time.Now().Unix(),
+		}
+
+		signature := token.GenerateHMACSignature(payload, testCtx.apiKeySecret)
+
+		headers := map[string]string{
+			"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
+		}
+
+		//query params
+		page := 1
+		pageSize := 10
+		status := "initiated"
+		ordering := "desc"
+
+		res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/orders/?page=%s&pageSize=%s&status=%s&ordering=%s", strconv.Itoa(page), strconv.Itoa(pageSize), status, ordering), payload, headers, router)
+		assert.NoError(t, err)
+
+		// Assert the response body
+		assert.Equal(t, http.StatusOK, res.Code)
+
+		var response types.Response
+		err = json.Unmarshal(res.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.Equal(t, "Payment orders retrieved successfully", response.Message)
+		data, ok := response.Data.(map[string]interface{})
+		assert.True(t, ok, "response.Data is of not type map[string]interface{}")
+		assert.NotNil(t, data, "response.Data is nil")
+
+		fmt.Println(data)
+
+
+
+		assert.Equal(t, int(data["page"].(float64)), page)
+		assert.Equal(t, int(data["pageSize"].(float64)), pageSize)
+		assert.NotEmpty(t, data["total"])
+		assert.NotEmpty(t, data["orders"])
+	})
+
 }

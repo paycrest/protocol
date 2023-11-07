@@ -34,7 +34,77 @@ func NewProviderController() *ProviderController {
 
 // GetOrders controller fetches all assigned orders
 func (ctrl *ProviderController) GetOrders(ctx *gin.Context) {
-	u.APIResponse(ctx, http.StatusOK, "success", "OK", nil)
+	// get page and pageSize query params
+	page, pageSize := u.Paginate(ctx)
+
+	// get status query param
+	status := lockpaymentorder.StatusProcessing // default status
+	if ctx.Query("status") == "pending" {
+		status = lockpaymentorder.StatusPending
+	} else if ctx.Query("status") == "validated" {
+		status = lockpaymentorder.StatusValidated
+	} else if ctx.Query("status") == "fulfilled" {
+		status = lockpaymentorder.StatusFulfilled
+	} else if ctx.Query("status") == "cancelled" {
+		status = lockpaymentorder.StatusCancelled
+	}
+
+	// get ordering query param
+	ordering := ctx.Query("ordering")
+	order := ent.Desc(lockpaymentorder.FieldCreatedAt)
+	if ordering == "asc" {
+		order = ent.Asc(lockpaymentorder.FieldCreatedAt)
+	}
+
+	// Get provider profile from the context
+	providerCtx, ok := ctx.Get("provider")
+	if !ok {
+		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid API key", nil)
+		return
+	}
+	provider := providerCtx.(*ent.ProviderProfile)
+
+	// Fetch all orders assigned to the provider
+	lockPaymentOrders, err := storage.Client.LockPaymentOrder.
+		Query().
+		Where(
+			lockpaymentorder.HasProviderWith(providerprofile.IDEQ(provider.ID)),
+			lockpaymentorder.StatusEQ(status),
+		).
+		Limit(pageSize).
+		Offset(page).
+		Order(order).
+		WithProvider().
+		All(ctx)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch orders", nil)
+		return
+	}
+
+	var orders []types.LockPaymentOrderFields
+
+	for _, order := range lockPaymentOrders {
+		orders = append(orders, types.LockPaymentOrderFields{
+			ID:                order.ID,
+			Token:             order.Edges.Token,
+			OrderID:           order.OrderID,
+			Amount:            order.Amount.Mul(order.Rate),
+			Rate:              order.Rate,
+			Label:             order.Label,
+			Institution:       order.Institution,
+			AccountIdentifier: order.AccountIdentifier,
+			AccountName:       order.AccountName,
+		})
+	}
+
+	// return paginated orders
+	u.APIResponse(ctx, http.StatusOK, "success", "Orders successfully retrieved", types.ProviderLockOrderList{
+		Page:         page,
+		PageSize:     pageSize,
+		TotalRecords: len(orders),
+		Orders:       orders,
+	})
 }
 
 // AcceptOrder controller accepts an order

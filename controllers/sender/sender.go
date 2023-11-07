@@ -218,3 +218,88 @@ func (ctrl *SenderController) GetPaymentOrderByID(ctx *gin.Context) {
 		Status:    paymentOrder.Status,
 	})
 }
+
+// GetPaymentOrders controller fetches all payment orders
+func (ctrl *SenderController) GetPaymentOrders(ctx *gin.Context) {
+	// get page and pageSize query params
+	page, pageSize := u.Paginate(ctx)
+
+	// get status query param
+	status := paymentorder.StatusPending // default status
+	if ctx.Query("status") == "initiated" {
+		status = paymentorder.StatusInitiated
+	} else if ctx.Query("status") == "settled" {
+		status = paymentorder.StatusSettled
+	} else if ctx.Query("status") == "failed" {
+		status = paymentorder.StatusFailed
+	} else if ctx.Query("status") == "cancelled" {
+		status = paymentorder.StatusCancelled
+	} else if ctx.Query("status") == "refunded" {
+		status = paymentorder.StatusRefunded
+	}
+
+	// Get sender profile from the context
+	senderCtx, ok := ctx.Get("sender")
+	if !ok {
+		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid API key", nil)
+		return
+	}
+	sender := senderCtx.(*ent.SenderProfile)
+
+	// get ordering query param
+	ordering := ctx.Query("ordering")
+	order := ent.Desc(paymentorder.FieldCreatedAt)
+	if ordering == "asc" {
+		order = ent.Asc(paymentorder.FieldCreatedAt)
+	}
+
+	// Get all payment orders for the sender
+	paymentOrders, err := db.Client.PaymentOrder.
+		Query().
+		Where(paymentorder.HasSenderProfileWith(senderprofile.IDEQ(sender.ID))).
+		WithRecipient().
+		WithToken(func(tq *ent.TokenQuery) {
+			tq.WithNetwork()
+		}).
+		Where(paymentorder.StatusEQ(status)).
+		Limit(pageSize).
+		Offset(page).
+		Order(order).
+		All(ctx)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error",
+			"Failed to fetch payment orders", nil)
+		return
+	}
+
+	var response []types.PaymentOrderResponse
+
+	for _, paymentOrder := range paymentOrders {
+		response = append(response, types.PaymentOrderResponse{
+			ID:      paymentOrder.ID,
+			Amount:  paymentOrder.Amount,
+			Rate:    paymentOrder.Rate,
+			Network: paymentOrder.Edges.Token.Edges.Network.Identifier,
+			Recipient: types.PaymentOrderRecipient{
+				Institution:       paymentOrder.Edges.Recipient.Institution,
+				AccountIdentifier: paymentOrder.Edges.Recipient.AccountIdentifier,
+				AccountName:       paymentOrder.Edges.Recipient.AccountName,
+				ProviderID:        paymentOrder.Edges.Recipient.ProviderID,
+				Memo:              paymentOrder.Edges.Recipient.Memo,
+			},
+			Label:     paymentOrder.Label,
+			CreatedAt: paymentOrder.CreatedAt,
+			UpdatedAt: paymentOrder.UpdatedAt,
+			TxHash:    paymentOrder.TxHash,
+			Status:    paymentOrder.Status,
+		})
+	}
+
+	u.APIResponse(ctx, http.StatusOK, "success", "Payment orders retrieved successfully", types.SenderPaymentOrderList{
+		TotalRecords: len(response),
+		Page:         page + 1,
+		PageSize:     pageSize,
+		Orders:       response,
+	})
+}

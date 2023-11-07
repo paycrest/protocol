@@ -335,3 +335,19 @@ type ErrorData struct {
 	Field   string `json:"field"`
 	Message string `json:"message"`
 }
+
+// ProviderLockOrderList is the struct for a list of provider lock orders
+type ProviderLockOrderList struct {
+	TotalRecords int                      `json:"total"`
+	Page         int                      `json:"page"`
+	PageSize     int                      `json:"pageSize"`
+	Orders       []LockPaymentOrderFields `json:"orders"`
+}
+
+// SenderOrderList is the struct for a list of sender payment orders
+type SenderPaymentOrderList struct {
+	TotalRecords int                    `json:"total"`
+	Page         int                    `json:"page"`
+	PageSize     int                    `json:"pageSize"`
+	Orders       []PaymentOrderResponse `json:"orders"`
+}

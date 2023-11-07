@@ -115,9 +115,8 @@ type Scope string
 
 // Scope values.
 const (
-	ScopeSender      Scope = "sender"
-	ScopeProvider    Scope = "provider"
-	ScopeTxValidator Scope = "tx_validator"
+	ScopeSender   Scope = "sender"
+	ScopeProvider Scope = "provider"
 )
 
 func (s Scope) String() string {
@@ -127,7 +126,7 @@ func (s Scope) String() string {
 // ScopeValidator is a validator for the "scope" field enum values. It is called by the builders before save.
 func ScopeValidator(s Scope) error {
 	switch s {
-	case ScopeSender, ScopeProvider, ScopeTxValidator:
+	case ScopeSender, ScopeProvider:
 		return nil
 	default:
 		return fmt.Errorf("user: invalid enum value for scope field: %q", s)
