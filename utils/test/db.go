@@ -169,10 +169,12 @@ func CreateTestSenderProfile(overrides map[string]interface{}) (*ent.SenderProfi
 
 	// Default payload
 	payload := map[string]interface{}{
-		"feePerTokenUnit":  0.0,
-		"webhook_url":      "https://example.com/hook",
-		"domain_whitelist": []string{"example.com"},
-		"user_id":          nil,
+		"fee_per_token_unit": 0.0,
+		"webhook_url":        "https://example.com/hook",
+		"domain_whitelist":   []string{"example.com"},
+		"fee_address":        "0x123...",
+		"refund_address":     "0x123...",
+		"user_id":            nil,
 	}
 
 	// Apply overrides
@@ -185,7 +187,9 @@ func CreateTestSenderProfile(overrides map[string]interface{}) (*ent.SenderProfi
 		Create().
 		SetWebhookURL(payload["webhook_url"].(string)).
 		SetDomainWhitelist(payload["domain_whitelist"].([]string)).
-		SetFeePerTokenUnit(decimal.NewFromFloat(payload["feePerTokenUnit"].(float64))).
+		SetFeePerTokenUnit(decimal.NewFromFloat(payload["fee_per_token_unit"].(float64))).
+		SetFeeAddress(payload["fee_address"].(string)).
+		SetRefundAddress(payload["refund_address"].(string)).
 		SetUserID(payload["user_id"].(uuid.UUID)).
 		Save(context.Background())
 

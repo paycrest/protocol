@@ -136,6 +136,8 @@ type SenderProfilePayload struct {
 	WebhookURL      string          `json:"webhookUrl"`
 	DomainWhitelist []string        `json:"domainWhitelist"`
 	FeePerTokenUnit decimal.Decimal `json:"feePerTokenUnit"`
+	FeeAddress      string          `json:"feeAddress"`
+	RefundAddress   string          `json:"refundAddress"`
 }
 
 // ProviderAvailabilityPayload defines the setting for a provider availability
@@ -195,6 +197,8 @@ type SenderProfileResponse struct {
 	WebhookURL      string          `json:"webhookUrl"`
 	DomainWhitelist []string        `json:"domainWhitelist"`
 	FeePerTokenUnit decimal.Decimal `json:"feePerTokenUnit"`
+	FeeAddress      string          `json:"feeAddress"`
+	RefundAddress   string          `json:"refundAddress"`
 	APIKey          APIKeyResponse  `json:"apiKey"`
 }
 

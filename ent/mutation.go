@@ -11181,6 +11181,8 @@ type SenderProfileMutation struct {
 	webhook_url            *string
 	fee_per_token_unit     *decimal.Decimal
 	addfee_per_token_unit  *decimal.Decimal
+	fee_address            *string
+	refund_address         *string
 	domain_whitelist       *[]string
 	appenddomain_whitelist []string
 	updated_at             *time.Time
@@ -11404,6 +11406,104 @@ func (m *SenderProfileMutation) AddedFeePerTokenUnit() (r decimal.Decimal, exist
 func (m *SenderProfileMutation) ResetFeePerTokenUnit() {
 	m.fee_per_token_unit = nil
 	m.addfee_per_token_unit = nil
+}
+
+// SetFeeAddress sets the "fee_address" field.
+func (m *SenderProfileMutation) SetFeeAddress(s string) {
+	m.fee_address = &s
+}
+
+// FeeAddress returns the value of the "fee_address" field in the mutation.
+func (m *SenderProfileMutation) FeeAddress() (r string, exists bool) {
+	v := m.fee_address
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFeeAddress returns the old "fee_address" field's value of the SenderProfile entity.
+// If the SenderProfile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SenderProfileMutation) OldFeeAddress(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFeeAddress is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFeeAddress requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFeeAddress: %w", err)
+	}
+	return oldValue.FeeAddress, nil
+}
+
+// ClearFeeAddress clears the value of the "fee_address" field.
+func (m *SenderProfileMutation) ClearFeeAddress() {
+	m.fee_address = nil
+	m.clearedFields[senderprofile.FieldFeeAddress] = struct{}{}
+}
+
+// FeeAddressCleared returns if the "fee_address" field was cleared in this mutation.
+func (m *SenderProfileMutation) FeeAddressCleared() bool {
+	_, ok := m.clearedFields[senderprofile.FieldFeeAddress]
+	return ok
+}
+
+// ResetFeeAddress resets all changes to the "fee_address" field.
+func (m *SenderProfileMutation) ResetFeeAddress() {
+	m.fee_address = nil
+	delete(m.clearedFields, senderprofile.FieldFeeAddress)
+}
+
+// SetRefundAddress sets the "refund_address" field.
+func (m *SenderProfileMutation) SetRefundAddress(s string) {
+	m.refund_address = &s
+}
+
+// RefundAddress returns the value of the "refund_address" field in the mutation.
+func (m *SenderProfileMutation) RefundAddress() (r string, exists bool) {
+	v := m.refund_address
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRefundAddress returns the old "refund_address" field's value of the SenderProfile entity.
+// If the SenderProfile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SenderProfileMutation) OldRefundAddress(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRefundAddress is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRefundAddress requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRefundAddress: %w", err)
+	}
+	return oldValue.RefundAddress, nil
+}
+
+// ClearRefundAddress clears the value of the "refund_address" field.
+func (m *SenderProfileMutation) ClearRefundAddress() {
+	m.refund_address = nil
+	m.clearedFields[senderprofile.FieldRefundAddress] = struct{}{}
+}
+
+// RefundAddressCleared returns if the "refund_address" field was cleared in this mutation.
+func (m *SenderProfileMutation) RefundAddressCleared() bool {
+	_, ok := m.clearedFields[senderprofile.FieldRefundAddress]
+	return ok
+}
+
+// ResetRefundAddress resets all changes to the "refund_address" field.
+func (m *SenderProfileMutation) ResetRefundAddress() {
+	m.refund_address = nil
+	delete(m.clearedFields, senderprofile.FieldRefundAddress)
 }
 
 // SetDomainWhitelist sets the "domain_whitelist" field.
@@ -11659,12 +11759,18 @@ func (m *SenderProfileMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *SenderProfileMutation) Fields() []string {
-	fields := make([]string, 0, 4)
+	fields := make([]string, 0, 6)
 	if m.webhook_url != nil {
 		fields = append(fields, senderprofile.FieldWebhookURL)
 	}
 	if m.fee_per_token_unit != nil {
 		fields = append(fields, senderprofile.FieldFeePerTokenUnit)
+	}
+	if m.fee_address != nil {
+		fields = append(fields, senderprofile.FieldFeeAddress)
+	}
+	if m.refund_address != nil {
+		fields = append(fields, senderprofile.FieldRefundAddress)
 	}
 	if m.domain_whitelist != nil {
 		fields = append(fields, senderprofile.FieldDomainWhitelist)
@@ -11684,6 +11790,10 @@ func (m *SenderProfileMutation) Field(name string) (ent.Value, bool) {
 		return m.WebhookURL()
 	case senderprofile.FieldFeePerTokenUnit:
 		return m.FeePerTokenUnit()
+	case senderprofile.FieldFeeAddress:
+		return m.FeeAddress()
+	case senderprofile.FieldRefundAddress:
+		return m.RefundAddress()
 	case senderprofile.FieldDomainWhitelist:
 		return m.DomainWhitelist()
 	case senderprofile.FieldUpdatedAt:
@@ -11701,6 +11811,10 @@ func (m *SenderProfileMutation) OldField(ctx context.Context, name string) (ent.
 		return m.OldWebhookURL(ctx)
 	case senderprofile.FieldFeePerTokenUnit:
 		return m.OldFeePerTokenUnit(ctx)
+	case senderprofile.FieldFeeAddress:
+		return m.OldFeeAddress(ctx)
+	case senderprofile.FieldRefundAddress:
+		return m.OldRefundAddress(ctx)
 	case senderprofile.FieldDomainWhitelist:
 		return m.OldDomainWhitelist(ctx)
 	case senderprofile.FieldUpdatedAt:
@@ -11727,6 +11841,20 @@ func (m *SenderProfileMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetFeePerTokenUnit(v)
+		return nil
+	case senderprofile.FieldFeeAddress:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFeeAddress(v)
+		return nil
+	case senderprofile.FieldRefundAddress:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRefundAddress(v)
 		return nil
 	case senderprofile.FieldDomainWhitelist:
 		v, ok := value.([]string)
@@ -11790,6 +11918,12 @@ func (m *SenderProfileMutation) ClearedFields() []string {
 	if m.FieldCleared(senderprofile.FieldWebhookURL) {
 		fields = append(fields, senderprofile.FieldWebhookURL)
 	}
+	if m.FieldCleared(senderprofile.FieldFeeAddress) {
+		fields = append(fields, senderprofile.FieldFeeAddress)
+	}
+	if m.FieldCleared(senderprofile.FieldRefundAddress) {
+		fields = append(fields, senderprofile.FieldRefundAddress)
+	}
 	return fields
 }
 
@@ -11807,6 +11941,12 @@ func (m *SenderProfileMutation) ClearField(name string) error {
 	case senderprofile.FieldWebhookURL:
 		m.ClearWebhookURL()
 		return nil
+	case senderprofile.FieldFeeAddress:
+		m.ClearFeeAddress()
+		return nil
+	case senderprofile.FieldRefundAddress:
+		m.ClearRefundAddress()
+		return nil
 	}
 	return fmt.Errorf("unknown SenderProfile nullable field %s", name)
 }
@@ -11820,6 +11960,12 @@ func (m *SenderProfileMutation) ResetField(name string) error {
 		return nil
 	case senderprofile.FieldFeePerTokenUnit:
 		m.ResetFeePerTokenUnit()
+		return nil
+	case senderprofile.FieldFeeAddress:
+		m.ResetFeeAddress()
+		return nil
+	case senderprofile.FieldRefundAddress:
+		m.ResetRefundAddress()
 		return nil
 	case senderprofile.FieldDomainWhitelist:
 		m.ResetDomainWhitelist()

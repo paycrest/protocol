@@ -45,6 +45,34 @@ func (spc *SenderProfileCreate) SetFeePerTokenUnit(d decimal.Decimal) *SenderPro
 	return spc
 }
 
+// SetFeeAddress sets the "fee_address" field.
+func (spc *SenderProfileCreate) SetFeeAddress(s string) *SenderProfileCreate {
+	spc.mutation.SetFeeAddress(s)
+	return spc
+}
+
+// SetNillableFeeAddress sets the "fee_address" field if the given value is not nil.
+func (spc *SenderProfileCreate) SetNillableFeeAddress(s *string) *SenderProfileCreate {
+	if s != nil {
+		spc.SetFeeAddress(*s)
+	}
+	return spc
+}
+
+// SetRefundAddress sets the "refund_address" field.
+func (spc *SenderProfileCreate) SetRefundAddress(s string) *SenderProfileCreate {
+	spc.mutation.SetRefundAddress(s)
+	return spc
+}
+
+// SetNillableRefundAddress sets the "refund_address" field if the given value is not nil.
+func (spc *SenderProfileCreate) SetNillableRefundAddress(s *string) *SenderProfileCreate {
+	if s != nil {
+		spc.SetRefundAddress(*s)
+	}
+	return spc
+}
+
 // SetDomainWhitelist sets the "domain_whitelist" field.
 func (spc *SenderProfileCreate) SetDomainWhitelist(s []string) *SenderProfileCreate {
 	spc.mutation.SetDomainWhitelist(s)
@@ -229,6 +257,14 @@ func (spc *SenderProfileCreate) createSpec() (*SenderProfile, *sqlgraph.CreateSp
 	if value, ok := spc.mutation.FeePerTokenUnit(); ok {
 		_spec.SetField(senderprofile.FieldFeePerTokenUnit, field.TypeFloat64, value)
 		_node.FeePerTokenUnit = value
+	}
+	if value, ok := spc.mutation.FeeAddress(); ok {
+		_spec.SetField(senderprofile.FieldFeeAddress, field.TypeString, value)
+		_node.FeeAddress = value
+	}
+	if value, ok := spc.mutation.RefundAddress(); ok {
+		_spec.SetField(senderprofile.FieldRefundAddress, field.TypeString, value)
+		_node.RefundAddress = value
 	}
 	if value, ok := spc.mutation.DomainWhitelist(); ok {
 		_spec.SetField(senderprofile.FieldDomainWhitelist, field.TypeJSON, value)

@@ -24,6 +24,8 @@ func (SenderProfile) Fields() []ent.Field {
 		field.String("webhook_url").Optional(),
 		field.Float("fee_per_token_unit").
 			GoType(decimal.Decimal{}),
+		field.String("fee_address").Optional(),
+		field.String("refund_address").Optional(),
 		field.Strings("domain_whitelist").
 			Default([]string{}),
 		field.Time("updated_at").

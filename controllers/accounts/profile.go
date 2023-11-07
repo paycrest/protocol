@@ -298,6 +298,8 @@ func (ctrl *ProfileController) GetSenderProfile(ctx *gin.Context) {
 		WebhookURL:      sender.WebhookURL,
 		DomainWhitelist: sender.DomainWhitelist,
 		FeePerTokenUnit: sender.FeePerTokenUnit,
+		FeeAddress:      sender.FeeAddress,
+		RefundAddress:   sender.RefundAddress,
 		APIKey:          *apiKey,
 	})
 }
