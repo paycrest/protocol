@@ -168,14 +168,14 @@ func Median(data []decimal.Decimal) decimal.Decimal {
 // Paginate parses the pagination query params and returns the offset(page) and limit(pageSize)
 func Paginate(ctx *gin.Context) (page int, pageSize int) {
 	// Parse pagination query params
-	page, _ = strconv.Atoi(ctx.Query("page"))
-	pageSize, _ = strconv.Atoi(ctx.Query("pageSize"))
+	page, err := strconv.Atoi(ctx.Query("page"))
+	pageSize, err2 := strconv.Atoi(ctx.Query("pageSize"))
 
 	// Set defaults if not provided
-	if page < 1 {
+	if err != nil || page < 1 {
 		page = 1
 	}
-	if pageSize < 1 {
+	if err2 != nil || pageSize < 1 {
 		pageSize = 10
 	}
 

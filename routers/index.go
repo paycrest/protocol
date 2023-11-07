@@ -98,7 +98,7 @@ func providerRoutes(route *gin.Engine) {
 	v1.Use(middleware.DynamicAuthMiddleware)
 	v1.Use(middleware.OnlyProviderMiddleware)
 
-	v1.GET("orders/", providerCtrl.GetOrders)
+	v1.GET("orders/", providerCtrl.GetLockPaymentOrders)
 	v1.POST("orders/:id/accept", providerCtrl.AcceptOrder)
 	v1.POST("orders/:id/decline", providerCtrl.DeclineOrder)
 	v1.POST("orders/:id/fulfill", providerCtrl.FulfillOrder)
