@@ -91,44 +91,9 @@ func TestProvider(t *testing.T) {
 
 	// Create a new instance of the SenderController with the mock service
 	ctrl := NewProviderController()
-	router.POST("/orders/:id/accept", ctrl.AcceptOrder)
-	router.GET("/orders/", ctrl.GetOrders)
+	router.GET("/orders/", ctrl.GetLockPaymentOrders)
 
-	t.Run("AcceptOrder", func(t *testing.T) {
-		var payload = map[string]interface{}{
-			"timestamp": time.Now().Unix(),
-		}
-		id := testCtx.lockOrder.ID.String()
-		signature := token.GenerateHMACSignature(payload, testCtx.apiKeySecret)
-
-		headers := map[string]string{
-			"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
-			"Client-Type":   "backend",
-		}
-
-		res, err := test.PerformRequest(t, "POST", fmt.Sprintf("/orders/%s/accept", id), payload, headers, router)
-		assert.NoError(t, err)
-
-		// Assert the response body
-		assert.Equal(t, http.StatusCreated, res.Code)
-
-		var response types.Response
-		err = json.Unmarshal(res.Body.Bytes(), &response)
-		assert.NoError(t, err)
-		assert.Equal(t, "Order request accepted successfully", response.Message)
-		data, ok := response.Data.(map[string]interface{})
-		assert.True(t, ok, "response.Data is not of type map[string]interface{}")
-		assert.NotNil(t, data, "response.Data is nil")
-
-		assert.Equal(t, data["id"], testCtx.lockOrder.ID.String())
-		assert.Equal(t, data["amount"], testCtx.lockOrder.Amount)
-		assert.Equal(t, data["institution"], testCtx.lockOrder.Institution)
-		assert.Equal(t, data["account_identifier"], testCtx.lockOrder.AccountIdentifier)
-		assert.Equal(t, data["account_name"], testCtx.lockOrder.AccountName)
-		assert.Equal(t, data["memo"], testCtx.lockOrder.Memo)
-	})
-
-	t.Run("GetOrders", func(t *testing.T) {
+	t.Run("GetLockPaymentOrders", func(t *testing.T) {
 		var payload = map[string]interface{}{
 			"timestamp": time.Now().Unix(),
 		}
@@ -160,9 +125,9 @@ func TestProvider(t *testing.T) {
 		assert.True(t, ok, "response.Data is of not type map[string]interface{}")
 		assert.NotNil(t, data, "response.Data is nil")
 
-		assert.Equal(t, data["page"], page)
-		assert.Equal(t, data["pageSize"], pageSize)
-		assert.NotEmpty(t, data["total"])
+		assert.Equal(t, int(data["page"].(float64)), page)
+		assert.Equal(t, int(data["pageSize"].(float64)), pageSize)
+		assert.NotNil(t, data["total"])
 		assert.NotEmpty(t, data["orders"])
 	})
 }

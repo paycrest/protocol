@@ -32,13 +32,13 @@ func NewProviderController() *ProviderController {
 	}
 }
 
-// GetOrders controller fetches all assigned orders
-func (ctrl *ProviderController) GetOrders(ctx *gin.Context) {
+// GetLockPaymentOrders controller fetches all assigned orders
+func (ctrl *ProviderController) GetLockPaymentOrders(ctx *gin.Context) {
 	// get page and pageSize query params
 	page, pageSize := u.Paginate(ctx)
 
 	// get status query param
-	status := lockpaymentorder.StatusProcessing // default status
+	status := lockpaymentorder.DefaultStatus // default status
 	if ctx.Query("status") == "pending" {
 		status = lockpaymentorder.StatusPending
 	} else if ctx.Query("status") == "validated" {
@@ -47,6 +47,10 @@ func (ctrl *ProviderController) GetOrders(ctx *gin.Context) {
 		status = lockpaymentorder.StatusFulfilled
 	} else if ctx.Query("status") == "cancelled" {
 		status = lockpaymentorder.StatusCancelled
+	}else if ctx.Query("status") == "processing" {
+		status = lockpaymentorder.StatusProcessing
+	}else if ctx.Query("status") == "settled" {
+		status = lockpaymentorder.StatusSettled
 	}
 
 	// get ordering query param
@@ -100,7 +104,7 @@ func (ctrl *ProviderController) GetOrders(ctx *gin.Context) {
 
 	// return paginated orders
 	u.APIResponse(ctx, http.StatusOK, "success", "Orders successfully retrieved", types.ProviderLockOrderList{
-		Page:         page,
+		Page:         page + 1,
 		PageSize:     pageSize,
 		TotalRecords: len(orders),
 		Orders:       orders,
