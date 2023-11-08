@@ -318,11 +318,12 @@ type Institution struct {
 
 // SupportedCurrencies is the supported currencies response struct.
 type SupportedCurrencies struct {
-	Code      string `json:"code"`
-	Name      string `json:"name"`
-	ShortName string `json:"shortName"`
-	Decimals  int8   `json:"decimals"`
-	Symbol    string `json:"symbol"`
+	Code       string          `json:"code"`
+	Name       string          `json:"name"`
+	ShortName  string          `json:"shortName"`
+	Decimals   int8            `json:"decimals"`
+	Symbol     string          `json:"symbol"`
+	MarketRate decimal.Decimal `json:"marketRate"`
 }
 
 // Response is the struct for an API response
