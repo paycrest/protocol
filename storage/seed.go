@@ -58,10 +58,9 @@ func SeedDatabase() error {
 
 	// Seed Fiat Currencies and Provision Buckets
 	currencies := []types.SupportedCurrencies{
-		{Code: "NGN", Decimals: 2, Name: "Nigerian naira", ShortName: "Naira", Symbol: "₦"},
-		{Code: "KES", Decimals: 2, Name: "Kenyan shilling", ShortName: "Swahili", Symbol: "/="},
+		{Code: "NGN", Decimals: 2, Name: "Nigerian naira", ShortName: "Naira", Symbol: "₦", MarketRate: decimal.NewFromFloat(930.00)},
+		{Code: "KES", Decimals: 2, Name: "Kenyan shilling", ShortName: "Swahili", Symbol: "/=", MarketRate: decimal.NewFromFloat(151.45)},
 	}
-	listedCurrencies := make([]*ent.FiatCurrencyCreate, 0)
 	sampleBuckets := make([]*ent.ProvisionBucketCreate, 0, 6)
 
 	for _, currencyVal := range currencies {
@@ -73,65 +72,37 @@ func SeedDatabase() error {
 			).
 			Only(ctx)
 		if ent.IsNotFound(err) {
-			fmt.Printf("Seeding currency - %s\n", currency.Code)
-			listedCurrencies = append(listedCurrencies, client.FiatCurrency.Create().
-				SetCode(currency.Code).
-				SetShortName(currency.ShortName).
-				SetSymbol(currency.Symbol).
-				SetName(currency.Name),
-			)
+			fmt.Printf("Seeding currency - %s\n", currencyVal.Code)
+			currency, _ = client.FiatCurrency.
+				Create().
+				SetCode(currencyVal.Code).
+				SetShortName(currencyVal.ShortName).
+				SetSymbol(currencyVal.Symbol).
+				SetName(currencyVal.Name).
+				SetMarketRate(currencyVal.MarketRate).
+				Save(ctx)
 		}
 
-		sampleBuckets = append(sampleBuckets, client.ProvisionBucket.
-			Create().
-			SetMinAmount(decimal.NewFromFloat(20000001.00)).
-			SetMaxAmount(decimal.NewFromFloat(100000000.00)).
-			SetCurrency(currency),
-		)
-		sampleBuckets = append(sampleBuckets, client.ProvisionBucket.
-			Create().
-			SetMinAmount(decimal.NewFromFloat(5000001.00)).
-			SetMaxAmount(decimal.NewFromFloat(20000000.00)).
-			SetCurrency(currency),
-		)
-		sampleBuckets = append(sampleBuckets, client.ProvisionBucket.
-			Create().
-			SetMinAmount(decimal.NewFromFloat(2000001.00)).
-			SetMaxAmount(decimal.NewFromFloat(5000000.00)).
-			SetCurrency(currency),
-		)
-		sampleBuckets = append(sampleBuckets, client.ProvisionBucket.
-			Create().
-			SetMinAmount(decimal.NewFromFloat(500001.00)).
-			SetMaxAmount(decimal.NewFromFloat(2000000.00)).
-			SetCurrency(currency),
-		)
-		sampleBuckets = append(sampleBuckets, client.ProvisionBucket.
-			Create().
-			SetMinAmount(decimal.NewFromFloat(50001.00)).
-			SetMaxAmount(decimal.NewFromFloat(500000.00)).
-			SetCurrency(currency),
-		)
-		sampleBuckets = append(sampleBuckets, client.ProvisionBucket.
-			Create().
-			SetMinAmount(decimal.NewFromFloat(1000.00)).
-			SetMaxAmount(decimal.NewFromFloat(50000.00)).
-			SetCurrency(currency),
-		)
+		createProvisionBucket := func(min, max float64) *ent.ProvisionBucketCreate {
+			return client.ProvisionBucket.
+				Create().
+				SetMinAmount(decimal.NewFromFloat(min)).
+				SetMaxAmount(decimal.NewFromFloat(max)).
+				SetCurrency(currency)
+		}
 
+		sampleBuckets = append(sampleBuckets, createProvisionBucket(20000001.00, 100000000.00))
+		sampleBuckets = append(sampleBuckets, createProvisionBucket(5000001.00, 20000000.00))
+		sampleBuckets = append(sampleBuckets, createProvisionBucket(2000001.00, 5000000.00))
+		sampleBuckets = append(sampleBuckets, createProvisionBucket(500001.00, 2000000.00))
+		sampleBuckets = append(sampleBuckets, createProvisionBucket(50001.00, 500000.00))
+		sampleBuckets = append(sampleBuckets, createProvisionBucket(1000.00, 50000.00))
 	}
 
-	if len(listedCurrencies) > 0 {
-		_, err = client.FiatCurrency.CreateBulk(listedCurrencies...).Save(ctx)
+	for _, bucket := range sampleBuckets {
+		_, err := bucket.Save(ctx)
 		if err != nil {
-			return fmt.Errorf("failed seeding fiat currencies: %w", err)
-		}
-
-		_, err = client.ProvisionBucket.
-			CreateBulk(sampleBuckets...).
-			Save(ctx)
-		if err != nil {
-			return fmt.Errorf("failed seeding provision buckets: %w", err)
+			return fmt.Errorf("failed seeding provision bucket: %w", err)
 		}
 	}
 
