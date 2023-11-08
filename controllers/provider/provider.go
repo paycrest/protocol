@@ -107,7 +107,6 @@ func (ctrl *ProviderController) GetLockPaymentOrders(ctx *gin.Context) {
 			CreatedAt:         order.CreatedAt,
 		})
 	}
-
 	// return paginated orders
 	u.APIResponse(ctx, http.StatusOK, "success", "Orders successfully retrieved", types.ProviderLockOrderList{
 		Page:         page + 1,
