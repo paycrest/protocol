@@ -37,7 +37,7 @@ func (ctrl *ProviderController) GetLockPaymentOrders(ctx *gin.Context) {
 	// get page and pageSize query params
 	page, pageSize := u.Paginate(ctx)
 
-	// get ordering query param
+	// Set ordering
 	ordering := ctx.Query("ordering")
 	order := ent.Desc(lockpaymentorder.FieldCreatedAt)
 	if ordering == "asc" {
@@ -54,7 +54,7 @@ func (ctrl *ProviderController) GetLockPaymentOrders(ctx *gin.Context) {
 
 	lockPaymentOrderQuery := storage.Client.LockPaymentOrder.Query()
 
-	// Define a map to map status query parameter values to the corresponding status constants.
+	// Filter by status
 	statusMap := map[string]lockpaymentorder.Status{
 		"pending":    lockpaymentorder.StatusPending,
 		"validated":  lockpaymentorder.StatusValidated,
@@ -66,7 +66,6 @@ func (ctrl *ProviderController) GetLockPaymentOrders(ctx *gin.Context) {
 
 	statusQueryParam := ctx.Query("status")
 
-	// Check if the status query parameter is valid and exists in the map.
 	if status, ok := statusMap[statusQueryParam]; ok {
 		lockPaymentOrderQuery = lockPaymentOrderQuery.Where(
 			lockpaymentorder.HasProviderWith(providerprofile.IDEQ(provider.ID)),
@@ -104,6 +103,8 @@ func (ctrl *ProviderController) GetLockPaymentOrders(ctx *gin.Context) {
 			Institution:       order.Institution,
 			AccountIdentifier: order.AccountIdentifier,
 			AccountName:       order.AccountName,
+			UpdatedAt:         order.UpdatedAt,
+			CreatedAt:         order.CreatedAt,
 		})
 	}
 
