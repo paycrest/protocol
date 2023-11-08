@@ -234,6 +234,8 @@ type LockPaymentOrderFields struct {
 	AccountName       string
 	ProviderID        string
 	ProvisionBucket   *ent.ProvisionBucket
+	UpdatedAt         time.Time
+	CreatedAt         time.Time
 }
 
 // PaymentOrderRecipient describes a payment order recipient
