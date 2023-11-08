@@ -109,6 +109,14 @@ func CreateTestLockPaymentOrder(overrides map[string]interface{}) (*ent.LockPaym
 		"account_name":       "Test Account",
 	}
 
+	// Create provider profile
+	var providerProfile *ent.ProviderProfile
+	if overrides["provider"] == nil {
+		providerProfile = nil
+	} else {
+		providerProfile = overrides["provider"].(*ent.ProviderProfile)
+	}
+
 	// Apply overrides
 	for key, value := range overrides {
 		payload[key] = value
@@ -126,11 +134,13 @@ func CreateTestLockPaymentOrder(overrides map[string]interface{}) (*ent.LockPaym
 		SetRate(decimal.NewFromFloat(payload["rate"].(float64))).
 		SetStatus(lockpaymentorder.Status(payload["status"].(string))).
 		SetLabel(payload["label"].(string)).
+		SetOrderPercent(decimal.NewFromFloat(100.0)).
 		SetBlockNumber(int64(payload["block_number"].(int))).
 		SetInstitution(payload["institution"].(string)).
 		SetAccountIdentifier(payload["account_identifier"].(string)).
 		SetAccountName(payload["account_name"].(string)).
 		SetTokenID(token.ID).
+		SetProvider(providerProfile).
 		Save(context.Background())
 
 	return order, err
