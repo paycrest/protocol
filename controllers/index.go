@@ -44,11 +44,12 @@ func (ctrl *Controller) GetFiatCurrencies(ctx *gin.Context) {
 	currencies := make([]types.SupportedCurrencies, 0, len(fiatcurrencies))
 	for _, currency := range fiatcurrencies {
 		currencies = append(currencies, types.SupportedCurrencies{
-			Code:      currency.Code,
-			Name:      currency.Name,
-			ShortName: currency.ShortName,
-			Decimals:  int8(currency.Decimals),
-			Symbol:    currency.Symbol,
+			Code:       currency.Code,
+			Name:       currency.Name,
+			ShortName:  currency.ShortName,
+			Decimals:   int8(currency.Decimals),
+			Symbol:     currency.Symbol,
+			MarketRate: currency.MarketRate,
 		})
 	}
 

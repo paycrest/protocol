@@ -9,6 +9,7 @@ import (
 	"github.com/paycrest/protocol/routers/middleware"
 	db "github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
+	"github.com/shopspring/decimal"
 
 	"github.com/gin-gonic/gin"
 	"github.com/paycrest/protocol/ent/enttest"
@@ -61,13 +62,20 @@ func TestIndex(t *testing.T) {
 
 			// Assert /currencies response with the seeded Naira currency.
 			nairaCurrency := types.SupportedCurrencies{
-				Code:      "NGN",
-				Name:      "Nigerian Naira",
-				ShortName: "Naira",
-				Decimals:  2,
-				Symbol:    "₦",
+				Code:       "NGN",
+				Name:       "Nigerian Naira",
+				ShortName:  "Naira",
+				Decimals:   2,
+				Symbol:     "₦",
+				MarketRate: decimal.NewFromFloat(950.0),
 			}
-			assert.Equal(t, nairaCurrency, response.Data[0])
+
+			assert.Equal(t, nairaCurrency.Code, response.Data[0].Code)
+			assert.Equal(t, nairaCurrency.Name, response.Data[0].Name)
+			assert.Equal(t, nairaCurrency.ShortName, response.Data[0].ShortName)
+			assert.Equal(t, nairaCurrency.Decimals, response.Data[0].Decimals)
+			assert.Equal(t, nairaCurrency.Symbol, response.Data[0].Symbol)
+			assert.True(t, response.Data[0].MarketRate.Equal(nairaCurrency.MarketRate))
 		})
 	})
 }
