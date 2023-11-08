@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/routers/middleware"
@@ -49,9 +50,14 @@ func setup() error {
 		return err
 	}
 
-	lockOrder, err := test.CreateTestLockPaymentOrder(nil)
-	if err != nil {
-		return err
+	for i := 0; i < 10; i++ {
+		_, err := test.CreateTestLockPaymentOrder(map[string]interface{}{
+			"order_id": uuid.New().String(),
+			"provider": provderProfile,
+		})
+		if err != nil {
+			return err
+		}
 	}
 
 	apiKeyService := services.NewAPIKeyService()
@@ -67,7 +73,6 @@ func setup() error {
 
 	testCtx.apiKey = apiKey
 	testCtx.apiKeySecret = secretKey
-	testCtx.lockOrder = lockOrder
 
 	return nil
 }
@@ -107,7 +112,7 @@ func TestProvider(t *testing.T) {
 
 		//query params
 		page := 1
-		pageSize := 10
+		pageSize := 5
 		status := "pending"
 		ordering := "desc"
 
