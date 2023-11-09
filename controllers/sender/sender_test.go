@@ -54,7 +54,72 @@ var testCtx = struct {
 	apiKey            *ent.APIKey
 	apiKeySecret      string
 	networkIdentifier string
+	paymentOrderUUID  uuid.UUID
 }{}
+
+func createPaymentOrder(t *testing.T, router *gin.Engine) {
+	// Fetch network from db
+	network, err := db.Client.Network.
+		Query().
+		Where(network.IdentifierEQ(testCtx.networkIdentifier)).
+		Only(context.Background())
+	assert.NoError(t, err)
+
+	payload := map[string]interface{}{
+		"amount":  100.0,
+		"token":   testCtx.token.Symbol,
+		"rate":    750.0,
+		"network": network.Identifier,
+		"recipient": map[string]interface{}{
+			"institution":       "First Bank Nigeria PLC",
+			"accountIdentifier": "1234567890",
+			"accountName":       "John Doe",
+			"memo":              "Shola Kehinde - rent for May 2021",
+		},
+		"label":     "cc334ncldfa",
+		"timestamp": time.Now().Unix(),
+	}
+
+	signature := token.GenerateHMACSignature(payload, testCtx.apiKeySecret)
+
+	headers := map[string]string{
+		"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
+	}
+
+	res, err := test.PerformRequest(t, "POST", "/orders", payload, headers, router)
+	assert.NoError(t, err)
+
+	// Assert the response body
+	assert.Equal(t, http.StatusCreated, res.Code)
+
+	var response types.Response
+	err = json.Unmarshal(res.Body.Bytes(), &response)
+	assert.NoError(t, err)
+	assert.Equal(t, "Payment order initiated successfully", response.Message)
+	data, ok := response.Data.(map[string]interface{})
+	assert.True(t, ok, "response.Data is not of type map[string]interface{}")
+	assert.NotNil(t, data, "response.Data is nil")
+
+	assert.Equal(t, data["amount"], payload["amount"])
+	assert.Equal(t, data["network"], payload["network"])
+
+	// Parse the payment order ID string to uuid.UUID
+	paymentOrderUUID, err := uuid.Parse(data["id"].(string))
+	assert.NoError(t, err)
+
+	// Query the database for the payment order
+	paymentOrder, err := db.Client.PaymentOrder.
+		Query().
+		Where(paymentorder.IDEQ(paymentOrderUUID)).
+		WithRecipient().
+		Only(context.Background())
+	assert.NoError(t, err)
+
+	testCtx.paymentOrderUUID = paymentOrderUUID
+	assert.NotNil(t, paymentOrder.Edges.Recipient)
+	assert.Equal(t, paymentOrder.Edges.Recipient.AccountIdentifier, payload["recipient"].(map[string]interface{})["accountIdentifier"])
+	assert.Equal(t, paymentOrder.Edges.Recipient.Memo, payload["recipient"].(map[string]interface{})["memo"])
+}
 
 func setup() error {
 	// Set up test data
@@ -133,66 +198,10 @@ func TestSender(t *testing.T) {
 	var paymentOrderUUID uuid.UUID
 
 	t.Run("CreatePaymentOrder", func(t *testing.T) {
-		// Fetch network from db
-		network, err := db.Client.Network.
-			Query().
-			Where(network.IdentifierEQ(testCtx.networkIdentifier)).
-			Only(context.Background())
-		assert.NoError(t, err)
-
-		payload := map[string]interface{}{
-			"amount":  100.0,
-			"token":   testCtx.token.Symbol,
-			"rate":    750.0,
-			"network": network.Identifier,
-			"recipient": map[string]interface{}{
-				"institution":       "First Bank Nigeria PLC",
-				"accountIdentifier": "1234567890",
-				"accountName":       "John Doe",
-				"memo":              "Shola Kehinde - rent for May 2021",
-			},
-			"label":     "cc334ncldfa",
-			"timestamp": time.Now().Unix(),
+		for i := 0; i < 10; i++ {
+			createPaymentOrder(t, router)
 		}
-
-		signature := token.GenerateHMACSignature(payload, testCtx.apiKeySecret)
-
-		headers := map[string]string{
-			"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
-		}
-
-		res, err := test.PerformRequest(t, "POST", "/orders", payload, headers, router)
-		assert.NoError(t, err)
-
-		// Assert the response body
-		assert.Equal(t, http.StatusCreated, res.Code)
-
-		var response types.Response
-		err = json.Unmarshal(res.Body.Bytes(), &response)
-		assert.NoError(t, err)
-		assert.Equal(t, "Payment order initiated successfully", response.Message)
-		data, ok := response.Data.(map[string]interface{})
-		assert.True(t, ok, "response.Data is not of type map[string]interface{}")
-		assert.NotNil(t, data, "response.Data is nil")
-
-		assert.Equal(t, data["amount"], payload["amount"])
-		assert.Equal(t, data["network"], payload["network"])
-
-		// Parse the payment order ID string to uuid.UUID
-		paymentOrderUUID, err = uuid.Parse(data["id"].(string))
-		assert.NoError(t, err)
-
-		// Query the database for the payment order
-		paymentOrder, err := db.Client.PaymentOrder.
-			Query().
-			Where(paymentorder.IDEQ(paymentOrderUUID)).
-			WithRecipient().
-			Only(context.Background())
-		assert.NoError(t, err)
-
-		assert.NotNil(t, paymentOrder.Edges.Recipient)
-		assert.Equal(t, paymentOrder.Edges.Recipient.AccountIdentifier, payload["recipient"].(map[string]interface{})["accountIdentifier"])
-		assert.Equal(t, paymentOrder.Edges.Recipient.Memo, payload["recipient"].(map[string]interface{})["memo"])
+		paymentOrderUUID = testCtx.paymentOrderUUID
 	})
 
 	t.Run("GetPaymentOrderByID", func(t *testing.T) {
@@ -219,48 +228,158 @@ func TestSender(t *testing.T) {
 		data, ok := response.Data.(map[string]interface{})
 		assert.True(t, ok, "response.Data is of not type map[string]interface{}")
 		assert.NotNil(t, data, "response.Data is nil")
-
 	})
 
 	t.Run("GetPaymentOrders", func(t *testing.T) {
-		var payload = map[string]interface{}{
-			"timestamp": time.Now().Unix(),
-		}
+		t.Run("fetch default list", func(t *testing.T) {
+			// Test default params
+			var payload = map[string]interface{}{
+				"timestamp": time.Now().Unix(),
+			}
 
-		signature := token.GenerateHMACSignature(payload, testCtx.apiKeySecret)
+			signature := token.GenerateHMACSignature(payload, testCtx.apiKeySecret)
 
-		headers := map[string]string{
-			"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
-		}
+			headers := map[string]string{
+				"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
+			}
 
-		//query params
-		page := 1
-		pageSize := 10
-		status := "initiated"
-		ordering := "desc"
+			res, err := test.PerformRequest(t, "GET", "/orders/", payload, headers, router)
+			assert.NoError(t, err)
 
-		res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/orders/?page=%s&pageSize=%s&status=%s&ordering=%s", strconv.Itoa(page), strconv.Itoa(pageSize), status, ordering), payload, headers, router)
-		assert.NoError(t, err)
+			// Assert the response body
+			assert.Equal(t, http.StatusOK, res.Code)
 
-		// Assert the response body
-		assert.Equal(t, http.StatusOK, res.Code)
+			var response types.Response
+			err = json.Unmarshal(res.Body.Bytes(), &response)
+			assert.NoError(t, err)
+			assert.Equal(t, "Payment orders retrieved successfully", response.Message)
+			data, ok := response.Data.(map[string]interface{})
+			assert.True(t, ok, "response.Data is of not type map[string]interface{}")
+			assert.NotNil(t, data, "response.Data is nil")
 
-		var response types.Response
-		err = json.Unmarshal(res.Body.Bytes(), &response)
-		assert.NoError(t, err)
-		assert.Equal(t, "Payment orders retrieved successfully", response.Message)
-		data, ok := response.Data.(map[string]interface{})
-		assert.True(t, ok, "response.Data is of not type map[string]interface{}")
-		assert.NotNil(t, data, "response.Data is nil")
+			assert.Equal(t, int(data["page"].(float64)), 1)
+			assert.Equal(t, int(data["pageSize"].(float64)), 10) // default pageSize
+			assert.NotEmpty(t, data["total"])
+			assert.NotEmpty(t, data["orders"])
+		})
 
-		fmt.Println(data)
+		t.Run("when filtering is applied", func(t *testing.T) {
+			// Test different status filters
+			var payload = map[string]interface{}{
+				"timestamp": time.Now().Unix(),
+			}
 
+			signature := token.GenerateHMACSignature(payload, testCtx.apiKeySecret)
 
+			headers := map[string]string{
+				"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
+			}
 
-		assert.Equal(t, int(data["page"].(float64)), page)
-		assert.Equal(t, int(data["pageSize"].(float64)), pageSize)
-		assert.NotEmpty(t, data["total"])
-		assert.NotEmpty(t, data["orders"])
+			//query params
+			status := "initiated"
+
+			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/orders/?status=%s", status), payload, headers, router)
+			assert.NoError(t, err)
+
+			// Assert the response body
+			assert.Equal(t, http.StatusOK, res.Code)
+
+			var response types.Response
+			err = json.Unmarshal(res.Body.Bytes(), &response)
+			assert.NoError(t, err)
+			assert.Equal(t, "Payment orders retrieved successfully", response.Message)
+			data, ok := response.Data.(map[string]interface{})
+			assert.True(t, ok, "response.Data is of not type map[string]interface{}")
+			assert.NotNil(t, data, "response.Data is nil")
+
+			assert.Equal(t, int(data["page"].(float64)), 1)
+			assert.Equal(t, int(data["pageSize"].(float64)), 10) // default pageSize
+			assert.NotEmpty(t, data["total"])
+			assert.NotEmpty(t, data["orders"])
+		})
+
+		t.Run("with custom page and pageSize", func(t *testing.T) {
+			// Test different page and pageSize values
+			var payload = map[string]interface{}{
+				"timestamp": time.Now().Unix(),
+			}
+
+			signature := token.GenerateHMACSignature(payload, testCtx.apiKeySecret)
+
+			headers := map[string]string{
+				"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
+			}
+
+			//query params
+			page := 1
+			pageSize := 10
+
+			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/orders/?page=%s&pageSize=%s", strconv.Itoa(page), strconv.Itoa(pageSize)), payload, headers, router)
+			assert.NoError(t, err)
+
+			// Assert the response body
+			assert.Equal(t, http.StatusOK, res.Code)
+
+			var response types.Response
+			err = json.Unmarshal(res.Body.Bytes(), &response)
+			assert.NoError(t, err)
+			assert.Equal(t, "Payment orders retrieved successfully", response.Message)
+			data, ok := response.Data.(map[string]interface{})
+			assert.True(t, ok, "response.Data is of not type map[string]interface{}")
+			assert.NotNil(t, data, "response.Data is nil")
+
+			assert.Equal(t, int(data["page"].(float64)), page)
+			assert.Equal(t, int(data["pageSize"].(float64)), pageSize)
+			assert.NotEmpty(t, data["total"])
+			assert.NotEmpty(t, data["orders"])
+		})
+
+		t.Run("with ordering", func(t *testing.T) {
+			// Test ascending and descending ordering
+			var payload = map[string]interface{}{
+				"timestamp": time.Now().Unix(),
+			}
+
+			signature := token.GenerateHMACSignature(payload, testCtx.apiKeySecret)
+
+			headers := map[string]string{
+				"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
+			}
+
+			//query params
+			ordering := "desc"
+
+			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/orders/?ordering=%s", ordering), payload, headers, router)
+			assert.NoError(t, err)
+
+			// Assert the response body
+			assert.Equal(t, http.StatusOK, res.Code)
+
+			var response types.Response
+			err = json.Unmarshal(res.Body.Bytes(), &response)
+			assert.NoError(t, err)
+			assert.Equal(t, "Payment orders retrieved successfully", response.Message)
+			data, ok := response.Data.(map[string]interface{})
+			assert.True(t, ok, "response.Data is of not type map[string]interface{}")
+			assert.NotNil(t, data, "response.Data is nil")
+
+			// Try to parse the first and last order time strings using a set of predefined layouts
+			firstOrderTimestamp, err := time.Parse(time.RFC3339Nano, data["orders"].([]interface{})[0].(map[string]interface{})["createdAt"].(string))
+			if err != nil {
+				return
+			}
+
+			lastOrderTimestamp, err := time.Parse(time.RFC3339Nano, data["orders"].([]interface{})[len(data["orders"].([]interface{}))-1].(map[string]interface{})["createdAt"].(string))
+			if err != nil {
+				return
+			}
+
+			assert.Equal(t, int(data["page"].(float64)), 1)
+			assert.Equal(t, int(data["pageSize"].(float64)), 10) // default pageSize
+			assert.NotEmpty(t, data["total"])
+			assert.NotEmpty(t, data["orders"])
+			assert.Greater(t, len(data["orders"].([]interface{})), 0)
+			assert.Greater(t, firstOrderTimestamp, lastOrderTimestamp)
+		})
 	})
-
 }
