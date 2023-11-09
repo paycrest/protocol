@@ -328,7 +328,11 @@ func (ctrl *AuthController) ResendVerificationToken(ctx *gin.Context) {
 	}
 
 	// Generate VerificationToken.
-	verificationtoken, vtErr := db.Client.VerificationToken.Create().SetOwner(user).SetScope(verificationtoken.Scope(payload.Scope)).Save(ctx)
+	verificationtoken, vtErr := db.Client.VerificationToken.
+		Create().
+		SetOwner(user).
+		SetScope(verificationtoken.Scope(payload.Scope)).
+		Save(ctx)
 	if vtErr != nil {
 		u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to generate verification token", vtErr.Error())
 		return

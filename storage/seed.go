@@ -43,12 +43,24 @@ func SeedDatabase() error {
 		return fmt.Errorf("failed seeding network: %w", err)
 	}
 
-	// Seed Token
+	// Seed Tokens
 	_, err = client.Token.
 		Create().
 		SetSymbol("DERC20").
 		SetContractAddress("0xfe4F5145f6e09952a5ba9e956ED0C25e3Fa4c7F1").
 		SetDecimals(18).
+		SetNetwork(network).
+		SetIsEnabled(true).
+		Save(ctx)
+	if err != nil {
+		return fmt.Errorf("failed seeding token: %w", err)
+	}
+
+	_, err = client.Token.
+		Create().
+		SetSymbol("6TEST").
+		SetContractAddress("0x3870419Ba2BBf0127060bCB37f69A1b1C090992B").
+		SetDecimals(6).
 		SetNetwork(network).
 		SetIsEnabled(true).
 		Save(ctx)
