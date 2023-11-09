@@ -330,6 +330,7 @@ func TestSender(t *testing.T) {
 
 			assert.Equal(t, int(data["page"].(float64)), page)
 			assert.Equal(t, int(data["pageSize"].(float64)), pageSize)
+			assert.Equal(t, len(data["orders"].([]interface{})), pageSize)
 			assert.NotEmpty(t, data["total"])
 			assert.NotEmpty(t, data["orders"])
 		})

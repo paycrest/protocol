@@ -207,6 +207,7 @@ func TestProvider(t *testing.T) {
 			assert.Equal(t, int(data["pageSize"].(float64)), pageSize)
 			assert.NotNil(t, data["total"])
 			assert.NotEmpty(t, data["orders"])
+			assert.Equal(t, len(data["orders"].([]interface{})), pageSize)
 			assert.Greater(t, len(data["orders"].([]interface{})), 0)
 
 		})
