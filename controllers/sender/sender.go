@@ -224,20 +224,6 @@ func (ctrl *SenderController) GetPaymentOrders(ctx *gin.Context) {
 	// get page and pageSize query params
 	page, pageSize := u.Paginate(ctx)
 
-	// get status query param
-	status := paymentorder.StatusPending // default status
-	if ctx.Query("status") == "initiated" {
-		status = paymentorder.StatusInitiated
-	} else if ctx.Query("status") == "settled" {
-		status = paymentorder.StatusSettled
-	} else if ctx.Query("status") == "failed" {
-		status = paymentorder.StatusFailed
-	} else if ctx.Query("status") == "cancelled" {
-		status = paymentorder.StatusCancelled
-	} else if ctx.Query("status") == "refunded" {
-		status = paymentorder.StatusRefunded
-	}
-
 	// Get sender profile from the context
 	senderCtx, ok := ctx.Get("sender")
 	if !ok {
@@ -245,6 +231,32 @@ func (ctrl *SenderController) GetPaymentOrders(ctx *gin.Context) {
 		return
 	}
 	sender := senderCtx.(*ent.SenderProfile)
+
+	paymentOrderQuery := db.Client.PaymentOrder.
+		Query()
+
+	// Filter by status
+	statusMap := map[string]paymentorder.Status{
+		"initiated": paymentorder.StatusInitiated,
+		"pending":   paymentorder.StatusPending,
+		"settled":   paymentorder.StatusSettled,
+		"cancelled": paymentorder.StatusCancelled,
+		"failed":    paymentorder.StatusFailed,
+		"refunded":  paymentorder.StatusRefunded,
+	}
+
+	statusQueryParam := ctx.Query("status")
+
+	if status, ok := statusMap[statusQueryParam]; ok {
+		paymentOrderQuery = paymentOrderQuery.Where(
+			paymentorder.HasSenderProfileWith(senderprofile.IDEQ(sender.ID)),
+			paymentorder.StatusEQ(status),
+		)
+	} else {
+		paymentOrderQuery = paymentOrderQuery.Where(
+			paymentorder.HasSenderProfileWith(senderprofile.IDEQ(sender.ID)),
+		)
+	}
 
 	// get ordering query param
 	ordering := ctx.Query("ordering")
@@ -254,14 +266,11 @@ func (ctrl *SenderController) GetPaymentOrders(ctx *gin.Context) {
 	}
 
 	// Get all payment orders for the sender
-	paymentOrders, err := db.Client.PaymentOrder.
-		Query().
-		Where(paymentorder.HasSenderProfileWith(senderprofile.IDEQ(sender.ID))).
+	paymentOrders, err := paymentOrderQuery.
 		WithRecipient().
 		WithToken(func(tq *ent.TokenQuery) {
 			tq.WithNetwork()
 		}).
-		Where(paymentorder.StatusEQ(status)).
 		Limit(pageSize).
 		Offset(page).
 		Order(order).
