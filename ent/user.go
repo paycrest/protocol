@@ -34,8 +34,8 @@ type User struct {
 	Password string `json:"-"`
 	// Scope holds the value of the "scope" field.
 	Scope user.Scope `json:"scope,omitempty"`
-	// IsVerified holds the value of the "is_verified" field.
-	IsVerified bool `json:"is_verified,omitempty"`
+	// IsEmailVerified holds the value of the "is_email_verified" field.
+	IsEmailVerified bool `json:"is_email_verified,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the UserQuery when eager-loading is set.
 	Edges        UserEdges `json:"edges"`
@@ -95,7 +95,7 @@ func (*User) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case user.FieldIsVerified:
+		case user.FieldIsEmailVerified:
 			values[i] = new(sql.NullBool)
 		case user.FieldFirstName, user.FieldLastName, user.FieldEmail, user.FieldPassword, user.FieldScope:
 			values[i] = new(sql.NullString)
@@ -166,11 +166,11 @@ func (u *User) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				u.Scope = user.Scope(value.String)
 			}
-		case user.FieldIsVerified:
+		case user.FieldIsEmailVerified:
 			if value, ok := values[i].(*sql.NullBool); !ok {
-				return fmt.Errorf("unexpected type %T for field is_verified", values[i])
+				return fmt.Errorf("unexpected type %T for field is_email_verified", values[i])
 			} else if value.Valid {
-				u.IsVerified = value.Bool
+				u.IsEmailVerified = value.Bool
 			}
 		default:
 			u.selectValues.Set(columns[i], values[i])
@@ -243,8 +243,8 @@ func (u *User) String() string {
 	builder.WriteString("scope=")
 	builder.WriteString(fmt.Sprintf("%v", u.Scope))
 	builder.WriteString(", ")
-	builder.WriteString("is_verified=")
-	builder.WriteString(fmt.Sprintf("%v", u.IsVerified))
+	builder.WriteString("is_email_verified=")
+	builder.WriteString(fmt.Sprintf("%v", u.IsEmailVerified))
 	builder.WriteByte(')')
 	return builder.String()
 }

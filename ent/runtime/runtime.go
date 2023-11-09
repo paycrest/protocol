@@ -182,8 +182,12 @@ func init() {
 	providerprofileDescIsPartner := providerprofileFields[4].Descriptor()
 	// providerprofile.DefaultIsPartner holds the default value on creation for the is_partner field.
 	providerprofile.DefaultIsPartner = providerprofileDescIsPartner.Default.(bool)
+	// providerprofileDescIsActive is the schema descriptor for is_active field.
+	providerprofileDescIsActive := providerprofileFields[5].Descriptor()
+	// providerprofile.DefaultIsActive holds the default value on creation for the is_active field.
+	providerprofile.DefaultIsActive = providerprofileDescIsActive.Default.(bool)
 	// providerprofileDescUpdatedAt is the schema descriptor for updated_at field.
-	providerprofileDescUpdatedAt := providerprofileFields[5].Descriptor()
+	providerprofileDescUpdatedAt := providerprofileFields[6].Descriptor()
 	// providerprofile.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	providerprofile.DefaultUpdatedAt = providerprofileDescUpdatedAt.Default.(func() time.Time)
 	// providerprofile.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
@@ -234,8 +238,12 @@ func init() {
 	senderprofileDescDomainWhitelist := senderprofileFields[5].Descriptor()
 	// senderprofile.DefaultDomainWhitelist holds the default value on creation for the domain_whitelist field.
 	senderprofile.DefaultDomainWhitelist = senderprofileDescDomainWhitelist.Default.([]string)
+	// senderprofileDescIsActive is the schema descriptor for is_active field.
+	senderprofileDescIsActive := senderprofileFields[6].Descriptor()
+	// senderprofile.DefaultIsActive holds the default value on creation for the is_active field.
+	senderprofile.DefaultIsActive = senderprofileDescIsActive.Default.(bool)
 	// senderprofileDescUpdatedAt is the schema descriptor for updated_at field.
-	senderprofileDescUpdatedAt := senderprofileFields[6].Descriptor()
+	senderprofileDescUpdatedAt := senderprofileFields[7].Descriptor()
 	// senderprofile.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	senderprofile.DefaultUpdatedAt = senderprofileDescUpdatedAt.Default.(func() time.Time)
 	// senderprofile.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
@@ -296,10 +304,10 @@ func init() {
 	userDescLastName := userFields[2].Descriptor()
 	// user.LastNameValidator is a validator for the "last_name" field. It is called by the builders before save.
 	user.LastNameValidator = userDescLastName.Validators[0].(func(string) error)
-	// userDescIsVerified is the schema descriptor for is_verified field.
-	userDescIsVerified := userFields[6].Descriptor()
-	// user.DefaultIsVerified holds the default value on creation for the is_verified field.
-	user.DefaultIsVerified = userDescIsVerified.Default.(bool)
+	// userDescIsEmailVerified is the schema descriptor for is_email_verified field.
+	userDescIsEmailVerified := userFields[6].Descriptor()
+	// user.DefaultIsEmailVerified holds the default value on creation for the is_email_verified field.
+	user.DefaultIsEmailVerified = userDescIsEmailVerified.Default.(bool)
 	// userDescID is the schema descriptor for id field.
 	userDescID := userFields[0].Descriptor()
 	// user.DefaultID holds the default value on creation for the id field.

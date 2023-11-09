@@ -8002,6 +8002,7 @@ type ProviderProfileMutation struct {
 	host_identifier          *string
 	provision_mode           *providerprofile.ProvisionMode
 	is_partner               *bool
+	is_active                *bool
 	updated_at               *time.Time
 	clearedFields            map[string]struct{}
 	user                     *uuid.UUID
@@ -8287,6 +8288,42 @@ func (m *ProviderProfileMutation) OldIsPartner(ctx context.Context) (v bool, err
 // ResetIsPartner resets all changes to the "is_partner" field.
 func (m *ProviderProfileMutation) ResetIsPartner() {
 	m.is_partner = nil
+}
+
+// SetIsActive sets the "is_active" field.
+func (m *ProviderProfileMutation) SetIsActive(b bool) {
+	m.is_active = &b
+}
+
+// IsActive returns the value of the "is_active" field in the mutation.
+func (m *ProviderProfileMutation) IsActive() (r bool, exists bool) {
+	v := m.is_active
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIsActive returns the old "is_active" field's value of the ProviderProfile entity.
+// If the ProviderProfile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderProfileMutation) OldIsActive(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIsActive is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIsActive requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIsActive: %w", err)
+	}
+	return oldValue.IsActive, nil
+}
+
+// ResetIsActive resets all changes to the "is_active" field.
+func (m *ProviderProfileMutation) ResetIsActive() {
+	m.is_active = nil
 }
 
 // SetUpdatedAt sets the "updated_at" field.
@@ -8716,7 +8753,7 @@ func (m *ProviderProfileMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ProviderProfileMutation) Fields() []string {
-	fields := make([]string, 0, 5)
+	fields := make([]string, 0, 6)
 	if m.trading_name != nil {
 		fields = append(fields, providerprofile.FieldTradingName)
 	}
@@ -8728,6 +8765,9 @@ func (m *ProviderProfileMutation) Fields() []string {
 	}
 	if m.is_partner != nil {
 		fields = append(fields, providerprofile.FieldIsPartner)
+	}
+	if m.is_active != nil {
+		fields = append(fields, providerprofile.FieldIsActive)
 	}
 	if m.updated_at != nil {
 		fields = append(fields, providerprofile.FieldUpdatedAt)
@@ -8748,6 +8788,8 @@ func (m *ProviderProfileMutation) Field(name string) (ent.Value, bool) {
 		return m.ProvisionMode()
 	case providerprofile.FieldIsPartner:
 		return m.IsPartner()
+	case providerprofile.FieldIsActive:
+		return m.IsActive()
 	case providerprofile.FieldUpdatedAt:
 		return m.UpdatedAt()
 	}
@@ -8767,6 +8809,8 @@ func (m *ProviderProfileMutation) OldField(ctx context.Context, name string) (en
 		return m.OldProvisionMode(ctx)
 	case providerprofile.FieldIsPartner:
 		return m.OldIsPartner(ctx)
+	case providerprofile.FieldIsActive:
+		return m.OldIsActive(ctx)
 	case providerprofile.FieldUpdatedAt:
 		return m.OldUpdatedAt(ctx)
 	}
@@ -8805,6 +8849,13 @@ func (m *ProviderProfileMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetIsPartner(v)
+		return nil
+	case providerprofile.FieldIsActive:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIsActive(v)
 		return nil
 	case providerprofile.FieldUpdatedAt:
 		v, ok := value.(time.Time)
@@ -8882,6 +8933,9 @@ func (m *ProviderProfileMutation) ResetField(name string) error {
 		return nil
 	case providerprofile.FieldIsPartner:
 		m.ResetIsPartner()
+		return nil
+	case providerprofile.FieldIsActive:
+		m.ResetIsActive()
 		return nil
 	case providerprofile.FieldUpdatedAt:
 		m.ResetUpdatedAt()
@@ -11272,6 +11326,7 @@ type SenderProfileMutation struct {
 	refund_address         *string
 	domain_whitelist       *[]string
 	appenddomain_whitelist []string
+	is_active              *bool
 	updated_at             *time.Time
 	clearedFields          map[string]struct{}
 	user                   *uuid.UUID
@@ -11644,6 +11699,42 @@ func (m *SenderProfileMutation) ResetDomainWhitelist() {
 	m.appenddomain_whitelist = nil
 }
 
+// SetIsActive sets the "is_active" field.
+func (m *SenderProfileMutation) SetIsActive(b bool) {
+	m.is_active = &b
+}
+
+// IsActive returns the value of the "is_active" field in the mutation.
+func (m *SenderProfileMutation) IsActive() (r bool, exists bool) {
+	v := m.is_active
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIsActive returns the old "is_active" field's value of the SenderProfile entity.
+// If the SenderProfile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SenderProfileMutation) OldIsActive(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIsActive is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIsActive requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIsActive: %w", err)
+	}
+	return oldValue.IsActive, nil
+}
+
+// ResetIsActive resets all changes to the "is_active" field.
+func (m *SenderProfileMutation) ResetIsActive() {
+	m.is_active = nil
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (m *SenderProfileMutation) SetUpdatedAt(t time.Time) {
 	m.updated_at = &t
@@ -11846,7 +11937,7 @@ func (m *SenderProfileMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *SenderProfileMutation) Fields() []string {
-	fields := make([]string, 0, 6)
+	fields := make([]string, 0, 7)
 	if m.webhook_url != nil {
 		fields = append(fields, senderprofile.FieldWebhookURL)
 	}
@@ -11861,6 +11952,9 @@ func (m *SenderProfileMutation) Fields() []string {
 	}
 	if m.domain_whitelist != nil {
 		fields = append(fields, senderprofile.FieldDomainWhitelist)
+	}
+	if m.is_active != nil {
+		fields = append(fields, senderprofile.FieldIsActive)
 	}
 	if m.updated_at != nil {
 		fields = append(fields, senderprofile.FieldUpdatedAt)
@@ -11883,6 +11977,8 @@ func (m *SenderProfileMutation) Field(name string) (ent.Value, bool) {
 		return m.RefundAddress()
 	case senderprofile.FieldDomainWhitelist:
 		return m.DomainWhitelist()
+	case senderprofile.FieldIsActive:
+		return m.IsActive()
 	case senderprofile.FieldUpdatedAt:
 		return m.UpdatedAt()
 	}
@@ -11904,6 +12000,8 @@ func (m *SenderProfileMutation) OldField(ctx context.Context, name string) (ent.
 		return m.OldRefundAddress(ctx)
 	case senderprofile.FieldDomainWhitelist:
 		return m.OldDomainWhitelist(ctx)
+	case senderprofile.FieldIsActive:
+		return m.OldIsActive(ctx)
 	case senderprofile.FieldUpdatedAt:
 		return m.OldUpdatedAt(ctx)
 	}
@@ -11949,6 +12047,13 @@ func (m *SenderProfileMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetDomainWhitelist(v)
+		return nil
+	case senderprofile.FieldIsActive:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIsActive(v)
 		return nil
 	case senderprofile.FieldUpdatedAt:
 		v, ok := value.(time.Time)
@@ -12056,6 +12161,9 @@ func (m *SenderProfileMutation) ResetField(name string) error {
 		return nil
 	case senderprofile.FieldDomainWhitelist:
 		m.ResetDomainWhitelist()
+		return nil
+	case senderprofile.FieldIsActive:
+		m.ResetIsActive()
 		return nil
 	case senderprofile.FieldUpdatedAt:
 		m.ResetUpdatedAt()
@@ -13064,7 +13172,7 @@ type UserMutation struct {
 	email                     *string
 	password                  *string
 	scope                     *user.Scope
-	is_verified               *bool
+	is_email_verified         *bool
 	clearedFields             map[string]struct{}
 	sender_profile            *uuid.UUID
 	clearedsender_profile     bool
@@ -13434,40 +13542,40 @@ func (m *UserMutation) ResetScope() {
 	m.scope = nil
 }
 
-// SetIsVerified sets the "is_verified" field.
-func (m *UserMutation) SetIsVerified(b bool) {
-	m.is_verified = &b
+// SetIsEmailVerified sets the "is_email_verified" field.
+func (m *UserMutation) SetIsEmailVerified(b bool) {
+	m.is_email_verified = &b
 }
 
-// IsVerified returns the value of the "is_verified" field in the mutation.
-func (m *UserMutation) IsVerified() (r bool, exists bool) {
-	v := m.is_verified
+// IsEmailVerified returns the value of the "is_email_verified" field in the mutation.
+func (m *UserMutation) IsEmailVerified() (r bool, exists bool) {
+	v := m.is_email_verified
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldIsVerified returns the old "is_verified" field's value of the User entity.
+// OldIsEmailVerified returns the old "is_email_verified" field's value of the User entity.
 // If the User object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *UserMutation) OldIsVerified(ctx context.Context) (v bool, err error) {
+func (m *UserMutation) OldIsEmailVerified(ctx context.Context) (v bool, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldIsVerified is only allowed on UpdateOne operations")
+		return v, errors.New("OldIsEmailVerified is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldIsVerified requires an ID field in the mutation")
+		return v, errors.New("OldIsEmailVerified requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldIsVerified: %w", err)
+		return v, fmt.Errorf("querying old value for OldIsEmailVerified: %w", err)
 	}
-	return oldValue.IsVerified, nil
+	return oldValue.IsEmailVerified, nil
 }
 
-// ResetIsVerified resets all changes to the "is_verified" field.
-func (m *UserMutation) ResetIsVerified() {
-	m.is_verified = nil
+// ResetIsEmailVerified resets all changes to the "is_email_verified" field.
+func (m *UserMutation) ResetIsEmailVerified() {
+	m.is_email_verified = nil
 }
 
 // SetSenderProfileID sets the "sender_profile" edge to the SenderProfile entity by id.
@@ -13658,8 +13766,8 @@ func (m *UserMutation) Fields() []string {
 	if m.scope != nil {
 		fields = append(fields, user.FieldScope)
 	}
-	if m.is_verified != nil {
-		fields = append(fields, user.FieldIsVerified)
+	if m.is_email_verified != nil {
+		fields = append(fields, user.FieldIsEmailVerified)
 	}
 	return fields
 }
@@ -13683,8 +13791,8 @@ func (m *UserMutation) Field(name string) (ent.Value, bool) {
 		return m.Password()
 	case user.FieldScope:
 		return m.Scope()
-	case user.FieldIsVerified:
-		return m.IsVerified()
+	case user.FieldIsEmailVerified:
+		return m.IsEmailVerified()
 	}
 	return nil, false
 }
@@ -13708,8 +13816,8 @@ func (m *UserMutation) OldField(ctx context.Context, name string) (ent.Value, er
 		return m.OldPassword(ctx)
 	case user.FieldScope:
 		return m.OldScope(ctx)
-	case user.FieldIsVerified:
-		return m.OldIsVerified(ctx)
+	case user.FieldIsEmailVerified:
+		return m.OldIsEmailVerified(ctx)
 	}
 	return nil, fmt.Errorf("unknown User field %s", name)
 }
@@ -13768,12 +13876,12 @@ func (m *UserMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetScope(v)
 		return nil
-	case user.FieldIsVerified:
+	case user.FieldIsEmailVerified:
 		v, ok := value.(bool)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetIsVerified(v)
+		m.SetIsEmailVerified(v)
 		return nil
 	}
 	return fmt.Errorf("unknown User field %s", name)
@@ -13845,8 +13953,8 @@ func (m *UserMutation) ResetField(name string) error {
 	case user.FieldScope:
 		m.ResetScope()
 		return nil
-	case user.FieldIsVerified:
-		m.ResetIsVerified()
+	case user.FieldIsEmailVerified:
+		m.ResetIsEmailVerified()
 		return nil
 	}
 	return fmt.Errorf("unknown User field %s", name)

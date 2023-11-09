@@ -79,6 +79,20 @@ func (spc *SenderProfileCreate) SetDomainWhitelist(s []string) *SenderProfileCre
 	return spc
 }
 
+// SetIsActive sets the "is_active" field.
+func (spc *SenderProfileCreate) SetIsActive(b bool) *SenderProfileCreate {
+	spc.mutation.SetIsActive(b)
+	return spc
+}
+
+// SetNillableIsActive sets the "is_active" field if the given value is not nil.
+func (spc *SenderProfileCreate) SetNillableIsActive(b *bool) *SenderProfileCreate {
+	if b != nil {
+		spc.SetIsActive(*b)
+	}
+	return spc
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (spc *SenderProfileCreate) SetUpdatedAt(t time.Time) *SenderProfileCreate {
 	spc.mutation.SetUpdatedAt(t)
@@ -191,6 +205,10 @@ func (spc *SenderProfileCreate) defaults() {
 		v := senderprofile.DefaultDomainWhitelist
 		spc.mutation.SetDomainWhitelist(v)
 	}
+	if _, ok := spc.mutation.IsActive(); !ok {
+		v := senderprofile.DefaultIsActive
+		spc.mutation.SetIsActive(v)
+	}
 	if _, ok := spc.mutation.UpdatedAt(); !ok {
 		v := senderprofile.DefaultUpdatedAt()
 		spc.mutation.SetUpdatedAt(v)
@@ -208,6 +226,9 @@ func (spc *SenderProfileCreate) check() error {
 	}
 	if _, ok := spc.mutation.DomainWhitelist(); !ok {
 		return &ValidationError{Name: "domain_whitelist", err: errors.New(`ent: missing required field "SenderProfile.domain_whitelist"`)}
+	}
+	if _, ok := spc.mutation.IsActive(); !ok {
+		return &ValidationError{Name: "is_active", err: errors.New(`ent: missing required field "SenderProfile.is_active"`)}
 	}
 	if _, ok := spc.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "SenderProfile.updated_at"`)}
@@ -269,6 +290,10 @@ func (spc *SenderProfileCreate) createSpec() (*SenderProfile, *sqlgraph.CreateSp
 	if value, ok := spc.mutation.DomainWhitelist(); ok {
 		_spec.SetField(senderprofile.FieldDomainWhitelist, field.TypeJSON, value)
 		_node.DomainWhitelist = value
+	}
+	if value, ok := spc.mutation.IsActive(); ok {
+		_spec.SetField(senderprofile.FieldIsActive, field.TypeBool, value)
+		_node.IsActive = value
 	}
 	if value, ok := spc.mutation.UpdatedAt(); ok {
 		_spec.SetField(senderprofile.FieldUpdatedAt, field.TypeTime, value)

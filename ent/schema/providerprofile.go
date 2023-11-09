@@ -29,6 +29,8 @@ func (ProviderProfile) Fields() []ent.Field {
 			Values("manual", "auto").
 			Default("auto"),
 		field.Bool("is_partner").Default(false),
+		field.Bool("is_active").
+			Default(false),
 		field.Time("updated_at").
 			Default(time.Now).
 			UpdateDefault(time.Now),

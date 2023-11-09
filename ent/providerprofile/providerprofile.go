@@ -23,6 +23,8 @@ const (
 	FieldProvisionMode = "provision_mode"
 	// FieldIsPartner holds the string denoting the is_partner field in the database.
 	FieldIsPartner = "is_partner"
+	// FieldIsActive holds the string denoting the is_active field in the database.
+	FieldIsActive = "is_active"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
 	FieldUpdatedAt = "updated_at"
 	// EdgeUser holds the string denoting the user edge name in mutations.
@@ -106,6 +108,7 @@ var Columns = []string{
 	FieldHostIdentifier,
 	FieldProvisionMode,
 	FieldIsPartner,
+	FieldIsActive,
 	FieldUpdatedAt,
 }
 
@@ -142,6 +145,8 @@ var (
 	TradingNameValidator func(string) error
 	// DefaultIsPartner holds the default value on creation for the "is_partner" field.
 	DefaultIsPartner bool
+	// DefaultIsActive holds the default value on creation for the "is_active" field.
+	DefaultIsActive bool
 	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
@@ -202,6 +207,11 @@ func ByProvisionMode(opts ...sql.OrderTermOption) OrderOption {
 // ByIsPartner orders the results by the is_partner field.
 func ByIsPartner(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldIsPartner, opts...).ToFunc()
+}
+
+// ByIsActive orders the results by the is_active field.
+func ByIsActive(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIsActive, opts...).ToFunc()
 }
 
 // ByUpdatedAt orders the results by the updated_at field.

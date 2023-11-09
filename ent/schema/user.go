@@ -37,7 +37,7 @@ func (User) Fields() []ent.Field {
 		field.String("password").Sensitive(),
 		field.Enum("scope").
 			Values("sender", "provider"),
-		field.Bool("is_verified").
+		field.Bool("is_email_verified").
 			Default(false),
 	}
 }

@@ -86,9 +86,9 @@ func Password(v string) predicate.User {
 	return predicate.User(sql.FieldEQ(FieldPassword, v))
 }
 
-// IsVerified applies equality check predicate on the "is_verified" field. It's identical to IsVerifiedEQ.
-func IsVerified(v bool) predicate.User {
-	return predicate.User(sql.FieldEQ(FieldIsVerified, v))
+// IsEmailVerified applies equality check predicate on the "is_email_verified" field. It's identical to IsEmailVerifiedEQ.
+func IsEmailVerified(v bool) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldIsEmailVerified, v))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
@@ -451,14 +451,14 @@ func ScopeNotIn(vs ...Scope) predicate.User {
 	return predicate.User(sql.FieldNotIn(FieldScope, vs...))
 }
 
-// IsVerifiedEQ applies the EQ predicate on the "is_verified" field.
-func IsVerifiedEQ(v bool) predicate.User {
-	return predicate.User(sql.FieldEQ(FieldIsVerified, v))
+// IsEmailVerifiedEQ applies the EQ predicate on the "is_email_verified" field.
+func IsEmailVerifiedEQ(v bool) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldIsEmailVerified, v))
 }
 
-// IsVerifiedNEQ applies the NEQ predicate on the "is_verified" field.
-func IsVerifiedNEQ(v bool) predicate.User {
-	return predicate.User(sql.FieldNEQ(FieldIsVerified, v))
+// IsEmailVerifiedNEQ applies the NEQ predicate on the "is_email_verified" field.
+func IsEmailVerifiedNEQ(v bool) predicate.User {
+	return predicate.User(sql.FieldNEQ(FieldIsEmailVerified, v))
 }
 
 // HasSenderProfile applies the HasEdge predicate on the "sender_profile" edge.

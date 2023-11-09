@@ -77,6 +77,20 @@ func (ppc *ProviderProfileCreate) SetNillableIsPartner(b *bool) *ProviderProfile
 	return ppc
 }
 
+// SetIsActive sets the "is_active" field.
+func (ppc *ProviderProfileCreate) SetIsActive(b bool) *ProviderProfileCreate {
+	ppc.mutation.SetIsActive(b)
+	return ppc
+}
+
+// SetNillableIsActive sets the "is_active" field if the given value is not nil.
+func (ppc *ProviderProfileCreate) SetNillableIsActive(b *bool) *ProviderProfileCreate {
+	if b != nil {
+		ppc.SetIsActive(*b)
+	}
+	return ppc
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (ppc *ProviderProfileCreate) SetUpdatedAt(t time.Time) *ProviderProfileCreate {
 	ppc.mutation.SetUpdatedAt(t)
@@ -272,6 +286,10 @@ func (ppc *ProviderProfileCreate) defaults() {
 		v := providerprofile.DefaultIsPartner
 		ppc.mutation.SetIsPartner(v)
 	}
+	if _, ok := ppc.mutation.IsActive(); !ok {
+		v := providerprofile.DefaultIsActive
+		ppc.mutation.SetIsActive(v)
+	}
 	if _, ok := ppc.mutation.UpdatedAt(); !ok {
 		v := providerprofile.DefaultUpdatedAt()
 		ppc.mutation.SetUpdatedAt(v)
@@ -302,6 +320,9 @@ func (ppc *ProviderProfileCreate) check() error {
 	}
 	if _, ok := ppc.mutation.IsPartner(); !ok {
 		return &ValidationError{Name: "is_partner", err: errors.New(`ent: missing required field "ProviderProfile.is_partner"`)}
+	}
+	if _, ok := ppc.mutation.IsActive(); !ok {
+		return &ValidationError{Name: "is_active", err: errors.New(`ent: missing required field "ProviderProfile.is_active"`)}
 	}
 	if _, ok := ppc.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "ProviderProfile.updated_at"`)}
@@ -362,6 +383,10 @@ func (ppc *ProviderProfileCreate) createSpec() (*ProviderProfile, *sqlgraph.Crea
 	if value, ok := ppc.mutation.IsPartner(); ok {
 		_spec.SetField(providerprofile.FieldIsPartner, field.TypeBool, value)
 		_node.IsPartner = value
+	}
+	if value, ok := ppc.mutation.IsActive(); ok {
+		_spec.SetField(providerprofile.FieldIsActive, field.TypeBool, value)
+		_node.IsActive = value
 	}
 	if value, ok := ppc.mutation.UpdatedAt(); ok {
 		_spec.SetField(providerprofile.FieldUpdatedAt, field.TypeTime, value)

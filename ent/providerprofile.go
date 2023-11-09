@@ -31,6 +31,8 @@ type ProviderProfile struct {
 	ProvisionMode providerprofile.ProvisionMode `json:"provision_mode,omitempty"`
 	// IsPartner holds the value of the "is_partner" field.
 	IsPartner bool `json:"is_partner,omitempty"`
+	// IsActive holds the value of the "is_active" field.
+	IsActive bool `json:"is_active,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -161,7 +163,7 @@ func (*ProviderProfile) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case providerprofile.FieldIsPartner:
+		case providerprofile.FieldIsPartner, providerprofile.FieldIsActive:
 			values[i] = new(sql.NullBool)
 		case providerprofile.FieldID, providerprofile.FieldTradingName, providerprofile.FieldHostIdentifier, providerprofile.FieldProvisionMode:
 			values[i] = new(sql.NullString)
@@ -215,6 +217,12 @@ func (pp *ProviderProfile) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field is_partner", values[i])
 			} else if value.Valid {
 				pp.IsPartner = value.Bool
+			}
+		case providerprofile.FieldIsActive:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field is_active", values[i])
+			} else if value.Valid {
+				pp.IsActive = value.Bool
 			}
 		case providerprofile.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -323,6 +331,9 @@ func (pp *ProviderProfile) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("is_partner=")
 	builder.WriteString(fmt.Sprintf("%v", pp.IsPartner))
+	builder.WriteString(", ")
+	builder.WriteString("is_active=")
+	builder.WriteString(fmt.Sprintf("%v", pp.IsActive))
 	builder.WriteString(", ")
 	builder.WriteString("updated_at=")
 	builder.WriteString(pp.UpdatedAt.Format(time.ANSIC))

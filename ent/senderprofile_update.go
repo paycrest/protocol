@@ -118,6 +118,20 @@ func (spu *SenderProfileUpdate) AppendDomainWhitelist(s []string) *SenderProfile
 	return spu
 }
 
+// SetIsActive sets the "is_active" field.
+func (spu *SenderProfileUpdate) SetIsActive(b bool) *SenderProfileUpdate {
+	spu.mutation.SetIsActive(b)
+	return spu
+}
+
+// SetNillableIsActive sets the "is_active" field if the given value is not nil.
+func (spu *SenderProfileUpdate) SetNillableIsActive(b *bool) *SenderProfileUpdate {
+	if b != nil {
+		spu.SetIsActive(*b)
+	}
+	return spu
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (spu *SenderProfileUpdate) SetUpdatedAt(t time.Time) *SenderProfileUpdate {
 	spu.mutation.SetUpdatedAt(t)
@@ -277,6 +291,9 @@ func (spu *SenderProfileUpdate) sqlSave(ctx context.Context) (n int, err error) 
 		_spec.AddModifier(func(u *sql.UpdateBuilder) {
 			sqljson.Append(u, senderprofile.FieldDomainWhitelist, value)
 		})
+	}
+	if value, ok := spu.mutation.IsActive(); ok {
+		_spec.SetField(senderprofile.FieldIsActive, field.TypeBool, value)
 	}
 	if value, ok := spu.mutation.UpdatedAt(); ok {
 		_spec.SetField(senderprofile.FieldUpdatedAt, field.TypeTime, value)
@@ -457,6 +474,20 @@ func (spuo *SenderProfileUpdateOne) SetDomainWhitelist(s []string) *SenderProfil
 // AppendDomainWhitelist appends s to the "domain_whitelist" field.
 func (spuo *SenderProfileUpdateOne) AppendDomainWhitelist(s []string) *SenderProfileUpdateOne {
 	spuo.mutation.AppendDomainWhitelist(s)
+	return spuo
+}
+
+// SetIsActive sets the "is_active" field.
+func (spuo *SenderProfileUpdateOne) SetIsActive(b bool) *SenderProfileUpdateOne {
+	spuo.mutation.SetIsActive(b)
+	return spuo
+}
+
+// SetNillableIsActive sets the "is_active" field if the given value is not nil.
+func (spuo *SenderProfileUpdateOne) SetNillableIsActive(b *bool) *SenderProfileUpdateOne {
+	if b != nil {
+		spuo.SetIsActive(*b)
+	}
 	return spuo
 }
 
@@ -649,6 +680,9 @@ func (spuo *SenderProfileUpdateOne) sqlSave(ctx context.Context) (_node *SenderP
 		_spec.AddModifier(func(u *sql.UpdateBuilder) {
 			sqljson.Append(u, senderprofile.FieldDomainWhitelist, value)
 		})
+	}
+	if value, ok := spuo.mutation.IsActive(); ok {
+		_spec.SetField(senderprofile.FieldIsActive, field.TypeBool, value)
 	}
 	if value, ok := spuo.mutation.UpdatedAt(); ok {
 		_spec.SetField(senderprofile.FieldUpdatedAt, field.TypeTime, value)

@@ -75,6 +75,7 @@ func (s *PriorityQueueService) GetProvidersByBucket(ctx context.Context) ([]*ent
 						provideravailability.EndTimeGTE(oneHourFromNow),
 					),
 				),
+				providerprofile.IsActiveEQ(true),
 			)
 		}).
 		WithCurrency().

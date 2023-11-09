@@ -261,7 +261,7 @@ func TestAuth(t *testing.T) {
 
 			updateUser, uErr := verificationtoken.QueryOwner().Only(context.Background())
 			assert.NoError(t, uErr)
-			assert.Equal(t, true, updateUser.IsVerified)
+			assert.Equal(t, true, updateUser.IsEmailVerified)
 		})
 	})
 
@@ -378,10 +378,13 @@ func TestAuth(t *testing.T) {
 
 	t.Run("ResendVerificationToken", func(t *testing.T) {
 		// fetch user
-		user, fetchUserErr := db.Client.User.Query().Where(user.IDEQ(uuid.MustParse(userID))).Only(context.Background())
+		user, fetchUserErr := db.Client.User.
+			Query().
+			Where(user.IDEQ(uuid.MustParse(userID))).
+			Only(context.Background())
 		assert.NoError(t, fetchUserErr, "failed to fetch user by userID")
 
-		_, err := user.Update().SetIsVerified(false).Save(context.Background())
+		_, err := user.Update().SetIsEmailVerified(false).Save(context.Background())
 		assert.NoError(t, err, "failed to set isVerified to false")
 
 		t.Run("verification token should be resent", func(t *testing.T) {

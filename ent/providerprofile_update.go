@@ -90,6 +90,20 @@ func (ppu *ProviderProfileUpdate) SetNillableIsPartner(b *bool) *ProviderProfile
 	return ppu
 }
 
+// SetIsActive sets the "is_active" field.
+func (ppu *ProviderProfileUpdate) SetIsActive(b bool) *ProviderProfileUpdate {
+	ppu.mutation.SetIsActive(b)
+	return ppu
+}
+
+// SetNillableIsActive sets the "is_active" field if the given value is not nil.
+func (ppu *ProviderProfileUpdate) SetNillableIsActive(b *bool) *ProviderProfileUpdate {
+	if b != nil {
+		ppu.SetIsActive(*b)
+	}
+	return ppu
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (ppu *ProviderProfileUpdate) SetUpdatedAt(t time.Time) *ProviderProfileUpdate {
 	ppu.mutation.SetUpdatedAt(t)
@@ -384,6 +398,9 @@ func (ppu *ProviderProfileUpdate) sqlSave(ctx context.Context) (n int, err error
 	}
 	if value, ok := ppu.mutation.IsPartner(); ok {
 		_spec.SetField(providerprofile.FieldIsPartner, field.TypeBool, value)
+	}
+	if value, ok := ppu.mutation.IsActive(); ok {
+		_spec.SetField(providerprofile.FieldIsActive, field.TypeBool, value)
 	}
 	if value, ok := ppu.mutation.UpdatedAt(); ok {
 		_spec.SetField(providerprofile.FieldUpdatedAt, field.TypeTime, value)
@@ -713,6 +730,20 @@ func (ppuo *ProviderProfileUpdateOne) SetNillableIsPartner(b *bool) *ProviderPro
 	return ppuo
 }
 
+// SetIsActive sets the "is_active" field.
+func (ppuo *ProviderProfileUpdateOne) SetIsActive(b bool) *ProviderProfileUpdateOne {
+	ppuo.mutation.SetIsActive(b)
+	return ppuo
+}
+
+// SetNillableIsActive sets the "is_active" field if the given value is not nil.
+func (ppuo *ProviderProfileUpdateOne) SetNillableIsActive(b *bool) *ProviderProfileUpdateOne {
+	if b != nil {
+		ppuo.SetIsActive(*b)
+	}
+	return ppuo
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (ppuo *ProviderProfileUpdateOne) SetUpdatedAt(t time.Time) *ProviderProfileUpdateOne {
 	ppuo.mutation.SetUpdatedAt(t)
@@ -1037,6 +1068,9 @@ func (ppuo *ProviderProfileUpdateOne) sqlSave(ctx context.Context) (_node *Provi
 	}
 	if value, ok := ppuo.mutation.IsPartner(); ok {
 		_spec.SetField(providerprofile.FieldIsPartner, field.TypeBool, value)
+	}
+	if value, ok := ppuo.mutation.IsActive(); ok {
+		_spec.SetField(providerprofile.FieldIsActive, field.TypeBool, value)
 	}
 	if value, ok := ppuo.mutation.UpdatedAt(); ok {
 		_spec.SetField(providerprofile.FieldUpdatedAt, field.TypeTime, value)

@@ -68,16 +68,16 @@ func (uu *UserUpdate) SetScope(u user.Scope) *UserUpdate {
 	return uu
 }
 
-// SetIsVerified sets the "is_verified" field.
-func (uu *UserUpdate) SetIsVerified(b bool) *UserUpdate {
-	uu.mutation.SetIsVerified(b)
+// SetIsEmailVerified sets the "is_email_verified" field.
+func (uu *UserUpdate) SetIsEmailVerified(b bool) *UserUpdate {
+	uu.mutation.SetIsEmailVerified(b)
 	return uu
 }
 
-// SetNillableIsVerified sets the "is_verified" field if the given value is not nil.
-func (uu *UserUpdate) SetNillableIsVerified(b *bool) *UserUpdate {
+// SetNillableIsEmailVerified sets the "is_email_verified" field if the given value is not nil.
+func (uu *UserUpdate) SetNillableIsEmailVerified(b *bool) *UserUpdate {
 	if b != nil {
-		uu.SetIsVerified(*b)
+		uu.SetIsEmailVerified(*b)
 	}
 	return uu
 }
@@ -265,8 +265,8 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if value, ok := uu.mutation.Scope(); ok {
 		_spec.SetField(user.FieldScope, field.TypeEnum, value)
 	}
-	if value, ok := uu.mutation.IsVerified(); ok {
-		_spec.SetField(user.FieldIsVerified, field.TypeBool, value)
+	if value, ok := uu.mutation.IsEmailVerified(); ok {
+		_spec.SetField(user.FieldIsEmailVerified, field.TypeBool, value)
 	}
 	if uu.mutation.SenderProfileCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -427,16 +427,16 @@ func (uuo *UserUpdateOne) SetScope(u user.Scope) *UserUpdateOne {
 	return uuo
 }
 
-// SetIsVerified sets the "is_verified" field.
-func (uuo *UserUpdateOne) SetIsVerified(b bool) *UserUpdateOne {
-	uuo.mutation.SetIsVerified(b)
+// SetIsEmailVerified sets the "is_email_verified" field.
+func (uuo *UserUpdateOne) SetIsEmailVerified(b bool) *UserUpdateOne {
+	uuo.mutation.SetIsEmailVerified(b)
 	return uuo
 }
 
-// SetNillableIsVerified sets the "is_verified" field if the given value is not nil.
-func (uuo *UserUpdateOne) SetNillableIsVerified(b *bool) *UserUpdateOne {
+// SetNillableIsEmailVerified sets the "is_email_verified" field if the given value is not nil.
+func (uuo *UserUpdateOne) SetNillableIsEmailVerified(b *bool) *UserUpdateOne {
 	if b != nil {
-		uuo.SetIsVerified(*b)
+		uuo.SetIsEmailVerified(*b)
 	}
 	return uuo
 }
@@ -654,8 +654,8 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 	if value, ok := uuo.mutation.Scope(); ok {
 		_spec.SetField(user.FieldScope, field.TypeEnum, value)
 	}
-	if value, ok := uuo.mutation.IsVerified(); ok {
-		_spec.SetField(user.FieldIsVerified, field.TypeBool, value)
+	if value, ok := uuo.mutation.IsEmailVerified(); ok {
+		_spec.SetField(user.FieldIsEmailVerified, field.TypeBool, value)
 	}
 	if uuo.mutation.SenderProfileCleared() {
 		edge := &sqlgraph.EdgeSpec{

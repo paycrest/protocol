@@ -82,16 +82,16 @@ func (uc *UserCreate) SetScope(u user.Scope) *UserCreate {
 	return uc
 }
 
-// SetIsVerified sets the "is_verified" field.
-func (uc *UserCreate) SetIsVerified(b bool) *UserCreate {
-	uc.mutation.SetIsVerified(b)
+// SetIsEmailVerified sets the "is_email_verified" field.
+func (uc *UserCreate) SetIsEmailVerified(b bool) *UserCreate {
+	uc.mutation.SetIsEmailVerified(b)
 	return uc
 }
 
-// SetNillableIsVerified sets the "is_verified" field if the given value is not nil.
-func (uc *UserCreate) SetNillableIsVerified(b *bool) *UserCreate {
+// SetNillableIsEmailVerified sets the "is_email_verified" field if the given value is not nil.
+func (uc *UserCreate) SetNillableIsEmailVerified(b *bool) *UserCreate {
 	if b != nil {
-		uc.SetIsVerified(*b)
+		uc.SetIsEmailVerified(*b)
 	}
 	return uc
 }
@@ -214,9 +214,9 @@ func (uc *UserCreate) defaults() error {
 		v := user.DefaultUpdatedAt()
 		uc.mutation.SetUpdatedAt(v)
 	}
-	if _, ok := uc.mutation.IsVerified(); !ok {
-		v := user.DefaultIsVerified
-		uc.mutation.SetIsVerified(v)
+	if _, ok := uc.mutation.IsEmailVerified(); !ok {
+		v := user.DefaultIsEmailVerified
+		uc.mutation.SetIsEmailVerified(v)
 	}
 	if _, ok := uc.mutation.ID(); !ok {
 		if user.DefaultID == nil {
@@ -266,8 +266,8 @@ func (uc *UserCreate) check() error {
 			return &ValidationError{Name: "scope", err: fmt.Errorf(`ent: validator failed for field "User.scope": %w`, err)}
 		}
 	}
-	if _, ok := uc.mutation.IsVerified(); !ok {
-		return &ValidationError{Name: "is_verified", err: errors.New(`ent: missing required field "User.is_verified"`)}
+	if _, ok := uc.mutation.IsEmailVerified(); !ok {
+		return &ValidationError{Name: "is_email_verified", err: errors.New(`ent: missing required field "User.is_email_verified"`)}
 	}
 	return nil
 }
@@ -332,9 +332,9 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 		_spec.SetField(user.FieldScope, field.TypeEnum, value)
 		_node.Scope = value
 	}
-	if value, ok := uc.mutation.IsVerified(); ok {
-		_spec.SetField(user.FieldIsVerified, field.TypeBool, value)
-		_node.IsVerified = value
+	if value, ok := uc.mutation.IsEmailVerified(); ok {
+		_spec.SetField(user.FieldIsEmailVerified, field.TypeBool, value)
+		_node.IsEmailVerified = value
 	}
 	if nodes := uc.mutation.SenderProfileIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

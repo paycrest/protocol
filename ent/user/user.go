@@ -31,8 +31,8 @@ const (
 	FieldPassword = "password"
 	// FieldScope holds the string denoting the scope field in the database.
 	FieldScope = "scope"
-	// FieldIsVerified holds the string denoting the is_verified field in the database.
-	FieldIsVerified = "is_verified"
+	// FieldIsEmailVerified holds the string denoting the is_email_verified field in the database.
+	FieldIsEmailVerified = "is_email_verified"
 	// EdgeSenderProfile holds the string denoting the sender_profile edge name in mutations.
 	EdgeSenderProfile = "sender_profile"
 	// EdgeProviderProfile holds the string denoting the provider_profile edge name in mutations.
@@ -74,7 +74,7 @@ var Columns = []string{
 	FieldEmail,
 	FieldPassword,
 	FieldScope,
-	FieldIsVerified,
+	FieldIsEmailVerified,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -104,8 +104,8 @@ var (
 	FirstNameValidator func(string) error
 	// LastNameValidator is a validator for the "last_name" field. It is called by the builders before save.
 	LastNameValidator func(string) error
-	// DefaultIsVerified holds the default value on creation for the "is_verified" field.
-	DefaultIsVerified bool
+	// DefaultIsEmailVerified holds the default value on creation for the "is_email_verified" field.
+	DefaultIsEmailVerified bool
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() uuid.UUID
 )
@@ -176,9 +176,9 @@ func ByScope(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldScope, opts...).ToFunc()
 }
 
-// ByIsVerified orders the results by the is_verified field.
-func ByIsVerified(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldIsVerified, opts...).ToFunc()
+// ByIsEmailVerified orders the results by the is_email_verified field.
+func ByIsEmailVerified(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIsEmailVerified, opts...).ToFunc()
 }
 
 // BySenderProfileField orders the results by sender_profile field.

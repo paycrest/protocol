@@ -268,6 +268,7 @@ var (
 		{Name: "host_identifier", Type: field.TypeString, Nullable: true},
 		{Name: "provision_mode", Type: field.TypeEnum, Enums: []string{"manual", "auto"}, Default: "auto"},
 		{Name: "is_partner", Type: field.TypeBool, Default: false},
+		{Name: "is_active", Type: field.TypeBool, Default: false},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "fiat_currency_provider", Type: field.TypeUUID, Unique: true},
 		{Name: "user_provider_profile", Type: field.TypeUUID, Unique: true},
@@ -280,13 +281,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "provider_profiles_fiat_currencies_provider",
-				Columns:    []*schema.Column{ProviderProfilesColumns[6]},
+				Columns:    []*schema.Column{ProviderProfilesColumns[7]},
 				RefColumns: []*schema.Column{FiatCurrenciesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "provider_profiles_users_provider_profile",
-				Columns:    []*schema.Column{ProviderProfilesColumns[7]},
+				Columns:    []*schema.Column{ProviderProfilesColumns[8]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
@@ -371,6 +372,7 @@ var (
 		{Name: "fee_address", Type: field.TypeString, Nullable: true},
 		{Name: "refund_address", Type: field.TypeString, Nullable: true},
 		{Name: "domain_whitelist", Type: field.TypeJSON},
+		{Name: "is_active", Type: field.TypeBool, Default: false},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "user_sender_profile", Type: field.TypeUUID, Unique: true},
 	}
@@ -382,7 +384,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "sender_profiles_users_sender_profile",
-				Columns:    []*schema.Column{SenderProfilesColumns[7]},
+				Columns:    []*schema.Column{SenderProfilesColumns[8]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
@@ -423,7 +425,7 @@ var (
 		{Name: "email", Type: field.TypeString},
 		{Name: "password", Type: field.TypeString},
 		{Name: "scope", Type: field.TypeEnum, Enums: []string{"sender", "provider"}},
-		{Name: "is_verified", Type: field.TypeBool, Default: false},
+		{Name: "is_email_verified", Type: field.TypeBool, Default: false},
 	}
 	// UsersTable holds the schema information for the "users" table.
 	UsersTable = &schema.Table{

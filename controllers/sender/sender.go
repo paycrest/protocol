@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
+	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/ent"
 	db "github.com/paycrest/protocol/storage"
 
@@ -62,6 +63,13 @@ func (ctrl *SenderController) CreatePaymentOrder(ctx *gin.Context) {
 		return
 	}
 	sender := senderCtx.(*ent.SenderProfile)
+
+	conf := config.ServerConfig()
+
+	if !sender.IsActive && !conf.Debug {
+		u.APIResponse(ctx, http.StatusForbidden, "error", "Your account is not active", nil)
+		return
+	}
 
 	// Get token from DB
 	token, err := db.Client.Token.

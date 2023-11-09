@@ -32,6 +32,8 @@ type SenderProfile struct {
 	RefundAddress string `json:"refund_address,omitempty"`
 	// DomainWhitelist holds the value of the "domain_whitelist" field.
 	DomainWhitelist []string `json:"domain_whitelist,omitempty"`
+	// IsActive holds the value of the "is_active" field.
+	IsActive bool `json:"is_active,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -98,6 +100,8 @@ func (*SenderProfile) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case senderprofile.FieldFeePerTokenUnit:
 			values[i] = new(decimal.Decimal)
+		case senderprofile.FieldIsActive:
+			values[i] = new(sql.NullBool)
 		case senderprofile.FieldWebhookURL, senderprofile.FieldFeeAddress, senderprofile.FieldRefundAddress:
 			values[i] = new(sql.NullString)
 		case senderprofile.FieldUpdatedAt:
@@ -158,6 +162,12 @@ func (sp *SenderProfile) assignValues(columns []string, values []any) error {
 				if err := json.Unmarshal(*value, &sp.DomainWhitelist); err != nil {
 					return fmt.Errorf("unmarshal field domain_whitelist: %w", err)
 				}
+			}
+		case senderprofile.FieldIsActive:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field is_active", values[i])
+			} else if value.Valid {
+				sp.IsActive = value.Bool
 			}
 		case senderprofile.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -237,6 +247,9 @@ func (sp *SenderProfile) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("domain_whitelist=")
 	builder.WriteString(fmt.Sprintf("%v", sp.DomainWhitelist))
+	builder.WriteString(", ")
+	builder.WriteString("is_active=")
+	builder.WriteString(fmt.Sprintf("%v", sp.IsActive))
 	builder.WriteString(", ")
 	builder.WriteString("updated_at=")
 	builder.WriteString(sp.UpdatedAt.Format(time.ANSIC))

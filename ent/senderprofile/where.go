@@ -77,6 +77,11 @@ func RefundAddress(v string) predicate.SenderProfile {
 	return predicate.SenderProfile(sql.FieldEQ(FieldRefundAddress, v))
 }
 
+// IsActive applies equality check predicate on the "is_active" field. It's identical to IsActiveEQ.
+func IsActive(v bool) predicate.SenderProfile {
+	return predicate.SenderProfile(sql.FieldEQ(FieldIsActive, v))
+}
+
 // UpdatedAt applies equality check predicate on the "updated_at" field. It's identical to UpdatedAtEQ.
 func UpdatedAt(v time.Time) predicate.SenderProfile {
 	return predicate.SenderProfile(sql.FieldEQ(FieldUpdatedAt, v))
@@ -345,6 +350,16 @@ func RefundAddressEqualFold(v string) predicate.SenderProfile {
 // RefundAddressContainsFold applies the ContainsFold predicate on the "refund_address" field.
 func RefundAddressContainsFold(v string) predicate.SenderProfile {
 	return predicate.SenderProfile(sql.FieldContainsFold(FieldRefundAddress, v))
+}
+
+// IsActiveEQ applies the EQ predicate on the "is_active" field.
+func IsActiveEQ(v bool) predicate.SenderProfile {
+	return predicate.SenderProfile(sql.FieldEQ(FieldIsActive, v))
+}
+
+// IsActiveNEQ applies the NEQ predicate on the "is_active" field.
+func IsActiveNEQ(v bool) predicate.SenderProfile {
+	return predicate.SenderProfile(sql.FieldNEQ(FieldIsActive, v))
 }
 
 // UpdatedAtEQ applies the EQ predicate on the "updated_at" field.

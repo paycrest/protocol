@@ -296,10 +296,10 @@ func (ctrl *AuthController) ConfirmEmail(ctx *gin.Context) {
 		return
 	}
 
-	// Update User IsVerified to true
+	// Update User IsEmailVerified to true
 	_, setIfVerifiedErr := verificationToken.Edges.Owner.
 		Update().
-		SetIsVerified(true).
+		SetIsEmailVerified(true).
 		Save(ctx)
 	if setIfVerifiedErr != nil {
 		u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to verify user email", setIfVerifiedErr.Error())
