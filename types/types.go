@@ -339,6 +339,12 @@ type ErrorData struct {
 	Message string `json:"message"`
 }
 
+// Payload for reset password request
+type ResetPasswordPayload struct {
+	Password   string `json:"new-password" binding:"required,min=6,max=20"`
+	ResetToken string `json:"reset-token"`
+}
+
 // ProviderLockOrderList is the struct for a list of provider lock orders
 type ProviderLockOrderList struct {
 	TotalRecords int                      `json:"total"`

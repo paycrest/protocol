@@ -27,6 +27,8 @@ type VerificationToken struct {
 	Token string `json:"token,omitempty"`
 	// Scope holds the value of the "scope" field.
 	Scope verificationtoken.Scope `json:"scope,omitempty"`
+	// ExpiryAt holds the value of the "expiry_at" field.
+	ExpiryAt time.Time `json:"expiry_at,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the VerificationTokenQuery when eager-loading is set.
 	Edges                   VerificationTokenEdges `json:"edges"`
@@ -63,7 +65,7 @@ func (*VerificationToken) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case verificationtoken.FieldToken, verificationtoken.FieldScope:
 			values[i] = new(sql.NullString)
-		case verificationtoken.FieldCreatedAt, verificationtoken.FieldUpdatedAt:
+		case verificationtoken.FieldCreatedAt, verificationtoken.FieldUpdatedAt, verificationtoken.FieldExpiryAt:
 			values[i] = new(sql.NullTime)
 		case verificationtoken.FieldID:
 			values[i] = new(uuid.UUID)
@@ -113,6 +115,12 @@ func (vt *VerificationToken) assignValues(columns []string, values []any) error 
 				return fmt.Errorf("unexpected type %T for field scope", values[i])
 			} else if value.Valid {
 				vt.Scope = verificationtoken.Scope(value.String)
+			}
+		case verificationtoken.FieldExpiryAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field expiry_at", values[i])
+			} else if value.Valid {
+				vt.ExpiryAt = value.Time
 			}
 		case verificationtoken.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullScanner); !ok {
@@ -173,6 +181,9 @@ func (vt *VerificationToken) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("scope=")
 	builder.WriteString(fmt.Sprintf("%v", vt.Scope))
+	builder.WriteString(", ")
+	builder.WriteString("expiry_at=")
+	builder.WriteString(vt.ExpiryAt.Format(time.ANSIC))
 	builder.WriteByte(')')
 	return builder.String()
 }

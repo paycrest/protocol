@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/md5"
 	"encoding/hex"
+	"time"
 
 	"entgo.io/ent"
 	"entgo.io/ent/schema/edge"
@@ -31,8 +32,9 @@ func (VerificationToken) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).Default(uuid.New),
 		field.String("token").Immutable(),
-		field.Enum("scope").Values("verification"),
+		field.Enum("scope").Values("email-verification", "reset-password"),
 		// field.Time("created_at").Immutable().Default(time.Now),
+		field.Time("expiry_at").Immutable().Default(time.Now().Add(time.Hour * 9000)),
 	}
 }
 

@@ -66,7 +66,7 @@ func (User) Indexes() []ent.Index {
 // Hooks of the User.
 func (User) Hooks() []ent.Hook {
 	return []ent.Hook{
-		hook.On(hashPasswordHook(), ent.OpCreate),
+		hook.On(hashPasswordHook(), ent.OpUpdateOne|ent.OpUpdate|ent.OpCreate),
 	}
 }
 

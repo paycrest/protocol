@@ -321,6 +321,10 @@ func init() {
 	verificationtoken.DefaultUpdatedAt = verificationtokenDescUpdatedAt.Default.(func() time.Time)
 	// verificationtoken.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	verificationtoken.UpdateDefaultUpdatedAt = verificationtokenDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// verificationtokenDescExpiryAt is the schema descriptor for expiry_at field.
+	verificationtokenDescExpiryAt := verificationtokenFields[3].Descriptor()
+	// verificationtoken.DefaultExpiryAt holds the default value on creation for the expiry_at field.
+	verificationtoken.DefaultExpiryAt = verificationtokenDescExpiryAt.Default.(time.Time)
 	// verificationtokenDescID is the schema descriptor for id field.
 	verificationtokenDescID := verificationtokenFields[0].Descriptor()
 	// verificationtoken.DefaultID holds the default value on creation for the id field.
