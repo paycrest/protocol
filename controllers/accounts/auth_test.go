@@ -3,9 +3,11 @@ package accounts
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"regexp"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jarcoal/httpmock"
@@ -14,6 +16,7 @@ import (
 	svc "github.com/paycrest/protocol/services"
 	db "github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
+	"golang.org/x/crypto/bcrypt"
 
 	"github.com/gin-gonic/gin"
 	"github.com/paycrest/protocol/ent/enttest"
@@ -222,31 +225,6 @@ func TestAuth(t *testing.T) {
 		})
 	})
 
-	t.Run("ResetPasswordToken", func(t *testing.T) {
-		t.Run("password reset token should be set in db", func(t *testing.T) {
-			refreshTokenForHeader, err := token.GenerateAccessJWT(userID)
-			assert.NoError(t, err, "failed to generate refresh token")
-
-			headers := map[string]string{
-				"Authorization": "Bearer " + refreshTokenForHeader,
-			}
-
-			res, err := test.PerformRequest(t, "POST", "/reset-password-token?scope=sender", nil, headers, router)
-
-			assert.NoError(t, err)
-
-			// Assert the response body
-			assert.Equal(t, http.StatusOK, res.Code)
-
-			// There should be 1 scoped reset-password verification token
-			amount := db.Client.VerificationToken.Query().
-				Where(verificationtoken.ScopeEQ(verificationtoken.ScopeResetPassword)).
-				CountX(context.Background())
-
-			assert.Equal(t, 1, amount)
-		})
-	})
-
 	t.Run("ConfirmEmail", func(t *testing.T) {
 		// fetch user
 		userUUID, err := uuid.Parse(userID)
@@ -259,7 +237,9 @@ func TestAuth(t *testing.T) {
 		assert.NoError(t, fetchUserErr, "failed to fetch user by userID")
 
 		// generate verificationToken
-		verificationtoken, vtErr := user.QueryVerificationToken().Only(context.Background())
+		verificationtoken, vtErr := user.QueryVerificationToken().
+			Where(verificationtoken.ScopeEQ(verificationtoken.ScopeEmailVerification)).
+			Only(context.Background())
 		assert.NoError(t, vtErr)
 
 		t.Run("confirm user email", func(t *testing.T) {
@@ -418,8 +398,148 @@ func TestAuth(t *testing.T) {
 			assert.Equal(t, http.StatusOK, res.Code)
 
 			// verificationtokens should be two
-			amount := user.QueryVerificationToken().CountX(context.Background())
+			amount := user.QueryVerificationToken().
+				Where(verificationtoken.ScopeEQ(verificationtoken.ScopeEmailVerification)).
+				CountX(context.Background())
 			assert.Equal(t, 2, amount)
+		})
+	})
+
+	t.Run("ResetPasswordToken", func(t *testing.T) {
+		t.Run("password reset token should be set in db", func(t *testing.T) {
+			jwtAccessTokenForHeader, err := token.GenerateAccessJWT(userID)
+			assert.NoError(t, err, "failed to generate refresh token")
+
+			headers := map[string]string{
+				"Authorization": "Bearer " + jwtAccessTokenForHeader,
+			}
+
+			res, err := test.PerformRequest(t, "POST", "/reset-password-token?scope=sender", nil, headers, router)
+
+			assert.NoError(t, err)
+
+			// Assert the response body
+			assert.Equal(t, http.StatusOK, res.Code)
+
+			// There should be 1 scoped reset-password verification token
+			amount := db.Client.VerificationToken.Query().
+				Where(verificationtoken.ScopeEQ(verificationtoken.ScopeResetPassword)).
+				CountX(context.Background())
+
+			assert.Equal(t, 1, amount)
+		})
+	})
+
+	t.Run("ResetPassword", func(t *testing.T) {
+
+		userUUID, err := uuid.Parse(userID)
+		assert.NoError(t, err)
+
+		userInstance, getUserErr := db.Client.User.
+			Query().
+			Where(user.IDEQ(userUUID)).
+			Only(context.Background())
+		assert.NoError(t, getUserErr, "failed to get user by userID")
+
+		t.Run("FailsForEmptyResetToken", func(t *testing.T) {
+
+			jwtAccessTokenForHeader, err := token.GenerateAccessJWT(userID)
+			assert.NoError(t, err, "failed to generate refresh token")
+
+			headers := map[string]string{
+				"Authorization": "Bearer " + jwtAccessTokenForHeader,
+			}
+			ResetPasswordPayload := map[string]string{
+				"new-password": "1111000090",
+			}
+			res, err := test.PerformRequest(t, "PATCH", "/reset-password?scope=sender", ResetPasswordPayload, headers, router)
+
+			assert.Error(t, errors.New("Invalid password reset token"), err)
+			// Assert the response body
+			assert.Equal(t, http.StatusBadRequest, res.Code)
+		})
+
+		t.Run("FailsForExpiredResetToken", func(t *testing.T) {
+
+			resetToken, err := db.Client.VerificationToken.Create().SetExpiryAt(time.Now().
+				Add(-10 * time.Second)).SetOwner(userInstance).SetScope(verificationtoken.ScopeResetPassword).
+				Save(context.Background())
+			assert.NoError(t, err)
+
+			jwtAccessTokenForHeader, err := token.GenerateAccessJWT(userID)
+			assert.NoError(t, err, "failed to generate refresh token")
+
+			headers := map[string]string{
+				"Authorization": "Bearer " + jwtAccessTokenForHeader,
+			}
+			ResetPasswordPayload := map[string]string{
+				"new-password": "1111000090",
+				"reset-token":  resetToken.Token,
+			}
+			res, err := test.PerformRequest(t, "PATCH", "/reset-password?scope=sender", ResetPasswordPayload, headers, router)
+
+			assert.Error(t, errors.New("Invalid password reset token"), err)
+			// Assert the response body
+			assert.Equal(t, http.StatusBadRequest, res.Code)
+		})
+
+		t.Run("FailsForWrongScope", func(t *testing.T) {
+
+			emailVerificationToken, err := db.Client.VerificationToken.Create().SetExpiryAt(time.Now().
+				Add(10 * time.Second)).SetOwner(userInstance).SetScope(verificationtoken.ScopeEmailVerification).
+				Save(context.Background())
+			assert.NoError(t, err)
+
+			jwtAccessTokenForHeader, err := token.GenerateAccessJWT(userID)
+			assert.NoError(t, err, "failed to generate refresh token")
+
+			headers := map[string]string{
+				"Authorization": "Bearer " + jwtAccessTokenForHeader,
+			}
+			ResetPasswordPayload := map[string]string{
+				"new-password": "1111000090",
+				"reset-token":  emailVerificationToken.Token,
+			}
+			res, err := test.PerformRequest(t, "PATCH", "/reset-password?scope=sender", ResetPasswordPayload, headers, router)
+
+			assert.Error(t, errors.New("Invalid password reset token"), err)
+			// Assert the response body
+			assert.Equal(t, http.StatusBadRequest, res.Code)
+		})
+
+		t.Run("ResetPasswordInDBForValidResetToken", func(t *testing.T) {
+
+			resetToken, err := db.Client.VerificationToken.Create().SetExpiryAt(time.Now().
+				Add(5 * time.Minute)).SetOwner(userInstance).SetScope(verificationtoken.ScopeResetPassword).
+				Save(context.Background())
+			assert.NoError(t, err)
+
+			resetPasswordPayload := map[string]string{
+				"new-password": "1111000090",
+				"reset-token":  resetToken.Token,
+			}
+
+			jwtAccessTokenForHeader, err := token.GenerateAccessJWT(userID)
+			assert.NoError(t, err, "failed to generate refresh token")
+
+			headers := map[string]string{
+				"Authorization": "Bearer " + jwtAccessTokenForHeader,
+			}
+
+			res, err := test.PerformRequest(t, "PATCH", "/reset-password?scope=sender", resetPasswordPayload, headers, router)
+			assert.NoError(t, err)
+			// Assert the response body
+			assert.Equal(t, http.StatusOK, res.Code)
+
+			// Check password in DB is reset for user
+			updatedUser, getUserErr := db.Client.User.
+				Query().
+				Where(user.IDEQ(userUUID)).
+				Only(context.Background())
+			assert.NoError(t, getUserErr, "failed to get updated user after password reset")
+
+			passwordCompareErr := bcrypt.CompareHashAndPassword([]byte(updatedUser.Password), []byte(resetPasswordPayload["new-password"]))
+			assert.NoError(t, passwordCompareErr, "Password reset did not update DB properly")
 		})
 	})
 
