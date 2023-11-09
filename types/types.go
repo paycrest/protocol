@@ -360,9 +360,3 @@ type SenderPaymentOrderList struct {
 	PageSize     int                    `json:"pageSize"`
 	Orders       []PaymentOrderResponse `json:"orders"`
 }
-
-// Payload for reset password request
-type ResetPasswordPayload struct {
-	Password   string `json:"new-password" binding:"required,min=6,max=20"`
-	ResetToken string `json:"reset-token"`
-}
