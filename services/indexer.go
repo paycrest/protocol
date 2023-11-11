@@ -255,6 +255,16 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 					if err != nil {
 						return false, fmt.Errorf("failed to update receive address status: %w", err)
 					}
+
+					// Expire payment order
+					_, err = paymentOrder.
+						Update().
+						SetStatus(paymentorder.StatusExpired).
+						Save(ctx)
+					if err != nil {
+						return false, fmt.Errorf("failed to update payment order status: %w", err)
+					}
+
 					return true, nil
 				}
 			}
