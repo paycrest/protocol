@@ -22,6 +22,7 @@ import (
 	"github.com/paycrest/protocol/ent/token"
 	"github.com/paycrest/protocol/ent/user"
 	"github.com/paycrest/protocol/ent/verificationtoken"
+	"github.com/paycrest/protocol/ent/webhookretryattempt"
 )
 
 // The init function reads all schema descriptors with runtime code
@@ -337,6 +338,25 @@ func init() {
 	verificationtokenDescID := verificationtokenFields[0].Descriptor()
 	// verificationtoken.DefaultID holds the default value on creation for the id field.
 	verificationtoken.DefaultID = verificationtokenDescID.Default.(func() uuid.UUID)
+	webhookretryattemptMixin := schema.WebhookRetryAttempt{}.Mixin()
+	webhookretryattemptMixinFields0 := webhookretryattemptMixin[0].Fields()
+	_ = webhookretryattemptMixinFields0
+	webhookretryattemptFields := schema.WebhookRetryAttempt{}.Fields()
+	_ = webhookretryattemptFields
+	// webhookretryattemptDescCreatedAt is the schema descriptor for created_at field.
+	webhookretryattemptDescCreatedAt := webhookretryattemptMixinFields0[0].Descriptor()
+	// webhookretryattempt.DefaultCreatedAt holds the default value on creation for the created_at field.
+	webhookretryattempt.DefaultCreatedAt = webhookretryattemptDescCreatedAt.Default.(func() time.Time)
+	// webhookretryattemptDescUpdatedAt is the schema descriptor for updated_at field.
+	webhookretryattemptDescUpdatedAt := webhookretryattemptMixinFields0[1].Descriptor()
+	// webhookretryattempt.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	webhookretryattempt.DefaultUpdatedAt = webhookretryattemptDescUpdatedAt.Default.(func() time.Time)
+	// webhookretryattempt.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	webhookretryattempt.UpdateDefaultUpdatedAt = webhookretryattemptDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// webhookretryattemptDescNextRetryTime is the schema descriptor for next_retry_time field.
+	webhookretryattemptDescNextRetryTime := webhookretryattemptFields[1].Descriptor()
+	// webhookretryattempt.DefaultNextRetryTime holds the default value on creation for the next_retry_time field.
+	webhookretryattempt.DefaultNextRetryTime = webhookretryattemptDescNextRetryTime.Default.(func() time.Time)
 }
 
 const (

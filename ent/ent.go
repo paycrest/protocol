@@ -29,6 +29,7 @@ import (
 	"github.com/paycrest/protocol/ent/token"
 	"github.com/paycrest/protocol/ent/user"
 	"github.com/paycrest/protocol/ent/verificationtoken"
+	"github.com/paycrest/protocol/ent/webhookretryattempt"
 )
 
 // ent aliases to avoid import conflicts in user's code.
@@ -106,6 +107,7 @@ func checkColumn(table, column string) error {
 			token.Table:                 token.ValidColumn,
 			user.Table:                  user.ValidColumn,
 			verificationtoken.Table:     verificationtoken.ValidColumn,
+			webhookretryattempt.Table:   webhookretryattempt.ValidColumn,
 		})
 	})
 	return columnCheck(table, column)

@@ -34,8 +34,6 @@ const (
 	FieldLabel = "label"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
-	// FieldLastUsed holds the string denoting the last_used field in the database.
-	FieldLastUsed = "last_used"
 	// EdgeSenderProfile holds the string denoting the sender_profile edge name in mutations.
 	EdgeSenderProfile = "sender_profile"
 	// EdgeToken holds the string denoting the token edge name in mutations.
@@ -88,7 +86,6 @@ var Columns = []string{
 	FieldReceiveAddressText,
 	FieldLabel,
 	FieldStatus,
-	FieldLastUsed,
 }
 
 // ForeignKeys holds the SQL foreign-keys that are owned by the "payment_orders"
@@ -139,9 +136,9 @@ const DefaultStatus = StatusInitiated
 const (
 	StatusInitiated Status = "initiated"
 	StatusPending   Status = "pending"
+	StatusReverted  Status = "reverted"
+	StatusExpired   Status = "expired"
 	StatusSettled   Status = "settled"
-	StatusCancelled Status = "cancelled"
-	StatusFailed    Status = "failed"
 	StatusRefunded  Status = "refunded"
 )
 
@@ -152,7 +149,7 @@ func (s Status) String() string {
 // StatusValidator is a validator for the "status" field enum values. It is called by the builders before save.
 func StatusValidator(s Status) error {
 	switch s {
-	case StatusInitiated, StatusPending, StatusSettled, StatusCancelled, StatusFailed, StatusRefunded:
+	case StatusInitiated, StatusPending, StatusReverted, StatusExpired, StatusSettled, StatusRefunded:
 		return nil
 	default:
 		return fmt.Errorf("paymentorder: invalid enum value for status field: %q", s)
@@ -210,11 +207,6 @@ func ByLabel(opts ...sql.OrderTermOption) OrderOption {
 // ByStatus orders the results by the status field.
 func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatus, opts...).ToFunc()
-}
-
-// ByLastUsed orders the results by the last_used field.
-func ByLastUsed(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldLastUsed, opts...).ToFunc()
 }
 
 // BySenderProfileField orders the results by sender_profile field.

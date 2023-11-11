@@ -112,20 +112,6 @@ func (poc *PaymentOrderCreate) SetNillableStatus(pa *paymentorder.Status) *Payme
 	return poc
 }
 
-// SetLastUsed sets the "last_used" field.
-func (poc *PaymentOrderCreate) SetLastUsed(t time.Time) *PaymentOrderCreate {
-	poc.mutation.SetLastUsed(t)
-	return poc
-}
-
-// SetNillableLastUsed sets the "last_used" field if the given value is not nil.
-func (poc *PaymentOrderCreate) SetNillableLastUsed(t *time.Time) *PaymentOrderCreate {
-	if t != nil {
-		poc.SetLastUsed(*t)
-	}
-	return poc
-}
-
 // SetID sets the "id" field.
 func (poc *PaymentOrderCreate) SetID(u uuid.UUID) *PaymentOrderCreate {
 	poc.mutation.SetID(u)
@@ -370,10 +356,6 @@ func (poc *PaymentOrderCreate) createSpec() (*PaymentOrder, *sqlgraph.CreateSpec
 	if value, ok := poc.mutation.Status(); ok {
 		_spec.SetField(paymentorder.FieldStatus, field.TypeEnum, value)
 		_node.Status = value
-	}
-	if value, ok := poc.mutation.LastUsed(); ok {
-		_spec.SetField(paymentorder.FieldLastUsed, field.TypeTime, value)
-		_node.LastUsed = value
 	}
 	if nodes := poc.mutation.SenderProfileIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

@@ -155,8 +155,7 @@ var (
 		{Name: "tx_hash", Type: field.TypeString, Nullable: true, Size: 70},
 		{Name: "receive_address_text", Type: field.TypeString, Size: 60},
 		{Name: "label", Type: field.TypeString},
-		{Name: "status", Type: field.TypeEnum, Enums: []string{"initiated", "pending", "settled", "cancelled", "failed", "refunded"}, Default: "initiated"},
-		{Name: "last_used", Type: field.TypeTime, Nullable: true},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"initiated", "pending", "reverted", "expired", "settled", "refunded"}, Default: "initiated"},
 		{Name: "api_key_payment_orders", Type: field.TypeUUID, Nullable: true},
 		{Name: "sender_profile_payment_orders", Type: field.TypeUUID},
 		{Name: "token_payment_orders", Type: field.TypeInt},
@@ -169,19 +168,19 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "payment_orders_api_keys_payment_orders",
-				Columns:    []*schema.Column{PaymentOrdersColumns[11]},
+				Columns:    []*schema.Column{PaymentOrdersColumns[10]},
 				RefColumns: []*schema.Column{APIKeysColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "payment_orders_sender_profiles_payment_orders",
-				Columns:    []*schema.Column{PaymentOrdersColumns[12]},
+				Columns:    []*schema.Column{PaymentOrdersColumns[11]},
 				RefColumns: []*schema.Column{SenderProfilesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "payment_orders_tokens_payment_orders",
-				Columns:    []*schema.Column{PaymentOrdersColumns[13]},
+				Columns:    []*schema.Column{PaymentOrdersColumns[12]},
 				RefColumns: []*schema.Column{TokensColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
@@ -464,6 +463,24 @@ var (
 			},
 		},
 	}
+	// WebhookRetryAttemptsColumns holds the columns for the "webhook_retry_attempts" table.
+	WebhookRetryAttemptsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "attempt_number", Type: field.TypeInt},
+		{Name: "next_retry_time", Type: field.TypeTime},
+		{Name: "payload", Type: field.TypeJSON},
+		{Name: "signature", Type: field.TypeString, Nullable: true},
+		{Name: "webhook_url", Type: field.TypeString},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"success", "failed", "expired"}, Default: "failed"},
+	}
+	// WebhookRetryAttemptsTable holds the schema information for the "webhook_retry_attempts" table.
+	WebhookRetryAttemptsTable = &schema.Table{
+		Name:       "webhook_retry_attempts",
+		Columns:    WebhookRetryAttemptsColumns,
+		PrimaryKey: []*schema.Column{WebhookRetryAttemptsColumns[0]},
+	}
 	// ProvisionBucketProviderProfilesColumns holds the columns for the "provision_bucket_provider_profiles" table.
 	ProvisionBucketProviderProfilesColumns = []*schema.Column{
 		{Name: "provision_bucket_id", Type: field.TypeInt},
@@ -508,6 +525,7 @@ var (
 		TokensTable,
 		UsersTable,
 		VerificationTokensTable,
+		WebhookRetryAttemptsTable,
 		ProvisionBucketProviderProfilesTable,
 	}
 )

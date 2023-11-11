@@ -92,11 +92,6 @@ func ReceiveAddressText(v string) predicate.PaymentOrder {
 	return predicate.PaymentOrder(sql.FieldEQ(FieldReceiveAddressText, v))
 }
 
-// LastUsed applies equality check predicate on the "last_used" field. It's identical to LastUsedEQ.
-func LastUsed(v time.Time) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldEQ(FieldLastUsed, v))
-}
-
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.PaymentOrder {
 	return predicate.PaymentOrder(sql.FieldEQ(FieldCreatedAt, v))
@@ -520,56 +515,6 @@ func StatusIn(vs ...Status) predicate.PaymentOrder {
 // StatusNotIn applies the NotIn predicate on the "status" field.
 func StatusNotIn(vs ...Status) predicate.PaymentOrder {
 	return predicate.PaymentOrder(sql.FieldNotIn(FieldStatus, vs...))
-}
-
-// LastUsedEQ applies the EQ predicate on the "last_used" field.
-func LastUsedEQ(v time.Time) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldEQ(FieldLastUsed, v))
-}
-
-// LastUsedNEQ applies the NEQ predicate on the "last_used" field.
-func LastUsedNEQ(v time.Time) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldNEQ(FieldLastUsed, v))
-}
-
-// LastUsedIn applies the In predicate on the "last_used" field.
-func LastUsedIn(vs ...time.Time) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldIn(FieldLastUsed, vs...))
-}
-
-// LastUsedNotIn applies the NotIn predicate on the "last_used" field.
-func LastUsedNotIn(vs ...time.Time) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldNotIn(FieldLastUsed, vs...))
-}
-
-// LastUsedGT applies the GT predicate on the "last_used" field.
-func LastUsedGT(v time.Time) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldGT(FieldLastUsed, v))
-}
-
-// LastUsedGTE applies the GTE predicate on the "last_used" field.
-func LastUsedGTE(v time.Time) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldGTE(FieldLastUsed, v))
-}
-
-// LastUsedLT applies the LT predicate on the "last_used" field.
-func LastUsedLT(v time.Time) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldLT(FieldLastUsed, v))
-}
-
-// LastUsedLTE applies the LTE predicate on the "last_used" field.
-func LastUsedLTE(v time.Time) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldLTE(FieldLastUsed, v))
-}
-
-// LastUsedIsNil applies the IsNil predicate on the "last_used" field.
-func LastUsedIsNil() predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldIsNull(FieldLastUsed))
-}
-
-// LastUsedNotNil applies the NotNil predicate on the "last_used" field.
-func LastUsedNotNil() predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldNotNull(FieldLastUsed))
 }
 
 // HasSenderProfile applies the HasEdge predicate on the "sender_profile" edge.

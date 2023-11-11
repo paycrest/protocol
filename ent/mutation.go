@@ -30,6 +30,7 @@ import (
 	"github.com/paycrest/protocol/ent/token"
 	"github.com/paycrest/protocol/ent/user"
 	"github.com/paycrest/protocol/ent/verificationtoken"
+	"github.com/paycrest/protocol/ent/webhookretryattempt"
 	"github.com/shopspring/decimal"
 )
 
@@ -59,6 +60,7 @@ const (
 	TypeToken                 = "Token"
 	TypeUser                  = "User"
 	TypeVerificationToken     = "VerificationToken"
+	TypeWebhookRetryAttempt   = "WebhookRetryAttempt"
 )
 
 // APIKeyMutation represents an operation that mutates the APIKey nodes in the graph.
@@ -4654,7 +4656,6 @@ type PaymentOrderMutation struct {
 	receive_address_text   *string
 	label                  *string
 	status                 *paymentorder.Status
-	last_used              *time.Time
 	clearedFields          map[string]struct{}
 	sender_profile         *uuid.UUID
 	clearedsender_profile  bool
@@ -5170,55 +5171,6 @@ func (m *PaymentOrderMutation) ResetStatus() {
 	m.status = nil
 }
 
-// SetLastUsed sets the "last_used" field.
-func (m *PaymentOrderMutation) SetLastUsed(t time.Time) {
-	m.last_used = &t
-}
-
-// LastUsed returns the value of the "last_used" field in the mutation.
-func (m *PaymentOrderMutation) LastUsed() (r time.Time, exists bool) {
-	v := m.last_used
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldLastUsed returns the old "last_used" field's value of the PaymentOrder entity.
-// If the PaymentOrder object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *PaymentOrderMutation) OldLastUsed(ctx context.Context) (v time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldLastUsed is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldLastUsed requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldLastUsed: %w", err)
-	}
-	return oldValue.LastUsed, nil
-}
-
-// ClearLastUsed clears the value of the "last_used" field.
-func (m *PaymentOrderMutation) ClearLastUsed() {
-	m.last_used = nil
-	m.clearedFields[paymentorder.FieldLastUsed] = struct{}{}
-}
-
-// LastUsedCleared returns if the "last_used" field was cleared in this mutation.
-func (m *PaymentOrderMutation) LastUsedCleared() bool {
-	_, ok := m.clearedFields[paymentorder.FieldLastUsed]
-	return ok
-}
-
-// ResetLastUsed resets all changes to the "last_used" field.
-func (m *PaymentOrderMutation) ResetLastUsed() {
-	m.last_used = nil
-	delete(m.clearedFields, paymentorder.FieldLastUsed)
-}
-
 // SetSenderProfileID sets the "sender_profile" edge to the SenderProfile entity by id.
 func (m *PaymentOrderMutation) SetSenderProfileID(id uuid.UUID) {
 	m.sender_profile = &id
@@ -5409,7 +5361,7 @@ func (m *PaymentOrderMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *PaymentOrderMutation) Fields() []string {
-	fields := make([]string, 0, 10)
+	fields := make([]string, 0, 9)
 	if m.created_at != nil {
 		fields = append(fields, paymentorder.FieldCreatedAt)
 	}
@@ -5437,9 +5389,6 @@ func (m *PaymentOrderMutation) Fields() []string {
 	if m.status != nil {
 		fields = append(fields, paymentorder.FieldStatus)
 	}
-	if m.last_used != nil {
-		fields = append(fields, paymentorder.FieldLastUsed)
-	}
 	return fields
 }
 
@@ -5466,8 +5415,6 @@ func (m *PaymentOrderMutation) Field(name string) (ent.Value, bool) {
 		return m.Label()
 	case paymentorder.FieldStatus:
 		return m.Status()
-	case paymentorder.FieldLastUsed:
-		return m.LastUsed()
 	}
 	return nil, false
 }
@@ -5495,8 +5442,6 @@ func (m *PaymentOrderMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldLabel(ctx)
 	case paymentorder.FieldStatus:
 		return m.OldStatus(ctx)
-	case paymentorder.FieldLastUsed:
-		return m.OldLastUsed(ctx)
 	}
 	return nil, fmt.Errorf("unknown PaymentOrder field %s", name)
 }
@@ -5568,13 +5513,6 @@ func (m *PaymentOrderMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetStatus(v)
-		return nil
-	case paymentorder.FieldLastUsed:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetLastUsed(v)
 		return nil
 	}
 	return fmt.Errorf("unknown PaymentOrder field %s", name)
@@ -5648,9 +5586,6 @@ func (m *PaymentOrderMutation) ClearedFields() []string {
 	if m.FieldCleared(paymentorder.FieldTxHash) {
 		fields = append(fields, paymentorder.FieldTxHash)
 	}
-	if m.FieldCleared(paymentorder.FieldLastUsed) {
-		fields = append(fields, paymentorder.FieldLastUsed)
-	}
 	return fields
 }
 
@@ -5667,9 +5602,6 @@ func (m *PaymentOrderMutation) ClearField(name string) error {
 	switch name {
 	case paymentorder.FieldTxHash:
 		m.ClearTxHash()
-		return nil
-	case paymentorder.FieldLastUsed:
-		m.ClearLastUsed()
 		return nil
 	}
 	return fmt.Errorf("unknown PaymentOrder nullable field %s", name)
@@ -5705,9 +5637,6 @@ func (m *PaymentOrderMutation) ResetField(name string) error {
 		return nil
 	case paymentorder.FieldStatus:
 		m.ResetStatus()
-		return nil
-	case paymentorder.FieldLastUsed:
-		m.ResetLastUsed()
 		return nil
 	}
 	return fmt.Errorf("unknown PaymentOrder field %s", name)
@@ -14693,4 +14622,766 @@ func (m *VerificationTokenMutation) ResetEdge(name string) error {
 		return nil
 	}
 	return fmt.Errorf("unknown VerificationToken edge %s", name)
+}
+
+// WebhookRetryAttemptMutation represents an operation that mutates the WebhookRetryAttempt nodes in the graph.
+type WebhookRetryAttemptMutation struct {
+	config
+	op                Op
+	typ               string
+	id                *int
+	created_at        *time.Time
+	updated_at        *time.Time
+	attempt_number    *int
+	addattempt_number *int
+	next_retry_time   *time.Time
+	payload           *map[string]interface{}
+	signature         *string
+	webhook_url       *string
+	status            *webhookretryattempt.Status
+	clearedFields     map[string]struct{}
+	done              bool
+	oldValue          func(context.Context) (*WebhookRetryAttempt, error)
+	predicates        []predicate.WebhookRetryAttempt
+}
+
+var _ ent.Mutation = (*WebhookRetryAttemptMutation)(nil)
+
+// webhookretryattemptOption allows management of the mutation configuration using functional options.
+type webhookretryattemptOption func(*WebhookRetryAttemptMutation)
+
+// newWebhookRetryAttemptMutation creates new mutation for the WebhookRetryAttempt entity.
+func newWebhookRetryAttemptMutation(c config, op Op, opts ...webhookretryattemptOption) *WebhookRetryAttemptMutation {
+	m := &WebhookRetryAttemptMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeWebhookRetryAttempt,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withWebhookRetryAttemptID sets the ID field of the mutation.
+func withWebhookRetryAttemptID(id int) webhookretryattemptOption {
+	return func(m *WebhookRetryAttemptMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *WebhookRetryAttempt
+		)
+		m.oldValue = func(ctx context.Context) (*WebhookRetryAttempt, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().WebhookRetryAttempt.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withWebhookRetryAttempt sets the old WebhookRetryAttempt of the mutation.
+func withWebhookRetryAttempt(node *WebhookRetryAttempt) webhookretryattemptOption {
+	return func(m *WebhookRetryAttemptMutation) {
+		m.oldValue = func(context.Context) (*WebhookRetryAttempt, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m WebhookRetryAttemptMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m WebhookRetryAttemptMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *WebhookRetryAttemptMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *WebhookRetryAttemptMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().WebhookRetryAttempt.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *WebhookRetryAttemptMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *WebhookRetryAttemptMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the WebhookRetryAttempt entity.
+// If the WebhookRetryAttempt object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WebhookRetryAttemptMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *WebhookRetryAttemptMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *WebhookRetryAttemptMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *WebhookRetryAttemptMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the WebhookRetryAttempt entity.
+// If the WebhookRetryAttempt object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WebhookRetryAttemptMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *WebhookRetryAttemptMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetAttemptNumber sets the "attempt_number" field.
+func (m *WebhookRetryAttemptMutation) SetAttemptNumber(i int) {
+	m.attempt_number = &i
+	m.addattempt_number = nil
+}
+
+// AttemptNumber returns the value of the "attempt_number" field in the mutation.
+func (m *WebhookRetryAttemptMutation) AttemptNumber() (r int, exists bool) {
+	v := m.attempt_number
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAttemptNumber returns the old "attempt_number" field's value of the WebhookRetryAttempt entity.
+// If the WebhookRetryAttempt object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WebhookRetryAttemptMutation) OldAttemptNumber(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAttemptNumber is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAttemptNumber requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAttemptNumber: %w", err)
+	}
+	return oldValue.AttemptNumber, nil
+}
+
+// AddAttemptNumber adds i to the "attempt_number" field.
+func (m *WebhookRetryAttemptMutation) AddAttemptNumber(i int) {
+	if m.addattempt_number != nil {
+		*m.addattempt_number += i
+	} else {
+		m.addattempt_number = &i
+	}
+}
+
+// AddedAttemptNumber returns the value that was added to the "attempt_number" field in this mutation.
+func (m *WebhookRetryAttemptMutation) AddedAttemptNumber() (r int, exists bool) {
+	v := m.addattempt_number
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetAttemptNumber resets all changes to the "attempt_number" field.
+func (m *WebhookRetryAttemptMutation) ResetAttemptNumber() {
+	m.attempt_number = nil
+	m.addattempt_number = nil
+}
+
+// SetNextRetryTime sets the "next_retry_time" field.
+func (m *WebhookRetryAttemptMutation) SetNextRetryTime(t time.Time) {
+	m.next_retry_time = &t
+}
+
+// NextRetryTime returns the value of the "next_retry_time" field in the mutation.
+func (m *WebhookRetryAttemptMutation) NextRetryTime() (r time.Time, exists bool) {
+	v := m.next_retry_time
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNextRetryTime returns the old "next_retry_time" field's value of the WebhookRetryAttempt entity.
+// If the WebhookRetryAttempt object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WebhookRetryAttemptMutation) OldNextRetryTime(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNextRetryTime is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNextRetryTime requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNextRetryTime: %w", err)
+	}
+	return oldValue.NextRetryTime, nil
+}
+
+// ResetNextRetryTime resets all changes to the "next_retry_time" field.
+func (m *WebhookRetryAttemptMutation) ResetNextRetryTime() {
+	m.next_retry_time = nil
+}
+
+// SetPayload sets the "payload" field.
+func (m *WebhookRetryAttemptMutation) SetPayload(value map[string]interface{}) {
+	m.payload = &value
+}
+
+// Payload returns the value of the "payload" field in the mutation.
+func (m *WebhookRetryAttemptMutation) Payload() (r map[string]interface{}, exists bool) {
+	v := m.payload
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPayload returns the old "payload" field's value of the WebhookRetryAttempt entity.
+// If the WebhookRetryAttempt object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WebhookRetryAttemptMutation) OldPayload(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPayload is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPayload requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPayload: %w", err)
+	}
+	return oldValue.Payload, nil
+}
+
+// ResetPayload resets all changes to the "payload" field.
+func (m *WebhookRetryAttemptMutation) ResetPayload() {
+	m.payload = nil
+}
+
+// SetSignature sets the "signature" field.
+func (m *WebhookRetryAttemptMutation) SetSignature(s string) {
+	m.signature = &s
+}
+
+// Signature returns the value of the "signature" field in the mutation.
+func (m *WebhookRetryAttemptMutation) Signature() (r string, exists bool) {
+	v := m.signature
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSignature returns the old "signature" field's value of the WebhookRetryAttempt entity.
+// If the WebhookRetryAttempt object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WebhookRetryAttemptMutation) OldSignature(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSignature is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSignature requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSignature: %w", err)
+	}
+	return oldValue.Signature, nil
+}
+
+// ClearSignature clears the value of the "signature" field.
+func (m *WebhookRetryAttemptMutation) ClearSignature() {
+	m.signature = nil
+	m.clearedFields[webhookretryattempt.FieldSignature] = struct{}{}
+}
+
+// SignatureCleared returns if the "signature" field was cleared in this mutation.
+func (m *WebhookRetryAttemptMutation) SignatureCleared() bool {
+	_, ok := m.clearedFields[webhookretryattempt.FieldSignature]
+	return ok
+}
+
+// ResetSignature resets all changes to the "signature" field.
+func (m *WebhookRetryAttemptMutation) ResetSignature() {
+	m.signature = nil
+	delete(m.clearedFields, webhookretryattempt.FieldSignature)
+}
+
+// SetWebhookURL sets the "webhook_url" field.
+func (m *WebhookRetryAttemptMutation) SetWebhookURL(s string) {
+	m.webhook_url = &s
+}
+
+// WebhookURL returns the value of the "webhook_url" field in the mutation.
+func (m *WebhookRetryAttemptMutation) WebhookURL() (r string, exists bool) {
+	v := m.webhook_url
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldWebhookURL returns the old "webhook_url" field's value of the WebhookRetryAttempt entity.
+// If the WebhookRetryAttempt object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WebhookRetryAttemptMutation) OldWebhookURL(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldWebhookURL is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldWebhookURL requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldWebhookURL: %w", err)
+	}
+	return oldValue.WebhookURL, nil
+}
+
+// ResetWebhookURL resets all changes to the "webhook_url" field.
+func (m *WebhookRetryAttemptMutation) ResetWebhookURL() {
+	m.webhook_url = nil
+}
+
+// SetStatus sets the "status" field.
+func (m *WebhookRetryAttemptMutation) SetStatus(w webhookretryattempt.Status) {
+	m.status = &w
+}
+
+// Status returns the value of the "status" field in the mutation.
+func (m *WebhookRetryAttemptMutation) Status() (r webhookretryattempt.Status, exists bool) {
+	v := m.status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatus returns the old "status" field's value of the WebhookRetryAttempt entity.
+// If the WebhookRetryAttempt object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WebhookRetryAttemptMutation) OldStatus(ctx context.Context) (v webhookretryattempt.Status, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+	}
+	return oldValue.Status, nil
+}
+
+// ResetStatus resets all changes to the "status" field.
+func (m *WebhookRetryAttemptMutation) ResetStatus() {
+	m.status = nil
+}
+
+// Where appends a list predicates to the WebhookRetryAttemptMutation builder.
+func (m *WebhookRetryAttemptMutation) Where(ps ...predicate.WebhookRetryAttempt) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the WebhookRetryAttemptMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *WebhookRetryAttemptMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.WebhookRetryAttempt, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *WebhookRetryAttemptMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *WebhookRetryAttemptMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (WebhookRetryAttempt).
+func (m *WebhookRetryAttemptMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *WebhookRetryAttemptMutation) Fields() []string {
+	fields := make([]string, 0, 8)
+	if m.created_at != nil {
+		fields = append(fields, webhookretryattempt.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, webhookretryattempt.FieldUpdatedAt)
+	}
+	if m.attempt_number != nil {
+		fields = append(fields, webhookretryattempt.FieldAttemptNumber)
+	}
+	if m.next_retry_time != nil {
+		fields = append(fields, webhookretryattempt.FieldNextRetryTime)
+	}
+	if m.payload != nil {
+		fields = append(fields, webhookretryattempt.FieldPayload)
+	}
+	if m.signature != nil {
+		fields = append(fields, webhookretryattempt.FieldSignature)
+	}
+	if m.webhook_url != nil {
+		fields = append(fields, webhookretryattempt.FieldWebhookURL)
+	}
+	if m.status != nil {
+		fields = append(fields, webhookretryattempt.FieldStatus)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *WebhookRetryAttemptMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case webhookretryattempt.FieldCreatedAt:
+		return m.CreatedAt()
+	case webhookretryattempt.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case webhookretryattempt.FieldAttemptNumber:
+		return m.AttemptNumber()
+	case webhookretryattempt.FieldNextRetryTime:
+		return m.NextRetryTime()
+	case webhookretryattempt.FieldPayload:
+		return m.Payload()
+	case webhookretryattempt.FieldSignature:
+		return m.Signature()
+	case webhookretryattempt.FieldWebhookURL:
+		return m.WebhookURL()
+	case webhookretryattempt.FieldStatus:
+		return m.Status()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *WebhookRetryAttemptMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case webhookretryattempt.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case webhookretryattempt.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case webhookretryattempt.FieldAttemptNumber:
+		return m.OldAttemptNumber(ctx)
+	case webhookretryattempt.FieldNextRetryTime:
+		return m.OldNextRetryTime(ctx)
+	case webhookretryattempt.FieldPayload:
+		return m.OldPayload(ctx)
+	case webhookretryattempt.FieldSignature:
+		return m.OldSignature(ctx)
+	case webhookretryattempt.FieldWebhookURL:
+		return m.OldWebhookURL(ctx)
+	case webhookretryattempt.FieldStatus:
+		return m.OldStatus(ctx)
+	}
+	return nil, fmt.Errorf("unknown WebhookRetryAttempt field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *WebhookRetryAttemptMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case webhookretryattempt.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case webhookretryattempt.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case webhookretryattempt.FieldAttemptNumber:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAttemptNumber(v)
+		return nil
+	case webhookretryattempt.FieldNextRetryTime:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNextRetryTime(v)
+		return nil
+	case webhookretryattempt.FieldPayload:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPayload(v)
+		return nil
+	case webhookretryattempt.FieldSignature:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSignature(v)
+		return nil
+	case webhookretryattempt.FieldWebhookURL:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetWebhookURL(v)
+		return nil
+	case webhookretryattempt.FieldStatus:
+		v, ok := value.(webhookretryattempt.Status)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatus(v)
+		return nil
+	}
+	return fmt.Errorf("unknown WebhookRetryAttempt field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *WebhookRetryAttemptMutation) AddedFields() []string {
+	var fields []string
+	if m.addattempt_number != nil {
+		fields = append(fields, webhookretryattempt.FieldAttemptNumber)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *WebhookRetryAttemptMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case webhookretryattempt.FieldAttemptNumber:
+		return m.AddedAttemptNumber()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *WebhookRetryAttemptMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case webhookretryattempt.FieldAttemptNumber:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddAttemptNumber(v)
+		return nil
+	}
+	return fmt.Errorf("unknown WebhookRetryAttempt numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *WebhookRetryAttemptMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(webhookretryattempt.FieldSignature) {
+		fields = append(fields, webhookretryattempt.FieldSignature)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *WebhookRetryAttemptMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *WebhookRetryAttemptMutation) ClearField(name string) error {
+	switch name {
+	case webhookretryattempt.FieldSignature:
+		m.ClearSignature()
+		return nil
+	}
+	return fmt.Errorf("unknown WebhookRetryAttempt nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *WebhookRetryAttemptMutation) ResetField(name string) error {
+	switch name {
+	case webhookretryattempt.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case webhookretryattempt.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case webhookretryattempt.FieldAttemptNumber:
+		m.ResetAttemptNumber()
+		return nil
+	case webhookretryattempt.FieldNextRetryTime:
+		m.ResetNextRetryTime()
+		return nil
+	case webhookretryattempt.FieldPayload:
+		m.ResetPayload()
+		return nil
+	case webhookretryattempt.FieldSignature:
+		m.ResetSignature()
+		return nil
+	case webhookretryattempt.FieldWebhookURL:
+		m.ResetWebhookURL()
+		return nil
+	case webhookretryattempt.FieldStatus:
+		m.ResetStatus()
+		return nil
+	}
+	return fmt.Errorf("unknown WebhookRetryAttempt field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *WebhookRetryAttemptMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *WebhookRetryAttemptMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *WebhookRetryAttemptMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *WebhookRetryAttemptMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *WebhookRetryAttemptMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *WebhookRetryAttemptMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *WebhookRetryAttemptMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown WebhookRetryAttempt unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *WebhookRetryAttemptMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown WebhookRetryAttempt edge %s", name)
 }

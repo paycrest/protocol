@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -108,4 +109,24 @@ func MakeJSONRequest(ctx context.Context, method, url string, payload map[string
 	}
 
 	return body, nil
+}
+
+// Paginate parses the pagination query params and returns the offset(page) and limit(pageSize)
+func Paginate(ctx *gin.Context) (page int, pageSize int) {
+	// Parse pagination query params
+	page, err := strconv.Atoi(ctx.Query("page"))
+	pageSize, err2 := strconv.Atoi(ctx.Query("pageSize"))
+
+	// Set defaults if not provided
+	if err != nil || page < 1 {
+		page = 1
+	}
+	if err2 != nil || pageSize < 1 {
+		pageSize = 10
+	}
+
+	// Calculate offsets
+	page = (page - 1) * pageSize
+
+	return page, pageSize
 }
