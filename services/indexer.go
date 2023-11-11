@@ -426,19 +426,33 @@ func (s *IndexerService) IndexOrderSettlements(ctx context.Context, client types
 			}
 
 			// Settle payment order on sender side
-			_, err = db.Client.PaymentOrder.
-				Update().
+			paymentOrder, err := db.Client.PaymentOrder.
+				Query().
 				Where(
 					paymentorder.LabelEQ(utils.Byte32ToString(log.Label)),
 				).
-				SetStatus(paymentorder.StatusSettled).
-				Save(ctx)
+				WithSenderProfile().
+				Only(ctx)
 			if err != nil {
-				logger.Errorf("failed to fetch lock payment order: %v", err)
+				logger.Errorf("failed to fetch payment order: %v", err)
 				continue
 			}
 
-			// TODO: post to webhook_url of the senderprofile
+			_, err = paymentOrder.
+				Update().
+				SetStatus(paymentorder.StatusSettled).
+				Save(ctx)
+			if err != nil {
+				logger.Errorf("IndexOrderSettlements: %v", err)
+				continue
+			}
+
+			// Send webhook notifcation to sender
+			err = utils.SendPaymentOrderWebhook(ctx, paymentOrder)
+			if err != nil {
+				logger.Errorf("IndexOrderSettlements.webhook: %v", err)
+				continue
+			}
 
 		case err := <-sub.Err():
 			logger.Errorf("failed to parse settlement event: %v", err)

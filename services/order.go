@@ -160,13 +160,19 @@ func (s *OrderService) CreateOrder(ctx context.Context, client types.RPCClient, 
 		return fmt.Errorf("failed to send user operation: %w", err)
 	}
 
-	// update payment order with userOpHash
+	// Update payment order with userOpHash
 	_, err = order.Update().
 		SetTxHash(userOpHash.Hex()).
 		SetStatus(paymentorder.StatusPending).
 		Save(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to update payment order: %w", err)
+	}
+
+	// Send webhook notifcation to sender
+	err = utils.SendPaymentOrderWebhook(ctx, order)
+	if err != nil {
+		return fmt.Errorf("CreateOrder.webhook: %w", err)
 	}
 
 	return nil
