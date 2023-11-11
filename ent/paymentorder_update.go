@@ -125,26 +125,6 @@ func (pou *PaymentOrderUpdate) SetNillableStatus(pa *paymentorder.Status) *Payme
 	return pou
 }
 
-// SetLastUsed sets the "last_used" field.
-func (pou *PaymentOrderUpdate) SetLastUsed(t time.Time) *PaymentOrderUpdate {
-	pou.mutation.SetLastUsed(t)
-	return pou
-}
-
-// SetNillableLastUsed sets the "last_used" field if the given value is not nil.
-func (pou *PaymentOrderUpdate) SetNillableLastUsed(t *time.Time) *PaymentOrderUpdate {
-	if t != nil {
-		pou.SetLastUsed(*t)
-	}
-	return pou
-}
-
-// ClearLastUsed clears the value of the "last_used" field.
-func (pou *PaymentOrderUpdate) ClearLastUsed() *PaymentOrderUpdate {
-	pou.mutation.ClearLastUsed()
-	return pou
-}
-
 // SetSenderProfileID sets the "sender_profile" edge to the SenderProfile entity by ID.
 func (pou *PaymentOrderUpdate) SetSenderProfileID(id uuid.UUID) *PaymentOrderUpdate {
 	pou.mutation.SetSenderProfileID(id)
@@ -343,12 +323,6 @@ func (pou *PaymentOrderUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if value, ok := pou.mutation.Status(); ok {
 		_spec.SetField(paymentorder.FieldStatus, field.TypeEnum, value)
-	}
-	if value, ok := pou.mutation.LastUsed(); ok {
-		_spec.SetField(paymentorder.FieldLastUsed, field.TypeTime, value)
-	}
-	if pou.mutation.LastUsedCleared() {
-		_spec.ClearField(paymentorder.FieldLastUsed, field.TypeTime)
 	}
 	if pou.mutation.SenderProfileCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -574,26 +548,6 @@ func (pouo *PaymentOrderUpdateOne) SetNillableStatus(pa *paymentorder.Status) *P
 	if pa != nil {
 		pouo.SetStatus(*pa)
 	}
-	return pouo
-}
-
-// SetLastUsed sets the "last_used" field.
-func (pouo *PaymentOrderUpdateOne) SetLastUsed(t time.Time) *PaymentOrderUpdateOne {
-	pouo.mutation.SetLastUsed(t)
-	return pouo
-}
-
-// SetNillableLastUsed sets the "last_used" field if the given value is not nil.
-func (pouo *PaymentOrderUpdateOne) SetNillableLastUsed(t *time.Time) *PaymentOrderUpdateOne {
-	if t != nil {
-		pouo.SetLastUsed(*t)
-	}
-	return pouo
-}
-
-// ClearLastUsed clears the value of the "last_used" field.
-func (pouo *PaymentOrderUpdateOne) ClearLastUsed() *PaymentOrderUpdateOne {
-	pouo.mutation.ClearLastUsed()
 	return pouo
 }
 
@@ -825,12 +779,6 @@ func (pouo *PaymentOrderUpdateOne) sqlSave(ctx context.Context) (_node *PaymentO
 	}
 	if value, ok := pouo.mutation.Status(); ok {
 		_spec.SetField(paymentorder.FieldStatus, field.TypeEnum, value)
-	}
-	if value, ok := pouo.mutation.LastUsed(); ok {
-		_spec.SetField(paymentorder.FieldLastUsed, field.TypeTime, value)
-	}
-	if pouo.mutation.LastUsedCleared() {
-		_spec.ClearField(paymentorder.FieldLastUsed, field.TypeTime)
 	}
 	if pouo.mutation.SenderProfileCleared() {
 		edge := &sqlgraph.EdgeSpec{

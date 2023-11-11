@@ -32,6 +32,7 @@ import (
 	"github.com/paycrest/protocol/ent/token"
 	"github.com/paycrest/protocol/ent/user"
 	"github.com/paycrest/protocol/ent/verificationtoken"
+	"github.com/paycrest/protocol/ent/webhookretryattempt"
 )
 
 // Client is the client that holds all ent builders.
@@ -73,6 +74,8 @@ type Client struct {
 	User *UserClient
 	// VerificationToken is the client for interacting with the VerificationToken builders.
 	VerificationToken *VerificationTokenClient
+	// WebhookRetryAttempt is the client for interacting with the WebhookRetryAttempt builders.
+	WebhookRetryAttempt *WebhookRetryAttemptClient
 }
 
 // NewClient creates a new client configured with the given options.
@@ -103,6 +106,7 @@ func (c *Client) init() {
 	c.Token = NewTokenClient(c.config)
 	c.User = NewUserClient(c.config)
 	c.VerificationToken = NewVerificationTokenClient(c.config)
+	c.WebhookRetryAttempt = NewWebhookRetryAttemptClient(c.config)
 }
 
 type (
@@ -202,6 +206,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		Token:                 NewTokenClient(cfg),
 		User:                  NewUserClient(cfg),
 		VerificationToken:     NewVerificationTokenClient(cfg),
+		WebhookRetryAttempt:   NewWebhookRetryAttemptClient(cfg),
 	}, nil
 }
 
@@ -238,6 +243,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		Token:                 NewTokenClient(cfg),
 		User:                  NewUserClient(cfg),
 		VerificationToken:     NewVerificationTokenClient(cfg),
+		WebhookRetryAttempt:   NewWebhookRetryAttemptClient(cfg),
 	}, nil
 }
 
@@ -271,6 +277,7 @@ func (c *Client) Use(hooks ...Hook) {
 		c.PaymentOrder, c.PaymentOrderRecipient, c.ProviderAvailability,
 		c.ProviderOrderToken, c.ProviderProfile, c.ProviderRating, c.ProvisionBucket,
 		c.ReceiveAddress, c.SenderProfile, c.Token, c.User, c.VerificationToken,
+		c.WebhookRetryAttempt,
 	} {
 		n.Use(hooks...)
 	}
@@ -284,6 +291,7 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.PaymentOrder, c.PaymentOrderRecipient, c.ProviderAvailability,
 		c.ProviderOrderToken, c.ProviderProfile, c.ProviderRating, c.ProvisionBucket,
 		c.ReceiveAddress, c.SenderProfile, c.Token, c.User, c.VerificationToken,
+		c.WebhookRetryAttempt,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -326,6 +334,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.User.mutate(ctx, m)
 	case *VerificationTokenMutation:
 		return c.VerificationToken.mutate(ctx, m)
+	case *WebhookRetryAttemptMutation:
+		return c.WebhookRetryAttempt.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
 	}
@@ -2995,18 +3005,137 @@ func (c *VerificationTokenClient) mutate(ctx context.Context, m *VerificationTok
 	}
 }
 
+// WebhookRetryAttemptClient is a client for the WebhookRetryAttempt schema.
+type WebhookRetryAttemptClient struct {
+	config
+}
+
+// NewWebhookRetryAttemptClient returns a client for the WebhookRetryAttempt from the given config.
+func NewWebhookRetryAttemptClient(c config) *WebhookRetryAttemptClient {
+	return &WebhookRetryAttemptClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `webhookretryattempt.Hooks(f(g(h())))`.
+func (c *WebhookRetryAttemptClient) Use(hooks ...Hook) {
+	c.hooks.WebhookRetryAttempt = append(c.hooks.WebhookRetryAttempt, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `webhookretryattempt.Intercept(f(g(h())))`.
+func (c *WebhookRetryAttemptClient) Intercept(interceptors ...Interceptor) {
+	c.inters.WebhookRetryAttempt = append(c.inters.WebhookRetryAttempt, interceptors...)
+}
+
+// Create returns a builder for creating a WebhookRetryAttempt entity.
+func (c *WebhookRetryAttemptClient) Create() *WebhookRetryAttemptCreate {
+	mutation := newWebhookRetryAttemptMutation(c.config, OpCreate)
+	return &WebhookRetryAttemptCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of WebhookRetryAttempt entities.
+func (c *WebhookRetryAttemptClient) CreateBulk(builders ...*WebhookRetryAttemptCreate) *WebhookRetryAttemptCreateBulk {
+	return &WebhookRetryAttemptCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for WebhookRetryAttempt.
+func (c *WebhookRetryAttemptClient) Update() *WebhookRetryAttemptUpdate {
+	mutation := newWebhookRetryAttemptMutation(c.config, OpUpdate)
+	return &WebhookRetryAttemptUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *WebhookRetryAttemptClient) UpdateOne(wra *WebhookRetryAttempt) *WebhookRetryAttemptUpdateOne {
+	mutation := newWebhookRetryAttemptMutation(c.config, OpUpdateOne, withWebhookRetryAttempt(wra))
+	return &WebhookRetryAttemptUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *WebhookRetryAttemptClient) UpdateOneID(id int) *WebhookRetryAttemptUpdateOne {
+	mutation := newWebhookRetryAttemptMutation(c.config, OpUpdateOne, withWebhookRetryAttemptID(id))
+	return &WebhookRetryAttemptUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for WebhookRetryAttempt.
+func (c *WebhookRetryAttemptClient) Delete() *WebhookRetryAttemptDelete {
+	mutation := newWebhookRetryAttemptMutation(c.config, OpDelete)
+	return &WebhookRetryAttemptDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *WebhookRetryAttemptClient) DeleteOne(wra *WebhookRetryAttempt) *WebhookRetryAttemptDeleteOne {
+	return c.DeleteOneID(wra.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *WebhookRetryAttemptClient) DeleteOneID(id int) *WebhookRetryAttemptDeleteOne {
+	builder := c.Delete().Where(webhookretryattempt.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &WebhookRetryAttemptDeleteOne{builder}
+}
+
+// Query returns a query builder for WebhookRetryAttempt.
+func (c *WebhookRetryAttemptClient) Query() *WebhookRetryAttemptQuery {
+	return &WebhookRetryAttemptQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeWebhookRetryAttempt},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a WebhookRetryAttempt entity by its id.
+func (c *WebhookRetryAttemptClient) Get(ctx context.Context, id int) (*WebhookRetryAttempt, error) {
+	return c.Query().Where(webhookretryattempt.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *WebhookRetryAttemptClient) GetX(ctx context.Context, id int) *WebhookRetryAttempt {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *WebhookRetryAttemptClient) Hooks() []Hook {
+	return c.hooks.WebhookRetryAttempt
+}
+
+// Interceptors returns the client interceptors.
+func (c *WebhookRetryAttemptClient) Interceptors() []Interceptor {
+	return c.inters.WebhookRetryAttempt
+}
+
+func (c *WebhookRetryAttemptClient) mutate(ctx context.Context, m *WebhookRetryAttemptMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&WebhookRetryAttemptCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&WebhookRetryAttemptUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&WebhookRetryAttemptUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&WebhookRetryAttemptDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown WebhookRetryAttempt mutation op: %q", m.Op())
+	}
+}
+
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
 		APIKey, FiatCurrency, LockOrderFulfillment, LockPaymentOrder, Network,
 		PaymentOrder, PaymentOrderRecipient, ProviderAvailability, ProviderOrderToken,
 		ProviderProfile, ProviderRating, ProvisionBucket, ReceiveAddress,
-		SenderProfile, Token, User, VerificationToken []ent.Hook
+		SenderProfile, Token, User, VerificationToken, WebhookRetryAttempt []ent.Hook
 	}
 	inters struct {
 		APIKey, FiatCurrency, LockOrderFulfillment, LockPaymentOrder, Network,
 		PaymentOrder, PaymentOrderRecipient, ProviderAvailability, ProviderOrderToken,
 		ProviderProfile, ProviderRating, ProvisionBucket, ReceiveAddress,
-		SenderProfile, Token, User, VerificationToken []ent.Interceptor
+		SenderProfile, Token, User, VerificationToken,
+		WebhookRetryAttempt []ent.Interceptor
 	}
 )

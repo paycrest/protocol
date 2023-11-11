@@ -56,3 +56,6 @@ type User func(*sql.Selector)
 
 // VerificationToken is the predicate function for verificationtoken builders.
 type VerificationToken func(*sql.Selector)
+
+// WebhookRetryAttempt is the predicate function for webhookretryattempt builders.
+type WebhookRetryAttempt func(*sql.Selector)

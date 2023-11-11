@@ -39,9 +39,8 @@ func (PaymentOrder) Fields() []ent.Field {
 			MaxLen(60),
 		field.String("label"),
 		field.Enum("status").
-			Values("initiated", "pending", "settled", "cancelled", "failed", "refunded").
+			Values("initiated", "pending", "reverted", "expired", "settled", "refunded").
 			Default("initiated"),
-		field.Time("last_used").Optional(),
 	}
 }
 

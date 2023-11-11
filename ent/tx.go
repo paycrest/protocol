@@ -46,6 +46,8 @@ type Tx struct {
 	User *UserClient
 	// VerificationToken is the client for interacting with the VerificationToken builders.
 	VerificationToken *VerificationTokenClient
+	// WebhookRetryAttempt is the client for interacting with the WebhookRetryAttempt builders.
+	WebhookRetryAttempt *WebhookRetryAttemptClient
 
 	// lazily loaded.
 	client     *Client
@@ -194,6 +196,7 @@ func (tx *Tx) init() {
 	tx.Token = NewTokenClient(tx.config)
 	tx.User = NewUserClient(tx.config)
 	tx.VerificationToken = NewVerificationTokenClient(tx.config)
+	tx.WebhookRetryAttempt = NewWebhookRetryAttemptClient(tx.config)
 }
 
 // txDriver wraps the given dialect.Tx with a nop dialect.Driver implementation.

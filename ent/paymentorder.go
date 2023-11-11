@@ -41,8 +41,6 @@ type PaymentOrder struct {
 	Label string `json:"label,omitempty"`
 	// Status holds the value of the "status" field.
 	Status paymentorder.Status `json:"status,omitempty"`
-	// LastUsed holds the value of the "last_used" field.
-	LastUsed time.Time `json:"last_used,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the PaymentOrderQuery when eager-loading is set.
 	Edges                         PaymentOrderEdges `json:"edges"`
@@ -128,7 +126,7 @@ func (*PaymentOrder) scanValues(columns []string) ([]any, error) {
 			values[i] = new(decimal.Decimal)
 		case paymentorder.FieldTxHash, paymentorder.FieldReceiveAddressText, paymentorder.FieldLabel, paymentorder.FieldStatus:
 			values[i] = new(sql.NullString)
-		case paymentorder.FieldCreatedAt, paymentorder.FieldUpdatedAt, paymentorder.FieldLastUsed:
+		case paymentorder.FieldCreatedAt, paymentorder.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
 		case paymentorder.FieldID:
 			values[i] = new(uuid.UUID)
@@ -212,12 +210,6 @@ func (po *PaymentOrder) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field status", values[i])
 			} else if value.Valid {
 				po.Status = paymentorder.Status(value.String)
-			}
-		case paymentorder.FieldLastUsed:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field last_used", values[i])
-			} else if value.Valid {
-				po.LastUsed = value.Time
 			}
 		case paymentorder.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullScanner); !ok {
@@ -322,9 +314,6 @@ func (po *PaymentOrder) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(fmt.Sprintf("%v", po.Status))
-	builder.WriteString(", ")
-	builder.WriteString("last_used=")
-	builder.WriteString(po.LastUsed.Format(time.ANSIC))
 	builder.WriteByte(')')
 	return builder.String()
 }

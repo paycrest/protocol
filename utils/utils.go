@@ -1,14 +1,22 @@
 package utils
 
 import (
+	"context"
 	"crypto/ecdsa"
+	"encoding/base64"
 	"fmt"
 	"math/big"
+	"reflect"
 	"sort"
-	"strconv"
+	"time"
 
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/gin-gonic/gin"
+	"github.com/paycrest/protocol/ent"
+	"github.com/paycrest/protocol/ent/paymentorder"
+	"github.com/paycrest/protocol/storage"
+	"github.com/paycrest/protocol/types"
+	cryptoUtils "github.com/paycrest/protocol/utils/crypto"
+	tokenUtils "github.com/paycrest/protocol/utils/token"
 	"github.com/shopspring/decimal"
 )
 
@@ -165,22 +173,135 @@ func Median(data []decimal.Decimal) decimal.Decimal {
 	return result
 }
 
-// Paginate parses the pagination query params and returns the offset(page) and limit(pageSize)
-func Paginate(ctx *gin.Context) (page int, pageSize int) {
-	// Parse pagination query params
-	page, err := strconv.Atoi(ctx.Query("page"))
-	pageSize, err2 := strconv.Atoi(ctx.Query("pageSize"))
+// SendPaymentOrderWebhook notifies a sender when the status of a payment order changes
+func SendPaymentOrderWebhook(ctx context.Context, paymentOrder *ent.PaymentOrder) error {
+	profile := paymentOrder.Edges.SenderProfile
 
-	// Set defaults if not provided
-	if err != nil || page < 1 {
-		page = 1
-	}
-	if err2 != nil || pageSize < 1 {
-		pageSize = 10
+	// If webhook URL is empty, return
+	if profile.WebhookURL == "" {
+		return nil
 	}
 
-	// Calculate offsets
-	page = (page - 1) * pageSize
+	// Determine the event
+	var event string
 
-	return page, pageSize
+	switch paymentOrder.Status {
+	case paymentorder.StatusPending:
+		event = "payment_order.pending"
+	case paymentorder.StatusReverted:
+		event = "payment_order.reverted"
+	case paymentorder.StatusExpired:
+		event = "payment_order.expired"
+	case paymentorder.StatusSettled:
+		event = "payment_order.settled"
+	case paymentorder.StatusRefunded:
+		event = "payment_order.refunded"
+	default:
+		return nil
+	}
+
+	// Fetch the recipient
+	recipient, err := paymentOrder.QueryRecipient().Only(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Fetch the token
+	token, err := paymentOrder.
+		QueryToken().
+		WithNetwork().
+		Only(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Create the payload
+	payloadStruct := types.PaymentOrderWebhookPayload{
+		Event: event,
+		Data: types.PaymentOrderWebhookData{
+			ID:         paymentOrder.ID,
+			Amount:     paymentOrder.Amount,
+			AmountPaid: paymentOrder.AmountPaid,
+			Rate:       paymentOrder.Rate,
+			Network:    token.Edges.Network.Identifier,
+			Label:      paymentOrder.Label,
+			SenderID:   profile.ID,
+			Recipient: types.PaymentOrderRecipient{
+				Institution:       recipient.Institution,
+				AccountIdentifier: recipient.AccountIdentifier,
+				AccountName:       recipient.AccountName,
+				ProviderID:        recipient.ProviderID,
+				Memo:              recipient.Memo,
+			},
+			UpdatedAt: paymentOrder.UpdatedAt,
+			CreatedAt: paymentOrder.CreatedAt,
+			TxHash:    paymentOrder.TxHash,
+			Status:    paymentOrder.Status,
+		},
+	}
+
+	payload := StructToMap(payloadStruct)
+
+	// Compute HMAC signature
+	apiKey, err := profile.QueryAPIKey().Only(ctx)
+	if err != nil {
+		return err
+	}
+
+	decodedSecret, err := base64.StdEncoding.DecodeString(apiKey.Secret)
+	if err != nil {
+		return err
+	}
+
+	decryptedSecret, err := cryptoUtils.DecryptPlain(decodedSecret)
+	if err != nil {
+		return err
+	}
+
+	signature := tokenUtils.GenerateHMACSignature(payload, string(decryptedSecret))
+
+	// Send the webhook
+	_, err = MakeJSONRequest(
+		ctx,
+		"POST",
+		profile.WebhookURL,
+		payload,
+		map[string]string{
+			"X-Paycrest-Signature": signature,
+		},
+	)
+	if err != nil {
+		// Log retry attempt
+		_, err := storage.Client.WebhookRetryAttempt.
+			Create().
+			SetAttemptNumber(1).
+			SetNextRetryTime(time.Now().Add(2 * time.Minute)).
+			SetPayload(payload).
+			SetSignature(signature).
+			SetWebhookURL(profile.WebhookURL).
+			SetStatus("failed").
+			Save(ctx)
+		return err
+	}
+
+	return nil
+}
+
+// StructToMap converts a struct to a map[string]interface{}
+func StructToMap(input interface{}) map[string]interface{} {
+	result := make(map[string]interface{})
+
+	// Use reflection to iterate over the struct fields
+	valueOf := reflect.ValueOf(input)
+	typeOf := valueOf.Type()
+
+	for i := 0; i < valueOf.NumField(); i++ {
+		field := valueOf.Field(i)
+		fieldName := typeOf.Field(i).Name
+
+		// Convert the field value to interface{}
+		result[fieldName] = field.Interface()
+	}
+
+	return result
 }

@@ -279,6 +279,28 @@ type PaymentOrderResponse struct {
 	Status    paymentorder.Status   `json:"status"`
 }
 
+// PaymentOrderWebhookData is the data type for a payment order webhook
+type PaymentOrderWebhookData struct {
+	ID         uuid.UUID             `json:"id"`
+	Amount     decimal.Decimal       `json:"amount"`
+	AmountPaid decimal.Decimal       `json:"amountPaid"`
+	Rate       decimal.Decimal       `json:"rate"`
+	Network    string                `json:"network"`
+	Label      string                `json:"label"`
+	SenderID   uuid.UUID             `json:"senderId"`
+	Recipient  PaymentOrderRecipient `json:"recipient"`
+	UpdatedAt  time.Time             `json:"updatedAt"`
+	CreatedAt  time.Time             `json:"createdAt"`
+	TxHash     string                `json:"txHash"`
+	Status     paymentorder.Status   `json:"status"`
+}
+
+// PaymentOrderWebhookPayload is the request type for a payment order webhook
+type PaymentOrderWebhookPayload struct {
+	Event string                  `json:"event"`
+	Data  PaymentOrderWebhookData `json:"data"`
+}
+
 // ConfirmEmailPayload is the payload for the confirmEmail endpoint
 type ConfirmEmailPayload struct {
 	Token string `json:"token" binding:"required"`
