@@ -263,6 +263,7 @@ type ReceiveAddressResponse struct {
 	Amount         float64   `json:"amount"`
 	Network        string    `json:"network"`
 	ReceiveAddress string    `json:"receiveAddress"`
+	ValidUntil     time.Time `json:"validUntil"`
 }
 
 // PaymentOrderResponse is the response type for a payment order

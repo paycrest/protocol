@@ -161,7 +161,8 @@ func (ctrl *SenderController) CreatePaymentOrder(ctx *gin.Context) {
 			ID:             paymentOrder.ID,
 			Amount:         paymentOrderAmount,
 			Network:        token.Edges.Network.Identifier,
-			ReceiveAddress: paymentOrder.ReceiveAddressText,
+			ReceiveAddress: receiveAddress.Address,
+			ValidUntil:     receiveAddress.ValidUntil,
 		})
 }
 

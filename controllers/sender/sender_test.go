@@ -102,6 +102,7 @@ func createPaymentOrder(t *testing.T, router *gin.Engine) {
 
 	assert.Equal(t, data["amount"], payload["amount"])
 	assert.Equal(t, data["network"], payload["network"])
+	assert.NotEmpty(t, data["validUntil"])
 
 	// Parse the payment order ID string to uuid.UUID
 	paymentOrderUUID, err := uuid.Parse(data["id"].(string))
