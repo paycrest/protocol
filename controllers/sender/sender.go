@@ -230,9 +230,6 @@ func (ctrl *SenderController) GetPaymentOrderByID(ctx *gin.Context) {
 
 // GetPaymentOrders controller fetches all payment orders
 func (ctrl *SenderController) GetPaymentOrders(ctx *gin.Context) {
-	// get page and pageSize query params
-	page, pageSize := u.Paginate(ctx)
-
 	// Get sender profile from the context
 	senderCtx, ok := ctx.Get("sender")
 	if !ok {
@@ -241,10 +238,25 @@ func (ctrl *SenderController) GetPaymentOrders(ctx *gin.Context) {
 	}
 	sender := senderCtx.(*ent.SenderProfile)
 
-	paymentOrderQuery := db.Client.PaymentOrder.
-		Query()
+	// Get ordering query param
+	ordering := ctx.Query("ordering")
+	order := ent.Desc(paymentorder.FieldCreatedAt)
+	if ordering == "asc" {
+		order = ent.Asc(paymentorder.FieldCreatedAt)
+	}
+
+	// Get page and pageSize query params
+	page, pageSize := u.Paginate(ctx)
+
+	paymentOrderQuery := db.Client.PaymentOrder.Query()
+
+	// Filter by sender
+	paymentOrderQuery = paymentOrderQuery.Where(
+		paymentorder.HasSenderProfileWith(senderprofile.IDEQ(sender.ID)),
+	)
 
 	// Filter by status
+	statusQueryParam := ctx.Query("status")
 	statusMap := map[string]paymentorder.Status{
 		"initiated": paymentorder.StatusInitiated,
 		"pending":   paymentorder.StatusPending,
@@ -254,27 +266,67 @@ func (ctrl *SenderController) GetPaymentOrders(ctx *gin.Context) {
 		"refunded":  paymentorder.StatusRefunded,
 	}
 
-	statusQueryParam := ctx.Query("status")
-
 	if status, ok := statusMap[statusQueryParam]; ok {
 		paymentOrderQuery = paymentOrderQuery.Where(
-			paymentorder.HasSenderProfileWith(senderprofile.IDEQ(sender.ID)),
 			paymentorder.StatusEQ(status),
 		)
-	} else {
-		paymentOrderQuery = paymentOrderQuery.Where(
-			paymentorder.HasSenderProfileWith(senderprofile.IDEQ(sender.ID)),
-		)
 	}
 
-	// get ordering query param
-	ordering := ctx.Query("ordering")
-	order := ent.Desc(paymentorder.FieldCreatedAt)
-	if ordering == "asc" {
-		order = ent.Asc(paymentorder.FieldCreatedAt)
+	// Filter by token
+	tokenQueryParam := ctx.Query("token")
+
+	if tokenQueryParam != "" {
+		tokenExists, err := db.Client.Token.
+			Query().
+			Where(
+				token.SymbolEQ(tokenQueryParam),
+			).
+			Exist(ctx)
+		if err != nil {
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error",
+				"Failed to fetch payment orders", nil)
+			return
+		}
+
+		if tokenExists {
+			paymentOrderQuery = paymentOrderQuery.Where(
+				paymentorder.HasTokenWith(
+					token.SymbolEQ(tokenQueryParam),
+				),
+			)
+		}
 	}
 
-	// Get all payment orders for the sender
+	// Filter by network
+	networkQueryParam := ctx.Query("network")
+
+	if networkQueryParam != "" {
+		networkExists, err := db.Client.Network.
+			Query().
+			Where(
+				network.IdentifierEQ(networkQueryParam),
+			).
+			Exist(ctx)
+		if err != nil {
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error",
+				"Failed to fetch payment orders", nil)
+			return
+		}
+
+		if networkExists {
+			paymentOrderQuery = paymentOrderQuery.Where(
+				paymentorder.HasTokenWith(
+					token.HasNetworkWith(
+						network.IdentifierEQ(networkQueryParam),
+					),
+				),
+			)
+		}
+	}
+
+	// Fetch payment orders
 	paymentOrders, err := paymentOrderQuery.
 		WithRecipient().
 		WithToken(func(tq *ent.TokenQuery) {
