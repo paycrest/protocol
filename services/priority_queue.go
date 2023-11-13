@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"sort"
 	"strings"
@@ -21,7 +22,9 @@ import (
 	"github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
 	"github.com/paycrest/protocol/utils"
+	cryptoUtils "github.com/paycrest/protocol/utils/crypto"
 	"github.com/paycrest/protocol/utils/logger"
+	tokenUtils "github.com/paycrest/protocol/utils/token"
 	"github.com/redis/go-redis/v9"
 	"github.com/shopspring/decimal"
 )
@@ -329,14 +332,27 @@ func (s *PriorityQueueService) notifyProvider(ctx context.Context, orderRequestD
 	}
 
 	if provider.ProvisionMode == providerprofile.ProvisionModeAuto {
+		// Compute HMAC
+		decodedSecret, err := base64.StdEncoding.DecodeString(provider.Edges.APIKey.Secret)
+		if err != nil {
+			return err
+		}
+
+		decryptedSecret, err := cryptoUtils.DecryptPlain(decodedSecret)
+		if err != nil {
+			return err
+		}
+
+		signature := tokenUtils.GenerateHMACSignature(orderRequestData, string(decryptedSecret))
+
 		// Send POST request to the provider's node
-		_, err := utils.MakeJSONRequest(
+		_, err = utils.MakeJSONRequest(
 			ctx,
 			"POST",
 			fmt.Sprintf("%s/new_order", provider.HostIdentifier),
 			orderRequestData,
 			map[string]string{
-				"Client-Id": provider.Edges.APIKey.ID.String(),
+				"X-Paycrest-Signature": signature,
 			},
 		)
 		if err != nil {
