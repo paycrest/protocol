@@ -277,7 +277,7 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 				"amount":      approxAmount,
 				"token":       order.Token.Symbol,
 				"institution": order.Institution,
-				"provider_id": providerID,
+				"providerId":  providerID,
 			}
 
 			err = pipe.HSet(ctx, orderKey, orderRequestData).Err()
@@ -294,7 +294,7 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 			}
 
 			// Notify the provider
-			orderRequestData["order_id"] = order.ID
+			orderRequestData["orderId"] = order.ID
 			err = s.notifyProvider(ctx, orderRequestData)
 			if err != nil {
 				logger.Errorf("failed to notify provider %s: %v", providerID, err)
@@ -316,8 +316,8 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 // TODO: ideally notifications should be moved to a notification service
 func (s *PriorityQueueService) notifyProvider(ctx context.Context, orderRequestData map[string]interface{}) error {
 	// TODO: can we add mode and host identifier to redis during priority queue creation?
-	providerID := orderRequestData["provider_id"].(string)
-	delete(orderRequestData, "provider_id")
+	providerID := orderRequestData["providerId"].(string)
+	delete(orderRequestData, "providerId")
 
 	provider, err := storage.Client.ProviderProfile.
 		Query().
