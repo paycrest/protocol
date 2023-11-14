@@ -46,9 +46,9 @@ func SetupConfig() error {
 		return err
 	}
 
-	var serverConf = ServerConfig()
+	var cryptoConf = CryptoConfig()
 
-	valid := bip39.IsMnemonicValid(serverConf.HDWalletMnemonic)
+	valid := bip39.IsMnemonicValid(cryptoConf.HDWalletMnemonic)
 	if !valid {
 		logger.Errorf("Invalid mnemonic phrase")
 		return nil

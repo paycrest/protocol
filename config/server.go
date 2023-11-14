@@ -12,7 +12,6 @@ type ServerConfiguration struct {
 	Port             string
 	Timezone         string
 	AllowedHosts     string
-	HDWalletMnemonic string
 }
 
 // ServerConfig sets the server configuration
@@ -29,7 +28,6 @@ func ServerConfig() *ServerConfiguration {
 		Port:             viper.GetString("SERVER_PORT"),
 		Timezone:         viper.GetString("SERVER_TIMEZONE"),
 		AllowedHosts:     viper.GetString("ALLOWED_HOSTS"),
-		HDWalletMnemonic: viper.GetString("HD_WALLET_MNEMONIC"),
 	}
 }
 

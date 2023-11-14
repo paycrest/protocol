@@ -18,7 +18,6 @@ type OrderConfiguration struct {
 	PaymasterURL                 string
 	EntryPointContractAddress    common.Address
 	BucketQueueRebuildInterval   int // in hours
-	MaxConcurrentValidators      int
 }
 
 // OrderConfig sets the order configuration
@@ -27,7 +26,6 @@ func OrderConfig() *OrderConfiguration {
 	viper.SetDefault("ORDER_REQUEST_VALIDITY", 120)
 	viper.SetDefault("ORDER_FULFILLMENT_VALIDITY", 10)
 	viper.SetDefault("BUCKET_QUEUE_REBUILD_INTERVAL", 1)
-	viper.SetDefault("MAX_CONCURRENT_VALIDATORS", 3)
 
 	return &OrderConfiguration{
 		OrderFulfillmentValidity:     time.Duration(viper.GetInt("ORDER_FULFILLMENT_VALIDITY")) * time.Minute,
@@ -38,7 +36,6 @@ func OrderConfig() *OrderConfiguration {
 		PaymasterURL:                 viper.GetString("PAYMASTER_URL"),
 		EntryPointContractAddress:    common.HexToAddress(viper.GetString("ENTRY_POINT_CONTRACT_ADDRESS")),
 		BucketQueueRebuildInterval:   viper.GetInt("BUCKET_QUEUE_REBUILD_INTERVAL"),
-		MaxConcurrentValidators:      viper.GetInt("MAX_CONCURRENT_VALIDATORS"),
 	}
 }
 

@@ -5,19 +5,21 @@ import (
 	"crypto/cipher"
 	"crypto/ecdsa"
 	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"io"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto/ecies"
 	hdwallet "github.com/miguelmota/go-ethereum-hdwallet"
 	"github.com/paycrest/protocol/config"
 	"golang.org/x/crypto/bcrypt"
 )
 
 var authConf = config.AuthConfig()
-var serverConf = config.ServerConfig()
+var cryptoConf = config.CryptoConfig()
 
 // CheckPasswordHash is a function to compare provided password with the hashed password
 func CheckPasswordHash(password, hash string) bool {
@@ -113,10 +115,28 @@ func DecryptJSON(ciphertext []byte) (interface{}, error) {
 
 }
 
-// PublicKeyEncryptPlain encrypts plaintext using ECIES encryption algorithm
-func PublicKeyEncryptPlain(plaintext []byte, publicKey *ecdsa.PublicKey) ([]byte, error) {
-	eciesPublicKey := ecies.ImportECDSAPublic(publicKey)
-	encryptedData, err := ecies.Encrypt(rand.Reader, eciesPublicKey, plaintext, nil, nil)
+// PublicKeyEncryptPlain encrypts plaintext using RSA 2048 encryption algorithm
+func PublicKeyEncryptPlain(plaintext []byte, publicKeyPEM string) ([]byte, error) {
+	block, _ := pem.Decode([]byte(publicKeyPEM))
+	if block == nil {
+		return nil, fmt.Errorf("failed to parse PEM block")
+	}
+
+	pub, err := x509.ParsePKIXPublicKey(block.Bytes)
+	if err != nil {
+		return nil, err
+	}
+
+	var publicKey rsa.PublicKey
+
+	switch pub := pub.(type) {
+	case *rsa.PublicKey:
+		publicKey = *pub
+	default:
+		return nil, fmt.Errorf("unsupported key type")
+	}
+
+	encryptedData, err := rsa.EncryptPKCS1v15(rand.Reader, &publicKey, plaintext)
 	if err != nil {
 		return nil, err
 	}
@@ -124,8 +144,8 @@ func PublicKeyEncryptPlain(plaintext []byte, publicKey *ecdsa.PublicKey) ([]byte
 	return encryptedData, nil
 }
 
-// PublicKeyEncryptJSON encrypts JSON serializable data using ECIES encryption algorithm
-func PublicKeyEncryptJSON(data interface{}, publicKey *ecdsa.PublicKey) ([]byte, error) {
+// PublicKeyEncryptJSON encrypts JSON serializable data using RSA 2048 encryption algorithm
+func PublicKeyEncryptJSON(data interface{}, publicKeyPEM string) ([]byte, error) {
 
 	// Encode data to JSON
 	plaintext, err := json.Marshal(data)
@@ -134,7 +154,7 @@ func PublicKeyEncryptJSON(data interface{}, publicKey *ecdsa.PublicKey) ([]byte,
 	}
 
 	// Encrypt as normal
-	ciphertext, err := PublicKeyEncryptPlain(plaintext, publicKey)
+	ciphertext, err := PublicKeyEncryptPlain(plaintext, publicKeyPEM)
 	if err != nil {
 		return nil, err
 	}
@@ -142,10 +162,15 @@ func PublicKeyEncryptJSON(data interface{}, publicKey *ecdsa.PublicKey) ([]byte,
 	return ciphertext, nil
 }
 
-// PublicKeyDecryptPlain decrypts ciphertext using ECIES encryption algorithm
-func PublicKeyDecryptPlain(ciphertext []byte, privateKey *ecdsa.PrivateKey) ([]byte, error) {
-	eciesPrivateKey := ecies.ImportECDSA(privateKey)
-	decryptedData, err := eciesPrivateKey.Decrypt(ciphertext, nil, nil)
+// PublicKeyDecryptPlain decrypts ciphertext using RSA 2048 encryption algorithm
+func PublicKeyDecryptPlain(ciphertext []byte, privateKeyPEM string) ([]byte, error) {
+	privateKeyBlock, _ := pem.Decode([]byte(privateKeyPEM))
+	privateKey, err := x509.ParsePKCS1PrivateKey(privateKeyBlock.Bytes)
+	if err != nil {
+		return nil, err
+	}
+
+	decryptedData, err := rsa.DecryptPKCS1v15(rand.Reader, privateKey, ciphertext)
 	if err != nil {
 		return nil, err
 	}
@@ -153,11 +178,11 @@ func PublicKeyDecryptPlain(ciphertext []byte, privateKey *ecdsa.PrivateKey) ([]b
 	return decryptedData, nil
 }
 
-// PublicKeyDecryptJSON decrypts JSON serializable data using ECIES encryption algorithm
-func PublicKeyDecryptJSON(ciphertext []byte, privateKey *ecdsa.PrivateKey) (interface{}, error) {
+// PublicKeyDecryptJSON decrypts JSON serializable data using RSA 2048 encryption algorithm
+func PublicKeyDecryptJSON(ciphertext []byte, privateKeyPEM string) (interface{}, error) {
 
 	// Decrypt as normal
-	plaintext, err := PublicKeyDecryptPlain(ciphertext, privateKey)
+	plaintext, err := PublicKeyDecryptPlain(ciphertext, privateKeyPEM)
 	if err != nil {
 		return nil, err
 	}
@@ -175,7 +200,7 @@ func PublicKeyDecryptJSON(ciphertext []byte, privateKey *ecdsa.PrivateKey) (inte
 // GenerateAccountFromIndex generates a crypto wallet account from HD wallet mnemonic
 func GenerateAccountFromIndex(accountIndex int) (*common.Address, *ecdsa.PrivateKey, error) {
 	//added code to test generate addrress
-	mnemonic := serverConf.HDWalletMnemonic
+	mnemonic := cryptoConf.HDWalletMnemonic
 
 	wallet, err := hdwallet.NewFromMnemonic(mnemonic)
 	if err != nil {
