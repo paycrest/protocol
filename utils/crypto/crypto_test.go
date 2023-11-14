@@ -8,7 +8,7 @@ import (
 
 func TestCreateEOA(t *testing.T) {
 	// Mock the server config
-	serverConf.HDWalletMnemonic = "media nerve fog identify typical physical aspect doll bar fossil frost because"
+	cryptoConf.HDWalletMnemonic = "media nerve fog identify typical physical aspect doll bar fossil frost because"
 
 	// set the expected account index and address
 	expectedAccountIndex := 1

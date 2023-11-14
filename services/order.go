@@ -12,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/google/uuid"
+	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/services/contracts"
 	db "github.com/paycrest/protocol/storage"
@@ -43,6 +44,7 @@ type CreateOrderParams struct {
 }
 
 var fromAddress, privateKey, _ = cryptoUtils.GenerateAccountFromIndex(0)
+var CryptoConf = config.CryptoConfig()
 
 // NewOrderService creates a new instance of OrderService.
 func NewOrderService() *OrderService {
@@ -415,8 +417,7 @@ func (s *OrderService) encryptOrderRecipient(recipient *ent.PaymentOrderRecipien
 	}
 
 	// Encrypt with the public key of the aggregator
-	_, privateKey, _ := cryptoUtils.GenerateAccountFromIndex(1)
-	messageCipher, err := cryptoUtils.PublicKeyEncryptJSON(message, &privateKey.PublicKey)
+	messageCipher, err := cryptoUtils.PublicKeyEncryptJSON(message, CryptoConf.AggregatorPublicKey)
 	if err != nil {
 		return "", fmt.Errorf("failed to encrypt message: %w", err)
 	}
