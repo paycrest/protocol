@@ -268,7 +268,6 @@ func RetryFailedWebhookNotifications() error {
 
 // StartCronJobs starts cron jobs
 func StartCronJobs() {
-	ctx := context.Background()
 	conf := config.OrderConfig()
 	scheduler := gocron.NewScheduler(time.UTC)
 
@@ -280,7 +279,7 @@ func StartCronJobs() {
 
 	// Refresh provision bucket priority queues every X minutes
 	_, err = scheduler.Cron(fmt.Sprintf("0 */%d * * *", conf.BucketQueueRebuildInterval)).
-		Do(services.NewPriorityQueueService().ProcessBucketQueues(ctx))
+		Do(services.NewPriorityQueueService().ProcessBucketQueues)
 	if err != nil {
 		logger.Errorf("failed to schedule refresh priority queues task => %v\n", err)
 	}

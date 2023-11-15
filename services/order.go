@@ -16,6 +16,7 @@ import (
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/services/contracts"
 	db "github.com/paycrest/protocol/storage"
+	"github.com/shopspring/decimal"
 
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	"github.com/paycrest/protocol/ent/paymentorder"
@@ -132,6 +133,11 @@ func (s *OrderService) CreateOrder(ctx context.Context, client types.RPCClient, 
 	}
 	userOperation.CallData = calldata
 
+	// Set gas fees
+	maxFeePerGas, maxPriorityFeePerGas := s.EIP1559GasPrice(ctx, client)
+	userOperation.MaxFeePerGas = maxFeePerGas
+	userOperation.MaxPriorityFeePerGas = maxPriorityFeePerGas
+
 	// Sponsor user operation.
 	// This will populate the following fields in userOperation: PaymasterAndData, PreVerificationGas, VerificationGasLimit, CallGasLimit
 	err = s.sponsorUserOperation(userOperation)
@@ -139,10 +145,8 @@ func (s *OrderService) CreateOrder(ctx context.Context, client types.RPCClient, 
 		return fmt.Errorf("failed to sponsor user operation: %w", err)
 	}
 
-	// Set gas fees
-	gasPrice := userOperation.GetDynamicGasPrice(nil)
-	userOperation.MaxFeePerGas = big.NewInt(0).Mul(gasPrice, userOperation.CallGasLimit)
-	userOperation.MaxPriorityFeePerGas = big.NewInt(0).Mul(gasPrice, big.NewInt(110)) // 110%
+	fmt.Println("maxFeePerGas: ", userOperation.MaxFeePerGas)
+	fmt.Println("maxPriorityFeePerGas: ", userOperation.MaxPriorityFeePerGas)
 
 	// Sign user operation
 	userOpHash := userOperation.GetUserOpHash(
@@ -277,15 +281,15 @@ func (s *OrderService) executeBatchCallData(order *ent.PaymentOrder) ([]byte, er
 	}
 
 	// Fetch paymaster account
-	paymasterAccount, err := s.getPaymasterAccount()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get paymaster account: %w", err)
-	}
+	// paymasterAccount, err := s.getPaymasterAccount()
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to get paymaster account: %w", err)
+	// }
 
 	// Create approve data for paymaster contract
 	approvePaymasterData, err := s.approveCallData(
-		// common.HexToAddress("0xE93ECa6595fe94091DC1af46aaC2A8b5D7990770"),
-		common.HexToAddress(paymasterAccount),
+		common.HexToAddress("0xE93ECa6595fe94091DC1af46aaC2A8b5D7990770"),
+		// common.HexToAddress(paymasterAccount),
 		utils.ToSubunit(order.Amount, order.Edges.Token.Decimals),
 	)
 	if err != nil {
@@ -352,13 +356,13 @@ func (s *OrderService) createOrderCallData(order *ent.PaymentOrder) ([]byte, err
 	// Define params
 	params := &CreateOrderParams{
 		Token:              common.HexToAddress(order.Edges.Token.ContractAddress),
-		Amount:             utils.ToSubunit(order.Amount, order.Edges.Token.Decimals),
+		Amount:             utils.ToSubunit(order.Amount.Sub(decimal.NewFromFloat(3)), order.Edges.Token.Decimals),
 		InstitutionCode:    utils.StringToByte32(order.Edges.Recipient.Institution),
 		Label:              utils.StringToByte32(order.Label),
 		Rate:               order.Rate.BigInt(),
-		SenderFeeRecipient: common.HexToAddress(order.Edges.SenderProfile.FeeAddress),
+		SenderFeeRecipient: common.HexToAddress("0x3870419Ba2BBf0127060bCB37f69A1b1C090992B"),
 		SenderFee:          senderFee.BigInt(),
-		RefundAddress:      common.HexToAddress(order.Edges.SenderProfile.RefundAddress),
+		RefundAddress:      common.HexToAddress("0x3870419Ba2BBf0127060bCB37f69A1b1C090992B"),
 		MessageHash:        encryptedOrderRecipient,
 	}
 
@@ -467,6 +471,9 @@ func (s *OrderService) sponsorUserOperation(userOp *userop.UserOperation) error 
 		},
 	}
 
+	// op, _ := userOp.MarshalJSON()
+	// fmt.Println(string(op))
+
 	var result json.RawMessage
 	err = client.Call(&result, "pm_sponsorUserOperation", requestParams...)
 	if err != nil {
@@ -506,8 +513,8 @@ func (s *OrderService) sendUserOperation(userOp *userop.UserOperation) (string, 
 		OrderConf.EntryPointContractAddress.Hex(),
 	}
 
-	// op, _ := userOp.MarshalJSON()
-	// fmt.Println(string(op))
+	op, _ := userOp.MarshalJSON()
+	fmt.Println(string(op))
 
 	var result json.RawMessage
 	err = client.Call(&result, "eth_sendUserOperation", requestParams...)
@@ -562,4 +569,22 @@ func (s *OrderService) GetSupportedInstitution(ctx context.Context, client types
 	}
 
 	return supportedInstitution, nil
+}
+
+func (s *OrderService) EIP1559GasPrice(ctx context.Context, client types.RPCClient) (maxFeePerGas, maxPriorityFeePerGas *big.Int) {
+	tip, _ := client.SuggestGasTipCap(ctx)
+	latestHeader, _ := client.HeaderByNumber(ctx, nil)
+
+	buffer := new(big.Int).Mul(tip, big.NewInt(13)).Div(tip, big.NewInt(100))
+	maxPriorityFeePerGas = new(big.Int).Add(tip, buffer)
+
+	if latestHeader.BaseFee != nil {
+		maxFeePerGas = new(big.Int).
+			Mul(latestHeader.BaseFee, big.NewInt(2)).
+			Add(latestHeader.BaseFee, maxPriorityFeePerGas)
+	} else {
+		maxFeePerGas = maxPriorityFeePerGas
+	}
+
+	return maxFeePerGas, maxPriorityFeePerGas
 }
