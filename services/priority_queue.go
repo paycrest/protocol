@@ -37,7 +37,8 @@ func NewPriorityQueueService() *PriorityQueueService {
 }
 
 // ProcessBucketQueues creates a priority queue for each bucket and saves it to redis
-func (s *PriorityQueueService) ProcessBucketQueues(ctx context.Context) error {
+func (s *PriorityQueueService) ProcessBucketQueues() error {
+	ctx := context.Background()
 
 	buckets, err := s.GetProvidersByBucket(ctx)
 	if err != nil {
