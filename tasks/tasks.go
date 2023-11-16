@@ -277,7 +277,7 @@ func StartCronJobs() {
 		logger.Errorf("failed to schedule compute market rate task => %v\n", err)
 	}
 
-	// Refresh provision bucket priority queues every X minutes
+	// Refresh provision bucket priority queues every X hours
 	_, err = scheduler.Cron(fmt.Sprintf("0 */%d * * *", conf.BucketQueueRebuildInterval)).
 		Do(services.NewPriorityQueueService().ProcessBucketQueues)
 	if err != nil {

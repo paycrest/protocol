@@ -497,29 +497,33 @@ func (s *IndexerService) indexMissedBlocksForDeposits(ctx context.Context, clien
 		logger.Errorf("failed to fetch current block number: %v", err)
 	}
 
+	var startBlockNumber int64
+	toBlock := header.Number.Uint64()
+
 	if len(result) > 0 {
-		lockPaymentOrder := result[0]
+		startBlockNumber = int64(result[0].BlockNumber)
+	} else {
+		startBlockNumber = int64(toBlock) - 1500
+	}
 
-		// Filter logs from the last lock payment order block number
-		toBlock := header.Number.Uint64()
-		opts := &bind.FilterOpts{
-			Start: uint64(lockPaymentOrder.BlockNumber),
-			End:   &toBlock,
-		}
+	// Filter logs from the last lock payment order block number
+	opts := &bind.FilterOpts{
+		Start: uint64(startBlockNumber),
+		End:   &toBlock,
+	}
 
-		// Fetch logs
-		iter, err := filterer.FilterDeposit(opts, nil, nil, nil)
+	// Fetch logs
+	iter, err := filterer.FilterDeposit(opts, nil, nil, nil)
+	if err != nil {
+		logger.Errorf("failed to fetch logs: %v", err)
+	}
+
+	// Iterate over logs
+	for iter.Next() {
+		err := s.createLockPaymentOrder(ctx, client, network, iter.Event)
 		if err != nil {
-			logger.Errorf("failed to fetch logs: %v", err)
-		}
-
-		// Iterate over logs
-		for iter.Next() {
-			err := s.createLockPaymentOrder(ctx, client, network, iter.Event)
-			if err != nil {
-				logger.Errorf("failed to create lock payment order: %v", err)
-				continue
-			}
+			logger.Errorf("failed to create lock payment order: %v", err)
+			continue
 		}
 	}
 }
@@ -550,38 +554,42 @@ func (s *IndexerService) indexMissedBlocksForSettlements(ctx context.Context, cl
 		logger.Errorf("failed to fetch current block number: %v", err)
 	}
 
+	var startBlockNumber int64
+	toBlock := header.Number.Uint64()
+
 	if len(result) > 0 {
-		lockPaymentOrder := result[0]
+		startBlockNumber = int64(result[0].BlockNumber)
+	} else {
+		startBlockNumber = int64(toBlock) - 500
+	}
 
-		// Filter logs from the last lock payment order block number
-		toBlock := header.Number.Uint64()
-		opts := &bind.FilterOpts{
-			Start: uint64(lockPaymentOrder.BlockNumber),
-			End:   &toBlock,
-		}
+	// Filter logs from the last lock payment order block number
+	opts := &bind.FilterOpts{
+		Start: uint64(startBlockNumber),
+		End:   &toBlock,
+	}
 
-		// Fetch logs
-		iter, err := filterer.FilterSettled(opts, nil, nil)
+	// Fetch logs
+	iter, err := filterer.FilterSettled(opts, nil, nil)
+	if err != nil {
+		logger.Errorf("failed to fetch logs: %v", err)
+	}
+
+	// Iterate over logs
+	for iter.Next() {
+		splitOrderId, _ := uuid.Parse(utils.Byte32ToString(iter.Event.SplitOrderId))
+
+		_, err := db.Client.LockPaymentOrder.
+			Update().
+			Where(
+				lockpaymentorder.IDEQ(splitOrderId),
+			).
+			SetBlockNumber(int64(iter.Event.Raw.BlockNumber)).
+			SetStatus(lockpaymentorder.StatusSettled).
+			Save(ctx)
 		if err != nil {
-			logger.Errorf("failed to fetch logs: %v", err)
-		}
-
-		// Iterate over logs
-		for iter.Next() {
-			splitOrderId, _ := uuid.Parse(utils.Byte32ToString(iter.Event.SplitOrderId))
-
-			_, err := db.Client.LockPaymentOrder.
-				Update().
-				Where(
-					lockpaymentorder.IDEQ(splitOrderId),
-				).
-				SetBlockNumber(int64(iter.Event.Raw.BlockNumber)).
-				SetStatus(lockpaymentorder.StatusSettled).
-				Save(ctx)
-			if err != nil {
-				logger.Errorf("failed to update lock payment order: %v", err)
-				continue
-			}
+			logger.Errorf("failed to update lock payment order: %v", err)
+			continue
 		}
 	}
 }
@@ -652,8 +660,10 @@ func (s *IndexerService) createLockPaymentOrder(ctx context.Context, client type
 		return fmt.Errorf("failed to fetch fiat currency: %w", err)
 	}
 
+	rate := decimal.NewFromBigInt(deposit.Rate, 0)
+
 	provisionBucket, err := s.getProvisionBucket(
-		ctx, nil, amountInDecimals, currency,
+		ctx, nil, amountInDecimals.Mul(rate), currency,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to fetch provision bucket: %w", err)
@@ -664,7 +674,7 @@ func (s *IndexerService) createLockPaymentOrder(ctx context.Context, client type
 		Token:             token,
 		OrderID:           fmt.Sprintf("0x%v", hex.EncodeToString(deposit.OrderId[:])),
 		Amount:            amountInDecimals,
-		Rate:              decimal.NewFromBigInt(deposit.Rate, 0),
+		Rate:              rate,
 		Label:             utils.Byte32ToString(deposit.Label),
 		BlockNumber:       int64(deposit.Raw.BlockNumber),
 		Institution:       utils.Byte32ToString(deposit.InstitutionCode),
@@ -695,19 +705,25 @@ func (s *IndexerService) createLockPaymentOrder(ctx context.Context, client type
 		}
 	} else {
 		// Create lock payment order in db
-		orderCreated, err := db.Client.LockPaymentOrder.
+		orderBuilder := db.Client.LockPaymentOrder.
 			Create().
 			SetToken(lockPaymentOrder.Token).
 			SetOrderID(lockPaymentOrder.OrderID).
 			SetAmount(lockPaymentOrder.Amount).
 			SetRate(lockPaymentOrder.Rate).
+			SetLabel(lockPaymentOrder.Label).
+			SetOrderPercent(decimal.NewFromInt(100)).
 			SetBlockNumber(lockPaymentOrder.BlockNumber).
 			SetInstitution(lockPaymentOrder.Institution).
 			SetAccountIdentifier(lockPaymentOrder.AccountIdentifier).
 			SetAccountName(lockPaymentOrder.AccountName).
-			SetProviderID(lockPaymentOrder.ProviderID).
-			SetProvisionBucket(lockPaymentOrder.ProvisionBucket).
-			Save(ctx)
+			SetProvisionBucket(lockPaymentOrder.ProvisionBucket)
+
+		if lockPaymentOrder.ProviderID != "" {
+			orderBuilder = orderBuilder.SetProviderID(lockPaymentOrder.ProviderID)
+		}
+
+		orderCreated, err := orderBuilder.Save(ctx)
 		if err != nil {
 			return fmt.Errorf("failed to create lock payment order: %w", err)
 		}
@@ -772,7 +788,7 @@ func (s *IndexerService) splitLockPaymentOrder(ctx context.Context, lockPaymentO
 		return err
 	}
 
-	amountToSplit := lockPaymentOrder.Amount // e.g 100,000
+	amountToSplit := lockPaymentOrder.Amount.Mul(lockPaymentOrder.Rate) // e.g 100,000
 
 	for _, bucket := range buckets {
 		// Get the number of providers in the bucket
@@ -804,7 +820,7 @@ func (s *IndexerService) splitLockPaymentOrder(ctx context.Context, lockPaymentO
 				Create().
 				SetToken(lockPaymentOrder.Token).
 				SetOrderID(lockPaymentOrder.OrderID).
-				SetAmount(bucket.MaxAmount).
+				SetAmount(bucket.MaxAmount.Div(lockPaymentOrder.Rate)).
 				SetRate(lockPaymentOrder.Rate).
 				SetOrderPercent(orderPercent).
 				SetBlockNumber(lockPaymentOrder.BlockNumber).
@@ -853,7 +869,7 @@ func (s *IndexerService) splitLockPaymentOrder(ctx context.Context, lockPaymentO
 			Create().
 			SetToken(lockPaymentOrder.Token).
 			SetOrderID(lockPaymentOrder.OrderID).
-			SetAmount(amountToSplit).
+			SetAmount(amountToSplit.Div(lockPaymentOrder.Rate)).
 			SetRate(lockPaymentOrder.Rate).
 			SetBlockNumber(lockPaymentOrder.BlockNumber).
 			SetInstitution(lockPaymentOrder.Institution).
@@ -873,7 +889,7 @@ func (s *IndexerService) splitLockPaymentOrder(ctx context.Context, lockPaymentO
 
 	} else {
 		// TODO: figure out how to handle this case, currently it recursively splits the amount
-		lockPaymentOrder.Amount = amountToSplit
+		lockPaymentOrder.Amount = amountToSplit.Div(lockPaymentOrder.Rate)
 		err := s.splitLockPaymentOrder(ctx, lockPaymentOrder, currency)
 		if err != nil {
 			return err

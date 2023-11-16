@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
+	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -281,15 +282,16 @@ func (s *OrderService) executeBatchCallData(order *ent.PaymentOrder) ([]byte, er
 	}
 
 	// Fetch paymaster account
-	// paymasterAccount, err := s.getPaymasterAccount()
-	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to get paymaster account: %w", err)
-	// }
+	paymasterAccount, err := s.getPaymasterAccount()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get paymaster account: %w", err)
+	}
+
+	time.Sleep(5 * time.Second) // TODO: remove in production
 
 	// Create approve data for paymaster contract
 	approvePaymasterData, err := s.approveCallData(
-		common.HexToAddress("0xE93ECa6595fe94091DC1af46aaC2A8b5D7990770"),
-		// common.HexToAddress(paymasterAccount),
+		common.HexToAddress(paymasterAccount),
 		utils.ToSubunit(order.Amount, order.Edges.Token.Decimals),
 	)
 	if err != nil {
@@ -310,11 +312,10 @@ func (s *OrderService) executeBatchCallData(order *ent.PaymentOrder) ([]byte, er
 	executeBatchCallData, err := simpleAccountABI.Pack(
 		"executeBatch",
 		[]common.Address{
-			common.HexToAddress("0x3870419Ba2BBf0127060bCB37f69A1b1C090992B"), // TODO: replace with production token address or config
-			common.HexToAddress("0x3870419Ba2BBf0127060bCB37f69A1b1C090992B"),
+			common.HexToAddress(order.Edges.Token.ContractAddress),
+			common.HexToAddress(order.Edges.Token.ContractAddress),
 			OrderConf.PaycrestOrderContractAddress,
 		},
-		// []*big.Int{big.NewInt(0), big.NewInt(0)},
 		[][]byte{approvePaymasterData, approvePaycrestData, createOrderData},
 	)
 	if err != nil {
@@ -531,8 +532,8 @@ func (s *OrderService) sendUserOperation(userOp *userop.UserOperation) (string, 
 	return userOpHash, nil
 }
 
-// GetSupportedInstitution fetches the supported institutions by currencyCode.
-func (s *OrderService) GetSupportedInstitution(ctx context.Context, client types.RPCClient, currencyCode string) ([]types.Institution, error) {
+// GetSupportedInstitutions fetches the supported institutions by currencyCode.
+func (s *OrderService) GetSupportedInstitutions(ctx context.Context, client types.RPCClient, currencyCode string) ([]types.Institution, error) {
 	// Connect to RPC endpoint
 	var err error
 	if client == nil {
@@ -571,6 +572,7 @@ func (s *OrderService) GetSupportedInstitution(ctx context.Context, client types
 	return supportedInstitution, nil
 }
 
+// EIP1559GasPrice computes the EIP1559 gas price
 func (s *OrderService) EIP1559GasPrice(ctx context.Context, client types.RPCClient) (maxFeePerGas, maxPriorityFeePerGas *big.Int) {
 	tip, _ := client.SuggestGasTipCap(ctx)
 	latestHeader, _ := client.HeaderByNumber(ctx, nil)
