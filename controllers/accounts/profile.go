@@ -3,6 +3,7 @@ package accounts
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/paycrest/protocol/ent"
@@ -14,6 +15,7 @@ import (
 	"github.com/paycrest/protocol/ent/token"
 	svc "github.com/paycrest/protocol/services"
 	"github.com/paycrest/protocol/storage"
+	db "github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
 	u "github.com/paycrest/protocol/utils"
 	"github.com/shopspring/decimal"
@@ -43,6 +45,13 @@ func (ctrl *ProfileController) UpdateSenderProfile(ctx *gin.Context) {
 		return
 	}
 
+	if payload.WebhookURL != "" {
+		if !isURL(payload.WebhookURL) {
+			u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid webhook url", nil)
+			return
+		}
+	}
+
 	// Get sender profile from the context
 	senderCtx, ok := ctx.Get("sender")
 	if !ok {
@@ -61,7 +70,7 @@ func (ctrl *ProfileController) UpdateSenderProfile(ctx *gin.Context) {
 		update.SetDomainWhitelist(payload.DomainWhitelist)
 	}
 
-	if payload.FeePerTokenUnit.IsZero() {
+	if !payload.FeePerTokenUnit.IsZero() {
 		update.SetFeePerTokenUnit(payload.FeePerTokenUnit)
 	}
 
@@ -73,10 +82,24 @@ func (ctrl *ProfileController) UpdateSenderProfile(ctx *gin.Context) {
 		update.SetRefundAddress(payload.RefundAddress)
 	}
 
-	_, err := update.Save(ctx)
+	senderProfile, err := update.Save(ctx)
 	if err != nil {
 		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update profile", nil)
 		return
+	}
+
+	// check if refundAddress, feeAddress and webhookURL are not empty
+	if senderProfile.RefundAddress != "" && senderProfile.FeeAddress != "" && senderProfile.WebhookURL != "" {
+		db.Client.SenderProfile.
+			UpdateOne(senderProfile).
+			SetIsActive(true).
+			Save(ctx)
+
+	} else {
+		db.Client.SenderProfile.
+			UpdateOne(senderProfile).
+			SetIsActive(false).
+			Save(ctx)
 	}
 
 	u.APIResponse(ctx, http.StatusOK, "success", "Profile updated successfully", nil)
@@ -275,10 +298,23 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 		}
 	}
 
-	_, err := update.Save(ctx)
+	providerProfile, err := update.Save(ctx)
 	if err != nil {
 		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update profile", nil)
 		return
+	}
+
+	// check if host id and trading name are not empty
+	if providerProfile.HostIdentifier != "" && providerProfile.TradingName != "" {
+		db.Client.ProviderProfile.
+			UpdateOne(providerProfile).
+			SetIsActive(true).
+			Save(ctx)
+	} else {
+		db.Client.ProviderProfile.
+			UpdateOne(providerProfile).
+			SetIsActive(false).
+			Save(ctx)
 	}
 
 	u.APIResponse(ctx, http.StatusOK, "success", "Profile updated successfully", nil)
@@ -353,4 +389,12 @@ func (ctrl *ProfileController) GetProviderProfile(ctx *gin.Context) {
 		Tokens:         tokens,
 		APIKey:         *apiKey,
 	})
+}
+
+func isURL(s string) bool {
+	_, err := url.ParseRequestURI(s)
+	if err != nil {
+		return false
+	}
+	return true
 }
