@@ -12,6 +12,7 @@ import (
 )
 
 func SeedAll() error {
+	fmt.Println("Came to seed all")
 	// Define flags
 	seedDB := flag.Bool("seed-db", false, "Seed the database")
 	flag.Parse()
@@ -112,10 +113,11 @@ func SeedDatabase() error {
 	}
 
 	for _, bucket := range sampleBuckets {
-		_, err := bucket.Save(ctx)
+		id, err := bucket.Save(ctx)
 		if err != nil {
 			return fmt.Errorf("failed seeding provision bucket: %w", err)
 		}
+		fmt.Printf("CREATE PROVISION BUCKET >> %v", id)
 	}
 
 	return nil

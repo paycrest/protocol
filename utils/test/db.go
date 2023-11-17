@@ -216,6 +216,7 @@ func CreateTestProviderProfile(overrides map[string]interface{}, user *ent.User,
 		"host_identifier": "https://example.com/hook",
 		"provision_mode":  "auto",
 		"is_partner":      false,
+		"visibility_mode": "public",
 	}
 
 	// Apply overrides
@@ -233,6 +234,7 @@ func CreateTestProviderProfile(overrides map[string]interface{}, user *ent.User,
 		SetIsPartner(payload["is_partner"].(bool)).
 		SetUser(user).
 		SetCurrency(currency).
+		SetVisibilityMode(providerprofile.VisibilityMode(payload["visibility_mode"].(string))).
 		Save(context.Background())
 
 	return profile, err
@@ -268,4 +270,5 @@ func CreateTestFiatCurrency(overrides map[string]interface{}) (*ent.FiatCurrency
 		Save(context.Background())
 
 	return currency, err
+
 }
