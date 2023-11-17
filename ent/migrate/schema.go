@@ -270,6 +270,8 @@ var (
 		{Name: "is_active", Type: field.TypeBool, Default: false},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "fiat_currency_providers", Type: field.TypeUUID},
+		{Name: "visibility_mode", Type: field.TypeEnum, Enums: []string{"private", "public"}, Default: "public"},
+		{Name: "fiat_currency_provider", Type: field.TypeUUID, Unique: true},
 		{Name: "user_provider_profile", Type: field.TypeUUID, Unique: true},
 	}
 	// ProviderProfilesTable holds the schema information for the "provider_profiles" table.
@@ -286,7 +288,7 @@ var (
 			},
 			{
 				Symbol:     "provider_profiles_users_provider_profile",
-				Columns:    []*schema.Column{ProviderProfilesColumns[8]},
+				Columns:    []*schema.Column{ProviderProfilesColumns[9]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.Cascade,
 			},

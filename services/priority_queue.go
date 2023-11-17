@@ -80,6 +80,7 @@ func (s *PriorityQueueService) GetProvidersByBucket(ctx context.Context) ([]*ent
 					),
 				),
 				providerprofile.IsActiveEQ(true),
+				providerprofile.VisibilityModeEQ(providerprofile.VisibilityModePublic),
 			)
 		}).
 		WithCurrency().
@@ -204,9 +205,27 @@ func (s *PriorityQueueService) CreatePriorityQueueForDefaultBucket(ctx context.C
 	}
 }
 
+// Update services/priority_queue::AssignLockPaymentOrder()` to the fetch from redis bucket and send an order request to a specific provider if one is specified in the order
+
 // AssignLockPaymentOrders assigns lock payment orders to providers
 func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order types.LockPaymentOrderFields) error {
 	go s.ReassignUnfulfilledLockOrders(ctx)
+
+	excludeList, err := storage.RedisClient.LRange(ctx, fmt.Sprintf("order_exclude_list_%d", order.ID), 0, -1).Result()
+	if err != nil {
+		logger.Errorf("failed to get exclude list for order %d: %v", order.ID, err)
+		return err
+	}
+
+	// If a specific provider is specified in the order, send the order request to that provider
+	if order.ProviderID != "" && utils.ContainsString(excludeList, order.ProviderID) {
+		err := s.sendOrderRequestToSpecifiedProvider(ctx, order)
+		if err == nil {
+			return nil
+		}
+		logger.Errorf("failed to send order request to specific provider %s: %v. Sending order to queue",
+			order.ProviderID, err)
+	}
 
 	// Get the first provider from the circular queue
 	redisKey := fmt.Sprintf("bucket_%s_%d_%d", order.ProvisionBucket.Edges.Currency.Code, order.ProvisionBucket.MinAmount, order.ProvisionBucket.MaxAmount)
@@ -246,11 +265,6 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 		providerID := parts[0]
 
 		// Skip entry if provider is excluded
-		excludeList, err := pipe.LRange(ctx, fmt.Sprintf("order_exclude_list_%d", order.ID), 0, -1).Result()
-		if err != nil {
-			logger.Errorf("failed to get exclude list for order %d: %v", order.ID, err)
-			return err
-		}
 		if utils.ContainsString(excludeList, providerID) {
 			continue
 		}
@@ -318,13 +332,52 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 	}
 
 	// Execute all Redis commands within the transaction atomically
-	_, err := pipe.Exec(ctx)
+	_, err = pipe.Exec(ctx)
 	if err != nil {
 		logger.Errorf("failed to execute Redis transaction: %v", err)
 		return err
 	}
 
 	return nil
+}
+
+// sendOrderRequestToProvider sends an order request to a specific provider
+func (s *PriorityQueueService) sendOrderRequestToSpecifiedProvider(ctx context.Context, order types.LockPaymentOrderFields) error {
+
+	// Assign the order to the provider and save it to Redis
+	orderKey := fmt.Sprintf("order_request_%d", order.ID)
+
+	approxAmount := order.Amount.Mul(order.Rate).Floor()
+	approxAmount = approxAmount.Round(2)
+
+	orderRequestData := map[string]interface{}{
+		"amount":      approxAmount,
+		"token":       order.Token.Symbol,
+		"institution": order.Institution,
+		"providerId":  order.ProviderID,
+	}
+
+	if err := storage.RedisClient.HSet(ctx, orderKey, orderRequestData).Err(); err != nil {
+		logger.Errorf("failed to map order to a provider in Redis: %v", err)
+		return err
+	}
+
+	// Set a TTL for the order request
+	err := storage.RedisClient.ExpireAt(ctx, orderKey, time.Now().Add(OrderConf.OrderRequestValidity)).Err()
+	if err != nil {
+		logger.Errorf("failed to set TTL for order request: %v", err)
+		return err
+	}
+
+	// Notify the provider
+	orderRequestData["orderId"] = order.ID
+	if err := s.notifyProvider(ctx, orderRequestData); err != nil {
+		logger.Errorf("failed to notify provider %s: %v", order.ProviderID, err)
+		return err
+	}
+
+	return nil
+
 }
 
 // notifyProvider sends an order request notification to a provider

@@ -35,6 +35,8 @@ type ProviderProfile struct {
 	IsActive bool `json:"is_active,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
+	// VisibilityMode holds the value of the "visibility_mode" field.
+	VisibilityMode providerprofile.VisibilityMode `json:"visibility_mode,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ProviderProfileQuery when eager-loading is set.
 	Edges                   ProviderProfileEdges `json:"edges"`
@@ -165,7 +167,7 @@ func (*ProviderProfile) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case providerprofile.FieldIsPartner, providerprofile.FieldIsActive:
 			values[i] = new(sql.NullBool)
-		case providerprofile.FieldID, providerprofile.FieldTradingName, providerprofile.FieldHostIdentifier, providerprofile.FieldProvisionMode:
+		case providerprofile.FieldID, providerprofile.FieldTradingName, providerprofile.FieldHostIdentifier, providerprofile.FieldProvisionMode, providerprofile.FieldVisibilityMode:
 			values[i] = new(sql.NullString)
 		case providerprofile.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -229,6 +231,12 @@ func (pp *ProviderProfile) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
 				pp.UpdatedAt = value.Time
+			}
+		case providerprofile.FieldVisibilityMode:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field visibility_mode", values[i])
+			} else if value.Valid {
+				pp.VisibilityMode = providerprofile.VisibilityMode(value.String)
 			}
 		case providerprofile.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullScanner); !ok {
@@ -337,6 +345,9 @@ func (pp *ProviderProfile) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("updated_at=")
 	builder.WriteString(pp.UpdatedAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("visibility_mode=")
+	builder.WriteString(fmt.Sprintf("%v", pp.VisibilityMode))
 	builder.WriteByte(')')
 	return builder.String()
 }

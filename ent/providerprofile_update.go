@@ -110,6 +110,20 @@ func (ppu *ProviderProfileUpdate) SetUpdatedAt(t time.Time) *ProviderProfileUpda
 	return ppu
 }
 
+// SetVisibilityMode sets the "visibility_mode" field.
+func (ppu *ProviderProfileUpdate) SetVisibilityMode(pm providerprofile.VisibilityMode) *ProviderProfileUpdate {
+	ppu.mutation.SetVisibilityMode(pm)
+	return ppu
+}
+
+// SetNillableVisibilityMode sets the "visibility_mode" field if the given value is not nil.
+func (ppu *ProviderProfileUpdate) SetNillableVisibilityMode(pm *providerprofile.VisibilityMode) *ProviderProfileUpdate {
+	if pm != nil {
+		ppu.SetVisibilityMode(*pm)
+	}
+	return ppu
+}
+
 // SetAPIKeyID sets the "api_key" edge to the APIKey entity by ID.
 func (ppu *ProviderProfileUpdate) SetAPIKeyID(id uuid.UUID) *ProviderProfileUpdate {
 	ppu.mutation.SetAPIKeyID(id)
@@ -363,6 +377,11 @@ func (ppu *ProviderProfileUpdate) check() error {
 			return &ValidationError{Name: "provision_mode", err: fmt.Errorf(`ent: validator failed for field "ProviderProfile.provision_mode": %w`, err)}
 		}
 	}
+	if v, ok := ppu.mutation.VisibilityMode(); ok {
+		if err := providerprofile.VisibilityModeValidator(v); err != nil {
+			return &ValidationError{Name: "visibility_mode", err: fmt.Errorf(`ent: validator failed for field "ProviderProfile.visibility_mode": %w`, err)}
+		}
+	}
 	if _, ok := ppu.mutation.UserID(); ppu.mutation.UserCleared() && !ok {
 		return errors.New(`ent: clearing a required unique edge "ProviderProfile.user"`)
 	}
@@ -404,6 +423,9 @@ func (ppu *ProviderProfileUpdate) sqlSave(ctx context.Context) (n int, err error
 	}
 	if value, ok := ppu.mutation.UpdatedAt(); ok {
 		_spec.SetField(providerprofile.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if value, ok := ppu.mutation.VisibilityMode(); ok {
+		_spec.SetField(providerprofile.FieldVisibilityMode, field.TypeEnum, value)
 	}
 	if ppu.mutation.APIKeyCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -750,6 +772,20 @@ func (ppuo *ProviderProfileUpdateOne) SetUpdatedAt(t time.Time) *ProviderProfile
 	return ppuo
 }
 
+// SetVisibilityMode sets the "visibility_mode" field.
+func (ppuo *ProviderProfileUpdateOne) SetVisibilityMode(pm providerprofile.VisibilityMode) *ProviderProfileUpdateOne {
+	ppuo.mutation.SetVisibilityMode(pm)
+	return ppuo
+}
+
+// SetNillableVisibilityMode sets the "visibility_mode" field if the given value is not nil.
+func (ppuo *ProviderProfileUpdateOne) SetNillableVisibilityMode(pm *providerprofile.VisibilityMode) *ProviderProfileUpdateOne {
+	if pm != nil {
+		ppuo.SetVisibilityMode(*pm)
+	}
+	return ppuo
+}
+
 // SetAPIKeyID sets the "api_key" edge to the APIKey entity by ID.
 func (ppuo *ProviderProfileUpdateOne) SetAPIKeyID(id uuid.UUID) *ProviderProfileUpdateOne {
 	ppuo.mutation.SetAPIKeyID(id)
@@ -1016,6 +1052,11 @@ func (ppuo *ProviderProfileUpdateOne) check() error {
 			return &ValidationError{Name: "provision_mode", err: fmt.Errorf(`ent: validator failed for field "ProviderProfile.provision_mode": %w`, err)}
 		}
 	}
+	if v, ok := ppuo.mutation.VisibilityMode(); ok {
+		if err := providerprofile.VisibilityModeValidator(v); err != nil {
+			return &ValidationError{Name: "visibility_mode", err: fmt.Errorf(`ent: validator failed for field "ProviderProfile.visibility_mode": %w`, err)}
+		}
+	}
 	if _, ok := ppuo.mutation.UserID(); ppuo.mutation.UserCleared() && !ok {
 		return errors.New(`ent: clearing a required unique edge "ProviderProfile.user"`)
 	}
@@ -1074,6 +1115,9 @@ func (ppuo *ProviderProfileUpdateOne) sqlSave(ctx context.Context) (_node *Provi
 	}
 	if value, ok := ppuo.mutation.UpdatedAt(); ok {
 		_spec.SetField(providerprofile.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if value, ok := ppuo.mutation.VisibilityMode(); ok {
+		_spec.SetField(providerprofile.FieldVisibilityMode, field.TypeEnum, value)
 	}
 	if ppuo.mutation.APIKeyCleared() {
 		edge := &sqlgraph.EdgeSpec{

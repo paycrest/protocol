@@ -7957,6 +7957,7 @@ type ProviderProfileMutation struct {
 	is_partner               *bool
 	is_active                *bool
 	updated_at               *time.Time
+	visibility_mode          *providerprofile.VisibilityMode
 	clearedFields            map[string]struct{}
 	user                     *uuid.UUID
 	cleareduser              bool
@@ -8313,6 +8314,42 @@ func (m *ProviderProfileMutation) OldUpdatedAt(ctx context.Context) (v time.Time
 // ResetUpdatedAt resets all changes to the "updated_at" field.
 func (m *ProviderProfileMutation) ResetUpdatedAt() {
 	m.updated_at = nil
+}
+
+// SetVisibilityMode sets the "visibility_mode" field.
+func (m *ProviderProfileMutation) SetVisibilityMode(pm providerprofile.VisibilityMode) {
+	m.visibility_mode = &pm
+}
+
+// VisibilityMode returns the value of the "visibility_mode" field in the mutation.
+func (m *ProviderProfileMutation) VisibilityMode() (r providerprofile.VisibilityMode, exists bool) {
+	v := m.visibility_mode
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldVisibilityMode returns the old "visibility_mode" field's value of the ProviderProfile entity.
+// If the ProviderProfile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderProfileMutation) OldVisibilityMode(ctx context.Context) (v providerprofile.VisibilityMode, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldVisibilityMode is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldVisibilityMode requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldVisibilityMode: %w", err)
+	}
+	return oldValue.VisibilityMode, nil
+}
+
+// ResetVisibilityMode resets all changes to the "visibility_mode" field.
+func (m *ProviderProfileMutation) ResetVisibilityMode() {
+	m.visibility_mode = nil
 }
 
 // SetUserID sets the "user" edge to the User entity by id.
@@ -8706,7 +8743,7 @@ func (m *ProviderProfileMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ProviderProfileMutation) Fields() []string {
-	fields := make([]string, 0, 6)
+	fields := make([]string, 0, 7)
 	if m.trading_name != nil {
 		fields = append(fields, providerprofile.FieldTradingName)
 	}
@@ -8724,6 +8761,9 @@ func (m *ProviderProfileMutation) Fields() []string {
 	}
 	if m.updated_at != nil {
 		fields = append(fields, providerprofile.FieldUpdatedAt)
+	}
+	if m.visibility_mode != nil {
+		fields = append(fields, providerprofile.FieldVisibilityMode)
 	}
 	return fields
 }
@@ -8745,6 +8785,8 @@ func (m *ProviderProfileMutation) Field(name string) (ent.Value, bool) {
 		return m.IsActive()
 	case providerprofile.FieldUpdatedAt:
 		return m.UpdatedAt()
+	case providerprofile.FieldVisibilityMode:
+		return m.VisibilityMode()
 	}
 	return nil, false
 }
@@ -8766,6 +8808,8 @@ func (m *ProviderProfileMutation) OldField(ctx context.Context, name string) (en
 		return m.OldIsActive(ctx)
 	case providerprofile.FieldUpdatedAt:
 		return m.OldUpdatedAt(ctx)
+	case providerprofile.FieldVisibilityMode:
+		return m.OldVisibilityMode(ctx)
 	}
 	return nil, fmt.Errorf("unknown ProviderProfile field %s", name)
 }
@@ -8816,6 +8860,13 @@ func (m *ProviderProfileMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetUpdatedAt(v)
+		return nil
+	case providerprofile.FieldVisibilityMode:
+		v, ok := value.(providerprofile.VisibilityMode)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetVisibilityMode(v)
 		return nil
 	}
 	return fmt.Errorf("unknown ProviderProfile field %s", name)
@@ -8892,6 +8943,9 @@ func (m *ProviderProfileMutation) ResetField(name string) error {
 		return nil
 	case providerprofile.FieldUpdatedAt:
 		m.ResetUpdatedAt()
+		return nil
+	case providerprofile.FieldVisibilityMode:
+		m.ResetVisibilityMode()
 		return nil
 	}
 	return fmt.Errorf("unknown ProviderProfile field %s", name)

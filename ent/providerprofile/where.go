@@ -310,6 +310,26 @@ func UpdatedAtLTE(v time.Time) predicate.ProviderProfile {
 	return predicate.ProviderProfile(sql.FieldLTE(FieldUpdatedAt, v))
 }
 
+// VisibilityModeEQ applies the EQ predicate on the "visibility_mode" field.
+func VisibilityModeEQ(v VisibilityMode) predicate.ProviderProfile {
+	return predicate.ProviderProfile(sql.FieldEQ(FieldVisibilityMode, v))
+}
+
+// VisibilityModeNEQ applies the NEQ predicate on the "visibility_mode" field.
+func VisibilityModeNEQ(v VisibilityMode) predicate.ProviderProfile {
+	return predicate.ProviderProfile(sql.FieldNEQ(FieldVisibilityMode, v))
+}
+
+// VisibilityModeIn applies the In predicate on the "visibility_mode" field.
+func VisibilityModeIn(vs ...VisibilityMode) predicate.ProviderProfile {
+	return predicate.ProviderProfile(sql.FieldIn(FieldVisibilityMode, vs...))
+}
+
+// VisibilityModeNotIn applies the NotIn predicate on the "visibility_mode" field.
+func VisibilityModeNotIn(vs ...VisibilityMode) predicate.ProviderProfile {
+	return predicate.ProviderProfile(sql.FieldNotIn(FieldVisibilityMode, vs...))
+}
+
 // HasUser applies the HasEdge predicate on the "user" edge.
 func HasUser() predicate.ProviderProfile {
 	return predicate.ProviderProfile(func(s *sql.Selector) {

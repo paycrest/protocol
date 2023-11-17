@@ -27,6 +27,8 @@ const (
 	FieldIsActive = "is_active"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
 	FieldUpdatedAt = "updated_at"
+	// FieldVisibilityMode holds the string denoting the visibility_mode field in the database.
+	FieldVisibilityMode = "visibility_mode"
 	// EdgeUser holds the string denoting the user edge name in mutations.
 	EdgeUser = "user"
 	// EdgeAPIKey holds the string denoting the api_key edge name in mutations.
@@ -110,6 +112,7 @@ var Columns = []string{
 	FieldIsPartner,
 	FieldIsActive,
 	FieldUpdatedAt,
+	FieldVisibilityMode,
 }
 
 // ForeignKeys holds the SQL foreign-keys that are owned by the "provider_profiles"
@@ -181,6 +184,32 @@ func ProvisionModeValidator(pm ProvisionMode) error {
 	}
 }
 
+// VisibilityMode defines the type for the "visibility_mode" enum field.
+type VisibilityMode string
+
+// VisibilityModePublic is the default value of the VisibilityMode enum.
+const DefaultVisibilityMode = VisibilityModePublic
+
+// VisibilityMode values.
+const (
+	VisibilityModePrivate VisibilityMode = "private"
+	VisibilityModePublic  VisibilityMode = "public"
+)
+
+func (vm VisibilityMode) String() string {
+	return string(vm)
+}
+
+// VisibilityModeValidator is a validator for the "visibility_mode" field enum values. It is called by the builders before save.
+func VisibilityModeValidator(vm VisibilityMode) error {
+	switch vm {
+	case VisibilityModePrivate, VisibilityModePublic:
+		return nil
+	default:
+		return fmt.Errorf("providerprofile: invalid enum value for visibility_mode field: %q", vm)
+	}
+}
+
 // OrderOption defines the ordering options for the ProviderProfile queries.
 type OrderOption func(*sql.Selector)
 
@@ -217,6 +246,11 @@ func ByIsActive(opts ...sql.OrderTermOption) OrderOption {
 // ByUpdatedAt orders the results by the updated_at field.
 func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldUpdatedAt, opts...).ToFunc()
+}
+
+// ByVisibilityMode orders the results by the visibility_mode field.
+func ByVisibilityMode(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldVisibilityMode, opts...).ToFunc()
 }
 
 // ByUserField orders the results by user field.

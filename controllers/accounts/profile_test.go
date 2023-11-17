@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"testing"
+	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/paycrest/protocol/routers/middleware"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/paycrest/protocol/ent/enttest"
+	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/senderprofile"
 	"github.com/paycrest/protocol/ent/user"
 	"github.com/paycrest/protocol/utils/test"
@@ -43,6 +45,12 @@ func TestProfile(t *testing.T) {
 		middleware.JWTMiddleware,
 		middleware.OnlySenderMiddleware,
 		ctrl.UpdateSenderProfile,
+	)
+	router.PATCH(
+		"settings/provider",
+		middleware.JWTMiddleware,
+		middleware.OnlyProviderMiddleware,
+		ctrl.UpdateProviderProfile,
 	)
 
 	t.Run("UpdateSenderProfile", func(t *testing.T) {
@@ -126,4 +134,46 @@ func TestProfile(t *testing.T) {
 
 		assert.Contains(t, data["domainWhitelist"], "mydomain.com")
 	})
+
+	t.Run("UpdateProviderProfile", func(t *testing.T) {
+		t.Run("UpdateVisibilityAccordingly", func(t *testing.T) {
+			// Set up test provider user
+			user, err := test.CreateTestUser(map[string]string{
+				"scope": "provider",
+				"email": "provider@test.com",
+			})
+			assert.NoError(t, err)
+
+			// Set up test provider currency
+			currency, err := test.CreateTestFiatCurrency(nil)
+			assert.NoError(t, err)
+
+			_, err = test.CreateTestProviderProfile(nil, user, currency)
+			assert.NoError(t, err)
+
+			// Test partial update
+			accessToken, _ := token.GenerateAccessJWT(user.ID.String())
+			headers := map[string]string{
+				"Authorization": "Bearer " + accessToken,
+			}
+			payload := types.ProviderProfilePayload{
+				VisibilityMode: "private",
+				Availability: types.ProviderAvailabilityPayload{
+					Cadence:   "always",
+					StartTime: time.Now(),
+					EndTime:   time.Now().Add(time.Hour * 8),
+				},
+			}
+
+			_, err = test.PerformRequest(t, "PATCH", "/settings/provider?scope=provider", payload, headers, router)
+			assert.NoError(t, err)
+
+			providerProfile, err := db.Client.ProviderProfile.Query().
+				Where(providerprofile.VisibilityModeEQ(providerprofile.VisibilityModePrivate)).
+				Count(context.Background())
+			assert.NoError(t, err)
+			assert.Equal(t, providerProfile, 1)
+		})
+	})
+
 }
