@@ -431,26 +431,6 @@ func PasswordContainsFold(v string) predicate.User {
 	return predicate.User(sql.FieldContainsFold(FieldPassword, v))
 }
 
-// ScopeEQ applies the EQ predicate on the "scope" field.
-func ScopeEQ(v Scope) predicate.User {
-	return predicate.User(sql.FieldEQ(FieldScope, v))
-}
-
-// ScopeNEQ applies the NEQ predicate on the "scope" field.
-func ScopeNEQ(v Scope) predicate.User {
-	return predicate.User(sql.FieldNEQ(FieldScope, v))
-}
-
-// ScopeIn applies the In predicate on the "scope" field.
-func ScopeIn(vs ...Scope) predicate.User {
-	return predicate.User(sql.FieldIn(FieldScope, vs...))
-}
-
-// ScopeNotIn applies the NotIn predicate on the "scope" field.
-func ScopeNotIn(vs ...Scope) predicate.User {
-	return predicate.User(sql.FieldNotIn(FieldScope, vs...))
-}
-
 // IsEmailVerifiedEQ applies the EQ predicate on the "is_email_verified" field.
 func IsEmailVerifiedEQ(v bool) predicate.User {
 	return predicate.User(sql.FieldEQ(FieldIsEmailVerified, v))

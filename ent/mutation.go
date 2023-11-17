@@ -624,8 +624,9 @@ type FiatCurrencyMutation struct {
 	addmarket_rate           *decimal.Decimal
 	is_enabled               *bool
 	clearedFields            map[string]struct{}
-	provider                 *string
-	clearedprovider          bool
+	providers                map[string]struct{}
+	removedproviders         map[string]struct{}
+	clearedproviders         bool
 	provision_buckets        map[int]struct{}
 	removedprovision_buckets map[int]struct{}
 	clearedprovision_buckets bool
@@ -1102,43 +1103,58 @@ func (m *FiatCurrencyMutation) ResetIsEnabled() {
 	m.is_enabled = nil
 }
 
-// SetProviderID sets the "provider" edge to the ProviderProfile entity by id.
-func (m *FiatCurrencyMutation) SetProviderID(id string) {
-	m.provider = &id
+// AddProviderIDs adds the "providers" edge to the ProviderProfile entity by ids.
+func (m *FiatCurrencyMutation) AddProviderIDs(ids ...string) {
+	if m.providers == nil {
+		m.providers = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.providers[ids[i]] = struct{}{}
+	}
 }
 
-// ClearProvider clears the "provider" edge to the ProviderProfile entity.
-func (m *FiatCurrencyMutation) ClearProvider() {
-	m.clearedprovider = true
+// ClearProviders clears the "providers" edge to the ProviderProfile entity.
+func (m *FiatCurrencyMutation) ClearProviders() {
+	m.clearedproviders = true
 }
 
-// ProviderCleared reports if the "provider" edge to the ProviderProfile entity was cleared.
-func (m *FiatCurrencyMutation) ProviderCleared() bool {
-	return m.clearedprovider
+// ProvidersCleared reports if the "providers" edge to the ProviderProfile entity was cleared.
+func (m *FiatCurrencyMutation) ProvidersCleared() bool {
+	return m.clearedproviders
 }
 
-// ProviderID returns the "provider" edge ID in the mutation.
-func (m *FiatCurrencyMutation) ProviderID() (id string, exists bool) {
-	if m.provider != nil {
-		return *m.provider, true
+// RemoveProviderIDs removes the "providers" edge to the ProviderProfile entity by IDs.
+func (m *FiatCurrencyMutation) RemoveProviderIDs(ids ...string) {
+	if m.removedproviders == nil {
+		m.removedproviders = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.providers, ids[i])
+		m.removedproviders[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedProviders returns the removed IDs of the "providers" edge to the ProviderProfile entity.
+func (m *FiatCurrencyMutation) RemovedProvidersIDs() (ids []string) {
+	for id := range m.removedproviders {
+		ids = append(ids, id)
 	}
 	return
 }
 
-// ProviderIDs returns the "provider" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// ProviderID instead. It exists only for internal usage by the builders.
-func (m *FiatCurrencyMutation) ProviderIDs() (ids []string) {
-	if id := m.provider; id != nil {
-		ids = append(ids, *id)
+// ProvidersIDs returns the "providers" edge IDs in the mutation.
+func (m *FiatCurrencyMutation) ProvidersIDs() (ids []string) {
+	for id := range m.providers {
+		ids = append(ids, id)
 	}
 	return
 }
 
-// ResetProvider resets all changes to the "provider" edge.
-func (m *FiatCurrencyMutation) ResetProvider() {
-	m.provider = nil
-	m.clearedprovider = false
+// ResetProviders resets all changes to the "providers" edge.
+func (m *FiatCurrencyMutation) ResetProviders() {
+	m.providers = nil
+	m.clearedproviders = false
+	m.removedproviders = nil
 }
 
 // AddProvisionBucketIDs adds the "provision_buckets" edge to the ProvisionBucket entity by ids.
@@ -1492,8 +1508,8 @@ func (m *FiatCurrencyMutation) ResetField(name string) error {
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *FiatCurrencyMutation) AddedEdges() []string {
 	edges := make([]string, 0, 2)
-	if m.provider != nil {
-		edges = append(edges, fiatcurrency.EdgeProvider)
+	if m.providers != nil {
+		edges = append(edges, fiatcurrency.EdgeProviders)
 	}
 	if m.provision_buckets != nil {
 		edges = append(edges, fiatcurrency.EdgeProvisionBuckets)
@@ -1505,10 +1521,12 @@ func (m *FiatCurrencyMutation) AddedEdges() []string {
 // name in this mutation.
 func (m *FiatCurrencyMutation) AddedIDs(name string) []ent.Value {
 	switch name {
-	case fiatcurrency.EdgeProvider:
-		if id := m.provider; id != nil {
-			return []ent.Value{*id}
+	case fiatcurrency.EdgeProviders:
+		ids := make([]ent.Value, 0, len(m.providers))
+		for id := range m.providers {
+			ids = append(ids, id)
 		}
+		return ids
 	case fiatcurrency.EdgeProvisionBuckets:
 		ids := make([]ent.Value, 0, len(m.provision_buckets))
 		for id := range m.provision_buckets {
@@ -1522,6 +1540,9 @@ func (m *FiatCurrencyMutation) AddedIDs(name string) []ent.Value {
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *FiatCurrencyMutation) RemovedEdges() []string {
 	edges := make([]string, 0, 2)
+	if m.removedproviders != nil {
+		edges = append(edges, fiatcurrency.EdgeProviders)
+	}
 	if m.removedprovision_buckets != nil {
 		edges = append(edges, fiatcurrency.EdgeProvisionBuckets)
 	}
@@ -1532,6 +1553,12 @@ func (m *FiatCurrencyMutation) RemovedEdges() []string {
 // the given name in this mutation.
 func (m *FiatCurrencyMutation) RemovedIDs(name string) []ent.Value {
 	switch name {
+	case fiatcurrency.EdgeProviders:
+		ids := make([]ent.Value, 0, len(m.removedproviders))
+		for id := range m.removedproviders {
+			ids = append(ids, id)
+		}
+		return ids
 	case fiatcurrency.EdgeProvisionBuckets:
 		ids := make([]ent.Value, 0, len(m.removedprovision_buckets))
 		for id := range m.removedprovision_buckets {
@@ -1545,8 +1572,8 @@ func (m *FiatCurrencyMutation) RemovedIDs(name string) []ent.Value {
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *FiatCurrencyMutation) ClearedEdges() []string {
 	edges := make([]string, 0, 2)
-	if m.clearedprovider {
-		edges = append(edges, fiatcurrency.EdgeProvider)
+	if m.clearedproviders {
+		edges = append(edges, fiatcurrency.EdgeProviders)
 	}
 	if m.clearedprovision_buckets {
 		edges = append(edges, fiatcurrency.EdgeProvisionBuckets)
@@ -1558,8 +1585,8 @@ func (m *FiatCurrencyMutation) ClearedEdges() []string {
 // was cleared in this mutation.
 func (m *FiatCurrencyMutation) EdgeCleared(name string) bool {
 	switch name {
-	case fiatcurrency.EdgeProvider:
-		return m.clearedprovider
+	case fiatcurrency.EdgeProviders:
+		return m.clearedproviders
 	case fiatcurrency.EdgeProvisionBuckets:
 		return m.clearedprovision_buckets
 	}
@@ -1570,9 +1597,6 @@ func (m *FiatCurrencyMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *FiatCurrencyMutation) ClearEdge(name string) error {
 	switch name {
-	case fiatcurrency.EdgeProvider:
-		m.ClearProvider()
-		return nil
 	}
 	return fmt.Errorf("unknown FiatCurrency unique edge %s", name)
 }
@@ -1581,8 +1605,8 @@ func (m *FiatCurrencyMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *FiatCurrencyMutation) ResetEdge(name string) error {
 	switch name {
-	case fiatcurrency.EdgeProvider:
-		m.ResetProvider()
+	case fiatcurrency.EdgeProviders:
+		m.ResetProviders()
 		return nil
 	case fiatcurrency.EdgeProvisionBuckets:
 		m.ResetProvisionBuckets()
@@ -13100,7 +13124,8 @@ type UserMutation struct {
 	last_name                 *string
 	email                     *string
 	password                  *string
-	scope                     *user.Scope
+	scopes                    *[]string
+	appendscopes              []string
 	is_email_verified         *bool
 	clearedFields             map[string]struct{}
 	sender_profile            *uuid.UUID
@@ -13435,40 +13460,55 @@ func (m *UserMutation) ResetPassword() {
 	m.password = nil
 }
 
-// SetScope sets the "scope" field.
-func (m *UserMutation) SetScope(u user.Scope) {
-	m.scope = &u
+// SetScopes sets the "scopes" field.
+func (m *UserMutation) SetScopes(s []string) {
+	m.scopes = &s
+	m.appendscopes = nil
 }
 
-// Scope returns the value of the "scope" field in the mutation.
-func (m *UserMutation) Scope() (r user.Scope, exists bool) {
-	v := m.scope
+// Scopes returns the value of the "scopes" field in the mutation.
+func (m *UserMutation) Scopes() (r []string, exists bool) {
+	v := m.scopes
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldScope returns the old "scope" field's value of the User entity.
+// OldScopes returns the old "scopes" field's value of the User entity.
 // If the User object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *UserMutation) OldScope(ctx context.Context) (v user.Scope, err error) {
+func (m *UserMutation) OldScopes(ctx context.Context) (v []string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldScope is only allowed on UpdateOne operations")
+		return v, errors.New("OldScopes is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldScope requires an ID field in the mutation")
+		return v, errors.New("OldScopes requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldScope: %w", err)
+		return v, fmt.Errorf("querying old value for OldScopes: %w", err)
 	}
-	return oldValue.Scope, nil
+	return oldValue.Scopes, nil
 }
 
-// ResetScope resets all changes to the "scope" field.
-func (m *UserMutation) ResetScope() {
-	m.scope = nil
+// AppendScopes adds s to the "scopes" field.
+func (m *UserMutation) AppendScopes(s []string) {
+	m.appendscopes = append(m.appendscopes, s...)
+}
+
+// AppendedScopes returns the list of values that were appended to the "scopes" field in this mutation.
+func (m *UserMutation) AppendedScopes() ([]string, bool) {
+	if len(m.appendscopes) == 0 {
+		return nil, false
+	}
+	return m.appendscopes, true
+}
+
+// ResetScopes resets all changes to the "scopes" field.
+func (m *UserMutation) ResetScopes() {
+	m.scopes = nil
+	m.appendscopes = nil
 }
 
 // SetIsEmailVerified sets the "is_email_verified" field.
@@ -13692,8 +13732,8 @@ func (m *UserMutation) Fields() []string {
 	if m.password != nil {
 		fields = append(fields, user.FieldPassword)
 	}
-	if m.scope != nil {
-		fields = append(fields, user.FieldScope)
+	if m.scopes != nil {
+		fields = append(fields, user.FieldScopes)
 	}
 	if m.is_email_verified != nil {
 		fields = append(fields, user.FieldIsEmailVerified)
@@ -13718,8 +13758,8 @@ func (m *UserMutation) Field(name string) (ent.Value, bool) {
 		return m.Email()
 	case user.FieldPassword:
 		return m.Password()
-	case user.FieldScope:
-		return m.Scope()
+	case user.FieldScopes:
+		return m.Scopes()
 	case user.FieldIsEmailVerified:
 		return m.IsEmailVerified()
 	}
@@ -13743,8 +13783,8 @@ func (m *UserMutation) OldField(ctx context.Context, name string) (ent.Value, er
 		return m.OldEmail(ctx)
 	case user.FieldPassword:
 		return m.OldPassword(ctx)
-	case user.FieldScope:
-		return m.OldScope(ctx)
+	case user.FieldScopes:
+		return m.OldScopes(ctx)
 	case user.FieldIsEmailVerified:
 		return m.OldIsEmailVerified(ctx)
 	}
@@ -13798,12 +13838,12 @@ func (m *UserMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetPassword(v)
 		return nil
-	case user.FieldScope:
-		v, ok := value.(user.Scope)
+	case user.FieldScopes:
+		v, ok := value.([]string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetScope(v)
+		m.SetScopes(v)
 		return nil
 	case user.FieldIsEmailVerified:
 		v, ok := value.(bool)
@@ -13879,8 +13919,8 @@ func (m *UserMutation) ResetField(name string) error {
 	case user.FieldPassword:
 		m.ResetPassword()
 		return nil
-	case user.FieldScope:
-		m.ResetScope()
+	case user.FieldScopes:
+		m.ResetScopes()
 		return nil
 	case user.FieldIsEmailVerified:
 		m.ResetIsEmailVerified()

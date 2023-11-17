@@ -33,19 +33,19 @@ const (
 	FieldMarketRate = "market_rate"
 	// FieldIsEnabled holds the string denoting the is_enabled field in the database.
 	FieldIsEnabled = "is_enabled"
-	// EdgeProvider holds the string denoting the provider edge name in mutations.
-	EdgeProvider = "provider"
+	// EdgeProviders holds the string denoting the providers edge name in mutations.
+	EdgeProviders = "providers"
 	// EdgeProvisionBuckets holds the string denoting the provision_buckets edge name in mutations.
 	EdgeProvisionBuckets = "provision_buckets"
 	// Table holds the table name of the fiatcurrency in the database.
 	Table = "fiat_currencies"
-	// ProviderTable is the table that holds the provider relation/edge.
-	ProviderTable = "provider_profiles"
-	// ProviderInverseTable is the table name for the ProviderProfile entity.
+	// ProvidersTable is the table that holds the providers relation/edge.
+	ProvidersTable = "provider_profiles"
+	// ProvidersInverseTable is the table name for the ProviderProfile entity.
 	// It exists in this package in order to avoid circular dependency with the "providerprofile" package.
-	ProviderInverseTable = "provider_profiles"
-	// ProviderColumn is the table column denoting the provider relation/edge.
-	ProviderColumn = "fiat_currency_provider"
+	ProvidersInverseTable = "provider_profiles"
+	// ProvidersColumn is the table column denoting the providers relation/edge.
+	ProvidersColumn = "fiat_currency_providers"
 	// ProvisionBucketsTable is the table that holds the provision_buckets relation/edge.
 	ProvisionBucketsTable = "provision_buckets"
 	// ProvisionBucketsInverseTable is the table name for the ProvisionBucket entity.
@@ -147,10 +147,17 @@ func ByIsEnabled(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldIsEnabled, opts...).ToFunc()
 }
 
-// ByProviderField orders the results by provider field.
-func ByProviderField(field string, opts ...sql.OrderTermOption) OrderOption {
+// ByProvidersCount orders the results by providers count.
+func ByProvidersCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newProviderStep(), sql.OrderByField(field, opts...))
+		sqlgraph.OrderByNeighborsCount(s, newProvidersStep(), opts...)
+	}
+}
+
+// ByProviders orders the results by providers terms.
+func ByProviders(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newProvidersStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
 
@@ -167,11 +174,11 @@ func ByProvisionBuckets(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption 
 		sqlgraph.OrderByNeighborTerms(s, newProvisionBucketsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
-func newProviderStep() *sqlgraph.Step {
+func newProvidersStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(ProviderInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2O, false, ProviderTable, ProviderColumn),
+		sqlgraph.To(ProvidersInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, ProvidersTable, ProvidersColumn),
 	)
 }
 func newProvisionBucketsStep() *sqlgraph.Step {

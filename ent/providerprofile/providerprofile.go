@@ -65,7 +65,7 @@ const (
 	// It exists in this package in order to avoid circular dependency with the "fiatcurrency" package.
 	CurrencyInverseTable = "fiat_currencies"
 	// CurrencyColumn is the table column denoting the currency relation/edge.
-	CurrencyColumn = "fiat_currency_provider"
+	CurrencyColumn = "fiat_currency_providers"
 	// ProvisionBucketsTable is the table that holds the provision_buckets relation/edge. The primary key declared below.
 	ProvisionBucketsTable = "provision_bucket_provider_profiles"
 	// ProvisionBucketsInverseTable is the table name for the ProvisionBucket entity.
@@ -115,7 +115,7 @@ var Columns = []string{
 // ForeignKeys holds the SQL foreign-keys that are owned by the "provider_profiles"
 // table and are not defined as standalone fields in the schema.
 var ForeignKeys = []string{
-	"fiat_currency_provider",
+	"fiat_currency_providers",
 	"user_provider_profile",
 }
 
@@ -313,7 +313,7 @@ func newCurrencyStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(CurrencyInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2O, true, CurrencyTable, CurrencyColumn),
+		sqlgraph.Edge(sqlgraph.M2O, true, CurrencyTable, CurrencyColumn),
 	)
 }
 func newProvisionBucketsStep() *sqlgraph.Step {

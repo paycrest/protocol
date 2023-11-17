@@ -427,7 +427,7 @@ func (ppc *ProviderProfileCreate) createSpec() (*ProviderProfile, *sqlgraph.Crea
 	}
 	if nodes := ppc.mutation.CurrencyIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
+			Rel:     sqlgraph.M2O,
 			Inverse: true,
 			Table:   providerprofile.CurrencyTable,
 			Columns: []string{providerprofile.CurrencyColumn},
@@ -439,7 +439,7 @@ func (ppc *ProviderProfileCreate) createSpec() (*ProviderProfile, *sqlgraph.Crea
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.fiat_currency_provider = &nodes[0]
+		_node.fiat_currency_providers = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := ppc.mutation.ProvisionBucketsIDs(); len(nodes) > 0 {

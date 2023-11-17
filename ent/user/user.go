@@ -3,7 +3,6 @@
 package user
 
 import (
-	"fmt"
 	"time"
 
 	"entgo.io/ent"
@@ -29,8 +28,8 @@ const (
 	FieldEmail = "email"
 	// FieldPassword holds the string denoting the password field in the database.
 	FieldPassword = "password"
-	// FieldScope holds the string denoting the scope field in the database.
-	FieldScope = "scope"
+	// FieldScopes holds the string denoting the scopes field in the database.
+	FieldScopes = "scopes"
 	// FieldIsEmailVerified holds the string denoting the is_email_verified field in the database.
 	FieldIsEmailVerified = "is_email_verified"
 	// EdgeSenderProfile holds the string denoting the sender_profile edge name in mutations.
@@ -73,7 +72,7 @@ var Columns = []string{
 	FieldLastName,
 	FieldEmail,
 	FieldPassword,
-	FieldScope,
+	FieldScopes,
 	FieldIsEmailVerified,
 }
 
@@ -109,29 +108,6 @@ var (
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() uuid.UUID
 )
-
-// Scope defines the type for the "scope" enum field.
-type Scope string
-
-// Scope values.
-const (
-	ScopeSender   Scope = "sender"
-	ScopeProvider Scope = "provider"
-)
-
-func (s Scope) String() string {
-	return string(s)
-}
-
-// ScopeValidator is a validator for the "scope" field enum values. It is called by the builders before save.
-func ScopeValidator(s Scope) error {
-	switch s {
-	case ScopeSender, ScopeProvider:
-		return nil
-	default:
-		return fmt.Errorf("user: invalid enum value for scope field: %q", s)
-	}
-}
 
 // OrderOption defines the ordering options for the User queries.
 type OrderOption func(*sql.Selector)
@@ -169,11 +145,6 @@ func ByEmail(opts ...sql.OrderTermOption) OrderOption {
 // ByPassword orders the results by the password field.
 func ByPassword(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPassword, opts...).ToFunc()
-}
-
-// ByScope orders the results by the scope field.
-func ByScope(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldScope, opts...).ToFunc()
 }
 
 // ByIsEmailVerified orders the results by the is_email_verified field.

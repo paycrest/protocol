@@ -47,6 +47,9 @@ func TestAuth(t *testing.T) {
 
 	db.Client = client
 
+	// Set up test fiat currency
+	_, _ = test.CreateTestFiatCurrency(nil)
+
 	// Set up test routers
 	router := gin.New()
 	ctrl := &AuthController{
@@ -54,7 +57,6 @@ func TestAuth(t *testing.T) {
 		emailService:  svc.NewEmailService(svc.SENDGRID_MAIL_PROVIDER),
 	}
 
-	router.Use(middleware.ScopeMiddleware)
 	router.POST("/register", ctrl.Register)
 	router.POST("/login", ctrl.Login)
 	router.POST("/confirm-account", ctrl.ConfirmEmail)
@@ -66,16 +68,88 @@ func TestAuth(t *testing.T) {
 	var userID string
 
 	t.Run("Register", func(t *testing.T) {
-		t.Run("with valid payload", func(t *testing.T) {
+		t.Run("with valid payload and both sender and provider scopes", func(t *testing.T) {
+			// Test register with valid payload
+			payload := types.RegisterPayload{
+				FirstName:   "Ike",
+				LastName:    "Ayo",
+				Email:       "ikeayo@example.com",
+				Password:    "password",
+				TradingName: "Africana LP",
+				Currency:    "NGN",
+				Scopes:      []string{"sender", "provider"},
+			}
+
+			header := map[string]string{
+				"Client-Type": "web",
+			}
+
+			res, err := test.PerformRequest(t, "POST", "/register", payload, header, router)
+			assert.NoError(t, err)
+
+			// Assert the response body
+			assert.Equal(t, http.StatusCreated, res.Code)
+
+			var response types.Response
+			err = json.Unmarshal(res.Body.Bytes(), &response)
+			assert.NoError(t, err)
+			assert.Equal(t, "User created successfully", response.Message)
+			data, ok := response.Data.(map[string]interface{})
+			assert.True(t, ok, "response.Data is not of type map[string]interface{}")
+			assert.NotNil(t, data, "response.Data is nil")
+
+			// Assert the response data
+			assert.Contains(t, data, "id")
+			match, _ := regexp.MatchString(
+				`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$`,
+				data["id"].(string),
+			)
+			if !match {
+				t.Errorf("Expected '%s' to be a valid UUID", data["id"].(string))
+			}
+
+			userID = data["id"].(string)
+
+			// Parse the user ID string to uuid.UUID
+			userUUID, err := uuid.Parse(userID)
+			assert.NoError(t, err)
+			assert.Equal(t, payload.Email, data["email"].(string))
+			assert.Equal(t, payload.FirstName, data["firstName"].(string))
+			assert.Equal(t, payload.LastName, data["lastName"].(string))
+
+			// Query the database to check if API key and profile were created for the sender
+			senderProfile, err := db.Client.SenderProfile.
+				Query().
+				Where(senderprofile.HasUserWith(user.ID(userUUID))).
+				WithAPIKey().
+				Only(context.Background())
+			assert.NoError(t, err)
+
+			assert.NotNil(t, senderProfile.Edges.APIKey)
+			assert.NotNil(t, senderProfile)
+
+			// Query the database to check if API key and profile were created for the sender
+			providerProfile, err := db.Client.ProviderProfile.
+				Query().
+				Where(providerprofile.HasUserWith(user.ID(userUUID))).
+				WithAPIKey().
+				Only(context.Background())
+			assert.NoError(t, err)
+
+			assert.NotNil(t, providerProfile.Edges.APIKey)
+			assert.NotNil(t, providerProfile)
+		})
+		t.Run("with only sender scope payload", func(t *testing.T) {
 			// Test register with valid payload
 			payload := types.RegisterPayload{
 				FirstName: "Ike",
 				LastName:  "Ayo",
-				Email:     "ikeayo@example.com",
-				Password:  "password",
+				Email:     "ikeayo1@example.com",
+				Password:  "password1",
+				Scopes:    []string{"sender"},
 			}
 
-			res, err := test.PerformRequest(t, "POST", "/register?scope=sender", payload, nil, router)
+			res, err := test.PerformRequest(t, "POST", "/register", payload, nil, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -119,7 +193,66 @@ func TestAuth(t *testing.T) {
 			assert.NotNil(t, senderProfile.Edges.APIKey)
 			assert.NotNil(t, senderProfile)
 		})
+		t.Run("with only provider scope payload", func(t *testing.T) {
+			// Test register with valid payload
+			payload := types.RegisterPayload{
+				FirstName:   "Ike",
+				LastName:    "Ayo",
+				Email:       "ikeayo2@example.com",
+				Password:    "password2",
+				TradingName: "Americana LP",
+				Currency:    "NGN",
+				Scopes:      []string{"provider"},
+			}
 
+			header := map[string]string{
+				"Client-Type": "web",
+			}
+
+			res, err := test.PerformRequest(t, "POST", "/register", payload, header, router)
+			assert.NoError(t, err)
+
+			// Assert the response body
+			assert.Equal(t, http.StatusCreated, res.Code)
+
+			var response types.Response
+			err = json.Unmarshal(res.Body.Bytes(), &response)
+			assert.NoError(t, err)
+			assert.Equal(t, "User created successfully", response.Message)
+			data, ok := response.Data.(map[string]interface{})
+			assert.True(t, ok, "response.Data is not of type map[string]interface{}")
+			assert.NotNil(t, data, "response.Data is nil")
+
+			// Assert the response data
+			assert.Contains(t, data, "id")
+			match, _ := regexp.MatchString(
+				`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$`,
+				data["id"].(string),
+			)
+			if !match {
+				t.Errorf("Expected '%s' to be a valid UUID", data["id"].(string))
+			}
+
+			userID = data["id"].(string)
+
+			// Parse the user ID string to uuid.UUID
+			userUUID, err := uuid.Parse(userID)
+			assert.NoError(t, err)
+			assert.Equal(t, payload.Email, data["email"].(string))
+			assert.Equal(t, payload.FirstName, data["firstName"].(string))
+			assert.Equal(t, payload.LastName, data["lastName"].(string))
+
+			// Query the database to check if API key and profile were created for the sender
+			providerProfile, err := db.Client.ProviderProfile.
+				Query().
+				Where(providerprofile.HasUserWith(user.ID(userUUID))).
+				WithAPIKey().
+				Only(context.Background())
+			assert.NoError(t, err)
+
+			assert.NotNil(t, providerProfile.Edges.APIKey)
+			assert.NotNil(t, providerProfile)
+		})
 		t.Run("from the provider app", func(t *testing.T) {
 			// Test register with valid payload
 			payload := types.RegisterPayload{
@@ -127,18 +260,16 @@ func TestAuth(t *testing.T) {
 				LastName:    "Ayo",
 				Email:       "ikeayoprovider@example.com",
 				Password:    "password",
-				TradingName: "Africana LP",
+				TradingName: "Asian LP",
 				Currency:    "NGN",
+				Scopes:      []string{"provider"},
 			}
-
-			_, err := test.CreateTestFiatCurrency(nil)
-			assert.NoError(t, err)
 
 			headers := map[string]string{
 				"Client-Type": "mobile",
 			}
 
-			res, err := test.PerformRequest(t, "POST", "/register?scope=provider", payload, headers, router)
+			res, err := test.PerformRequest(t, "POST", "/register", payload, headers, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -174,9 +305,10 @@ func TestAuth(t *testing.T) {
 				LastName:  "Ayo",
 				Email:     "ikeayo@example.com",
 				Password:  "password",
+				Scopes:    []string{"sender"},
 			}
 
-			res, err := test.PerformRequest(t, "POST", "/register?scope=sender", payload, nil, router)
+			res, err := test.PerformRequest(t, "POST", "/register", payload, nil, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -196,9 +328,10 @@ func TestAuth(t *testing.T) {
 				LastName:  "Ayo",
 				Email:     "invalid-email",
 				Password:  "password",
+				Scopes:    []string{"sender"},
 			}
 
-			res, err := test.PerformRequest(t, "POST", "/register?scope=sender", payload, nil, router)
+			res, err := test.PerformRequest(t, "POST", "/register", payload, nil, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -223,6 +356,42 @@ func TestAuth(t *testing.T) {
 			assert.Contains(t, errorMap, "message")
 			assert.Equal(t, "Must be a valid email address", errorMap["message"].(string))
 		})
+
+		t.Run("with invalid scope", func(t *testing.T) {
+			// Test register with invalid email
+			payload := types.RegisterPayload{
+				FirstName: "Ike",
+				LastName:  "Ayo",
+				Email:     "ikeayovalidator@example.com",
+				Password:  "password",
+				Scopes:    []string{"validator"},
+			}
+
+			res, err := test.PerformRequest(t, "POST", "/register", payload, nil, router)
+			assert.NoError(t, err)
+
+			// Assert the response body
+			assert.Equal(t, http.StatusBadRequest, res.Code)
+
+			var response types.Response
+			err = json.Unmarshal(res.Body.Bytes(), &response)
+			assert.NoError(t, err)
+			assert.Equal(t, "Failed to validate payload", response.Message)
+			assert.Equal(t, "error", response.Status)
+			data, ok := response.Data.([]interface{})
+			assert.True(t, ok, "response.Data is not of type []interface{}")
+			assert.NotNil(t, data, "response.Data is nil")
+
+			// Assert the response errors in data
+			assert.Len(t, data, 1)
+			errorMap, ok := data[0].(map[string]interface{})
+			assert.True(t, ok, "error is not of type map[string]interface{}")
+			assert.NotNil(t, errorMap, "error is nil")
+			assert.Contains(t, errorMap, "field")
+			assert.Equal(t, "Scopes[0]", errorMap["field"].(string))
+			assert.Contains(t, errorMap, "message")
+		})
+
 	})
 
 	t.Run("ConfirmEmail", func(t *testing.T) {
@@ -248,7 +417,7 @@ func TestAuth(t *testing.T) {
 				Token: verificationtoken.Token,
 			}
 
-			res, err := test.PerformRequest(t, "POST", "/confirm-account?scope=sender", payload, nil, router)
+			res, err := test.PerformRequest(t, "POST", "/confirm-account", payload, nil, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -273,7 +442,7 @@ func TestAuth(t *testing.T) {
 				Password: "password",
 			}
 
-			res, err := test.PerformRequest(t, "POST", "/login?scope=sender", payload, nil, router)
+			res, err := test.PerformRequest(t, "POST", "/login", payload, nil, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -301,7 +470,7 @@ func TestAuth(t *testing.T) {
 				Password: "wrong-password",
 			}
 
-			res, err := test.PerformRequest(t, "POST", "/login?scope=sender", payload, nil, router)
+			res, err := test.PerformRequest(t, "POST", "/login", payload, nil, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -329,7 +498,7 @@ func TestAuth(t *testing.T) {
 				"Authorization": "Bearer " + refreshToken,
 			}
 
-			res, err := test.PerformRequest(t, "POST", "/refresh?scope=sender", payload, headers, router)
+			res, err := test.PerformRequest(t, "POST", "/refresh", payload, headers, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -363,7 +532,7 @@ func TestAuth(t *testing.T) {
 			headers := map[string]string{
 				"Authorization": "Bearer " + refreshTokenForHeader,
 			}
-			res, err := test.PerformRequest(t, "POST", "/refresh?scope=sender", payload, headers, router)
+			res, err := test.PerformRequest(t, "POST", "/refresh", payload, headers, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -394,7 +563,7 @@ func TestAuth(t *testing.T) {
 				Email: user.Email,
 			}
 
-			res, err := test.PerformRequest(t, "POST", "/resend-token?scope=sender", payload, nil, router)
+			res, err := test.PerformRequest(t, "POST", "/resend-token", payload, nil, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -417,7 +586,7 @@ func TestAuth(t *testing.T) {
 				"Authorization": "Bearer " + jwtAccessTokenForHeader,
 			}
 
-			res, err := test.PerformRequest(t, "POST", "/reset-password-token?scope=sender", nil, headers, router)
+			res, err := test.PerformRequest(t, "POST", "/reset-password-token", nil, headers, router)
 
 			assert.NoError(t, err)
 
@@ -455,7 +624,7 @@ func TestAuth(t *testing.T) {
 			ResetPasswordPayload := map[string]string{
 				"new-password": "1111000090",
 			}
-			res, err := test.PerformRequest(t, "PATCH", "/reset-password?scope=sender", ResetPasswordPayload, headers, router)
+			res, err := test.PerformRequest(t, "PATCH", "/reset-password", ResetPasswordPayload, headers, router)
 
 			assert.Error(t, errors.New("Invalid password reset token"), err)
 			// Assert the response body
@@ -479,7 +648,7 @@ func TestAuth(t *testing.T) {
 				"new-password": "1111000090",
 				"reset-token":  resetToken.Token,
 			}
-			res, err := test.PerformRequest(t, "PATCH", "/reset-password?scope=sender", ResetPasswordPayload, headers, router)
+			res, err := test.PerformRequest(t, "PATCH", "/reset-password", ResetPasswordPayload, headers, router)
 
 			assert.Error(t, errors.New("Invalid password reset token"), err)
 			// Assert the response body
@@ -503,7 +672,7 @@ func TestAuth(t *testing.T) {
 				"new-password": "1111000090",
 				"reset-token":  emailVerificationToken.Token,
 			}
-			res, err := test.PerformRequest(t, "PATCH", "/reset-password?scope=sender", ResetPasswordPayload, headers, router)
+			res, err := test.PerformRequest(t, "PATCH", "/reset-password", ResetPasswordPayload, headers, router)
 
 			assert.Error(t, errors.New("Invalid password reset token"), err)
 			// Assert the response body
@@ -529,7 +698,7 @@ func TestAuth(t *testing.T) {
 				"Authorization": "Bearer " + jwtAccessTokenForHeader,
 			}
 
-			res, err := test.PerformRequest(t, "PATCH", "/reset-password?scope=sender", resetPasswordPayload, headers, router)
+			res, err := test.PerformRequest(t, "PATCH", "/reset-password", resetPasswordPayload, headers, router)
 			assert.NoError(t, err)
 			// Assert the response body
 			assert.Equal(t, http.StatusOK, res.Code)
