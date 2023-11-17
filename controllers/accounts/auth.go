@@ -111,81 +111,73 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 
 	// Create a provider profile
 	clientType := ctx.GetHeader("Client-Type")
-	if u.ContainsString(scopes, "provider") || u.ContainsString(scopes, "sender") {
-		if u.StringSliceContains(scopes, "provider") && (clientType == "web" || clientType == "mobile") {
-			// Fetch currency
-			currency, err := tx.FiatCurrency.
-				Query().
-				Where(
-					fiatcurrency.IsEnabledEQ(true),
-					fiatcurrency.CodeEQ(payload.Currency),
-				).
-				Only(ctx)
-			if err != nil {
-				_ = tx.Rollback()
-				logger.Errorf("error: %v", err)
-				u.APIResponse(ctx, http.StatusInternalServerError, "error",
-					"Failed to create new user", nil)
-				return
-			}
-
-			provider, err := tx.ProviderProfile.
-				Create().
-				SetTradingName(payload.TradingName).
-				SetCurrency(currency).
-				SetUser(user).
-				SetProvisionMode(providerprofile.ProvisionModeManual).
-				Save(ctx)
-			if err != nil {
-				_ = tx.Rollback()
-				logger.Errorf("error: %v", err)
-				u.APIResponse(ctx, http.StatusInternalServerError, "error",
-					"Failed to create new user", nil)
-				return
-			}
-
-			// Generate the API key using the service
-			_, _, err = ctrl.apiKeyService.GenerateAPIKey(ctx, tx, nil, provider)
-			if err != nil {
-				_ = tx.Rollback()
-				logger.Errorf("error: %v", err)
-				u.APIResponse(ctx, http.StatusInternalServerError, "error",
-					"Failed to create new user", nil)
-				return
-			}
+	if u.ContainsString(scopes, "provider") && (clientType == "web" || clientType == "mobile") {
+		// Fetch currency
+		currency, err := tx.FiatCurrency.
+			Query().
+			Where(
+				fiatcurrency.IsEnabledEQ(true),
+				fiatcurrency.CodeEQ(payload.Currency),
+			).
+			Only(ctx)
+		if err != nil {
+			_ = tx.Rollback()
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error",
+				"Failed to create new user", nil)
+			return
 		}
 
-		// Create a sender profile
-		if u.StringSliceContains(scopes, "sender") {
-			sender, err := tx.SenderProfile.
-				Create().
-				SetUser(user).
-				SetFeePerTokenUnit(decimal.NewFromFloat(0.0)).
-				Save(ctx)
-			if err != nil {
-				_ = tx.Rollback()
-				logger.Errorf("error: %v", err)
-				u.APIResponse(ctx, http.StatusInternalServerError, "error",
-					"Failed to create new user", nil)
-				return
-			}
-
-			// Generate the API key using the service
-			_, _, err = ctrl.apiKeyService.GenerateAPIKey(ctx, tx, sender, nil)
-			if err != nil {
-				_ = tx.Rollback()
-				logger.Errorf("error: %v", err)
-				u.APIResponse(ctx, http.StatusInternalServerError, "error",
-					"Failed to create new user", nil)
-				return
-			}
+		provider, err := tx.ProviderProfile.
+			Create().
+			SetTradingName(payload.TradingName).
+			SetCurrency(currency).
+			SetUser(user).
+			SetProvisionMode(providerprofile.ProvisionModeManual).
+			Save(ctx)
+		if err != nil {
+			_ = tx.Rollback()
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error",
+				"Failed to create new user", nil)
+			return
 		}
-	} else {
-		_ = tx.Rollback()
-		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusBadRequest, "error",
-			"Failed to create new user", nil)
-		return
+
+		// Generate the API key using the service
+		_, _, err = ctrl.apiKeyService.GenerateAPIKey(ctx, tx, nil, provider)
+		if err != nil {
+			_ = tx.Rollback()
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error",
+				"Failed to create new user", nil)
+			return
+		}
+	}
+
+	// Create a sender profile
+	if u.ContainsString(scopes, "sender") {
+		sender, err := tx.SenderProfile.
+			Create().
+			SetUser(user).
+			SetFeePerTokenUnit(decimal.NewFromFloat(0.0)).
+			Save(ctx)
+		if err != nil {
+			_ = tx.Rollback()
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error",
+				"Failed to create new user", nil)
+			return
+		}
+
+		// Generate the API key using the service
+		_, _, err = ctrl.apiKeyService.GenerateAPIKey(ctx, tx, sender, nil)
+		if err != nil {
+			_ = tx.Rollback()
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error",
+				"Failed to create new user", nil)
+			return
+		}
 	}
 
 	if err := tx.Commit(); err != nil {
