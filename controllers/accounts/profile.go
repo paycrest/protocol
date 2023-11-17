@@ -18,6 +18,7 @@ import (
 	db "github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
 	u "github.com/paycrest/protocol/utils"
+	"github.com/paycrest/protocol/utils/logger"
 	"github.com/shopspring/decimal"
 
 	"github.com/gin-gonic/gin"
@@ -90,16 +91,24 @@ func (ctrl *ProfileController) UpdateSenderProfile(ctx *gin.Context) {
 
 	// check if refundAddress, feeAddress and webhookURL are not empty
 	if senderProfile.RefundAddress != "" && senderProfile.FeeAddress != "" && senderProfile.WebhookURL != "" {
-		db.Client.SenderProfile.
+		_, err := db.Client.SenderProfile.
 			UpdateOne(senderProfile).
 			SetIsActive(true).
 			Save(ctx)
+		if err != nil {
+			logger.Errorf("Failed to update sender profile: %v", err)
+			return
+		}
 
 	} else {
-		db.Client.SenderProfile.
+		_, err := db.Client.SenderProfile.
 			UpdateOne(senderProfile).
 			SetIsActive(false).
 			Save(ctx)
+		if err != nil {
+			logger.Errorf("Failed to update sender profile: %v", err)
+			return
+		}
 	}
 
 	u.APIResponse(ctx, http.StatusOK, "success", "Profile updated successfully", nil)
@@ -306,15 +315,23 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 
 	// check if host id and trading name are not empty
 	if providerProfile.HostIdentifier != "" && providerProfile.TradingName != "" {
-		db.Client.ProviderProfile.
+		_, err := db.Client.ProviderProfile.
 			UpdateOne(providerProfile).
 			SetIsActive(true).
 			Save(ctx)
+		if err != nil {
+			logger.Errorf("Failed to update provider profile: %v", err)
+			return
+		}
 	} else {
-		db.Client.ProviderProfile.
+		_, err := db.Client.ProviderProfile.
 			UpdateOne(providerProfile).
 			SetIsActive(false).
 			Save(ctx)
+		if err != nil {
+			logger.Errorf("Failed to update provider profile: %v", err)
+			return
+		}
 	}
 
 	u.APIResponse(ctx, http.StatusOK, "success", "Profile updated successfully", nil)
@@ -393,8 +410,5 @@ func (ctrl *ProfileController) GetProviderProfile(ctx *gin.Context) {
 
 func isURL(s string) bool {
 	_, err := url.ParseRequestURI(s)
-	if err != nil {
-		return false
-	}
-	return true
+	return err == nil
 }
