@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jarcoal/httpmock"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/routers/middleware"
 	svc "github.com/paycrest/protocol/services"
 	db "github.com/paycrest/protocol/storage"
@@ -20,8 +21,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/paycrest/protocol/ent/enttest"
-	"github.com/paycrest/protocol/ent/providerprofile"
-	"github.com/paycrest/protocol/ent/senderprofile"
 	"github.com/paycrest/protocol/ent/user"
 	"github.com/paycrest/protocol/ent/verificationtoken"
 	"github.com/paycrest/protocol/utils/test"
@@ -118,26 +117,24 @@ func TestAuth(t *testing.T) {
 			assert.Equal(t, payload.LastName, data["lastName"].(string))
 
 			// Query the database to check if API key and profile were created for the sender
-			senderProfile, err := db.Client.SenderProfile.
+			user, err := db.Client.User.
 				Query().
-				Where(senderprofile.HasUserWith(user.ID(userUUID))).
-				WithAPIKey().
+				Where(user.IDEQ(userUUID)).
+				WithProviderProfile(
+					func(q *ent.ProviderProfileQuery) {
+						q.WithAPIKey()
+					}).
+				WithSenderProfile(func(q *ent.SenderProfileQuery) {
+					q.WithAPIKey()
+				}).
 				Only(context.Background())
+
 			assert.NoError(t, err)
 
-			assert.NotNil(t, senderProfile.Edges.APIKey)
-			assert.NotNil(t, senderProfile)
+			assert.NotNil(t, user)
+			assert.NotNil(t, user.Edges.SenderProfile.Edges.APIKey)
+			assert.NotNil(t, user.Edges.ProviderProfile.Edges.APIKey)
 
-			// Query the database to check if API key and profile were created for the sender
-			providerProfile, err := db.Client.ProviderProfile.
-				Query().
-				Where(providerprofile.HasUserWith(user.ID(userUUID))).
-				WithAPIKey().
-				Only(context.Background())
-			assert.NoError(t, err)
-
-			assert.NotNil(t, providerProfile.Edges.APIKey)
-			assert.NotNil(t, providerProfile)
 		})
 		t.Run("with only sender scope payload", func(t *testing.T) {
 			// Test register with valid payload
@@ -183,15 +180,19 @@ func TestAuth(t *testing.T) {
 			assert.Equal(t, payload.LastName, data["lastName"].(string))
 
 			// Query the database to check if API key and profile were created for the sender
-			senderProfile, err := db.Client.SenderProfile.
+			user, err := db.Client.User.
 				Query().
-				Where(senderprofile.HasUserWith(user.ID(userUUID))).
-				WithAPIKey().
+				Where(user.IDEQ(userUUID)).
+				WithProviderProfile().
+				WithSenderProfile(func(spq *ent.SenderProfileQuery) {
+					spq.WithAPIKey()
+				}).
 				Only(context.Background())
 			assert.NoError(t, err)
 
-			assert.NotNil(t, senderProfile.Edges.APIKey)
-			assert.NotNil(t, senderProfile)
+			assert.NotNil(t, user)
+			assert.NotNil(t, user.Edges.SenderProfile.Edges.APIKey)
+			assert.Nil(t, user.Edges.ProviderProfile)
 		})
 		t.Run("with only provider scope payload", func(t *testing.T) {
 			// Test register with valid payload
@@ -243,15 +244,20 @@ func TestAuth(t *testing.T) {
 			assert.Equal(t, payload.LastName, data["lastName"].(string))
 
 			// Query the database to check if API key and profile were created for the sender
-			providerProfile, err := db.Client.ProviderProfile.
+			user, err := db.Client.User.
 				Query().
-				Where(providerprofile.HasUserWith(user.ID(userUUID))).
-				WithAPIKey().
+				Where(user.IDEQ(userUUID)).
+				WithProviderProfile(
+					func(ppq *ent.ProviderProfileQuery) {
+						ppq.WithAPIKey()
+					}).
+				WithSenderProfile().
 				Only(context.Background())
 			assert.NoError(t, err)
 
-			assert.NotNil(t, providerProfile.Edges.APIKey)
-			assert.NotNil(t, providerProfile)
+			assert.NotNil(t, user)
+			assert.NotNil(t, user.Edges.ProviderProfile.Edges.APIKey)
+			assert.Nil(t, user.Edges.SenderProfile)
 		})
 		t.Run("from the provider app", func(t *testing.T) {
 			// Test register with valid payload
@@ -287,15 +293,20 @@ func TestAuth(t *testing.T) {
 			assert.NoError(t, err)
 
 			// Query the database to check if API key and profile were created for the provider
-			providerProfile, err := db.Client.ProviderProfile.
+			user, err := db.Client.User.
 				Query().
-				Where(providerprofile.HasUserWith(user.ID(userUUID))).
-				WithAPIKey().
+				Where(user.IDEQ(userUUID)).
+				WithProviderProfile(
+					func(q *ent.ProviderProfileQuery) {
+						q.WithAPIKey()
+					}).
+				WithSenderProfile().
 				Only(context.Background())
 			assert.NoError(t, err)
 
-			assert.NotNil(t, providerProfile.Edges.APIKey)
-			assert.NotNil(t, providerProfile)
+			assert.NotNil(t, user)
+			assert.NotNil(t, user.Edges.ProviderProfile.Edges.APIKey)
+			assert.Nil(t, user.Edges.SenderProfile)
 		})
 
 		t.Run("with existing user", func(t *testing.T) {
