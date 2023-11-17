@@ -37,10 +37,10 @@ type ProviderProfile struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ProviderProfileQuery when eager-loading is set.
-	Edges                  ProviderProfileEdges `json:"edges"`
-	fiat_currency_provider *uuid.UUID
-	user_provider_profile  *uuid.UUID
-	selectValues           sql.SelectValues
+	Edges                   ProviderProfileEdges `json:"edges"`
+	fiat_currency_providers *uuid.UUID
+	user_provider_profile   *uuid.UUID
+	selectValues            sql.SelectValues
 }
 
 // ProviderProfileEdges holds the relations/edges for other nodes in the graph.
@@ -169,7 +169,7 @@ func (*ProviderProfile) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullString)
 		case providerprofile.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
-		case providerprofile.ForeignKeys[0]: // fiat_currency_provider
+		case providerprofile.ForeignKeys[0]: // fiat_currency_providers
 			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		case providerprofile.ForeignKeys[1]: // user_provider_profile
 			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
@@ -232,10 +232,10 @@ func (pp *ProviderProfile) assignValues(columns []string, values []any) error {
 			}
 		case providerprofile.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullScanner); !ok {
-				return fmt.Errorf("unexpected type %T for field fiat_currency_provider", values[i])
+				return fmt.Errorf("unexpected type %T for field fiat_currency_providers", values[i])
 			} else if value.Valid {
-				pp.fiat_currency_provider = new(uuid.UUID)
-				*pp.fiat_currency_provider = *value.S.(*uuid.UUID)
+				pp.fiat_currency_providers = new(uuid.UUID)
+				*pp.fiat_currency_providers = *value.S.(*uuid.UUID)
 			}
 		case providerprofile.ForeignKeys[1]:
 			if value, ok := values[i].(*sql.NullScanner); !ok {

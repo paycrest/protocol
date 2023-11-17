@@ -134,7 +134,7 @@ func (ppq *ProviderProfileQuery) QueryCurrency() *FiatCurrencyQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(providerprofile.Table, providerprofile.FieldID, selector),
 			sqlgraph.To(fiatcurrency.Table, fiatcurrency.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, providerprofile.CurrencyTable, providerprofile.CurrencyColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, providerprofile.CurrencyTable, providerprofile.CurrencyColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(ppq.driver.Dialect(), step)
 		return fromU, nil
@@ -782,10 +782,10 @@ func (ppq *ProviderProfileQuery) loadCurrency(ctx context.Context, query *FiatCu
 	ids := make([]uuid.UUID, 0, len(nodes))
 	nodeids := make(map[uuid.UUID][]*ProviderProfile)
 	for i := range nodes {
-		if nodes[i].fiat_currency_provider == nil {
+		if nodes[i].fiat_currency_providers == nil {
 			continue
 		}
-		fk := *nodes[i].fiat_currency_provider
+		fk := *nodes[i].fiat_currency_providers
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}
@@ -802,7 +802,7 @@ func (ppq *ProviderProfileQuery) loadCurrency(ctx context.Context, query *FiatCu
 	for _, n := range neighbors {
 		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "fiat_currency_provider" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "fiat_currency_providers" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)

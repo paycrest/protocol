@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/paycrest/protocol/routers/middleware"
 	db "github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
 	"github.com/shopspring/decimal"
@@ -40,7 +39,6 @@ func TestIndex(t *testing.T) {
 	// Set up test routers
 	var ctrl Controller
 	router := gin.New()
-	router.Use(middleware.ScopeMiddleware)
 
 	router.GET("currencies", ctrl.GetFiatCurrencies)
 

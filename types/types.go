@@ -55,12 +55,13 @@ func NewEthClient(endpoint string) (RPCClient, error) {
 
 // RegisterPayload is the payload for the register endpoint
 type RegisterPayload struct {
-	FirstName   string `json:"firstName" binding:"required"`
-	LastName    string `json:"lastName" binding:"required"`
-	Email       string `json:"email" binding:"required,email"`
-	Password    string `json:"password" binding:"required,min=6,max=20"`
-	TradingName string `json:"tradingName"`
-	Currency    string `json:"currency"`
+	FirstName   string   `json:"firstName" binding:"required"`
+	LastName    string   `json:"lastName" binding:"required"`
+	Email       string   `json:"email" binding:"required,email"`
+	Password    string   `json:"password" binding:"required,min=6,max=20"`
+	TradingName string   `json:"tradingName"`
+	Currency    string   `json:"currency"`
+	Scopes      []string `json:"scopes" binding:"required,dive,oneof=sender provider"`
 }
 
 // RegisterResponse is the response for the register endpoint
@@ -117,8 +118,9 @@ type LoginPayload struct {
 
 // LoginResponse is the response for the login endpoint
 type LoginResponse struct {
-	AccessToken  string `json:"accessToken"`
-	RefreshToken string `json:"refreshToken"`
+	AccessToken  string   `json:"accessToken"`
+	RefreshToken string   `json:"refreshToken"`
+	Scopes       []string `json:"scopes"`
 }
 
 // RefreshJWTPayload is the payload for the refresh endpoint

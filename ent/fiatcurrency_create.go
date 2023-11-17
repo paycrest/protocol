@@ -124,23 +124,19 @@ func (fcc *FiatCurrencyCreate) SetNillableID(u *uuid.UUID) *FiatCurrencyCreate {
 	return fcc
 }
 
-// SetProviderID sets the "provider" edge to the ProviderProfile entity by ID.
-func (fcc *FiatCurrencyCreate) SetProviderID(id string) *FiatCurrencyCreate {
-	fcc.mutation.SetProviderID(id)
+// AddProviderIDs adds the "providers" edge to the ProviderProfile entity by IDs.
+func (fcc *FiatCurrencyCreate) AddProviderIDs(ids ...string) *FiatCurrencyCreate {
+	fcc.mutation.AddProviderIDs(ids...)
 	return fcc
 }
 
-// SetNillableProviderID sets the "provider" edge to the ProviderProfile entity by ID if the given value is not nil.
-func (fcc *FiatCurrencyCreate) SetNillableProviderID(id *string) *FiatCurrencyCreate {
-	if id != nil {
-		fcc = fcc.SetProviderID(*id)
+// AddProviders adds the "providers" edges to the ProviderProfile entity.
+func (fcc *FiatCurrencyCreate) AddProviders(p ...*ProviderProfile) *FiatCurrencyCreate {
+	ids := make([]string, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
 	}
-	return fcc
-}
-
-// SetProvider sets the "provider" edge to the ProviderProfile entity.
-func (fcc *FiatCurrencyCreate) SetProvider(p *ProviderProfile) *FiatCurrencyCreate {
-	return fcc.SetProviderID(p.ID)
+	return fcc.AddProviderIDs(ids...)
 }
 
 // AddProvisionBucketIDs adds the "provision_buckets" edge to the ProvisionBucket entity by IDs.
@@ -315,12 +311,12 @@ func (fcc *FiatCurrencyCreate) createSpec() (*FiatCurrency, *sqlgraph.CreateSpec
 		_spec.SetField(fiatcurrency.FieldIsEnabled, field.TypeBool, value)
 		_node.IsEnabled = value
 	}
-	if nodes := fcc.mutation.ProviderIDs(); len(nodes) > 0 {
+	if nodes := fcc.mutation.ProvidersIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   fiatcurrency.ProviderTable,
-			Columns: []string{fiatcurrency.ProviderColumn},
+			Table:   fiatcurrency.ProvidersTable,
+			Columns: []string{fiatcurrency.ProvidersColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(providerprofile.FieldID, field.TypeString),

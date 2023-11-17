@@ -8,7 +8,6 @@ import (
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	"github.com/paycrest/protocol/ent/providerprofile"
-	"github.com/paycrest/protocol/ent/user"
 	db "github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
 	"github.com/shopspring/decimal"
@@ -23,7 +22,6 @@ func CreateTestUser(overrides map[string]string) (*ent.User, error) {
 		"lastName":  "Doe",
 		"email":     "johndoe@test.com",
 		"password":  "password",
-		"scope":     "sender",
 	}
 
 	// Apply overrides
@@ -38,7 +36,7 @@ func CreateTestUser(overrides map[string]string) (*ent.User, error) {
 		SetLastName(payload["lastName"]).
 		SetEmail(strings.ToLower(payload["email"])).
 		SetPassword(payload["password"]).
-		SetScope(user.Scope(payload["scope"])).
+		SetScopes([]string{"sender"}).
 		Save(context.Background())
 
 	return user, err

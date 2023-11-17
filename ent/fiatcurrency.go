@@ -11,7 +11,6 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
 	"github.com/paycrest/protocol/ent/fiatcurrency"
-	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/shopspring/decimal"
 )
 
@@ -46,8 +45,8 @@ type FiatCurrency struct {
 
 // FiatCurrencyEdges holds the relations/edges for other nodes in the graph.
 type FiatCurrencyEdges struct {
-	// Provider holds the value of the provider edge.
-	Provider *ProviderProfile `json:"provider,omitempty"`
+	// Providers holds the value of the providers edge.
+	Providers []*ProviderProfile `json:"providers,omitempty"`
 	// ProvisionBuckets holds the value of the provision_buckets edge.
 	ProvisionBuckets []*ProvisionBucket `json:"provision_buckets,omitempty"`
 	// loadedTypes holds the information for reporting if a
@@ -55,17 +54,13 @@ type FiatCurrencyEdges struct {
 	loadedTypes [2]bool
 }
 
-// ProviderOrErr returns the Provider value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e FiatCurrencyEdges) ProviderOrErr() (*ProviderProfile, error) {
+// ProvidersOrErr returns the Providers value or an error if the edge
+// was not loaded in eager-loading.
+func (e FiatCurrencyEdges) ProvidersOrErr() ([]*ProviderProfile, error) {
 	if e.loadedTypes[0] {
-		if e.Provider == nil {
-			// Edge was loaded but was not found.
-			return nil, &NotFoundError{label: providerprofile.Label}
-		}
-		return e.Provider, nil
+		return e.Providers, nil
 	}
-	return nil, &NotLoadedError{edge: "provider"}
+	return nil, &NotLoadedError{edge: "providers"}
 }
 
 // ProvisionBucketsOrErr returns the ProvisionBuckets value or an error if the edge
@@ -182,9 +177,9 @@ func (fc *FiatCurrency) Value(name string) (ent.Value, error) {
 	return fc.selectValues.Get(name)
 }
 
-// QueryProvider queries the "provider" edge of the FiatCurrency entity.
-func (fc *FiatCurrency) QueryProvider() *ProviderProfileQuery {
-	return NewFiatCurrencyClient(fc.config).QueryProvider(fc)
+// QueryProviders queries the "providers" edge of the FiatCurrency entity.
+func (fc *FiatCurrency) QueryProviders() *ProviderProfileQuery {
+	return NewFiatCurrencyClient(fc.config).QueryProviders(fc)
 }
 
 // QueryProvisionBuckets queries the "provision_buckets" edge of the FiatCurrency entity.

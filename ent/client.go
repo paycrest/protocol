@@ -600,15 +600,15 @@ func (c *FiatCurrencyClient) GetX(ctx context.Context, id uuid.UUID) *FiatCurren
 	return obj
 }
 
-// QueryProvider queries the provider edge of a FiatCurrency.
-func (c *FiatCurrencyClient) QueryProvider(fc *FiatCurrency) *ProviderProfileQuery {
+// QueryProviders queries the providers edge of a FiatCurrency.
+func (c *FiatCurrencyClient) QueryProviders(fc *FiatCurrency) *ProviderProfileQuery {
 	query := (&ProviderProfileClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := fc.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(fiatcurrency.Table, fiatcurrency.FieldID, id),
 			sqlgraph.To(providerprofile.Table, providerprofile.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, fiatcurrency.ProviderTable, fiatcurrency.ProviderColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, fiatcurrency.ProvidersTable, fiatcurrency.ProvidersColumn),
 		)
 		fromV = sqlgraph.Neighbors(fc.driver.Dialect(), step)
 		return fromV, nil
@@ -1824,7 +1824,7 @@ func (c *ProviderProfileClient) QueryCurrency(pp *ProviderProfile) *FiatCurrency
 		step := sqlgraph.NewStep(
 			sqlgraph.From(providerprofile.Table, providerprofile.FieldID, id),
 			sqlgraph.To(fiatcurrency.Table, fiatcurrency.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, providerprofile.CurrencyTable, providerprofile.CurrencyColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, providerprofile.CurrencyTable, providerprofile.CurrencyColumn),
 		)
 		fromV = sqlgraph.Neighbors(pp.driver.Dialect(), step)
 		return fromV, nil

@@ -10,6 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
 	"github.com/paycrest/protocol/ent/predicate"
@@ -62,9 +63,15 @@ func (uu *UserUpdate) SetPassword(s string) *UserUpdate {
 	return uu
 }
 
-// SetScope sets the "scope" field.
-func (uu *UserUpdate) SetScope(u user.Scope) *UserUpdate {
-	uu.mutation.SetScope(u)
+// SetScopes sets the "scopes" field.
+func (uu *UserUpdate) SetScopes(s []string) *UserUpdate {
+	uu.mutation.SetScopes(s)
+	return uu
+}
+
+// AppendScopes appends s to the "scopes" field.
+func (uu *UserUpdate) AppendScopes(s []string) *UserUpdate {
+	uu.mutation.AppendScopes(s)
 	return uu
 }
 
@@ -227,11 +234,6 @@ func (uu *UserUpdate) check() error {
 			return &ValidationError{Name: "last_name", err: fmt.Errorf(`ent: validator failed for field "User.last_name": %w`, err)}
 		}
 	}
-	if v, ok := uu.mutation.Scope(); ok {
-		if err := user.ScopeValidator(v); err != nil {
-			return &ValidationError{Name: "scope", err: fmt.Errorf(`ent: validator failed for field "User.scope": %w`, err)}
-		}
-	}
 	return nil
 }
 
@@ -262,8 +264,13 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if value, ok := uu.mutation.Password(); ok {
 		_spec.SetField(user.FieldPassword, field.TypeString, value)
 	}
-	if value, ok := uu.mutation.Scope(); ok {
-		_spec.SetField(user.FieldScope, field.TypeEnum, value)
+	if value, ok := uu.mutation.Scopes(); ok {
+		_spec.SetField(user.FieldScopes, field.TypeJSON, value)
+	}
+	if value, ok := uu.mutation.AppendedScopes(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, user.FieldScopes, value)
+		})
 	}
 	if value, ok := uu.mutation.IsEmailVerified(); ok {
 		_spec.SetField(user.FieldIsEmailVerified, field.TypeBool, value)
@@ -421,9 +428,15 @@ func (uuo *UserUpdateOne) SetPassword(s string) *UserUpdateOne {
 	return uuo
 }
 
-// SetScope sets the "scope" field.
-func (uuo *UserUpdateOne) SetScope(u user.Scope) *UserUpdateOne {
-	uuo.mutation.SetScope(u)
+// SetScopes sets the "scopes" field.
+func (uuo *UserUpdateOne) SetScopes(s []string) *UserUpdateOne {
+	uuo.mutation.SetScopes(s)
+	return uuo
+}
+
+// AppendScopes appends s to the "scopes" field.
+func (uuo *UserUpdateOne) AppendScopes(s []string) *UserUpdateOne {
+	uuo.mutation.AppendScopes(s)
 	return uuo
 }
 
@@ -599,11 +612,6 @@ func (uuo *UserUpdateOne) check() error {
 			return &ValidationError{Name: "last_name", err: fmt.Errorf(`ent: validator failed for field "User.last_name": %w`, err)}
 		}
 	}
-	if v, ok := uuo.mutation.Scope(); ok {
-		if err := user.ScopeValidator(v); err != nil {
-			return &ValidationError{Name: "scope", err: fmt.Errorf(`ent: validator failed for field "User.scope": %w`, err)}
-		}
-	}
 	return nil
 }
 
@@ -651,8 +659,13 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 	if value, ok := uuo.mutation.Password(); ok {
 		_spec.SetField(user.FieldPassword, field.TypeString, value)
 	}
-	if value, ok := uuo.mutation.Scope(); ok {
-		_spec.SetField(user.FieldScope, field.TypeEnum, value)
+	if value, ok := uuo.mutation.Scopes(); ok {
+		_spec.SetField(user.FieldScopes, field.TypeJSON, value)
+	}
+	if value, ok := uuo.mutation.AppendedScopes(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, user.FieldScopes, value)
+		})
 	}
 	if value, ok := uuo.mutation.IsEmailVerified(); ok {
 		_spec.SetField(user.FieldIsEmailVerified, field.TypeBool, value)

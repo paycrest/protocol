@@ -49,7 +49,7 @@ func (ProviderProfile) Edges() []ent.Edge {
 			Unique().
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.From("currency", FiatCurrency.Type).
-			Ref("provider").
+			Ref("providers").
 			Unique().
 			Required(),
 		edge.From("provision_buckets", ProvisionBucket.Type).

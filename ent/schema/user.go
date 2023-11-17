@@ -35,8 +35,7 @@ func (User) Fields() []ent.Field {
 		field.String("last_name").MaxLen(80),
 		field.String("email"),
 		field.String("password").Sensitive(),
-		field.Enum("scope").
-			Values("sender", "provider"),
+		field.JSON("scopes", []string{}),
 		field.Bool("is_email_verified").
 			Default(false),
 	}
@@ -58,7 +57,7 @@ func (User) Edges() []ent.Edge {
 // Indexes of the User.
 func (User) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Fields("email", "scope").
+		index.Fields("email", "scopes").
 			Unique(),
 	}
 }

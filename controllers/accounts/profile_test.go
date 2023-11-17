@@ -32,8 +32,6 @@ func TestProfile(t *testing.T) {
 	router := gin.New()
 	ctrl := &ProfileController{}
 
-	router.Use(middleware.ScopeMiddleware)
-
 	router.GET(
 		"settings/sender",
 		middleware.JWTMiddleware,

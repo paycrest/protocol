@@ -269,7 +269,7 @@ var (
 		{Name: "is_partner", Type: field.TypeBool, Default: false},
 		{Name: "is_active", Type: field.TypeBool, Default: false},
 		{Name: "updated_at", Type: field.TypeTime},
-		{Name: "fiat_currency_provider", Type: field.TypeUUID, Unique: true},
+		{Name: "fiat_currency_providers", Type: field.TypeUUID},
 		{Name: "user_provider_profile", Type: field.TypeUUID, Unique: true},
 	}
 	// ProviderProfilesTable holds the schema information for the "provider_profiles" table.
@@ -279,10 +279,10 @@ var (
 		PrimaryKey: []*schema.Column{ProviderProfilesColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "provider_profiles_fiat_currencies_provider",
+				Symbol:     "provider_profiles_fiat_currencies_providers",
 				Columns:    []*schema.Column{ProviderProfilesColumns[7]},
 				RefColumns: []*schema.Column{FiatCurrenciesColumns[0]},
-				OnDelete:   schema.SetNull,
+				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "provider_profiles_users_provider_profile",
@@ -423,7 +423,7 @@ var (
 		{Name: "last_name", Type: field.TypeString, Size: 80},
 		{Name: "email", Type: field.TypeString},
 		{Name: "password", Type: field.TypeString},
-		{Name: "scope", Type: field.TypeEnum, Enums: []string{"sender", "provider"}},
+		{Name: "scopes", Type: field.TypeJSON},
 		{Name: "is_email_verified", Type: field.TypeBool, Default: false},
 	}
 	// UsersTable holds the schema information for the "users" table.
@@ -433,7 +433,7 @@ var (
 		PrimaryKey: []*schema.Column{UsersColumns[0]},
 		Indexes: []*schema.Index{
 			{
-				Name:    "user_email_scope",
+				Name:    "user_email_scopes",
 				Unique:  true,
 				Columns: []*schema.Column{UsersColumns[5], UsersColumns[7]},
 			},

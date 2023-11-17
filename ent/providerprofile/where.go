@@ -361,7 +361,7 @@ func HasCurrency() predicate.ProviderProfile {
 	return predicate.ProviderProfile(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, CurrencyTable, CurrencyColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, CurrencyTable, CurrencyColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})

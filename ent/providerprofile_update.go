@@ -436,7 +436,7 @@ func (ppu *ProviderProfileUpdate) sqlSave(ctx context.Context) (n int, err error
 	}
 	if ppu.mutation.CurrencyCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
+			Rel:     sqlgraph.M2O,
 			Inverse: true,
 			Table:   providerprofile.CurrencyTable,
 			Columns: []string{providerprofile.CurrencyColumn},
@@ -449,7 +449,7 @@ func (ppu *ProviderProfileUpdate) sqlSave(ctx context.Context) (n int, err error
 	}
 	if nodes := ppu.mutation.CurrencyIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
+			Rel:     sqlgraph.M2O,
 			Inverse: true,
 			Table:   providerprofile.CurrencyTable,
 			Columns: []string{providerprofile.CurrencyColumn},
@@ -1106,7 +1106,7 @@ func (ppuo *ProviderProfileUpdateOne) sqlSave(ctx context.Context) (_node *Provi
 	}
 	if ppuo.mutation.CurrencyCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
+			Rel:     sqlgraph.M2O,
 			Inverse: true,
 			Table:   providerprofile.CurrencyTable,
 			Columns: []string{providerprofile.CurrencyColumn},
@@ -1119,7 +1119,7 @@ func (ppuo *ProviderProfileUpdateOne) sqlSave(ctx context.Context) (_node *Provi
 	}
 	if nodes := ppuo.mutation.CurrencyIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
+			Rel:     sqlgraph.M2O,
 			Inverse: true,
 			Table:   providerprofile.CurrencyTable,
 			Columns: []string{providerprofile.CurrencyColumn},

@@ -213,37 +213,6 @@ func DynamicAuthMiddleware(c *gin.Context) {
 	c.Next()
 }
 
-// ScopeMiddleware is a middleware that checks the request scope.
-func ScopeMiddleware(c *gin.Context) {
-	conf := config.ServerConfig()
-	var subdomain string
-
-	if conf.Debug || c.GetHeader("Client-Type") == "mobile" {
-		// e.g localhost:8000?scope=sender
-		subdomain = c.Query("scope")
-	} else {
-		// e.g provider.paycrest.io
-		host := c.Request.Host
-		parts := strings.Split(host, ".")
-		subdomain = parts[0]
-	}
-
-	if subdomain == "validator" {
-		subdomain = "tx_validator"
-	}
-
-	scope := user.Scope(subdomain)
-
-	if scope == "" {
-		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid scope", nil)
-		c.Abort()
-		return
-	}
-
-	c.Set("scope", scope)
-	c.Next()
-}
-
 // OnlySenderMiddleware is a middleware that checks if the user scope is sender.
 func OnlySenderMiddleware(c *gin.Context) {
 	apiKeyCtx, apiKeyOk := c.Get("api_key")

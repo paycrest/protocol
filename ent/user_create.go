@@ -76,9 +76,9 @@ func (uc *UserCreate) SetPassword(s string) *UserCreate {
 	return uc
 }
 
-// SetScope sets the "scope" field.
-func (uc *UserCreate) SetScope(u user.Scope) *UserCreate {
-	uc.mutation.SetScope(u)
+// SetScopes sets the "scopes" field.
+func (uc *UserCreate) SetScopes(s []string) *UserCreate {
+	uc.mutation.SetScopes(s)
 	return uc
 }
 
@@ -258,13 +258,8 @@ func (uc *UserCreate) check() error {
 	if _, ok := uc.mutation.Password(); !ok {
 		return &ValidationError{Name: "password", err: errors.New(`ent: missing required field "User.password"`)}
 	}
-	if _, ok := uc.mutation.Scope(); !ok {
-		return &ValidationError{Name: "scope", err: errors.New(`ent: missing required field "User.scope"`)}
-	}
-	if v, ok := uc.mutation.Scope(); ok {
-		if err := user.ScopeValidator(v); err != nil {
-			return &ValidationError{Name: "scope", err: fmt.Errorf(`ent: validator failed for field "User.scope": %w`, err)}
-		}
+	if _, ok := uc.mutation.Scopes(); !ok {
+		return &ValidationError{Name: "scopes", err: errors.New(`ent: missing required field "User.scopes"`)}
 	}
 	if _, ok := uc.mutation.IsEmailVerified(); !ok {
 		return &ValidationError{Name: "is_email_verified", err: errors.New(`ent: missing required field "User.is_email_verified"`)}
@@ -328,9 +323,9 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 		_spec.SetField(user.FieldPassword, field.TypeString, value)
 		_node.Password = value
 	}
-	if value, ok := uc.mutation.Scope(); ok {
-		_spec.SetField(user.FieldScope, field.TypeEnum, value)
-		_node.Scope = value
+	if value, ok := uc.mutation.Scopes(); ok {
+		_spec.SetField(user.FieldScopes, field.TypeJSON, value)
+		_node.Scopes = value
 	}
 	if value, ok := uc.mutation.IsEmailVerified(); ok {
 		_spec.SetField(user.FieldIsEmailVerified, field.TypeBool, value)
