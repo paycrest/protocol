@@ -172,6 +172,7 @@ type ProviderProfilePayload struct {
 	IsPartner      bool                        `json:"isPartner"`
 	Availability   ProviderAvailabilityPayload `json:"availability"`
 	Tokens         []ProviderOrderTokenPayload `json:"tokens"`
+	VisibilityMode string                      `json:"visibility_mode"`
 }
 
 // ProviderProfileResponse is the response for the provider profile endpoint

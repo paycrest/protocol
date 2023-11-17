@@ -34,6 +34,9 @@ func (ProviderProfile) Fields() []ent.Field {
 		field.Time("updated_at").
 			Default(time.Now).
 			UpdateDefault(time.Now),
+		field.Enum("visibility_mode").
+			Values("private", "public").
+			Default("public"),
 	}
 }
 

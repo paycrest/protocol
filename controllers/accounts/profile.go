@@ -275,6 +275,11 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 		}
 	}
 
+	// Update Visibility Mode
+	if payload.VisibilityMode != "" {
+		update.SetVisibilityMode(providerprofile.VisibilityMode(payload.VisibilityMode))
+	}
+
 	_, err := update.Save(ctx)
 	if err != nil {
 		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update profile", nil)

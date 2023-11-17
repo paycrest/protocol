@@ -105,6 +105,20 @@ func (ppc *ProviderProfileCreate) SetNillableUpdatedAt(t *time.Time) *ProviderPr
 	return ppc
 }
 
+// SetVisibilityMode sets the "visibility_mode" field.
+func (ppc *ProviderProfileCreate) SetVisibilityMode(pm providerprofile.VisibilityMode) *ProviderProfileCreate {
+	ppc.mutation.SetVisibilityMode(pm)
+	return ppc
+}
+
+// SetNillableVisibilityMode sets the "visibility_mode" field if the given value is not nil.
+func (ppc *ProviderProfileCreate) SetNillableVisibilityMode(pm *providerprofile.VisibilityMode) *ProviderProfileCreate {
+	if pm != nil {
+		ppc.SetVisibilityMode(*pm)
+	}
+	return ppc
+}
+
 // SetID sets the "id" field.
 func (ppc *ProviderProfileCreate) SetID(s string) *ProviderProfileCreate {
 	ppc.mutation.SetID(s)
@@ -294,6 +308,10 @@ func (ppc *ProviderProfileCreate) defaults() {
 		v := providerprofile.DefaultUpdatedAt()
 		ppc.mutation.SetUpdatedAt(v)
 	}
+	if _, ok := ppc.mutation.VisibilityMode(); !ok {
+		v := providerprofile.DefaultVisibilityMode
+		ppc.mutation.SetVisibilityMode(v)
+	}
 	if _, ok := ppc.mutation.ID(); !ok {
 		v := providerprofile.DefaultID()
 		ppc.mutation.SetID(v)
@@ -326,6 +344,14 @@ func (ppc *ProviderProfileCreate) check() error {
 	}
 	if _, ok := ppc.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "ProviderProfile.updated_at"`)}
+	}
+	if _, ok := ppc.mutation.VisibilityMode(); !ok {
+		return &ValidationError{Name: "visibility_mode", err: errors.New(`ent: missing required field "ProviderProfile.visibility_mode"`)}
+	}
+	if v, ok := ppc.mutation.VisibilityMode(); ok {
+		if err := providerprofile.VisibilityModeValidator(v); err != nil {
+			return &ValidationError{Name: "visibility_mode", err: fmt.Errorf(`ent: validator failed for field "ProviderProfile.visibility_mode": %w`, err)}
+		}
 	}
 	if _, ok := ppc.mutation.UserID(); !ok {
 		return &ValidationError{Name: "user", err: errors.New(`ent: missing required edge "ProviderProfile.user"`)}
@@ -391,6 +417,10 @@ func (ppc *ProviderProfileCreate) createSpec() (*ProviderProfile, *sqlgraph.Crea
 	if value, ok := ppc.mutation.UpdatedAt(); ok {
 		_spec.SetField(providerprofile.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
+	}
+	if value, ok := ppc.mutation.VisibilityMode(); ok {
+		_spec.SetField(providerprofile.FieldVisibilityMode, field.TypeEnum, value)
+		_node.VisibilityMode = value
 	}
 	if nodes := ppc.mutation.UserIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
