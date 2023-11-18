@@ -80,7 +80,6 @@ func (s *PriorityQueueService) GetProvidersByBucket(ctx context.Context) ([]*ent
 					),
 				),
 				providerprofile.IsActiveEQ(true),
-				providerprofile.VisibilityModeEQ(providerprofile.VisibilityModePublic),
 			)
 		}).
 		WithCurrency().
@@ -217,8 +216,8 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 		return err
 	}
 
-	// If a specific provider is specified in the order, send the order request to that provider
-	if order.ProviderID != "" && utils.ContainsString(excludeList, order.ProviderID) {
+	// Sends order directly to the specified provider in order. Incase of failure, proceed to queue
+	if order.ProviderID != "" && !utils.ContainsString(excludeList, order.ProviderID) {
 		err := s.sendOrderRequestToSpecifiedProvider(ctx, order)
 		if err == nil {
 			return nil
