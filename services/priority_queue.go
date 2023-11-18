@@ -218,11 +218,23 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 		providerData, err := pipe.LIndex(ctx, redisKey, int64(index)).Result()
 		if err != nil {
 			if err == redis.Nil {
+				logger.Errorf("failed to access index %d from circular queue: %v", index, err)
+
 				// Assign to top provider in default bucket and rotate the default bucket queue
 				_ = s.AssignLockOrderToDefaultBucket(ctx, order)
-				logger.Errorf("failed to access index %d from circular queue: %v", index, err)
 			}
 			break
+		}
+
+		if providerData == "" {
+			// Reached the end of the queue
+			logger.Errorf("no available provider, checking the default bucket...")
+			err = s.AssignLockOrderToDefaultBucket(ctx, order)
+			if err != nil {
+				logger.Errorf("%v", err)
+				return err
+			}
+			return nil
 		}
 
 		// Extract the rate from the data (assuming it's in the format "providerID:rate")
@@ -300,6 +312,8 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 			if err != nil {
 				logger.Errorf("failed to notify provider %s: %v", providerID, err)
 			}
+
+			break
 		}
 	}
 
@@ -409,6 +423,10 @@ func (s *PriorityQueueService) AssignLockOrderToDefaultBucket(ctx context.Contex
 	if err != nil {
 		logger.Errorf("failed to dequeue from circular queue: %v", err)
 		return err
+	}
+
+	if data == "" {
+		return fmt.Errorf("no providers available in default bucket")
 	}
 
 	// Enqueue data to the end of the queue
