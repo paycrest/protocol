@@ -421,7 +421,7 @@ var (
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "first_name", Type: field.TypeString, Size: 80},
 		{Name: "last_name", Type: field.TypeString, Size: 80},
-		{Name: "email", Type: field.TypeString},
+		{Name: "email", Type: field.TypeString, Unique: true},
 		{Name: "password", Type: field.TypeString},
 		{Name: "scopes", Type: field.TypeJSON},
 		{Name: "is_email_verified", Type: field.TypeBool, Default: false},

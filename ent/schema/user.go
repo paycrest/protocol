@@ -33,7 +33,8 @@ func (User) Fields() []ent.Field {
 			Default(uuid.New),
 		field.String("first_name").MaxLen(80),
 		field.String("last_name").MaxLen(80),
-		field.String("email"),
+		field.String("email").
+			Unique(),
 		field.String("password").Sensitive(),
 		field.JSON("scopes", []string{}),
 		field.Bool("is_email_verified").
