@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"net/http"
 	"testing"
+	"time"
 
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/routers/middleware"
 	"github.com/paycrest/protocol/services"
 	db "github.com/paycrest/protocol/storage"
@@ -14,6 +16,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/paycrest/protocol/ent/enttest"
+	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/senderprofile"
 	"github.com/paycrest/protocol/ent/user"
 	"github.com/paycrest/protocol/utils/test"
@@ -21,12 +24,55 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var testCtx = struct {
+	user            *ent.User
+	providerProfile *ent.ProviderProfile
+}{}
+
+func setup() error {
+	// Set up test data
+	user, err := test.CreateTestUser(map[string]string{
+		"scope": "provider",
+		"email": "providerjohndoe@test.com",
+	})
+	if err != nil {
+		return err
+	}
+	testCtx.user = user
+
+	currency, err := test.CreateTestFiatCurrency(map[string]interface{}{
+		"code":        "KES",
+		"short_name":  "Shilling",
+		"decimals":    2,
+		"symbol":      "KSh",
+		"name":        "Kenyan Shilling",
+		"market_rate": 550.0,
+	})
+	if err != nil {
+		return err
+	}
+
+	provderProfile, err := test.CreateTestProviderProfile(map[string]interface{}{
+		"user_id": testCtx.user.ID,
+	}, testCtx.user, currency)
+	if err != nil {
+		return err
+	}
+	testCtx.providerProfile = provderProfile
+
+	return nil
+}
+
 func TestProfile(t *testing.T) {
 	// Set up test database client
 	client := enttest.Open(t, "sqlite3", "file:ent?mode=memory&_fk=1")
 	defer client.Close()
 
 	db.Client = client
+
+	// Setup test data
+	err := setup()
+	assert.NoError(t, err)
 
 	// Set up test routers
 	router := gin.New()
@@ -43,6 +89,12 @@ func TestProfile(t *testing.T) {
 		middleware.JWTMiddleware,
 		middleware.OnlySenderMiddleware,
 		ctrl.UpdateSenderProfile,
+	)
+	router.PATCH(
+		"settings/provider",
+		middleware.JWTMiddleware,
+		middleware.OnlyProviderMiddleware,
+		ctrl.UpdateProviderProfile,
 	)
 
 	t.Run("UpdateSenderProfile", func(t *testing.T) {
@@ -84,6 +136,130 @@ func TestProfile(t *testing.T) {
 		assert.NoError(t, err)
 
 		assert.Contains(t, senderProfile.DomainWhitelist, "mydomain.com")
+	})
+
+	t.Run("UpdateSenderProfileWithInvalidWebhookURL", func(t *testing.T) {
+		testUser, err := test.CreateTestUser(map[string]string{
+			"scope": "sender",
+			"email": "johndoe2@test.com",
+		})
+		assert.NoError(t, err)
+
+		_, err = test.CreateTestSenderProfile(map[string]interface{}{
+			"domain_whitelist": []string{"example.com"},
+			"user_id":          testUser.ID,
+		})
+		assert.NoError(t, err)
+
+		// Test partial update
+		accessToken, _ := token.GenerateAccessJWT(testUser.ID.String())
+		headers := map[string]string{
+			"Authorization": "Bearer " + accessToken,
+		}
+		payload := types.SenderProfilePayload{
+			WebhookURL:      "examplecom",
+			DomainWhitelist: []string{"example.com", "mydomain.com"},
+			RefundAddress:   "0x1234567890",
+		}
+
+		res, err := test.PerformRequest(t, "PATCH", "/settings/sender?scope=sender", payload, headers, router)
+		assert.NoError(t, err)
+
+		// Assert the response body
+		assert.Equal(t, http.StatusBadRequest, res.Code)
+
+		var response types.Response
+		err = json.Unmarshal(res.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.Equal(t, "Invalid webhook url", response.Message)
+		assert.Nil(t, response.Data, "response.Data is not nil")
+	})
+
+	t.Run("UpdateSenderProfileCompletelyAndCheckIfActive", func(t *testing.T) {
+		testUser, err := test.CreateTestUser(map[string]string{
+			"scope": "sender",
+			"email": "johndoe3@test.com",
+		})
+		assert.NoError(t, err)
+
+		_, err = test.CreateTestSenderProfile(map[string]interface{}{
+			"domain_whitelist": []string{"example.com"},
+			"user_id":          testUser.ID,
+		})
+		assert.NoError(t, err)
+
+		// Test partial update
+		accessToken, _ := token.GenerateAccessJWT(testUser.ID.String())
+		headers := map[string]string{
+			"Authorization": "Bearer " + accessToken,
+		}
+		payload := types.SenderProfilePayload{
+			DomainWhitelist: []string{"example.com", "mydomain.com"},
+			RefundAddress:   "0x1234567890",
+		}
+
+		res, err := test.PerformRequest(t, "PATCH", "/settings/sender?scope=sender", payload, headers, router)
+		assert.NoError(t, err)
+
+		// Assert the response body
+		assert.Equal(t, http.StatusOK, res.Code)
+
+		var response types.Response
+		err = json.Unmarshal(res.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.Equal(t, "Profile updated successfully", response.Message)
+		assert.Nil(t, response.Data, "response.Data is not nil")
+
+		senderProfile, err := db.Client.SenderProfile.
+			Query().
+			Where(senderprofile.HasUserWith(user.ID(testUser.ID))).
+			Only(context.Background())
+		assert.NoError(t, err)
+
+		assert.Contains(t, senderProfile.DomainWhitelist, "mydomain.com")
+		assert.True(t, senderProfile.IsActive)
+	})
+
+	t.Run("UpdateProviderProfileCompletelyAndCheckIfActive", func(t *testing.T) {
+		// Test partial update
+		accessToken, _ := token.GenerateAccessJWT(testCtx.user.ID.String())
+		headers := map[string]string{
+			"Authorization": "Bearer " + accessToken,
+		}
+		payload := types.ProviderProfilePayload{
+			TradingName:    "My Trading Name",
+			Currency:       "KES",
+			HostIdentifier: "example.com",
+			Availability: types.ProviderAvailabilityPayload{
+				Cadence:   "weekdays",
+				StartTime: time.Now(),
+				EndTime:   time.Now().Add(time.Hour * 24),
+			},
+		}
+
+		res, err := test.PerformRequest(t, "PATCH", "/settings/provider?scope=provider", payload, headers, router)
+		assert.NoError(t, err)
+
+		// Assert the response body
+		assert.Equal(t, http.StatusOK, res.Code)
+
+		var response types.Response
+		err = json.Unmarshal(res.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.Equal(t, "Profile updated successfully", response.Message)
+		assert.Nil(t, response.Data, "response.Data is not nil")
+
+		providerProfile, err := db.Client.ProviderProfile.
+			Query().
+			Where(providerprofile.HasUserWith(user.ID(testCtx.user.ID))).
+			WithCurrency().
+			Only(context.Background())
+		assert.NoError(t, err)
+
+		assert.Contains(t, providerProfile.TradingName, payload.TradingName)
+		assert.Contains(t, providerProfile.HostIdentifier, payload.HostIdentifier)
+		assert.Contains(t, providerProfile.Edges.Currency.Code, payload.Currency)
+		assert.True(t, providerProfile.IsActive)
 	})
 
 	t.Run("GetSenderProfile", func(t *testing.T) {

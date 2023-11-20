@@ -22,11 +22,19 @@ func CreateTestUser(overrides map[string]string) (*ent.User, error) {
 		"lastName":  "Doe",
 		"email":     "johndoe@test.com",
 		"password":  "password",
+		"scope":     "sender",
 	}
 
 	// Apply overrides
 	for key, value := range overrides {
 		payload[key] = value
+	}
+
+	var scopes []string
+	if payload["scope"] == "provider" {
+		scopes = []string{"sender", "provider"}
+	} else {
+		scopes = []string{payload["scope"]}
 	}
 
 	// Create user
@@ -36,7 +44,7 @@ func CreateTestUser(overrides map[string]string) (*ent.User, error) {
 		SetLastName(payload["lastName"]).
 		SetEmail(strings.ToLower(payload["email"])).
 		SetPassword(payload["password"]).
-		SetScopes([]string{"sender"}).
+		SetScopes(scopes).
 		Save(context.Background())
 
 	return user, err
