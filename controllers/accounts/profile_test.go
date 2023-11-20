@@ -62,6 +62,7 @@ func TestProfile(t *testing.T) {
 		}
 		payload := types.SenderProfilePayload{
 			DomainWhitelist: []string{"example.com", "mydomain.com"},
+			RefundAddress:   "0x1234567890",
 		}
 
 		res, err := test.PerformRequest(t, "PATCH", "/settings/sender?scope=sender", payload, headers, router)

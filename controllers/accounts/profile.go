@@ -3,7 +3,6 @@ package accounts
 import (
 	"fmt"
 	"net/http"
-	"net/url"
 	"strings"
 
 	"github.com/paycrest/protocol/ent"
@@ -15,10 +14,8 @@ import (
 	"github.com/paycrest/protocol/ent/token"
 	svc "github.com/paycrest/protocol/services"
 	"github.com/paycrest/protocol/storage"
-	db "github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
 	u "github.com/paycrest/protocol/utils"
-	"github.com/paycrest/protocol/utils/logger"
 	"github.com/shopspring/decimal"
 
 	"github.com/gin-gonic/gin"
@@ -47,7 +44,7 @@ func (ctrl *ProfileController) UpdateSenderProfile(ctx *gin.Context) {
 	}
 
 	if payload.WebhookURL != "" {
-		if !isURL(payload.WebhookURL) {
+		if !u.IsURL(payload.WebhookURL) {
 			u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid webhook url", nil)
 			return
 		}
@@ -71,44 +68,39 @@ func (ctrl *ProfileController) UpdateSenderProfile(ctx *gin.Context) {
 		update.SetDomainWhitelist(payload.DomainWhitelist)
 	}
 
-	if !payload.FeePerTokenUnit.IsZero() {
-		update.SetFeePerTokenUnit(payload.FeePerTokenUnit)
-	}
-
-	if payload.FeeAddress != "" {
-		update.SetFeeAddress(payload.FeeAddress)
+	if !payload.FeePerTokenUnit.IsZero() && payload.FeeAddress != "" {
+		update.SetFeePerTokenUnit(payload.FeePerTokenUnit).SetFeeAddress(payload.FeeAddress)
+	} else {
+		if !payload.FeePerTokenUnit.IsZero() && payload.FeeAddress == "" {
+			u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
+				Field:   "FeeAddress",
+				Message: "This field is required",
+			})
+			return
+		}
+		if payload.FeePerTokenUnit.IsZero() && payload.FeeAddress != "" {
+			u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
+				Field:   "FeePerTokenUnit",
+				Message: "This field is required",
+			})
+			return
+		}
 	}
 
 	if payload.RefundAddress != "" {
-		update.SetRefundAddress(payload.RefundAddress)
-	}
-
-	senderProfile, err := update.Save(ctx)
-	if err != nil {
-		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update profile", nil)
+		update.SetRefundAddress(payload.RefundAddress).SetIsActive(true)
+	} else if payload.RefundAddress == "" && sender.RefundAddress != "" {
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
+			Field:   "RefundAddress",
+			Message: "This field is required",
+		})
 		return
 	}
 
-	// check if refundAddress, feeAddress and webhookURL are not empty
-	if senderProfile.RefundAddress != "" && senderProfile.FeeAddress != "" && senderProfile.WebhookURL != "" {
-		_, err := db.Client.SenderProfile.
-			UpdateOne(senderProfile).
-			SetIsActive(true).
-			Save(ctx)
-		if err != nil {
-			logger.Errorf("Failed to update sender profile: %v", err)
-			return
-		}
-
-	} else {
-		_, err := db.Client.SenderProfile.
-			UpdateOne(senderProfile).
-			SetIsActive(false).
-			Save(ctx)
-		if err != nil {
-			logger.Errorf("Failed to update sender profile: %v", err)
-			return
-		}
+	_, err := update.Save(ctx)
+	if err != nil {
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update profile", nil)
+		return
 	}
 
 	u.APIResponse(ctx, http.StatusOK, "success", "Profile updated successfully", nil)
@@ -136,6 +128,22 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 
 	if payload.TradingName != "" {
 		update.SetTradingName(payload.TradingName)
+	} else if payload.TradingName == "" && provider.TradingName != "" {
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
+			Field:   "TradingName",
+			Message: "This field is required",
+		})
+		return
+	}
+
+	if payload.HostIdentifier != "" {
+		update.SetHostIdentifier(payload.HostIdentifier)
+	} else if payload.HostIdentifier == "" && provider.HostIdentifier != "" {
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
+			Field:   "HostIdentifier",
+			Message: "This field is required",
+		})
+		return
 	}
 
 	if payload.Currency != "" {
@@ -147,14 +155,13 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 			).
 			Only(ctx)
 		if err != nil {
-			u.APIResponse(ctx, http.StatusBadRequest, "error", "Currency not supported", nil)
+			u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
+				Field:   "FiatCurrency",
+				Message: "This field is required",
+			})
 			return
 		}
 		update.SetCurrency(currency)
-	}
-
-	if payload.HostIdentifier != "" {
-		update.SetHostIdentifier(payload.HostIdentifier)
 	}
 
 	if payload.IsPartner {
@@ -307,31 +314,14 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 		}
 	}
 
-	providerProfile, err := update.Save(ctx)
+	if payload.HostIdentifier != "" && payload.TradingName != "" {
+		update.SetIsActive(true)
+	}
+
+	_, err := update.Save(ctx)
 	if err != nil {
 		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update profile", nil)
 		return
-	}
-
-	// check if host id and trading name are not empty
-	if providerProfile.HostIdentifier != "" && providerProfile.TradingName != "" {
-		_, err := db.Client.ProviderProfile.
-			UpdateOne(providerProfile).
-			SetIsActive(true).
-			Save(ctx)
-		if err != nil {
-			logger.Errorf("Failed to update provider profile: %v", err)
-			return
-		}
-	} else {
-		_, err := db.Client.ProviderProfile.
-			UpdateOne(providerProfile).
-			SetIsActive(false).
-			Save(ctx)
-		if err != nil {
-			logger.Errorf("Failed to update provider profile: %v", err)
-			return
-		}
 	}
 
 	u.APIResponse(ctx, http.StatusOK, "success", "Profile updated successfully", nil)
@@ -406,9 +396,4 @@ func (ctrl *ProfileController) GetProviderProfile(ctx *gin.Context) {
 		Tokens:         tokens,
 		APIKey:         *apiKey,
 	})
-}
-
-func isURL(s string) bool {
-	_, err := url.ParseRequestURI(s)
-	return err == nil
 }
