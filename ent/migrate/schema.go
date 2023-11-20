@@ -459,7 +459,7 @@ var (
 				Symbol:     "verification_tokens_users_verification_token",
 				Columns:    []*schema.Column{VerificationTokensColumns[6]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
-				OnDelete:   schema.NoAction,
+				OnDelete:   schema.Cascade,
 			},
 		},
 	}

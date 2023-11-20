@@ -45,7 +45,6 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 	var payload types.RegisterPayload
 
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusBadRequest, "error",
 			"Failed to validate payload", u.GetErrorData(err))
 		return
@@ -203,25 +202,30 @@ func (ctrl *AuthController) Login(ctx *gin.Context) {
 	var payload types.LoginPayload
 
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusBadRequest, "error",
 			"Failed to validate payload", u.GetErrorData(err))
 		return
 	}
 
 	// Fetch user by email
-	user, emailErr := db.Client.User.
+	user, err := db.Client.User.
 		Query().
 		Where(userEnt.EmailEQ(strings.ToLower(payload.Email))).
 		Only(ctx)
 
+	if err != nil {
+		u.APIResponse(ctx, http.StatusUnauthorized, "error",
+			"Email and password do not match any user", nil,
+		)
+		return
+	}
+
 	// Check if the password is correct
 	passwordMatch := crypto.CheckPasswordHash(payload.Password, user.Password)
 
-	if !passwordMatch || emailErr != nil {
-		logger.Errorf("error: %v", "Invalid email or password")
+	if !passwordMatch {
 		u.APIResponse(ctx, http.StatusUnauthorized, "error",
-			"Invalid credentials", "Email and password do not match any user",
+			"Email and password do not match any user", nil,
 		)
 		return
 	}
@@ -280,7 +284,6 @@ func (ctrl *AuthController) ConfirmEmail(ctx *gin.Context) {
 	var payload types.ConfirmEmailPayload
 
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusBadRequest, "error",
 			"Failed to validate payload", u.GetErrorData(err))
 		return
@@ -316,7 +319,6 @@ func (ctrl *AuthController) ResendVerificationToken(ctx *gin.Context) {
 	var payload types.ResendTokenPayload
 
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusBadRequest, "error",
 			"Failed to validate payload", u.GetErrorData(err))
 		return
@@ -357,7 +359,6 @@ func (ctrl *AuthController) ResetPassword(ctx *gin.Context) {
 
 	var payload types.ResetPasswordPayload
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusBadRequest, "error",
 			"Failed to validate payload", u.GetErrorData(err))
 		return

@@ -490,8 +490,8 @@ func TestAuth(t *testing.T) {
 			var response types.Response
 			err = json.Unmarshal(res.Body.Bytes(), &response)
 			assert.NoError(t, err)
-			assert.Equal(t, "Invalid credentials", response.Message)
-			assert.Equal(t, "Email and password do not match any user", response.Data)
+			assert.Equal(t, "Email and password do not match any user", response.Message)
+			assert.Nil(t, response.Data)
 		})
 	})
 
