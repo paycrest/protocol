@@ -118,9 +118,8 @@ type LoginPayload struct {
 
 // LoginResponse is the response for the login endpoint
 type LoginResponse struct {
-	AccessToken  string   `json:"accessToken"`
-	RefreshToken string   `json:"refreshToken"`
-	Scopes       []string `json:"scopes"`
+	AccessToken  string `json:"accessToken"`
+	RefreshToken string `json:"refreshToken"`
 }
 
 // RefreshJWTPayload is the payload for the refresh endpoint
@@ -369,6 +368,11 @@ type ErrorData struct {
 type ResetPasswordPayload struct {
 	Password   string `json:"new-password" binding:"required,min=6,max=20"`
 	ResetToken string `json:"reset-token"`
+}
+
+// Payload for reset password token endpoint
+type ResetPasswordTokenPayload struct {
+	Email string `json:"email"`
 }
 
 // ProviderLockOrderList is the struct for a list of provider lock orders

@@ -56,7 +56,7 @@ func TestProfile(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Test partial update
-		accessToken, _ := token.GenerateAccessJWT(testUser.ID.String())
+		accessToken, _ := token.GenerateAccessJWT(testUser.ID.String(), "sender")
 		headers := map[string]string{
 			"Authorization": "Bearer " + accessToken,
 		}
@@ -107,7 +107,7 @@ func TestProfile(t *testing.T) {
 		)
 		assert.NoError(t, err)
 
-		accessToken, _ := token.GenerateAccessJWT(testUser.ID.String())
+		accessToken, _ := token.GenerateAccessJWT(testUser.ID.String(), testUser.Scope)
 		headers := map[string]string{
 			"Authorization": "Bearer " + accessToken,
 		}

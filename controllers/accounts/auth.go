@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/ent/fiatcurrency"
 	"github.com/paycrest/protocol/ent/providerprofile"
@@ -74,13 +73,14 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 	}
 
 	// Save the user
+	scope := strings.Join(payload.Scopes, " ")
 	user, err := tx.User.
 		Create().
 		SetFirstName(payload.FirstName).
 		SetLastName(payload.LastName).
 		SetEmail(strings.ToLower(payload.Email)).
 		SetPassword(payload.Password).
-		SetScopes(payload.Scopes).
+		SetScope(scope).
 		Save(ctx)
 	if err != nil {
 		_ = tx.Rollback()
@@ -231,7 +231,7 @@ func (ctrl *AuthController) Login(ctx *gin.Context) {
 	}
 
 	// Generate JWT pair
-	accessToken, refreshToken, err := token.GeneratePairJWT(user.ID.String())
+	accessToken, refreshToken, err := token.GeneratePairJWT(user.ID.String(), user.Scope)
 
 	if err != nil {
 		logger.Errorf("error: %v", err)
@@ -244,7 +244,6 @@ func (ctrl *AuthController) Login(ctx *gin.Context) {
 	u.APIResponse(ctx, http.StatusOK, "success", "Successfully logged in", &types.LoginResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
-		Scopes:       user.Scopes,
 	})
 }
 
@@ -265,9 +264,14 @@ func (ctrl *AuthController) RefreshJWT(ctx *gin.Context) {
 		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid or expired refresh token", nil)
 		return
 	}
+	scope, ok := claims["scope"].(string)
+	if err != nil || !ok {
+		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid or expired refresh token", nil)
+		return
+	}
 
 	// Generate a new access token
-	accessToken, err := token.GenerateAccessJWT(userID)
+	accessToken, err := token.GenerateAccessJWT(userID, scope)
 	if err != nil {
 		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to generate access token", nil)
 		return
@@ -289,7 +293,7 @@ func (ctrl *AuthController) ConfirmEmail(ctx *gin.Context) {
 		return
 	}
 
-	// Fetch verificationtoken
+	// Fetch verification token
 	verificationToken, vtErr := db.Client.VerificationToken.
 		Query().
 		Where(verificationtoken.TokenEQ(payload.Token)).
@@ -352,39 +356,33 @@ func (ctrl *AuthController) ResendVerificationToken(ctx *gin.Context) {
 
 // Resets user's password. A valid token is required to set new password
 func (ctrl *AuthController) ResetPassword(ctx *gin.Context) {
-
-	// Get current authenticated userID from context
-	ID, _ := ctx.Get("user_id")
-	userID, _ := uuid.Parse(ID.(string))
-
 	var payload types.ResetPasswordPayload
+
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		u.APIResponse(ctx, http.StatusBadRequest, "error",
 			"Failed to validate payload", u.GetErrorData(err))
 		return
 	}
 
-	// Get authenticated user account
-	user, userErr := db.Client.User.Query().Where(userEnt.IDEQ(userID)).Only(ctx)
-	if userErr != nil {
-		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid credential", userErr.Error())
-	}
-
 	// Verify reset token
-	token, rtErr := db.Client.VerificationToken.
+	token, err := db.Client.VerificationToken.
 		Query().
 		Where(verificationtoken.TokenEQ(payload.ResetToken)).
 		Where(verificationtoken.ScopeEQ(verificationtoken.ScopeResetPassword)).
 		Where(verificationtoken.ExpiryAtGTE(time.Now())).
 		WithOwner().
 		Only(ctx)
-	if rtErr != nil || token == nil || token.Edges.Owner.ID != userID {
-		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid password reset token", rtErr.Error())
+	if err != nil || token == nil || token.Edges.Owner == nil {
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid password reset token", nil)
 		return
 	}
 
-	if _, err := db.Client.User.UpdateOne(user).SetPassword(payload.Password).Save(ctx); err != nil {
-		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to reset password", err.Error())
+	_, err = db.Client.User.
+		UpdateOne(token.Edges.Owner).
+		SetPassword(payload.Password).
+		Save(ctx)
+	if err != nil {
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to reset password", nil)
 		return
 	}
 
@@ -394,28 +392,40 @@ func (ctrl *AuthController) ResetPassword(ctx *gin.Context) {
 
 // Sends reset password token to user's email
 func (ctrl *AuthController) ResetPasswordToken(ctx *gin.Context) {
+	var payload types.ResetPasswordTokenPayload
 
-	ID, _ := ctx.Get("user_id")
-	userID, _ := uuid.Parse(ID.(string))
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		u.APIResponse(ctx, http.StatusBadRequest, "error",
+			"Failed to validate payload", u.GetErrorData(err))
+		return
+	}
 
-	// Get authenticated user account.
-	user, userErr := db.Client.User.Query().Where(userEnt.IDEQ(userID)).Only(ctx)
+	// Get user account.
+	user, userErr := db.Client.User.
+		Query().
+		Where(userEnt.EmailEQ(payload.Email)).
+		Only(ctx)
 	if userErr != nil {
-		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid credential", userErr.Error())
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Email does not belong to any user", nil)
 	}
 
 	// Generate password reset token.
-	passwordResetToken, rtErr := db.Client.VerificationToken.Create().SetOwner(user).SetScope(verificationtoken.ScopeResetPassword).SetExpiryAt(time.Now().Add(conf.PasswordResetLifespan)).Save(ctx)
+	passwordResetToken, rtErr := db.Client.VerificationToken.
+		Create().
+		SetOwner(user).
+		SetScope(verificationtoken.ScopeResetPassword).
+		SetExpiryAt(time.Now().Add(conf.PasswordResetLifespan)).
+		Save(ctx)
 	if rtErr != nil || passwordResetToken == nil {
-		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to generate reset password token", rtErr.Error())
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to generate reset password token", nil)
 		return
 	}
 
 	if _, err := ctrl.emailService.SendPasswordResetEmail(ctx, passwordResetToken.Token, user.Email); err != nil {
-		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to send reset password token", err.Error())
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to send reset password token", nil)
 		return
 	}
 
 	// Return a success response
-	u.APIResponse(ctx, http.StatusOK, "success", "A reset token has been sent to your email", map[string]string{"email": user.Email})
+	u.APIResponse(ctx, http.StatusOK, "success", "A reset token has been sent to your email", nil)
 }

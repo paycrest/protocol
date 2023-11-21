@@ -22,6 +22,7 @@ func CreateTestUser(overrides map[string]string) (*ent.User, error) {
 		"lastName":  "Doe",
 		"email":     "johndoe@test.com",
 		"password":  "password",
+		"scope":     "sender",
 	}
 
 	// Apply overrides
@@ -36,7 +37,7 @@ func CreateTestUser(overrides map[string]string) (*ent.User, error) {
 		SetLastName(payload["lastName"]).
 		SetEmail(strings.ToLower(payload["email"])).
 		SetPassword(payload["password"]).
-		SetScopes([]string{"sender"}).
+		SetScope(payload["scope"]).
 		Save(context.Background())
 
 	return user, err

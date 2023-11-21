@@ -28,8 +28,8 @@ const (
 	FieldEmail = "email"
 	// FieldPassword holds the string denoting the password field in the database.
 	FieldPassword = "password"
-	// FieldScopes holds the string denoting the scopes field in the database.
-	FieldScopes = "scopes"
+	// FieldScope holds the string denoting the scope field in the database.
+	FieldScope = "scope"
 	// FieldIsEmailVerified holds the string denoting the is_email_verified field in the database.
 	FieldIsEmailVerified = "is_email_verified"
 	// EdgeSenderProfile holds the string denoting the sender_profile edge name in mutations.
@@ -72,7 +72,7 @@ var Columns = []string{
 	FieldLastName,
 	FieldEmail,
 	FieldPassword,
-	FieldScopes,
+	FieldScope,
 	FieldIsEmailVerified,
 }
 
@@ -145,6 +145,11 @@ func ByEmail(opts ...sql.OrderTermOption) OrderOption {
 // ByPassword orders the results by the password field.
 func ByPassword(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPassword, opts...).ToFunc()
+}
+
+// ByScope orders the results by the scope field.
+func ByScope(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldScope, opts...).ToFunc()
 }
 
 // ByIsEmailVerified orders the results by the is_email_verified field.

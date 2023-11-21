@@ -13124,8 +13124,7 @@ type UserMutation struct {
 	last_name                 *string
 	email                     *string
 	password                  *string
-	scopes                    *[]string
-	appendscopes              []string
+	scope                     *string
 	is_email_verified         *bool
 	clearedFields             map[string]struct{}
 	sender_profile            *uuid.UUID
@@ -13460,55 +13459,40 @@ func (m *UserMutation) ResetPassword() {
 	m.password = nil
 }
 
-// SetScopes sets the "scopes" field.
-func (m *UserMutation) SetScopes(s []string) {
-	m.scopes = &s
-	m.appendscopes = nil
+// SetScope sets the "scope" field.
+func (m *UserMutation) SetScope(s string) {
+	m.scope = &s
 }
 
-// Scopes returns the value of the "scopes" field in the mutation.
-func (m *UserMutation) Scopes() (r []string, exists bool) {
-	v := m.scopes
+// Scope returns the value of the "scope" field in the mutation.
+func (m *UserMutation) Scope() (r string, exists bool) {
+	v := m.scope
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldScopes returns the old "scopes" field's value of the User entity.
+// OldScope returns the old "scope" field's value of the User entity.
 // If the User object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *UserMutation) OldScopes(ctx context.Context) (v []string, err error) {
+func (m *UserMutation) OldScope(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldScopes is only allowed on UpdateOne operations")
+		return v, errors.New("OldScope is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldScopes requires an ID field in the mutation")
+		return v, errors.New("OldScope requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldScopes: %w", err)
+		return v, fmt.Errorf("querying old value for OldScope: %w", err)
 	}
-	return oldValue.Scopes, nil
+	return oldValue.Scope, nil
 }
 
-// AppendScopes adds s to the "scopes" field.
-func (m *UserMutation) AppendScopes(s []string) {
-	m.appendscopes = append(m.appendscopes, s...)
-}
-
-// AppendedScopes returns the list of values that were appended to the "scopes" field in this mutation.
-func (m *UserMutation) AppendedScopes() ([]string, bool) {
-	if len(m.appendscopes) == 0 {
-		return nil, false
-	}
-	return m.appendscopes, true
-}
-
-// ResetScopes resets all changes to the "scopes" field.
-func (m *UserMutation) ResetScopes() {
-	m.scopes = nil
-	m.appendscopes = nil
+// ResetScope resets all changes to the "scope" field.
+func (m *UserMutation) ResetScope() {
+	m.scope = nil
 }
 
 // SetIsEmailVerified sets the "is_email_verified" field.
@@ -13732,8 +13716,8 @@ func (m *UserMutation) Fields() []string {
 	if m.password != nil {
 		fields = append(fields, user.FieldPassword)
 	}
-	if m.scopes != nil {
-		fields = append(fields, user.FieldScopes)
+	if m.scope != nil {
+		fields = append(fields, user.FieldScope)
 	}
 	if m.is_email_verified != nil {
 		fields = append(fields, user.FieldIsEmailVerified)
@@ -13758,8 +13742,8 @@ func (m *UserMutation) Field(name string) (ent.Value, bool) {
 		return m.Email()
 	case user.FieldPassword:
 		return m.Password()
-	case user.FieldScopes:
-		return m.Scopes()
+	case user.FieldScope:
+		return m.Scope()
 	case user.FieldIsEmailVerified:
 		return m.IsEmailVerified()
 	}
@@ -13783,8 +13767,8 @@ func (m *UserMutation) OldField(ctx context.Context, name string) (ent.Value, er
 		return m.OldEmail(ctx)
 	case user.FieldPassword:
 		return m.OldPassword(ctx)
-	case user.FieldScopes:
-		return m.OldScopes(ctx)
+	case user.FieldScope:
+		return m.OldScope(ctx)
 	case user.FieldIsEmailVerified:
 		return m.OldIsEmailVerified(ctx)
 	}
@@ -13838,12 +13822,12 @@ func (m *UserMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetPassword(v)
 		return nil
-	case user.FieldScopes:
-		v, ok := value.([]string)
+	case user.FieldScope:
+		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetScopes(v)
+		m.SetScope(v)
 		return nil
 	case user.FieldIsEmailVerified:
 		v, ok := value.(bool)
@@ -13919,8 +13903,8 @@ func (m *UserMutation) ResetField(name string) error {
 	case user.FieldPassword:
 		m.ResetPassword()
 		return nil
-	case user.FieldScopes:
-		m.ResetScopes()
+	case user.FieldScope:
+		m.ResetScope()
 		return nil
 	case user.FieldIsEmailVerified:
 		m.ResetIsEmailVerified()

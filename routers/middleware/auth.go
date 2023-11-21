@@ -14,7 +14,6 @@ import (
 	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/apikey"
-	"github.com/paycrest/protocol/ent/predicate"
 	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/senderprofile"
 	"github.com/paycrest/protocol/ent/user"
@@ -52,9 +51,46 @@ func JWTMiddleware(c *gin.Context) {
 		c.Abort()
 		return
 	}
+	scope, ok := claims["scope"].(string)
+	if err != nil || !ok {
+		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid or expired token", err.Error())
+		c.Abort()
+		return
+	}
 
 	// Set the user_id value in the context of the request
 	c.Set("user_id", userID)
+
+	userUUID, _ := uuid.Parse(userID)
+
+	// Set user profiles based on scope
+	if strings.Contains(scope, "sender") {
+		senderProfile, err := storage.Client.SenderProfile.
+			Query().
+			Where(senderprofile.HasUserWith(user.IDEQ(userUUID))).
+			Only(c)
+		if err != nil {
+			u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid or expired token", nil)
+			c.Abort()
+			return
+		}
+
+		c.Set("sender", senderProfile)
+	}
+
+	if strings.Contains(scope, "provider") {
+		providerProfile, err := storage.Client.ProviderProfile.
+			Query().
+			Where(providerprofile.HasUserWith(user.IDEQ(userUUID))).
+			Only(c)
+		if err != nil {
+			u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid or expired token", nil)
+			c.Abort()
+			return
+		}
+
+		c.Set("provider", providerProfile)
+	}
 
 	c.Next()
 }
@@ -134,6 +170,8 @@ func HMACVerificationMiddleware(c *gin.Context) {
 	apiKey, err := storage.Client.APIKey.
 		Query().
 		Where(apikey.IDEQ(apiKeyUUID)).
+		WithSenderProfile().
+		WithProviderProfile().
 		Only(c)
 	if err != nil {
 		if ent.IsNotFound(err) {
@@ -146,7 +184,20 @@ func HMACVerificationMiddleware(c *gin.Context) {
 		return
 	}
 
-	c.Set("api_key", apiKey)
+	// Set the user profiles in the context of the request
+	if apiKey.Edges.SenderProfile != nil {
+		c.Set("sender", apiKey.Edges.SenderProfile)
+	}
+
+	if apiKey.Edges.ProviderProfile != nil {
+		c.Set("provider", apiKey.Edges.ProviderProfile)
+	}
+
+	if apiKey.Edges.SenderProfile == nil && apiKey.Edges.ProviderProfile == nil {
+		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid API key", nil)
+		c.Abort()
+		return
+	}
 
 	// Decode the stored secret key to bytes
 	decodedSecret, err := base64.StdEncoding.DecodeString(apiKey.Secret)
@@ -215,70 +266,26 @@ func DynamicAuthMiddleware(c *gin.Context) {
 
 // OnlySenderMiddleware is a middleware that checks if the user scope is sender.
 func OnlySenderMiddleware(c *gin.Context) {
-	apiKeyCtx, apiKeyOk := c.Get("api_key")
-	userID, userOk := c.Get("user_id")
+	_, ok := c.Get("sender")
 
-	senderProfile, err := storage.Client.SenderProfile.
-		Query().
-		Where(
-			func() predicate.SenderProfile {
-				if apiKeyOk {
-					// HMAC auth was used
-					return senderprofile.HasAPIKeyWith(
-						apikey.IDEQ(apiKeyCtx.(*ent.APIKey).ID),
-					)
-				} else if userOk {
-					// JWT auth was used
-					userUUID, _ := uuid.Parse(userID.(string))
-					return senderprofile.HasUserWith(
-						user.IDEQ(userUUID),
-					)
-				}
-				return nil
-			}(),
-		).
-		Only(c)
-	if err != nil {
+	if !ok {
 		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid API key", nil)
 		c.Abort()
 		return
 	}
 
-	c.Set("sender", senderProfile)
 	c.Next()
 }
 
 // OnlyProviderMiddleware is a middleware that checks if the user scope is provider.
 func OnlyProviderMiddleware(c *gin.Context) {
-	apiKeyCtx, apiKeyOk := c.Get("api_key")
-	userID, userOk := c.Get("user_id")
+	_, ok := c.Get("provider")
 
-	providerProfile, err := storage.Client.ProviderProfile.
-		Query().
-		Where(
-			func() predicate.ProviderProfile {
-				if apiKeyOk {
-					// HMAC auth was used
-					return providerprofile.HasAPIKeyWith(
-						apikey.IDEQ(apiKeyCtx.(*ent.APIKey).ID),
-					)
-				} else if userOk {
-					// JWT auth was used
-					userUUID, _ := uuid.Parse(userID.(string))
-					return providerprofile.HasUserWith(
-						user.IDEQ(userUUID),
-					)
-				}
-				return nil
-			}(),
-		).
-		Only(c)
-	if err != nil {
+	if !ok {
 		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid API key", nil)
 		c.Abort()
 		return
 	}
 
-	c.Set("provider", providerProfile)
 	c.Next()
 }

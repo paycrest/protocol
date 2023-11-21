@@ -423,7 +423,7 @@ var (
 		{Name: "last_name", Type: field.TypeString, Size: 80},
 		{Name: "email", Type: field.TypeString, Unique: true},
 		{Name: "password", Type: field.TypeString},
-		{Name: "scopes", Type: field.TypeJSON},
+		{Name: "scope", Type: field.TypeString},
 		{Name: "is_email_verified", Type: field.TypeBool, Default: false},
 	}
 	// UsersTable holds the schema information for the "users" table.
@@ -433,7 +433,7 @@ var (
 		PrimaryKey: []*schema.Column{UsersColumns[0]},
 		Indexes: []*schema.Index{
 			{
-				Name:    "user_email_scopes",
+				Name:    "user_email_scope",
 				Unique:  true,
 				Columns: []*schema.Column{UsersColumns[5], UsersColumns[7]},
 			},

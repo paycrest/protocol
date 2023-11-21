@@ -13,7 +13,6 @@ import (
 	"github.com/jarcoal/httpmock"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/paycrest/protocol/ent"
-	"github.com/paycrest/protocol/routers/middleware"
 	svc "github.com/paycrest/protocol/services"
 	db "github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
@@ -60,9 +59,9 @@ func TestAuth(t *testing.T) {
 	router.POST("/login", ctrl.Login)
 	router.POST("/confirm-account", ctrl.ConfirmEmail)
 	router.POST("/resend-token", ctrl.ResendVerificationToken)
-	router.POST("/refresh", middleware.JWTMiddleware, ctrl.RefreshJWT)
-	router.POST("/reset-password-token", middleware.JWTMiddleware, ctrl.ResetPasswordToken)
-	router.PATCH("/reset-password", middleware.JWTMiddleware, ctrl.ResetPassword)
+	router.POST("/refresh", ctrl.RefreshJWT)
+	router.POST("/reset-password-token", ctrl.ResetPasswordToken)
+	router.PATCH("/reset-password", ctrl.ResetPassword)
 
 	var userID string
 
@@ -497,7 +496,7 @@ func TestAuth(t *testing.T) {
 
 	t.Run("RefreshJWT", func(t *testing.T) {
 		t.Run("with a valid refresh token", func(t *testing.T) {
-			refreshToken, err := token.GenerateRefreshJWT(userID)
+			refreshToken, err := token.GenerateRefreshJWT(userID, "sender")
 			assert.NoError(t, err, "failed to generate refresh token")
 
 			// Test refresh token with valid refresh token
@@ -505,11 +504,7 @@ func TestAuth(t *testing.T) {
 				RefreshToken: refreshToken,
 			}
 
-			headers := map[string]string{
-				"Authorization": "Bearer " + refreshToken,
-			}
-
-			res, err := test.PerformRequest(t, "POST", "/refresh", payload, headers, router)
+			res, err := test.PerformRequest(t, "POST", "/refresh", payload, nil, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -537,13 +532,7 @@ func TestAuth(t *testing.T) {
 				RefreshToken: refreshToken,
 			}
 
-			refreshTokenForHeader, err := token.GenerateRefreshJWT(userID)
-			assert.NoError(t, err, "failed to generate refresh token")
-
-			headers := map[string]string{
-				"Authorization": "Bearer " + refreshTokenForHeader,
-			}
-			res, err := test.PerformRequest(t, "POST", "/refresh", payload, headers, router)
+			res, err := test.PerformRequest(t, "POST", "/refresh", payload, nil, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -565,7 +554,7 @@ func TestAuth(t *testing.T) {
 		assert.NoError(t, fetchUserErr, "failed to fetch user by userID")
 
 		_, err := user.Update().SetIsEmailVerified(false).Save(context.Background())
-		assert.NoError(t, err, "failed to set isVerified to false")
+		assert.NoError(t, err, "failed to set isEmailVerified to false")
 
 		t.Run("verification token should be resent", func(t *testing.T) {
 			// construct resend verification token payload
@@ -589,15 +578,17 @@ func TestAuth(t *testing.T) {
 	})
 
 	t.Run("ResetPasswordToken", func(t *testing.T) {
+		user, err := db.Client.User.
+			Query().
+			Where(user.IDEQ(uuid.MustParse(userID))).
+			Only(context.Background())
+		assert.NoError(t, err, "Failed to fetch user by userID")
+
 		t.Run("password reset token should be set in db", func(t *testing.T) {
-			jwtAccessTokenForHeader, err := token.GenerateAccessJWT(userID)
-			assert.NoError(t, err, "failed to generate refresh token")
-
-			headers := map[string]string{
-				"Authorization": "Bearer " + jwtAccessTokenForHeader,
+			payload := types.ResetPasswordTokenPayload{
+				Email: user.Email,
 			}
-
-			res, err := test.PerformRequest(t, "POST", "/reset-password-token", nil, headers, router)
+			res, err := test.PerformRequest(t, "POST", "/reset-password-token", payload, nil, router)
 
 			assert.NoError(t, err)
 
@@ -625,17 +616,10 @@ func TestAuth(t *testing.T) {
 		assert.NoError(t, getUserErr, "failed to get user by userID")
 
 		t.Run("FailsForEmptyResetToken", func(t *testing.T) {
-
-			jwtAccessTokenForHeader, err := token.GenerateAccessJWT(userID)
-			assert.NoError(t, err, "failed to generate refresh token")
-
-			headers := map[string]string{
-				"Authorization": "Bearer " + jwtAccessTokenForHeader,
-			}
 			ResetPasswordPayload := map[string]string{
 				"new-password": "1111000090",
 			}
-			res, err := test.PerformRequest(t, "PATCH", "/reset-password", ResetPasswordPayload, headers, router)
+			res, err := test.PerformRequest(t, "PATCH", "/reset-password", ResetPasswordPayload, nil, router)
 
 			assert.Error(t, errors.New("Invalid password reset token"), err)
 			// Assert the response body
@@ -649,17 +633,11 @@ func TestAuth(t *testing.T) {
 				Save(context.Background())
 			assert.NoError(t, err)
 
-			jwtAccessTokenForHeader, err := token.GenerateAccessJWT(userID)
-			assert.NoError(t, err, "failed to generate refresh token")
-
-			headers := map[string]string{
-				"Authorization": "Bearer " + jwtAccessTokenForHeader,
-			}
 			ResetPasswordPayload := map[string]string{
 				"new-password": "1111000090",
 				"reset-token":  resetToken.Token,
 			}
-			res, err := test.PerformRequest(t, "PATCH", "/reset-password", ResetPasswordPayload, headers, router)
+			res, err := test.PerformRequest(t, "PATCH", "/reset-password", ResetPasswordPayload, nil, router)
 
 			assert.Error(t, errors.New("Invalid password reset token"), err)
 			// Assert the response body
@@ -673,17 +651,11 @@ func TestAuth(t *testing.T) {
 				Save(context.Background())
 			assert.NoError(t, err)
 
-			jwtAccessTokenForHeader, err := token.GenerateAccessJWT(userID)
-			assert.NoError(t, err, "failed to generate refresh token")
-
-			headers := map[string]string{
-				"Authorization": "Bearer " + jwtAccessTokenForHeader,
-			}
 			ResetPasswordPayload := map[string]string{
 				"new-password": "1111000090",
 				"reset-token":  emailVerificationToken.Token,
 			}
-			res, err := test.PerformRequest(t, "PATCH", "/reset-password", ResetPasswordPayload, headers, router)
+			res, err := test.PerformRequest(t, "PATCH", "/reset-password", ResetPasswordPayload, nil, router)
 
 			assert.Error(t, errors.New("Invalid password reset token"), err)
 			// Assert the response body
@@ -702,14 +674,7 @@ func TestAuth(t *testing.T) {
 				"reset-token":  resetToken.Token,
 			}
 
-			jwtAccessTokenForHeader, err := token.GenerateAccessJWT(userID)
-			assert.NoError(t, err, "failed to generate refresh token")
-
-			headers := map[string]string{
-				"Authorization": "Bearer " + jwtAccessTokenForHeader,
-			}
-
-			res, err := test.PerformRequest(t, "PATCH", "/reset-password", resetPasswordPayload, headers, router)
+			res, err := test.PerformRequest(t, "PATCH", "/reset-password", resetPasswordPayload, nil, router)
 			assert.NoError(t, err)
 			// Assert the response body
 			assert.Equal(t, http.StatusOK, res.Code)
