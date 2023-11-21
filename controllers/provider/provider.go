@@ -47,7 +47,7 @@ func (ctrl *ProviderController) GetLockPaymentOrders(ctx *gin.Context) {
 	// Get provider profile from the context
 	providerCtx, ok := ctx.Get("provider")
 	if !ok {
-		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid API key", nil)
+		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid API key or token", nil)
 		return
 	}
 	provider := providerCtx.(*ent.ProviderProfile)
@@ -121,7 +121,7 @@ func (ctrl *ProviderController) AcceptOrder(ctx *gin.Context) {
 	// Get provider profile from the context
 	providerCtx, ok := ctx.Get("provider")
 	if !ok {
-		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid API key", nil)
+		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid API key or token", nil)
 		return
 	}
 	provider := providerCtx.(*ent.ProviderProfile)
@@ -167,7 +167,7 @@ func (ctrl *ProviderController) DeclineOrder(ctx *gin.Context) {
 	// Get provider profile from the context
 	providerCtx, ok := ctx.Get("provider")
 	if !ok {
-		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid API key", nil)
+		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid API key or token", nil)
 		return
 	}
 	provider := providerCtx.(*ent.ProviderProfile)
@@ -213,7 +213,7 @@ func (ctrl *ProviderController) FulfillOrder(ctx *gin.Context) {
 	// Get provider profile from the context
 	providerCtx, ok := ctx.Get("provider")
 	if !ok {
-		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid API key", nil)
+		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid API key or token", nil)
 		return
 	}
 	provider := providerCtx.(*ent.ProviderProfile)
@@ -342,7 +342,7 @@ func (ctrl *ProviderController) CancelOrder(ctx *gin.Context) {
 	// Get provider profile from the context
 	providerCtx, ok := ctx.Get("provider")
 	if !ok {
-		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid API key", nil)
+		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid API key or token", nil)
 		return
 	}
 	provider := providerCtx.(*ent.ProviderProfile)

@@ -59,7 +59,7 @@ func (ctrl *SenderController) CreatePaymentOrder(ctx *gin.Context) {
 	// Get sender profile from the context
 	senderCtx, ok := ctx.Get("sender")
 	if !ok {
-		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid API key", nil)
+		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid API key or token", nil)
 		return
 	}
 	sender := senderCtx.(*ent.SenderProfile)
@@ -183,7 +183,7 @@ func (ctrl *SenderController) GetPaymentOrderByID(ctx *gin.Context) {
 	// Get sender profile from the context
 	senderCtx, ok := ctx.Get("sender")
 	if !ok {
-		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid API key", nil)
+		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid API key or token", nil)
 		return
 	}
 	sender := senderCtx.(*ent.SenderProfile)
@@ -233,7 +233,7 @@ func (ctrl *SenderController) GetPaymentOrders(ctx *gin.Context) {
 	// Get sender profile from the context
 	senderCtx, ok := ctx.Get("sender")
 	if !ok {
-		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid API key", nil)
+		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid API key or token", nil)
 		return
 	}
 	sender := senderCtx.(*ent.SenderProfile)

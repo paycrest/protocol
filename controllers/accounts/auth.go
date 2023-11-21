@@ -244,6 +244,7 @@ func (ctrl *AuthController) Login(ctx *gin.Context) {
 	u.APIResponse(ctx, http.StatusOK, "success", "Successfully logged in", &types.LoginResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
+		Scopes:       strings.Split(user.Scope, " "),
 	})
 }
 

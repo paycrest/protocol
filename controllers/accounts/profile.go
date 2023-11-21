@@ -46,7 +46,7 @@ func (ctrl *ProfileController) UpdateSenderProfile(ctx *gin.Context) {
 	// Get sender profile from the context
 	senderCtx, ok := ctx.Get("sender")
 	if !ok {
-		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid API key", nil)
+		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid API key or token", nil)
 		return
 	}
 	sender := senderCtx.(*ent.SenderProfile)
@@ -95,7 +95,7 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 	// Get provider profile from the context
 	providerCtx, ok := ctx.Get("provider")
 	if !ok {
-		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid API key", nil)
+		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid API key or token", nil)
 		return
 	}
 	provider := providerCtx.(*ent.ProviderProfile)
@@ -289,7 +289,7 @@ func (ctrl *ProfileController) GetSenderProfile(ctx *gin.Context) {
 	// Get sender profile from the context
 	senderCtx, ok := ctx.Get("sender")
 	if !ok {
-		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid API key", nil)
+		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid API key or token", nil)
 		return
 	}
 	sender := senderCtx.(*ent.SenderProfile)
@@ -317,7 +317,7 @@ func (ctrl *ProfileController) GetProviderProfile(ctx *gin.Context) {
 	// Get provider profile from the context
 	providerCtx, ok := ctx.Get("provider")
 	if !ok {
-		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid API key", nil)
+		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid API key or token", nil)
 		return
 	}
 	provider := providerCtx.(*ent.ProviderProfile)

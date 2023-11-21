@@ -194,7 +194,7 @@ func HMACVerificationMiddleware(c *gin.Context) {
 	}
 
 	if apiKey.Edges.SenderProfile == nil && apiKey.Edges.ProviderProfile == nil {
-		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid API key", nil)
+		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid API key or token", nil)
 		c.Abort()
 		return
 	}
@@ -269,7 +269,7 @@ func OnlySenderMiddleware(c *gin.Context) {
 	_, ok := c.Get("sender")
 
 	if !ok {
-		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid API key", nil)
+		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid API key or token", nil)
 		c.Abort()
 		return
 	}
@@ -282,7 +282,7 @@ func OnlyProviderMiddleware(c *gin.Context) {
 	_, ok := c.Get("provider")
 
 	if !ok {
-		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid API key", nil)
+		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid API key or token", nil)
 		c.Abort()
 		return
 	}

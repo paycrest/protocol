@@ -118,8 +118,9 @@ type LoginPayload struct {
 
 // LoginResponse is the response for the login endpoint
 type LoginResponse struct {
-	AccessToken  string `json:"accessToken"`
-	RefreshToken string `json:"refreshToken"`
+	AccessToken  string   `json:"accessToken"`
+	RefreshToken string   `json:"refreshToken"`
+	Scopes       []string `json:"scopes"`
 }
 
 // RefreshJWTPayload is the payload for the refresh endpoint
@@ -331,7 +332,7 @@ type MarketRateResponse struct {
 }
 
 type ResendTokenPayload struct {
-	Scope string `json:"scope" binding:"required"`
+	Scope string `json:"scope" binding:"required,oneof=email-verification reset-password"`
 	Email string `json:"email" binding:"required,email"`
 }
 
