@@ -311,6 +311,19 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 			err = s.notifyProvider(ctx, orderRequestData)
 			if err != nil {
 				logger.Errorf("failed to notify provider %s: %v", providerID, err)
+				// first is to dequeue the provider from the queue
+				// If an error occurs during the notifyProvider call, reassign the lock payment order to another provider.
+				// Push provider ID to order exclude list
+				orderKey := fmt.Sprintf("order_exclude_list_%d", order.ID)
+				_, err = storage.RedisClient.RPush(ctx, orderKey, providerID).Result()
+				if err != nil {
+					logger.Errorf("error pushing provider %s to order %d exclude_list on Redis: %v", providerID, order.ID, err)
+				}
+				// Reassign the lock payment order to another provider
+				err = s.AssignLockPaymentOrder(ctx, order)
+				if err != nil {
+					logger.Errorf("error reassigning lock payment order %d to another provider: %v", order.ID, err)
+				}
 			}
 
 			break
