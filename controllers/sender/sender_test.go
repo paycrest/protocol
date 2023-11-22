@@ -120,6 +120,10 @@ func createPaymentOrder(t *testing.T, router *gin.Engine) {
 	assert.NotNil(t, paymentOrder.Edges.Recipient)
 	assert.Equal(t, paymentOrder.Edges.Recipient.AccountIdentifier, payload["recipient"].(map[string]interface{})["accountIdentifier"])
 	assert.Equal(t, paymentOrder.Edges.Recipient.Memo, payload["recipient"].(map[string]interface{})["memo"])
+	assert.Equal(t, paymentOrder.Edges.Recipient.AccountName, payload["recipient"].(map[string]interface{})["accountName"])
+	assert.Equal(t, paymentOrder.Edges.Recipient.Institution, payload["recipient"].(map[string]interface{})["institution"])
+	assert.Equal(t, data["senderFee"], "0")
+	assert.Equal(t, data["networkFee"], "1")
 }
 
 func setup() error {
