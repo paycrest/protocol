@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -129,4 +130,10 @@ func Paginate(ctx *gin.Context) (page int, pageSize int) {
 	page = (page - 1) * pageSize
 
 	return page, pageSize
+}
+
+// IsURL checks if a string is a valid URL
+func IsURL(s string) bool {
+	_, err := url.ParseRequestURI(s)
+	return err == nil
 }
