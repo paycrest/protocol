@@ -2,7 +2,6 @@ package test
 
 import (
 	"context"
-	"strings"
 
 	"github.com/google/uuid"
 	"github.com/paycrest/protocol/ent"
@@ -14,15 +13,15 @@ import (
 )
 
 // CreateTestUser creates a test user with default or custom values
-func CreateTestUser(overrides map[string]string) (*ent.User, error) {
+func CreateTestUser(overrides map[string]interface{}) (*ent.User, error) {
 
 	// Default payload
-	payload := map[string]string{
+	payload := map[string]interface{}{
 		"firstName": "John",
 		"lastName":  "Doe",
 		"email":     "johndoe@test.com",
 		"password":  "password",
-		"scope":     "sender",
+		"scope":     []string{"sender"},
 	}
 
 	// Apply overrides
@@ -31,19 +30,32 @@ func CreateTestUser(overrides map[string]string) (*ent.User, error) {
 	}
 
 	var scopes []string
-	if payload["scope"] == "provider" {
-		scopes = []string{"sender", "provider"}
-	} else {
-		scopes = []string{payload["scope"]}
+
+	if scopes, ok := payload["scope"].([]string); ok {
+
+		// Check if slice only contains "provider"
+		isProviderOnly := true
+		for _, s := range scopes {
+			if s != "provider" {
+				isProviderOnly = false
+				break
+			}
+		}
+
+		if isProviderOnly {
+			scopes = []string{"sender", "provider"}
+		} else {
+			scopes = payload["scope"].([]string)
+		}
 	}
 
 	// Create user
 	user, err := db.Client.User.
 		Create().
-		SetFirstName(payload["firstName"]).
-		SetLastName(payload["lastName"]).
-		SetEmail(strings.ToLower(payload["email"])).
-		SetPassword(payload["password"]).
+		SetFirstName(payload["firstName"].(string)).
+		SetLastName(payload["lastName"].(string)).
+		SetEmail(payload["email"].(string)).
+		SetPassword(payload["password"].(string)).
 		SetScopes(scopes).
 		Save(context.Background())
 

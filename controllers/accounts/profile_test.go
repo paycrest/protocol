@@ -31,7 +31,7 @@ var testCtx = struct {
 
 func setup() error {
 	// Set up test data
-	user, err := test.CreateTestUser(map[string]string{
+	user, err := test.CreateTestUser(map[string]interface{}{
 		"scope": "provider",
 		"email": "providerjohndoe@test.com",
 	})
@@ -98,172 +98,173 @@ func TestProfile(t *testing.T) {
 	)
 
 	t.Run("UpdateSenderProfile", func(t *testing.T) {
-		testUser, err := test.CreateTestUser(map[string]string{"scope": "sender"})
-		assert.NoError(t, err)
+		t.Run("UpdateSenderProfileCompletely", func(t *testing.T) {
+			testUser, err := test.CreateTestUser(map[string]interface{}{"scope": "sender"})
+			assert.NoError(t, err)
 
-		_, err = test.CreateTestSenderProfile(map[string]interface{}{
-			"domain_whitelist": []string{"example.com"},
-			"user_id":          testUser.ID,
+			_, err = test.CreateTestSenderProfile(map[string]interface{}{
+				"domain_whitelist": []string{"example.com"},
+				"user_id":          testUser.ID,
+			})
+			assert.NoError(t, err)
+
+			// Test partial update
+			accessToken, _ := token.GenerateAccessJWT(testUser.ID.String())
+			headers := map[string]string{
+				"Authorization": "Bearer " + accessToken,
+			}
+			payload := types.SenderProfilePayload{
+				DomainWhitelist: []string{"example.com", "mydomain.com"},
+				RefundAddress:   "0x1234567890",
+			}
+
+			res, err := test.PerformRequest(t, "PATCH", "/settings/sender?scope=sender", payload, headers, router)
+			assert.NoError(t, err)
+
+			// Assert the response body
+			assert.Equal(t, http.StatusOK, res.Code)
+
+			var response types.Response
+			err = json.Unmarshal(res.Body.Bytes(), &response)
+			assert.NoError(t, err)
+			assert.Equal(t, "Profile updated successfully", response.Message)
+			assert.Nil(t, response.Data, "response.Data is not nil")
+
+			senderProfile, err := db.Client.SenderProfile.
+				Query().
+				Where(senderprofile.HasUserWith(user.ID(testUser.ID))).
+				Only(context.Background())
+			assert.NoError(t, err)
+
+			assert.Contains(t, senderProfile.DomainWhitelist, "mydomain.com")
 		})
-		assert.NoError(t, err)
 
-		// Test partial update
-		accessToken, _ := token.GenerateAccessJWT(testUser.ID.String())
-		headers := map[string]string{
-			"Authorization": "Bearer " + accessToken,
-		}
-		payload := types.SenderProfilePayload{
-			DomainWhitelist: []string{"example.com", "mydomain.com"},
-			RefundAddress:   "0x1234567890",
-		}
+		t.Run("UpdateSenderProfileWithInvalidWebhookURL", func(t *testing.T) {
+			testUser, err := test.CreateTestUser(map[string]interface{}{
+				"scope": "sender",
+				"email": "johndoe2@test.com",
+			})
+			assert.NoError(t, err)
 
-		res, err := test.PerformRequest(t, "PATCH", "/settings/sender?scope=sender", payload, headers, router)
-		assert.NoError(t, err)
+			_, err = test.CreateTestSenderProfile(map[string]interface{}{
+				"domain_whitelist": []string{"example.com"},
+				"user_id":          testUser.ID,
+			})
+			assert.NoError(t, err)
 
-		// Assert the response body
-		assert.Equal(t, http.StatusOK, res.Code)
+			// Test partial update
+			accessToken, _ := token.GenerateAccessJWT(testUser.ID.String())
+			headers := map[string]string{
+				"Authorization": "Bearer " + accessToken,
+			}
+			payload := types.SenderProfilePayload{
+				WebhookURL:      "examplecom",
+				DomainWhitelist: []string{"example.com", "mydomain.com"},
+				RefundAddress:   "0x1234567890",
+			}
 
-		var response types.Response
-		err = json.Unmarshal(res.Body.Bytes(), &response)
-		assert.NoError(t, err)
-		assert.Equal(t, "Profile updated successfully", response.Message)
-		assert.Nil(t, response.Data, "response.Data is not nil")
+			res, err := test.PerformRequest(t, "PATCH", "/settings/sender", payload, headers, router)
+			assert.NoError(t, err)
 
-		senderProfile, err := db.Client.SenderProfile.
-			Query().
-			Where(senderprofile.HasUserWith(user.ID(testUser.ID))).
-			Only(context.Background())
-		assert.NoError(t, err)
+			// Assert the response body
+			assert.Equal(t, http.StatusBadRequest, res.Code)
 
-		assert.Contains(t, senderProfile.DomainWhitelist, "mydomain.com")
+			var response types.Response
+			err = json.Unmarshal(res.Body.Bytes(), &response)
+			assert.NoError(t, err)
+			assert.Equal(t, "Invalid webhook url", response.Message)
+			assert.Nil(t, response.Data, "response.Data is not nil")
+		})
+
+		t.Run("UpdateSenderProfileCompletelyAndCheckIfActive", func(t *testing.T) {
+			testUser, err := test.CreateTestUser(map[string]interface{}{
+				"scope": "sender",
+				"email": "johndoe3@test.com",
+			})
+			assert.NoError(t, err)
+
+			_, err = test.CreateTestSenderProfile(map[string]interface{}{
+				"domain_whitelist": []string{"example.com"},
+				"user_id":          testUser.ID,
+			})
+			assert.NoError(t, err)
+
+			// Test partial update
+			accessToken, _ := token.GenerateAccessJWT(testUser.ID.String())
+			headers := map[string]string{
+				"Authorization": "Bearer " + accessToken,
+			}
+			payload := types.SenderProfilePayload{
+				DomainWhitelist: []string{"example.com", "mydomain.com"},
+				RefundAddress:   "0x1234567890",
+			}
+
+			res, err := test.PerformRequest(t, "PATCH", "/settings/sender", payload, headers, router)
+			assert.NoError(t, err)
+
+			// Assert the response body
+			assert.Equal(t, http.StatusOK, res.Code)
+
+			var response types.Response
+			err = json.Unmarshal(res.Body.Bytes(), &response)
+			assert.NoError(t, err)
+			assert.Equal(t, "Profile updated successfully", response.Message)
+			assert.Nil(t, response.Data, "response.Data is not nil")
+
+			senderProfile, err := db.Client.SenderProfile.
+				Query().
+				Where(senderprofile.HasUserWith(user.ID(testUser.ID))).
+				Only(context.Background())
+			assert.NoError(t, err)
+
+			assert.Contains(t, senderProfile.DomainWhitelist, "mydomain.com")
+			assert.True(t, senderProfile.IsActive)
+		})
+
+		t.Run("UpdateProviderProfileCompletelyAndCheckIfActive", func(t *testing.T) {
+			// Test partial update
+			accessToken, _ := token.GenerateAccessJWT(testCtx.user.ID.String())
+			headers := map[string]string{
+				"Authorization": "Bearer " + accessToken,
+			}
+			payload := types.ProviderProfilePayload{
+				TradingName:    "My Trading Name",
+				Currency:       "KES",
+				HostIdentifier: "example.com",
+				Availability: types.ProviderAvailabilityPayload{
+					Cadence:   "weekdays",
+					StartTime: time.Now(),
+					EndTime:   time.Now().Add(time.Hour * 24),
+				},
+			}
+
+			res, err := test.PerformRequest(t, "PATCH", "/settings/provider?scope=provider", payload, headers, router)
+			assert.NoError(t, err)
+
+			// Assert the response body
+			assert.Equal(t, http.StatusOK, res.Code)
+
+			var response types.Response
+			err = json.Unmarshal(res.Body.Bytes(), &response)
+			assert.NoError(t, err)
+			assert.Equal(t, "Profile updated successfully", response.Message)
+			assert.Nil(t, response.Data, "response.Data is not nil")
+
+			providerProfile, err := db.Client.ProviderProfile.
+				Query().
+				Where(providerprofile.HasUserWith(user.ID(testCtx.user.ID))).
+				WithCurrency().
+				Only(context.Background())
+			assert.NoError(t, err)
+
+			assert.Contains(t, providerProfile.TradingName, payload.TradingName)
+			assert.Contains(t, providerProfile.HostIdentifier, payload.HostIdentifier)
+			assert.Contains(t, providerProfile.Edges.Currency.Code, payload.Currency)
+			assert.True(t, providerProfile.IsActive)
+		})
 	})
-
-	t.Run("UpdateSenderProfileWithInvalidWebhookURL", func(t *testing.T) {
-		testUser, err := test.CreateTestUser(map[string]string{
-			"scope": "sender",
-			"email": "johndoe2@test.com",
-		})
-		assert.NoError(t, err)
-
-		_, err = test.CreateTestSenderProfile(map[string]interface{}{
-			"domain_whitelist": []string{"example.com"},
-			"user_id":          testUser.ID,
-		})
-		assert.NoError(t, err)
-
-		// Test partial update
-		accessToken, _ := token.GenerateAccessJWT(testUser.ID.String())
-		headers := map[string]string{
-			"Authorization": "Bearer " + accessToken,
-		}
-		payload := types.SenderProfilePayload{
-			WebhookURL:      "examplecom",
-			DomainWhitelist: []string{"example.com", "mydomain.com"},
-			RefundAddress:   "0x1234567890",
-		}
-
-		res, err := test.PerformRequest(t, "PATCH", "/settings/sender?scope=sender", payload, headers, router)
-		assert.NoError(t, err)
-
-		// Assert the response body
-		assert.Equal(t, http.StatusBadRequest, res.Code)
-
-		var response types.Response
-		err = json.Unmarshal(res.Body.Bytes(), &response)
-		assert.NoError(t, err)
-		assert.Equal(t, "Invalid webhook url", response.Message)
-		assert.Nil(t, response.Data, "response.Data is not nil")
-	})
-
-	t.Run("UpdateSenderProfileCompletelyAndCheckIfActive", func(t *testing.T) {
-		testUser, err := test.CreateTestUser(map[string]string{
-			"scope": "sender",
-			"email": "johndoe3@test.com",
-		})
-		assert.NoError(t, err)
-
-		_, err = test.CreateTestSenderProfile(map[string]interface{}{
-			"domain_whitelist": []string{"example.com"},
-			"user_id":          testUser.ID,
-		})
-		assert.NoError(t, err)
-
-		// Test partial update
-		accessToken, _ := token.GenerateAccessJWT(testUser.ID.String())
-		headers := map[string]string{
-			"Authorization": "Bearer " + accessToken,
-		}
-		payload := types.SenderProfilePayload{
-			DomainWhitelist: []string{"example.com", "mydomain.com"},
-			RefundAddress:   "0x1234567890",
-		}
-
-		res, err := test.PerformRequest(t, "PATCH", "/settings/sender?scope=sender", payload, headers, router)
-		assert.NoError(t, err)
-
-		// Assert the response body
-		assert.Equal(t, http.StatusOK, res.Code)
-
-		var response types.Response
-		err = json.Unmarshal(res.Body.Bytes(), &response)
-		assert.NoError(t, err)
-		assert.Equal(t, "Profile updated successfully", response.Message)
-		assert.Nil(t, response.Data, "response.Data is not nil")
-
-		senderProfile, err := db.Client.SenderProfile.
-			Query().
-			Where(senderprofile.HasUserWith(user.ID(testUser.ID))).
-			Only(context.Background())
-		assert.NoError(t, err)
-
-		assert.Contains(t, senderProfile.DomainWhitelist, "mydomain.com")
-		assert.True(t, senderProfile.IsActive)
-	})
-
-	t.Run("UpdateProviderProfileCompletelyAndCheckIfActive", func(t *testing.T) {
-		// Test partial update
-		accessToken, _ := token.GenerateAccessJWT(testCtx.user.ID.String())
-		headers := map[string]string{
-			"Authorization": "Bearer " + accessToken,
-		}
-		payload := types.ProviderProfilePayload{
-			TradingName:    "My Trading Name",
-			Currency:       "KES",
-			HostIdentifier: "example.com",
-			Availability: types.ProviderAvailabilityPayload{
-				Cadence:   "weekdays",
-				StartTime: time.Now(),
-				EndTime:   time.Now().Add(time.Hour * 24),
-			},
-		}
-
-		res, err := test.PerformRequest(t, "PATCH", "/settings/provider?scope=provider", payload, headers, router)
-		assert.NoError(t, err)
-
-		// Assert the response body
-		assert.Equal(t, http.StatusOK, res.Code)
-
-		var response types.Response
-		err = json.Unmarshal(res.Body.Bytes(), &response)
-		assert.NoError(t, err)
-		assert.Equal(t, "Profile updated successfully", response.Message)
-		assert.Nil(t, response.Data, "response.Data is not nil")
-
-		providerProfile, err := db.Client.ProviderProfile.
-			Query().
-			Where(providerprofile.HasUserWith(user.ID(testCtx.user.ID))).
-			WithCurrency().
-			Only(context.Background())
-		assert.NoError(t, err)
-
-		assert.Contains(t, providerProfile.TradingName, payload.TradingName)
-		assert.Contains(t, providerProfile.HostIdentifier, payload.HostIdentifier)
-		assert.Contains(t, providerProfile.Edges.Currency.Code, payload.Currency)
-		assert.True(t, providerProfile.IsActive)
-	})
-
 	t.Run("GetSenderProfile", func(t *testing.T) {
-		testUser, err := test.CreateTestUser(map[string]string{
+		testUser, err := test.CreateTestUser(map[string]interface{}{
 			"email": "hello@test.com",
 			"scope": "sender",
 		})

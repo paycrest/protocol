@@ -33,7 +33,7 @@ var testCtx = struct {
 
 func setup() error {
 	// Set up test data
-	user, err := test.CreateTestUser(map[string]string{
+	user, err := test.CreateTestUser(map[string]interface{}{
 		"scope": "provider"})
 	if err != nil {
 		return err
