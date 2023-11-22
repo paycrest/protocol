@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/paycrest/protocol/ent/fiatcurrency"
+	"github.com/paycrest/protocol/ent/providerprofile"
 	svc "github.com/paycrest/protocol/services"
 	"github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
@@ -93,6 +94,8 @@ func (ctrl *Controller) GetTokenRate(ctx *gin.Context) {
 		return
 	}
 
+	rateResponse := decimal.NewFromInt(0)
+
 	// Get redis keys for provision buckets
 	keys, _, err := storage.RedisClient.Scan(ctx, uint64(0), "bucket_"+fiatSymbol+"_%d_%d", 100).Result()
 	if err != nil {
@@ -100,28 +103,68 @@ func (ctrl *Controller) GetTokenRate(ctx *gin.Context) {
 		return
 	}
 
-	rateResponse := decimal.NewFromInt(0)
-
-	// Scan through the buckets to find a matching rate
-	for _, key := range keys {
-		bucketData := strings.Split(key, "_")
-		minAmount, _ := decimal.NewFromString(bucketData[2])
-		maxAmount, _ := decimal.NewFromString(bucketData[3])
-
-		// Get the topmost provider in the priority queue of the bucket
-		providerData, err := storage.RedisClient.LIndex(ctx, key, 0).Result()
+	// get providerID from query params
+	providerID := ctx.Query("provider_id")
+	if providerID != "" {
+		// get the provider from the bucket
+		provider, err := storage.Client.ProviderProfile.
+			Query().
+			Where(providerprofile.IDEQ(providerID)).
+			Only(ctx)
 		if err != nil {
 			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch rates", nil)
 			return
 		}
 
-		// Get fiat equivalent of the token amount
-		rate, _ := decimal.NewFromString(strings.Split(providerData, ":")[1])
-		fiatAmount := tokenAmount.Mul(rate)
+		// Scan through the buckets to find a matching rate
+		for _, key := range keys {
+			bucketData := strings.Split(key, "_")
+			minAmount, _ := decimal.NewFromString(bucketData[2])
+			maxAmount, _ := decimal.NewFromString(bucketData[3])
 
-		// Check if fiat amount is within the bucket range and set the rate
-		if fiatAmount.GreaterThanOrEqual(minAmount) && fiatAmount.LessThanOrEqual(maxAmount) {
-			rateResponse = rate
+			// Get the topmost provider in the priority queue of the bucket
+			providerData, err := storage.RedisClient.LIndex(ctx, key, 0).Result()
+			if err != nil {
+				u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch rates", nil)
+				return
+			}
+
+			// Get fiat equivalent of the token amount
+			rate, _ := decimal.NewFromString(strings.Split(providerData, ":")[1])
+			fiatAmount := tokenAmount.Mul(rate)
+
+			// Check if fiat amount is within the bucket range and set the rate
+			if fiatAmount.GreaterThanOrEqual(minAmount) && fiatAmount.LessThanOrEqual(maxAmount) {
+				// Check if the provider matches the one in the query params
+				if strings.Split(providerData, ":")[0] == provider.ID {
+					rateResponse = rate
+				}
+			}
+		}
+
+	} else {
+
+		// Scan through the buckets to find a matching rate
+		for _, key := range keys {
+			bucketData := strings.Split(key, "_")
+			minAmount, _ := decimal.NewFromString(bucketData[2])
+			maxAmount, _ := decimal.NewFromString(bucketData[3])
+
+			// Get the topmost provider in the priority queue of the bucket
+			providerData, err := storage.RedisClient.LIndex(ctx, key, 0).Result()
+			if err != nil {
+				u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch rates", nil)
+				return
+			}
+
+			// Get fiat equivalent of the token amount
+			rate, _ := decimal.NewFromString(strings.Split(providerData, ":")[1])
+			fiatAmount := tokenAmount.Mul(rate)
+
+			// Check if fiat amount is within the bucket range and set the rate
+			if fiatAmount.GreaterThanOrEqual(minAmount) && fiatAmount.LessThanOrEqual(maxAmount) {
+				rateResponse = rate
+			}
 		}
 	}
 
