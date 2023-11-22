@@ -30,23 +30,19 @@ func CreateTestUser(overrides map[string]interface{}) (*ent.User, error) {
 	}
 
 	var scopes []string
-
-	if scopes, ok := payload["scope"].([]string); ok {
-
-		// Check if slice only contains "provider"
-		isProviderOnly := true
-		for _, s := range scopes {
-			if s != "provider" {
-				isProviderOnly = false
-				break
-			}
+	// Check if slice only contains "provider"
+	isProviderOnly := true
+	for _, s := range scopes {
+		if s != "provider" {
+			isProviderOnly = false
+			break
 		}
+	}
 
-		if isProviderOnly {
-			scopes = []string{"sender", "provider"}
-		} else {
-			scopes = payload["scope"].([]string)
-		}
+	if isProviderOnly {
+		scopes = []string{"sender", "provider"}
+	} else {
+		scopes = payload["scope"].([]string)
 	}
 
 	// Create user
