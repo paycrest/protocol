@@ -185,6 +185,7 @@ type ProviderProfileResponse struct {
 	Availability   *ent.ProviderAvailability `json:"availability"`
 	Tokens         []*ent.ProviderOrderToken `json:"tokens"`
 	APIKey         APIKeyResponse            `json:"apiKey"`
+	IsActive       bool                      `json:"isActive"`
 }
 
 // ValidatorProfileResponse is the response for the validator profile endpoint
@@ -204,6 +205,7 @@ type SenderProfileResponse struct {
 	FeeAddress      string          `json:"feeAddress"`
 	RefundAddress   string          `json:"refundAddress"`
 	APIKey          APIKeyResponse  `json:"apiKey"`
+	IsActive        bool            `json:"isActive"`
 }
 
 // RefreshResponse is the response for the refresh endpoint

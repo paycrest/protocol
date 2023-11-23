@@ -332,6 +332,8 @@ func TestProfile(t *testing.T) {
 			}
 
 			res, err := test.PerformRequest(t, "PATCH", "/settings/provider", payload, headers, router)
+			assert.NoError(t, err)
+
 			// Assert the response body
 			assert.Equal(t, http.StatusOK, res.Code)
 

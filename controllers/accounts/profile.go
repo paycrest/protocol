@@ -355,6 +355,7 @@ func (ctrl *ProfileController) GetSenderProfile(ctx *gin.Context) {
 		FeeAddress:      sender.FeeAddress,
 		RefundAddress:   sender.RefundAddress,
 		APIKey:          *apiKey,
+		IsActive:        sender.IsActive,
 	})
 }
 
@@ -398,5 +399,6 @@ func (ctrl *ProfileController) GetProviderProfile(ctx *gin.Context) {
 		Availability:   availability,
 		Tokens:         tokens,
 		APIKey:         *apiKey,
+		IsActive:       provider.IsActive,
 	})
 }
