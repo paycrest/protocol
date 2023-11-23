@@ -165,6 +165,52 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 		update.SetIsPartner(payload.IsPartner)
 	}
 
+	// Update Visibility Mode
+	if payload.VisibilityMode != "" {
+		update.SetVisibilityMode(providerprofile.VisibilityMode(payload.VisibilityMode))
+	}
+
+	// Update optional profile fields
+	if payload.Address != "" {
+		update.SetAddress(payload.Address)
+	}
+	if payload.MobileNumber != "" {
+		if !u.IsValidMobileNumber(payload.MobileNumber) {
+			u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid mobile number", nil)
+			return
+		}
+		update.SetMobileNumber(payload.MobileNumber)
+	}
+	if payload.DateOfBirth != "" {
+		update.SetDateOfBirth(payload.DateOfBirth)
+	}
+	if payload.BusinessName != "" {
+		update.SetBusinessName(payload.BusinessName)
+	}
+	if payload.IdentityDocumentType != "" {
+		if providerprofile.IdentityDocumentType(payload.IdentityDocumentType) != providerprofile.IdentityDocumentTypePassport &&
+			providerprofile.IdentityDocumentType(payload.IdentityDocumentType) != providerprofile.IdentityDocumentTypeDriversLicense &&
+			providerprofile.IdentityDocumentType(payload.IdentityDocumentType) != providerprofile.IdentityDocumentTypeNationalID {
+			u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid identity document type", nil)
+			return
+		}
+		update.SetIdentityDocumentType(providerprofile.IdentityDocumentType(payload.IdentityDocumentType))
+	}
+	if payload.IdentityDocument != "" {
+		if !u.IsValidFileURL(payload.IdentityDocument) {
+			u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid identity document url", nil)
+			return
+		}
+		update.SetIdentityDocument(payload.IdentityDocument)
+	}
+	if payload.BusinessDocument != "" {
+		if !u.IsValidFileURL(payload.BusinessDocument) {
+			u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid business document url", nil)
+			return
+		}
+		update.SetBusinessDocument(payload.BusinessDocument)
+	}
+
 	// // Update availability
 	// if payload.Availability != (types.ProviderAvailabilityPayload{}) && payload.Availability.Cadence != "" {
 	// 	// Get existing availability if it exists
@@ -311,11 +357,6 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 		}
 	}
 
-	// Update Visibility Mode
-	if payload.VisibilityMode != "" {
-		update.SetVisibilityMode(providerprofile.VisibilityMode(payload.VisibilityMode))
-	}
-
 	// Activate profile
 	if payload.HostIdentifier != "" && payload.TradingName != "" {
 		update.SetIsActive(true)
@@ -391,14 +432,21 @@ func (ctrl *ProfileController) GetProviderProfile(ctx *gin.Context) {
 	}
 
 	u.APIResponse(ctx, http.StatusOK, "success", "Profile retrieved successfully", &types.ProviderProfileResponse{
-		ID:             provider.ID,
-		TradingName:    provider.TradingName,
-		Currency:       provider.Edges.Currency.Code,
-		HostIdentifier: provider.HostIdentifier,
-		IsPartner:      provider.IsPartner,
-		Availability:   availability,
-		Tokens:         tokens,
-		APIKey:         *apiKey,
-		IsActive:       provider.IsActive,
+		ID:                   provider.ID,
+		TradingName:          provider.TradingName,
+		Currency:             provider.Edges.Currency.Code,
+		HostIdentifier:       provider.HostIdentifier,
+		IsPartner:            provider.IsPartner,
+		Availability:         availability,
+		Tokens:               tokens,
+		APIKey:               *apiKey,
+		IsActive:             provider.IsActive,
+		Address:              provider.Address,
+		MobileNumber:         provider.MobileNumber,
+		DateOfBirth:          provider.DateOfBirth,
+		BusinessName:         provider.BusinessName,
+		IdentityDocumentType: string(provider.IdentityDocumentType),
+		IdentityDocument:     provider.IdentityDocument,
+		BusinessDocument:     provider.BusinessDocument,
 	})
 }

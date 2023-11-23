@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -231,6 +232,7 @@ func TestProfile(t *testing.T) {
 	})
 
 	t.Run("UpdateProviderProfile", func(t *testing.T) {
+
 		t.Run("with all fields complete and check if it is active", func(t *testing.T) {
 			// Test partial update
 			accessToken, _ := token.GenerateAccessJWT(testCtx.user.ID.String(), "provider")
@@ -271,6 +273,184 @@ func TestProfile(t *testing.T) {
 			assert.Contains(t, providerProfile.HostIdentifier, payload.HostIdentifier)
 			assert.Contains(t, providerProfile.Edges.Currency.Code, payload.Currency)
 			assert.True(t, providerProfile.IsActive)
+		})
+
+		t.Run("with visibility", func(t *testing.T) {
+			// Test partial update
+			accessToken, _ := token.GenerateAccessJWT(testCtx.user.ID.String(), "provider")
+			headers := map[string]string{
+				"Authorization": "Bearer " + accessToken,
+			}
+			payload := types.ProviderProfilePayload{
+				VisibilityMode: "private",
+				TradingName:    testCtx.providerProfile.TradingName,
+				HostIdentifier: testCtx.providerProfile.HostIdentifier,
+				Currency:       "KES",
+			}
+
+			res, err := test.PerformRequest(t, "PATCH", "/settings/provider", payload, headers, router)
+			assert.NoError(t, err)
+
+			// Assert the response body
+			assert.Equal(t, http.StatusOK, res.Code)
+
+			var response types.Response
+			err = json.Unmarshal(res.Body.Bytes(), &response)
+			assert.NoError(t, err)
+			assert.Equal(t, "Profile updated successfully", response.Message)
+			assert.Nil(t, response.Data, "response.Data is not nil")
+
+			providerProfile, err := db.Client.ProviderProfile.Query().
+				Where(providerprofile.VisibilityModeEQ(providerprofile.VisibilityModePrivate)).
+				Count(context.Background())
+			assert.NoError(t, err)
+			assert.Equal(t, 1, providerProfile)
+		})
+
+		t.Run("with optional fields", func(t *testing.T) {
+			profileUpdateRequest := func(payload types.ProviderProfilePayload) *httptest.ResponseRecorder {
+				// Test partial update
+				accessToken, _ := token.GenerateAccessJWT(testCtx.user.ID.String(), "provider")
+				headers := map[string]string{
+					"Authorization": "Bearer " + accessToken,
+				}
+
+				res, err := test.PerformRequest(t, "PATCH", "/settings/provider", payload, headers, router)
+				assert.NoError(t, err)
+
+				return res
+			}
+			t.Run("Fails for invalid mobile number", func(t *testing.T) {
+				payload := types.ProviderProfilePayload{
+					MobileNumber:   "1234567890",
+					TradingName:    testCtx.providerProfile.TradingName,
+					HostIdentifier: testCtx.providerProfile.HostIdentifier,
+					Currency:       "KES",
+				}
+				res1 := profileUpdateRequest(payload)
+
+				payload.MobileNumber = "+23456789029"
+				res2 := profileUpdateRequest(payload)
+
+				// Assert the response body
+				assert.Equal(t, http.StatusBadRequest, res1.Code)
+				assert.Equal(t, http.StatusBadRequest, res2.Code)
+
+				var response types.Response
+				err = json.Unmarshal(res1.Body.Bytes(), &response)
+				assert.NoError(t, err)
+				assert.Equal(t, "Invalid mobile number", response.Message)
+
+				err = json.Unmarshal(res2.Body.Bytes(), &response)
+				assert.NoError(t, err)
+				assert.Equal(t, "Invalid mobile number", response.Message)
+			})
+
+			t.Run("Fails for invalid identity document type", func(t *testing.T) {
+				payload := types.ProviderProfilePayload{
+					IdentityDocumentType: "student_id",
+					TradingName:          testCtx.providerProfile.TradingName,
+					HostIdentifier:       testCtx.providerProfile.HostIdentifier,
+				}
+				res1 := profileUpdateRequest(payload)
+
+				payload.IdentityDocumentType = "bank_statement"
+				res2 := profileUpdateRequest(payload)
+
+				// Assert the response body
+				assert.Equal(t, http.StatusBadRequest, res1.Code)
+				assert.Equal(t, http.StatusBadRequest, res2.Code)
+
+				var response types.Response
+				err = json.Unmarshal(res1.Body.Bytes(), &response)
+				assert.NoError(t, err)
+				assert.Equal(t, "Invalid identity document type", response.Message)
+
+				err = json.Unmarshal(res2.Body.Bytes(), &response)
+				assert.NoError(t, err)
+				assert.Equal(t, "Invalid identity document type", response.Message)
+			})
+
+			t.Run("Fails for invalid identity document url", func(t *testing.T) {
+				payload := types.ProviderProfilePayload{
+					IdentityDocument: "img.png",
+					TradingName:      testCtx.providerProfile.TradingName,
+					HostIdentifier:   testCtx.providerProfile.HostIdentifier,
+				}
+				res1 := profileUpdateRequest(payload)
+
+				payload.IdentityDocument = "ftp://123.example.com/file.png"
+				res2 := profileUpdateRequest(payload)
+
+				// Assert the response body
+				assert.Equal(t, http.StatusBadRequest, res1.Code)
+				assert.Equal(t, http.StatusBadRequest, res2.Code)
+
+				var response types.Response
+				err = json.Unmarshal(res1.Body.Bytes(), &response)
+				assert.NoError(t, err)
+				assert.Equal(t, "Invalid identity document url", response.Message)
+
+				err = json.Unmarshal(res2.Body.Bytes(), &response)
+				assert.NoError(t, err)
+				assert.Equal(t, "Invalid identity document url", response.Message)
+				// assert.Nil(t, response.Data, "response.Data is not nil")
+			})
+
+			t.Run("Fails for invalid business document url", func(t *testing.T) {
+				payload := types.ProviderProfilePayload{
+					BusinessDocument: "http://123.example.com/file.ai",
+					TradingName:      testCtx.providerProfile.TradingName,
+					HostIdentifier:   testCtx.providerProfile.HostIdentifier,
+				}
+				res := profileUpdateRequest(payload)
+				// Assert the response body
+				assert.Equal(t, http.StatusBadRequest, res.Code)
+
+				var response types.Response
+				err = json.Unmarshal(res.Body.Bytes(), &response)
+				assert.NoError(t, err)
+				assert.Equal(t, "Invalid business document url", response.Message)
+				// assert.Nil(t, response.Data, "response.Data is not nil")
+			})
+
+			t.Run("Succeeds with valid optional fields", func(t *testing.T) {
+				payload := types.ProviderProfilePayload{
+					Address:              "123, Example Street, Nairobi, Kenya",
+					MobileNumber:         "+2347012345678",
+					DateOfBirth:          "1990-01-01",
+					BusinessName:         "Example Business",
+					IdentityDocumentType: "national_id",
+					IdentityDocument:     "https://example.com/national_id.png",
+					BusinessDocument:     "https://example.com/business_doc.png",
+					TradingName:          testCtx.providerProfile.TradingName,
+					HostIdentifier:       testCtx.providerProfile.HostIdentifier,
+				}
+				res := profileUpdateRequest(payload)
+				// Assert the response body
+				assert.Equal(t, http.StatusOK, res.Code)
+
+				var response types.Response
+				err = json.Unmarshal(res.Body.Bytes(), &response)
+				assert.NoError(t, err)
+				assert.Equal(t, "Profile updated successfully", response.Message)
+
+				// Assert optional fields were correctly set and retrieved
+				providerProfile, err := db.Client.ProviderProfile.
+					Query().
+					Where(providerprofile.HasUserWith(user.ID(testCtx.user.ID))).
+					Only(context.Background())
+				assert.NoError(t, err)
+
+				assert.Equal(t, providerProfile.Address, "123, Example Street, Nairobi, Kenya")
+				assert.Equal(t, providerProfile.MobileNumber, "+2347012345678")
+				assert.Equal(t, providerProfile.DateOfBirth, "1990-01-01")
+				assert.Equal(t, providerProfile.BusinessName, "Example Business")
+				assert.Equal(t, string(providerProfile.IdentityDocumentType), "national_id")
+				assert.Equal(t, providerProfile.IdentityDocument, "https://example.com/national_id.png")
+				assert.Equal(t, providerProfile.BusinessDocument, "https://example.com/business_doc.png")
+			})
+
 		})
 	})
 
@@ -315,40 +495,7 @@ func TestProfile(t *testing.T) {
 		assert.Equal(t, data["feePerTokenUnit"], "0")
 
 		assert.Contains(t, data["domainWhitelist"], "mydomain.com")
-	})
 
-	t.Run("UpdateProviderProfile", func(t *testing.T) {
-		t.Run("with visibility", func(t *testing.T) {
-			// Test partial update
-			accessToken, _ := token.GenerateAccessJWT(testCtx.user.ID.String(), "provider")
-			headers := map[string]string{
-				"Authorization": "Bearer " + accessToken,
-			}
-			payload := types.ProviderProfilePayload{
-				VisibilityMode: "private",
-				TradingName:    testCtx.providerProfile.TradingName,
-				HostIdentifier: testCtx.providerProfile.HostIdentifier,
-				Currency:       "KES",
-			}
-
-			res, err := test.PerformRequest(t, "PATCH", "/settings/provider", payload, headers, router)
-			assert.NoError(t, err)
-
-			// Assert the response body
-			assert.Equal(t, http.StatusOK, res.Code)
-
-			var response types.Response
-			err = json.Unmarshal(res.Body.Bytes(), &response)
-			assert.NoError(t, err)
-			assert.Equal(t, "Profile updated successfully", response.Message)
-			assert.Nil(t, response.Data, "response.Data is not nil")
-
-			providerProfile, err := db.Client.ProviderProfile.Query().
-				Where(providerprofile.VisibilityModeEQ(providerprofile.VisibilityModePrivate)).
-				Count(context.Background())
-			assert.NoError(t, err)
-			assert.Equal(t, 1, providerProfile)
-		})
 	})
 
 }
