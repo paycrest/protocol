@@ -122,7 +122,7 @@ func createPaymentOrder(t *testing.T, router *gin.Engine) {
 	assert.Equal(t, paymentOrder.Edges.Recipient.Memo, payload["recipient"].(map[string]interface{})["memo"])
 	assert.Equal(t, paymentOrder.Edges.Recipient.AccountName, payload["recipient"].(map[string]interface{})["accountName"])
 	assert.Equal(t, paymentOrder.Edges.Recipient.Institution, payload["recipient"].(map[string]interface{})["institution"])
-	assert.Equal(t, data["senderFee"], "0")
+	assert.Equal(t, data["senderFee"], "0.2")
 	assert.Equal(t, data["networkFee"], "1")
 }
 
@@ -135,7 +135,8 @@ func setup() error {
 	testCtx.user = user
 
 	senderProfile, err := test.CreateTestSenderProfile(map[string]interface{}{
-		"user_id": user.ID,
+		"user_id":            user.ID,
+		"fee_per_token_unit": 1.5,
 	})
 	if err != nil {
 		return err

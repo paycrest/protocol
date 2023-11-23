@@ -263,13 +263,13 @@ type NewPaymentOrderPayload struct {
 
 // ReceiveAddressResponse is the response type for a receive address
 type ReceiveAddressResponse struct {
-	ID             uuid.UUID `json:"id"`
-	Amount         float64   `json:"amount"`
-	Network        string    `json:"network"`
-	ReceiveAddress string    `json:"receiveAddress"`
-	ValidUntil     time.Time `json:"validUntil"`
-	SenderFee      decimal.Decimal   `json:"senderFee"`
-	NetworkFee     decimal.Decimal   `json:"networkFee"`
+	ID             uuid.UUID       `json:"id"`
+	Amount         float64         `json:"amount"`
+	Network        string          `json:"network"`
+	ReceiveAddress string          `json:"receiveAddress"`
+	ValidUntil     time.Time       `json:"validUntil"`
+	SenderFee      decimal.Decimal `json:"senderFee"`
+	NetworkFee     decimal.Decimal `json:"networkFee"`
 }
 
 // PaymentOrderResponse is the response type for a payment order
