@@ -145,9 +145,9 @@ type SenderProfilePayload struct {
 
 // ProviderAvailabilityPayload defines the setting for a provider availability
 type ProviderAvailabilityPayload struct {
-	Cadence   provideravailability.Cadence `json:"cadence" binding:"required"`
-	StartTime time.Time                    `json:"startTime" binding:"required"`
-	EndTime   time.Time                    `json:"endTime" binding:"required"`
+	Cadence   provideravailability.Cadence `json:"cadence"`
+	StartTime time.Time                    `json:"startTime"`
+	EndTime   time.Time                    `json:"endTime"`
 }
 
 // ProviderOrderTokenPayload defines the provider setting for a token

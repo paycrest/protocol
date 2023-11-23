@@ -207,12 +207,13 @@ func CreateTestSenderProfile(overrides map[string]interface{}) (*ent.SenderProfi
 }
 
 // CreateTestProviderProfile creates a test ProviderProfile with defaults or custom values
-func CreateTestProviderProfile(overrides map[string]interface{}, user *ent.User, currency *ent.FiatCurrency) (*ent.ProviderProfile, error) {
+func CreateTestProviderProfile(overrides map[string]interface{}) (*ent.ProviderProfile, error) {
 
 	// Default payload
 	payload := map[string]interface{}{
 		"user_id":         uuid.New(),
 		"trading_name":    "Elon Musk Trading Co.",
+		"currency_id":     uuid.New(),
 		"host_identifier": "https://example.com/hook",
 		"provision_mode":  "auto",
 		"is_partner":      false,
@@ -232,8 +233,8 @@ func CreateTestProviderProfile(overrides map[string]interface{}, user *ent.User,
 		SetHostIdentifier(payload["host_identifier"].(string)).
 		SetProvisionMode(providerprofile.ProvisionMode(payload["provision_mode"].(string))).
 		SetIsPartner(payload["is_partner"].(bool)).
-		SetUser(user).
-		SetCurrency(currency).
+		SetUserID(payload["user_id"].(uuid.UUID)).
+		SetCurrencyID(payload["currency_id"].(uuid.UUID)).
 		SetVisibilityMode(providerprofile.VisibilityMode(payload["visibility_mode"].(string))).
 		Save(context.Background())
 
