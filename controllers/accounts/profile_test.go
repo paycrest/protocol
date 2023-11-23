@@ -53,8 +53,9 @@ func setup() error {
 	}
 
 	provderProfile, err := test.CreateTestProviderProfile(map[string]interface{}{
-		"user_id": testCtx.user.ID,
-	}, testCtx.user, currency)
+		"user_id":     testCtx.user.ID,
+		"currency_id": currency.ID,
+	})
 	if err != nil {
 		return err
 	}
@@ -317,42 +318,33 @@ func TestProfile(t *testing.T) {
 
 	t.Run("UpdateProviderProfile", func(t *testing.T) {
 		t.Run("with visibility", func(t *testing.T) {
-			// Set up test provider user
-			user, err := test.CreateTestUser(map[string]string{
-				"scope": "provider",
-				"email": "provider@test.com",
-			})
-			assert.NoError(t, err)
-
-			// Set up test provider currency
-			currency, err := test.CreateTestFiatCurrency(nil)
-			assert.NoError(t, err)
-
-			_, err = test.CreateTestProviderProfile(nil, user, currency)
-			assert.NoError(t, err)
-
 			// Test partial update
-			accessToken, _ := token.GenerateAccessJWT(user.ID.String(), "provider")
+			accessToken, _ := token.GenerateAccessJWT(testCtx.user.ID.String(), "provider")
 			headers := map[string]string{
 				"Authorization": "Bearer " + accessToken,
 			}
 			payload := types.ProviderProfilePayload{
 				VisibilityMode: "private",
-				Availability: types.ProviderAvailabilityPayload{
-					Cadence:   "always",
-					StartTime: time.Now(),
-					EndTime:   time.Now().Add(time.Hour * 8),
-				},
+				TradingName:    testCtx.providerProfile.TradingName,
+				HostIdentifier: testCtx.providerProfile.HostIdentifier,
+				Currency:       "KES",
 			}
 
-			_, err = test.PerformRequest(t, "PATCH", "/settings/provider?scope=provider", payload, headers, router)
+			res, err := test.PerformRequest(t, "PATCH", "/settings/provider", payload, headers, router)
+			// Assert the response body
+			assert.Equal(t, http.StatusOK, res.Code)
+
+			var response types.Response
+			err = json.Unmarshal(res.Body.Bytes(), &response)
 			assert.NoError(t, err)
+			assert.Equal(t, "Profile updated successfully", response.Message)
+			assert.Nil(t, response.Data, "response.Data is not nil")
 
 			providerProfile, err := db.Client.ProviderProfile.Query().
 				Where(providerprofile.VisibilityModeEQ(providerprofile.VisibilityModePrivate)).
 				Count(context.Background())
 			assert.NoError(t, err)
-			assert.Equal(t, providerProfile, 1)
+			assert.Equal(t, 1, providerProfile)
 		})
 	})
 

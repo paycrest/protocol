@@ -45,7 +45,10 @@ func setup() error {
 		return err
 	}
 
-	provderProfile, err := test.CreateTestProviderProfile(nil, testCtx.user, currency)
+	provderProfile, err := test.CreateTestProviderProfile(map[string]interface{}{
+		"user_id":     testCtx.user.ID,
+		"currency_id": currency.ID,
+	})
 	if err != nil {
 		return err
 	}
@@ -249,7 +252,7 @@ func TestProvider(t *testing.T) {
 			if err != nil {
 				return
 			}
-		
+
 			lastOrderTimestamp, err := time.Parse(time.RFC3339Nano, data["orders"].([]interface{})[len(data["orders"].([]interface{}))-1].(map[string]interface{})["CreatedAt"].(string))
 			if err != nil {
 				return

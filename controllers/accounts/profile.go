@@ -8,7 +8,6 @@ import (
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/fiatcurrency"
 	"github.com/paycrest/protocol/ent/network"
-	"github.com/paycrest/protocol/ent/provideravailability"
 	"github.com/paycrest/protocol/ent/providerordertoken"
 	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/token"
@@ -166,45 +165,45 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 		update.SetIsPartner(payload.IsPartner)
 	}
 
-	// Update availability
-	if payload.Availability.Cadence != "" {
-		// Get existing availability if it exists
-		availability, err := storage.Client.ProviderAvailability.
-			Query().
-			Where(provideravailability.HasProviderWith(providerprofile.IDEQ(provider.ID))).
-			Only(ctx)
+	// // Update availability
+	// if payload.Availability != (types.ProviderAvailabilityPayload{}) && payload.Availability.Cadence != "" {
+	// 	// Get existing availability if it exists
+	// 	availability, err := storage.Client.ProviderAvailability.
+	// 		Query().
+	// 		Where(provideravailability.HasProviderWith(providerprofile.IDEQ(provider.ID))).
+	// 		Only(ctx)
 
-		if err == nil {
-			// Availability found, update it
-			_, err = availability.Update().
-				SetCadence(payload.Availability.Cadence).
-				SetStartTime(payload.Availability.StartTime).
-				SetEndTime(payload.Availability.EndTime).
-				Save(ctx)
-			if err != nil {
-				u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to set availability", nil)
-				return
-			}
+	// 	if err == nil {
+	// 		// Availability found, update it
+	// 		_, err = availability.Update().
+	// 			SetCadence(payload.Availability.Cadence).
+	// 			SetStartTime(payload.Availability.StartTime).
+	// 			SetEndTime(payload.Availability.EndTime).
+	// 			Save(ctx)
+	// 		if err != nil {
+	// 			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to set availability", nil)
+	// 			return
+	// 		}
 
-		} else if ent.IsNotFound(err) {
-			// No existing availability, create new
-			_, err = storage.Client.ProviderAvailability.
-				Create().
-				SetCadence(payload.Availability.Cadence).
-				SetStartTime(payload.Availability.StartTime).
-				SetEndTime(payload.Availability.EndTime).
-				SetProviderID(provider.ID).
-				Save(ctx)
-			if err != nil {
-				u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to set availability", nil)
-				return
-			}
+	// 	} else if ent.IsNotFound(err) {
+	// 		// No existing availability, create new
+	// 		_, err = storage.Client.ProviderAvailability.
+	// 			Create().
+	// 			SetCadence(payload.Availability.Cadence).
+	// 			SetStartTime(payload.Availability.StartTime).
+	// 			SetEndTime(payload.Availability.EndTime).
+	// 			SetProviderID(provider.ID).
+	// 			Save(ctx)
+	// 		if err != nil {
+	// 			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to set availability", nil)
+	// 			return
+	// 		}
 
-		} else {
-			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to set availability", nil)
-			return
-		}
-	}
+	// 	} else {
+	// 		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to set availability", nil)
+	// 		return
+	// 	}
+	// }
 
 	// Update tokens
 	for _, tokenPayload := range payload.Tokens {
