@@ -255,7 +255,7 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 			} else {
 				if err != nil {
 					u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to set token - "+tokenPayload.Symbol, nil)
-				}
+			}
 			}
 		} else {
 			// Token exists, update it

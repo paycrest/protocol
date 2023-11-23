@@ -218,7 +218,7 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 
 	// Sends order directly to the specified provider in order. Incase of failure, proceed to queue
 	if order.ProviderID != "" && !utils.ContainsString(excludeList, order.ProviderID) {
-		err := s.sendOrderRequestToSpecifiedProvider(ctx, order)
+		err := s.sendOrderRequest(ctx, order)
 		if err == nil {
 			return nil
 		}
@@ -293,37 +293,19 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 			}
 
 			// Assign the order to the provider and save it to Redis
-			orderKey := fmt.Sprintf("order_request_%d", order.ID)
-
-			// Converts 1500.73 to 1500.00
-			approxAmount := order.Amount.Mul(order.Rate).Floor()
-			approxAmount = approxAmount.Round(2)
-
-			orderRequestData := map[string]interface{}{
-				"amount":      approxAmount,
-				"token":       order.Token.Symbol,
-				"institution": order.Institution,
-				"providerId":  providerID,
-			}
-
-			err = pipe.HSet(ctx, orderKey, orderRequestData).Err()
+			err = s.sendOrderRequest(ctx, order)
 			if err != nil {
-				logger.Errorf("failed to map order to a provider in Redis: %v", err)
-				return err
-			}
+				logger.Errorf("failed to send order request to specific provider %s: %v", order.ProviderID, err)
 
-			// Set a TTL for the order request
-			err = pipe.ExpireAt(ctx, orderKey, time.Now().Add(OrderConf.OrderRequestValidity)).Err()
-			if err != nil {
-				logger.Errorf("failed to set TTL for order request: %v", err)
-				return err
-			}
+				// Push provider ID to order exclude list
+				orderKey := fmt.Sprintf("order_exclude_list_%d", order.ID)
+				_, err = storage.RedisClient.RPush(ctx, orderKey, providerID).Result()
+				if err != nil {
+					logger.Errorf("error pushing provider %s to order %d exclude_list on Redis: %v", providerID, order.ID, err)
+				}
 
-			// Notify the provider
-			orderRequestData["orderId"] = order.ID
-			err = s.notifyProvider(ctx, orderRequestData)
-			if err != nil {
-				logger.Errorf("failed to notify provider %s: %v", providerID, err)
+				// Reassign the lock payment order to another provider
+				return s.AssignLockPaymentOrder(ctx, order)
 			}
 
 			break
@@ -340,8 +322,8 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 	return nil
 }
 
-// sendOrderRequestToProvider sends an order request to a specific provider
-func (s *PriorityQueueService) sendOrderRequestToSpecifiedProvider(ctx context.Context, order types.LockPaymentOrderFields) error {
+// sendOrderRequest sends an order request to a provider
+func (s *PriorityQueueService) sendOrderRequest(ctx context.Context, order types.LockPaymentOrderFields) error {
 
 	// Assign the order to the provider and save it to Redis
 	orderKey := fmt.Sprintf("order_request_%d", order.ID)
