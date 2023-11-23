@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/fiatcurrency"
 	"github.com/paycrest/protocol/ent/providerprofile"
 	svc "github.com/paycrest/protocol/services"
@@ -18,13 +19,15 @@ import (
 
 // Controller is the default controller for other endpoints
 type Controller struct {
-	orderService *svc.OrderService
+	orderService         *svc.OrderService
+	priorityQueueService *svc.PriorityQueueService
 }
 
 // NewController creates a new instance of AuthController with injected services
 func NewController() *Controller {
 	return &Controller{
-		orderService: svc.NewOrderService(),
+		orderService:         svc.NewOrderService(),
+		priorityQueueService: svc.NewPriorityQueueService(),
 	}
 }
 
@@ -112,38 +115,22 @@ func (ctrl *Controller) GetTokenRate(ctx *gin.Context) {
 			Where(providerprofile.IDEQ(providerID)).
 			Only(ctx)
 		if err != nil {
-			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch rates", nil)
+			if ent.IsNotFound(err) {
+				u.APIResponse(ctx, http.StatusBadRequest, "error", "Provider not found", nil)
+				return
+			} else {
+				u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch provider profile", nil)
+				return
+			}
+		}
+
+		rateResponse, err = ctrl.priorityQueueService.GetProviderRate(ctx, provider)
+		if err != nil {
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch provider rate", nil)
 			return
 		}
 
-		// Scan through the buckets to find a matching rate
-		for _, key := range keys {
-			bucketData := strings.Split(key, "_")
-			minAmount, _ := decimal.NewFromString(bucketData[2])
-			maxAmount, _ := decimal.NewFromString(bucketData[3])
-
-			// Get the topmost provider in the priority queue of the bucket
-			providerData, err := storage.RedisClient.LIndex(ctx, key, 0).Result()
-			if err != nil {
-				u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch rates", nil)
-				return
-			}
-
-			// Get fiat equivalent of the token amount
-			rate, _ := decimal.NewFromString(strings.Split(providerData, ":")[1])
-			fiatAmount := tokenAmount.Mul(rate)
-
-			// Check if fiat amount is within the bucket range and set the rate
-			if fiatAmount.GreaterThanOrEqual(minAmount) && fiatAmount.LessThanOrEqual(maxAmount) {
-				// Check if the provider matches the one in the query params
-				if strings.Split(providerData, ":")[0] == provider.ID {
-					rateResponse = rate
-				}
-			}
-		}
-
 	} else {
-
 		// Scan through the buckets to find a matching rate
 		for _, key := range keys {
 			bucketData := strings.Split(key, "_")
@@ -166,22 +153,22 @@ func (ctrl *Controller) GetTokenRate(ctx *gin.Context) {
 				rateResponse = rate
 			}
 		}
-	}
 
-	if rateResponse.Equal(decimal.NewFromInt(0)) {
-		// No rate found in the regular buckets, return market rate from a provider in the default bucket
-		keys, _, err := storage.RedisClient.Scan(ctx, uint64(0), "bucket_"+fiatSymbol+"_default", 1).Result()
-		if err != nil {
-			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch rates", nil)
-			return
+		if rateResponse.Equal(decimal.NewFromInt(0)) {
+			// No rate found in the regular buckets, return market rate from a provider in the default bucket
+			keys, _, err := storage.RedisClient.Scan(ctx, uint64(0), "bucket_"+fiatSymbol+"_default", 1).Result()
+			if err != nil {
+				u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch rates", nil)
+				return
+			}
+			// Get rate of the topmost provider in the priority queue of the default bucket
+			providerData, err := storage.RedisClient.LIndex(ctx, keys[0], 0).Result()
+			if err != nil {
+				u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch rates", nil)
+				return
+			}
+			rateResponse, _ = decimal.NewFromString(strings.Split(providerData, ":")[1])
 		}
-		// Get rate of the topmost provider in the priority queue of the default bucket
-		providerData, err := storage.RedisClient.LIndex(ctx, keys[0], 0).Result()
-		if err != nil {
-			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch rates", nil)
-			return
-		}
-		rateResponse, _ = decimal.NewFromString(strings.Split(providerData, ":")[1])
 	}
 
 	u.APIResponse(ctx, http.StatusOK, "success", "Rates fetched successfully", rateResponse)

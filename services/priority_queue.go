@@ -91,8 +91,8 @@ func (s *PriorityQueueService) GetProvidersByBucket(ctx context.Context) ([]*ent
 	return buckets, nil
 }
 
-// getProviderRate returns the rate for a provider
-func (s *PriorityQueueService) getProviderRate(ctx context.Context, provider *ent.ProviderProfile) (decimal.Decimal, error) {
+// GetProviderRate returns the rate for a provider
+func (s *PriorityQueueService) GetProviderRate(ctx context.Context, provider *ent.ProviderProfile) (decimal.Decimal, error) {
 	// Fetch the token config for the provider
 	tokenConfig, err := storage.Client.ProviderOrderToken.
 		Query().
@@ -148,7 +148,7 @@ func (s *PriorityQueueService) CreatePriorityQueueForBucket(ctx context.Context,
 
 	for _, provider := range providers {
 		providerID := provider.ID
-		rate, _ := s.getProviderRate(ctx, provider)
+		rate, _ := s.GetProviderRate(ctx, provider)
 
 		// Check provider's rate against the market rate to ensure it's not too far off
 		partnerProviderData, _ := storage.RedisClient.LIndex(ctx, fmt.Sprintf("bucket_%s_default", bucket.Edges.Currency.Code), 0).Result()
