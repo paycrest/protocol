@@ -136,7 +136,7 @@ func TestProfile(t *testing.T) {
 	})
 
 	t.Run("UpdateProviderProfile", func(t *testing.T) {
-		t.Run("UpdateVisibilityAccordingly", func(t *testing.T) {
+		t.Run("with visibility", func(t *testing.T) {
 			// Set up test provider user
 			user, err := test.CreateTestUser(map[string]string{
 				"scope": "provider",
@@ -152,7 +152,7 @@ func TestProfile(t *testing.T) {
 			assert.NoError(t, err)
 
 			// Test partial update
-			accessToken, _ := token.GenerateAccessJWT(user.ID.String())
+			accessToken, _ := token.GenerateAccessJWT(user.ID.String(), "provider")
 			headers := map[string]string{
 				"Authorization": "Bearer " + accessToken,
 			}
