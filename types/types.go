@@ -166,26 +166,40 @@ type ProviderOrderTokenPayload struct {
 
 // ProviderProfilePayload is the payload for the provider profile endpoint
 type ProviderProfilePayload struct {
-	TradingName    string                      `json:"tradingName"`
-	Currency       string                      `json:"currency"`
-	HostIdentifier string                      `json:"hostIdentifier"`
-	IsPartner      bool                        `json:"isPartner"`
-	Availability   ProviderAvailabilityPayload `json:"availability"`
-	Tokens         []ProviderOrderTokenPayload `json:"tokens"`
-	VisibilityMode string                      `json:"visibility_mode"`
+	TradingName          string                      `json:"tradingName"`
+	Currency             string                      `json:"currency"`
+	HostIdentifier       string                      `json:"hostIdentifier"`
+	IsPartner            bool                        `json:"isPartner"`
+	Availability         ProviderAvailabilityPayload `json:"availability"`
+	Tokens               []ProviderOrderTokenPayload `json:"tokens"`
+	VisibilityMode       string                      `json:"visibility_mode"`
+	Address              string                      `json:"address"`
+	MobileNumber         string                      `json:"mobile"`
+	DateOfBirth          string                      `json:"date_of_birth"`
+	BusinessName         string                      `json:"business_name"`
+	IdentityDocumentType string                      `json:"identity_type"`
+	IdentityDocument     string                      `json:"identity_document"`
+	BusinessDocument     string                      `json:"business_document"`
 }
 
 // ProviderProfileResponse is the response for the provider profile endpoint
 type ProviderProfileResponse struct {
-	ID             string                    `json:"id"`
-	TradingName    string                    `json:"tradingName"`
-	Currency       string                    `json:"currency"`
-	HostIdentifier string                    `json:"hostIdentifier"`
-	IsPartner      bool                      `json:"isPartner"`
-	Availability   *ent.ProviderAvailability `json:"availability"`
-	Tokens         []*ent.ProviderOrderToken `json:"tokens"`
-	APIKey         APIKeyResponse            `json:"apiKey"`
-	IsActive       bool                      `json:"isActive"`
+	ID                   string                    `json:"id"`
+	TradingName          string                    `json:"tradingName"`
+	Currency             string                    `json:"currency"`
+	HostIdentifier       string                    `json:"hostIdentifier"`
+	IsPartner            bool                      `json:"isPartner"`
+	Availability         *ent.ProviderAvailability `json:"availability"`
+	Tokens               []*ent.ProviderOrderToken `json:"tokens"`
+	APIKey               APIKeyResponse            `json:"apiKey"`
+	IsActive             bool                      `json:"isActive"`
+	Address              string                    `json:"address"`
+	MobileNumber         string                    `json:"mobileNumber"`
+	DateOfBirth          string                    `json:"dateOfBirth"`
+	BusinessName         string                    `json:"businessName"`
+	IdentityDocumentType string                    `json:"identity_type"`
+	IdentityDocument     string                    `json:"identity_document"`
+	BusinessDocument     string                    `json:"business_document"`
 }
 
 // ValidatorProfileResponse is the response for the validator profile endpoint

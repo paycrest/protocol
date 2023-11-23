@@ -270,6 +270,13 @@ var (
 		{Name: "is_active", Type: field.TypeBool, Default: false},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "visibility_mode", Type: field.TypeEnum, Enums: []string{"private", "public"}, Default: "public"},
+		{Name: "address", Type: field.TypeString, Nullable: true, Size: 2147483647},
+		{Name: "mobile_number", Type: field.TypeString, Nullable: true},
+		{Name: "date_of_birth", Type: field.TypeString, Nullable: true},
+		{Name: "business_name", Type: field.TypeString, Nullable: true},
+		{Name: "identity_document_type", Type: field.TypeEnum, Nullable: true, Enums: []string{"passport", "drivers_license", "national_id"}},
+		{Name: "identity_document", Type: field.TypeString, Nullable: true},
+		{Name: "business_document", Type: field.TypeString, Nullable: true},
 		{Name: "fiat_currency_providers", Type: field.TypeUUID},
 		{Name: "user_provider_profile", Type: field.TypeUUID, Unique: true},
 	}
@@ -281,13 +288,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "provider_profiles_fiat_currencies_providers",
-				Columns:    []*schema.Column{ProviderProfilesColumns[8]},
+				Columns:    []*schema.Column{ProviderProfilesColumns[15]},
 				RefColumns: []*schema.Column{FiatCurrenciesColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "provider_profiles_users_provider_profile",
-				Columns:    []*schema.Column{ProviderProfilesColumns[9]},
+				Columns:    []*schema.Column{ProviderProfilesColumns[16]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.Cascade,
 			},

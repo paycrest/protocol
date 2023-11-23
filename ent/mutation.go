@@ -7958,6 +7958,13 @@ type ProviderProfileMutation struct {
 	is_active                *bool
 	updated_at               *time.Time
 	visibility_mode          *providerprofile.VisibilityMode
+	address                  *string
+	mobile_number            *string
+	date_of_birth            *string
+	business_name            *string
+	_IdentityDocumentType    *providerprofile.IdentityDocumentType
+	identity_document        *string
+	business_document        *string
 	clearedFields            map[string]struct{}
 	user                     *uuid.UUID
 	cleareduser              bool
@@ -8352,6 +8359,349 @@ func (m *ProviderProfileMutation) ResetVisibilityMode() {
 	m.visibility_mode = nil
 }
 
+// SetAddress sets the "address" field.
+func (m *ProviderProfileMutation) SetAddress(s string) {
+	m.address = &s
+}
+
+// Address returns the value of the "address" field in the mutation.
+func (m *ProviderProfileMutation) Address() (r string, exists bool) {
+	v := m.address
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAddress returns the old "address" field's value of the ProviderProfile entity.
+// If the ProviderProfile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderProfileMutation) OldAddress(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAddress is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAddress requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAddress: %w", err)
+	}
+	return oldValue.Address, nil
+}
+
+// ClearAddress clears the value of the "address" field.
+func (m *ProviderProfileMutation) ClearAddress() {
+	m.address = nil
+	m.clearedFields[providerprofile.FieldAddress] = struct{}{}
+}
+
+// AddressCleared returns if the "address" field was cleared in this mutation.
+func (m *ProviderProfileMutation) AddressCleared() bool {
+	_, ok := m.clearedFields[providerprofile.FieldAddress]
+	return ok
+}
+
+// ResetAddress resets all changes to the "address" field.
+func (m *ProviderProfileMutation) ResetAddress() {
+	m.address = nil
+	delete(m.clearedFields, providerprofile.FieldAddress)
+}
+
+// SetMobileNumber sets the "mobile_number" field.
+func (m *ProviderProfileMutation) SetMobileNumber(s string) {
+	m.mobile_number = &s
+}
+
+// MobileNumber returns the value of the "mobile_number" field in the mutation.
+func (m *ProviderProfileMutation) MobileNumber() (r string, exists bool) {
+	v := m.mobile_number
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMobileNumber returns the old "mobile_number" field's value of the ProviderProfile entity.
+// If the ProviderProfile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderProfileMutation) OldMobileNumber(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMobileNumber is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMobileNumber requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMobileNumber: %w", err)
+	}
+	return oldValue.MobileNumber, nil
+}
+
+// ClearMobileNumber clears the value of the "mobile_number" field.
+func (m *ProviderProfileMutation) ClearMobileNumber() {
+	m.mobile_number = nil
+	m.clearedFields[providerprofile.FieldMobileNumber] = struct{}{}
+}
+
+// MobileNumberCleared returns if the "mobile_number" field was cleared in this mutation.
+func (m *ProviderProfileMutation) MobileNumberCleared() bool {
+	_, ok := m.clearedFields[providerprofile.FieldMobileNumber]
+	return ok
+}
+
+// ResetMobileNumber resets all changes to the "mobile_number" field.
+func (m *ProviderProfileMutation) ResetMobileNumber() {
+	m.mobile_number = nil
+	delete(m.clearedFields, providerprofile.FieldMobileNumber)
+}
+
+// SetDateOfBirth sets the "date_of_birth" field.
+func (m *ProviderProfileMutation) SetDateOfBirth(s string) {
+	m.date_of_birth = &s
+}
+
+// DateOfBirth returns the value of the "date_of_birth" field in the mutation.
+func (m *ProviderProfileMutation) DateOfBirth() (r string, exists bool) {
+	v := m.date_of_birth
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDateOfBirth returns the old "date_of_birth" field's value of the ProviderProfile entity.
+// If the ProviderProfile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderProfileMutation) OldDateOfBirth(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDateOfBirth is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDateOfBirth requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDateOfBirth: %w", err)
+	}
+	return oldValue.DateOfBirth, nil
+}
+
+// ClearDateOfBirth clears the value of the "date_of_birth" field.
+func (m *ProviderProfileMutation) ClearDateOfBirth() {
+	m.date_of_birth = nil
+	m.clearedFields[providerprofile.FieldDateOfBirth] = struct{}{}
+}
+
+// DateOfBirthCleared returns if the "date_of_birth" field was cleared in this mutation.
+func (m *ProviderProfileMutation) DateOfBirthCleared() bool {
+	_, ok := m.clearedFields[providerprofile.FieldDateOfBirth]
+	return ok
+}
+
+// ResetDateOfBirth resets all changes to the "date_of_birth" field.
+func (m *ProviderProfileMutation) ResetDateOfBirth() {
+	m.date_of_birth = nil
+	delete(m.clearedFields, providerprofile.FieldDateOfBirth)
+}
+
+// SetBusinessName sets the "business_name" field.
+func (m *ProviderProfileMutation) SetBusinessName(s string) {
+	m.business_name = &s
+}
+
+// BusinessName returns the value of the "business_name" field in the mutation.
+func (m *ProviderProfileMutation) BusinessName() (r string, exists bool) {
+	v := m.business_name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBusinessName returns the old "business_name" field's value of the ProviderProfile entity.
+// If the ProviderProfile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderProfileMutation) OldBusinessName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBusinessName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBusinessName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBusinessName: %w", err)
+	}
+	return oldValue.BusinessName, nil
+}
+
+// ClearBusinessName clears the value of the "business_name" field.
+func (m *ProviderProfileMutation) ClearBusinessName() {
+	m.business_name = nil
+	m.clearedFields[providerprofile.FieldBusinessName] = struct{}{}
+}
+
+// BusinessNameCleared returns if the "business_name" field was cleared in this mutation.
+func (m *ProviderProfileMutation) BusinessNameCleared() bool {
+	_, ok := m.clearedFields[providerprofile.FieldBusinessName]
+	return ok
+}
+
+// ResetBusinessName resets all changes to the "business_name" field.
+func (m *ProviderProfileMutation) ResetBusinessName() {
+	m.business_name = nil
+	delete(m.clearedFields, providerprofile.FieldBusinessName)
+}
+
+// SetIdentityDocumentType sets the "IdentityDocumentType" field.
+func (m *ProviderProfileMutation) SetIdentityDocumentType(pdt providerprofile.IdentityDocumentType) {
+	m._IdentityDocumentType = &pdt
+}
+
+// IdentityDocumentType returns the value of the "IdentityDocumentType" field in the mutation.
+func (m *ProviderProfileMutation) IdentityDocumentType() (r providerprofile.IdentityDocumentType, exists bool) {
+	v := m._IdentityDocumentType
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIdentityDocumentType returns the old "IdentityDocumentType" field's value of the ProviderProfile entity.
+// If the ProviderProfile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderProfileMutation) OldIdentityDocumentType(ctx context.Context) (v providerprofile.IdentityDocumentType, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIdentityDocumentType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIdentityDocumentType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIdentityDocumentType: %w", err)
+	}
+	return oldValue.IdentityDocumentType, nil
+}
+
+// ClearIdentityDocumentType clears the value of the "IdentityDocumentType" field.
+func (m *ProviderProfileMutation) ClearIdentityDocumentType() {
+	m._IdentityDocumentType = nil
+	m.clearedFields[providerprofile.FieldIdentityDocumentType] = struct{}{}
+}
+
+// IdentityDocumentTypeCleared returns if the "IdentityDocumentType" field was cleared in this mutation.
+func (m *ProviderProfileMutation) IdentityDocumentTypeCleared() bool {
+	_, ok := m.clearedFields[providerprofile.FieldIdentityDocumentType]
+	return ok
+}
+
+// ResetIdentityDocumentType resets all changes to the "IdentityDocumentType" field.
+func (m *ProviderProfileMutation) ResetIdentityDocumentType() {
+	m._IdentityDocumentType = nil
+	delete(m.clearedFields, providerprofile.FieldIdentityDocumentType)
+}
+
+// SetIdentityDocument sets the "identity_document" field.
+func (m *ProviderProfileMutation) SetIdentityDocument(s string) {
+	m.identity_document = &s
+}
+
+// IdentityDocument returns the value of the "identity_document" field in the mutation.
+func (m *ProviderProfileMutation) IdentityDocument() (r string, exists bool) {
+	v := m.identity_document
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIdentityDocument returns the old "identity_document" field's value of the ProviderProfile entity.
+// If the ProviderProfile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderProfileMutation) OldIdentityDocument(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIdentityDocument is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIdentityDocument requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIdentityDocument: %w", err)
+	}
+	return oldValue.IdentityDocument, nil
+}
+
+// ClearIdentityDocument clears the value of the "identity_document" field.
+func (m *ProviderProfileMutation) ClearIdentityDocument() {
+	m.identity_document = nil
+	m.clearedFields[providerprofile.FieldIdentityDocument] = struct{}{}
+}
+
+// IdentityDocumentCleared returns if the "identity_document" field was cleared in this mutation.
+func (m *ProviderProfileMutation) IdentityDocumentCleared() bool {
+	_, ok := m.clearedFields[providerprofile.FieldIdentityDocument]
+	return ok
+}
+
+// ResetIdentityDocument resets all changes to the "identity_document" field.
+func (m *ProviderProfileMutation) ResetIdentityDocument() {
+	m.identity_document = nil
+	delete(m.clearedFields, providerprofile.FieldIdentityDocument)
+}
+
+// SetBusinessDocument sets the "business_document" field.
+func (m *ProviderProfileMutation) SetBusinessDocument(s string) {
+	m.business_document = &s
+}
+
+// BusinessDocument returns the value of the "business_document" field in the mutation.
+func (m *ProviderProfileMutation) BusinessDocument() (r string, exists bool) {
+	v := m.business_document
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBusinessDocument returns the old "business_document" field's value of the ProviderProfile entity.
+// If the ProviderProfile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderProfileMutation) OldBusinessDocument(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBusinessDocument is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBusinessDocument requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBusinessDocument: %w", err)
+	}
+	return oldValue.BusinessDocument, nil
+}
+
+// ClearBusinessDocument clears the value of the "business_document" field.
+func (m *ProviderProfileMutation) ClearBusinessDocument() {
+	m.business_document = nil
+	m.clearedFields[providerprofile.FieldBusinessDocument] = struct{}{}
+}
+
+// BusinessDocumentCleared returns if the "business_document" field was cleared in this mutation.
+func (m *ProviderProfileMutation) BusinessDocumentCleared() bool {
+	_, ok := m.clearedFields[providerprofile.FieldBusinessDocument]
+	return ok
+}
+
+// ResetBusinessDocument resets all changes to the "business_document" field.
+func (m *ProviderProfileMutation) ResetBusinessDocument() {
+	m.business_document = nil
+	delete(m.clearedFields, providerprofile.FieldBusinessDocument)
+}
+
 // SetUserID sets the "user" edge to the User entity by id.
 func (m *ProviderProfileMutation) SetUserID(id uuid.UUID) {
 	m.user = &id
@@ -8743,7 +9093,7 @@ func (m *ProviderProfileMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ProviderProfileMutation) Fields() []string {
-	fields := make([]string, 0, 7)
+	fields := make([]string, 0, 14)
 	if m.trading_name != nil {
 		fields = append(fields, providerprofile.FieldTradingName)
 	}
@@ -8764,6 +9114,27 @@ func (m *ProviderProfileMutation) Fields() []string {
 	}
 	if m.visibility_mode != nil {
 		fields = append(fields, providerprofile.FieldVisibilityMode)
+	}
+	if m.address != nil {
+		fields = append(fields, providerprofile.FieldAddress)
+	}
+	if m.mobile_number != nil {
+		fields = append(fields, providerprofile.FieldMobileNumber)
+	}
+	if m.date_of_birth != nil {
+		fields = append(fields, providerprofile.FieldDateOfBirth)
+	}
+	if m.business_name != nil {
+		fields = append(fields, providerprofile.FieldBusinessName)
+	}
+	if m._IdentityDocumentType != nil {
+		fields = append(fields, providerprofile.FieldIdentityDocumentType)
+	}
+	if m.identity_document != nil {
+		fields = append(fields, providerprofile.FieldIdentityDocument)
+	}
+	if m.business_document != nil {
+		fields = append(fields, providerprofile.FieldBusinessDocument)
 	}
 	return fields
 }
@@ -8787,6 +9158,20 @@ func (m *ProviderProfileMutation) Field(name string) (ent.Value, bool) {
 		return m.UpdatedAt()
 	case providerprofile.FieldVisibilityMode:
 		return m.VisibilityMode()
+	case providerprofile.FieldAddress:
+		return m.Address()
+	case providerprofile.FieldMobileNumber:
+		return m.MobileNumber()
+	case providerprofile.FieldDateOfBirth:
+		return m.DateOfBirth()
+	case providerprofile.FieldBusinessName:
+		return m.BusinessName()
+	case providerprofile.FieldIdentityDocumentType:
+		return m.IdentityDocumentType()
+	case providerprofile.FieldIdentityDocument:
+		return m.IdentityDocument()
+	case providerprofile.FieldBusinessDocument:
+		return m.BusinessDocument()
 	}
 	return nil, false
 }
@@ -8810,6 +9195,20 @@ func (m *ProviderProfileMutation) OldField(ctx context.Context, name string) (en
 		return m.OldUpdatedAt(ctx)
 	case providerprofile.FieldVisibilityMode:
 		return m.OldVisibilityMode(ctx)
+	case providerprofile.FieldAddress:
+		return m.OldAddress(ctx)
+	case providerprofile.FieldMobileNumber:
+		return m.OldMobileNumber(ctx)
+	case providerprofile.FieldDateOfBirth:
+		return m.OldDateOfBirth(ctx)
+	case providerprofile.FieldBusinessName:
+		return m.OldBusinessName(ctx)
+	case providerprofile.FieldIdentityDocumentType:
+		return m.OldIdentityDocumentType(ctx)
+	case providerprofile.FieldIdentityDocument:
+		return m.OldIdentityDocument(ctx)
+	case providerprofile.FieldBusinessDocument:
+		return m.OldBusinessDocument(ctx)
 	}
 	return nil, fmt.Errorf("unknown ProviderProfile field %s", name)
 }
@@ -8868,6 +9267,55 @@ func (m *ProviderProfileMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetVisibilityMode(v)
 		return nil
+	case providerprofile.FieldAddress:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAddress(v)
+		return nil
+	case providerprofile.FieldMobileNumber:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMobileNumber(v)
+		return nil
+	case providerprofile.FieldDateOfBirth:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDateOfBirth(v)
+		return nil
+	case providerprofile.FieldBusinessName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBusinessName(v)
+		return nil
+	case providerprofile.FieldIdentityDocumentType:
+		v, ok := value.(providerprofile.IdentityDocumentType)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIdentityDocumentType(v)
+		return nil
+	case providerprofile.FieldIdentityDocument:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIdentityDocument(v)
+		return nil
+	case providerprofile.FieldBusinessDocument:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBusinessDocument(v)
+		return nil
 	}
 	return fmt.Errorf("unknown ProviderProfile field %s", name)
 }
@@ -8901,6 +9349,27 @@ func (m *ProviderProfileMutation) ClearedFields() []string {
 	if m.FieldCleared(providerprofile.FieldHostIdentifier) {
 		fields = append(fields, providerprofile.FieldHostIdentifier)
 	}
+	if m.FieldCleared(providerprofile.FieldAddress) {
+		fields = append(fields, providerprofile.FieldAddress)
+	}
+	if m.FieldCleared(providerprofile.FieldMobileNumber) {
+		fields = append(fields, providerprofile.FieldMobileNumber)
+	}
+	if m.FieldCleared(providerprofile.FieldDateOfBirth) {
+		fields = append(fields, providerprofile.FieldDateOfBirth)
+	}
+	if m.FieldCleared(providerprofile.FieldBusinessName) {
+		fields = append(fields, providerprofile.FieldBusinessName)
+	}
+	if m.FieldCleared(providerprofile.FieldIdentityDocumentType) {
+		fields = append(fields, providerprofile.FieldIdentityDocumentType)
+	}
+	if m.FieldCleared(providerprofile.FieldIdentityDocument) {
+		fields = append(fields, providerprofile.FieldIdentityDocument)
+	}
+	if m.FieldCleared(providerprofile.FieldBusinessDocument) {
+		fields = append(fields, providerprofile.FieldBusinessDocument)
+	}
 	return fields
 }
 
@@ -8917,6 +9386,27 @@ func (m *ProviderProfileMutation) ClearField(name string) error {
 	switch name {
 	case providerprofile.FieldHostIdentifier:
 		m.ClearHostIdentifier()
+		return nil
+	case providerprofile.FieldAddress:
+		m.ClearAddress()
+		return nil
+	case providerprofile.FieldMobileNumber:
+		m.ClearMobileNumber()
+		return nil
+	case providerprofile.FieldDateOfBirth:
+		m.ClearDateOfBirth()
+		return nil
+	case providerprofile.FieldBusinessName:
+		m.ClearBusinessName()
+		return nil
+	case providerprofile.FieldIdentityDocumentType:
+		m.ClearIdentityDocumentType()
+		return nil
+	case providerprofile.FieldIdentityDocument:
+		m.ClearIdentityDocument()
+		return nil
+	case providerprofile.FieldBusinessDocument:
+		m.ClearBusinessDocument()
 		return nil
 	}
 	return fmt.Errorf("unknown ProviderProfile nullable field %s", name)
@@ -8946,6 +9436,27 @@ func (m *ProviderProfileMutation) ResetField(name string) error {
 		return nil
 	case providerprofile.FieldVisibilityMode:
 		m.ResetVisibilityMode()
+		return nil
+	case providerprofile.FieldAddress:
+		m.ResetAddress()
+		return nil
+	case providerprofile.FieldMobileNumber:
+		m.ResetMobileNumber()
+		return nil
+	case providerprofile.FieldDateOfBirth:
+		m.ResetDateOfBirth()
+		return nil
+	case providerprofile.FieldBusinessName:
+		m.ResetBusinessName()
+		return nil
+	case providerprofile.FieldIdentityDocumentType:
+		m.ResetIdentityDocumentType()
+		return nil
+	case providerprofile.FieldIdentityDocument:
+		m.ResetIdentityDocument()
+		return nil
+	case providerprofile.FieldBusinessDocument:
+		m.ResetBusinessDocument()
 		return nil
 	}
 	return fmt.Errorf("unknown ProviderProfile field %s", name)

@@ -29,6 +29,20 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// FieldVisibilityMode holds the string denoting the visibility_mode field in the database.
 	FieldVisibilityMode = "visibility_mode"
+	// FieldAddress holds the string denoting the address field in the database.
+	FieldAddress = "address"
+	// FieldMobileNumber holds the string denoting the mobile_number field in the database.
+	FieldMobileNumber = "mobile_number"
+	// FieldDateOfBirth holds the string denoting the date_of_birth field in the database.
+	FieldDateOfBirth = "date_of_birth"
+	// FieldBusinessName holds the string denoting the business_name field in the database.
+	FieldBusinessName = "business_name"
+	// FieldIdentityDocumentType holds the string denoting the identitydocumenttype field in the database.
+	FieldIdentityDocumentType = "identity_document_type"
+	// FieldIdentityDocument holds the string denoting the identity_document field in the database.
+	FieldIdentityDocument = "identity_document"
+	// FieldBusinessDocument holds the string denoting the business_document field in the database.
+	FieldBusinessDocument = "business_document"
 	// EdgeUser holds the string denoting the user edge name in mutations.
 	EdgeUser = "user"
 	// EdgeAPIKey holds the string denoting the api_key edge name in mutations.
@@ -113,6 +127,13 @@ var Columns = []string{
 	FieldIsActive,
 	FieldUpdatedAt,
 	FieldVisibilityMode,
+	FieldAddress,
+	FieldMobileNumber,
+	FieldDateOfBirth,
+	FieldBusinessName,
+	FieldIdentityDocumentType,
+	FieldIdentityDocument,
+	FieldBusinessDocument,
 }
 
 // ForeignKeys holds the SQL foreign-keys that are owned by the "provider_profiles"
@@ -210,6 +231,30 @@ func VisibilityModeValidator(vm VisibilityMode) error {
 	}
 }
 
+// IdentityDocumentType defines the type for the "IdentityDocumentType" enum field.
+type IdentityDocumentType string
+
+// IdentityDocumentType values.
+const (
+	IdentityDocumentTypePassport       IdentityDocumentType = "passport"
+	IdentityDocumentTypeDriversLicense IdentityDocumentType = "drivers_license"
+	IdentityDocumentTypeNationalID     IdentityDocumentType = "national_id"
+)
+
+func (_identitydocumenttype IdentityDocumentType) String() string {
+	return string(_identitydocumenttype)
+}
+
+// IdentityDocumentTypeValidator is a validator for the "IdentityDocumentType" field enum values. It is called by the builders before save.
+func IdentityDocumentTypeValidator(_identitydocumenttype IdentityDocumentType) error {
+	switch _identitydocumenttype {
+	case IdentityDocumentTypePassport, IdentityDocumentTypeDriversLicense, IdentityDocumentTypeNationalID:
+		return nil
+	default:
+		return fmt.Errorf("providerprofile: invalid enum value for IdentityDocumentType field: %q", _identitydocumenttype)
+	}
+}
+
 // OrderOption defines the ordering options for the ProviderProfile queries.
 type OrderOption func(*sql.Selector)
 
@@ -251,6 +296,41 @@ func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByVisibilityMode orders the results by the visibility_mode field.
 func ByVisibilityMode(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldVisibilityMode, opts...).ToFunc()
+}
+
+// ByAddress orders the results by the address field.
+func ByAddress(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAddress, opts...).ToFunc()
+}
+
+// ByMobileNumber orders the results by the mobile_number field.
+func ByMobileNumber(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldMobileNumber, opts...).ToFunc()
+}
+
+// ByDateOfBirth orders the results by the date_of_birth field.
+func ByDateOfBirth(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDateOfBirth, opts...).ToFunc()
+}
+
+// ByBusinessName orders the results by the business_name field.
+func ByBusinessName(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldBusinessName, opts...).ToFunc()
+}
+
+// ByIdentityDocumentType orders the results by the IdentityDocumentType field.
+func ByIdentityDocumentType(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIdentityDocumentType, opts...).ToFunc()
+}
+
+// ByIdentityDocument orders the results by the identity_document field.
+func ByIdentityDocument(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIdentityDocument, opts...).ToFunc()
+}
+
+// ByBusinessDocument orders the results by the business_document field.
+func ByBusinessDocument(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldBusinessDocument, opts...).ToFunc()
 }
 
 // ByUserField orders the results by user field.

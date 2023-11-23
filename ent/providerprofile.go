@@ -37,6 +37,20 @@ type ProviderProfile struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// VisibilityMode holds the value of the "visibility_mode" field.
 	VisibilityMode providerprofile.VisibilityMode `json:"visibility_mode,omitempty"`
+	// Address holds the value of the "address" field.
+	Address string `json:"address,omitempty"`
+	// MobileNumber holds the value of the "mobile_number" field.
+	MobileNumber string `json:"mobile_number,omitempty"`
+	// DateOfBirth holds the value of the "date_of_birth" field.
+	DateOfBirth string `json:"date_of_birth,omitempty"`
+	// BusinessName holds the value of the "business_name" field.
+	BusinessName string `json:"business_name,omitempty"`
+	// IdentityDocumentType holds the value of the "IdentityDocumentType" field.
+	IdentityDocumentType providerprofile.IdentityDocumentType `json:"IdentityDocumentType,omitempty"`
+	// IdentityDocument holds the value of the "identity_document" field.
+	IdentityDocument string `json:"identity_document,omitempty"`
+	// BusinessDocument holds the value of the "business_document" field.
+	BusinessDocument string `json:"business_document,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ProviderProfileQuery when eager-loading is set.
 	Edges                   ProviderProfileEdges `json:"edges"`
@@ -167,7 +181,7 @@ func (*ProviderProfile) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case providerprofile.FieldIsPartner, providerprofile.FieldIsActive:
 			values[i] = new(sql.NullBool)
-		case providerprofile.FieldID, providerprofile.FieldTradingName, providerprofile.FieldHostIdentifier, providerprofile.FieldProvisionMode, providerprofile.FieldVisibilityMode:
+		case providerprofile.FieldID, providerprofile.FieldTradingName, providerprofile.FieldHostIdentifier, providerprofile.FieldProvisionMode, providerprofile.FieldVisibilityMode, providerprofile.FieldAddress, providerprofile.FieldMobileNumber, providerprofile.FieldDateOfBirth, providerprofile.FieldBusinessName, providerprofile.FieldIdentityDocumentType, providerprofile.FieldIdentityDocument, providerprofile.FieldBusinessDocument:
 			values[i] = new(sql.NullString)
 		case providerprofile.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -237,6 +251,48 @@ func (pp *ProviderProfile) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field visibility_mode", values[i])
 			} else if value.Valid {
 				pp.VisibilityMode = providerprofile.VisibilityMode(value.String)
+			}
+		case providerprofile.FieldAddress:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field address", values[i])
+			} else if value.Valid {
+				pp.Address = value.String
+			}
+		case providerprofile.FieldMobileNumber:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field mobile_number", values[i])
+			} else if value.Valid {
+				pp.MobileNumber = value.String
+			}
+		case providerprofile.FieldDateOfBirth:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field date_of_birth", values[i])
+			} else if value.Valid {
+				pp.DateOfBirth = value.String
+			}
+		case providerprofile.FieldBusinessName:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field business_name", values[i])
+			} else if value.Valid {
+				pp.BusinessName = value.String
+			}
+		case providerprofile.FieldIdentityDocumentType:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field IdentityDocumentType", values[i])
+			} else if value.Valid {
+				pp.IdentityDocumentType = providerprofile.IdentityDocumentType(value.String)
+			}
+		case providerprofile.FieldIdentityDocument:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field identity_document", values[i])
+			} else if value.Valid {
+				pp.IdentityDocument = value.String
+			}
+		case providerprofile.FieldBusinessDocument:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field business_document", values[i])
+			} else if value.Valid {
+				pp.BusinessDocument = value.String
 			}
 		case providerprofile.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullScanner); !ok {
@@ -348,6 +404,27 @@ func (pp *ProviderProfile) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("visibility_mode=")
 	builder.WriteString(fmt.Sprintf("%v", pp.VisibilityMode))
+	builder.WriteString(", ")
+	builder.WriteString("address=")
+	builder.WriteString(pp.Address)
+	builder.WriteString(", ")
+	builder.WriteString("mobile_number=")
+	builder.WriteString(pp.MobileNumber)
+	builder.WriteString(", ")
+	builder.WriteString("date_of_birth=")
+	builder.WriteString(pp.DateOfBirth)
+	builder.WriteString(", ")
+	builder.WriteString("business_name=")
+	builder.WriteString(pp.BusinessName)
+	builder.WriteString(", ")
+	builder.WriteString("IdentityDocumentType=")
+	builder.WriteString(fmt.Sprintf("%v", pp.IdentityDocumentType))
+	builder.WriteString(", ")
+	builder.WriteString("identity_document=")
+	builder.WriteString(pp.IdentityDocument)
+	builder.WriteString(", ")
+	builder.WriteString("business_document=")
+	builder.WriteString(pp.BusinessDocument)
 	builder.WriteByte(')')
 	return builder.String()
 }

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/big"
 	"reflect"
+	"regexp"
 	"sort"
 	"time"
 
@@ -304,4 +305,18 @@ func StructToMap(input interface{}) map[string]interface{} {
 	}
 
 	return result
+}
+
+func IsValidMobileNumber(number string) bool {
+	// Pattern for Nigerian phone numbers (both mobile and landline)
+	pattern := `^(?:\+234|0)[789]\d{9}$` // Single backslashes for Go regex
+	matched, _ := regexp.MatchString(pattern, number)
+	return matched
+}
+
+func IsValidFileURL(url string) bool {
+	// Pattern for URLs ending with .jpg, .jpeg, .png, or .pdf
+	pattern := `^(http(s)?://)?([\w-]+\.)+[\w-]+(/[\w- ;,./?%&=]*)?\.(jpg|jpeg|png|pdf)$`
+	matched, _ := regexp.MatchString(pattern, url)
+	return matched
 }

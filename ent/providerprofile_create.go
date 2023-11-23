@@ -119,6 +119,104 @@ func (ppc *ProviderProfileCreate) SetNillableVisibilityMode(pm *providerprofile.
 	return ppc
 }
 
+// SetAddress sets the "address" field.
+func (ppc *ProviderProfileCreate) SetAddress(s string) *ProviderProfileCreate {
+	ppc.mutation.SetAddress(s)
+	return ppc
+}
+
+// SetNillableAddress sets the "address" field if the given value is not nil.
+func (ppc *ProviderProfileCreate) SetNillableAddress(s *string) *ProviderProfileCreate {
+	if s != nil {
+		ppc.SetAddress(*s)
+	}
+	return ppc
+}
+
+// SetMobileNumber sets the "mobile_number" field.
+func (ppc *ProviderProfileCreate) SetMobileNumber(s string) *ProviderProfileCreate {
+	ppc.mutation.SetMobileNumber(s)
+	return ppc
+}
+
+// SetNillableMobileNumber sets the "mobile_number" field if the given value is not nil.
+func (ppc *ProviderProfileCreate) SetNillableMobileNumber(s *string) *ProviderProfileCreate {
+	if s != nil {
+		ppc.SetMobileNumber(*s)
+	}
+	return ppc
+}
+
+// SetDateOfBirth sets the "date_of_birth" field.
+func (ppc *ProviderProfileCreate) SetDateOfBirth(s string) *ProviderProfileCreate {
+	ppc.mutation.SetDateOfBirth(s)
+	return ppc
+}
+
+// SetNillableDateOfBirth sets the "date_of_birth" field if the given value is not nil.
+func (ppc *ProviderProfileCreate) SetNillableDateOfBirth(s *string) *ProviderProfileCreate {
+	if s != nil {
+		ppc.SetDateOfBirth(*s)
+	}
+	return ppc
+}
+
+// SetBusinessName sets the "business_name" field.
+func (ppc *ProviderProfileCreate) SetBusinessName(s string) *ProviderProfileCreate {
+	ppc.mutation.SetBusinessName(s)
+	return ppc
+}
+
+// SetNillableBusinessName sets the "business_name" field if the given value is not nil.
+func (ppc *ProviderProfileCreate) SetNillableBusinessName(s *string) *ProviderProfileCreate {
+	if s != nil {
+		ppc.SetBusinessName(*s)
+	}
+	return ppc
+}
+
+// SetIdentityDocumentType sets the "IdentityDocumentType" field.
+func (ppc *ProviderProfileCreate) SetIdentityDocumentType(pdt providerprofile.IdentityDocumentType) *ProviderProfileCreate {
+	ppc.mutation.SetIdentityDocumentType(pdt)
+	return ppc
+}
+
+// SetNillableIdentityDocumentType sets the "IdentityDocumentType" field if the given value is not nil.
+func (ppc *ProviderProfileCreate) SetNillableIdentityDocumentType(pdt *providerprofile.IdentityDocumentType) *ProviderProfileCreate {
+	if pdt != nil {
+		ppc.SetIdentityDocumentType(*pdt)
+	}
+	return ppc
+}
+
+// SetIdentityDocument sets the "identity_document" field.
+func (ppc *ProviderProfileCreate) SetIdentityDocument(s string) *ProviderProfileCreate {
+	ppc.mutation.SetIdentityDocument(s)
+	return ppc
+}
+
+// SetNillableIdentityDocument sets the "identity_document" field if the given value is not nil.
+func (ppc *ProviderProfileCreate) SetNillableIdentityDocument(s *string) *ProviderProfileCreate {
+	if s != nil {
+		ppc.SetIdentityDocument(*s)
+	}
+	return ppc
+}
+
+// SetBusinessDocument sets the "business_document" field.
+func (ppc *ProviderProfileCreate) SetBusinessDocument(s string) *ProviderProfileCreate {
+	ppc.mutation.SetBusinessDocument(s)
+	return ppc
+}
+
+// SetNillableBusinessDocument sets the "business_document" field if the given value is not nil.
+func (ppc *ProviderProfileCreate) SetNillableBusinessDocument(s *string) *ProviderProfileCreate {
+	if s != nil {
+		ppc.SetBusinessDocument(*s)
+	}
+	return ppc
+}
+
 // SetID sets the "id" field.
 func (ppc *ProviderProfileCreate) SetID(s string) *ProviderProfileCreate {
 	ppc.mutation.SetID(s)
@@ -353,6 +451,11 @@ func (ppc *ProviderProfileCreate) check() error {
 			return &ValidationError{Name: "visibility_mode", err: fmt.Errorf(`ent: validator failed for field "ProviderProfile.visibility_mode": %w`, err)}
 		}
 	}
+	if v, ok := ppc.mutation.IdentityDocumentType(); ok {
+		if err := providerprofile.IdentityDocumentTypeValidator(v); err != nil {
+			return &ValidationError{Name: "IdentityDocumentType", err: fmt.Errorf(`ent: validator failed for field "ProviderProfile.IdentityDocumentType": %w`, err)}
+		}
+	}
 	if _, ok := ppc.mutation.UserID(); !ok {
 		return &ValidationError{Name: "user", err: errors.New(`ent: missing required edge "ProviderProfile.user"`)}
 	}
@@ -421,6 +524,34 @@ func (ppc *ProviderProfileCreate) createSpec() (*ProviderProfile, *sqlgraph.Crea
 	if value, ok := ppc.mutation.VisibilityMode(); ok {
 		_spec.SetField(providerprofile.FieldVisibilityMode, field.TypeEnum, value)
 		_node.VisibilityMode = value
+	}
+	if value, ok := ppc.mutation.Address(); ok {
+		_spec.SetField(providerprofile.FieldAddress, field.TypeString, value)
+		_node.Address = value
+	}
+	if value, ok := ppc.mutation.MobileNumber(); ok {
+		_spec.SetField(providerprofile.FieldMobileNumber, field.TypeString, value)
+		_node.MobileNumber = value
+	}
+	if value, ok := ppc.mutation.DateOfBirth(); ok {
+		_spec.SetField(providerprofile.FieldDateOfBirth, field.TypeString, value)
+		_node.DateOfBirth = value
+	}
+	if value, ok := ppc.mutation.BusinessName(); ok {
+		_spec.SetField(providerprofile.FieldBusinessName, field.TypeString, value)
+		_node.BusinessName = value
+	}
+	if value, ok := ppc.mutation.IdentityDocumentType(); ok {
+		_spec.SetField(providerprofile.FieldIdentityDocumentType, field.TypeEnum, value)
+		_node.IdentityDocumentType = value
+	}
+	if value, ok := ppc.mutation.IdentityDocument(); ok {
+		_spec.SetField(providerprofile.FieldIdentityDocument, field.TypeString, value)
+		_node.IdentityDocument = value
+	}
+	if value, ok := ppc.mutation.BusinessDocument(); ok {
+		_spec.SetField(providerprofile.FieldBusinessDocument, field.TypeString, value)
+		_node.BusinessDocument = value
 	}
 	if nodes := ppc.mutation.UserIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
