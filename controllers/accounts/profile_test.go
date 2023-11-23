@@ -312,6 +312,7 @@ func TestProfile(t *testing.T) {
 		data, ok := response.Data.(map[string]interface{})
 		assert.True(t, ok, "response.Data is not of type map[string]interface{}")
 		assert.NotNil(t, data, "response.Data is nil")
+		assert.Equal(t, data["feePerTokenUnit"], "0")
 
 		assert.Contains(t, data["domainWhitelist"], "mydomain.com")
 	})

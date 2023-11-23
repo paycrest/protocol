@@ -163,8 +163,8 @@ func (ctrl *SenderController) CreatePaymentOrder(ctx *gin.Context) {
 			Network:        token.Edges.Network.Identifier,
 			ReceiveAddress: receiveAddress.Address,
 			ValidUntil:     receiveAddress.ValidUntil,
-			SenderFee:      sender.FeePerTokenUnit.Mul(payload.Amount),
-			NetworkFee:     decimal.NewFromFloat(1.0), //TODO calculate network fee
+			SenderFee:      sender.FeePerTokenUnit.Mul(payload.Amount).Div(payload.Rate),
+			NetworkFee:     decimal.NewFromFloat(1.0), // TODO: calculate network fee
 		})
 }
 
