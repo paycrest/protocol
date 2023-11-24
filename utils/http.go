@@ -18,6 +18,10 @@ import (
 	"github.com/paycrest/protocol/types"
 )
 
+const (
+	httpRetryAttempts = 3
+)
+
 // APIResponse is a helper function to return an API response
 func APIResponse(ctx *gin.Context, httpCode int, status string, message string, data interface{}) {
 	ctx.JSON(httpCode, types.Response{
@@ -87,11 +91,27 @@ func MakeJSONRequest(ctx context.Context, method, url string, payload map[string
 	}
 
 	// Make the request
-	res, err := client.Do(req)
+	var res *http.Response
+	for i := 0; i < 3; i++ { // Retry up to 3 times
+		res, err = client.Do(req)
+		if err == nil && res.StatusCode < 500 && res.StatusCode != 429 {
+			break
+		}
+		if i < 2 { // Avoid sleep after the last attempt
+			time.Sleep(5 * time.Second) // Wait for 5 seconds before retrying
+		}
+	}
 	if err != nil {
 		return nil, err
 	}
 	defer res.Body.Close()
+
+	if res.StatusCode >= 500 { // Retry on server errors
+		return nil, errors.New(fmt.Sprintf("server error: %d", res.StatusCode))
+	}
+	if res.StatusCode >= 400 { // Do not retry on client errors
+		return nil, errors.New(fmt.Sprintf("client error: %d", res.StatusCode))
+	}
 
 	// Decode the response body into a map
 	responseBody, err := io.ReadAll(res.Body)
@@ -103,10 +123,6 @@ func MakeJSONRequest(ctx context.Context, method, url string, payload map[string
 	err = json.Unmarshal(responseBody, &body)
 	if err != nil {
 		return nil, err
-	}
-
-	if res.StatusCode >= 400 {
-		return body, errors.New(fmt.Sprint(res.StatusCode))
 	}
 
 	return body, nil
@@ -136,4 +152,16 @@ func Paginate(ctx *gin.Context) (page int, pageSize int) {
 func IsURL(s string) bool {
 	_, err := url.ParseRequestURI(s)
 	return err == nil
+}
+
+func retryRequest(ctx context.Context, method, url string, payload map[string]interface{}, headers map[string]string, attempt int) (responseData map[string]interface{}, err error) {
+	// Retry request
+	for i := 0; i < attempt; i++ {
+		responseData, err = MakeJSONRequest(ctx, method, url, payload, headers)
+		if err == nil {
+			return responseData, nil
+		}
+	}
+
+	return nil, err
 }
