@@ -148,15 +148,15 @@ func (ppc *ProviderProfileCreate) SetNillableMobileNumber(s *string) *ProviderPr
 }
 
 // SetDateOfBirth sets the "date_of_birth" field.
-func (ppc *ProviderProfileCreate) SetDateOfBirth(s string) *ProviderProfileCreate {
-	ppc.mutation.SetDateOfBirth(s)
+func (ppc *ProviderProfileCreate) SetDateOfBirth(t time.Time) *ProviderProfileCreate {
+	ppc.mutation.SetDateOfBirth(t)
 	return ppc
 }
 
 // SetNillableDateOfBirth sets the "date_of_birth" field if the given value is not nil.
-func (ppc *ProviderProfileCreate) SetNillableDateOfBirth(s *string) *ProviderProfileCreate {
-	if s != nil {
-		ppc.SetDateOfBirth(*s)
+func (ppc *ProviderProfileCreate) SetNillableDateOfBirth(t *time.Time) *ProviderProfileCreate {
+	if t != nil {
+		ppc.SetDateOfBirth(*t)
 	}
 	return ppc
 }
@@ -534,7 +534,7 @@ func (ppc *ProviderProfileCreate) createSpec() (*ProviderProfile, *sqlgraph.Crea
 		_node.MobileNumber = value
 	}
 	if value, ok := ppc.mutation.DateOfBirth(); ok {
-		_spec.SetField(providerprofile.FieldDateOfBirth, field.TypeString, value)
+		_spec.SetField(providerprofile.FieldDateOfBirth, field.TypeTime, value)
 		_node.DateOfBirth = value
 	}
 	if value, ok := ppc.mutation.BusinessName(); ok {

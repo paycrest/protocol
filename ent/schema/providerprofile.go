@@ -39,7 +39,7 @@ func (ProviderProfile) Fields() []ent.Field {
 			Default("public"),
 		field.Text("address").Optional(),
 		field.String("mobile_number").Optional(),
-		field.String("date_of_birth").Optional(),
+		field.Time("date_of_birth").Optional(),
 		field.String("business_name").Optional(),
 		field.Enum("IdentityDocumentType").
 			Values("passport", "drivers_license", "national_id").

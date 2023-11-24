@@ -7960,7 +7960,7 @@ type ProviderProfileMutation struct {
 	visibility_mode          *providerprofile.VisibilityMode
 	address                  *string
 	mobile_number            *string
-	date_of_birth            *string
+	date_of_birth            *time.Time
 	business_name            *string
 	_IdentityDocumentType    *providerprofile.IdentityDocumentType
 	identity_document        *string
@@ -8458,12 +8458,12 @@ func (m *ProviderProfileMutation) ResetMobileNumber() {
 }
 
 // SetDateOfBirth sets the "date_of_birth" field.
-func (m *ProviderProfileMutation) SetDateOfBirth(s string) {
-	m.date_of_birth = &s
+func (m *ProviderProfileMutation) SetDateOfBirth(t time.Time) {
+	m.date_of_birth = &t
 }
 
 // DateOfBirth returns the value of the "date_of_birth" field in the mutation.
-func (m *ProviderProfileMutation) DateOfBirth() (r string, exists bool) {
+func (m *ProviderProfileMutation) DateOfBirth() (r time.Time, exists bool) {
 	v := m.date_of_birth
 	if v == nil {
 		return
@@ -8474,7 +8474,7 @@ func (m *ProviderProfileMutation) DateOfBirth() (r string, exists bool) {
 // OldDateOfBirth returns the old "date_of_birth" field's value of the ProviderProfile entity.
 // If the ProviderProfile object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ProviderProfileMutation) OldDateOfBirth(ctx context.Context) (v string, err error) {
+func (m *ProviderProfileMutation) OldDateOfBirth(ctx context.Context) (v time.Time, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldDateOfBirth is only allowed on UpdateOne operations")
 	}
@@ -9282,7 +9282,7 @@ func (m *ProviderProfileMutation) SetField(name string, value ent.Value) error {
 		m.SetMobileNumber(v)
 		return nil
 	case providerprofile.FieldDateOfBirth:
-		v, ok := value.(string)
+		v, ok := value.(time.Time)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}

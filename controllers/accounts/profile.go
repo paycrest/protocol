@@ -181,7 +181,7 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 		}
 		update.SetMobileNumber(payload.MobileNumber)
 	}
-	if payload.DateOfBirth != "" {
+	if !payload.DateOfBirth.IsZero() {
 		update.SetDateOfBirth(payload.DateOfBirth)
 	}
 	if payload.BusinessName != "" {

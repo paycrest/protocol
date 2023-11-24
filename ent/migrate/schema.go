@@ -272,7 +272,7 @@ var (
 		{Name: "visibility_mode", Type: field.TypeEnum, Enums: []string{"private", "public"}, Default: "public"},
 		{Name: "address", Type: field.TypeString, Nullable: true, Size: 2147483647},
 		{Name: "mobile_number", Type: field.TypeString, Nullable: true},
-		{Name: "date_of_birth", Type: field.TypeString, Nullable: true},
+		{Name: "date_of_birth", Type: field.TypeTime, Nullable: true},
 		{Name: "business_name", Type: field.TypeString, Nullable: true},
 		{Name: "identity_document_type", Type: field.TypeEnum, Nullable: true, Enums: []string{"passport", "drivers_license", "national_id"}},
 		{Name: "identity_document", Type: field.TypeString, Nullable: true},

@@ -418,7 +418,7 @@ func TestProfile(t *testing.T) {
 				payload := types.ProviderProfilePayload{
 					Address:              "123, Example Street, Nairobi, Kenya",
 					MobileNumber:         "+2347012345678",
-					DateOfBirth:          "1990-01-01",
+					DateOfBirth:          time.Date(2022, time.January, 1, 12, 30, 0, 0, time.UTC),
 					BusinessName:         "Example Business",
 					IdentityDocumentType: "national_id",
 					IdentityDocument:     "https://example.com/national_id.png",
@@ -444,7 +444,7 @@ func TestProfile(t *testing.T) {
 
 				assert.Equal(t, providerProfile.Address, "123, Example Street, Nairobi, Kenya")
 				assert.Equal(t, providerProfile.MobileNumber, "+2347012345678")
-				assert.Equal(t, providerProfile.DateOfBirth, "1990-01-01")
+				assert.Equal(t, providerProfile.DateOfBirth, time.Date(2022, time.January, 1, 12, 30, 0, 0, time.UTC))
 				assert.Equal(t, providerProfile.BusinessName, "Example Business")
 				assert.Equal(t, string(providerProfile.IdentityDocumentType), "national_id")
 				assert.Equal(t, providerProfile.IdentityDocument, "https://example.com/national_id.png")

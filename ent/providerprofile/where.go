@@ -101,7 +101,7 @@ func MobileNumber(v string) predicate.ProviderProfile {
 }
 
 // DateOfBirth applies equality check predicate on the "date_of_birth" field. It's identical to DateOfBirthEQ.
-func DateOfBirth(v string) predicate.ProviderProfile {
+func DateOfBirth(v time.Time) predicate.ProviderProfile {
 	return predicate.ProviderProfile(sql.FieldEQ(FieldDateOfBirth, v))
 }
 
@@ -511,58 +511,43 @@ func MobileNumberContainsFold(v string) predicate.ProviderProfile {
 }
 
 // DateOfBirthEQ applies the EQ predicate on the "date_of_birth" field.
-func DateOfBirthEQ(v string) predicate.ProviderProfile {
+func DateOfBirthEQ(v time.Time) predicate.ProviderProfile {
 	return predicate.ProviderProfile(sql.FieldEQ(FieldDateOfBirth, v))
 }
 
 // DateOfBirthNEQ applies the NEQ predicate on the "date_of_birth" field.
-func DateOfBirthNEQ(v string) predicate.ProviderProfile {
+func DateOfBirthNEQ(v time.Time) predicate.ProviderProfile {
 	return predicate.ProviderProfile(sql.FieldNEQ(FieldDateOfBirth, v))
 }
 
 // DateOfBirthIn applies the In predicate on the "date_of_birth" field.
-func DateOfBirthIn(vs ...string) predicate.ProviderProfile {
+func DateOfBirthIn(vs ...time.Time) predicate.ProviderProfile {
 	return predicate.ProviderProfile(sql.FieldIn(FieldDateOfBirth, vs...))
 }
 
 // DateOfBirthNotIn applies the NotIn predicate on the "date_of_birth" field.
-func DateOfBirthNotIn(vs ...string) predicate.ProviderProfile {
+func DateOfBirthNotIn(vs ...time.Time) predicate.ProviderProfile {
 	return predicate.ProviderProfile(sql.FieldNotIn(FieldDateOfBirth, vs...))
 }
 
 // DateOfBirthGT applies the GT predicate on the "date_of_birth" field.
-func DateOfBirthGT(v string) predicate.ProviderProfile {
+func DateOfBirthGT(v time.Time) predicate.ProviderProfile {
 	return predicate.ProviderProfile(sql.FieldGT(FieldDateOfBirth, v))
 }
 
 // DateOfBirthGTE applies the GTE predicate on the "date_of_birth" field.
-func DateOfBirthGTE(v string) predicate.ProviderProfile {
+func DateOfBirthGTE(v time.Time) predicate.ProviderProfile {
 	return predicate.ProviderProfile(sql.FieldGTE(FieldDateOfBirth, v))
 }
 
 // DateOfBirthLT applies the LT predicate on the "date_of_birth" field.
-func DateOfBirthLT(v string) predicate.ProviderProfile {
+func DateOfBirthLT(v time.Time) predicate.ProviderProfile {
 	return predicate.ProviderProfile(sql.FieldLT(FieldDateOfBirth, v))
 }
 
 // DateOfBirthLTE applies the LTE predicate on the "date_of_birth" field.
-func DateOfBirthLTE(v string) predicate.ProviderProfile {
+func DateOfBirthLTE(v time.Time) predicate.ProviderProfile {
 	return predicate.ProviderProfile(sql.FieldLTE(FieldDateOfBirth, v))
-}
-
-// DateOfBirthContains applies the Contains predicate on the "date_of_birth" field.
-func DateOfBirthContains(v string) predicate.ProviderProfile {
-	return predicate.ProviderProfile(sql.FieldContains(FieldDateOfBirth, v))
-}
-
-// DateOfBirthHasPrefix applies the HasPrefix predicate on the "date_of_birth" field.
-func DateOfBirthHasPrefix(v string) predicate.ProviderProfile {
-	return predicate.ProviderProfile(sql.FieldHasPrefix(FieldDateOfBirth, v))
-}
-
-// DateOfBirthHasSuffix applies the HasSuffix predicate on the "date_of_birth" field.
-func DateOfBirthHasSuffix(v string) predicate.ProviderProfile {
-	return predicate.ProviderProfile(sql.FieldHasSuffix(FieldDateOfBirth, v))
 }
 
 // DateOfBirthIsNil applies the IsNil predicate on the "date_of_birth" field.
@@ -573,16 +558,6 @@ func DateOfBirthIsNil() predicate.ProviderProfile {
 // DateOfBirthNotNil applies the NotNil predicate on the "date_of_birth" field.
 func DateOfBirthNotNil() predicate.ProviderProfile {
 	return predicate.ProviderProfile(sql.FieldNotNull(FieldDateOfBirth))
-}
-
-// DateOfBirthEqualFold applies the EqualFold predicate on the "date_of_birth" field.
-func DateOfBirthEqualFold(v string) predicate.ProviderProfile {
-	return predicate.ProviderProfile(sql.FieldEqualFold(FieldDateOfBirth, v))
-}
-
-// DateOfBirthContainsFold applies the ContainsFold predicate on the "date_of_birth" field.
-func DateOfBirthContainsFold(v string) predicate.ProviderProfile {
-	return predicate.ProviderProfile(sql.FieldContainsFold(FieldDateOfBirth, v))
 }
 
 // BusinessNameEQ applies the EQ predicate on the "business_name" field.

@@ -307,6 +307,7 @@ func StructToMap(input interface{}) map[string]interface{} {
 	return result
 }
 
+// IsValidMobileNumber checks if a string is a valid Nigerian mobile number
 func IsValidMobileNumber(number string) bool {
 	// Pattern for Nigerian phone numbers (both mobile and landline)
 	pattern := `^(?:\+234|0)[789]\d{9}$` // Single backslashes for Go regex
@@ -314,6 +315,11 @@ func IsValidMobileNumber(number string) bool {
 	return matched
 }
 
+/*
+	IsValidFileURL checks if a URL is a valid file URL
+
+(supports only file urls ending with .jpg, .jpeg, .png, or .pdf)
+*/
 func IsValidFileURL(url string) bool {
 	// Pattern for URLs ending with .jpg, .jpeg, .png, or .pdf
 	pattern := `^(http(s)?://)?([\w-]+\.)+[\w-]+(/[\w- ;,./?%&=]*)?\.(jpg|jpeg|png|pdf)$`
