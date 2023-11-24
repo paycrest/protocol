@@ -320,7 +320,7 @@ func TestProfile(t *testing.T) {
 
 				return res
 			}
-			t.Run("Fails for invalid mobile number", func(t *testing.T) {
+			t.Run("fails for invalid mobile number", func(t *testing.T) {
 				payload := types.ProviderProfilePayload{
 					MobileNumber:   "1234567890",
 					TradingName:    testCtx.providerProfile.TradingName,
@@ -346,7 +346,7 @@ func TestProfile(t *testing.T) {
 				assert.Equal(t, "Invalid mobile number", response.Message)
 			})
 
-			t.Run("Fails for invalid identity document type", func(t *testing.T) {
+			t.Run("fails for invalid identity document type", func(t *testing.T) {
 				payload := types.ProviderProfilePayload{
 					IdentityDocumentType: "student_id",
 					TradingName:          testCtx.providerProfile.TradingName,
@@ -371,7 +371,7 @@ func TestProfile(t *testing.T) {
 				assert.Equal(t, "Invalid identity document type", response.Message)
 			})
 
-			t.Run("Fails for invalid identity document url", func(t *testing.T) {
+			t.Run("fails for invalid identity document url", func(t *testing.T) {
 				payload := types.ProviderProfilePayload{
 					IdentityDocument: "img.png",
 					TradingName:      testCtx.providerProfile.TradingName,
@@ -397,7 +397,7 @@ func TestProfile(t *testing.T) {
 				// assert.Nil(t, response.Data, "response.Data is not nil")
 			})
 
-			t.Run("Fails for invalid business document url", func(t *testing.T) {
+			t.Run("fails for invalid business document url", func(t *testing.T) {
 				payload := types.ProviderProfilePayload{
 					BusinessDocument: "http://123.example.com/file.ai",
 					TradingName:      testCtx.providerProfile.TradingName,
@@ -414,7 +414,7 @@ func TestProfile(t *testing.T) {
 				// assert.Nil(t, response.Data, "response.Data is not nil")
 			})
 
-			t.Run("Succeeds with valid optional fields", func(t *testing.T) {
+			t.Run("succeeds with valid optional fields", func(t *testing.T) {
 				payload := types.ProviderProfilePayload{
 					Address:              "123, Example Street, Nairobi, Kenya",
 					MobileNumber:         "+2347012345678",
