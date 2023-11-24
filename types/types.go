@@ -175,7 +175,7 @@ type ProviderProfilePayload struct {
 	VisibilityMode       string                      `json:"visibility_mode"`
 	Address              string                      `json:"address"`
 	MobileNumber         string                      `json:"mobile"`
-	DateOfBirth          string                      `json:"date_of_birth"`
+	DateOfBirth          time.Time                   `json:"date_of_birth"`
 	BusinessName         string                      `json:"business_name"`
 	IdentityDocumentType string                      `json:"identity_type"`
 	IdentityDocument     string                      `json:"identity_document"`
@@ -195,7 +195,7 @@ type ProviderProfileResponse struct {
 	IsActive             bool                      `json:"isActive"`
 	Address              string                    `json:"address"`
 	MobileNumber         string                    `json:"mobileNumber"`
-	DateOfBirth          string                    `json:"dateOfBirth"`
+	DateOfBirth          time.Time                 `json:"dateOfBirth"`
 	BusinessName         string                    `json:"businessName"`
 	IdentityDocumentType string                    `json:"identity_type"`
 	IdentityDocument     string                    `json:"identity_document"`

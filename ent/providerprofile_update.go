@@ -165,15 +165,15 @@ func (ppu *ProviderProfileUpdate) ClearMobileNumber() *ProviderProfileUpdate {
 }
 
 // SetDateOfBirth sets the "date_of_birth" field.
-func (ppu *ProviderProfileUpdate) SetDateOfBirth(s string) *ProviderProfileUpdate {
-	ppu.mutation.SetDateOfBirth(s)
+func (ppu *ProviderProfileUpdate) SetDateOfBirth(t time.Time) *ProviderProfileUpdate {
+	ppu.mutation.SetDateOfBirth(t)
 	return ppu
 }
 
 // SetNillableDateOfBirth sets the "date_of_birth" field if the given value is not nil.
-func (ppu *ProviderProfileUpdate) SetNillableDateOfBirth(s *string) *ProviderProfileUpdate {
-	if s != nil {
-		ppu.SetDateOfBirth(*s)
+func (ppu *ProviderProfileUpdate) SetNillableDateOfBirth(t *time.Time) *ProviderProfileUpdate {
+	if t != nil {
+		ppu.SetDateOfBirth(*t)
 	}
 	return ppu
 }
@@ -585,10 +585,10 @@ func (ppu *ProviderProfileUpdate) sqlSave(ctx context.Context) (n int, err error
 		_spec.ClearField(providerprofile.FieldMobileNumber, field.TypeString)
 	}
 	if value, ok := ppu.mutation.DateOfBirth(); ok {
-		_spec.SetField(providerprofile.FieldDateOfBirth, field.TypeString, value)
+		_spec.SetField(providerprofile.FieldDateOfBirth, field.TypeTime, value)
 	}
 	if ppu.mutation.DateOfBirthCleared() {
-		_spec.ClearField(providerprofile.FieldDateOfBirth, field.TypeString)
+		_spec.ClearField(providerprofile.FieldDateOfBirth, field.TypeTime)
 	}
 	if value, ok := ppu.mutation.BusinessName(); ok {
 		_spec.SetField(providerprofile.FieldBusinessName, field.TypeString, value)
@@ -1014,15 +1014,15 @@ func (ppuo *ProviderProfileUpdateOne) ClearMobileNumber() *ProviderProfileUpdate
 }
 
 // SetDateOfBirth sets the "date_of_birth" field.
-func (ppuo *ProviderProfileUpdateOne) SetDateOfBirth(s string) *ProviderProfileUpdateOne {
-	ppuo.mutation.SetDateOfBirth(s)
+func (ppuo *ProviderProfileUpdateOne) SetDateOfBirth(t time.Time) *ProviderProfileUpdateOne {
+	ppuo.mutation.SetDateOfBirth(t)
 	return ppuo
 }
 
 // SetNillableDateOfBirth sets the "date_of_birth" field if the given value is not nil.
-func (ppuo *ProviderProfileUpdateOne) SetNillableDateOfBirth(s *string) *ProviderProfileUpdateOne {
-	if s != nil {
-		ppuo.SetDateOfBirth(*s)
+func (ppuo *ProviderProfileUpdateOne) SetNillableDateOfBirth(t *time.Time) *ProviderProfileUpdateOne {
+	if t != nil {
+		ppuo.SetDateOfBirth(*t)
 	}
 	return ppuo
 }
@@ -1464,10 +1464,10 @@ func (ppuo *ProviderProfileUpdateOne) sqlSave(ctx context.Context) (_node *Provi
 		_spec.ClearField(providerprofile.FieldMobileNumber, field.TypeString)
 	}
 	if value, ok := ppuo.mutation.DateOfBirth(); ok {
-		_spec.SetField(providerprofile.FieldDateOfBirth, field.TypeString, value)
+		_spec.SetField(providerprofile.FieldDateOfBirth, field.TypeTime, value)
 	}
 	if ppuo.mutation.DateOfBirthCleared() {
-		_spec.ClearField(providerprofile.FieldDateOfBirth, field.TypeString)
+		_spec.ClearField(providerprofile.FieldDateOfBirth, field.TypeTime)
 	}
 	if value, ok := ppuo.mutation.BusinessName(); ok {
 		_spec.SetField(providerprofile.FieldBusinessName, field.TypeString, value)

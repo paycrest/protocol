@@ -42,7 +42,7 @@ type ProviderProfile struct {
 	// MobileNumber holds the value of the "mobile_number" field.
 	MobileNumber string `json:"mobile_number,omitempty"`
 	// DateOfBirth holds the value of the "date_of_birth" field.
-	DateOfBirth string `json:"date_of_birth,omitempty"`
+	DateOfBirth time.Time `json:"date_of_birth,omitempty"`
 	// BusinessName holds the value of the "business_name" field.
 	BusinessName string `json:"business_name,omitempty"`
 	// IdentityDocumentType holds the value of the "IdentityDocumentType" field.
@@ -181,9 +181,9 @@ func (*ProviderProfile) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case providerprofile.FieldIsPartner, providerprofile.FieldIsActive:
 			values[i] = new(sql.NullBool)
-		case providerprofile.FieldID, providerprofile.FieldTradingName, providerprofile.FieldHostIdentifier, providerprofile.FieldProvisionMode, providerprofile.FieldVisibilityMode, providerprofile.FieldAddress, providerprofile.FieldMobileNumber, providerprofile.FieldDateOfBirth, providerprofile.FieldBusinessName, providerprofile.FieldIdentityDocumentType, providerprofile.FieldIdentityDocument, providerprofile.FieldBusinessDocument:
+		case providerprofile.FieldID, providerprofile.FieldTradingName, providerprofile.FieldHostIdentifier, providerprofile.FieldProvisionMode, providerprofile.FieldVisibilityMode, providerprofile.FieldAddress, providerprofile.FieldMobileNumber, providerprofile.FieldBusinessName, providerprofile.FieldIdentityDocumentType, providerprofile.FieldIdentityDocument, providerprofile.FieldBusinessDocument:
 			values[i] = new(sql.NullString)
-		case providerprofile.FieldUpdatedAt:
+		case providerprofile.FieldUpdatedAt, providerprofile.FieldDateOfBirth:
 			values[i] = new(sql.NullTime)
 		case providerprofile.ForeignKeys[0]: // fiat_currency_providers
 			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
@@ -265,10 +265,10 @@ func (pp *ProviderProfile) assignValues(columns []string, values []any) error {
 				pp.MobileNumber = value.String
 			}
 		case providerprofile.FieldDateOfBirth:
-			if value, ok := values[i].(*sql.NullString); !ok {
+			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field date_of_birth", values[i])
 			} else if value.Valid {
-				pp.DateOfBirth = value.String
+				pp.DateOfBirth = value.Time
 			}
 		case providerprofile.FieldBusinessName:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -412,7 +412,7 @@ func (pp *ProviderProfile) String() string {
 	builder.WriteString(pp.MobileNumber)
 	builder.WriteString(", ")
 	builder.WriteString("date_of_birth=")
-	builder.WriteString(pp.DateOfBirth)
+	builder.WriteString(pp.DateOfBirth.Format(time.ANSIC))
 	builder.WriteString(", ")
 	builder.WriteString("business_name=")
 	builder.WriteString(pp.BusinessName)
