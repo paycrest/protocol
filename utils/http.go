@@ -20,6 +20,7 @@ import (
 
 const (
 	HTTP_RETRY_ATTEMPTS = 3
+	HTTP_RETRY_INTERVAL = 5
 )
 
 // APIResponse is a helper function to return an API response
@@ -98,7 +99,7 @@ func MakeJSONRequest(ctx context.Context, method, url string, payload map[string
 			break
 		}
 		if i < 2 { // Avoid sleep after the last attempt
-			time.Sleep(5 * time.Second) // Wait for 5 seconds before retrying
+			time.Sleep(HTTP_RETRY_INTERVAL * time.Second) // Wait for 5 seconds before retrying
 		}
 	}
 	if err != nil {
@@ -106,10 +107,10 @@ func MakeJSONRequest(ctx context.Context, method, url string, payload map[string
 	}
 	defer res.Body.Close()
 
-	if res.StatusCode >= 500 { // Retry on server errors
+	if res.StatusCode >= 500 { // Return on server errors
 		return nil, fmt.Errorf(fmt.Sprintf("server error: %d", res.StatusCode))
 	}
-	if res.StatusCode >= 400 { // Do not retry on client errors
+	if res.StatusCode >= 400 { // Return on client errors
 		return nil, fmt.Errorf(fmt.Sprintf("client error: %d", res.StatusCode))
 	}
 
