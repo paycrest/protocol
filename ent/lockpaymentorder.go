@@ -56,6 +56,10 @@ type LockPaymentOrder struct {
 	CancellationCount int `json:"cancellation_count,omitempty"`
 	// CancellationReasons holds the value of the "cancellation_reasons" field.
 	CancellationReasons []string `json:"cancellation_reasons,omitempty"`
+	// IsRefunded holds the value of the "is_refunded" field.
+	IsRefunded bool `json:"is_refunded,omitempty"`
+	// RefundTxHash holds the value of the "refund_tx_hash" field.
+	RefundTxHash string `json:"refund_tx_hash,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the LockPaymentOrderQuery when eager-loading is set.
 	Edges                                LockPaymentOrderEdges `json:"edges"`
@@ -141,9 +145,11 @@ func (*LockPaymentOrder) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case lockpaymentorder.FieldAmount, lockpaymentorder.FieldRate, lockpaymentorder.FieldOrderPercent:
 			values[i] = new(decimal.Decimal)
+		case lockpaymentorder.FieldIsRefunded:
+			values[i] = new(sql.NullBool)
 		case lockpaymentorder.FieldBlockNumber, lockpaymentorder.FieldCancellationCount:
 			values[i] = new(sql.NullInt64)
-		case lockpaymentorder.FieldOrderID, lockpaymentorder.FieldTxHash, lockpaymentorder.FieldLabel, lockpaymentorder.FieldStatus, lockpaymentorder.FieldInstitution, lockpaymentorder.FieldAccountIdentifier, lockpaymentorder.FieldAccountName, lockpaymentorder.FieldMemo:
+		case lockpaymentorder.FieldOrderID, lockpaymentorder.FieldTxHash, lockpaymentorder.FieldLabel, lockpaymentorder.FieldStatus, lockpaymentorder.FieldInstitution, lockpaymentorder.FieldAccountIdentifier, lockpaymentorder.FieldAccountName, lockpaymentorder.FieldMemo, lockpaymentorder.FieldRefundTxHash:
 			values[i] = new(sql.NullString)
 		case lockpaymentorder.FieldCreatedAt, lockpaymentorder.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -274,6 +280,18 @@ func (lpo *LockPaymentOrder) assignValues(columns []string, values []any) error 
 					return fmt.Errorf("unmarshal field cancellation_reasons: %w", err)
 				}
 			}
+		case lockpaymentorder.FieldIsRefunded:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field is_refunded", values[i])
+			} else if value.Valid {
+				lpo.IsRefunded = value.Bool
+			}
+		case lockpaymentorder.FieldRefundTxHash:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field refund_tx_hash", values[i])
+			} else if value.Valid {
+				lpo.RefundTxHash = value.String
+			}
 		case lockpaymentorder.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field provider_profile_assigned_orders", values[i])
@@ -398,6 +416,12 @@ func (lpo *LockPaymentOrder) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("cancellation_reasons=")
 	builder.WriteString(fmt.Sprintf("%v", lpo.CancellationReasons))
+	builder.WriteString(", ")
+	builder.WriteString("is_refunded=")
+	builder.WriteString(fmt.Sprintf("%v", lpo.IsRefunded))
+	builder.WriteString(", ")
+	builder.WriteString("refund_tx_hash=")
+	builder.WriteString(lpo.RefundTxHash)
 	builder.WriteByte(')')
 	return builder.String()
 }

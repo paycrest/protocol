@@ -590,3 +590,22 @@ func (s *OrderService) EIP1559GasPrice(ctx context.Context, client types.RPCClie
 
 	return maxFeePerGas, maxPriorityFeePerGas
 }
+
+func (s *OrderService) RefundOrder(ctx context.Context, order *ent.LockPaymentOrder, refundAddress string) error {
+	// Implement the refund logic here
+	//  Write code to interact with order contract to refund
+
+	// Create ABI
+	// paycrestOrderABI, err := abi.JSON(strings.NewReader(contracts.PaycrestOrderMetaData.ABI))
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to parse PaycrestOrder ABI: %w", err)
+	// }
+
+	//  update order status to refunded
+	//  update order is_refunded to true
+	//  update order refund_tx_hash to refundTxHash
+
+	return nil
+}
+
+// ...

@@ -260,6 +260,8 @@ type LockPaymentOrderFields struct {
 	AccountName       string
 	ProviderID        string
 	ProvisionBucket   *ent.ProvisionBucket
+	IsRefunded        bool
+	RefundTxHash      string
 	UpdatedAt         time.Time
 	CreatedAt         time.Time
 }
