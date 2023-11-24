@@ -107,10 +107,10 @@ func MakeJSONRequest(ctx context.Context, method, url string, payload map[string
 	defer res.Body.Close()
 
 	if res.StatusCode >= 500 { // Retry on server errors
-		return nil, errors.New(fmt.Sprintf("server error: %d", res.StatusCode))
+		return nil, fmt.Errorf(fmt.Sprintf("server error: %d", res.StatusCode))
 	}
 	if res.StatusCode >= 400 { // Do not retry on client errors
-		return nil, errors.New(fmt.Sprintf("client error: %d", res.StatusCode))
+		return nil, fmt.Errorf(fmt.Sprintf("client error: %d", res.StatusCode))
 	}
 
 	// Decode the response body into a map
