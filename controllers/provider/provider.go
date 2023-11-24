@@ -9,6 +9,7 @@ import (
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
+	"github.com/paycrest/protocol/ent/paymentorder"
 	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/services"
 	"github.com/paycrest/protocol/storage"
@@ -366,6 +367,25 @@ func (ctrl *ProviderController) CancelOrder(ctx *gin.Context) {
 		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusNotFound, "error", "Could not find payment order", nil)
 		return
+	}
+
+	// Refund sender on canceled order
+	// Fetch senderprofile associated with order
+
+	// Convert order ID to UUID
+	id, err := uuid.Parse(order.OrderID)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusBadRequest, "error",
+			"Invalid order", nil)
+		return
+	}
+
+	senderProfile, err := storage.Client.PaymentOrder.Query().Where(paymentorder.IDEQ(id)).QuerySenderProfile().Only(ctx)
+
+	err = ctrl.orderService.RefundOrder(ctx, order, senderProfile.RefundAddress)
+	if err != nil {
+		logger.Errorf("error - Failed to refund sender %v", err)
 	}
 
 	// Update lock order status to cancelled

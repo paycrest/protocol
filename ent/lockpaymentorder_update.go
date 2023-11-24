@@ -224,6 +224,40 @@ func (lpou *LockPaymentOrderUpdate) AppendCancellationReasons(s []string) *LockP
 	return lpou
 }
 
+// SetIsRefunded sets the "is_refunded" field.
+func (lpou *LockPaymentOrderUpdate) SetIsRefunded(b bool) *LockPaymentOrderUpdate {
+	lpou.mutation.SetIsRefunded(b)
+	return lpou
+}
+
+// SetNillableIsRefunded sets the "is_refunded" field if the given value is not nil.
+func (lpou *LockPaymentOrderUpdate) SetNillableIsRefunded(b *bool) *LockPaymentOrderUpdate {
+	if b != nil {
+		lpou.SetIsRefunded(*b)
+	}
+	return lpou
+}
+
+// SetRefundTxHash sets the "refund_tx_hash" field.
+func (lpou *LockPaymentOrderUpdate) SetRefundTxHash(s string) *LockPaymentOrderUpdate {
+	lpou.mutation.SetRefundTxHash(s)
+	return lpou
+}
+
+// SetNillableRefundTxHash sets the "refund_tx_hash" field if the given value is not nil.
+func (lpou *LockPaymentOrderUpdate) SetNillableRefundTxHash(s *string) *LockPaymentOrderUpdate {
+	if s != nil {
+		lpou.SetRefundTxHash(*s)
+	}
+	return lpou
+}
+
+// ClearRefundTxHash clears the value of the "refund_tx_hash" field.
+func (lpou *LockPaymentOrderUpdate) ClearRefundTxHash() *LockPaymentOrderUpdate {
+	lpou.mutation.ClearRefundTxHash()
+	return lpou
+}
+
 // SetTokenID sets the "token" edge to the Token entity by ID.
 func (lpou *LockPaymentOrderUpdate) SetTokenID(id int) *LockPaymentOrderUpdate {
 	lpou.mutation.SetTokenID(id)
@@ -460,6 +494,15 @@ func (lpou *LockPaymentOrderUpdate) sqlSave(ctx context.Context) (n int, err err
 		_spec.AddModifier(func(u *sql.UpdateBuilder) {
 			sqljson.Append(u, lockpaymentorder.FieldCancellationReasons, value)
 		})
+	}
+	if value, ok := lpou.mutation.IsRefunded(); ok {
+		_spec.SetField(lockpaymentorder.FieldIsRefunded, field.TypeBool, value)
+	}
+	if value, ok := lpou.mutation.RefundTxHash(); ok {
+		_spec.SetField(lockpaymentorder.FieldRefundTxHash, field.TypeString, value)
+	}
+	if lpou.mutation.RefundTxHashCleared() {
+		_spec.ClearField(lockpaymentorder.FieldRefundTxHash, field.TypeString)
 	}
 	if lpou.mutation.TokenCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -786,6 +829,40 @@ func (lpouo *LockPaymentOrderUpdateOne) AppendCancellationReasons(s []string) *L
 	return lpouo
 }
 
+// SetIsRefunded sets the "is_refunded" field.
+func (lpouo *LockPaymentOrderUpdateOne) SetIsRefunded(b bool) *LockPaymentOrderUpdateOne {
+	lpouo.mutation.SetIsRefunded(b)
+	return lpouo
+}
+
+// SetNillableIsRefunded sets the "is_refunded" field if the given value is not nil.
+func (lpouo *LockPaymentOrderUpdateOne) SetNillableIsRefunded(b *bool) *LockPaymentOrderUpdateOne {
+	if b != nil {
+		lpouo.SetIsRefunded(*b)
+	}
+	return lpouo
+}
+
+// SetRefundTxHash sets the "refund_tx_hash" field.
+func (lpouo *LockPaymentOrderUpdateOne) SetRefundTxHash(s string) *LockPaymentOrderUpdateOne {
+	lpouo.mutation.SetRefundTxHash(s)
+	return lpouo
+}
+
+// SetNillableRefundTxHash sets the "refund_tx_hash" field if the given value is not nil.
+func (lpouo *LockPaymentOrderUpdateOne) SetNillableRefundTxHash(s *string) *LockPaymentOrderUpdateOne {
+	if s != nil {
+		lpouo.SetRefundTxHash(*s)
+	}
+	return lpouo
+}
+
+// ClearRefundTxHash clears the value of the "refund_tx_hash" field.
+func (lpouo *LockPaymentOrderUpdateOne) ClearRefundTxHash() *LockPaymentOrderUpdateOne {
+	lpouo.mutation.ClearRefundTxHash()
+	return lpouo
+}
+
 // SetTokenID sets the "token" edge to the Token entity by ID.
 func (lpouo *LockPaymentOrderUpdateOne) SetTokenID(id int) *LockPaymentOrderUpdateOne {
 	lpouo.mutation.SetTokenID(id)
@@ -1052,6 +1129,15 @@ func (lpouo *LockPaymentOrderUpdateOne) sqlSave(ctx context.Context) (_node *Loc
 		_spec.AddModifier(func(u *sql.UpdateBuilder) {
 			sqljson.Append(u, lockpaymentorder.FieldCancellationReasons, value)
 		})
+	}
+	if value, ok := lpouo.mutation.IsRefunded(); ok {
+		_spec.SetField(lockpaymentorder.FieldIsRefunded, field.TypeBool, value)
+	}
+	if value, ok := lpouo.mutation.RefundTxHash(); ok {
+		_spec.SetField(lockpaymentorder.FieldRefundTxHash, field.TypeString, value)
+	}
+	if lpouo.mutation.RefundTxHashCleared() {
+		_spec.ClearField(lockpaymentorder.FieldRefundTxHash, field.TypeString)
 	}
 	if lpouo.mutation.TokenCleared() {
 		edge := &sqlgraph.EdgeSpec{
