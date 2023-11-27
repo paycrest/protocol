@@ -93,12 +93,12 @@ func MakeJSONRequest(ctx context.Context, method, url string, payload map[string
 
 	// Make the request
 	var res *http.Response
-	for i := 0; i < HTTP_RETRY_ATTEMPTS; i++ { // Retry up to 3 times
+	for i := 0; i < HTTP_RETRY_ATTEMPTS; i++ { // On failure, retry up to 3 times
 		res, err = client.Do(req)
 		if err == nil && res.StatusCode < 500 && res.StatusCode != 429 {
 			break
 		}
-		if i < 2 { // Avoid sleep after the last attempt
+		if i < HTTP_RETRY_ATTEMPTS-1 { // Avoid sleep after the last attempt
 			time.Sleep(HTTP_RETRY_INTERVAL * time.Second) // Wait for 5 seconds before retrying
 		}
 	}
