@@ -29,7 +29,7 @@ func RegisterRoutes(route *gin.Engine) {
 	v1 := route.Group("/v1/")
 
 	v1.GET(
-		"currencies/",
+		"currencies",
 		middleware.DynamicAuthMiddleware,
 		ctrl.GetFiatCurrencies,
 	)
@@ -88,9 +88,9 @@ func senderRoutes(route *gin.Engine) {
 	v1.Use(middleware.DynamicAuthMiddleware)
 	v1.Use(middleware.OnlySenderMiddleware)
 
-	v1.POST("orders/", senderCtrl.CreatePaymentOrder)
+	v1.POST("orders", senderCtrl.CreatePaymentOrder)
 	v1.GET("orders/:id", senderCtrl.GetPaymentOrderByID)
-	v1.GET("orders/", senderCtrl.GetPaymentOrders)
+	v1.GET("orders", senderCtrl.GetPaymentOrders)
 }
 
 func providerRoutes(route *gin.Engine) {
@@ -100,7 +100,7 @@ func providerRoutes(route *gin.Engine) {
 	v1.Use(middleware.DynamicAuthMiddleware)
 	v1.Use(middleware.OnlyProviderMiddleware)
 
-	v1.GET("orders/", providerCtrl.GetLockPaymentOrders)
+	v1.GET("orders", providerCtrl.GetLockPaymentOrders)
 	v1.POST("orders/:id/accept", providerCtrl.AcceptOrder)
 	v1.POST("orders/:id/decline", providerCtrl.DeclineOrder)
 	v1.POST("orders/:id/fulfill", providerCtrl.FulfillOrder)

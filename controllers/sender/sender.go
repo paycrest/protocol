@@ -213,6 +213,7 @@ func (ctrl *SenderController) GetPaymentOrderByID(ctx *gin.Context) {
 	u.APIResponse(ctx, http.StatusOK, "success", "The order has been successfully retrieved", &types.PaymentOrderResponse{
 		ID:      paymentOrder.ID,
 		Amount:  paymentOrder.Amount,
+		Token:   paymentOrder.Edges.Token.Symbol,
 		Rate:    paymentOrder.Rate,
 		Network: paymentOrder.Edges.Token.Edges.Network.Identifier,
 		Recipient: types.PaymentOrderRecipient{

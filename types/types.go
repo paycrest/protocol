@@ -185,6 +185,8 @@ type ProviderProfilePayload struct {
 // ProviderProfileResponse is the response for the provider profile endpoint
 type ProviderProfileResponse struct {
 	ID                   string                    `json:"id"`
+	FirstName            string                    `json:"firstName"`
+	LastName             string                    `json:"lastName"`
 	TradingName          string                    `json:"tradingName"`
 	Currency             string                    `json:"currency"`
 	HostIdentifier       string                    `json:"hostIdentifier"`
@@ -213,6 +215,8 @@ type ValidatorProfileResponse struct {
 // SenderProfileResponse is the response for the sender profile endpoint
 type SenderProfileResponse struct {
 	ID              uuid.UUID       `json:"id"`
+	FirstName       string          `json:"firstName"`
+	LastName        string          `json:"lastName"`
 	WebhookURL      string          `json:"webhookUrl"`
 	DomainWhitelist []string        `json:"domainWhitelist"`
 	FeePerTokenUnit decimal.Decimal `json:"feePerTokenUnit"`
@@ -292,6 +296,7 @@ type ReceiveAddressResponse struct {
 type PaymentOrderResponse struct {
 	ID        uuid.UUID             `json:"id"`
 	Amount    decimal.Decimal       `json:"amount"`
+	Token     string                `json:"token"`
 	Rate      decimal.Decimal       `json:"rate"`
 	Network   string                `json:"network"`
 	Label     string                `json:"label"`

@@ -381,6 +381,12 @@ func (ctrl *ProfileController) GetSenderProfile(ctx *gin.Context) {
 	}
 	sender := senderCtx.(*ent.SenderProfile)
 
+	user, err := sender.QueryUser().Only(ctx)
+	if err != nil {
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to retrieve profile", nil)
+		return
+	}
+
 	// Get API key
 	apiKey, err := ctrl.apiKeyService.GetAPIKey(ctx, sender, nil)
 	if err != nil {
@@ -390,6 +396,8 @@ func (ctrl *ProfileController) GetSenderProfile(ctx *gin.Context) {
 
 	u.APIResponse(ctx, http.StatusOK, "success", "Profile retrieved successfully", &types.SenderProfileResponse{
 		ID:              sender.ID,
+		FirstName:       user.FirstName,
+		LastName:        user.LastName,
 		WebhookURL:      sender.WebhookURL,
 		DomainWhitelist: sender.DomainWhitelist,
 		FeePerTokenUnit: sender.FeePerTokenUnit,
@@ -409,6 +417,12 @@ func (ctrl *ProfileController) GetProviderProfile(ctx *gin.Context) {
 		return
 	}
 	provider := providerCtx.(*ent.ProviderProfile)
+
+	user, err := provider.QueryUser().Only(ctx)
+	if err != nil {
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to retrieve profile", nil)
+		return
+	}
 
 	// Get availability
 	availability, err := provider.QueryAvailability().Only(ctx)
@@ -433,6 +447,8 @@ func (ctrl *ProfileController) GetProviderProfile(ctx *gin.Context) {
 
 	u.APIResponse(ctx, http.StatusOK, "success", "Profile retrieved successfully", &types.ProviderProfileResponse{
 		ID:                   provider.ID,
+		FirstName:            user.FirstName,
+		LastName:             user.LastName,
 		TradingName:          provider.TradingName,
 		Currency:             provider.Edges.Currency.Code,
 		HostIdentifier:       provider.HostIdentifier,
