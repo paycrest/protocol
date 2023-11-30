@@ -187,6 +187,7 @@ type ProviderProfileResponse struct {
 	ID                   string                    `json:"id"`
 	FirstName            string                    `json:"firstName"`
 	LastName             string                    `json:"lastName"`
+	Email                string                    `json:"email"`
 	TradingName          string                    `json:"tradingName"`
 	Currency             string                    `json:"currency"`
 	HostIdentifier       string                    `json:"hostIdentifier"`
@@ -217,6 +218,7 @@ type SenderProfileResponse struct {
 	ID              uuid.UUID       `json:"id"`
 	FirstName       string          `json:"firstName"`
 	LastName        string          `json:"lastName"`
+	Email           string          `json:"email"`
 	WebhookURL      string          `json:"webhookUrl"`
 	DomainWhitelist []string        `json:"domainWhitelist"`
 	FeePerTokenUnit decimal.Decimal `json:"feePerTokenUnit"`
