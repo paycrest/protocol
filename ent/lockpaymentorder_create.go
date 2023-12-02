@@ -206,6 +206,20 @@ func (lpoc *LockPaymentOrderCreate) SetNillableRefundTxHash(s *string) *LockPaym
 	return lpoc
 }
 
+// SetIsRefundConfirmed sets the "is_refund_confirmed" field.
+func (lpoc *LockPaymentOrderCreate) SetIsRefundConfirmed(b bool) *LockPaymentOrderCreate {
+	lpoc.mutation.SetIsRefundConfirmed(b)
+	return lpoc
+}
+
+// SetNillableIsRefundConfirmed sets the "is_refund_confirmed" field if the given value is not nil.
+func (lpoc *LockPaymentOrderCreate) SetNillableIsRefundConfirmed(b *bool) *LockPaymentOrderCreate {
+	if b != nil {
+		lpoc.SetIsRefundConfirmed(*b)
+	}
+	return lpoc
+}
+
 // SetID sets the "id" field.
 func (lpoc *LockPaymentOrderCreate) SetID(u uuid.UUID) *LockPaymentOrderCreate {
 	lpoc.mutation.SetID(u)
@@ -347,6 +361,10 @@ func (lpoc *LockPaymentOrderCreate) defaults() {
 		v := lockpaymentorder.DefaultIsRefunded
 		lpoc.mutation.SetIsRefunded(v)
 	}
+	if _, ok := lpoc.mutation.IsRefundConfirmed(); !ok {
+		v := lockpaymentorder.DefaultIsRefundConfirmed
+		lpoc.mutation.SetIsRefundConfirmed(v)
+	}
 	if _, ok := lpoc.mutation.ID(); !ok {
 		v := lockpaymentorder.DefaultID()
 		lpoc.mutation.SetID(v)
@@ -406,6 +424,9 @@ func (lpoc *LockPaymentOrderCreate) check() error {
 	}
 	if _, ok := lpoc.mutation.IsRefunded(); !ok {
 		return &ValidationError{Name: "is_refunded", err: errors.New(`ent: missing required field "LockPaymentOrder.is_refunded"`)}
+	}
+	if _, ok := lpoc.mutation.IsRefundConfirmed(); !ok {
+		return &ValidationError{Name: "is_refund_confirmed", err: errors.New(`ent: missing required field "LockPaymentOrder.is_refund_confirmed"`)}
 	}
 	if _, ok := lpoc.mutation.TokenID(); !ok {
 		return &ValidationError{Name: "token", err: errors.New(`ent: missing required edge "LockPaymentOrder.token"`)}
@@ -516,6 +537,10 @@ func (lpoc *LockPaymentOrderCreate) createSpec() (*LockPaymentOrder, *sqlgraph.C
 	if value, ok := lpoc.mutation.RefundTxHash(); ok {
 		_spec.SetField(lockpaymentorder.FieldRefundTxHash, field.TypeString, value)
 		_node.RefundTxHash = value
+	}
+	if value, ok := lpoc.mutation.IsRefundConfirmed(); ok {
+		_spec.SetField(lockpaymentorder.FieldIsRefundConfirmed, field.TypeBool, value)
+		_node.IsRefundConfirmed = value
 	}
 	if nodes := lpoc.mutation.TokenIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

@@ -258,6 +258,20 @@ func (lpou *LockPaymentOrderUpdate) ClearRefundTxHash() *LockPaymentOrderUpdate 
 	return lpou
 }
 
+// SetIsRefundConfirmed sets the "is_refund_confirmed" field.
+func (lpou *LockPaymentOrderUpdate) SetIsRefundConfirmed(b bool) *LockPaymentOrderUpdate {
+	lpou.mutation.SetIsRefundConfirmed(b)
+	return lpou
+}
+
+// SetNillableIsRefundConfirmed sets the "is_refund_confirmed" field if the given value is not nil.
+func (lpou *LockPaymentOrderUpdate) SetNillableIsRefundConfirmed(b *bool) *LockPaymentOrderUpdate {
+	if b != nil {
+		lpou.SetIsRefundConfirmed(*b)
+	}
+	return lpou
+}
+
 // SetTokenID sets the "token" edge to the Token entity by ID.
 func (lpou *LockPaymentOrderUpdate) SetTokenID(id int) *LockPaymentOrderUpdate {
 	lpou.mutation.SetTokenID(id)
@@ -503,6 +517,9 @@ func (lpou *LockPaymentOrderUpdate) sqlSave(ctx context.Context) (n int, err err
 	}
 	if lpou.mutation.RefundTxHashCleared() {
 		_spec.ClearField(lockpaymentorder.FieldRefundTxHash, field.TypeString)
+	}
+	if value, ok := lpou.mutation.IsRefundConfirmed(); ok {
+		_spec.SetField(lockpaymentorder.FieldIsRefundConfirmed, field.TypeBool, value)
 	}
 	if lpou.mutation.TokenCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -863,6 +880,20 @@ func (lpouo *LockPaymentOrderUpdateOne) ClearRefundTxHash() *LockPaymentOrderUpd
 	return lpouo
 }
 
+// SetIsRefundConfirmed sets the "is_refund_confirmed" field.
+func (lpouo *LockPaymentOrderUpdateOne) SetIsRefundConfirmed(b bool) *LockPaymentOrderUpdateOne {
+	lpouo.mutation.SetIsRefundConfirmed(b)
+	return lpouo
+}
+
+// SetNillableIsRefundConfirmed sets the "is_refund_confirmed" field if the given value is not nil.
+func (lpouo *LockPaymentOrderUpdateOne) SetNillableIsRefundConfirmed(b *bool) *LockPaymentOrderUpdateOne {
+	if b != nil {
+		lpouo.SetIsRefundConfirmed(*b)
+	}
+	return lpouo
+}
+
 // SetTokenID sets the "token" edge to the Token entity by ID.
 func (lpouo *LockPaymentOrderUpdateOne) SetTokenID(id int) *LockPaymentOrderUpdateOne {
 	lpouo.mutation.SetTokenID(id)
@@ -1138,6 +1169,9 @@ func (lpouo *LockPaymentOrderUpdateOne) sqlSave(ctx context.Context) (_node *Loc
 	}
 	if lpouo.mutation.RefundTxHashCleared() {
 		_spec.ClearField(lockpaymentorder.FieldRefundTxHash, field.TypeString)
+	}
+	if value, ok := lpouo.mutation.IsRefundConfirmed(); ok {
+		_spec.SetField(lockpaymentorder.FieldIsRefundConfirmed, field.TypeBool, value)
 	}
 	if lpouo.mutation.TokenCleared() {
 		edge := &sqlgraph.EdgeSpec{

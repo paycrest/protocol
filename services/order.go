@@ -677,21 +677,6 @@ func (s *OrderService) EIP1559GasPrice(ctx context.Context, client types.RPCClie
 
 // RefundSender Refunds sender on canceled order
 func (s *OrderService) RefundOrder(ctx context.Context, lockOrder *ent.LockPaymentOrder) error {
-	if !lockOrder.IsRefunded && lockOrder.RefundTxHash != "" {
-		userOpTxSuccess, err := s.getUserOperationStatus(lockOrder.RefundTxHash)
-		if err != nil {
-			return fmt.Errorf("error - RefundOrder - failed to get user operation status : %w", err)
-		}
-		if userOpTxSuccess {
-			// update order status to refunded
-			_, err = lockOrder.Update().SetIsRefunded(true).Save(ctx)
-			if err != nil {
-				return fmt.Errorf("error - RefundOrder - failed to set is_refunded to true for order (%v) : %w", lockOrder.OrderID, err)
-			}
-		}
-
-	}
-
 	// Get crypto config
 	cryptoConf := config.CryptoConfig()
 
@@ -762,22 +747,21 @@ func (s *OrderService) RefundOrder(ctx context.Context, lockOrder *ent.LockPayme
 	// update order with refundTxHash
 	lockOrder, err = lockOrder.Update().SetRefundTxHash(userOpTxHash).Save(ctx)
 	if err != nil {
-		return fmt.Errorf("error - RefundOrder - failed to update lock order with refundTx (%v) : %w", userOpTxHash, err)
+		fmt.Printf("error - RefundOrder - failed to update lock order with refundTx (%v) : %f", userOpTxHash, err)
 	}
 
 	// Confirm user operation status
 	userOpTxSuccess, err := s.getUserOperationStatus(userOpTxHash)
 	if err != nil {
-		return fmt.Errorf("error - RefundOrder - failed to get user operation status : %w", err)
+		fmt.Printf("error - RefundOrder - failed to get user operation status : %v", err)
+		// Could be a network error, so we don't want to fail the refund
+		return nil
 	}
 
-	if userOpTxSuccess {
-		// update order status to refunded
-		_, err = lockOrder.Update().SetIsRefunded(true).Save(ctx)
-		if err != nil {
-			return fmt.Errorf("error - RefundOrder - failed to set is_refunded to true for order (%v) : %w", lockOrder.OrderID, err)
-		}
+	if !userOpTxSuccess {
+		return fmt.Errorf("error - RefundOrder - user operation reverted (%v) : %w", lockOrder.OrderID, err)
 	}
+	lockOrder, err = lockOrder.Update().SetIsRefundConfirmed(true).Save(ctx)
 
 	return nil
 }

@@ -2336,6 +2336,7 @@ type LockPaymentOrderMutation struct {
 	appendcancellation_reasons []string
 	is_refunded                *bool
 	refund_tx_hash             *string
+	is_refund_confirmed        *bool
 	clearedFields              map[string]struct{}
 	token                      *int
 	clearedtoken               bool
@@ -3270,6 +3271,42 @@ func (m *LockPaymentOrderMutation) ResetRefundTxHash() {
 	delete(m.clearedFields, lockpaymentorder.FieldRefundTxHash)
 }
 
+// SetIsRefundConfirmed sets the "is_refund_confirmed" field.
+func (m *LockPaymentOrderMutation) SetIsRefundConfirmed(b bool) {
+	m.is_refund_confirmed = &b
+}
+
+// IsRefundConfirmed returns the value of the "is_refund_confirmed" field in the mutation.
+func (m *LockPaymentOrderMutation) IsRefundConfirmed() (r bool, exists bool) {
+	v := m.is_refund_confirmed
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIsRefundConfirmed returns the old "is_refund_confirmed" field's value of the LockPaymentOrder entity.
+// If the LockPaymentOrder object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LockPaymentOrderMutation) OldIsRefundConfirmed(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIsRefundConfirmed is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIsRefundConfirmed requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIsRefundConfirmed: %w", err)
+	}
+	return oldValue.IsRefundConfirmed, nil
+}
+
+// ResetIsRefundConfirmed resets all changes to the "is_refund_confirmed" field.
+func (m *LockPaymentOrderMutation) ResetIsRefundConfirmed() {
+	m.is_refund_confirmed = nil
+}
+
 // SetTokenID sets the "token" edge to the Token entity by id.
 func (m *LockPaymentOrderMutation) SetTokenID(id int) {
 	m.token = &id
@@ -3460,7 +3497,7 @@ func (m *LockPaymentOrderMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *LockPaymentOrderMutation) Fields() []string {
-	fields := make([]string, 0, 18)
+	fields := make([]string, 0, 19)
 	if m.created_at != nil {
 		fields = append(fields, lockpaymentorder.FieldCreatedAt)
 	}
@@ -3515,6 +3552,9 @@ func (m *LockPaymentOrderMutation) Fields() []string {
 	if m.refund_tx_hash != nil {
 		fields = append(fields, lockpaymentorder.FieldRefundTxHash)
 	}
+	if m.is_refund_confirmed != nil {
+		fields = append(fields, lockpaymentorder.FieldIsRefundConfirmed)
+	}
 	return fields
 }
 
@@ -3559,6 +3599,8 @@ func (m *LockPaymentOrderMutation) Field(name string) (ent.Value, bool) {
 		return m.IsRefunded()
 	case lockpaymentorder.FieldRefundTxHash:
 		return m.RefundTxHash()
+	case lockpaymentorder.FieldIsRefundConfirmed:
+		return m.IsRefundConfirmed()
 	}
 	return nil, false
 }
@@ -3604,6 +3646,8 @@ func (m *LockPaymentOrderMutation) OldField(ctx context.Context, name string) (e
 		return m.OldIsRefunded(ctx)
 	case lockpaymentorder.FieldRefundTxHash:
 		return m.OldRefundTxHash(ctx)
+	case lockpaymentorder.FieldIsRefundConfirmed:
+		return m.OldIsRefundConfirmed(ctx)
 	}
 	return nil, fmt.Errorf("unknown LockPaymentOrder field %s", name)
 }
@@ -3738,6 +3782,13 @@ func (m *LockPaymentOrderMutation) SetField(name string, value ent.Value) error 
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetRefundTxHash(v)
+		return nil
+	case lockpaymentorder.FieldIsRefundConfirmed:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIsRefundConfirmed(v)
 		return nil
 	}
 	return fmt.Errorf("unknown LockPaymentOrder field %s", name)
@@ -3931,6 +3982,9 @@ func (m *LockPaymentOrderMutation) ResetField(name string) error {
 		return nil
 	case lockpaymentorder.FieldRefundTxHash:
 		m.ResetRefundTxHash()
+		return nil
+	case lockpaymentorder.FieldIsRefundConfirmed:
+		m.ResetIsRefundConfirmed()
 		return nil
 	}
 	return fmt.Errorf("unknown LockPaymentOrder field %s", name)

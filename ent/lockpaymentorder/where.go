@@ -132,6 +132,11 @@ func RefundTxHash(v string) predicate.LockPaymentOrder {
 	return predicate.LockPaymentOrder(sql.FieldEQ(FieldRefundTxHash, v))
 }
 
+// IsRefundConfirmed applies equality check predicate on the "is_refund_confirmed" field. It's identical to IsRefundConfirmedEQ.
+func IsRefundConfirmed(v bool) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(sql.FieldEQ(FieldIsRefundConfirmed, v))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.LockPaymentOrder {
 	return predicate.LockPaymentOrder(sql.FieldEQ(FieldCreatedAt, v))
@@ -1000,6 +1005,16 @@ func RefundTxHashEqualFold(v string) predicate.LockPaymentOrder {
 // RefundTxHashContainsFold applies the ContainsFold predicate on the "refund_tx_hash" field.
 func RefundTxHashContainsFold(v string) predicate.LockPaymentOrder {
 	return predicate.LockPaymentOrder(sql.FieldContainsFold(FieldRefundTxHash, v))
+}
+
+// IsRefundConfirmedEQ applies the EQ predicate on the "is_refund_confirmed" field.
+func IsRefundConfirmedEQ(v bool) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(sql.FieldEQ(FieldIsRefundConfirmed, v))
+}
+
+// IsRefundConfirmedNEQ applies the NEQ predicate on the "is_refund_confirmed" field.
+func IsRefundConfirmedNEQ(v bool) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(sql.FieldNEQ(FieldIsRefundConfirmed, v))
 }
 
 // HasToken applies the HasEdge predicate on the "token" edge.
