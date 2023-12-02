@@ -45,8 +45,11 @@ type CreateOrderParams struct {
 	MessageHash        string
 }
 
-var fromAddress, privateKey, _ = cryptoUtils.GenerateAccountFromIndex(0)
-var CryptoConf = config.CryptoConfig()
+var (
+	fromAddress, privateKey, _                     = cryptoUtils.GenerateAccountFromIndex(0)
+	aggregatorFromAddress, aggregatorPrivateKey, _ = cryptoUtils.GenerateAccountFromIndex(1)
+	CryptoConf                                     = config.CryptoConfig()
+)
 
 // NewOrderService creates a new instance of OrderService.
 func NewOrderService() *OrderService {
@@ -81,20 +84,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, client types.RPCClient, 
 	}
 
 	// Initialize user operation with defaults
-	userOperation := &userop.UserOperation{
-		Sender:               common.HexToAddress(order.Edges.ReceiveAddress.Address),
-		Nonce:                big.NewInt(0),
-		InitCode:             common.FromHex("0x"),
-		CallData:             common.FromHex("0x"),
-		CallGasLimit:         big.NewInt(350000),
-		VerificationGasLimit: big.NewInt(300000),
-		PreVerificationGas:   big.NewInt(100000),
-		MaxFeePerGas:         big.NewInt(50000),
-		MaxPriorityFeePerGas: big.NewInt(1000),
-		PaymasterAndData:     common.FromHex("0x"),
-		Signature:            common.FromHex("0xa925dcc5e5131636e244d4405334c25f034ebdd85c0cb12e8cdb13c15249c2d466d0bade18e2cafd3513497f7f968dcbb63e519acd9b76dcae7acd61f11aa8421b"),
-	}
-
+	userOperation := initializeUserOperation(order.Edges.ReceiveAddress.Address, "0xa925dcc5e5131636e244d4405334c25f034ebdd85c0cb12e8cdb13c15249c2d466d0bade18e2cafd3513497f7f968dcbb63e519acd9b76dcae7acd61f11aa8421b")
 	// Get nonce
 	nonce, err := client.PendingNonceAt(ctx, *fromAddress)
 	if err != nil {
@@ -141,7 +131,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, client types.RPCClient, 
 
 	// Sponsor user operation.
 	// This will populate the following fields in userOperation: PaymasterAndData, PreVerificationGas, VerificationGasLimit, CallGasLimit
-	err = s.sponsorUserOperation(userOperation)
+	err = s.sponsorUserOperationERC20(userOperation)
 	if err != nil {
 		return fmt.Errorf("failed to sponsor user operation: %w", err)
 	}
@@ -455,9 +445,77 @@ func (s *OrderService) getPaymasterAccount() (string, error) {
 	return response[0], nil
 }
 
-// sponsorUserOperation sponsors the user operation
+// refund calldata
+func (s *OrderService) refundCallData(orderId, label string) ([]byte, error) {
+	// Refund ABI
+	paycrestOrderABI, err := abi.JSON(strings.NewReader(contracts.PaycrestOrderMetaData.ABI))
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse PaycrestOrder ABI: %w", err)
+	}
+
+	// Generate call data for refund, orderID, and label should be byte32
+	data, err := paycrestOrderABI.Pack(
+		"refund",
+		utils.StringToByte32(orderId),
+		utils.StringToByte32(label),
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to pack refund ABI: %w", err)
+	}
+
+	return data, nil
+}
+
+// sponsorUserOperationPAYG sponsors the user operation
 // ref: https://docs.stackup.sh/docs/paymaster-api-rpc-methods#pm_sponsoruseroperation
-func (s *OrderService) sponsorUserOperation(userOp *userop.UserOperation) error {
+func (s *OrderService) sponsorUserOperationPAYG(userOp *userop.UserOperation) error {
+	client, err := rpc.Dial(OrderConf.PaymasterURL)
+	if err != nil {
+		return fmt.Errorf("failed to connect to RPC client: %w", err)
+	}
+
+	requestParams := []interface{}{
+		userOp,
+		OrderConf.EntryPointContractAddress.Hex(),
+		map[string]interface{}{
+			"type": "payg",
+		},
+	}
+
+	// op, _ := userOp.MarshalJSON()
+	// fmt.Println(string(op))
+
+	var result json.RawMessage
+	err = client.Call(&result, "pm_sponsorUserOperation", requestParams...)
+	if err != nil {
+		return fmt.Errorf("RPC error: %w", err)
+	}
+
+	type Response struct {
+		PaymasterAndData     string `json:"paymasterAndData"     mapstructure:"paymasterAndData"`
+		PreVerificationGas   string `json:"preVerificationGas"   mapstructure:"preVerificationGas"`
+		VerificationGasLimit string `json:"verificationGasLimit" mapstructure:"verificationGasLimit"`
+		CallGasLimit         string `json:"callGasLimit"         mapstructure:"callGasLimit"`
+	}
+
+	var response Response
+	err = json.Unmarshal(result, &response)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+
+	userOp.CallGasLimit, _ = new(big.Int).SetString(response.CallGasLimit, 0)
+	userOp.VerificationGasLimit, _ = new(big.Int).SetString(response.VerificationGasLimit, 0)
+	userOp.PreVerificationGas, _ = new(big.Int).SetString(response.PreVerificationGas, 0)
+	userOp.PaymasterAndData = common.FromHex(response.PaymasterAndData)
+
+	return nil
+}
+
+// sponsorUserOperationERC20 sponsors the user operation, and charges back in ERC20
+// ref: https://docs.stackup.sh/docs/paymaster-api-rpc-methods#pm_sponsoruseroperation
+func (s *OrderService) sponsorUserOperationERC20(userOp *userop.UserOperation) error {
 	client, err := rpc.Dial(OrderConf.PaymasterURL)
 	if err != nil {
 		return fmt.Errorf("failed to connect to RPC client: %w", err)
@@ -532,6 +590,32 @@ func (s *OrderService) sendUserOperation(userOp *userop.UserOperation) (string, 
 	return userOpHash, nil
 }
 
+// getUserOperationStatus returns the status of the user operation
+func (s *OrderService) getUserOperationStatus(userOpHash string) (bool, error) {
+	client, err := rpc.Dial(OrderConf.BundlerRPCURL)
+	if err != nil {
+		return false, fmt.Errorf("failed to connect to RPC client: %w", err)
+	}
+
+	requestParams := []interface{}{
+		userOpHash,
+	}
+
+	var result json.RawMessage
+	err = client.Call(&result, "eth_getUserOperationReceipt", requestParams)
+	if err != nil {
+		return false, fmt.Errorf("RPC error: %w", err)
+	}
+
+	var userOpStatus map[string]interface{}
+	err = json.Unmarshal(result, &userOpStatus)
+	if err != nil {
+		return false, fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+
+	return userOpStatus["success"].(bool), nil
+}
+
 // GetSupportedInstitutions fetches the supported institutions by currencyCode.
 func (s *OrderService) GetSupportedInstitutions(ctx context.Context, client types.RPCClient, currencyCode string) ([]types.Institution, error) {
 	// Connect to RPC endpoint
@@ -591,21 +675,130 @@ func (s *OrderService) EIP1559GasPrice(ctx context.Context, client types.RPCClie
 	return maxFeePerGas, maxPriorityFeePerGas
 }
 
-func (s *OrderService) RefundOrder(ctx context.Context, order *ent.LockPaymentOrder, refundAddress string) error {
-	// Implement the refund logic here
-	//  Write code to interact with order contract to refund
+// RefundSender Refunds sender on canceled order
+func (s *OrderService) RefundOrder(ctx context.Context, lockOrder *ent.LockPaymentOrder) error {
+	if !lockOrder.IsRefunded && lockOrder.RefundTxHash != "" {
+		userOpTxSuccess, err := s.getUserOperationStatus(lockOrder.RefundTxHash)
+		if err != nil {
+			return fmt.Errorf("error - RefundOrder - failed to get user operation status : %w", err)
+		}
+		if userOpTxSuccess {
+			// update order status to refunded
+			_, err = lockOrder.Update().SetIsRefunded(true).Save(ctx)
+			if err != nil {
+				return fmt.Errorf("error - RefundOrder - failed to set is_refunded to true for order (%v) : %w", lockOrder.OrderID, err)
+			}
+		}
 
-	// Create ABI
-	// paycrestOrderABI, err := abi.JSON(strings.NewReader(contracts.PaycrestOrderMetaData.ABI))
-	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to parse PaycrestOrder ABI: %w", err)
-	// }
+	}
 
-	//  update order status to refunded
-	//  update order is_refunded to true
-	//  update order refund_tx_hash to refundTxHash
+	// Get crypto config
+	cryptoConf := config.CryptoConfig()
+
+	// Connect to RPC endpoint
+	client, err := types.NewEthClient(lockOrder.Edges.Token.Edges.Network.RPCEndpoint)
+	if err != nil {
+		return fmt.Errorf("error - RefundOrder - failed to connect to RPC client: %w", err)
+	}
+	// get default userOperation
+	userOperation := initializeUserOperation(cryptoConf.AggregatorSmartAccount, cryptoConf.AggregatorAADefaultSignature)
+	// Sign user operation
+	userOpHash := userOperation.GetUserOpHash(
+		OrderConf.EntryPointContractAddress,
+		big.NewInt(lockOrder.Edges.Token.Edges.Network.ChainID),
+	)
+	signature, err := utils.PersonalSign(string(userOpHash[:]), privateKey)
+	if err != nil {
+		fmt.Printf("failed to get sig: %v", err)
+	}
+	fmt.Printf("aggregator sig : %v", signature)
+
+	// Get nonce
+	nonce, err := client.PendingNonceAt(ctx, *aggregatorFromAddress)
+	if err != nil {
+		return fmt.Errorf("error - RefundOrder - failed to get nonce: %w", err)
+	}
+	userOperation.Nonce = big.NewInt(int64(nonce))
+
+	// refund calldata
+	calldata, err := s.refundCallData(lockOrder.OrderID, lockOrder.Label)
+	if err != nil {
+		return fmt.Errorf("error - RefundOrder - failed to create refund CallData: %w", err)
+	}
+	userOperation.CallData = calldata
+
+	// Set gas fees
+	maxFeePerGas, maxPriorityFeePerGas := s.EIP1559GasPrice(ctx, client)
+	userOperation.MaxFeePerGas = maxFeePerGas
+	userOperation.MaxPriorityFeePerGas = maxPriorityFeePerGas
+
+	// Sponsor user operation.
+	// This will populate the following fields in userOperation: PaymasterAndData, PreVerificationGas, VerificationGasLimit, CallGasLimit
+	err = s.sponsorUserOperationPAYG(userOperation)
+	if err != nil {
+		return fmt.Errorf("error - RefundOrder - failed to sponsor user operation: %w", err)
+	}
+
+	fmt.Println("maxFeePerGas: ", userOperation.MaxFeePerGas)
+	fmt.Println("maxPriorityFeePerGas: ", userOperation.MaxPriorityFeePerGas)
+
+	// Sign user operation
+	userOpHash = userOperation.GetUserOpHash(
+		OrderConf.EntryPointContractAddress,
+		big.NewInt(lockOrder.Edges.Token.Edges.Network.ChainID),
+	)
+
+	signature, err = utils.PersonalSign(string(userOpHash[:]), privateKey)
+	if err != nil {
+		return fmt.Errorf("error - RefundOrder - failed to sign user operation: %w", err)
+	}
+	userOperation.Signature = signature
+
+	// Send user operation
+	userOpTxHash, err := s.sendUserOperation(userOperation)
+	if err != nil {
+		return fmt.Errorf("error - RefundOrder - failed to send user operation: %w", err)
+	}
+	// update order with refundTxHash
+	lockOrder, err = lockOrder.Update().SetRefundTxHash(userOpTxHash).Save(ctx)
+	if err != nil {
+		return fmt.Errorf("error - RefundOrder - failed to update lock order with refundTx (%v) : %w", userOpTxHash, err)
+	}
+
+	// Confirm user operation status
+	userOpTxSuccess, err := s.getUserOperationStatus(userOpTxHash)
+	if err != nil {
+		return fmt.Errorf("error - RefundOrder - failed to get user operation status : %w", err)
+	}
+
+	if userOpTxSuccess {
+		// update order status to refunded
+		_, err = lockOrder.Update().SetIsRefunded(true).Save(ctx)
+		if err != nil {
+			return fmt.Errorf("error - RefundOrder - failed to set is_refunded to true for order (%v) : %w", lockOrder.OrderID, err)
+		}
+	}
 
 	return nil
+}
+
+// Initialize user operation with defaults
+func initializeUserOperation(sender, sig string) *userop.UserOperation {
+	userOperation := &userop.UserOperation{
+		Sender:               common.HexToAddress(sender),
+		Nonce:                big.NewInt(0),
+		InitCode:             common.FromHex("0x"),
+		CallData:             common.FromHex("0x"),
+		CallGasLimit:         big.NewInt(350000),
+		VerificationGasLimit: big.NewInt(300000),
+		PreVerificationGas:   big.NewInt(100000),
+		MaxFeePerGas:         big.NewInt(50000),
+		MaxPriorityFeePerGas: big.NewInt(1000),
+		PaymasterAndData:     common.FromHex("0x"),
+		Signature:            common.FromHex(sig),
+	}
+
+	return userOperation
 }
 
 // ...
