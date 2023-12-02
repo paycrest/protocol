@@ -568,7 +568,10 @@ func (s *PriorityQueueService) ReassignUnfulfilledLockOrders(ctx context.Context
 					lockpaymentorder.StatusEQ(lockpaymentorder.StatusProcessing),
 					lockpaymentorder.UpdatedAtLTE(time.Now().Add(-OrderConf.OrderFulfillmentValidity*time.Minute)),
 				),
-				lockpaymentorder.StatusEQ(lockpaymentorder.StatusCancelled),
+				lockpaymentorder.And(
+					lockpaymentorder.StatusEQ(lockpaymentorder.StatusCancelled),
+					lockpaymentorder.IsRefundedEQ(false),
+				),
 			),
 		).
 		WithToken().

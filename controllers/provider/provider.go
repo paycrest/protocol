@@ -6,10 +6,10 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
-	"github.com/paycrest/protocol/ent/paymentorder"
 	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/services"
 	"github.com/paycrest/protocol/storage"
@@ -369,27 +369,8 @@ func (ctrl *ProviderController) CancelOrder(ctx *gin.Context) {
 		return
 	}
 
-	// Refund sender on canceled order
-	// Fetch senderprofile associated with order
-
-	// Convert order ID to UUID
-	id, err := uuid.Parse(order.OrderID)
-	if err != nil {
-		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusBadRequest, "error",
-			"Invalid order", nil)
-		return
-	}
-
-	senderProfile, err := storage.Client.PaymentOrder.Query().Where(paymentorder.IDEQ(id)).QuerySenderProfile().Only(ctx)
-
-	err = ctrl.orderService.RefundOrder(ctx, order, senderProfile.RefundAddress)
-	if err != nil {
-		logger.Errorf("error - Failed to refund sender %v", err)
-	}
-
 	// Update lock order status to cancelled
-	_, err = storage.Client.LockPaymentOrder.
+	order, err = storage.Client.LockPaymentOrder.
 		UpdateOneID(orderID).
 		SetStatus(lockpaymentorder.StatusCancelled).
 		SetCancellationCount(order.CancellationCount + 1).
@@ -399,6 +380,31 @@ func (ctrl *ProviderController) CancelOrder(ctx *gin.Context) {
 		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to cancel order", nil)
 		return
+	}
+
+	// Check if order coancellation count is equal or greater than RefundCancellationCount in config,
+	// and the order has not been refunded, then trigger refund
+	orderConf := config.OrderConfig()
+	if order.CancellationCount >= orderConf.RefundCancellationCount && !order.IsRefunded {
+		// update lock order status to refunded
+		_, err = storage.Client.LockPaymentOrder.
+			UpdateOneID(orderID).
+			SetIsRefunded(true).
+			Save(ctx)
+		if err == nil {
+			// Refund sender, if no error updating order status to refunded
+			err = ctrl.orderService.RefundOrder(ctx, order)
+			if err != nil {
+				_, err = storage.Client.LockPaymentOrder.
+					UpdateOneID(orderID).
+					SetIsRefunded(false).
+					Save(ctx)
+				logger.Errorf("error - Order (%v) failed to refunded and failed to rollback tx : %v", orderID, err)
+			}
+		} else {
+			logger.Errorf("error - Order (%v) failed to refund : %v", orderID, err)
+		}
+
 	}
 
 	// Push provider ID to order exclude list

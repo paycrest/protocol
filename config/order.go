@@ -18,6 +18,7 @@ type OrderConfiguration struct {
 	PaymasterURL                 string
 	EntryPointContractAddress    common.Address
 	BucketQueueRebuildInterval   int // in hours
+	RefundCancellationCount      int
 }
 
 // OrderConfig sets the order configuration
@@ -36,6 +37,7 @@ func OrderConfig() *OrderConfiguration {
 		PaymasterURL:                 viper.GetString("PAYMASTER_URL"),
 		EntryPointContractAddress:    common.HexToAddress(viper.GetString("ENTRY_POINT_CONTRACT_ADDRESS")),
 		BucketQueueRebuildInterval:   viper.GetInt("BUCKET_QUEUE_REBUILD_INTERVAL"),
+		RefundCancellationCount:      viper.GetInt("REFUND_CANCELLATION_COUNT"),
 	}
 }
 
