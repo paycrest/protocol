@@ -3,11 +3,13 @@ version: "3.8"
 services:
   postgres_db:
     container_name: paycrest_db
-    image: postgres:16beta1-alpine3.17
+    image: postgres:16-alpine3.17
     environment:
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_PASSWORD=${DB_PASSWORD}
       - POSTGRES_DB=${DB_NAME}
+    volumes:
+      - ./tmp/db:/var/lib/postgresql/data
     ports:
       - ${DB_PORT}:5432
     restart: always
