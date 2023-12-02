@@ -53,6 +53,7 @@ func (LockPaymentOrder) Fields() []ent.Field {
 			Default([]string{}),
 		field.Bool("is_refunded").Default(false),
 		field.String("refund_tx_hash").Optional(),
+		field.Bool("is_refund_confirmed").Default(false),
 	}
 }
 

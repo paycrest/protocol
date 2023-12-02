@@ -52,6 +52,8 @@ const (
 	FieldIsRefunded = "is_refunded"
 	// FieldRefundTxHash holds the string denoting the refund_tx_hash field in the database.
 	FieldRefundTxHash = "refund_tx_hash"
+	// FieldIsRefundConfirmed holds the string denoting the is_refund_confirmed field in the database.
+	FieldIsRefundConfirmed = "is_refund_confirmed"
 	// EdgeToken holds the string denoting the token edge name in mutations.
 	EdgeToken = "token"
 	// EdgeProvisionBucket holds the string denoting the provision_bucket edge name in mutations.
@@ -113,6 +115,7 @@ var Columns = []string{
 	FieldCancellationReasons,
 	FieldIsRefunded,
 	FieldRefundTxHash,
+	FieldIsRefundConfirmed,
 }
 
 // ForeignKeys holds the SQL foreign-keys that are owned by the "lock_payment_orders"
@@ -153,6 +156,8 @@ var (
 	DefaultCancellationReasons []string
 	// DefaultIsRefunded holds the default value on creation for the "is_refunded" field.
 	DefaultIsRefunded bool
+	// DefaultIsRefundConfirmed holds the default value on creation for the "is_refund_confirmed" field.
+	DefaultIsRefundConfirmed bool
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() uuid.UUID
 )
@@ -278,6 +283,11 @@ func ByIsRefunded(opts ...sql.OrderTermOption) OrderOption {
 // ByRefundTxHash orders the results by the refund_tx_hash field.
 func ByRefundTxHash(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldRefundTxHash, opts...).ToFunc()
+}
+
+// ByIsRefundConfirmed orders the results by the is_refund_confirmed field.
+func ByIsRefundConfirmed(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIsRefundConfirmed, opts...).ToFunc()
 }
 
 // ByTokenField orders the results by token field.

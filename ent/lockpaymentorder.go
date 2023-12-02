@@ -60,6 +60,8 @@ type LockPaymentOrder struct {
 	IsRefunded bool `json:"is_refunded,omitempty"`
 	// RefundTxHash holds the value of the "refund_tx_hash" field.
 	RefundTxHash string `json:"refund_tx_hash,omitempty"`
+	// IsRefundConfirmed holds the value of the "is_refund_confirmed" field.
+	IsRefundConfirmed bool `json:"is_refund_confirmed,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the LockPaymentOrderQuery when eager-loading is set.
 	Edges                                LockPaymentOrderEdges `json:"edges"`
@@ -145,7 +147,7 @@ func (*LockPaymentOrder) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case lockpaymentorder.FieldAmount, lockpaymentorder.FieldRate, lockpaymentorder.FieldOrderPercent:
 			values[i] = new(decimal.Decimal)
-		case lockpaymentorder.FieldIsRefunded:
+		case lockpaymentorder.FieldIsRefunded, lockpaymentorder.FieldIsRefundConfirmed:
 			values[i] = new(sql.NullBool)
 		case lockpaymentorder.FieldBlockNumber, lockpaymentorder.FieldCancellationCount:
 			values[i] = new(sql.NullInt64)
@@ -292,6 +294,12 @@ func (lpo *LockPaymentOrder) assignValues(columns []string, values []any) error 
 			} else if value.Valid {
 				lpo.RefundTxHash = value.String
 			}
+		case lockpaymentorder.FieldIsRefundConfirmed:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field is_refund_confirmed", values[i])
+			} else if value.Valid {
+				lpo.IsRefundConfirmed = value.Bool
+			}
 		case lockpaymentorder.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field provider_profile_assigned_orders", values[i])
@@ -422,6 +430,9 @@ func (lpo *LockPaymentOrder) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("refund_tx_hash=")
 	builder.WriteString(lpo.RefundTxHash)
+	builder.WriteString(", ")
+	builder.WriteString("is_refund_confirmed=")
+	builder.WriteString(fmt.Sprintf("%v", lpo.IsRefundConfirmed))
 	builder.WriteByte(')')
 	return builder.String()
 }
