@@ -27,9 +27,6 @@ type PaymentOrder func(*sql.Selector)
 // PaymentOrderRecipient is the predicate function for paymentorderrecipient builders.
 type PaymentOrderRecipient func(*sql.Selector)
 
-// ProviderAvailability is the predicate function for provideravailability builders.
-type ProviderAvailability func(*sql.Selector)
-
 // ProviderOrderToken is the predicate function for providerordertoken builders.
 type ProviderOrderToken func(*sql.Selector)
 

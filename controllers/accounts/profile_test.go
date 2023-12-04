@@ -256,11 +256,7 @@ func TestProfile(t *testing.T) {
 				TradingName:    "My Trading Name",
 				Currency:       "KES",
 				HostIdentifier: "example.com",
-				Availability: types.ProviderAvailabilityPayload{
-					Cadence:   "weekdays",
-					StartTime: time.Now(),
-					EndTime:   time.Now().Add(time.Hour * 24),
-				},
+				Availability:   true,
 			}
 
 			res, err := test.PerformRequest(t, "PATCH", "/settings/provider", payload, headers, router)

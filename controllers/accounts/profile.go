@@ -421,7 +421,7 @@ func (ctrl *ProfileController) GetProviderProfile(ctx *gin.Context) {
 	}
 
 	// Get availability
-	availability, err := provider.QueryAvailability().Only(ctx)
+	availability := provider.IsAvailable
 	if err != nil {
 		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to retrieve profile", nil)
 		return

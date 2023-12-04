@@ -14,7 +14,6 @@ import (
 	"github.com/paycrest/protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	"github.com/paycrest/protocol/ent/paymentorder"
-	"github.com/paycrest/protocol/ent/provideravailability"
 	"github.com/paycrest/protocol/ent/providerordertoken"
 	"github.com/shopspring/decimal"
 )
@@ -143,13 +142,6 @@ type SenderProfilePayload struct {
 	RefundAddress   string          `json:"refundAddress"`
 }
 
-// ProviderAvailabilityPayload defines the setting for a provider availability
-type ProviderAvailabilityPayload struct {
-	Cadence   provideravailability.Cadence `json:"cadence"`
-	StartTime time.Time                    `json:"startTime"`
-	EndTime   time.Time                    `json:"endTime"`
-}
-
 // ProviderOrderTokenPayload defines the provider setting for a token
 type ProviderOrderTokenPayload struct {
 	Symbol                 string                                `json:"symbol" binding:"required"`
@@ -170,7 +162,7 @@ type ProviderProfilePayload struct {
 	Currency             string                      `json:"currency"`
 	HostIdentifier       string                      `json:"hostIdentifier"`
 	IsPartner            bool                        `json:"isPartner"`
-	Availability         ProviderAvailabilityPayload `json:"availability"`
+	Availability         bool                        `json:"isAvailable"`
 	Tokens               []ProviderOrderTokenPayload `json:"tokens"`
 	VisibilityMode       string                      `json:"visibility_mode"`
 	Address              string                      `json:"address"`
@@ -192,7 +184,7 @@ type ProviderProfileResponse struct {
 	Currency             string                    `json:"currency"`
 	HostIdentifier       string                    `json:"hostIdentifier"`
 	IsPartner            bool                      `json:"isPartner"`
-	Availability         *ent.ProviderAvailability `json:"availability"`
+	Availability         bool                      `json:"isAvailable"`
 	Tokens               []*ent.ProviderOrderToken `json:"tokens"`
 	APIKey               APIKeyResponse            `json:"apiKey"`
 	IsActive             bool                      `json:"isActive"`

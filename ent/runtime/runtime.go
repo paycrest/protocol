@@ -187,8 +187,12 @@ func init() {
 	providerprofileDescIsActive := providerprofileFields[5].Descriptor()
 	// providerprofile.DefaultIsActive holds the default value on creation for the is_active field.
 	providerprofile.DefaultIsActive = providerprofileDescIsActive.Default.(bool)
+	// providerprofileDescIsAvailable is the schema descriptor for is_available field.
+	providerprofileDescIsAvailable := providerprofileFields[6].Descriptor()
+	// providerprofile.DefaultIsAvailable holds the default value on creation for the is_available field.
+	providerprofile.DefaultIsAvailable = providerprofileDescIsAvailable.Default.(bool)
 	// providerprofileDescUpdatedAt is the schema descriptor for updated_at field.
-	providerprofileDescUpdatedAt := providerprofileFields[6].Descriptor()
+	providerprofileDescUpdatedAt := providerprofileFields[7].Descriptor()
 	// providerprofile.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	providerprofile.DefaultUpdatedAt = providerprofileDescUpdatedAt.Default.(func() time.Time)
 	// providerprofile.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

@@ -210,28 +210,6 @@ var (
 			},
 		},
 	}
-	// ProviderAvailabilitiesColumns holds the columns for the "provider_availabilities" table.
-	ProviderAvailabilitiesColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeInt, Increment: true},
-		{Name: "cadence", Type: field.TypeEnum, Enums: []string{"always", "weekdays", "weekends"}},
-		{Name: "start_time", Type: field.TypeTime},
-		{Name: "end_time", Type: field.TypeTime},
-		{Name: "provider_profile_availability", Type: field.TypeString, Unique: true},
-	}
-	// ProviderAvailabilitiesTable holds the schema information for the "provider_availabilities" table.
-	ProviderAvailabilitiesTable = &schema.Table{
-		Name:       "provider_availabilities",
-		Columns:    ProviderAvailabilitiesColumns,
-		PrimaryKey: []*schema.Column{ProviderAvailabilitiesColumns[0]},
-		ForeignKeys: []*schema.ForeignKey{
-			{
-				Symbol:     "provider_availabilities_provider_profiles_availability",
-				Columns:    []*schema.Column{ProviderAvailabilitiesColumns[4]},
-				RefColumns: []*schema.Column{ProviderProfilesColumns[0]},
-				OnDelete:   schema.NoAction,
-			},
-		},
-	}
 	// ProviderOrderTokensColumns holds the columns for the "provider_order_tokens" table.
 	ProviderOrderTokensColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -268,6 +246,7 @@ var (
 		{Name: "provision_mode", Type: field.TypeEnum, Enums: []string{"manual", "auto"}, Default: "auto"},
 		{Name: "is_partner", Type: field.TypeBool, Default: false},
 		{Name: "is_active", Type: field.TypeBool, Default: false},
+		{Name: "is_available", Type: field.TypeBool, Default: false},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "visibility_mode", Type: field.TypeEnum, Enums: []string{"private", "public"}, Default: "public"},
 		{Name: "address", Type: field.TypeString, Nullable: true, Size: 2147483647},
@@ -288,13 +267,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "provider_profiles_fiat_currencies_providers",
-				Columns:    []*schema.Column{ProviderProfilesColumns[15]},
+				Columns:    []*schema.Column{ProviderProfilesColumns[16]},
 				RefColumns: []*schema.Column{FiatCurrenciesColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "provider_profiles_users_provider_profile",
-				Columns:    []*schema.Column{ProviderProfilesColumns[16]},
+				Columns:    []*schema.Column{ProviderProfilesColumns[17]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
@@ -523,7 +502,6 @@ var (
 		NetworksTable,
 		PaymentOrdersTable,
 		PaymentOrderRecipientsTable,
-		ProviderAvailabilitiesTable,
 		ProviderOrderTokensTable,
 		ProviderProfilesTable,
 		ProviderRatingsTable,
@@ -549,7 +527,6 @@ func init() {
 	PaymentOrdersTable.ForeignKeys[1].RefTable = SenderProfilesTable
 	PaymentOrdersTable.ForeignKeys[2].RefTable = TokensTable
 	PaymentOrderRecipientsTable.ForeignKeys[0].RefTable = PaymentOrdersTable
-	ProviderAvailabilitiesTable.ForeignKeys[0].RefTable = ProviderProfilesTable
 	ProviderOrderTokensTable.ForeignKeys[0].RefTable = ProviderProfilesTable
 	ProviderProfilesTable.ForeignKeys[0].RefTable = FiatCurrenciesTable
 	ProviderProfilesTable.ForeignKeys[1].RefTable = UsersTable

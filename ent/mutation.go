@@ -20,7 +20,6 @@ import (
 	"github.com/paycrest/protocol/ent/paymentorder"
 	"github.com/paycrest/protocol/ent/paymentorderrecipient"
 	"github.com/paycrest/protocol/ent/predicate"
-	"github.com/paycrest/protocol/ent/provideravailability"
 	"github.com/paycrest/protocol/ent/providerordertoken"
 	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/providerrating"
@@ -50,7 +49,6 @@ const (
 	TypeNetwork               = "Network"
 	TypePaymentOrder          = "PaymentOrder"
 	TypePaymentOrderRecipient = "PaymentOrderRecipient"
-	TypeProviderAvailability  = "ProviderAvailability"
 	TypeProviderOrderToken    = "ProviderOrderToken"
 	TypeProviderProfile       = "ProviderProfile"
 	TypeProviderRating        = "ProviderRating"
@@ -6444,507 +6442,6 @@ func (m *PaymentOrderRecipientMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown PaymentOrderRecipient edge %s", name)
 }
 
-// ProviderAvailabilityMutation represents an operation that mutates the ProviderAvailability nodes in the graph.
-type ProviderAvailabilityMutation struct {
-	config
-	op              Op
-	typ             string
-	id              *int
-	cadence         *provideravailability.Cadence
-	start_time      *time.Time
-	end_time        *time.Time
-	clearedFields   map[string]struct{}
-	provider        *string
-	clearedprovider bool
-	done            bool
-	oldValue        func(context.Context) (*ProviderAvailability, error)
-	predicates      []predicate.ProviderAvailability
-}
-
-var _ ent.Mutation = (*ProviderAvailabilityMutation)(nil)
-
-// provideravailabilityOption allows management of the mutation configuration using functional options.
-type provideravailabilityOption func(*ProviderAvailabilityMutation)
-
-// newProviderAvailabilityMutation creates new mutation for the ProviderAvailability entity.
-func newProviderAvailabilityMutation(c config, op Op, opts ...provideravailabilityOption) *ProviderAvailabilityMutation {
-	m := &ProviderAvailabilityMutation{
-		config:        c,
-		op:            op,
-		typ:           TypeProviderAvailability,
-		clearedFields: make(map[string]struct{}),
-	}
-	for _, opt := range opts {
-		opt(m)
-	}
-	return m
-}
-
-// withProviderAvailabilityID sets the ID field of the mutation.
-func withProviderAvailabilityID(id int) provideravailabilityOption {
-	return func(m *ProviderAvailabilityMutation) {
-		var (
-			err   error
-			once  sync.Once
-			value *ProviderAvailability
-		)
-		m.oldValue = func(ctx context.Context) (*ProviderAvailability, error) {
-			once.Do(func() {
-				if m.done {
-					err = errors.New("querying old values post mutation is not allowed")
-				} else {
-					value, err = m.Client().ProviderAvailability.Get(ctx, id)
-				}
-			})
-			return value, err
-		}
-		m.id = &id
-	}
-}
-
-// withProviderAvailability sets the old ProviderAvailability of the mutation.
-func withProviderAvailability(node *ProviderAvailability) provideravailabilityOption {
-	return func(m *ProviderAvailabilityMutation) {
-		m.oldValue = func(context.Context) (*ProviderAvailability, error) {
-			return node, nil
-		}
-		m.id = &node.ID
-	}
-}
-
-// Client returns a new `ent.Client` from the mutation. If the mutation was
-// executed in a transaction (ent.Tx), a transactional client is returned.
-func (m ProviderAvailabilityMutation) Client() *Client {
-	client := &Client{config: m.config}
-	client.init()
-	return client
-}
-
-// Tx returns an `ent.Tx` for mutations that were executed in transactions;
-// it returns an error otherwise.
-func (m ProviderAvailabilityMutation) Tx() (*Tx, error) {
-	if _, ok := m.driver.(*txDriver); !ok {
-		return nil, errors.New("ent: mutation is not running in a transaction")
-	}
-	tx := &Tx{config: m.config}
-	tx.init()
-	return tx, nil
-}
-
-// ID returns the ID value in the mutation. Note that the ID is only available
-// if it was provided to the builder or after it was returned from the database.
-func (m *ProviderAvailabilityMutation) ID() (id int, exists bool) {
-	if m.id == nil {
-		return
-	}
-	return *m.id, true
-}
-
-// IDs queries the database and returns the entity ids that match the mutation's predicate.
-// That means, if the mutation is applied within a transaction with an isolation level such
-// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
-// or updated by the mutation.
-func (m *ProviderAvailabilityMutation) IDs(ctx context.Context) ([]int, error) {
-	switch {
-	case m.op.Is(OpUpdateOne | OpDeleteOne):
-		id, exists := m.ID()
-		if exists {
-			return []int{id}, nil
-		}
-		fallthrough
-	case m.op.Is(OpUpdate | OpDelete):
-		return m.Client().ProviderAvailability.Query().Where(m.predicates...).IDs(ctx)
-	default:
-		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
-	}
-}
-
-// SetCadence sets the "cadence" field.
-func (m *ProviderAvailabilityMutation) SetCadence(pr provideravailability.Cadence) {
-	m.cadence = &pr
-}
-
-// Cadence returns the value of the "cadence" field in the mutation.
-func (m *ProviderAvailabilityMutation) Cadence() (r provideravailability.Cadence, exists bool) {
-	v := m.cadence
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldCadence returns the old "cadence" field's value of the ProviderAvailability entity.
-// If the ProviderAvailability object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ProviderAvailabilityMutation) OldCadence(ctx context.Context) (v provideravailability.Cadence, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCadence is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCadence requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCadence: %w", err)
-	}
-	return oldValue.Cadence, nil
-}
-
-// ResetCadence resets all changes to the "cadence" field.
-func (m *ProviderAvailabilityMutation) ResetCadence() {
-	m.cadence = nil
-}
-
-// SetStartTime sets the "start_time" field.
-func (m *ProviderAvailabilityMutation) SetStartTime(t time.Time) {
-	m.start_time = &t
-}
-
-// StartTime returns the value of the "start_time" field in the mutation.
-func (m *ProviderAvailabilityMutation) StartTime() (r time.Time, exists bool) {
-	v := m.start_time
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldStartTime returns the old "start_time" field's value of the ProviderAvailability entity.
-// If the ProviderAvailability object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ProviderAvailabilityMutation) OldStartTime(ctx context.Context) (v time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldStartTime is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldStartTime requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldStartTime: %w", err)
-	}
-	return oldValue.StartTime, nil
-}
-
-// ResetStartTime resets all changes to the "start_time" field.
-func (m *ProviderAvailabilityMutation) ResetStartTime() {
-	m.start_time = nil
-}
-
-// SetEndTime sets the "end_time" field.
-func (m *ProviderAvailabilityMutation) SetEndTime(t time.Time) {
-	m.end_time = &t
-}
-
-// EndTime returns the value of the "end_time" field in the mutation.
-func (m *ProviderAvailabilityMutation) EndTime() (r time.Time, exists bool) {
-	v := m.end_time
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldEndTime returns the old "end_time" field's value of the ProviderAvailability entity.
-// If the ProviderAvailability object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ProviderAvailabilityMutation) OldEndTime(ctx context.Context) (v time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldEndTime is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldEndTime requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldEndTime: %w", err)
-	}
-	return oldValue.EndTime, nil
-}
-
-// ResetEndTime resets all changes to the "end_time" field.
-func (m *ProviderAvailabilityMutation) ResetEndTime() {
-	m.end_time = nil
-}
-
-// SetProviderID sets the "provider" edge to the ProviderProfile entity by id.
-func (m *ProviderAvailabilityMutation) SetProviderID(id string) {
-	m.provider = &id
-}
-
-// ClearProvider clears the "provider" edge to the ProviderProfile entity.
-func (m *ProviderAvailabilityMutation) ClearProvider() {
-	m.clearedprovider = true
-}
-
-// ProviderCleared reports if the "provider" edge to the ProviderProfile entity was cleared.
-func (m *ProviderAvailabilityMutation) ProviderCleared() bool {
-	return m.clearedprovider
-}
-
-// ProviderID returns the "provider" edge ID in the mutation.
-func (m *ProviderAvailabilityMutation) ProviderID() (id string, exists bool) {
-	if m.provider != nil {
-		return *m.provider, true
-	}
-	return
-}
-
-// ProviderIDs returns the "provider" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// ProviderID instead. It exists only for internal usage by the builders.
-func (m *ProviderAvailabilityMutation) ProviderIDs() (ids []string) {
-	if id := m.provider; id != nil {
-		ids = append(ids, *id)
-	}
-	return
-}
-
-// ResetProvider resets all changes to the "provider" edge.
-func (m *ProviderAvailabilityMutation) ResetProvider() {
-	m.provider = nil
-	m.clearedprovider = false
-}
-
-// Where appends a list predicates to the ProviderAvailabilityMutation builder.
-func (m *ProviderAvailabilityMutation) Where(ps ...predicate.ProviderAvailability) {
-	m.predicates = append(m.predicates, ps...)
-}
-
-// WhereP appends storage-level predicates to the ProviderAvailabilityMutation builder. Using this method,
-// users can use type-assertion to append predicates that do not depend on any generated package.
-func (m *ProviderAvailabilityMutation) WhereP(ps ...func(*sql.Selector)) {
-	p := make([]predicate.ProviderAvailability, len(ps))
-	for i := range ps {
-		p[i] = ps[i]
-	}
-	m.Where(p...)
-}
-
-// Op returns the operation name.
-func (m *ProviderAvailabilityMutation) Op() Op {
-	return m.op
-}
-
-// SetOp allows setting the mutation operation.
-func (m *ProviderAvailabilityMutation) SetOp(op Op) {
-	m.op = op
-}
-
-// Type returns the node type of this mutation (ProviderAvailability).
-func (m *ProviderAvailabilityMutation) Type() string {
-	return m.typ
-}
-
-// Fields returns all fields that were changed during this mutation. Note that in
-// order to get all numeric fields that were incremented/decremented, call
-// AddedFields().
-func (m *ProviderAvailabilityMutation) Fields() []string {
-	fields := make([]string, 0, 3)
-	if m.cadence != nil {
-		fields = append(fields, provideravailability.FieldCadence)
-	}
-	if m.start_time != nil {
-		fields = append(fields, provideravailability.FieldStartTime)
-	}
-	if m.end_time != nil {
-		fields = append(fields, provideravailability.FieldEndTime)
-	}
-	return fields
-}
-
-// Field returns the value of a field with the given name. The second boolean
-// return value indicates that this field was not set, or was not defined in the
-// schema.
-func (m *ProviderAvailabilityMutation) Field(name string) (ent.Value, bool) {
-	switch name {
-	case provideravailability.FieldCadence:
-		return m.Cadence()
-	case provideravailability.FieldStartTime:
-		return m.StartTime()
-	case provideravailability.FieldEndTime:
-		return m.EndTime()
-	}
-	return nil, false
-}
-
-// OldField returns the old value of the field from the database. An error is
-// returned if the mutation operation is not UpdateOne, or the query to the
-// database failed.
-func (m *ProviderAvailabilityMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
-	switch name {
-	case provideravailability.FieldCadence:
-		return m.OldCadence(ctx)
-	case provideravailability.FieldStartTime:
-		return m.OldStartTime(ctx)
-	case provideravailability.FieldEndTime:
-		return m.OldEndTime(ctx)
-	}
-	return nil, fmt.Errorf("unknown ProviderAvailability field %s", name)
-}
-
-// SetField sets the value of a field with the given name. It returns an error if
-// the field is not defined in the schema, or if the type mismatched the field
-// type.
-func (m *ProviderAvailabilityMutation) SetField(name string, value ent.Value) error {
-	switch name {
-	case provideravailability.FieldCadence:
-		v, ok := value.(provideravailability.Cadence)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetCadence(v)
-		return nil
-	case provideravailability.FieldStartTime:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetStartTime(v)
-		return nil
-	case provideravailability.FieldEndTime:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetEndTime(v)
-		return nil
-	}
-	return fmt.Errorf("unknown ProviderAvailability field %s", name)
-}
-
-// AddedFields returns all numeric fields that were incremented/decremented during
-// this mutation.
-func (m *ProviderAvailabilityMutation) AddedFields() []string {
-	return nil
-}
-
-// AddedField returns the numeric value that was incremented/decremented on a field
-// with the given name. The second boolean return value indicates that this field
-// was not set, or was not defined in the schema.
-func (m *ProviderAvailabilityMutation) AddedField(name string) (ent.Value, bool) {
-	return nil, false
-}
-
-// AddField adds the value to the field with the given name. It returns an error if
-// the field is not defined in the schema, or if the type mismatched the field
-// type.
-func (m *ProviderAvailabilityMutation) AddField(name string, value ent.Value) error {
-	switch name {
-	}
-	return fmt.Errorf("unknown ProviderAvailability numeric field %s", name)
-}
-
-// ClearedFields returns all nullable fields that were cleared during this
-// mutation.
-func (m *ProviderAvailabilityMutation) ClearedFields() []string {
-	return nil
-}
-
-// FieldCleared returns a boolean indicating if a field with the given name was
-// cleared in this mutation.
-func (m *ProviderAvailabilityMutation) FieldCleared(name string) bool {
-	_, ok := m.clearedFields[name]
-	return ok
-}
-
-// ClearField clears the value of the field with the given name. It returns an
-// error if the field is not defined in the schema.
-func (m *ProviderAvailabilityMutation) ClearField(name string) error {
-	return fmt.Errorf("unknown ProviderAvailability nullable field %s", name)
-}
-
-// ResetField resets all changes in the mutation for the field with the given name.
-// It returns an error if the field is not defined in the schema.
-func (m *ProviderAvailabilityMutation) ResetField(name string) error {
-	switch name {
-	case provideravailability.FieldCadence:
-		m.ResetCadence()
-		return nil
-	case provideravailability.FieldStartTime:
-		m.ResetStartTime()
-		return nil
-	case provideravailability.FieldEndTime:
-		m.ResetEndTime()
-		return nil
-	}
-	return fmt.Errorf("unknown ProviderAvailability field %s", name)
-}
-
-// AddedEdges returns all edge names that were set/added in this mutation.
-func (m *ProviderAvailabilityMutation) AddedEdges() []string {
-	edges := make([]string, 0, 1)
-	if m.provider != nil {
-		edges = append(edges, provideravailability.EdgeProvider)
-	}
-	return edges
-}
-
-// AddedIDs returns all IDs (to other nodes) that were added for the given edge
-// name in this mutation.
-func (m *ProviderAvailabilityMutation) AddedIDs(name string) []ent.Value {
-	switch name {
-	case provideravailability.EdgeProvider:
-		if id := m.provider; id != nil {
-			return []ent.Value{*id}
-		}
-	}
-	return nil
-}
-
-// RemovedEdges returns all edge names that were removed in this mutation.
-func (m *ProviderAvailabilityMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 1)
-	return edges
-}
-
-// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
-// the given name in this mutation.
-func (m *ProviderAvailabilityMutation) RemovedIDs(name string) []ent.Value {
-	return nil
-}
-
-// ClearedEdges returns all edge names that were cleared in this mutation.
-func (m *ProviderAvailabilityMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 1)
-	if m.clearedprovider {
-		edges = append(edges, provideravailability.EdgeProvider)
-	}
-	return edges
-}
-
-// EdgeCleared returns a boolean which indicates if the edge with the given name
-// was cleared in this mutation.
-func (m *ProviderAvailabilityMutation) EdgeCleared(name string) bool {
-	switch name {
-	case provideravailability.EdgeProvider:
-		return m.clearedprovider
-	}
-	return false
-}
-
-// ClearEdge clears the value of the edge with the given name. It returns an error
-// if that edge is not defined in the schema.
-func (m *ProviderAvailabilityMutation) ClearEdge(name string) error {
-	switch name {
-	case provideravailability.EdgeProvider:
-		m.ClearProvider()
-		return nil
-	}
-	return fmt.Errorf("unknown ProviderAvailability unique edge %s", name)
-}
-
-// ResetEdge resets all changes to the edge with the given name in this mutation.
-// It returns an error if the edge is not defined in the schema.
-func (m *ProviderAvailabilityMutation) ResetEdge(name string) error {
-	switch name {
-	case provideravailability.EdgeProvider:
-		m.ResetProvider()
-		return nil
-	}
-	return fmt.Errorf("unknown ProviderAvailability edge %s", name)
-}
-
 // ProviderOrderTokenMutation represents an operation that mutates the ProviderOrderToken nodes in the graph.
 type ProviderOrderTokenMutation struct {
 	config
@@ -7956,6 +7453,7 @@ type ProviderProfileMutation struct {
 	provision_mode           *providerprofile.ProvisionMode
 	is_partner               *bool
 	is_active                *bool
+	is_available             *bool
 	updated_at               *time.Time
 	visibility_mode          *providerprofile.VisibilityMode
 	address                  *string
@@ -7978,8 +7476,6 @@ type ProviderProfileMutation struct {
 	order_tokens             map[int]struct{}
 	removedorder_tokens      map[int]struct{}
 	clearedorder_tokens      bool
-	availability             *int
-	clearedavailability      bool
 	provider_rating          *int
 	clearedprovider_rating   bool
 	assigned_orders          map[uuid.UUID]struct{}
@@ -8285,6 +7781,42 @@ func (m *ProviderProfileMutation) OldIsActive(ctx context.Context) (v bool, err 
 // ResetIsActive resets all changes to the "is_active" field.
 func (m *ProviderProfileMutation) ResetIsActive() {
 	m.is_active = nil
+}
+
+// SetIsAvailable sets the "is_available" field.
+func (m *ProviderProfileMutation) SetIsAvailable(b bool) {
+	m.is_available = &b
+}
+
+// IsAvailable returns the value of the "is_available" field in the mutation.
+func (m *ProviderProfileMutation) IsAvailable() (r bool, exists bool) {
+	v := m.is_available
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIsAvailable returns the old "is_available" field's value of the ProviderProfile entity.
+// If the ProviderProfile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderProfileMutation) OldIsAvailable(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIsAvailable is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIsAvailable requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIsAvailable: %w", err)
+	}
+	return oldValue.IsAvailable, nil
+}
+
+// ResetIsAvailable resets all changes to the "is_available" field.
+func (m *ProviderProfileMutation) ResetIsAvailable() {
+	m.is_available = nil
 }
 
 // SetUpdatedAt sets the "updated_at" field.
@@ -8927,45 +8459,6 @@ func (m *ProviderProfileMutation) ResetOrderTokens() {
 	m.removedorder_tokens = nil
 }
 
-// SetAvailabilityID sets the "availability" edge to the ProviderAvailability entity by id.
-func (m *ProviderProfileMutation) SetAvailabilityID(id int) {
-	m.availability = &id
-}
-
-// ClearAvailability clears the "availability" edge to the ProviderAvailability entity.
-func (m *ProviderProfileMutation) ClearAvailability() {
-	m.clearedavailability = true
-}
-
-// AvailabilityCleared reports if the "availability" edge to the ProviderAvailability entity was cleared.
-func (m *ProviderProfileMutation) AvailabilityCleared() bool {
-	return m.clearedavailability
-}
-
-// AvailabilityID returns the "availability" edge ID in the mutation.
-func (m *ProviderProfileMutation) AvailabilityID() (id int, exists bool) {
-	if m.availability != nil {
-		return *m.availability, true
-	}
-	return
-}
-
-// AvailabilityIDs returns the "availability" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// AvailabilityID instead. It exists only for internal usage by the builders.
-func (m *ProviderProfileMutation) AvailabilityIDs() (ids []int) {
-	if id := m.availability; id != nil {
-		ids = append(ids, *id)
-	}
-	return
-}
-
-// ResetAvailability resets all changes to the "availability" edge.
-func (m *ProviderProfileMutation) ResetAvailability() {
-	m.availability = nil
-	m.clearedavailability = false
-}
-
 // SetProviderRatingID sets the "provider_rating" edge to the ProviderRating entity by id.
 func (m *ProviderProfileMutation) SetProviderRatingID(id int) {
 	m.provider_rating = &id
@@ -9093,7 +8586,7 @@ func (m *ProviderProfileMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ProviderProfileMutation) Fields() []string {
-	fields := make([]string, 0, 14)
+	fields := make([]string, 0, 15)
 	if m.trading_name != nil {
 		fields = append(fields, providerprofile.FieldTradingName)
 	}
@@ -9108,6 +8601,9 @@ func (m *ProviderProfileMutation) Fields() []string {
 	}
 	if m.is_active != nil {
 		fields = append(fields, providerprofile.FieldIsActive)
+	}
+	if m.is_available != nil {
+		fields = append(fields, providerprofile.FieldIsAvailable)
 	}
 	if m.updated_at != nil {
 		fields = append(fields, providerprofile.FieldUpdatedAt)
@@ -9154,6 +8650,8 @@ func (m *ProviderProfileMutation) Field(name string) (ent.Value, bool) {
 		return m.IsPartner()
 	case providerprofile.FieldIsActive:
 		return m.IsActive()
+	case providerprofile.FieldIsAvailable:
+		return m.IsAvailable()
 	case providerprofile.FieldUpdatedAt:
 		return m.UpdatedAt()
 	case providerprofile.FieldVisibilityMode:
@@ -9191,6 +8689,8 @@ func (m *ProviderProfileMutation) OldField(ctx context.Context, name string) (en
 		return m.OldIsPartner(ctx)
 	case providerprofile.FieldIsActive:
 		return m.OldIsActive(ctx)
+	case providerprofile.FieldIsAvailable:
+		return m.OldIsAvailable(ctx)
 	case providerprofile.FieldUpdatedAt:
 		return m.OldUpdatedAt(ctx)
 	case providerprofile.FieldVisibilityMode:
@@ -9252,6 +8752,13 @@ func (m *ProviderProfileMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetIsActive(v)
+		return nil
+	case providerprofile.FieldIsAvailable:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIsAvailable(v)
 		return nil
 	case providerprofile.FieldUpdatedAt:
 		v, ok := value.(time.Time)
@@ -9431,6 +8938,9 @@ func (m *ProviderProfileMutation) ResetField(name string) error {
 	case providerprofile.FieldIsActive:
 		m.ResetIsActive()
 		return nil
+	case providerprofile.FieldIsAvailable:
+		m.ResetIsAvailable()
+		return nil
 	case providerprofile.FieldUpdatedAt:
 		m.ResetUpdatedAt()
 		return nil
@@ -9464,7 +8974,7 @@ func (m *ProviderProfileMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ProviderProfileMutation) AddedEdges() []string {
-	edges := make([]string, 0, 8)
+	edges := make([]string, 0, 7)
 	if m.user != nil {
 		edges = append(edges, providerprofile.EdgeUser)
 	}
@@ -9479,9 +8989,6 @@ func (m *ProviderProfileMutation) AddedEdges() []string {
 	}
 	if m.order_tokens != nil {
 		edges = append(edges, providerprofile.EdgeOrderTokens)
-	}
-	if m.availability != nil {
-		edges = append(edges, providerprofile.EdgeAvailability)
 	}
 	if m.provider_rating != nil {
 		edges = append(edges, providerprofile.EdgeProviderRating)
@@ -9520,10 +9027,6 @@ func (m *ProviderProfileMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
-	case providerprofile.EdgeAvailability:
-		if id := m.availability; id != nil {
-			return []ent.Value{*id}
-		}
 	case providerprofile.EdgeProviderRating:
 		if id := m.provider_rating; id != nil {
 			return []ent.Value{*id}
@@ -9540,7 +9043,7 @@ func (m *ProviderProfileMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *ProviderProfileMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 8)
+	edges := make([]string, 0, 7)
 	if m.removedprovision_buckets != nil {
 		edges = append(edges, providerprofile.EdgeProvisionBuckets)
 	}
@@ -9581,7 +9084,7 @@ func (m *ProviderProfileMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ProviderProfileMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 8)
+	edges := make([]string, 0, 7)
 	if m.cleareduser {
 		edges = append(edges, providerprofile.EdgeUser)
 	}
@@ -9596,9 +9099,6 @@ func (m *ProviderProfileMutation) ClearedEdges() []string {
 	}
 	if m.clearedorder_tokens {
 		edges = append(edges, providerprofile.EdgeOrderTokens)
-	}
-	if m.clearedavailability {
-		edges = append(edges, providerprofile.EdgeAvailability)
 	}
 	if m.clearedprovider_rating {
 		edges = append(edges, providerprofile.EdgeProviderRating)
@@ -9623,8 +9123,6 @@ func (m *ProviderProfileMutation) EdgeCleared(name string) bool {
 		return m.clearedprovision_buckets
 	case providerprofile.EdgeOrderTokens:
 		return m.clearedorder_tokens
-	case providerprofile.EdgeAvailability:
-		return m.clearedavailability
 	case providerprofile.EdgeProviderRating:
 		return m.clearedprovider_rating
 	case providerprofile.EdgeAssignedOrders:
@@ -9645,9 +9143,6 @@ func (m *ProviderProfileMutation) ClearEdge(name string) error {
 		return nil
 	case providerprofile.EdgeCurrency:
 		m.ClearCurrency()
-		return nil
-	case providerprofile.EdgeAvailability:
-		m.ClearAvailability()
 		return nil
 	case providerprofile.EdgeProviderRating:
 		m.ClearProviderRating()
@@ -9674,9 +9169,6 @@ func (m *ProviderProfileMutation) ResetEdge(name string) error {
 		return nil
 	case providerprofile.EdgeOrderTokens:
 		m.ResetOrderTokens()
-		return nil
-	case providerprofile.EdgeAvailability:
-		m.ResetAvailability()
 		return nil
 	case providerprofile.EdgeProviderRating:
 		m.ResetProviderRating()
