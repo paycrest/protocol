@@ -16,7 +16,6 @@ import (
 	"github.com/paycrest/protocol/ent/fiatcurrency"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	"github.com/paycrest/protocol/ent/predicate"
-	"github.com/paycrest/protocol/ent/provideravailability"
 	"github.com/paycrest/protocol/ent/providerordertoken"
 	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/providerrating"
@@ -100,6 +99,20 @@ func (ppu *ProviderProfileUpdate) SetIsActive(b bool) *ProviderProfileUpdate {
 func (ppu *ProviderProfileUpdate) SetNillableIsActive(b *bool) *ProviderProfileUpdate {
 	if b != nil {
 		ppu.SetIsActive(*b)
+	}
+	return ppu
+}
+
+// SetIsAvailable sets the "is_available" field.
+func (ppu *ProviderProfileUpdate) SetIsAvailable(b bool) *ProviderProfileUpdate {
+	ppu.mutation.SetIsAvailable(b)
+	return ppu
+}
+
+// SetNillableIsAvailable sets the "is_available" field if the given value is not nil.
+func (ppu *ProviderProfileUpdate) SetNillableIsAvailable(b *bool) *ProviderProfileUpdate {
+	if b != nil {
+		ppu.SetIsAvailable(*b)
 	}
 	return ppu
 }
@@ -324,25 +337,6 @@ func (ppu *ProviderProfileUpdate) AddOrderTokens(p ...*ProviderOrderToken) *Prov
 	return ppu.AddOrderTokenIDs(ids...)
 }
 
-// SetAvailabilityID sets the "availability" edge to the ProviderAvailability entity by ID.
-func (ppu *ProviderProfileUpdate) SetAvailabilityID(id int) *ProviderProfileUpdate {
-	ppu.mutation.SetAvailabilityID(id)
-	return ppu
-}
-
-// SetNillableAvailabilityID sets the "availability" edge to the ProviderAvailability entity by ID if the given value is not nil.
-func (ppu *ProviderProfileUpdate) SetNillableAvailabilityID(id *int) *ProviderProfileUpdate {
-	if id != nil {
-		ppu = ppu.SetAvailabilityID(*id)
-	}
-	return ppu
-}
-
-// SetAvailability sets the "availability" edge to the ProviderAvailability entity.
-func (ppu *ProviderProfileUpdate) SetAvailability(p *ProviderAvailability) *ProviderProfileUpdate {
-	return ppu.SetAvailabilityID(p.ID)
-}
-
 // SetProviderRatingID sets the "provider_rating" edge to the ProviderRating entity by ID.
 func (ppu *ProviderProfileUpdate) SetProviderRatingID(id int) *ProviderProfileUpdate {
 	ppu.mutation.SetProviderRatingID(id)
@@ -434,12 +428,6 @@ func (ppu *ProviderProfileUpdate) RemoveOrderTokens(p ...*ProviderOrderToken) *P
 		ids[i] = p[i].ID
 	}
 	return ppu.RemoveOrderTokenIDs(ids...)
-}
-
-// ClearAvailability clears the "availability" edge to the ProviderAvailability entity.
-func (ppu *ProviderProfileUpdate) ClearAvailability() *ProviderProfileUpdate {
-	ppu.mutation.ClearAvailability()
-	return ppu
 }
 
 // ClearProviderRating clears the "provider_rating" edge to the ProviderRating entity.
@@ -565,6 +553,9 @@ func (ppu *ProviderProfileUpdate) sqlSave(ctx context.Context) (n int, err error
 	}
 	if value, ok := ppu.mutation.IsActive(); ok {
 		_spec.SetField(providerprofile.FieldIsActive, field.TypeBool, value)
+	}
+	if value, ok := ppu.mutation.IsAvailable(); ok {
+		_spec.SetField(providerprofile.FieldIsAvailable, field.TypeBool, value)
 	}
 	if value, ok := ppu.mutation.UpdatedAt(); ok {
 		_spec.SetField(providerprofile.FieldUpdatedAt, field.TypeTime, value)
@@ -762,35 +753,6 @@ func (ppu *ProviderProfileUpdate) sqlSave(ctx context.Context) (n int, err error
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if ppu.mutation.AvailabilityCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: false,
-			Table:   providerprofile.AvailabilityTable,
-			Columns: []string{providerprofile.AvailabilityColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(provideravailability.FieldID, field.TypeInt),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := ppu.mutation.AvailabilityIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: false,
-			Table:   providerprofile.AvailabilityTable,
-			Columns: []string{providerprofile.AvailabilityColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(provideravailability.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
 	if ppu.mutation.ProviderRatingCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
@@ -949,6 +911,20 @@ func (ppuo *ProviderProfileUpdateOne) SetIsActive(b bool) *ProviderProfileUpdate
 func (ppuo *ProviderProfileUpdateOne) SetNillableIsActive(b *bool) *ProviderProfileUpdateOne {
 	if b != nil {
 		ppuo.SetIsActive(*b)
+	}
+	return ppuo
+}
+
+// SetIsAvailable sets the "is_available" field.
+func (ppuo *ProviderProfileUpdateOne) SetIsAvailable(b bool) *ProviderProfileUpdateOne {
+	ppuo.mutation.SetIsAvailable(b)
+	return ppuo
+}
+
+// SetNillableIsAvailable sets the "is_available" field if the given value is not nil.
+func (ppuo *ProviderProfileUpdateOne) SetNillableIsAvailable(b *bool) *ProviderProfileUpdateOne {
+	if b != nil {
+		ppuo.SetIsAvailable(*b)
 	}
 	return ppuo
 }
@@ -1173,25 +1149,6 @@ func (ppuo *ProviderProfileUpdateOne) AddOrderTokens(p ...*ProviderOrderToken) *
 	return ppuo.AddOrderTokenIDs(ids...)
 }
 
-// SetAvailabilityID sets the "availability" edge to the ProviderAvailability entity by ID.
-func (ppuo *ProviderProfileUpdateOne) SetAvailabilityID(id int) *ProviderProfileUpdateOne {
-	ppuo.mutation.SetAvailabilityID(id)
-	return ppuo
-}
-
-// SetNillableAvailabilityID sets the "availability" edge to the ProviderAvailability entity by ID if the given value is not nil.
-func (ppuo *ProviderProfileUpdateOne) SetNillableAvailabilityID(id *int) *ProviderProfileUpdateOne {
-	if id != nil {
-		ppuo = ppuo.SetAvailabilityID(*id)
-	}
-	return ppuo
-}
-
-// SetAvailability sets the "availability" edge to the ProviderAvailability entity.
-func (ppuo *ProviderProfileUpdateOne) SetAvailability(p *ProviderAvailability) *ProviderProfileUpdateOne {
-	return ppuo.SetAvailabilityID(p.ID)
-}
-
 // SetProviderRatingID sets the "provider_rating" edge to the ProviderRating entity by ID.
 func (ppuo *ProviderProfileUpdateOne) SetProviderRatingID(id int) *ProviderProfileUpdateOne {
 	ppuo.mutation.SetProviderRatingID(id)
@@ -1283,12 +1240,6 @@ func (ppuo *ProviderProfileUpdateOne) RemoveOrderTokens(p ...*ProviderOrderToken
 		ids[i] = p[i].ID
 	}
 	return ppuo.RemoveOrderTokenIDs(ids...)
-}
-
-// ClearAvailability clears the "availability" edge to the ProviderAvailability entity.
-func (ppuo *ProviderProfileUpdateOne) ClearAvailability() *ProviderProfileUpdateOne {
-	ppuo.mutation.ClearAvailability()
-	return ppuo
 }
 
 // ClearProviderRating clears the "provider_rating" edge to the ProviderRating entity.
@@ -1444,6 +1395,9 @@ func (ppuo *ProviderProfileUpdateOne) sqlSave(ctx context.Context) (_node *Provi
 	}
 	if value, ok := ppuo.mutation.IsActive(); ok {
 		_spec.SetField(providerprofile.FieldIsActive, field.TypeBool, value)
+	}
+	if value, ok := ppuo.mutation.IsAvailable(); ok {
+		_spec.SetField(providerprofile.FieldIsAvailable, field.TypeBool, value)
 	}
 	if value, ok := ppuo.mutation.UpdatedAt(); ok {
 		_spec.SetField(providerprofile.FieldUpdatedAt, field.TypeTime, value)
@@ -1634,35 +1588,6 @@ func (ppuo *ProviderProfileUpdateOne) sqlSave(ctx context.Context) (_node *Provi
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(providerordertoken.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if ppuo.mutation.AvailabilityCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: false,
-			Table:   providerprofile.AvailabilityTable,
-			Columns: []string{providerprofile.AvailabilityColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(provideravailability.FieldID, field.TypeInt),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := ppuo.mutation.AvailabilityIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: false,
-			Table:   providerprofile.AvailabilityTable,
-			Columns: []string{providerprofile.AvailabilityColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(provideravailability.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

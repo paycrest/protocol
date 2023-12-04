@@ -25,6 +25,8 @@ const (
 	FieldIsPartner = "is_partner"
 	// FieldIsActive holds the string denoting the is_active field in the database.
 	FieldIsActive = "is_active"
+	// FieldIsAvailable holds the string denoting the is_available field in the database.
+	FieldIsAvailable = "is_available"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
 	FieldUpdatedAt = "updated_at"
 	// FieldVisibilityMode holds the string denoting the visibility_mode field in the database.
@@ -53,8 +55,6 @@ const (
 	EdgeProvisionBuckets = "provision_buckets"
 	// EdgeOrderTokens holds the string denoting the order_tokens edge name in mutations.
 	EdgeOrderTokens = "order_tokens"
-	// EdgeAvailability holds the string denoting the availability edge name in mutations.
-	EdgeAvailability = "availability"
 	// EdgeProviderRating holds the string denoting the provider_rating edge name in mutations.
 	EdgeProviderRating = "provider_rating"
 	// EdgeAssignedOrders holds the string denoting the assigned_orders edge name in mutations.
@@ -94,13 +94,6 @@ const (
 	OrderTokensInverseTable = "provider_order_tokens"
 	// OrderTokensColumn is the table column denoting the order_tokens relation/edge.
 	OrderTokensColumn = "provider_profile_order_tokens"
-	// AvailabilityTable is the table that holds the availability relation/edge.
-	AvailabilityTable = "provider_availabilities"
-	// AvailabilityInverseTable is the table name for the ProviderAvailability entity.
-	// It exists in this package in order to avoid circular dependency with the "provideravailability" package.
-	AvailabilityInverseTable = "provider_availabilities"
-	// AvailabilityColumn is the table column denoting the availability relation/edge.
-	AvailabilityColumn = "provider_profile_availability"
 	// ProviderRatingTable is the table that holds the provider_rating relation/edge.
 	ProviderRatingTable = "provider_ratings"
 	// ProviderRatingInverseTable is the table name for the ProviderRating entity.
@@ -125,6 +118,7 @@ var Columns = []string{
 	FieldProvisionMode,
 	FieldIsPartner,
 	FieldIsActive,
+	FieldIsAvailable,
 	FieldUpdatedAt,
 	FieldVisibilityMode,
 	FieldAddress,
@@ -171,6 +165,8 @@ var (
 	DefaultIsPartner bool
 	// DefaultIsActive holds the default value on creation for the "is_active" field.
 	DefaultIsActive bool
+	// DefaultIsAvailable holds the default value on creation for the "is_available" field.
+	DefaultIsAvailable bool
 	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
@@ -288,6 +284,11 @@ func ByIsActive(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldIsActive, opts...).ToFunc()
 }
 
+// ByIsAvailable orders the results by the is_available field.
+func ByIsAvailable(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIsAvailable, opts...).ToFunc()
+}
+
 // ByUpdatedAt orders the results by the updated_at field.
 func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldUpdatedAt, opts...).ToFunc()
@@ -382,13 +383,6 @@ func ByOrderTokens(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	}
 }
 
-// ByAvailabilityField orders the results by availability field.
-func ByAvailabilityField(field string, opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newAvailabilityStep(), sql.OrderByField(field, opts...))
-	}
-}
-
 // ByProviderRatingField orders the results by provider_rating field.
 func ByProviderRatingField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -442,13 +436,6 @@ func newOrderTokensStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(OrderTokensInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, OrderTokensTable, OrderTokensColumn),
-	)
-}
-func newAvailabilityStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(AvailabilityInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2O, false, AvailabilityTable, AvailabilityColumn),
 	)
 }
 func newProviderRatingStep() *sqlgraph.Step {

@@ -14,7 +14,6 @@ import (
 	"github.com/paycrest/protocol/ent/apikey"
 	"github.com/paycrest/protocol/ent/fiatcurrency"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
-	"github.com/paycrest/protocol/ent/provideravailability"
 	"github.com/paycrest/protocol/ent/providerordertoken"
 	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/providerrating"
@@ -87,6 +86,20 @@ func (ppc *ProviderProfileCreate) SetIsActive(b bool) *ProviderProfileCreate {
 func (ppc *ProviderProfileCreate) SetNillableIsActive(b *bool) *ProviderProfileCreate {
 	if b != nil {
 		ppc.SetIsActive(*b)
+	}
+	return ppc
+}
+
+// SetIsAvailable sets the "is_available" field.
+func (ppc *ProviderProfileCreate) SetIsAvailable(b bool) *ProviderProfileCreate {
+	ppc.mutation.SetIsAvailable(b)
+	return ppc
+}
+
+// SetNillableIsAvailable sets the "is_available" field if the given value is not nil.
+func (ppc *ProviderProfileCreate) SetNillableIsAvailable(b *bool) *ProviderProfileCreate {
+	if b != nil {
+		ppc.SetIsAvailable(*b)
 	}
 	return ppc
 }
@@ -302,25 +315,6 @@ func (ppc *ProviderProfileCreate) AddOrderTokens(p ...*ProviderOrderToken) *Prov
 	return ppc.AddOrderTokenIDs(ids...)
 }
 
-// SetAvailabilityID sets the "availability" edge to the ProviderAvailability entity by ID.
-func (ppc *ProviderProfileCreate) SetAvailabilityID(id int) *ProviderProfileCreate {
-	ppc.mutation.SetAvailabilityID(id)
-	return ppc
-}
-
-// SetNillableAvailabilityID sets the "availability" edge to the ProviderAvailability entity by ID if the given value is not nil.
-func (ppc *ProviderProfileCreate) SetNillableAvailabilityID(id *int) *ProviderProfileCreate {
-	if id != nil {
-		ppc = ppc.SetAvailabilityID(*id)
-	}
-	return ppc
-}
-
-// SetAvailability sets the "availability" edge to the ProviderAvailability entity.
-func (ppc *ProviderProfileCreate) SetAvailability(p *ProviderAvailability) *ProviderProfileCreate {
-	return ppc.SetAvailabilityID(p.ID)
-}
-
 // SetProviderRatingID sets the "provider_rating" edge to the ProviderRating entity by ID.
 func (ppc *ProviderProfileCreate) SetProviderRatingID(id int) *ProviderProfileCreate {
 	ppc.mutation.SetProviderRatingID(id)
@@ -402,6 +396,10 @@ func (ppc *ProviderProfileCreate) defaults() {
 		v := providerprofile.DefaultIsActive
 		ppc.mutation.SetIsActive(v)
 	}
+	if _, ok := ppc.mutation.IsAvailable(); !ok {
+		v := providerprofile.DefaultIsAvailable
+		ppc.mutation.SetIsAvailable(v)
+	}
 	if _, ok := ppc.mutation.UpdatedAt(); !ok {
 		v := providerprofile.DefaultUpdatedAt()
 		ppc.mutation.SetUpdatedAt(v)
@@ -439,6 +437,9 @@ func (ppc *ProviderProfileCreate) check() error {
 	}
 	if _, ok := ppc.mutation.IsActive(); !ok {
 		return &ValidationError{Name: "is_active", err: errors.New(`ent: missing required field "ProviderProfile.is_active"`)}
+	}
+	if _, ok := ppc.mutation.IsAvailable(); !ok {
+		return &ValidationError{Name: "is_available", err: errors.New(`ent: missing required field "ProviderProfile.is_available"`)}
 	}
 	if _, ok := ppc.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "ProviderProfile.updated_at"`)}
@@ -516,6 +517,10 @@ func (ppc *ProviderProfileCreate) createSpec() (*ProviderProfile, *sqlgraph.Crea
 	if value, ok := ppc.mutation.IsActive(); ok {
 		_spec.SetField(providerprofile.FieldIsActive, field.TypeBool, value)
 		_node.IsActive = value
+	}
+	if value, ok := ppc.mutation.IsAvailable(); ok {
+		_spec.SetField(providerprofile.FieldIsAvailable, field.TypeBool, value)
+		_node.IsAvailable = value
 	}
 	if value, ok := ppc.mutation.UpdatedAt(); ok {
 		_spec.SetField(providerprofile.FieldUpdatedAt, field.TypeTime, value)
@@ -628,22 +633,6 @@ func (ppc *ProviderProfileCreate) createSpec() (*ProviderProfile, *sqlgraph.Crea
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(providerordertoken.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges = append(_spec.Edges, edge)
-	}
-	if nodes := ppc.mutation.AvailabilityIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: false,
-			Table:   providerprofile.AvailabilityTable,
-			Columns: []string{providerprofile.AvailabilityColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(provideravailability.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

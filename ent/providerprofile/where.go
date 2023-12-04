@@ -85,6 +85,11 @@ func IsActive(v bool) predicate.ProviderProfile {
 	return predicate.ProviderProfile(sql.FieldEQ(FieldIsActive, v))
 }
 
+// IsAvailable applies equality check predicate on the "is_available" field. It's identical to IsAvailableEQ.
+func IsAvailable(v bool) predicate.ProviderProfile {
+	return predicate.ProviderProfile(sql.FieldEQ(FieldIsAvailable, v))
+}
+
 // UpdatedAt applies equality check predicate on the "updated_at" field. It's identical to UpdatedAtEQ.
 func UpdatedAt(v time.Time) predicate.ProviderProfile {
 	return predicate.ProviderProfile(sql.FieldEQ(FieldUpdatedAt, v))
@@ -298,6 +303,16 @@ func IsActiveEQ(v bool) predicate.ProviderProfile {
 // IsActiveNEQ applies the NEQ predicate on the "is_active" field.
 func IsActiveNEQ(v bool) predicate.ProviderProfile {
 	return predicate.ProviderProfile(sql.FieldNEQ(FieldIsActive, v))
+}
+
+// IsAvailableEQ applies the EQ predicate on the "is_available" field.
+func IsAvailableEQ(v bool) predicate.ProviderProfile {
+	return predicate.ProviderProfile(sql.FieldEQ(FieldIsAvailable, v))
+}
+
+// IsAvailableNEQ applies the NEQ predicate on the "is_available" field.
+func IsAvailableNEQ(v bool) predicate.ProviderProfile {
+	return predicate.ProviderProfile(sql.FieldNEQ(FieldIsAvailable, v))
 }
 
 // UpdatedAtEQ applies the EQ predicate on the "updated_at" field.
@@ -922,29 +937,6 @@ func HasOrderTokens() predicate.ProviderProfile {
 func HasOrderTokensWith(preds ...predicate.ProviderOrderToken) predicate.ProviderProfile {
 	return predicate.ProviderProfile(func(s *sql.Selector) {
 		step := newOrderTokensStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
-}
-
-// HasAvailability applies the HasEdge predicate on the "availability" edge.
-func HasAvailability() predicate.ProviderProfile {
-	return predicate.ProviderProfile(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, AvailabilityTable, AvailabilityColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasAvailabilityWith applies the HasEdge predicate on the "availability" edge with a given conditions (other predicates).
-func HasAvailabilityWith(preds ...predicate.ProviderAvailability) predicate.ProviderProfile {
-	return predicate.ProviderProfile(func(s *sql.Selector) {
-		step := newAvailabilityStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

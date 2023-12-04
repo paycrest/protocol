@@ -14,7 +14,6 @@ import (
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/fiatcurrency"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
-	"github.com/paycrest/protocol/ent/provideravailability"
 	"github.com/paycrest/protocol/ent/providerordertoken"
 	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/providerrating"
@@ -69,16 +68,8 @@ func (s *PriorityQueueService) GetProvidersByBucket(ctx context.Context) ([]*ent
 			ppq.Select(providerprofile.FieldID)
 
 			// Filter only providers that are always available
-			// or are available until one hour from now
-			// TODO: the duration should be a config setting
-			oneHourFromNow := time.Now().Add(time.Hour)
 			ppq.Where(
-				providerprofile.HasAvailabilityWith(
-					provideravailability.And(
-						provideravailability.CadenceEQ(provideravailability.CadenceAlways),
-						provideravailability.EndTimeGTE(oneHourFromNow),
-					),
-				),
+				providerprofile.IsAvailableEQ(true),
 				providerprofile.IsActiveEQ(true),
 				providerprofile.VisibilityModeEQ(providerprofile.VisibilityModePublic),
 			)

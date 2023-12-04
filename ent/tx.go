@@ -26,8 +26,6 @@ type Tx struct {
 	PaymentOrder *PaymentOrderClient
 	// PaymentOrderRecipient is the client for interacting with the PaymentOrderRecipient builders.
 	PaymentOrderRecipient *PaymentOrderRecipientClient
-	// ProviderAvailability is the client for interacting with the ProviderAvailability builders.
-	ProviderAvailability *ProviderAvailabilityClient
 	// ProviderOrderToken is the client for interacting with the ProviderOrderToken builders.
 	ProviderOrderToken *ProviderOrderTokenClient
 	// ProviderProfile is the client for interacting with the ProviderProfile builders.
@@ -186,7 +184,6 @@ func (tx *Tx) init() {
 	tx.Network = NewNetworkClient(tx.config)
 	tx.PaymentOrder = NewPaymentOrderClient(tx.config)
 	tx.PaymentOrderRecipient = NewPaymentOrderRecipientClient(tx.config)
-	tx.ProviderAvailability = NewProviderAvailabilityClient(tx.config)
 	tx.ProviderOrderToken = NewProviderOrderTokenClient(tx.config)
 	tx.ProviderProfile = NewProviderProfileClient(tx.config)
 	tx.ProviderRating = NewProviderRatingClient(tx.config)

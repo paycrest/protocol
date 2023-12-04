@@ -12,7 +12,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/paycrest/protocol/ent/apikey"
 	"github.com/paycrest/protocol/ent/fiatcurrency"
-	"github.com/paycrest/protocol/ent/provideravailability"
 	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/providerrating"
 	"github.com/paycrest/protocol/ent/user"
@@ -33,6 +32,8 @@ type ProviderProfile struct {
 	IsPartner bool `json:"is_partner,omitempty"`
 	// IsActive holds the value of the "is_active" field.
 	IsActive bool `json:"is_active,omitempty"`
+	// IsAvailable holds the value of the "is_available" field.
+	IsAvailable bool `json:"is_available,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// VisibilityMode holds the value of the "visibility_mode" field.
@@ -71,15 +72,13 @@ type ProviderProfileEdges struct {
 	ProvisionBuckets []*ProvisionBucket `json:"provision_buckets,omitempty"`
 	// OrderTokens holds the value of the order_tokens edge.
 	OrderTokens []*ProviderOrderToken `json:"order_tokens,omitempty"`
-	// Availability holds the value of the availability edge.
-	Availability *ProviderAvailability `json:"availability,omitempty"`
 	// ProviderRating holds the value of the provider_rating edge.
 	ProviderRating *ProviderRating `json:"provider_rating,omitempty"`
 	// AssignedOrders holds the value of the assigned_orders edge.
 	AssignedOrders []*LockPaymentOrder `json:"assigned_orders,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [8]bool
+	loadedTypes [7]bool
 }
 
 // UserOrErr returns the User value or an error if the edge
@@ -139,23 +138,10 @@ func (e ProviderProfileEdges) OrderTokensOrErr() ([]*ProviderOrderToken, error) 
 	return nil, &NotLoadedError{edge: "order_tokens"}
 }
 
-// AvailabilityOrErr returns the Availability value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e ProviderProfileEdges) AvailabilityOrErr() (*ProviderAvailability, error) {
-	if e.loadedTypes[5] {
-		if e.Availability == nil {
-			// Edge was loaded but was not found.
-			return nil, &NotFoundError{label: provideravailability.Label}
-		}
-		return e.Availability, nil
-	}
-	return nil, &NotLoadedError{edge: "availability"}
-}
-
 // ProviderRatingOrErr returns the ProviderRating value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e ProviderProfileEdges) ProviderRatingOrErr() (*ProviderRating, error) {
-	if e.loadedTypes[6] {
+	if e.loadedTypes[5] {
 		if e.ProviderRating == nil {
 			// Edge was loaded but was not found.
 			return nil, &NotFoundError{label: providerrating.Label}
@@ -168,7 +154,7 @@ func (e ProviderProfileEdges) ProviderRatingOrErr() (*ProviderRating, error) {
 // AssignedOrdersOrErr returns the AssignedOrders value or an error if the edge
 // was not loaded in eager-loading.
 func (e ProviderProfileEdges) AssignedOrdersOrErr() ([]*LockPaymentOrder, error) {
-	if e.loadedTypes[7] {
+	if e.loadedTypes[6] {
 		return e.AssignedOrders, nil
 	}
 	return nil, &NotLoadedError{edge: "assigned_orders"}
@@ -179,7 +165,7 @@ func (*ProviderProfile) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case providerprofile.FieldIsPartner, providerprofile.FieldIsActive:
+		case providerprofile.FieldIsPartner, providerprofile.FieldIsActive, providerprofile.FieldIsAvailable:
 			values[i] = new(sql.NullBool)
 		case providerprofile.FieldID, providerprofile.FieldTradingName, providerprofile.FieldHostIdentifier, providerprofile.FieldProvisionMode, providerprofile.FieldVisibilityMode, providerprofile.FieldAddress, providerprofile.FieldMobileNumber, providerprofile.FieldBusinessName, providerprofile.FieldIdentityDocumentType, providerprofile.FieldIdentityDocument, providerprofile.FieldBusinessDocument:
 			values[i] = new(sql.NullString)
@@ -239,6 +225,12 @@ func (pp *ProviderProfile) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field is_active", values[i])
 			} else if value.Valid {
 				pp.IsActive = value.Bool
+			}
+		case providerprofile.FieldIsAvailable:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field is_available", values[i])
+			} else if value.Valid {
+				pp.IsAvailable = value.Bool
 			}
 		case providerprofile.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -346,11 +338,6 @@ func (pp *ProviderProfile) QueryOrderTokens() *ProviderOrderTokenQuery {
 	return NewProviderProfileClient(pp.config).QueryOrderTokens(pp)
 }
 
-// QueryAvailability queries the "availability" edge of the ProviderProfile entity.
-func (pp *ProviderProfile) QueryAvailability() *ProviderAvailabilityQuery {
-	return NewProviderProfileClient(pp.config).QueryAvailability(pp)
-}
-
 // QueryProviderRating queries the "provider_rating" edge of the ProviderProfile entity.
 func (pp *ProviderProfile) QueryProviderRating() *ProviderRatingQuery {
 	return NewProviderProfileClient(pp.config).QueryProviderRating(pp)
@@ -398,6 +385,9 @@ func (pp *ProviderProfile) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("is_active=")
 	builder.WriteString(fmt.Sprintf("%v", pp.IsActive))
+	builder.WriteString(", ")
+	builder.WriteString("is_available=")
+	builder.WriteString(fmt.Sprintf("%v", pp.IsAvailable))
 	builder.WriteString(", ")
 	builder.WriteString("updated_at=")
 	builder.WriteString(pp.UpdatedAt.Format(time.ANSIC))

@@ -31,6 +31,8 @@ func (ProviderProfile) Fields() []ent.Field {
 		field.Bool("is_partner").Default(false),
 		field.Bool("is_active").
 			Default(false),
+		field.Bool("is_available").
+			Default(false),
 		field.Time("updated_at").
 			Default(time.Now).
 			UpdateDefault(time.Now),
@@ -68,8 +70,6 @@ func (ProviderProfile) Edges() []ent.Edge {
 			Ref("provider_profiles"),
 		edge.To("order_tokens", ProviderOrderToken.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
-		edge.To("availability", ProviderAvailability.Type).
-			Unique(),
 		edge.To("provider_rating", ProviderRating.Type).
 			Unique(),
 		edge.To("assigned_orders", LockPaymentOrder.Type).
