@@ -80,6 +80,7 @@ func (s *PriorityQueueService) GetProvidersByBucket(ctx context.Context) ([]*ent
 					),
 				),
 				providerprofile.IsActiveEQ(true),
+				providerprofile.VisibilityModeEQ(providerprofile.VisibilityModePublic),
 			)
 		}).
 		WithCurrency().

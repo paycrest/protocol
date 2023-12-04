@@ -4,7 +4,7 @@
 
 # Run linter (using a linter like golangci-lint)
 echo "Running linter..."
-if [[ $(uname) == "Darwin" ]]; then
+if [ "$(uname)" = "Darwin" ]; then
     # Perform actions for macOS
     if ! brew ls --versions golangci-lint >/dev/null; then
         echo "golangci-lint is not installed. Attempting to install it"
@@ -21,7 +21,7 @@ fi
 
 # Run tests
 echo "Running tests..."
-go test $(go list ./... | grep -v /ent | grep -v /config | grep -v /database | grep -v /routers)  -coverprofile=coverage.out ./...
+go test "$(go list ./... | grep -v /ent | grep -v /config | grep -v /database | grep -v /routers)" -coverprofile=coverage.out ./...
 
 # If any errors occurred, abort the commit
 if [ $? -ne 0 ]; then
