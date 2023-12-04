@@ -290,6 +290,8 @@ func StartCronJobs() {
 		logger.Errorf("cron.RetryFailedWebhookNotifications: %v\n", err)
 	}
 
+	// TODO: Run a task every 30 minutes for any failed order processing
+
 	// Start scheduler
 	scheduler.StartAsync()
 }
