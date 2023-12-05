@@ -180,8 +180,21 @@ func TestProfile(t *testing.T) {
 			var response types.Response
 			err = json.Unmarshal(res.Body.Bytes(), &response)
 			assert.NoError(t, err)
-			assert.Equal(t, "Invalid webhook url", response.Message)
-			assert.Nil(t, response.Data, "response.Data is not nil")
+			assert.Equal(t, "Failed to validate payload", response.Message)
+			assert.Equal(t, "error", response.Status)
+			data, ok := response.Data.([]interface{})
+			assert.True(t, ok, "response.Data is not of type []interface{}")
+			assert.NotNil(t, data, "response.Data is nil")
+
+			// Assert the response errors in data
+			assert.Len(t, data, 1)
+			errorMap, ok := data[0].(map[string]interface{})
+			assert.True(t, ok, "error is not of type map[string]interface{}")
+			assert.NotNil(t, errorMap, "error is nil")
+			assert.Contains(t, errorMap, "field")
+			assert.Equal(t, "WebhookURL", errorMap["field"].(string))
+			assert.Contains(t, errorMap, "message")
+			assert.Equal(t, "Invalid URL", errorMap["message"].(string))
 		})
 
 		t.Run("with all fields and check if it is active", func(t *testing.T) {
@@ -389,11 +402,11 @@ func TestProfile(t *testing.T) {
 				var response types.Response
 				err = json.Unmarshal(res1.Body.Bytes(), &response)
 				assert.NoError(t, err)
-				assert.Equal(t, "Invalid identity document url", response.Message)
+				assert.Equal(t, "Invalid identity document URL", response.Message)
 
 				err = json.Unmarshal(res2.Body.Bytes(), &response)
 				assert.NoError(t, err)
-				assert.Equal(t, "Invalid identity document url", response.Message)
+				assert.Equal(t, "Invalid identity document URL", response.Message)
 				// assert.Nil(t, response.Data, "response.Data is not nil")
 			})
 
@@ -410,7 +423,7 @@ func TestProfile(t *testing.T) {
 				var response types.Response
 				err = json.Unmarshal(res.Body.Bytes(), &response)
 				assert.NoError(t, err)
-				assert.Equal(t, "Invalid business document url", response.Message)
+				assert.Equal(t, "Invalid business document URL", response.Message)
 				// assert.Nil(t, response.Data, "response.Data is not nil")
 			})
 

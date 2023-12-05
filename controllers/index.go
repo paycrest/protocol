@@ -99,13 +99,6 @@ func (ctrl *Controller) GetTokenRate(ctx *gin.Context) {
 
 	rateResponse := decimal.NewFromInt(0)
 
-	// Get redis keys for provision buckets
-	keys, _, err := storage.RedisClient.Scan(ctx, uint64(0), "bucket_"+fiatSymbol+"_%d_%d", 100).Result()
-	if err != nil {
-		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch rates", nil)
-		return
-	}
-
 	// get providerID from query params
 	providerID := ctx.Query("provider_id")
 	if providerID != "" {
@@ -131,6 +124,13 @@ func (ctrl *Controller) GetTokenRate(ctx *gin.Context) {
 		}
 
 	} else {
+		// Get redis keys for provision buckets
+		keys, _, err := storage.RedisClient.Scan(ctx, uint64(0), "bucket_"+fiatSymbol+"_%d_%d", 100).Result()
+		if err != nil {
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch rates", nil)
+			return
+		}
+
 		// Scan through the buckets to find a matching rate
 		for _, key := range keys {
 			bucketData := strings.Split(key, "_")

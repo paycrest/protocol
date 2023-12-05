@@ -136,7 +136,7 @@ type ValidatorProfilePayload struct {
 
 // SenderProfilePayload is the payload for the sender profile endpoint
 type SenderProfilePayload struct {
-	WebhookURL      string          `json:"webhookUrl"`
+	WebhookURL      string          `json:"webhookURL"`
 	DomainWhitelist []string        `json:"domainWhitelist"`
 	FeePerTokenUnit decimal.Decimal `json:"feePerTokenUnit"`
 	FeeAddress      string          `json:"feeAddress"`

@@ -43,7 +43,10 @@ func (ctrl *ProfileController) UpdateSenderProfile(ctx *gin.Context) {
 	}
 
 	if payload.WebhookURL != "" && !u.IsURL(payload.WebhookURL) {
-		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid webhook url", nil)
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", []types.ErrorData{{
+			Field:   "WebhookURL",
+			Message: "Invalid URL",
+		}})
 		return
 	}
 
@@ -57,11 +60,11 @@ func (ctrl *ProfileController) UpdateSenderProfile(ctx *gin.Context) {
 
 	update := sender.Update()
 
-	if payload.WebhookURL != "" {
+	if payload.WebhookURL != "" || (payload.WebhookURL == "" && sender.WebhookURL != "") {
 		update.SetWebhookURL(payload.WebhookURL)
 	}
 
-	if payload.DomainWhitelist != nil {
+	if payload.DomainWhitelist != nil || (payload.DomainWhitelist == nil && sender.DomainWhitelist != nil) {
 		update.SetDomainWhitelist(payload.DomainWhitelist)
 	}
 
@@ -87,11 +90,7 @@ func (ctrl *ProfileController) UpdateSenderProfile(ctx *gin.Context) {
 	if payload.RefundAddress != "" {
 		update.SetRefundAddress(payload.RefundAddress).SetIsActive(true)
 	} else if payload.RefundAddress == "" && sender.RefundAddress != "" {
-		u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
-			Field:   "RefundAddress",
-			Message: "This field is required",
-		})
-		return
+		update.SetRefundAddress(payload.RefundAddress).SetIsActive(false)
 	}
 
 	_, err := update.Save(ctx)
@@ -123,24 +122,12 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 
 	update := provider.Update()
 
-	if payload.TradingName != "" {
+	if payload.TradingName != "" || (payload.TradingName == "" && provider.TradingName != "") {
 		update.SetTradingName(payload.TradingName)
-	} else if payload.TradingName == "" && provider.TradingName != "" {
-		u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
-			Field:   "TradingName",
-			Message: "This field is required",
-		})
-		return
 	}
 
-	if payload.HostIdentifier != "" {
+	if payload.HostIdentifier != "" || (payload.HostIdentifier == "" && provider.HostIdentifier != "") {
 		update.SetHostIdentifier(payload.HostIdentifier)
-	} else if payload.HostIdentifier == "" && provider.HostIdentifier != "" {
-		u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
-			Field:   "HostIdentifier",
-			Message: "This field is required",
-		})
-		return
 	}
 
 	if payload.Currency != "" {
@@ -162,18 +149,19 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 	}
 
 	if payload.IsPartner {
-		update.SetIsPartner(payload.IsPartner)
+		update.SetIsPartner(true)
+	} else {
+		update.SetIsPartner(false)
 	}
 
-	// Update Visibility Mode
 	if payload.VisibilityMode != "" {
 		update.SetVisibilityMode(providerprofile.VisibilityMode(payload.VisibilityMode))
 	}
 
-	// Update optional profile fields
 	if payload.Address != "" {
 		update.SetAddress(payload.Address)
 	}
+
 	if payload.MobileNumber != "" {
 		if !u.IsValidMobileNumber(payload.MobileNumber) {
 			u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid mobile number", nil)
@@ -181,12 +169,15 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 		}
 		update.SetMobileNumber(payload.MobileNumber)
 	}
+
 	if !payload.DateOfBirth.IsZero() {
 		update.SetDateOfBirth(payload.DateOfBirth)
 	}
+
 	if payload.BusinessName != "" {
 		update.SetBusinessName(payload.BusinessName)
 	}
+
 	if payload.IdentityDocumentType != "" {
 		if providerprofile.IdentityDocumentType(payload.IdentityDocumentType) != providerprofile.IdentityDocumentTypePassport &&
 			providerprofile.IdentityDocumentType(payload.IdentityDocumentType) != providerprofile.IdentityDocumentTypeDriversLicense &&
@@ -196,16 +187,18 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 		}
 		update.SetIdentityDocumentType(providerprofile.IdentityDocumentType(payload.IdentityDocumentType))
 	}
+
 	if payload.IdentityDocument != "" {
 		if !u.IsValidFileURL(payload.IdentityDocument) {
-			u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid identity document url", nil)
+			u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid identity document URL", nil)
 			return
 		}
 		update.SetIdentityDocument(payload.IdentityDocument)
 	}
+
 	if payload.BusinessDocument != "" {
 		if !u.IsValidFileURL(payload.BusinessDocument) {
-			u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid business document url", nil)
+			u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid business document URL", nil)
 			return
 		}
 		update.SetBusinessDocument(payload.BusinessDocument)
@@ -360,6 +353,8 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 	// Activate profile
 	if payload.HostIdentifier != "" && payload.TradingName != "" {
 		update.SetIsActive(true)
+	} else {
+		update.SetIsActive(false)
 	}
 
 	_, err := update.Save(ctx)
