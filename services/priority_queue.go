@@ -338,11 +338,6 @@ func (s *PriorityQueueService) sendOrderRequest(ctx context.Context, order types
 		"providerId":  order.ProviderID,
 	}
 
-	// Check if the order token exists before adding it to orderRequestData
-	if order.Token != nil {
-		orderRequestData["token"] = order.Token.Symbol
-	}
-
 	if err := storage.RedisClient.HSet(ctx, orderKey, orderRequestData).Err(); err != nil {
 		logger.Errorf("failed to map order to a provider in Redis: %v", err)
 		return err
