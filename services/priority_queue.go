@@ -334,9 +334,13 @@ func (s *PriorityQueueService) sendOrderRequest(ctx context.Context, order types
 
 	orderRequestData := map[string]interface{}{
 		"amount":      approxAmount,
-		"token":       order.Token.Symbol,
 		"institution": order.Institution,
 		"providerId":  order.ProviderID,
+	}
+
+	// Check if the order token exists before adding it to orderRequestData
+	if order.Token != nil {
+		orderRequestData["token"] = order.Token.Symbol
 	}
 
 	if err := storage.RedisClient.HSet(ctx, orderKey, orderRequestData).Err(); err != nil {
