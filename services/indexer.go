@@ -322,7 +322,7 @@ func (s *IndexerService) RunIndexERC20Transfer(ctx context.Context, receiveAddre
 			if receiveAddress.Status == receiveaddress.StatusUsed {
 				// Create order on-chain
 				orderService := NewOrderService()
-				err = orderService.CreateOrder(ctx, nil, receiveAddress.Edges.PaymentOrder.ID)
+				err = orderService.CreateOrder(ctx, receiveAddress.Edges.PaymentOrder.ID)
 				if err != nil {
 					logger.Errorf("failed to create order on-chain: %v", err)
 				}
