@@ -131,7 +131,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, client types.RPCClient, 
 
 	// Sponsor user operation.
 	// This will populate the following fields in userOperation: PaymasterAndData, PreVerificationGas, VerificationGasLimit, CallGasLimit
-	err = s.sponsorUserOperationERC20(userOperation)
+	err = s.sponsorUserOperation(userOperation, "erc20token")
 	if err != nil {
 		return fmt.Errorf("failed to sponsor user operation: %w", err)
 	}
@@ -467,67 +467,34 @@ func (s *OrderService) refundCallData(orderId, label string) ([]byte, error) {
 	return data, nil
 }
 
-// sponsorUserOperationPAYG sponsors the user operation
+// sponsorUserOperation sponsors the user operation
 // ref: https://docs.stackup.sh/docs/paymaster-api-rpc-methods#pm_sponsoruseroperation
-func (s *OrderService) sponsorUserOperationPAYG(userOp *userop.UserOperation) error {
+func (s *OrderService) sponsorUserOperation(userOp *userop.UserOperation, mode string) error {
 	client, err := rpc.Dial(OrderConf.PaymasterURL)
 	if err != nil {
 		return fmt.Errorf("failed to connect to RPC client: %w", err)
 	}
 
-	requestParams := []interface{}{
-		userOp,
-		OrderConf.EntryPointContractAddress.Hex(),
-		map[string]interface{}{
+	var payload map[string]interface{}
+
+	switch mode {
+	case "payg":
+		payload = map[string]interface{}{
 			"type": "payg",
-		},
-	}
-
-	// op, _ := userOp.MarshalJSON()
-	// fmt.Println(string(op))
-
-	var result json.RawMessage
-	err = client.Call(&result, "pm_sponsorUserOperation", requestParams...)
-	if err != nil {
-		return fmt.Errorf("RPC error: %w", err)
-	}
-
-	type Response struct {
-		PaymasterAndData     string `json:"paymasterAndData"     mapstructure:"paymasterAndData"`
-		PreVerificationGas   string `json:"preVerificationGas"   mapstructure:"preVerificationGas"`
-		VerificationGasLimit string `json:"verificationGasLimit" mapstructure:"verificationGasLimit"`
-		CallGasLimit         string `json:"callGasLimit"         mapstructure:"callGasLimit"`
-	}
-
-	var response Response
-	err = json.Unmarshal(result, &response)
-	if err != nil {
-		return fmt.Errorf("failed to unmarshal response: %w", err)
-	}
-
-	userOp.CallGasLimit, _ = new(big.Int).SetString(response.CallGasLimit, 0)
-	userOp.VerificationGasLimit, _ = new(big.Int).SetString(response.VerificationGasLimit, 0)
-	userOp.PreVerificationGas, _ = new(big.Int).SetString(response.PreVerificationGas, 0)
-	userOp.PaymasterAndData = common.FromHex(response.PaymasterAndData)
-
-	return nil
-}
-
-// sponsorUserOperationERC20 sponsors the user operation, and charges back in ERC20
-// ref: https://docs.stackup.sh/docs/paymaster-api-rpc-methods#pm_sponsoruseroperation
-func (s *OrderService) sponsorUserOperationERC20(userOp *userop.UserOperation) error {
-	client, err := rpc.Dial(OrderConf.PaymasterURL)
-	if err != nil {
-		return fmt.Errorf("failed to connect to RPC client: %w", err)
-	}
-
-	requestParams := []interface{}{
-		userOp,
-		OrderConf.EntryPointContractAddress.Hex(),
-		map[string]interface{}{
+		}
+	case "erc20token":
+		payload = map[string]interface{}{
 			"type":  "erc20token",
 			"token": "0x3870419Ba2BBf0127060bCB37f69A1b1C090992B",
-		},
+		}
+	default:
+		return fmt.Errorf("invalid mode")
+	}
+
+	requestParams := []interface{}{
+		userOp,
+		OrderConf.EntryPointContractAddress.Hex(),
+		payload,
 	}
 
 	// op, _ := userOp.MarshalJSON()
@@ -719,7 +686,7 @@ func (s *OrderService) RefundOrder(ctx context.Context, lockOrder *ent.LockPayme
 
 	// Sponsor user operation.
 	// This will populate the following fields in userOperation: PaymasterAndData, PreVerificationGas, VerificationGasLimit, CallGasLimit
-	err = s.sponsorUserOperationPAYG(userOperation)
+	err = s.sponsorUserOperation(userOperation, "payg")
 	if err != nil {
 		return fmt.Errorf("error - RefundOrder - failed to sponsor user operation: %w", err)
 	}
