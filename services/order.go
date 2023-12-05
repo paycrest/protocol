@@ -57,7 +57,7 @@ func NewOrderService() *OrderService {
 }
 
 // CreateOrder creates a new payment order on-chain.
-func (s *OrderService) CreateOrder(ctx context.Context, client types.RPCClient, orderID uuid.UUID) error {
+func (s *OrderService) CreateOrder(ctx context.Context, orderID uuid.UUID) error {
 	var err error
 
 	// Fetch payment order from db
@@ -75,46 +75,17 @@ func (s *OrderService) CreateOrder(ctx context.Context, client types.RPCClient, 
 		return fmt.Errorf("failed to fetch payment order: %w", err)
 	}
 
-	// Connect to RPC endpoint
-	if client == nil {
-		client, err = types.NewEthClient(order.Edges.Token.Edges.Network.RPCEndpoint)
-		if err != nil {
-			return fmt.Errorf("failed to connect to RPC client: %w", err)
-		}
+	saltDecrypted, err := cryptoUtils.DecryptPlain(order.Edges.ReceiveAddress.Salt)
+	if err != nil {
+		return fmt.Errorf("failed to decrypt salt: %w", err)
 	}
 
 	// Initialize user operation with defaults
-	userOperation := initializeUserOperation(order.Edges.ReceiveAddress.Address, "0xa925dcc5e5131636e244d4405334c25f034ebdd85c0cb12e8cdb13c15249c2d466d0bade18e2cafd3513497f7f968dcbb63e519acd9b76dcae7acd61f11aa8421b")
-	// Get nonce
-	nonce, err := client.PendingNonceAt(ctx, *fromAddress)
+	userOperation, err := s.initializeUserOperation(
+		ctx, nil, order.Edges.Token.Edges.Network.RPCEndpoint, order.Edges.ReceiveAddress.Address, string(saltDecrypted),
+	)
 	if err != nil {
-		return fmt.Errorf("failed to get nonce: %w", err)
-	}
-	userOperation.Nonce = big.NewInt(int64(nonce))
-
-	// Create initcode
-	code, err := client.CodeAt(ctx, userOperation.Sender, nil)
-	if err != nil {
-		return err
-	}
-
-	if len(code) == 0 {
-		// address does not exist yet
-		saltDecrypted, err := cryptoUtils.DecryptPlain(order.Edges.ReceiveAddress.Salt)
-		if err != nil {
-			return fmt.Errorf("failed to decrypt salt: %w", err)
-		}
-		salt, _ := new(big.Int).SetString(string(saltDecrypted), 10)
-
-		createAccountCallData, err := s.createAccountCallData(*fromAddress, salt)
-		if err != nil {
-			return fmt.Errorf("failed to create init code: %w", err)
-		}
-
-		var factoryAddress [20]byte
-		copy(factoryAddress[:], common.HexToAddress("0x9406Cc6185a346906296840746125a0E44976454").Bytes())
-
-		userOperation.InitCode = append(factoryAddress[:], createAccountCallData...)
+		return fmt.Errorf("failed to initialize user operation: %w", err)
 	}
 
 	// Create calldata
@@ -124,11 +95,6 @@ func (s *OrderService) CreateOrder(ctx context.Context, client types.RPCClient, 
 	}
 	userOperation.CallData = calldata
 
-	// Set gas fees
-	maxFeePerGas, maxPriorityFeePerGas := s.EIP1559GasPrice(ctx, client)
-	userOperation.MaxFeePerGas = maxFeePerGas
-	userOperation.MaxPriorityFeePerGas = maxPriorityFeePerGas
-
 	// Sponsor user operation.
 	// This will populate the following fields in userOperation: PaymasterAndData, PreVerificationGas, VerificationGasLimit, CallGasLimit
 	err = s.sponsorUserOperation(userOperation, "erc20token")
@@ -136,30 +102,18 @@ func (s *OrderService) CreateOrder(ctx context.Context, client types.RPCClient, 
 		return fmt.Errorf("failed to sponsor user operation: %w", err)
 	}
 
-	fmt.Println("maxFeePerGas: ", userOperation.MaxFeePerGas)
-	fmt.Println("maxPriorityFeePerGas: ", userOperation.MaxPriorityFeePerGas)
-
 	// Sign user operation
-	userOpHash := userOperation.GetUserOpHash(
-		OrderConf.EntryPointContractAddress,
-		big.NewInt(order.Edges.Token.Edges.Network.ChainID),
-	)
-
-	signature, err := utils.PersonalSign(string(userOpHash[:]), privateKey)
-	if err != nil {
-		return fmt.Errorf("failed to sign user operation: %w", err)
-	}
-	userOperation.Signature = signature
+	_ = s.signUserOperation(userOperation)
 
 	// Send user operation
-	_, err = s.sendUserOperation(userOperation)
+	userOpHash, err := s.sendUserOperation(userOperation)
 	if err != nil {
 		return fmt.Errorf("failed to send user operation: %w", err)
 	}
 
 	// Update payment order with userOpHash
 	_, err = order.Update().
-		SetTxHash(userOpHash.Hex()).
+		SetTxHash(userOpHash).
 		SetStatus(paymentorder.StatusPending).
 		Save(ctx)
 	if err != nil {
@@ -642,99 +596,55 @@ func (s *OrderService) EIP1559GasPrice(ctx context.Context, client types.RPCClie
 	return maxFeePerGas, maxPriorityFeePerGas
 }
 
-// RefundSender Refunds sender on canceled order
+// RefundOrder refunds sender on canceled order
 func (s *OrderService) RefundOrder(ctx context.Context, lockOrder *ent.LockPaymentOrder) error {
-	// Get crypto config
-	cryptoConf := config.CryptoConfig()
 
-	// Connect to RPC endpoint
-	client, err := types.NewEthClient(lockOrder.Edges.Token.Edges.Network.RPCEndpoint)
-	if err != nil {
-		return fmt.Errorf("error - RefundOrder - failed to connect to RPC client: %w", err)
-	}
 	// get default userOperation
-	userOperation := initializeUserOperation(cryptoConf.AggregatorSmartAccount, cryptoConf.AggregatorAADefaultSignature)
-	// Sign user operation
-	userOpHash := userOperation.GetUserOpHash(
-		OrderConf.EntryPointContractAddress,
-		big.NewInt(lockOrder.Edges.Token.Edges.Network.ChainID),
+	userOperation, err := s.initializeUserOperation(
+		ctx, nil, lockOrder.Edges.Token.Edges.Network.RPCEndpoint, CryptoConf.AggregatorSmartAccount, CryptoConf.AggregatorSmartAccountSalt,
 	)
-	signature, err := utils.PersonalSign(string(userOpHash[:]), privateKey)
 	if err != nil {
-		fmt.Printf("failed to get sig: %v", err)
+		return fmt.Errorf("RefundOrder.initializeUserOperation: %w", err)
 	}
-	fmt.Printf("aggregator sig : %v", signature)
-
-	// Get nonce
-	nonce, err := client.PendingNonceAt(ctx, *aggregatorFromAddress)
-	if err != nil {
-		return fmt.Errorf("error - RefundOrder - failed to get nonce: %w", err)
-	}
-	userOperation.Nonce = big.NewInt(int64(nonce))
-
-	// refund calldata
-	calldata, err := s.refundCallData(lockOrder.OrderID, lockOrder.Label)
-	if err != nil {
-		return fmt.Errorf("error - RefundOrder - failed to create refund CallData: %w", err)
-	}
-	userOperation.CallData = calldata
-
-	// Set gas fees
-	maxFeePerGas, maxPriorityFeePerGas := s.EIP1559GasPrice(ctx, client)
-	userOperation.MaxFeePerGas = maxFeePerGas
-	userOperation.MaxPriorityFeePerGas = maxPriorityFeePerGas
 
 	// Sponsor user operation.
 	// This will populate the following fields in userOperation: PaymasterAndData, PreVerificationGas, VerificationGasLimit, CallGasLimit
 	err = s.sponsorUserOperation(userOperation, "payg")
 	if err != nil {
-		return fmt.Errorf("error - RefundOrder - failed to sponsor user operation: %w", err)
+		return fmt.Errorf("RefundOrder.sponsorUserOperation: %w", err)
 	}
-
-	fmt.Println("maxFeePerGas: ", userOperation.MaxFeePerGas)
-	fmt.Println("maxPriorityFeePerGas: ", userOperation.MaxPriorityFeePerGas)
 
 	// Sign user operation
-	userOpHash = userOperation.GetUserOpHash(
-		OrderConf.EntryPointContractAddress,
-		big.NewInt(lockOrder.Edges.Token.Edges.Network.ChainID),
-	)
-
-	signature, err = utils.PersonalSign(string(userOpHash[:]), privateKey)
-	if err != nil {
-		return fmt.Errorf("error - RefundOrder - failed to sign user operation: %w", err)
-	}
-	userOperation.Signature = signature
+	_ = s.signUserOperation(userOperation)
 
 	// Send user operation
 	userOpTxHash, err := s.sendUserOperation(userOperation)
 	if err != nil {
-		return fmt.Errorf("error - RefundOrder - failed to send user operation: %w", err)
+		return fmt.Errorf("RefundOrder.sendUserOperation: %w", err)
 	}
-	// update order with refundTxHash
-	lockOrder, err = lockOrder.Update().SetRefundTxHash(userOpTxHash).Save(ctx)
+
+	// Update order with refundTxHash
+	_, err = lockOrder.Update().SetTxHash(userOpTxHash).Save(ctx)
 	if err != nil {
 		fmt.Printf("error - RefundOrder - failed to update lock order with refundTx (%v) : %f", userOpTxHash, err)
 	}
-
-	// Confirm user operation status
-	userOpTxSuccess, err := s.getUserOperationStatus(userOpTxHash)
-	if err != nil {
-		fmt.Printf("error - RefundOrder - failed to get user operation status : %v", err)
-		// Could be a network error, so we don't want to fail the refund
-		return nil
-	}
-
-	if !userOpTxSuccess {
-		return fmt.Errorf("error - RefundOrder - user operation reverted (%v) : %w", lockOrder.OrderID, err)
-	}
-	lockOrder, err = lockOrder.Update().SetIsRefundConfirmed(true).Save(ctx)
 
 	return nil
 }
 
 // Initialize user operation with defaults
-func initializeUserOperation(sender, sig string) *userop.UserOperation {
+func (s *OrderService) initializeUserOperation(ctx context.Context, client types.RPCClient, rpcUrl, sender, salt string) (*userop.UserOperation, error) {
+	var err error
+
+	// Connect to RPC endpoint
+	if client == nil {
+		client, err = types.NewEthClient(rpcUrl)
+		if err != nil {
+			return nil, fmt.Errorf("failed to connect to RPC client: %w", err)
+		}
+	}
+
+	// Build user operation
 	userOperation := &userop.UserOperation{
 		Sender:               common.HexToAddress(sender),
 		Nonce:                big.NewInt(0),
@@ -746,10 +656,58 @@ func initializeUserOperation(sender, sig string) *userop.UserOperation {
 		MaxFeePerGas:         big.NewInt(50000),
 		MaxPriorityFeePerGas: big.NewInt(1000),
 		PaymasterAndData:     common.FromHex("0x"),
-		Signature:            common.FromHex(sig),
+		Signature:            common.FromHex("0xa925dcc5e5131636e244d4405334c25f034ebdd85c0cb12e8cdb13c15249c2d466d0bade18e2cafd3513497f7f968dcbb63e519acd9b76dcae7acd61f11aa8421b"),
 	}
 
-	return userOperation
+	// Get nonce
+	nonce, err := client.PendingNonceAt(ctx, *fromAddress)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get nonce: %w", err)
+	}
+	userOperation.Nonce = big.NewInt(int64(nonce))
+
+	// Create initcode
+	code, err := client.CodeAt(ctx, userOperation.Sender, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(code) == 0 {
+		// address does not exist yet
+		salt, _ := new(big.Int).SetString(salt, 10)
+
+		createAccountCallData, err := s.createAccountCallData(*fromAddress, salt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create init code: %w", err)
+		}
+
+		var factoryAddress [20]byte
+		copy(factoryAddress[:], common.HexToAddress("0x9406Cc6185a346906296840746125a0E44976454").Bytes())
+
+		userOperation.InitCode = append(factoryAddress[:], createAccountCallData...)
+	}
+
+	// Set gas fees
+	maxFeePerGas, maxPriorityFeePerGas := s.EIP1559GasPrice(ctx, client)
+	userOperation.MaxFeePerGas = maxFeePerGas
+	userOperation.MaxPriorityFeePerGas = maxPriorityFeePerGas
+
+	return userOperation, nil
 }
 
-// ...
+// signUserOperation signs the user operation
+func (s *OrderService) signUserOperation(userOperation *userop.UserOperation) error {
+	// Sign user operation
+	userOpHash := userOperation.GetUserOpHash(
+		OrderConf.EntryPointContractAddress,
+		big.NewInt(137),
+	)
+
+	signature, err := utils.PersonalSign(string(userOpHash[:]), privateKey)
+	if err != nil {
+		return fmt.Errorf("failed to sign user operation: %w", err)
+	}
+	userOperation.Signature = signature
+
+	return nil
+}

@@ -91,7 +91,7 @@ func ProcessOrders() error {
 			orderService := services.NewOrderService()
 			order := order
 
-			err := orderService.CreateOrder(ctx, nil, order.ID)
+			err := orderService.CreateOrder(ctx, order.ID)
 			if err != nil {
 				logger.Errorf("process orders task => %v\n", err)
 			}
