@@ -26,7 +26,6 @@ import (
 	"github.com/paycrest/protocol/types"
 	"github.com/paycrest/protocol/utils"
 	cryptoUtils "github.com/paycrest/protocol/utils/crypto"
-	"github.com/paycrest/protocol/utils/logger"
 	"github.com/stackup-wallet/stackup-bundler/pkg/userop"
 )
 
@@ -88,7 +87,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, orderID uuid.UUID) error
 	}
 
 	// Create calldata
-	calldata, err := s.executeBatchCallData(order)
+	calldata, err := s.executeBatchCreateOrderCallData(order)
 	if err != nil {
 		return fmt.Errorf("failed to create calldata: %w", err)
 	}
@@ -123,6 +122,53 @@ func (s *OrderService) CreateOrder(ctx context.Context, orderID uuid.UUID) error
 	err = utils.SendPaymentOrderWebhook(ctx, order)
 	if err != nil {
 		return fmt.Errorf("CreateOrder.webhook: %w", err)
+	}
+
+	return nil
+}
+
+// RefundOrder refunds sender on canceled order
+func (s *OrderService) RefundOrder(ctx context.Context, lockOrder *ent.LockPaymentOrder) error {
+	// Get default userOperation
+	userOperation, err := s.initializeUserOperation(
+		ctx, nil, lockOrder.Edges.Token.Edges.Network.RPCEndpoint, CryptoConf.AggregatorSmartAccount, CryptoConf.AggregatorSmartAccountSalt,
+	)
+	if err != nil {
+		return fmt.Errorf("RefundOrder.initializeUserOperation: %w", err)
+	}
+
+	// Create calldata
+	calldata, err := s.executeBatchRefundCallData(lockOrder)
+	if err != nil {
+		return fmt.Errorf("RefundOrder.refundCallData: %w", err)
+	}
+	userOperation.CallData = calldata
+
+	// Sponsor user operation.
+	// This will populate the following fields in userOperation: PaymasterAndData, PreVerificationGas, VerificationGasLimit, CallGasLimit
+	err = s.sponsorUserOperation(userOperation, "payg")
+	if err != nil {
+		return fmt.Errorf("RefundOrder.sponsorUserOperation: %w", err)
+	}
+
+	// Sign user operation
+	_ = s.signUserOperation(userOperation)
+
+	// Send user operation
+	userOpTxHash, err := s.sendUserOperation(userOperation)
+	if err != nil {
+		return fmt.Errorf("RefundOrder.sendUserOperation: %w", err)
+	}
+
+	// Update status of all lock orders with same order_id
+	_, err = db.Client.LockPaymentOrder.
+		Update().
+		Where(lockpaymentorder.OrderIDEQ(lockOrder.OrderID)).
+		SetTxHash(userOpTxHash).
+		SetStatus(lockpaymentorder.StatusRefunding).
+		Save(ctx)
+	if err != nil {
+		return fmt.Errorf("RefundOrder.updateTxHash(%v): %w", userOpTxHash, err)
 	}
 
 	return nil
@@ -213,8 +259,46 @@ func (s *OrderService) SettleOrder(ctx context.Context, client types.RPCClient, 
 	return nil
 }
 
-// executeBatchCallData creates the calldata for the execute batch method in the smart account.
-func (s *OrderService) executeBatchCallData(order *ent.PaymentOrder) ([]byte, error) {
+// GetSupportedInstitutions fetches the supported institutions by currencyCode.
+func (s *OrderService) GetSupportedInstitutions(ctx context.Context, client types.RPCClient, currencyCode string) ([]types.Institution, error) {
+	// Connect to RPC endpoint
+	var err error
+	if client == nil {
+		// NOTE: RPCEndpoint defaults to polygon-mumbai until contract is deployed to polygon mainnet.
+		client, err = types.NewEthClient("https://polygon-mumbai.g.alchemy.com/v2/zfXjaatj2o5xKkqe0iSvnU9JkKZoiS54")
+		if err != nil {
+			return nil, fmt.Errorf("GetSupportedInstitutions.NewEthClient: %w", err)
+		}
+	}
+
+	currency := utils.StringToByte32(currencyCode)
+
+	// Initialize contract filterer
+	instance, err := contracts.NewPaycrestOrder(OrderConf.PaycrestOrderContractAddress, client.(bind.ContractBackend))
+	if err != nil {
+		return nil, fmt.Errorf("GetSupportedInstitutions.NewPaycrestOrder: %w", err)
+	}
+
+	institutions, err := instance.GetSupportedInstitutions(nil, currency)
+	if err != nil {
+		return nil, fmt.Errorf("GetSupportedInstitutions: %w", err)
+	}
+
+	supportedInstitution := make([]types.Institution, len(institutions))
+	for i, v := range institutions {
+		institution := types.Institution{
+			Name: utils.Byte32ToString(v.Name),
+			Code: utils.Byte32ToString(v.Code),
+			Type: "BANK", // NOTE: defaults to bank.
+		}
+		supportedInstitution[i] = institution
+	}
+
+	return supportedInstitution, nil
+}
+
+// executeBatchCreateOrderCallData creates the calldata for the execute batch method in the smart account.
+func (s *OrderService) executeBatchCreateOrderCallData(order *ent.PaymentOrder) ([]byte, error) {
 	// Create approve data for paycrest order contract
 	approvePaycrestData, err := s.approveCallData(
 		OrderConf.PaycrestOrderContractAddress,
@@ -252,7 +336,7 @@ func (s *OrderService) executeBatchCallData(order *ent.PaymentOrder) ([]byte, er
 		return nil, fmt.Errorf("failed to parse smart account ABI: %w", err)
 	}
 
-	executeBatchCallData, err := simpleAccountABI.Pack(
+	executeBatchCreateOrderCallData, err := simpleAccountABI.Pack(
 		"executeBatch",
 		[]common.Address{
 			common.HexToAddress(order.Edges.Token.ContractAddress),
@@ -265,7 +349,7 @@ func (s *OrderService) executeBatchCallData(order *ent.PaymentOrder) ([]byte, er
 		return nil, fmt.Errorf("failed to pack execute ABI: %w", err)
 	}
 
-	return executeBatchCallData, nil
+	return executeBatchCreateOrderCallData, nil
 }
 
 // approveCallData creates the data for the ERC20 approve method
@@ -353,6 +437,65 @@ func (s *OrderService) createAccountCallData(owner common.Address, salt *big.Int
 	return calldata, nil
 }
 
+// executeBatchRefundCallData creates the refund calldata for the execute batch method in the smart account.
+func (s *OrderService) executeBatchRefundCallData(order *ent.LockPaymentOrder) ([]byte, error) {
+	// Create approve data for paycrest order contract
+	approvePaycrestData, err := s.approveCallData(
+		OrderConf.PaycrestOrderContractAddress,
+		utils.ToSubunit(order.Amount, order.Edges.Token.Decimals),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("executeBatchRefundCallData.approveOrderContract: %w", err)
+	}
+
+	// Create refund data
+	refundData, err := s.refundCallData(order.OrderID, order.Label)
+	if err != nil {
+		return nil, fmt.Errorf("executeBatchRefundCallData.refundData: %w", err)
+	}
+
+	simpleAccountABI, err := abi.JSON(strings.NewReader(contracts.SimpleAccountMetaData.ABI))
+	if err != nil {
+		return nil, fmt.Errorf("executeBatchRefundCallData.simpleAccountABI: %w", err)
+	}
+
+	executeBatchCreateOrderCallData, err := simpleAccountABI.Pack(
+		"executeBatch",
+		[]common.Address{
+			common.HexToAddress(order.Edges.Token.ContractAddress),
+			OrderConf.PaycrestOrderContractAddress,
+		},
+		[][]byte{approvePaycrestData, refundData},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("executeBatchRefundCallData: %w", err)
+	}
+
+	return executeBatchCreateOrderCallData, nil
+}
+
+// refundCallData creates the data for the refund method
+func (s *OrderService) refundCallData(orderId, label string) ([]byte, error) {
+	// Refund ABI
+	paycrestOrderABI, err := abi.JSON(strings.NewReader(contracts.PaycrestOrderMetaData.ABI))
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse PaycrestOrder ABI: %w", err)
+	}
+
+	// Generate call data for refund, orderID, and label should be byte32
+	data, err := paycrestOrderABI.Pack(
+		"refund",
+		utils.StringToByte32(orderId),
+		utils.StringToByte32(label),
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to pack refund ABI: %w", err)
+	}
+
+	return data, nil
+}
+
 // encryptOrderRecipient encrypts the recipient details
 func (s *OrderService) encryptOrderRecipient(recipient *ent.PaymentOrderRecipient) (string, error) {
 	message := struct {
@@ -396,28 +539,6 @@ func (s *OrderService) getPaymasterAccount() (string, error) {
 	}
 
 	return response[0], nil
-}
-
-// refund calldata
-func (s *OrderService) refundCallData(orderId, label string) ([]byte, error) {
-	// Refund ABI
-	paycrestOrderABI, err := abi.JSON(strings.NewReader(contracts.PaycrestOrderMetaData.ABI))
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse PaycrestOrder ABI: %w", err)
-	}
-
-	// Generate call data for refund, orderID, and label should be byte32
-	data, err := paycrestOrderABI.Pack(
-		"refund",
-		utils.StringToByte32(orderId),
-		utils.StringToByte32(label),
-	)
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to pack refund ABI: %w", err)
-	}
-
-	return data, nil
 }
 
 // sponsorUserOperation sponsors the user operation
@@ -510,74 +631,34 @@ func (s *OrderService) sendUserOperation(userOp *userop.UserOperation) (string, 
 	return userOpHash, nil
 }
 
-// getUserOperationStatus returns the status of the user operation
-func (s *OrderService) getUserOperationStatus(userOpHash string) (bool, error) {
-	client, err := rpc.Dial(OrderConf.BundlerRPCURL)
-	if err != nil {
-		return false, fmt.Errorf("failed to connect to RPC client: %w", err)
-	}
+// // getUserOperationStatus returns the status of the user operation
+// func (s *OrderService) getUserOperationStatus(userOpHash string) (bool, error) {
+// 	client, err := rpc.Dial(OrderConf.BundlerRPCURL)
+// 	if err != nil {
+// 		return false, fmt.Errorf("failed to connect to RPC client: %w", err)
+// 	}
 
-	requestParams := []interface{}{
-		userOpHash,
-	}
+// 	requestParams := []interface{}{
+// 		userOpHash,
+// 	}
 
-	var result json.RawMessage
-	err = client.Call(&result, "eth_getUserOperationReceipt", requestParams)
-	if err != nil {
-		return false, fmt.Errorf("RPC error: %w", err)
-	}
+// 	var result json.RawMessage
+// 	err = client.Call(&result, "eth_getUserOperationReceipt", requestParams)
+// 	if err != nil {
+// 		return false, fmt.Errorf("RPC error: %w", err)
+// 	}
 
-	var userOpStatus map[string]interface{}
-	err = json.Unmarshal(result, &userOpStatus)
-	if err != nil {
-		return false, fmt.Errorf("failed to unmarshal response: %w", err)
-	}
+// 	var userOpStatus map[string]interface{}
+// 	err = json.Unmarshal(result, &userOpStatus)
+// 	if err != nil {
+// 		return false, fmt.Errorf("failed to unmarshal response: %w", err)
+// 	}
 
-	return userOpStatus["success"].(bool), nil
-}
+// 	return userOpStatus["success"].(bool), nil
+// }
 
-// GetSupportedInstitutions fetches the supported institutions by currencyCode.
-func (s *OrderService) GetSupportedInstitutions(ctx context.Context, client types.RPCClient, currencyCode string) ([]types.Institution, error) {
-	// Connect to RPC endpoint
-	var err error
-	if client == nil {
-		// NOTE: RPCEndpoint defaults to polygon-mumbai until contract is deployed to mainnet.
-		client, err = types.NewEthClient("https://polygon-mumbai.g.alchemy.com/v2/zfXjaatj2o5xKkqe0iSvnU9JkKZoiS54")
-		if err != nil {
-			return nil, fmt.Errorf("failed to connect to RPC client: %w", err)
-		}
-	}
-
-	currency := utils.StringToByte32(currencyCode)
-
-	// Initialize contract filterer
-	instance, err := contracts.NewPaycrestOrder(OrderConf.PaycrestOrderContractAddress, client.(bind.ContractBackend))
-	if err != nil {
-		logger.Errorf("contracts.NewPaycrestOrder: %v", err)
-		return nil, err
-	}
-
-	institutions, err := instance.GetSupportedInstitutions(nil, currency)
-	if err != nil {
-		logger.Errorf("instance.GetSupportedInstitutions: %v", err)
-		return nil, err
-	}
-
-	supportedInstitution := make([]types.Institution, len(institutions))
-	for i, v := range institutions {
-		institution := types.Institution{
-			Name: utils.Byte32ToString(v.Name),
-			Code: utils.Byte32ToString(v.Code),
-			Type: "BANK", // NOTE: defaults to bank.
-		}
-		supportedInstitution[i] = institution
-	}
-
-	return supportedInstitution, nil
-}
-
-// EIP1559GasPrice computes the EIP1559 gas price
-func (s *OrderService) EIP1559GasPrice(ctx context.Context, client types.RPCClient) (maxFeePerGas, maxPriorityFeePerGas *big.Int) {
+// eip1559GasPrice computes the EIP1559 gas price
+func (s *OrderService) eip1559GasPrice(ctx context.Context, client types.RPCClient) (maxFeePerGas, maxPriorityFeePerGas *big.Int) {
 	tip, _ := client.SuggestGasTipCap(ctx)
 	latestHeader, _ := client.HeaderByNumber(ctx, nil)
 
@@ -593,53 +674,6 @@ func (s *OrderService) EIP1559GasPrice(ctx context.Context, client types.RPCClie
 	}
 
 	return maxFeePerGas, maxPriorityFeePerGas
-}
-
-// RefundOrder refunds sender on canceled order
-func (s *OrderService) RefundOrder(ctx context.Context, lockOrder *ent.LockPaymentOrder) error {
-	// Get default userOperation
-	userOperation, err := s.initializeUserOperation(
-		ctx, nil, lockOrder.Edges.Token.Edges.Network.RPCEndpoint, CryptoConf.AggregatorSmartAccount, CryptoConf.AggregatorSmartAccountSalt,
-	)
-	if err != nil {
-		return fmt.Errorf("RefundOrder.initializeUserOperation: %w", err)
-	}
-
-	// Create calldata
-	calldata, err := s.refundCallData(lockOrder.OrderID, lockOrder.Label)
-	if err != nil {
-		return fmt.Errorf("RefundOrder.refundCallData: %w", err)
-	}
-	userOperation.CallData = calldata
-
-	// Sponsor user operation.
-	// This will populate the following fields in userOperation: PaymasterAndData, PreVerificationGas, VerificationGasLimit, CallGasLimit
-	err = s.sponsorUserOperation(userOperation, "payg")
-	if err != nil {
-		return fmt.Errorf("RefundOrder.sponsorUserOperation: %w", err)
-	}
-
-	// Sign user operation
-	_ = s.signUserOperation(userOperation)
-
-	// Send user operation
-	userOpTxHash, err := s.sendUserOperation(userOperation)
-	if err != nil {
-		return fmt.Errorf("RefundOrder.sendUserOperation: %w", err)
-	}
-
-	// Update status of all lock orders with same order_id
-	_, err = db.Client.LockPaymentOrder.
-		Update().
-		Where(lockpaymentorder.OrderIDEQ(lockOrder.OrderID)).
-		SetTxHash(userOpTxHash).
-		SetStatus(lockpaymentorder.StatusRefunding).
-		Save(ctx)
-	if err != nil {
-		return fmt.Errorf("RefundOrder.updateTxHash(%v): %w", userOpTxHash, err)
-	}
-
-	return nil
 }
 
 // Initialize user operation with defaults
@@ -698,7 +732,7 @@ func (s *OrderService) initializeUserOperation(ctx context.Context, client types
 	}
 
 	// Set gas fees
-	maxFeePerGas, maxPriorityFeePerGas := s.EIP1559GasPrice(ctx, client)
+	maxFeePerGas, maxPriorityFeePerGas := s.eip1559GasPrice(ctx, client)
 	userOperation.MaxFeePerGas = maxFeePerGas
 	userOperation.MaxPriorityFeePerGas = maxPriorityFeePerGas
 
