@@ -162,7 +162,7 @@ type ProviderProfilePayload struct {
 	Currency             string                      `json:"currency"`
 	HostIdentifier       string                      `json:"hostIdentifier"`
 	IsPartner            bool                        `json:"isPartner"`
-	Availability         bool                        `json:"isAvailable"`
+	IsAvailable          bool                        `json:"isAvailable"`
 	Tokens               []ProviderOrderTokenPayload `json:"tokens"`
 	VisibilityMode       string                      `json:"visibility_mode"`
 	Address              string                      `json:"address"`
@@ -184,7 +184,7 @@ type ProviderProfileResponse struct {
 	Currency             string                    `json:"currency"`
 	HostIdentifier       string                    `json:"hostIdentifier"`
 	IsPartner            bool                      `json:"isPartner"`
-	Availability         bool                      `json:"isAvailable"`
+	IsAvailable          bool                      `json:"isAvailable"`
 	Tokens               []*ent.ProviderOrderToken `json:"tokens"`
 	APIKey               APIKeyResponse            `json:"apiKey"`
 	IsActive             bool                      `json:"isActive"`

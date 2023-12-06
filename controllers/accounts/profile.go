@@ -422,11 +422,6 @@ func (ctrl *ProfileController) GetProviderProfile(ctx *gin.Context) {
 
 	// Get availability
 	availability := provider.IsAvailable
-	if err != nil {
-		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to retrieve profile", nil)
-		return
-	}
-
 	// Get tokens
 	tokens, err := provider.QueryOrderTokens().All(ctx)
 	if err != nil {
@@ -450,7 +445,7 @@ func (ctrl *ProfileController) GetProviderProfile(ctx *gin.Context) {
 		Currency:             provider.Edges.Currency.Code,
 		HostIdentifier:       provider.HostIdentifier,
 		IsPartner:            provider.IsPartner,
-		Availability:         availability,
+		IsAvailable:         availability,
 		Tokens:               tokens,
 		APIKey:               *apiKey,
 		IsActive:             provider.IsActive,

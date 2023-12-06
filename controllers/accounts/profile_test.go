@@ -256,7 +256,7 @@ func TestProfile(t *testing.T) {
 				TradingName:    "My Trading Name",
 				Currency:       "KES",
 				HostIdentifier: "example.com",
-				Availability:   true,
+				IsAvailable:   true,
 			}
 
 			res, err := test.PerformRequest(t, "PATCH", "/settings/provider", payload, headers, router)
