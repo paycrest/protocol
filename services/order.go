@@ -46,9 +46,8 @@ type CreateOrderParams struct {
 }
 
 var (
-	fromAddress, privateKey, _                     = cryptoUtils.GenerateAccountFromIndex(0)
-	aggregatorFromAddress, aggregatorPrivateKey, _ = cryptoUtils.GenerateAccountFromIndex(1)
-	CryptoConf                                     = config.CryptoConfig()
+	fromAddress, privateKey, _ = cryptoUtils.GenerateAccountFromIndex(0)
+	CryptoConf                 = config.CryptoConfig()
 )
 
 // NewOrderService creates a new instance of OrderService.
@@ -598,14 +597,20 @@ func (s *OrderService) EIP1559GasPrice(ctx context.Context, client types.RPCClie
 
 // RefundOrder refunds sender on canceled order
 func (s *OrderService) RefundOrder(ctx context.Context, lockOrder *ent.LockPaymentOrder) error {
-
-	// get default userOperation
+	// Get default userOperation
 	userOperation, err := s.initializeUserOperation(
 		ctx, nil, lockOrder.Edges.Token.Edges.Network.RPCEndpoint, CryptoConf.AggregatorSmartAccount, CryptoConf.AggregatorSmartAccountSalt,
 	)
 	if err != nil {
 		return fmt.Errorf("RefundOrder.initializeUserOperation: %w", err)
 	}
+
+	// Create calldata
+	calldata, err := s.refundCallData(lockOrder.OrderID, lockOrder.Label)
+	if err != nil {
+		return fmt.Errorf("RefundOrder.refundCallData: %w", err)
+	}
+	userOperation.CallData = calldata
 
 	// Sponsor user operation.
 	// This will populate the following fields in userOperation: PaymasterAndData, PreVerificationGas, VerificationGasLimit, CallGasLimit
@@ -623,10 +628,15 @@ func (s *OrderService) RefundOrder(ctx context.Context, lockOrder *ent.LockPayme
 		return fmt.Errorf("RefundOrder.sendUserOperation: %w", err)
 	}
 
-	// Update order with refundTxHash
-	_, err = lockOrder.Update().SetTxHash(userOpTxHash).Save(ctx)
+	// Update status of all lock orders with same order_id
+	_, err = db.Client.LockPaymentOrder.
+		Update().
+		Where(lockpaymentorder.OrderIDEQ(lockOrder.OrderID)).
+		SetTxHash(userOpTxHash).
+		SetStatus(lockpaymentorder.StatusRefunding).
+		Save(ctx)
 	if err != nil {
-		fmt.Printf("error - RefundOrder - failed to update lock order with refundTx (%v) : %f", userOpTxHash, err)
+		return fmt.Errorf("RefundOrder.updateTxHash(%v): %w", userOpTxHash, err)
 	}
 
 	return nil

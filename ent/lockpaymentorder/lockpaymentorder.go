@@ -48,12 +48,6 @@ const (
 	FieldCancellationCount = "cancellation_count"
 	// FieldCancellationReasons holds the string denoting the cancellation_reasons field in the database.
 	FieldCancellationReasons = "cancellation_reasons"
-	// FieldIsRefunded holds the string denoting the is_refunded field in the database.
-	FieldIsRefunded = "is_refunded"
-	// FieldRefundTxHash holds the string denoting the refund_tx_hash field in the database.
-	FieldRefundTxHash = "refund_tx_hash"
-	// FieldIsRefundConfirmed holds the string denoting the is_refund_confirmed field in the database.
-	FieldIsRefundConfirmed = "is_refund_confirmed"
 	// EdgeToken holds the string denoting the token edge name in mutations.
 	EdgeToken = "token"
 	// EdgeProvisionBucket holds the string denoting the provision_bucket edge name in mutations.
@@ -113,9 +107,6 @@ var Columns = []string{
 	FieldMemo,
 	FieldCancellationCount,
 	FieldCancellationReasons,
-	FieldIsRefunded,
-	FieldRefundTxHash,
-	FieldIsRefundConfirmed,
 }
 
 // ForeignKeys holds the SQL foreign-keys that are owned by the "lock_payment_orders"
@@ -154,10 +145,6 @@ var (
 	DefaultCancellationCount int
 	// DefaultCancellationReasons holds the default value on creation for the "cancellation_reasons" field.
 	DefaultCancellationReasons []string
-	// DefaultIsRefunded holds the default value on creation for the "is_refunded" field.
-	DefaultIsRefunded bool
-	// DefaultIsRefundConfirmed holds the default value on creation for the "is_refund_confirmed" field.
-	DefaultIsRefundConfirmed bool
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() uuid.UUID
 )
@@ -175,7 +162,10 @@ const (
 	StatusCancelled  Status = "cancelled"
 	StatusFulfilled  Status = "fulfilled"
 	StatusValidated  Status = "validated"
+	StatusSettling   Status = "settling"
 	StatusSettled    Status = "settled"
+	StatusRefunding  Status = "refunding"
+	StatusRefunded   Status = "refunded"
 )
 
 func (s Status) String() string {
@@ -185,7 +175,7 @@ func (s Status) String() string {
 // StatusValidator is a validator for the "status" field enum values. It is called by the builders before save.
 func StatusValidator(s Status) error {
 	switch s {
-	case StatusPending, StatusProcessing, StatusCancelled, StatusFulfilled, StatusValidated, StatusSettled:
+	case StatusPending, StatusProcessing, StatusCancelled, StatusFulfilled, StatusValidated, StatusSettling, StatusSettled, StatusRefunding, StatusRefunded:
 		return nil
 	default:
 		return fmt.Errorf("lockpaymentorder: invalid enum value for status field: %q", s)
@@ -273,21 +263,6 @@ func ByMemo(opts ...sql.OrderTermOption) OrderOption {
 // ByCancellationCount orders the results by the cancellation_count field.
 func ByCancellationCount(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCancellationCount, opts...).ToFunc()
-}
-
-// ByIsRefunded orders the results by the is_refunded field.
-func ByIsRefunded(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldIsRefunded, opts...).ToFunc()
-}
-
-// ByRefundTxHash orders the results by the refund_tx_hash field.
-func ByRefundTxHash(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldRefundTxHash, opts...).ToFunc()
-}
-
-// ByIsRefundConfirmed orders the results by the is_refund_confirmed field.
-func ByIsRefundConfirmed(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldIsRefundConfirmed, opts...).ToFunc()
 }
 
 // ByTokenField orders the results by token field.

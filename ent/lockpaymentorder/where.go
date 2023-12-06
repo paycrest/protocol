@@ -122,21 +122,6 @@ func CancellationCount(v int) predicate.LockPaymentOrder {
 	return predicate.LockPaymentOrder(sql.FieldEQ(FieldCancellationCount, v))
 }
 
-// IsRefunded applies equality check predicate on the "is_refunded" field. It's identical to IsRefundedEQ.
-func IsRefunded(v bool) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldEQ(FieldIsRefunded, v))
-}
-
-// RefundTxHash applies equality check predicate on the "refund_tx_hash" field. It's identical to RefundTxHashEQ.
-func RefundTxHash(v string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldEQ(FieldRefundTxHash, v))
-}
-
-// IsRefundConfirmed applies equality check predicate on the "is_refund_confirmed" field. It's identical to IsRefundConfirmedEQ.
-func IsRefundConfirmed(v bool) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldEQ(FieldIsRefundConfirmed, v))
-}
-
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.LockPaymentOrder {
 	return predicate.LockPaymentOrder(sql.FieldEQ(FieldCreatedAt, v))
@@ -920,101 +905,6 @@ func CancellationCountLT(v int) predicate.LockPaymentOrder {
 // CancellationCountLTE applies the LTE predicate on the "cancellation_count" field.
 func CancellationCountLTE(v int) predicate.LockPaymentOrder {
 	return predicate.LockPaymentOrder(sql.FieldLTE(FieldCancellationCount, v))
-}
-
-// IsRefundedEQ applies the EQ predicate on the "is_refunded" field.
-func IsRefundedEQ(v bool) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldEQ(FieldIsRefunded, v))
-}
-
-// IsRefundedNEQ applies the NEQ predicate on the "is_refunded" field.
-func IsRefundedNEQ(v bool) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldNEQ(FieldIsRefunded, v))
-}
-
-// RefundTxHashEQ applies the EQ predicate on the "refund_tx_hash" field.
-func RefundTxHashEQ(v string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldEQ(FieldRefundTxHash, v))
-}
-
-// RefundTxHashNEQ applies the NEQ predicate on the "refund_tx_hash" field.
-func RefundTxHashNEQ(v string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldNEQ(FieldRefundTxHash, v))
-}
-
-// RefundTxHashIn applies the In predicate on the "refund_tx_hash" field.
-func RefundTxHashIn(vs ...string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldIn(FieldRefundTxHash, vs...))
-}
-
-// RefundTxHashNotIn applies the NotIn predicate on the "refund_tx_hash" field.
-func RefundTxHashNotIn(vs ...string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldNotIn(FieldRefundTxHash, vs...))
-}
-
-// RefundTxHashGT applies the GT predicate on the "refund_tx_hash" field.
-func RefundTxHashGT(v string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldGT(FieldRefundTxHash, v))
-}
-
-// RefundTxHashGTE applies the GTE predicate on the "refund_tx_hash" field.
-func RefundTxHashGTE(v string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldGTE(FieldRefundTxHash, v))
-}
-
-// RefundTxHashLT applies the LT predicate on the "refund_tx_hash" field.
-func RefundTxHashLT(v string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldLT(FieldRefundTxHash, v))
-}
-
-// RefundTxHashLTE applies the LTE predicate on the "refund_tx_hash" field.
-func RefundTxHashLTE(v string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldLTE(FieldRefundTxHash, v))
-}
-
-// RefundTxHashContains applies the Contains predicate on the "refund_tx_hash" field.
-func RefundTxHashContains(v string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldContains(FieldRefundTxHash, v))
-}
-
-// RefundTxHashHasPrefix applies the HasPrefix predicate on the "refund_tx_hash" field.
-func RefundTxHashHasPrefix(v string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldHasPrefix(FieldRefundTxHash, v))
-}
-
-// RefundTxHashHasSuffix applies the HasSuffix predicate on the "refund_tx_hash" field.
-func RefundTxHashHasSuffix(v string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldHasSuffix(FieldRefundTxHash, v))
-}
-
-// RefundTxHashIsNil applies the IsNil predicate on the "refund_tx_hash" field.
-func RefundTxHashIsNil() predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldIsNull(FieldRefundTxHash))
-}
-
-// RefundTxHashNotNil applies the NotNil predicate on the "refund_tx_hash" field.
-func RefundTxHashNotNil() predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldNotNull(FieldRefundTxHash))
-}
-
-// RefundTxHashEqualFold applies the EqualFold predicate on the "refund_tx_hash" field.
-func RefundTxHashEqualFold(v string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldEqualFold(FieldRefundTxHash, v))
-}
-
-// RefundTxHashContainsFold applies the ContainsFold predicate on the "refund_tx_hash" field.
-func RefundTxHashContainsFold(v string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldContainsFold(FieldRefundTxHash, v))
-}
-
-// IsRefundConfirmedEQ applies the EQ predicate on the "is_refund_confirmed" field.
-func IsRefundConfirmedEQ(v bool) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldEQ(FieldIsRefundConfirmed, v))
-}
-
-// IsRefundConfirmedNEQ applies the NEQ predicate on the "is_refund_confirmed" field.
-func IsRefundConfirmedNEQ(v bool) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldNEQ(FieldIsRefundConfirmed, v))
 }
 
 // HasToken applies the HasEdge predicate on the "token" edge.

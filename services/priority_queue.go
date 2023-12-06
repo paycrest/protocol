@@ -559,7 +559,7 @@ func (s *PriorityQueueService) ReassignStaleOrderRequest(ctx context.Context, or
 
 // ReassignUnfulfilledLockOrders reassigns lockOrder unfulfilled within a time frame.
 func (s *PriorityQueueService) ReassignUnfulfilledLockOrders(ctx context.Context) {
-	// query unfulfilled lock orders.
+	// Query unfulfilled lock orders.
 	lockOrders, err := storage.Client.LockPaymentOrder.
 		Query().
 		Where(
@@ -569,10 +569,7 @@ func (s *PriorityQueueService) ReassignUnfulfilledLockOrders(ctx context.Context
 					lockpaymentorder.StatusEQ(lockpaymentorder.StatusProcessing),
 					lockpaymentorder.UpdatedAtLTE(time.Now().Add(-OrderConf.OrderFulfillmentValidity*time.Minute)),
 				),
-				lockpaymentorder.And(
-					lockpaymentorder.StatusEQ(lockpaymentorder.StatusCancelled),
-					lockpaymentorder.IsRefundedEQ(false),
-				),
+				lockpaymentorder.StatusEQ(lockpaymentorder.StatusCancelled),
 			),
 		).
 		WithToken().
@@ -584,7 +581,7 @@ func (s *PriorityQueueService) ReassignUnfulfilledLockOrders(ctx context.Context
 		return
 	}
 
-	// unassign unfulfilled lock orders.
+	// Unassign unfulfilled lock orders.
 	_, err = storage.Client.LockPaymentOrder.
 		Update().
 		Where(

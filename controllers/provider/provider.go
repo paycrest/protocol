@@ -369,42 +369,32 @@ func (ctrl *ProviderController) CancelOrder(ctx *gin.Context) {
 		return
 	}
 
+	orderUpdate := storage.Client.LockPaymentOrder.UpdateOneID(orderID)
+
 	// Update lock order status to cancelled
-	order, err = storage.Client.LockPaymentOrder.
-		UpdateOneID(orderID).
+	orderUpdate.
 		SetStatus(lockpaymentorder.StatusCancelled).
-		SetCancellationCount(order.CancellationCount + 1).
-		AppendCancellationReasons([]string{payload.Reason}).
-		Save(ctx)
+		SetCancellationCount(order.CancellationCount + 1)
+
+	if payload.Reason != "Insufficient funds" {
+		orderUpdate.AppendCancellationReasons([]string{payload.Reason})
+	}
+
+	order, err = orderUpdate.Save(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to cancel order", nil)
 		return
 	}
 
-	// Check if order coancellation count is equal or greater than RefundCancellationCount in config,
+	// Check if order cancellation count is equal or greater than RefundCancellationCount in config,
 	// and the order has not been refunded, then trigger refund
 	orderConf := config.OrderConfig()
-	if order.CancellationCount >= orderConf.RefundCancellationCount && !order.IsRefunded {
-		// update lock order status to refunded
-		_, err = storage.Client.LockPaymentOrder.
-			UpdateOneID(orderID).
-			SetIsRefunded(true).
-			Save(ctx)
-		if err == nil {
-			// Refund sender, if no error updating order status to refunded
-			err = ctrl.orderService.RefundOrder(ctx, order)
-			if err != nil {
-				_, err = storage.Client.LockPaymentOrder.
-					UpdateOneID(orderID).
-					SetIsRefunded(false).
-					Save(ctx)
-				logger.Errorf("error - Order (%v) failed to refunded and failed to rollback tx : %v", orderID, err)
-			}
-		} else {
-			logger.Errorf("error - Order (%v) failed to refund : %v", orderID, err)
+	if order.CancellationCount >= orderConf.RefundCancellationCount && order.Status == lockpaymentorder.StatusCancelled {
+		err = ctrl.orderService.RefundOrder(ctx, order)
+		if err != nil {
+			logger.Errorf("CancelOrder.RefundOrder(%v): %v", orderID, err)
 		}
-
 	}
 
 	// Push provider ID to order exclude list
