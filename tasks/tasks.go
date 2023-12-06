@@ -45,7 +45,7 @@ func ContinueIndexing() error {
 		go indexerService.RunIndexERC20Transfer(ctx, receiveAddress)
 	}
 
-	// Start indexing on-chain payment order deposits and settlements
+	// Start indexing on-chain payment order deposits, settlements, and refunds
 	// TODO: query networks based on the development environment: prod == mainnet, sandbox == testnet
 	networks, err := storage.GetClient().Network.Query().All(ctx)
 	if err != nil {
@@ -62,6 +62,11 @@ func ContinueIndexing() error {
 			err = indexerService.IndexOrderSettlements(ctx, nil, network)
 			if err != nil {
 				logger.Errorf("process order settlements task => %v\n", err)
+			}
+
+			err = indexerService.IndexOrderRefunds(ctx, nil, network)
+			if err != nil {
+				logger.Errorf("process order refunds task => %v\n", err)
 			}
 		}(network)
 	}
