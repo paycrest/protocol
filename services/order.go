@@ -118,8 +118,17 @@ func (s *OrderService) CreateOrder(ctx context.Context, orderID uuid.UUID) error
 		return fmt.Errorf("failed to update payment order: %w", err)
 	}
 
+	paymentOrder, err := db.Client.PaymentOrder.
+		Query().
+		Where(paymentorder.IDEQ(orderID)).
+		WithSenderProfile().
+		Only(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to fetch payment order: %w", err)
+	}
+
 	// Send webhook notifcation to sender
-	err = utils.SendPaymentOrderWebhook(ctx, order)
+	err = utils.SendPaymentOrderWebhook(ctx, paymentOrder)
 	if err != nil {
 		return fmt.Errorf("CreateOrder.webhook: %w", err)
 	}
