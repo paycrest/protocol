@@ -178,48 +178,6 @@ func (lpoc *LockPaymentOrderCreate) SetCancellationReasons(s []string) *LockPaym
 	return lpoc
 }
 
-// SetIsRefunded sets the "is_refunded" field.
-func (lpoc *LockPaymentOrderCreate) SetIsRefunded(b bool) *LockPaymentOrderCreate {
-	lpoc.mutation.SetIsRefunded(b)
-	return lpoc
-}
-
-// SetNillableIsRefunded sets the "is_refunded" field if the given value is not nil.
-func (lpoc *LockPaymentOrderCreate) SetNillableIsRefunded(b *bool) *LockPaymentOrderCreate {
-	if b != nil {
-		lpoc.SetIsRefunded(*b)
-	}
-	return lpoc
-}
-
-// SetRefundTxHash sets the "refund_tx_hash" field.
-func (lpoc *LockPaymentOrderCreate) SetRefundTxHash(s string) *LockPaymentOrderCreate {
-	lpoc.mutation.SetRefundTxHash(s)
-	return lpoc
-}
-
-// SetNillableRefundTxHash sets the "refund_tx_hash" field if the given value is not nil.
-func (lpoc *LockPaymentOrderCreate) SetNillableRefundTxHash(s *string) *LockPaymentOrderCreate {
-	if s != nil {
-		lpoc.SetRefundTxHash(*s)
-	}
-	return lpoc
-}
-
-// SetIsRefundConfirmed sets the "is_refund_confirmed" field.
-func (lpoc *LockPaymentOrderCreate) SetIsRefundConfirmed(b bool) *LockPaymentOrderCreate {
-	lpoc.mutation.SetIsRefundConfirmed(b)
-	return lpoc
-}
-
-// SetNillableIsRefundConfirmed sets the "is_refund_confirmed" field if the given value is not nil.
-func (lpoc *LockPaymentOrderCreate) SetNillableIsRefundConfirmed(b *bool) *LockPaymentOrderCreate {
-	if b != nil {
-		lpoc.SetIsRefundConfirmed(*b)
-	}
-	return lpoc
-}
-
 // SetID sets the "id" field.
 func (lpoc *LockPaymentOrderCreate) SetID(u uuid.UUID) *LockPaymentOrderCreate {
 	lpoc.mutation.SetID(u)
@@ -357,14 +315,6 @@ func (lpoc *LockPaymentOrderCreate) defaults() {
 		v := lockpaymentorder.DefaultCancellationReasons
 		lpoc.mutation.SetCancellationReasons(v)
 	}
-	if _, ok := lpoc.mutation.IsRefunded(); !ok {
-		v := lockpaymentorder.DefaultIsRefunded
-		lpoc.mutation.SetIsRefunded(v)
-	}
-	if _, ok := lpoc.mutation.IsRefundConfirmed(); !ok {
-		v := lockpaymentorder.DefaultIsRefundConfirmed
-		lpoc.mutation.SetIsRefundConfirmed(v)
-	}
 	if _, ok := lpoc.mutation.ID(); !ok {
 		v := lockpaymentorder.DefaultID()
 		lpoc.mutation.SetID(v)
@@ -421,12 +371,6 @@ func (lpoc *LockPaymentOrderCreate) check() error {
 	}
 	if _, ok := lpoc.mutation.CancellationReasons(); !ok {
 		return &ValidationError{Name: "cancellation_reasons", err: errors.New(`ent: missing required field "LockPaymentOrder.cancellation_reasons"`)}
-	}
-	if _, ok := lpoc.mutation.IsRefunded(); !ok {
-		return &ValidationError{Name: "is_refunded", err: errors.New(`ent: missing required field "LockPaymentOrder.is_refunded"`)}
-	}
-	if _, ok := lpoc.mutation.IsRefundConfirmed(); !ok {
-		return &ValidationError{Name: "is_refund_confirmed", err: errors.New(`ent: missing required field "LockPaymentOrder.is_refund_confirmed"`)}
 	}
 	if _, ok := lpoc.mutation.TokenID(); !ok {
 		return &ValidationError{Name: "token", err: errors.New(`ent: missing required edge "LockPaymentOrder.token"`)}
@@ -529,18 +473,6 @@ func (lpoc *LockPaymentOrderCreate) createSpec() (*LockPaymentOrder, *sqlgraph.C
 	if value, ok := lpoc.mutation.CancellationReasons(); ok {
 		_spec.SetField(lockpaymentorder.FieldCancellationReasons, field.TypeJSON, value)
 		_node.CancellationReasons = value
-	}
-	if value, ok := lpoc.mutation.IsRefunded(); ok {
-		_spec.SetField(lockpaymentorder.FieldIsRefunded, field.TypeBool, value)
-		_node.IsRefunded = value
-	}
-	if value, ok := lpoc.mutation.RefundTxHash(); ok {
-		_spec.SetField(lockpaymentorder.FieldRefundTxHash, field.TypeString, value)
-		_node.RefundTxHash = value
-	}
-	if value, ok := lpoc.mutation.IsRefundConfirmed(); ok {
-		_spec.SetField(lockpaymentorder.FieldIsRefundConfirmed, field.TypeBool, value)
-		_node.IsRefundConfirmed = value
 	}
 	if nodes := lpoc.mutation.TokenIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

@@ -39,7 +39,7 @@ func (LockPaymentOrder) Fields() []ent.Field {
 			Optional(),
 		field.String("label"),
 		field.Enum("status").
-			Values("pending", "processing", "cancelled", "fulfilled", "validated", "settled").
+			Values("pending", "processing", "cancelled", "fulfilled", "validated", "settling", "settled", "refunding", "refunded").
 			Default("pending"),
 		field.Int64("block_number"),
 		field.String("institution"),
@@ -51,9 +51,6 @@ func (LockPaymentOrder) Fields() []ent.Field {
 			Default(0),
 		field.Strings("cancellation_reasons").
 			Default([]string{}),
-		field.Bool("is_refunded").Default(false),
-		field.String("refund_tx_hash").Optional(),
-		field.Bool("is_refund_confirmed").Default(false),
 	}
 }
 
