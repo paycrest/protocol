@@ -436,6 +436,19 @@ func (s *IndexerService) IndexOrderSettlements(ctx context.Context, client types
 			}
 
 			// Settle payment order on sender side
+			_, err = db.Client.PaymentOrder.
+				Update().
+				Where(
+					paymentorder.LabelEQ(utils.Byte32ToString(log.Label)),
+				).
+				SetStatus(paymentorder.StatusSettled).
+				Save(ctx)
+			if err != nil {
+				logger.Errorf("IndexOrderRefunds: %v", err)
+				continue
+			}
+
+			// Fetch payment order
 			paymentOrder, err := db.Client.PaymentOrder.
 				Query().
 				Where(
@@ -445,15 +458,6 @@ func (s *IndexerService) IndexOrderSettlements(ctx context.Context, client types
 				Only(ctx)
 			if err != nil {
 				logger.Errorf("failed to fetch payment order: %v", err)
-				continue
-			}
-
-			_, err = paymentOrder.
-				Update().
-				SetStatus(paymentorder.StatusSettled).
-				Save(ctx)
-			if err != nil {
-				logger.Errorf("IndexOrderSettlements: %v", err)
 				continue
 			}
 
@@ -471,46 +475,165 @@ func (s *IndexerService) IndexOrderSettlements(ctx context.Context, client types
 	}
 }
 
-// indexMissedBlocksForDeposits indexes missed blocks for deposits from the last lock payment order block number
-func (s *IndexerService) indexMissedBlocksForDeposits(ctx context.Context, client types.RPCClient, filterer *contracts.PaycrestOrderFilterer, network *ent.Network) {
-	// Get the last lock payment order from db
-	result, err := db.Client.LockPaymentOrder.
-		Query().
-		Where(
-			lockpaymentorder.HasTokenWith(
-				token.HasNetworkWith(
-					networkent.IDEQ(network.ID),
-				),
-			),
-			lockpaymentorder.StatusEQ(lockpaymentorder.StatusPending),
-		).
-		Order(ent.Desc(lockpaymentorder.FieldBlockNumber)).
-		Limit(1).
-		All(ctx)
+// IndexOrderRefunds indexes order refunds for a specific network.
+func (s *IndexerService) IndexOrderRefunds(ctx context.Context, client types.RPCClient, network *ent.Network) error {
+	var err error
+
+	// Connect to RPC endpoint
+	if client == nil {
+		client, err = types.NewEthClient(network.RPCEndpoint)
+		if err != nil {
+			return fmt.Errorf("failed to connect to RPC client: %w", err)
+		}
+	}
+
+	// Initialize contract filterer
+	filterer, err := contracts.NewPaycrestOrderFilterer(OrderConf.PaycrestOrderContractAddress, client)
 	if err != nil {
-		logger.Errorf("failed to fetch lock payment order: %v", err)
+		return fmt.Errorf("failed to create filterer: %w", err)
 	}
 
-	// Fetch current block header
-	header, err := client.HeaderByNumber(ctx, nil)
+	go s.indexMissedBlocksForRefunds(ctx, client, filterer, network)
+
+	// Start listening for refund events
+	logs := make(chan *contracts.PaycrestOrderRefunded)
+
+	sub, err := filterer.WatchRefunded(&bind.WatchOpts{
+		Start: nil,
+	}, logs, nil)
 	if err != nil {
-		logger.Errorf("failed to fetch current block number: %v", err)
+		return fmt.Errorf("failed to watch refund events: %w", err)
 	}
 
-	var startBlockNumber int64
-	toBlock := header.Number.Uint64()
+	defer sub.Unsubscribe()
 
-	if len(result) > 0 {
-		startBlockNumber = int64(result[0].BlockNumber)
-	} else {
-		startBlockNumber = int64(toBlock) - 1500
+	logger.Infof("Listening for Refund events...\n")
+
+	for {
+		select {
+		case log := <-logs:
+			// Aggregator side status update
+			_, err := db.Client.LockPaymentOrder.
+				Update().
+				Where(
+					lockpaymentorder.OrderIDEQ(utils.Byte32ToString(log.OrderId)),
+				).
+				SetBlockNumber(int64(log.Raw.BlockNumber)).
+				SetStatus(lockpaymentorder.StatusRefunded).
+				Save(ctx)
+			if err != nil {
+				logger.Errorf("failed to fetch lock payment order: %v", err)
+				continue
+			}
+
+			// Sender side status update
+			_, err = db.Client.PaymentOrder.
+				Update().
+				Where(
+					paymentorder.LabelEQ(utils.Byte32ToString(log.Label)),
+				).
+				SetStatus(paymentorder.StatusRefunded).
+				Save(ctx)
+			if err != nil {
+				logger.Errorf("IndexOrderRefunds: %v", err)
+				continue
+			}
+
+			// Fetch payment order
+			paymentOrder, err := db.Client.PaymentOrder.
+				Query().
+				Where(
+					paymentorder.LabelEQ(utils.Byte32ToString(log.Label)),
+				).
+				WithSenderProfile().
+				Only(ctx)
+			if err != nil {
+				logger.Errorf("failed to fetch payment order: %v", err)
+				continue
+			}
+
+			// Send webhook notifcation to sender
+			err = utils.SendPaymentOrderWebhook(ctx, paymentOrder)
+			if err != nil {
+				logger.Errorf("IndexOrderRefunds.webhook: %v", err)
+				continue
+			}
+		case err := <-sub.Err():
+			logger.Errorf("failed to parse refund event: %v", err)
+			continue
+		}
 	}
+}
+
+// indexMissedBlocksForRefunds indexes missed blocks for refunds from the last lock payment order block number
+func (s *IndexerService) indexMissedBlocksForRefunds(ctx context.Context, client types.RPCClient, filterer *contracts.PaycrestOrderFilterer, network *ent.Network) {
 
 	// Filter logs from the last lock payment order block number
-	opts := &bind.FilterOpts{
-		Start: uint64(startBlockNumber),
-		End:   &toBlock,
+	opts := s.getMissedBlocksOpts(ctx, client, filterer, network, lockpaymentorder.StatusRefunded)
+
+	// Fetch logs
+	iter, err := filterer.FilterRefunded(opts, nil)
+	if err != nil {
+		logger.Errorf("failed to fetch logs: %v", err)
 	}
+
+	// Iterate over logs
+	for iter.Next() {
+		log := iter.Event
+
+		// Aggregator side status update
+		_, err := db.Client.LockPaymentOrder.
+			Update().
+			Where(
+				lockpaymentorder.OrderIDEQ(utils.Byte32ToString(log.OrderId)),
+			).
+			SetBlockNumber(int64(log.Raw.BlockNumber)).
+			SetStatus(lockpaymentorder.StatusRefunded).
+			Save(ctx)
+		if err != nil {
+			logger.Errorf("failed to fetch lock payment order: %v", err)
+			continue
+		}
+
+		// Sender side status update
+		_, err = db.Client.PaymentOrder.
+			Update().
+			Where(
+				paymentorder.LabelEQ(utils.Byte32ToString(log.Label)),
+			).
+			SetStatus(paymentorder.StatusRefunded).
+			Save(ctx)
+		if err != nil {
+			logger.Errorf("IndexOrderRefunds: %v", err)
+			continue
+		}
+
+		// Fetch payment order
+		paymentOrder, err := db.Client.PaymentOrder.
+			Query().
+			Where(
+				paymentorder.LabelEQ(utils.Byte32ToString(log.Label)),
+			).
+			WithSenderProfile().
+			Only(ctx)
+		if err != nil {
+			logger.Errorf("failed to fetch payment order: %v", err)
+			continue
+		}
+
+		// Send webhook notifcation to sender
+		err = utils.SendPaymentOrderWebhook(ctx, paymentOrder)
+		if err != nil {
+			logger.Errorf("IndexOrderRefunds.webhook: %v", err)
+			continue
+		}
+	}
+}
+
+// indexMissedBlocksForDeposits indexes missed blocks for deposits from the last lock payment order block number
+func (s *IndexerService) indexMissedBlocksForDeposits(ctx context.Context, client types.RPCClient, filterer *contracts.PaycrestOrderFilterer, network *ent.Network) {
+	// Filter logs from the last lock payment order block number
+	opts := s.getMissedBlocksOpts(ctx, client, filterer, network, lockpaymentorder.StatusPending)
 
 	// Fetch logs
 	iter, err := filterer.FilterDeposit(opts, nil, nil, nil)
@@ -530,44 +653,8 @@ func (s *IndexerService) indexMissedBlocksForDeposits(ctx context.Context, clien
 
 // indexMissedBlocksForSettlements indexes missed blocks for settlements from the last settled lock payment order block number
 func (s *IndexerService) indexMissedBlocksForSettlements(ctx context.Context, client types.RPCClient, filterer *contracts.PaycrestOrderFilterer, network *ent.Network) {
-	// Get the last lock payment order from db
-	result, err := db.Client.LockPaymentOrder.
-		Query().
-		Where(
-			lockpaymentorder.HasTokenWith(
-				token.HasNetworkWith(
-					networkent.IDEQ(network.ID),
-				),
-			),
-			lockpaymentorder.StatusEQ(lockpaymentorder.StatusValidated),
-		).
-		Order(ent.Desc(lockpaymentorder.FieldBlockNumber)).
-		Limit(1).
-		All(ctx)
-	if err != nil {
-		logger.Errorf("failed to fetch lock payment order: %v", err)
-	}
-
-	// Fetch current block header
-	header, err := client.HeaderByNumber(ctx, nil)
-	if err != nil {
-		logger.Errorf("failed to fetch current block number: %v", err)
-	}
-
-	var startBlockNumber int64
-	toBlock := header.Number.Uint64()
-
-	if len(result) > 0 {
-		startBlockNumber = int64(result[0].BlockNumber)
-	} else {
-		startBlockNumber = int64(toBlock) - 500
-	}
-
 	// Filter logs from the last lock payment order block number
-	opts := &bind.FilterOpts{
-		Start: uint64(startBlockNumber),
-		End:   &toBlock,
-	}
+	opts := s.getMissedBlocksOpts(ctx, client, filterer, network, lockpaymentorder.StatusSettled)
 
 	// Fetch logs
 	iter, err := filterer.FilterSettled(opts, nil, nil)
@@ -577,7 +664,8 @@ func (s *IndexerService) indexMissedBlocksForSettlements(ctx context.Context, cl
 
 	// Iterate over logs
 	for iter.Next() {
-		splitOrderId, _ := uuid.Parse(utils.Byte32ToString(iter.Event.SplitOrderId))
+		log := iter.Event
+		splitOrderId, _ := uuid.Parse(utils.Byte32ToString(log.SplitOrderId))
 
 		_, err := db.Client.LockPaymentOrder.
 			Update().
@@ -589,6 +677,39 @@ func (s *IndexerService) indexMissedBlocksForSettlements(ctx context.Context, cl
 			Save(ctx)
 		if err != nil {
 			logger.Errorf("failed to update lock payment order: %v", err)
+			continue
+		}
+
+		// Settle payment order on sender side
+		_, err = db.Client.PaymentOrder.
+			Update().
+			Where(
+				paymentorder.LabelEQ(utils.Byte32ToString(log.Label)),
+			).
+			SetStatus(paymentorder.StatusSettled).
+			Save(ctx)
+		if err != nil {
+			logger.Errorf("IndexOrderRefunds: %v", err)
+			continue
+		}
+
+		// Fetch payment order
+		paymentOrder, err := db.Client.PaymentOrder.
+			Query().
+			Where(
+				paymentorder.LabelEQ(utils.Byte32ToString(log.Label)),
+			).
+			WithSenderProfile().
+			Only(ctx)
+		if err != nil {
+			logger.Errorf("failed to fetch payment order: %v", err)
+			continue
+		}
+
+		// Send webhook notifcation to sender
+		err = utils.SendPaymentOrderWebhook(ctx, paymentOrder)
+		if err != nil {
+			logger.Errorf("IndexOrderSettlements.webhook: %v", err)
 			continue
 		}
 	}
@@ -897,4 +1018,51 @@ func (s *IndexerService) splitLockPaymentOrder(ctx context.Context, lockPaymentO
 	}
 
 	return nil
+}
+
+// getMissedBlocksOpts returns the filter options for fetching missed blocks based on lock payment order status
+func (s *IndexerService) getMissedBlocksOpts(
+	ctx context.Context, client types.RPCClient, filterer *contracts.PaycrestOrderFilterer, network *ent.Network, status lockpaymentorder.Status,
+) *bind.FilterOpts {
+
+	// Get the last lock payment order from db
+	result, err := db.Client.LockPaymentOrder.
+		Query().
+		Where(
+			lockpaymentorder.HasTokenWith(
+				token.HasNetworkWith(
+					networkent.IDEQ(network.ID),
+				),
+			),
+			lockpaymentorder.StatusEQ(status),
+		).
+		Order(ent.Desc(lockpaymentorder.FieldBlockNumber)).
+		Limit(1).
+		All(ctx)
+	if err != nil {
+		logger.Errorf("failed to fetch lock payment order: %v", err)
+	}
+
+	// Fetch current block header
+	header, err := client.HeaderByNumber(ctx, nil)
+	if err != nil {
+		logger.Errorf("failed to fetch current block number: %v", err)
+	}
+
+	var startBlockNumber int64
+	toBlock := header.Number.Uint64()
+
+	if len(result) > 0 {
+		startBlockNumber = int64(result[0].BlockNumber)
+	} else {
+		startBlockNumber = int64(toBlock) - 500
+	}
+
+	// Filter logs from the last lock payment order block number
+	opts := &bind.FilterOpts{
+		Start: uint64(startBlockNumber),
+		End:   &toBlock,
+	}
+
+	return opts
 }
