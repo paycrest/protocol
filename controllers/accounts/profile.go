@@ -420,8 +420,6 @@ func (ctrl *ProfileController) GetProviderProfile(ctx *gin.Context) {
 		return
 	}
 
-	// Get availability
-	availability := provider.IsAvailable
 	// Get tokens
 	tokens, err := provider.QueryOrderTokens().All(ctx)
 	if err != nil {
@@ -445,7 +443,7 @@ func (ctrl *ProfileController) GetProviderProfile(ctx *gin.Context) {
 		Currency:             provider.Edges.Currency.Code,
 		HostIdentifier:       provider.HostIdentifier,
 		IsPartner:            provider.IsPartner,
-		IsAvailable:         availability,
+		IsAvailable:          provider.IsAvailable,
 		Tokens:               tokens,
 		APIKey:               *apiKey,
 		IsActive:             provider.IsActive,
