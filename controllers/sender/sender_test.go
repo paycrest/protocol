@@ -48,6 +48,11 @@ func (m *MockIndexerService) IndexOrderSettlements(ctx context.Context, client t
 	return nil
 }
 
+// IndexOrderRefunds mocks the IndexOrderRefunds method
+func (m *MockIndexerService) IndexOrderRefunds(ctx context.Context, client types.RPCClient, network *ent.Network) error {
+	return nil
+}
+
 var testCtx = struct {
 	user              *ent.User
 	token             *ent.Token
