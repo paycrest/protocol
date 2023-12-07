@@ -41,6 +41,7 @@ type Indexer interface {
 	IndexERC20Transfer(ctx context.Context, client types.RPCClient, receiveAddress *ent.ReceiveAddress, done chan<- bool) error
 	IndexOrderDeposits(ctx context.Context, client types.RPCClient, network *ent.Network) error
 	IndexOrderSettlements(ctx context.Context, client types.RPCClient, network *ent.Network) error
+	IndexOrderRefunds(ctx context.Context, client types.RPCClient, network *ent.Network) error
 }
 
 // IndexerService performs blockchain to database extract, transform, load (ETL) operations.
@@ -352,7 +353,26 @@ func (s *IndexerService) IndexOrderDeposits(ctx context.Context, client types.RP
 		return fmt.Errorf("failed to create filterer: %w", err)
 	}
 
-	go s.indexMissedBlocksForDeposits(ctx, client, filterer, network)
+	// Index missed blocks
+	go func() {
+		// Filter logs from the last lock payment order block number
+		opts := s.getMissedBlocksOpts(ctx, client, filterer, network, lockpaymentorder.StatusPending)
+
+		// Fetch logs
+		iter, err := filterer.FilterDeposit(opts, nil, nil, nil)
+		if err != nil {
+			logger.Errorf("IndexOrderDeposits.fetchLogs: %v", err)
+		}
+
+		// Iterate over logs
+		for iter.Next() {
+			err := s.createLockPaymentOrder(ctx, client, network, iter.Event)
+			if err != nil {
+				logger.Errorf("IndexOrderDeposits.createOrder: %v", err)
+				continue
+			}
+		}
+	}()
 
 	// Start listening for deposit events
 	logs := make(chan *contracts.PaycrestOrderDeposit)
@@ -401,7 +421,27 @@ func (s *IndexerService) IndexOrderSettlements(ctx context.Context, client types
 		return fmt.Errorf("failed to create filterer: %w", err)
 	}
 
-	go s.indexMissedBlocksForSettlements(ctx, client, filterer, network)
+	// Index missed blocks
+	go func() {
+		// Filter logs from the last lock payment order block number
+		opts := s.getMissedBlocksOpts(ctx, client, filterer, network, lockpaymentorder.StatusSettled)
+
+		// Fetch logs
+		iter, err := filterer.FilterSettled(opts, nil, nil)
+		if err != nil {
+			logger.Errorf("IndexOrderSettlements.fetchLogs: %v", err)
+		}
+
+		// Iterate over logs
+		for iter.Next() {
+			log := iter.Event
+			err := s.updateOrderStatusSettled(ctx, log)
+			if err != nil {
+				logger.Errorf("IndexOrderSettlements.update: %v", err)
+				continue
+			}
+		}
+	}()
 
 	// Start listening for settlement events
 	logs := make(chan *contracts.PaycrestOrderSettled)
@@ -420,54 +460,11 @@ func (s *IndexerService) IndexOrderSettlements(ctx context.Context, client types
 	for {
 		select {
 		case log := <-logs:
-			// Settle payment order on aggregator side
-			splitOrderId, _ := uuid.Parse(utils.Byte32ToString(log.SplitOrderId))
-			_, err := db.Client.LockPaymentOrder.
-				Update().
-				Where(
-					lockpaymentorder.IDEQ(splitOrderId),
-				).
-				SetBlockNumber(int64(log.Raw.BlockNumber)).
-				SetStatus(lockpaymentorder.StatusSettled).
-				Save(ctx)
+			err := s.updateOrderStatusSettled(ctx, log)
 			if err != nil {
-				logger.Errorf("failed to fetch lock payment order: %v", err)
+				logger.Errorf("IndexOrderSettlements.update: %v", err)
 				continue
 			}
-
-			// Settle payment order on sender side
-			_, err = db.Client.PaymentOrder.
-				Update().
-				Where(
-					paymentorder.LabelEQ(utils.Byte32ToString(log.Label)),
-				).
-				SetStatus(paymentorder.StatusSettled).
-				Save(ctx)
-			if err != nil {
-				logger.Errorf("IndexOrderRefunds: %v", err)
-				continue
-			}
-
-			// Fetch payment order
-			paymentOrder, err := db.Client.PaymentOrder.
-				Query().
-				Where(
-					paymentorder.LabelEQ(utils.Byte32ToString(log.Label)),
-				).
-				WithSenderProfile().
-				Only(ctx)
-			if err != nil {
-				logger.Errorf("failed to fetch payment order: %v", err)
-				continue
-			}
-
-			// Send webhook notifcation to sender
-			err = utils.SendPaymentOrderWebhook(ctx, paymentOrder)
-			if err != nil {
-				logger.Errorf("IndexOrderSettlements.webhook: %v", err)
-				continue
-			}
-
 		case err := <-sub.Err():
 			logger.Errorf("failed to parse settlement event: %v", err)
 			continue
@@ -493,7 +490,27 @@ func (s *IndexerService) IndexOrderRefunds(ctx context.Context, client types.RPC
 		return fmt.Errorf("failed to create filterer: %w", err)
 	}
 
-	go s.indexMissedBlocksForRefunds(ctx, client, filterer, network)
+	// Index missed blocks
+	go func() {
+		// Filter logs from the last lock payment order block number
+		opts := s.getMissedBlocksOpts(ctx, client, filterer, network, lockpaymentorder.StatusRefunded)
+
+		// Fetch logs
+		iter, err := filterer.FilterRefunded(opts, nil)
+		if err != nil {
+			logger.Errorf("IndexOrderRefunds.fetchLogs: %v", err)
+		}
+
+		// Iterate over logs
+		for iter.Next() {
+			log := iter.Event
+			err := s.updateOrderStatusRefunded(ctx, log)
+			if err != nil {
+				logger.Errorf("IndexOrderRefunds.update: %v", err)
+				continue
+			}
+		}
+	}()
 
 	// Start listening for refund events
 	logs := make(chan *contracts.PaycrestOrderRefunded)
@@ -512,204 +529,13 @@ func (s *IndexerService) IndexOrderRefunds(ctx context.Context, client types.RPC
 	for {
 		select {
 		case log := <-logs:
-			// Aggregator side status update
-			_, err := db.Client.LockPaymentOrder.
-				Update().
-				Where(
-					lockpaymentorder.OrderIDEQ(utils.Byte32ToString(log.OrderId)),
-				).
-				SetBlockNumber(int64(log.Raw.BlockNumber)).
-				SetStatus(lockpaymentorder.StatusRefunded).
-				Save(ctx)
+			err := s.updateOrderStatusRefunded(ctx, log)
 			if err != nil {
-				logger.Errorf("failed to fetch lock payment order: %v", err)
-				continue
-			}
-
-			// Sender side status update
-			_, err = db.Client.PaymentOrder.
-				Update().
-				Where(
-					paymentorder.LabelEQ(utils.Byte32ToString(log.Label)),
-				).
-				SetStatus(paymentorder.StatusRefunded).
-				Save(ctx)
-			if err != nil {
-				logger.Errorf("IndexOrderRefunds: %v", err)
-				continue
-			}
-
-			// Fetch payment order
-			paymentOrder, err := db.Client.PaymentOrder.
-				Query().
-				Where(
-					paymentorder.LabelEQ(utils.Byte32ToString(log.Label)),
-				).
-				WithSenderProfile().
-				Only(ctx)
-			if err != nil {
-				logger.Errorf("failed to fetch payment order: %v", err)
-				continue
-			}
-
-			// Send webhook notifcation to sender
-			err = utils.SendPaymentOrderWebhook(ctx, paymentOrder)
-			if err != nil {
-				logger.Errorf("IndexOrderRefunds.webhook: %v", err)
+				logger.Errorf("IndexOrderRefunds.update: %v", err)
 				continue
 			}
 		case err := <-sub.Err():
-			logger.Errorf("failed to parse refund event: %v", err)
-			continue
-		}
-	}
-}
-
-// indexMissedBlocksForRefunds indexes missed blocks for refunds from the last lock payment order block number
-func (s *IndexerService) indexMissedBlocksForRefunds(ctx context.Context, client types.RPCClient, filterer *contracts.PaycrestOrderFilterer, network *ent.Network) {
-
-	// Filter logs from the last lock payment order block number
-	opts := s.getMissedBlocksOpts(ctx, client, filterer, network, lockpaymentorder.StatusRefunded)
-
-	// Fetch logs
-	iter, err := filterer.FilterRefunded(opts, nil)
-	if err != nil {
-		logger.Errorf("failed to fetch logs: %v", err)
-	}
-
-	// Iterate over logs
-	for iter.Next() {
-		log := iter.Event
-
-		// Aggregator side status update
-		_, err := db.Client.LockPaymentOrder.
-			Update().
-			Where(
-				lockpaymentorder.OrderIDEQ(utils.Byte32ToString(log.OrderId)),
-			).
-			SetBlockNumber(int64(log.Raw.BlockNumber)).
-			SetStatus(lockpaymentorder.StatusRefunded).
-			Save(ctx)
-		if err != nil {
-			logger.Errorf("failed to fetch lock payment order: %v", err)
-			continue
-		}
-
-		// Sender side status update
-		_, err = db.Client.PaymentOrder.
-			Update().
-			Where(
-				paymentorder.LabelEQ(utils.Byte32ToString(log.Label)),
-			).
-			SetStatus(paymentorder.StatusRefunded).
-			Save(ctx)
-		if err != nil {
-			logger.Errorf("IndexOrderRefunds: %v", err)
-			continue
-		}
-
-		// Fetch payment order
-		paymentOrder, err := db.Client.PaymentOrder.
-			Query().
-			Where(
-				paymentorder.LabelEQ(utils.Byte32ToString(log.Label)),
-			).
-			WithSenderProfile().
-			Only(ctx)
-		if err != nil {
-			logger.Errorf("failed to fetch payment order: %v", err)
-			continue
-		}
-
-		// Send webhook notifcation to sender
-		err = utils.SendPaymentOrderWebhook(ctx, paymentOrder)
-		if err != nil {
-			logger.Errorf("IndexOrderRefunds.webhook: %v", err)
-			continue
-		}
-	}
-}
-
-// indexMissedBlocksForDeposits indexes missed blocks for deposits from the last lock payment order block number
-func (s *IndexerService) indexMissedBlocksForDeposits(ctx context.Context, client types.RPCClient, filterer *contracts.PaycrestOrderFilterer, network *ent.Network) {
-	// Filter logs from the last lock payment order block number
-	opts := s.getMissedBlocksOpts(ctx, client, filterer, network, lockpaymentorder.StatusPending)
-
-	// Fetch logs
-	iter, err := filterer.FilterDeposit(opts, nil, nil, nil)
-	if err != nil {
-		logger.Errorf("failed to fetch logs: %v", err)
-	}
-
-	// Iterate over logs
-	for iter.Next() {
-		err := s.createLockPaymentOrder(ctx, client, network, iter.Event)
-		if err != nil {
-			logger.Errorf("failed to create lock payment order: %v", err)
-			continue
-		}
-	}
-}
-
-// indexMissedBlocksForSettlements indexes missed blocks for settlements from the last settled lock payment order block number
-func (s *IndexerService) indexMissedBlocksForSettlements(ctx context.Context, client types.RPCClient, filterer *contracts.PaycrestOrderFilterer, network *ent.Network) {
-	// Filter logs from the last lock payment order block number
-	opts := s.getMissedBlocksOpts(ctx, client, filterer, network, lockpaymentorder.StatusSettled)
-
-	// Fetch logs
-	iter, err := filterer.FilterSettled(opts, nil, nil)
-	if err != nil {
-		logger.Errorf("failed to fetch logs: %v", err)
-	}
-
-	// Iterate over logs
-	for iter.Next() {
-		log := iter.Event
-		splitOrderId, _ := uuid.Parse(utils.Byte32ToString(log.SplitOrderId))
-
-		_, err := db.Client.LockPaymentOrder.
-			Update().
-			Where(
-				lockpaymentorder.IDEQ(splitOrderId),
-			).
-			SetBlockNumber(int64(iter.Event.Raw.BlockNumber)).
-			SetStatus(lockpaymentorder.StatusSettled).
-			Save(ctx)
-		if err != nil {
-			logger.Errorf("failed to update lock payment order: %v", err)
-			continue
-		}
-
-		// Settle payment order on sender side
-		_, err = db.Client.PaymentOrder.
-			Update().
-			Where(
-				paymentorder.LabelEQ(utils.Byte32ToString(log.Label)),
-			).
-			SetStatus(paymentorder.StatusSettled).
-			Save(ctx)
-		if err != nil {
-			logger.Errorf("IndexOrderRefunds: %v", err)
-			continue
-		}
-
-		// Fetch payment order
-		paymentOrder, err := db.Client.PaymentOrder.
-			Query().
-			Where(
-				paymentorder.LabelEQ(utils.Byte32ToString(log.Label)),
-			).
-			WithSenderProfile().
-			Only(ctx)
-		if err != nil {
-			logger.Errorf("failed to fetch payment order: %v", err)
-			continue
-		}
-
-		// Send webhook notifcation to sender
-		err = utils.SendPaymentOrderWebhook(ctx, paymentOrder)
-		if err != nil {
-			logger.Errorf("IndexOrderSettlements.webhook: %v", err)
+			logger.Errorf("IndexOrderRefunds.parseEvent: %v", err)
 			continue
 		}
 	}
@@ -739,6 +565,103 @@ func (s *IndexerService) getOrderRecipientFromMessageHash(messageHash string) (*
 	}
 
 	return recipient, nil
+}
+
+// updateOrderStatusRefunded updates the status of a payment order to refunded
+func (s *IndexerService) updateOrderStatusRefunded(ctx context.Context, log *contracts.PaycrestOrderRefunded) error {
+	// Aggregator side status update
+	_, err := db.Client.LockPaymentOrder.
+		Update().
+		Where(
+			lockpaymentorder.OrderIDEQ(utils.Byte32ToString(log.OrderId)),
+		).
+		SetBlockNumber(int64(log.Raw.BlockNumber)).
+		SetStatus(lockpaymentorder.StatusRefunded).
+		Save(ctx)
+	if err != nil {
+		return fmt.Errorf("updateOrderStatusRefunded.aggregator: %v", err)
+	}
+
+	// Sender side status update
+	_, err = db.Client.PaymentOrder.
+		Update().
+		Where(
+			paymentorder.LabelEQ(utils.Byte32ToString(log.Label)),
+		).
+		SetStatus(paymentorder.StatusRefunded).
+		Save(ctx)
+	if err != nil {
+		return fmt.Errorf("updateOrderStatusRefunded.sender: %v", err)
+	}
+
+	// Fetch payment order
+	paymentOrder, err := db.Client.PaymentOrder.
+		Query().
+		Where(
+			paymentorder.LabelEQ(utils.Byte32ToString(log.Label)),
+		).
+		WithSenderProfile().
+		Only(ctx)
+	if err != nil {
+		return fmt.Errorf("updateOrderStatusRefunded.fetchOrder: %v", err)
+	}
+
+	// Send webhook notifcation to sender
+	err = utils.SendPaymentOrderWebhook(ctx, paymentOrder)
+	if err != nil {
+		return fmt.Errorf("updateOrderStatusRefunded.webhook: %v", err)
+	}
+
+	return nil
+}
+
+// updateOrderStatusSettled updates the status of a payment order to settled
+func (s *IndexerService) updateOrderStatusSettled(ctx context.Context, log *contracts.PaycrestOrderSettled) error {
+	// Aggregator side status update
+	splitOrderId, _ := uuid.Parse(utils.Byte32ToString(log.SplitOrderId))
+	_, err := db.Client.LockPaymentOrder.
+		Update().
+		Where(
+			lockpaymentorder.IDEQ(splitOrderId),
+		).
+		SetBlockNumber(int64(log.Raw.BlockNumber)).
+		SetStatus(lockpaymentorder.StatusSettled).
+		Save(ctx)
+	if err != nil {
+		return fmt.Errorf("updateOrderStatusSettled.aggregator: %v", err)
+	}
+
+	// Sender side status update
+	_, err = db.Client.PaymentOrder.
+		Update().
+		Where(
+			paymentorder.LabelEQ(utils.Byte32ToString(log.Label)),
+		).
+		SetStatus(paymentorder.StatusSettled).
+		Save(ctx)
+	if err != nil {
+		return fmt.Errorf("updateOrderStatusSettled.sender: %v", err)
+	}
+
+	// Fetch payment order
+	paymentOrder, err := db.Client.PaymentOrder.
+		Query().
+		Where(
+			paymentorder.LabelEQ(utils.Byte32ToString(log.Label)),
+		).
+		WithSenderProfile().
+		Only(ctx)
+	if err != nil {
+		return fmt.Errorf("updateOrderStatusSettled.fetchOrder: %v", err)
+	}
+
+	// Send webhook notifcation to sender
+	err = utils.SendPaymentOrderWebhook(ctx, paymentOrder)
+	if err != nil {
+		return fmt.Errorf("updateOrderStatusSettled.webhook: %v", err)
+	}
+
+	return nil
 }
 
 // createLockPaymentOrder saves a lock payment order in the database
