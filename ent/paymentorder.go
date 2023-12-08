@@ -31,6 +31,8 @@ type PaymentOrder struct {
 	Amount decimal.Decimal `json:"amount,omitempty"`
 	// AmountPaid holds the value of the "amount_paid" field.
 	AmountPaid decimal.Decimal `json:"amount_paid,omitempty"`
+	// AmountReturned holds the value of the "amount_returned" field.
+	AmountReturned decimal.Decimal `json:"amount_returned,omitempty"`
 	// Rate holds the value of the "rate" field.
 	Rate decimal.Decimal `json:"rate,omitempty"`
 	// TxHash holds the value of the "tx_hash" field.
@@ -122,7 +124,7 @@ func (*PaymentOrder) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case paymentorder.FieldAmount, paymentorder.FieldAmountPaid, paymentorder.FieldRate:
+		case paymentorder.FieldAmount, paymentorder.FieldAmountPaid, paymentorder.FieldAmountReturned, paymentorder.FieldRate:
 			values[i] = new(decimal.Decimal)
 		case paymentorder.FieldTxHash, paymentorder.FieldReceiveAddressText, paymentorder.FieldLabel, paymentorder.FieldStatus:
 			values[i] = new(sql.NullString)
@@ -180,6 +182,12 @@ func (po *PaymentOrder) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field amount_paid", values[i])
 			} else if value != nil {
 				po.AmountPaid = *value
+			}
+		case paymentorder.FieldAmountReturned:
+			if value, ok := values[i].(*decimal.Decimal); !ok {
+				return fmt.Errorf("unexpected type %T for field amount_returned", values[i])
+			} else if value != nil {
+				po.AmountReturned = *value
 			}
 		case paymentorder.FieldRate:
 			if value, ok := values[i].(*decimal.Decimal); !ok {
@@ -299,6 +307,9 @@ func (po *PaymentOrder) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("amount_paid=")
 	builder.WriteString(fmt.Sprintf("%v", po.AmountPaid))
+	builder.WriteString(", ")
+	builder.WriteString("amount_returned=")
+	builder.WriteString(fmt.Sprintf("%v", po.AmountReturned))
 	builder.WriteString(", ")
 	builder.WriteString("rate=")
 	builder.WriteString(fmt.Sprintf("%v", po.Rate))

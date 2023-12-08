@@ -114,6 +114,7 @@ func setup() error {
 		SetSenderProfile(senderProfile).
 		SetAmount(amount).
 		SetAmountPaid(decimal.NewFromInt(0)).
+		SetAmountReturned(decimal.NewFromInt(0)).
 		SetToken(token).
 		SetLabel("test payment order").
 		SetRate(decimal.NewFromInt(750)).

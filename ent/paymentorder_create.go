@@ -66,6 +66,12 @@ func (poc *PaymentOrderCreate) SetAmountPaid(d decimal.Decimal) *PaymentOrderCre
 	return poc
 }
 
+// SetAmountReturned sets the "amount_returned" field.
+func (poc *PaymentOrderCreate) SetAmountReturned(d decimal.Decimal) *PaymentOrderCreate {
+	poc.mutation.SetAmountReturned(d)
+	return poc
+}
+
 // SetRate sets the "rate" field.
 func (poc *PaymentOrderCreate) SetRate(d decimal.Decimal) *PaymentOrderCreate {
 	poc.mutation.SetRate(d)
@@ -253,6 +259,9 @@ func (poc *PaymentOrderCreate) check() error {
 	if _, ok := poc.mutation.AmountPaid(); !ok {
 		return &ValidationError{Name: "amount_paid", err: errors.New(`ent: missing required field "PaymentOrder.amount_paid"`)}
 	}
+	if _, ok := poc.mutation.AmountReturned(); !ok {
+		return &ValidationError{Name: "amount_returned", err: errors.New(`ent: missing required field "PaymentOrder.amount_returned"`)}
+	}
 	if _, ok := poc.mutation.Rate(); !ok {
 		return &ValidationError{Name: "rate", err: errors.New(`ent: missing required field "PaymentOrder.rate"`)}
 	}
@@ -336,6 +345,10 @@ func (poc *PaymentOrderCreate) createSpec() (*PaymentOrder, *sqlgraph.CreateSpec
 	if value, ok := poc.mutation.AmountPaid(); ok {
 		_spec.SetField(paymentorder.FieldAmountPaid, field.TypeFloat64, value)
 		_node.AmountPaid = value
+	}
+	if value, ok := poc.mutation.AmountReturned(); ok {
+		_spec.SetField(paymentorder.FieldAmountReturned, field.TypeFloat64, value)
+		_node.AmountReturned = value
 	}
 	if value, ok := poc.mutation.Rate(); ok {
 		_spec.SetField(paymentorder.FieldRate, field.TypeFloat64, value)
