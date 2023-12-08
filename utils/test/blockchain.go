@@ -12,7 +12,6 @@ import (
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/receiveaddress"
 	db "github.com/paycrest/protocol/storage"
@@ -27,15 +26,6 @@ import (
 func SetUpTestBlockchain() (types.RPCClient, error) {
 	// Connect to local ethereum client
 	client, err := types.NewEthClient("http://localhost:8545")
-	if err != nil {
-		log.Fatalf("Failed to connect to the Ethereum client: %v", err)
-	}
-	return client, nil
-}
-
-func getClientInfo() (*ethclient.Client, error) {
-	// Connect to local ethereum client
-	client, err := ethclient.Dial("http://localhost:8545")
 	if err != nil {
 		log.Fatalf("Failed to connect to the Ethereum client: %v", err)
 	}
@@ -197,6 +187,10 @@ func CreateSmartAccount(ctx context.Context, client types.RPCClient) (*ent.Recei
 
 	// Generate address
 	smartAccountAddress, err := factoryInstance.GetAddress(callOpts, *ownerAddress, salt)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate address: %w", err)
+	}
+	// Deploy smart account
 	createTx, err := factoryInstance.CreateAccount(auth, *ownerAddress, salt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate address: %w", err)
