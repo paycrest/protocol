@@ -132,8 +132,20 @@ func (s *OrderService) CreateOrder(ctx context.Context, orderID uuid.UUID) error
 	return nil
 }
 
-// RefundOrder refunds sender on canceled order
-func (s *OrderService) RefundOrder(ctx context.Context, lockOrder *ent.LockPaymentOrder) error {
+// RefundOrder refunds sender on canceled lock order
+func (s *OrderService) RefundOrder(ctx context.Context, orderID string) error {
+	// Fetch lock order from db
+	lockOrder, err := db.Client.LockPaymentOrder.
+		Query().
+		Where(lockpaymentorder.OrderIDEQ(orderID)).
+		WithToken(func(tq *ent.TokenQuery) {
+			tq.WithNetwork()
+		}).
+		First(ctx)
+	if err != nil {
+		return fmt.Errorf("RefundOrder.fetchLockOrder: %w", err)
+	}
+
 	// Get default userOperation
 	userOperation, err := utils.InitializeUserOperation(
 		ctx, nil, lockOrder.Edges.Token.Edges.Network.RPCEndpoint, CryptoConf.AggregatorSmartAccount, CryptoConf.AggregatorSmartAccountSalt,
@@ -174,6 +186,77 @@ func (s *OrderService) RefundOrder(ctx context.Context, lockOrder *ent.LockPayme
 		Save(ctx)
 	if err != nil {
 		return fmt.Errorf("RefundOrder.updateTxHash(%v): %w", userOpTxHash, err)
+	}
+
+	return nil
+}
+
+// RevertOrder reverts an initiated payment order on-chain.
+func (s *OrderService) RevertOrder(ctx context.Context, order *ent.PaymentOrder, to common.Address) error {
+	// Fetch payment order from db
+	order, err := db.Client.PaymentOrder.
+		Query().
+		Where(paymentorder.IDEQ(order.ID)).
+		WithToken(func(tq *ent.TokenQuery) {
+			tq.WithNetwork()
+		}).
+		Only(ctx)
+	if err != nil {
+		return fmt.Errorf("RevertOrder.fetchOrder: %w", err)
+	}
+
+	saltDecrypted, err := cryptoUtils.DecryptPlain(order.Edges.ReceiveAddress.Salt)
+	if err != nil {
+		return fmt.Errorf("failed to decrypt salt: %w", err)
+	}
+
+	// Get default userOperation
+	userOperation, err := utils.InitializeUserOperation(
+		ctx, nil, order.Edges.Token.Edges.Network.RPCEndpoint, order.Edges.ReceiveAddress.Address, string(saltDecrypted),
+	)
+	if err != nil {
+		return fmt.Errorf("RevertOrder.initializeUserOperation: %w", err)
+	}
+
+	// Subtract the $0.5 fee from the amount
+	fee := utils.ToSubunit(decimal.NewFromFloat(0.5), order.Edges.Token.Decimals)
+	amountMinusFee := new(big.Int).Sub(utils.ToSubunit(order.Amount, order.Edges.Token.Decimals), fee)
+
+	// Compute transfer calldata
+	transferCalldata, err := s.transferCallData(to, amountMinusFee)
+	if err != nil {
+		return fmt.Errorf("RevertOrder.transferCallData: %w", err)
+	}
+
+	// Compute execution calldata
+	calldata, err := s.executeCallData(common.HexToAddress(order.Edges.Token.ContractAddress), big.NewInt(0), transferCalldata)
+	if err != nil {
+		return fmt.Errorf("RevertOrder.executeCallData: %w", err)
+	}
+	userOperation.CallData = calldata
+
+	// Sponsor user operation.
+	// This will populate the following fields in userOperation: PaymasterAndData, PreVerificationGas, VerificationGasLimit, CallGasLimit
+	err = utils.SponsorUserOperation(userOperation, "payg")
+	if err != nil {
+		return fmt.Errorf("RevertOrder.sponsorUserOperation: %w", err)
+	}
+
+	// Sign user operation
+	_ = utils.SignUserOperation(userOperation)
+
+	// Send user operation
+	userOpHash, err := utils.SendUserOperation(userOperation)
+	if err != nil {
+		return fmt.Errorf("RevertOrder.sendUserOperation: %w", err)
+	}
+
+	// Update payment order with userOpHash
+	_, err = order.Update().
+		SetTxHash(userOpHash).
+		Save(ctx)
+	if err != nil {
+		return fmt.Errorf("RevertOrder.updateTxHash(%v): %w", userOpHash, err)
 	}
 
 	return nil
@@ -372,6 +455,43 @@ func (s *OrderService) approveCallData(spender common.Address, amount *big.Int) 
 	}
 
 	return calldata, nil
+}
+
+// transferCallData creates the data for the ERC20 token transfer method
+func (s *OrderService) transferCallData(recipient common.Address, amount *big.Int) ([]byte, error) {
+	// Create ABI
+	erc20ABI, err := abi.JSON(strings.NewReader(contracts.TestTokenMetaData.ABI))
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse erc20 ABI: %w", err)
+	}
+
+	// Create calldata
+	calldata, err := erc20ABI.Pack("transfer", recipient, amount)
+	if err != nil {
+		return nil, fmt.Errorf("failed to pack transfer ABI: %w", err)
+	}
+
+	return calldata, nil
+}
+
+// executeCallData creates the data for the execute method in the smart account.
+func (s *OrderService) executeCallData(dest common.Address, value *big.Int, data []byte) ([]byte, error) {
+	simpleAccountABI, err := abi.JSON(strings.NewReader(contracts.SimpleAccountMetaData.ABI))
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse smart account ABI: %w", err)
+	}
+
+	executeCallData, err := simpleAccountABI.Pack(
+		"execute",
+		dest,
+		value,
+		data,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to pack execute ABI: %w", err)
+	}
+
+	return executeCallData, nil
 }
 
 // createOrderCallData creates the data for the createOrder method

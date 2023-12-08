@@ -576,6 +576,7 @@ func (s *IndexerService) updateOrderStatusRefunded(ctx context.Context, log *con
 			lockpaymentorder.OrderIDEQ(utils.Byte32ToString(log.OrderId)),
 		).
 		SetBlockNumber(int64(log.Raw.BlockNumber)).
+		SetTxHash(log.Raw.TxHash.Hex()).
 		SetStatus(lockpaymentorder.StatusRefunded).
 		Save(ctx)
 	if err != nil {
@@ -588,6 +589,7 @@ func (s *IndexerService) updateOrderStatusRefunded(ctx context.Context, log *con
 		Where(
 			paymentorder.LabelEQ(utils.Byte32ToString(log.Label)),
 		).
+		SetTxHash(log.Raw.TxHash.Hex()).
 		SetStatus(paymentorder.StatusRefunded).
 		Save(ctx)
 	if err != nil {
@@ -625,6 +627,7 @@ func (s *IndexerService) updateOrderStatusSettled(ctx context.Context, log *cont
 			lockpaymentorder.IDEQ(splitOrderId),
 		).
 		SetBlockNumber(int64(log.Raw.BlockNumber)).
+		SetTxHash(log.Raw.TxHash.Hex()).
 		SetStatus(lockpaymentorder.StatusSettled).
 		Save(ctx)
 	if err != nil {
@@ -637,6 +640,7 @@ func (s *IndexerService) updateOrderStatusSettled(ctx context.Context, log *cont
 		Where(
 			paymentorder.LabelEQ(utils.Byte32ToString(log.Label)),
 		).
+		SetTxHash(log.Raw.TxHash.Hex()).
 		SetStatus(paymentorder.StatusSettled).
 		Save(ctx)
 	if err != nil {
