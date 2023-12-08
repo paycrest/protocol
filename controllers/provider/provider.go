@@ -245,7 +245,6 @@ func (ctrl *ProviderController) FulfillOrder(ctx *gin.Context) {
 				Create().
 				SetOrderID(orderID).
 				SetTxID(payload.TxID).
-				SetTxReceiptImage(payload.TxReceiptImage).
 				Save(ctx)
 			if err != nil {
 				logger.Errorf("error: %v", err)
@@ -369,17 +368,21 @@ func (ctrl *ProviderController) CancelOrder(ctx *gin.Context) {
 		return
 	}
 
+	// Get new cancellation count based on cancel reason
+	orderConf := config.OrderConfig()
 	orderUpdate := storage.Client.LockPaymentOrder.UpdateOneID(orderID)
-
+	CancellationCount := order.CancellationCount
+	if payload.Reason == "Invalid recipient bank details" {
+		CancellationCount += orderConf.RefundCancellationCount // Allows us refund immediately for invalid recipient
+		orderUpdate.AppendCancellationReasons([]string{payload.Reason})
+	} else if payload.Reason != "Insufficient funds" {
+		CancellationCount += 1
+		orderUpdate.AppendCancellationReasons([]string{payload.Reason})
+	}
 	// Update lock order status to cancelled
 	orderUpdate.
 		SetStatus(lockpaymentorder.StatusCancelled).
-		SetCancellationCount(order.CancellationCount + 1)
-
-	if payload.Reason != "Insufficient funds" {
-		orderUpdate.AppendCancellationReasons([]string{payload.Reason})
-	}
-
+		SetCancellationCount(CancellationCount)
 	order, err = orderUpdate.Save(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
@@ -389,7 +392,6 @@ func (ctrl *ProviderController) CancelOrder(ctx *gin.Context) {
 
 	// Check if order cancellation count is equal or greater than RefundCancellationCount in config,
 	// and the order has not been refunded, then trigger refund
-	orderConf := config.OrderConfig()
 	if order.CancellationCount >= orderConf.RefundCancellationCount && order.Status == lockpaymentorder.StatusCancelled {
 		err = ctrl.orderService.RefundOrder(ctx, order.OrderID)
 		if err != nil {

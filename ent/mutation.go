@@ -1622,7 +1622,6 @@ type LockOrderFulfillmentMutation struct {
 	created_at        *time.Time
 	updated_at        *time.Time
 	tx_id             *string
-	tx_receipt_image  *string
 	validation_status *lockorderfulfillment.ValidationStatus
 	validation_error  *string
 	clearedFields     map[string]struct{}
@@ -1845,42 +1844,6 @@ func (m *LockOrderFulfillmentMutation) ResetTxID() {
 	m.tx_id = nil
 }
 
-// SetTxReceiptImage sets the "tx_receipt_image" field.
-func (m *LockOrderFulfillmentMutation) SetTxReceiptImage(s string) {
-	m.tx_receipt_image = &s
-}
-
-// TxReceiptImage returns the value of the "tx_receipt_image" field in the mutation.
-func (m *LockOrderFulfillmentMutation) TxReceiptImage() (r string, exists bool) {
-	v := m.tx_receipt_image
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldTxReceiptImage returns the old "tx_receipt_image" field's value of the LockOrderFulfillment entity.
-// If the LockOrderFulfillment object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *LockOrderFulfillmentMutation) OldTxReceiptImage(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldTxReceiptImage is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldTxReceiptImage requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldTxReceiptImage: %w", err)
-	}
-	return oldValue.TxReceiptImage, nil
-}
-
-// ResetTxReceiptImage resets all changes to the "tx_receipt_image" field.
-func (m *LockOrderFulfillmentMutation) ResetTxReceiptImage() {
-	m.tx_receipt_image = nil
-}
-
 // SetValidationStatus sets the "validation_status" field.
 func (m *LockOrderFulfillmentMutation) SetValidationStatus(ls lockorderfulfillment.ValidationStatus) {
 	m.validation_status = &ls
@@ -2039,7 +2002,7 @@ func (m *LockOrderFulfillmentMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *LockOrderFulfillmentMutation) Fields() []string {
-	fields := make([]string, 0, 6)
+	fields := make([]string, 0, 5)
 	if m.created_at != nil {
 		fields = append(fields, lockorderfulfillment.FieldCreatedAt)
 	}
@@ -2048,9 +2011,6 @@ func (m *LockOrderFulfillmentMutation) Fields() []string {
 	}
 	if m.tx_id != nil {
 		fields = append(fields, lockorderfulfillment.FieldTxID)
-	}
-	if m.tx_receipt_image != nil {
-		fields = append(fields, lockorderfulfillment.FieldTxReceiptImage)
 	}
 	if m.validation_status != nil {
 		fields = append(fields, lockorderfulfillment.FieldValidationStatus)
@@ -2072,8 +2032,6 @@ func (m *LockOrderFulfillmentMutation) Field(name string) (ent.Value, bool) {
 		return m.UpdatedAt()
 	case lockorderfulfillment.FieldTxID:
 		return m.TxID()
-	case lockorderfulfillment.FieldTxReceiptImage:
-		return m.TxReceiptImage()
 	case lockorderfulfillment.FieldValidationStatus:
 		return m.ValidationStatus()
 	case lockorderfulfillment.FieldValidationError:
@@ -2093,8 +2051,6 @@ func (m *LockOrderFulfillmentMutation) OldField(ctx context.Context, name string
 		return m.OldUpdatedAt(ctx)
 	case lockorderfulfillment.FieldTxID:
 		return m.OldTxID(ctx)
-	case lockorderfulfillment.FieldTxReceiptImage:
-		return m.OldTxReceiptImage(ctx)
 	case lockorderfulfillment.FieldValidationStatus:
 		return m.OldValidationStatus(ctx)
 	case lockorderfulfillment.FieldValidationError:
@@ -2128,13 +2084,6 @@ func (m *LockOrderFulfillmentMutation) SetField(name string, value ent.Value) er
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetTxID(v)
-		return nil
-	case lockorderfulfillment.FieldTxReceiptImage:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetTxReceiptImage(v)
 		return nil
 	case lockorderfulfillment.FieldValidationStatus:
 		v, ok := value.(lockorderfulfillment.ValidationStatus)
@@ -2216,9 +2165,6 @@ func (m *LockOrderFulfillmentMutation) ResetField(name string) error {
 		return nil
 	case lockorderfulfillment.FieldTxID:
 		m.ResetTxID()
-		return nil
-	case lockorderfulfillment.FieldTxReceiptImage:
-		m.ResetTxReceiptImage()
 		return nil
 	case lockorderfulfillment.FieldValidationStatus:
 		m.ResetValidationStatus()

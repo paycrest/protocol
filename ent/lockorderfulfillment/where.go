@@ -71,11 +71,6 @@ func TxID(v string) predicate.LockOrderFulfillment {
 	return predicate.LockOrderFulfillment(sql.FieldEQ(FieldTxID, v))
 }
 
-// TxReceiptImage applies equality check predicate on the "tx_receipt_image" field. It's identical to TxReceiptImageEQ.
-func TxReceiptImage(v string) predicate.LockOrderFulfillment {
-	return predicate.LockOrderFulfillment(sql.FieldEQ(FieldTxReceiptImage, v))
-}
-
 // ValidationError applies equality check predicate on the "validation_error" field. It's identical to ValidationErrorEQ.
 func ValidationError(v string) predicate.LockOrderFulfillment {
 	return predicate.LockOrderFulfillment(sql.FieldEQ(FieldValidationError, v))
@@ -224,71 +219,6 @@ func TxIDEqualFold(v string) predicate.LockOrderFulfillment {
 // TxIDContainsFold applies the ContainsFold predicate on the "tx_id" field.
 func TxIDContainsFold(v string) predicate.LockOrderFulfillment {
 	return predicate.LockOrderFulfillment(sql.FieldContainsFold(FieldTxID, v))
-}
-
-// TxReceiptImageEQ applies the EQ predicate on the "tx_receipt_image" field.
-func TxReceiptImageEQ(v string) predicate.LockOrderFulfillment {
-	return predicate.LockOrderFulfillment(sql.FieldEQ(FieldTxReceiptImage, v))
-}
-
-// TxReceiptImageNEQ applies the NEQ predicate on the "tx_receipt_image" field.
-func TxReceiptImageNEQ(v string) predicate.LockOrderFulfillment {
-	return predicate.LockOrderFulfillment(sql.FieldNEQ(FieldTxReceiptImage, v))
-}
-
-// TxReceiptImageIn applies the In predicate on the "tx_receipt_image" field.
-func TxReceiptImageIn(vs ...string) predicate.LockOrderFulfillment {
-	return predicate.LockOrderFulfillment(sql.FieldIn(FieldTxReceiptImage, vs...))
-}
-
-// TxReceiptImageNotIn applies the NotIn predicate on the "tx_receipt_image" field.
-func TxReceiptImageNotIn(vs ...string) predicate.LockOrderFulfillment {
-	return predicate.LockOrderFulfillment(sql.FieldNotIn(FieldTxReceiptImage, vs...))
-}
-
-// TxReceiptImageGT applies the GT predicate on the "tx_receipt_image" field.
-func TxReceiptImageGT(v string) predicate.LockOrderFulfillment {
-	return predicate.LockOrderFulfillment(sql.FieldGT(FieldTxReceiptImage, v))
-}
-
-// TxReceiptImageGTE applies the GTE predicate on the "tx_receipt_image" field.
-func TxReceiptImageGTE(v string) predicate.LockOrderFulfillment {
-	return predicate.LockOrderFulfillment(sql.FieldGTE(FieldTxReceiptImage, v))
-}
-
-// TxReceiptImageLT applies the LT predicate on the "tx_receipt_image" field.
-func TxReceiptImageLT(v string) predicate.LockOrderFulfillment {
-	return predicate.LockOrderFulfillment(sql.FieldLT(FieldTxReceiptImage, v))
-}
-
-// TxReceiptImageLTE applies the LTE predicate on the "tx_receipt_image" field.
-func TxReceiptImageLTE(v string) predicate.LockOrderFulfillment {
-	return predicate.LockOrderFulfillment(sql.FieldLTE(FieldTxReceiptImage, v))
-}
-
-// TxReceiptImageContains applies the Contains predicate on the "tx_receipt_image" field.
-func TxReceiptImageContains(v string) predicate.LockOrderFulfillment {
-	return predicate.LockOrderFulfillment(sql.FieldContains(FieldTxReceiptImage, v))
-}
-
-// TxReceiptImageHasPrefix applies the HasPrefix predicate on the "tx_receipt_image" field.
-func TxReceiptImageHasPrefix(v string) predicate.LockOrderFulfillment {
-	return predicate.LockOrderFulfillment(sql.FieldHasPrefix(FieldTxReceiptImage, v))
-}
-
-// TxReceiptImageHasSuffix applies the HasSuffix predicate on the "tx_receipt_image" field.
-func TxReceiptImageHasSuffix(v string) predicate.LockOrderFulfillment {
-	return predicate.LockOrderFulfillment(sql.FieldHasSuffix(FieldTxReceiptImage, v))
-}
-
-// TxReceiptImageEqualFold applies the EqualFold predicate on the "tx_receipt_image" field.
-func TxReceiptImageEqualFold(v string) predicate.LockOrderFulfillment {
-	return predicate.LockOrderFulfillment(sql.FieldEqualFold(FieldTxReceiptImage, v))
-}
-
-// TxReceiptImageContainsFold applies the ContainsFold predicate on the "tx_receipt_image" field.
-func TxReceiptImageContainsFold(v string) predicate.LockOrderFulfillment {
-	return predicate.LockOrderFulfillment(sql.FieldContainsFold(FieldTxReceiptImage, v))
 }
 
 // ValidationStatusEQ applies the EQ predicate on the "validation_status" field.

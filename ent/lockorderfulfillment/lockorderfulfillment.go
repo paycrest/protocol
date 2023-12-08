@@ -22,8 +22,6 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// FieldTxID holds the string denoting the tx_id field in the database.
 	FieldTxID = "tx_id"
-	// FieldTxReceiptImage holds the string denoting the tx_receipt_image field in the database.
-	FieldTxReceiptImage = "tx_receipt_image"
 	// FieldValidationStatus holds the string denoting the validation_status field in the database.
 	FieldValidationStatus = "validation_status"
 	// FieldValidationError holds the string denoting the validation_error field in the database.
@@ -47,7 +45,6 @@ var Columns = []string{
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldTxID,
-	FieldTxReceiptImage,
 	FieldValidationStatus,
 	FieldValidationError,
 }
@@ -132,11 +129,6 @@ func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByTxID orders the results by the tx_id field.
 func ByTxID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldTxID, opts...).ToFunc()
-}
-
-// ByTxReceiptImage orders the results by the tx_receipt_image field.
-func ByTxReceiptImage(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldTxReceiptImage, opts...).ToFunc()
 }
 
 // ByValidationStatus orders the results by the validation_status field.

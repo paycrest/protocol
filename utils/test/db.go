@@ -45,9 +45,8 @@ func CreateTestUser(overrides map[string]string) (*ent.User, error) {
 
 // CreateTestToken creates a test token with default or custom values
 func CreateTestToken(client types.RPCClient, overrides map[string]interface{}) (*ent.Token, error) {
-
 	// Deploy ERC20 token contract
-	tokenAddress, err := DeployERC20Contract(client)
+	deployedTokenAddress, err := DeployERC20Contract(client)
 	if err != nil {
 		return nil, err
 	}
@@ -55,11 +54,12 @@ func CreateTestToken(client types.RPCClient, overrides map[string]interface{}) (
 	// Default payload
 	payload := map[string]interface{}{
 		"symbol":           "TST",
-		"contract_address": tokenAddress.Hex(),
+		"contract_address": deployedTokenAddress.Hex(),
 		"decimals":         18,
 		"networkRPC":       "http://localhost:8545",
 		"is_enabled":       true,
-		"identifier":       "polygon-mumbai" + uuid.New().String(),
+		"identifier":       "localhost" + uuid.New().String(),
+		"chainID":          int64(1337),
 	}
 
 	// Apply overrides
@@ -71,7 +71,7 @@ func CreateTestToken(client types.RPCClient, overrides map[string]interface{}) (
 	network, err := db.Client.Network.
 		Create().
 		SetIdentifier(payload["identifier"].(string)). // randomize the identifier to avoid conflicts
-		SetChainID(1337).
+		SetChainID(payload["chainID"].(int64)).
 		SetRPCEndpoint(payload["networkRPC"].(string)).
 		SetIsTestnet(true).
 		Save(context.Background())
@@ -122,7 +122,7 @@ func CreateTestLockPaymentOrder(overrides map[string]interface{}) (*ent.LockPaym
 	}
 
 	// Create test token
-	backend, _ := NewSimulatedBlockchain()
+	backend, _ := SetUpTestBlockchain()
 	token, _ := CreateTestToken(backend, nil)
 
 	// Create LockPaymentOrder
@@ -151,7 +151,6 @@ func CreateTestLockOrderFulfillment(overrides map[string]interface{}) (*ent.Lock
 	// Default payload
 	payload := map[string]interface{}{
 		"tx_id":             "0x123...",
-		"tx_receipt_image":  "https://picsum.photos/200",
 		"validation_errors": []string{},
 	}
 
@@ -167,7 +166,6 @@ func CreateTestLockOrderFulfillment(overrides map[string]interface{}) (*ent.Lock
 	fulfillment, err := db.Client.LockOrderFulfillment.
 		Create().
 		SetTxID(payload["tx_id"].(string)).
-		SetTxReceiptImage(payload["tx_receipt_image"].(string)).
 		SetOrderID(order.ID).
 		Save(context.Background())
 

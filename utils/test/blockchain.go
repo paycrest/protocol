@@ -2,52 +2,43 @@ package test
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
+	"log"
+	"time"
 
 	"math/big"
 
+	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core"
+	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/paycrest/protocol/ent"
+	"github.com/paycrest/protocol/ent/receiveaddress"
+	db "github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
 	"github.com/paycrest/protocol/utils/crypto"
 	"github.com/shopspring/decimal"
 
 	"github.com/paycrest/protocol/services/contracts"
+	cryptoUtils "github.com/paycrest/protocol/utils/crypto"
 )
 
-// NewSimulatedBlockchain creates a new instance of SimulatedBackend and returns it.
-func NewSimulatedBlockchain() (*backends.SimulatedBackend, error) {
-	// Generate a private key for the simulated blockchain
-	_, privateKey, _ := crypto.GenerateAccountFromIndex(0)
-
-	// Create a new transactor using the generated private key
-	auth, err := bind.NewKeyedTransactorWithChainID(privateKey, big.NewInt(1337))
+func SetUpTestBlockchain() (types.RPCClient, error) {
+	// Connect to local ethereum client
+	client, err := types.NewEthClient("http://localhost:8545")
 	if err != nil {
-		return nil, err
+		log.Fatalf("Failed to connect to the Ethereum client: %v", err)
 	}
+	return client, nil
+}
 
-	// Set the balance for the transactor's address
-	balance := new(big.Int)
-	balance.SetString("10000000000000000000", 10) // 10 eth in wei
-
-	// Set the genesis account with the transactor's address and balance
-	address := auth.From
-	genesisAlloc := map[common.Address]core.GenesisAccount{
-		address: {
-			Balance: balance,
-		},
+func getClientInfo() (*ethclient.Client, error) {
+	// Connect to local ethereum client
+	client, err := ethclient.Dial("http://localhost:8545")
+	if err != nil {
+		log.Fatalf("Failed to connect to the Ethereum client: %v", err)
 	}
-
-	// Set the block gas limit
-	blockGasLimit := uint64(4712388)
-
-	// Create a new simulated backend using the genesis allocation and block gas limit
-	client := backends.NewSimulatedBackend(genesisAlloc, blockGasLimit)
-
-	client.Commit()
-
 	return client, nil
 }
 
@@ -65,9 +56,14 @@ func DeployERC20Contract(client types.RPCClient) (*common.Address, error) {
 	initialSupply.SetString("200000000", 10)
 
 	// Deploy the contract
-	address, _, _, err := contracts.DeployTestToken(auth, client.(bind.ContractBackend), initialSupply)
+	address, tx, _, err := contracts.DeployTestToken(auth, client.(bind.ContractBackend), initialSupply)
 	if err != nil {
 		return nil, err
+	}
+
+	_, err = bind.WaitMined(context.Background(), client.(bind.DeployBackend), tx)
+	if err != nil {
+		log.Fatalf("Tx receipt failed: %v", err)
 	}
 
 	client.Commit()
@@ -75,23 +71,28 @@ func DeployERC20Contract(client types.RPCClient) (*common.Address, error) {
 	return &address, nil
 }
 
-func DeployEIP4337FactoryContract(client types.RPCClient) (*common.Address, error) {
+func DeployEIP4337FactoryContract(client types.RPCClient) (common.Address, error) {
 	// Prepare the deployment
 	auth, err := prepareDeployment(client)
 	if err != nil {
-		return nil, err
+		return common.Address{}, err
 	}
 
 	// Deploy the contract
-	address, _, _, err := contracts.DeploySimpleAccountFactory(
-		auth, client.(bind.ContractBackend), common.HexToAddress("0x0000000"))
+	address, tx, _, err := contracts.DeploySimpleAccountFactory(
+		auth, client.(bind.ContractBackend), common.HexToAddress("0x8091bDf8fa8762414007C08cF642D33697C8bF51"))
 	if err != nil {
-		return nil, err
+		return common.Address{}, err
+	}
+
+	_, err = bind.WaitMined(context.Background(), client.(bind.DeployBackend), tx)
+	if err != nil {
+		log.Fatalf("Tx receipt failed: %v", err)
 	}
 
 	client.Commit()
 
-	return &address, nil
+	return address, nil
 }
 
 // FundAddressWithTestToken funds an amount of a test ERC20 token from the owner account
@@ -113,12 +114,10 @@ func FundAddressWithTestToken(client types.RPCClient, token common.Address, amou
 		return err
 	}
 
-	receipt, err := bind.WaitMined(context.Background(), client.(bind.DeployBackend), tx)
+	_, err = bind.WaitMined(context.Background(), client.(bind.DeployBackend), tx)
 	if err != nil {
 		return err
 	}
-
-	fmt.Println(receipt.TxHash.String())
 
 	return nil
 }
@@ -141,12 +140,87 @@ func prepareDeployment(client types.RPCClient) (*bind.TransactOpts, error) {
 		return nil, err
 	}
 
+	callMsg := ethereum.CallMsg{
+		From:     *fromAddress,
+		To:       nil,
+		Gas:      0,             // Set to 0 to let the client estimate
+		GasPrice: big.NewInt(0), // Set to 0 for gas price estimation
+		Value:    big.NewInt(0),
+		Data:     []byte{},
+	}
+	gasLimit, err := client.EstimateGas(ctx, callMsg)
+	if err != nil {
+		return nil, err
+	}
+
 	auth, _ := bind.NewKeyedTransactorWithChainID(privateKey, big.NewInt(1337))
 
 	auth.Nonce = big.NewInt(int64(nonce))
-	auth.Value = big.NewInt(0)     // in wei
-	auth.GasLimit = uint64(400000) // in units
+	auth.Value = big.NewInt(0)                 // in wei
+	auth.GasLimit = gasLimit + uint64(9000000) // in units
 	auth.GasPrice = gasPrice
 
 	return auth, nil
+}
+
+// CreateSmartAccount function generates and saves a new EIP-4337 smart contract account address
+func CreateSmartAccount(ctx context.Context, client types.RPCClient) (*ent.ReceiveAddress, error) {
+
+	// Initialize contract factory
+	factory, err := DeployEIP4337FactoryContract(client)
+	if err != nil {
+		return nil, err
+	}
+
+	factoryInstance, err := contracts.NewSimpleAccountFactory(factory, client.(bind.ContractBackend))
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize factory contract: %w", err)
+	}
+
+	// Get master account
+	ownerAddress, privateKey, _ := crypto.GenerateAccountFromIndex(0)
+	auth, _ := bind.NewKeyedTransactorWithChainID(privateKey, big.NewInt(1337))
+
+	nonce := make([]byte, 32)
+	_, err = rand.Read(nonce)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create a new big.Int from the hash
+	salt := new(big.Int).SetBytes(nonce)
+	callOpts := &bind.CallOpts{
+		Pending: true,
+		From:    auth.From,
+		Context: context.Background(),
+	}
+
+	// Generate address
+	smartAccountAddress, err := factoryInstance.GetAddress(callOpts, *ownerAddress, salt)
+	createTx, err := factoryInstance.CreateAccount(auth, *ownerAddress, salt)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate address: %w", err)
+	}
+	_, err = bind.WaitMined(context.Background(), client.(bind.DeployBackend), createTx)
+	if err != nil {
+		log.Fatalf("createTx receipt failed: %v", err)
+	}
+	saltEncrypted, err := cryptoUtils.EncryptPlain([]byte(salt.String()))
+	if err != nil {
+		return nil, fmt.Errorf("failed to encrypt salt: %w", err)
+	}
+
+	// Save address in db
+	receiveAddress, err := db.Client.ReceiveAddress.
+		Create().
+		SetAddress(smartAccountAddress.Hex()).
+		SetSalt(saltEncrypted).
+		SetStatus(receiveaddress.StatusUnused).
+		SetValidUntil(time.Now().Add(time.Millisecond * 5)).
+		Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to save address: %w", err)
+	}
+
+	return receiveAddress, nil
 }

@@ -26,6 +26,20 @@ jobs:
         run: |
           echo "ENV_FILE_PATH=$ENV_FILE_PATH" >> $GITHUB_ENV
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18' 
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Start Ganache
+        run: npx ganache-cli -m "${{ secrets.HD_WALLET_MNEMONIC }}" --accounts 10 --networkId 1337 --deterministic &
+        env:
+          HD_WALLET_MNEMONIC: ${{ secrets.HD_WALLET_MNEMONIC }}
+
+
       - name: Install dependencies
         run: go mod download
 
