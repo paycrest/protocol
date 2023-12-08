@@ -205,6 +205,29 @@ func (s *OrderService) RevertOrder(ctx context.Context, order *ent.PaymentOrder,
 		return fmt.Errorf("RevertOrder.fetchOrder: %w", err)
 	}
 
+	var amountToRevert decimal.Decimal
+
+	if order.AmountPaid.LessThan(order.Amount) {
+		amountToRevert = order.AmountPaid
+	} else if order.AmountPaid.GreaterThan(order.Amount) {
+		amountToRevert = order.AmountPaid.Sub(order.Amount)
+	} else {
+		return nil
+	}
+
+	// Subtract the $0.5 fee from the amount
+	fee := decimal.NewFromFloat(0.5)
+	amountMinusFee := amountToRevert.Sub(fee)
+
+	// If amount minus fee is less than zero, return
+	if amountMinusFee.LessThan(decimal.Zero) {
+		return nil
+	}
+
+	// Convert amountMinusFee to big.Int
+	amountMinusFeeBigInt := utils.ToSubunit(amountMinusFee, order.Edges.Token.Decimals)
+
+	// Decrypt salt
 	saltDecrypted, err := cryptoUtils.DecryptPlain(order.Edges.ReceiveAddress.Salt)
 	if err != nil {
 		return fmt.Errorf("failed to decrypt salt: %w", err)
@@ -218,12 +241,8 @@ func (s *OrderService) RevertOrder(ctx context.Context, order *ent.PaymentOrder,
 		return fmt.Errorf("RevertOrder.initializeUserOperation: %w", err)
 	}
 
-	// Subtract the $0.5 fee from the amount
-	fee := utils.ToSubunit(decimal.NewFromFloat(0.5), order.Edges.Token.Decimals)
-	amountMinusFee := new(big.Int).Sub(utils.ToSubunit(order.Amount, order.Edges.Token.Decimals), fee)
-
 	// Compute transfer calldata
-	transferCalldata, err := s.transferCallData(to, amountMinusFee)
+	transferCalldata, err := s.transferCallData(to, amountMinusFeeBigInt)
 	if err != nil {
 		return fmt.Errorf("RevertOrder.transferCallData: %w", err)
 	}
@@ -254,6 +273,7 @@ func (s *OrderService) RevertOrder(ctx context.Context, order *ent.PaymentOrder,
 	// Update payment order with userOpHash
 	_, err = order.Update().
 		SetTxHash(userOpHash).
+		SetAmountReturned(amountMinusFee).
 		Save(ctx)
 	if err != nil {
 		return fmt.Errorf("RevertOrder.updateTxHash(%v): %w", userOpHash, err)

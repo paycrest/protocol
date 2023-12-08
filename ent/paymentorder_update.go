@@ -66,6 +66,19 @@ func (pou *PaymentOrderUpdate) AddAmountPaid(d decimal.Decimal) *PaymentOrderUpd
 	return pou
 }
 
+// SetAmountReturned sets the "amount_returned" field.
+func (pou *PaymentOrderUpdate) SetAmountReturned(d decimal.Decimal) *PaymentOrderUpdate {
+	pou.mutation.ResetAmountReturned()
+	pou.mutation.SetAmountReturned(d)
+	return pou
+}
+
+// AddAmountReturned adds d to the "amount_returned" field.
+func (pou *PaymentOrderUpdate) AddAmountReturned(d decimal.Decimal) *PaymentOrderUpdate {
+	pou.mutation.AddAmountReturned(d)
+	return pou
+}
+
 // SetRate sets the "rate" field.
 func (pou *PaymentOrderUpdate) SetRate(d decimal.Decimal) *PaymentOrderUpdate {
 	pou.mutation.ResetRate()
@@ -303,6 +316,12 @@ func (pou *PaymentOrderUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if value, ok := pou.mutation.AddedAmountPaid(); ok {
 		_spec.AddField(paymentorder.FieldAmountPaid, field.TypeFloat64, value)
 	}
+	if value, ok := pou.mutation.AmountReturned(); ok {
+		_spec.SetField(paymentorder.FieldAmountReturned, field.TypeFloat64, value)
+	}
+	if value, ok := pou.mutation.AddedAmountReturned(); ok {
+		_spec.AddField(paymentorder.FieldAmountReturned, field.TypeFloat64, value)
+	}
 	if value, ok := pou.mutation.Rate(); ok {
 		_spec.SetField(paymentorder.FieldRate, field.TypeFloat64, value)
 	}
@@ -489,6 +508,19 @@ func (pouo *PaymentOrderUpdateOne) SetAmountPaid(d decimal.Decimal) *PaymentOrde
 // AddAmountPaid adds d to the "amount_paid" field.
 func (pouo *PaymentOrderUpdateOne) AddAmountPaid(d decimal.Decimal) *PaymentOrderUpdateOne {
 	pouo.mutation.AddAmountPaid(d)
+	return pouo
+}
+
+// SetAmountReturned sets the "amount_returned" field.
+func (pouo *PaymentOrderUpdateOne) SetAmountReturned(d decimal.Decimal) *PaymentOrderUpdateOne {
+	pouo.mutation.ResetAmountReturned()
+	pouo.mutation.SetAmountReturned(d)
+	return pouo
+}
+
+// AddAmountReturned adds d to the "amount_returned" field.
+func (pouo *PaymentOrderUpdateOne) AddAmountReturned(d decimal.Decimal) *PaymentOrderUpdateOne {
+	pouo.mutation.AddAmountReturned(d)
 	return pouo
 }
 
@@ -758,6 +790,12 @@ func (pouo *PaymentOrderUpdateOne) sqlSave(ctx context.Context) (_node *PaymentO
 	}
 	if value, ok := pouo.mutation.AddedAmountPaid(); ok {
 		_spec.AddField(paymentorder.FieldAmountPaid, field.TypeFloat64, value)
+	}
+	if value, ok := pouo.mutation.AmountReturned(); ok {
+		_spec.SetField(paymentorder.FieldAmountReturned, field.TypeFloat64, value)
+	}
+	if value, ok := pouo.mutation.AddedAmountReturned(); ok {
+		_spec.AddField(paymentorder.FieldAmountReturned, field.TypeFloat64, value)
 	}
 	if value, ok := pouo.mutation.Rate(); ok {
 		_spec.SetField(paymentorder.FieldRate, field.TypeFloat64, value)

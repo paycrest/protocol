@@ -48,15 +48,18 @@ type Indexer interface {
 type IndexerService struct {
 	indexer       Indexer
 	priorityQueue *PriorityQueueService
+	order         *OrderService
 }
 
 // NewIndexerService creates a new instance of IndexerService.
 func NewIndexerService(indexer Indexer) *IndexerService {
 	priorityQueue := NewPriorityQueueService()
+	order := NewOrderService()
 
 	return &IndexerService{
 		indexer:       indexer,
 		priorityQueue: priorityQueue,
+		order:         order,
 	}
 }
 
@@ -195,30 +198,11 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 						if err != nil {
 							return false, fmt.Errorf("failed to update receive address status: %w", err)
 						}
-					}
 
-					// Update the payment order with amount paid
-					_, err = paymentOrder.
-						Update().
-						SetAmountPaid(paymentOrder.AmountPaid.Add(utils.FromSubunit(transferEvent.Value, token.Decimals))).
-						Save(ctx)
-					if err != nil {
-						return false, fmt.Errorf("failed to record amount paid: %w", err)
-					}
-
-					if receiveAddress.Status == receiveaddress.StatusPartial {
-						// Refresh the receive address with payment order and compare the amount paid with expected amount,
-						receiveAddress, err = db.Client.ReceiveAddress.
-							Query().
-							Where(receiveaddress.AddressEQ(receiveAddress.Address)).
-							WithPaymentOrder().
-							Only(ctx)
-						if err != nil {
-							return false, fmt.Errorf("failed to refresh receive address: %w", err)
-						}
+						amountPaid := paymentOrder.AmountPaid.Add(utils.FromSubunit(transferEvent.Value, token.Decimals))
 
 						// If amount paid meets or exceeds the expected amount, mark receive address as used
-						if paymentOrder.AmountPaid.GreaterThanOrEqual(paymentOrder.Amount) {
+						if amountPaid.GreaterThanOrEqual(paymentOrder.Amount) {
 							_, err = receiveAddress.
 								Update().
 								SetStatus(receiveaddress.StatusUsed).
@@ -227,8 +211,42 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 							if err != nil {
 								return false, fmt.Errorf("failed to update receive address status: %w", err)
 							}
+
+							// Revert excess amount to the from address
+							err := s.order.RevertOrder(ctx, paymentOrder, transferEvent.From)
+							if err != nil {
+								return false, fmt.Errorf("failed to revert order: %w", err)
+							}
+
 							return true, nil
+						} else {
+							// Update the payment order with amount paid
+							_, err = paymentOrder.
+								Update().
+								SetAmountPaid(amountPaid).
+								Save(ctx)
+							if err != nil {
+								return false, fmt.Errorf("failed to record amount paid: %w", err)
+							}
 						}
+
+					} else if comparisonResult > 0 {
+						// Transfer value is greater than order amount
+						_, err = receiveAddress.
+							Update().
+							SetStatus(receiveaddress.StatusUsed).
+							Save(ctx)
+						if err != nil {
+							return false, fmt.Errorf("failed to update receive address status: %w", err)
+						}
+
+						// Revert excess amount to the from address
+						err := s.order.RevertOrder(ctx, paymentOrder, transferEvent.From)
+						if err != nil {
+							return false, fmt.Errorf("failed to revert order: %w", err)
+						}
+
+						return true, nil
 					}
 
 					return false, nil
@@ -264,6 +282,12 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 						Save(ctx)
 					if err != nil {
 						return false, fmt.Errorf("failed to update payment order status: %w", err)
+					}
+
+					// Revert amount to the from address
+					err := s.order.RevertOrder(ctx, paymentOrder, transferEvent.From)
+					if err != nil {
+						return false, fmt.Errorf("failed to revert order: %w", err)
 					}
 
 					return true, nil
