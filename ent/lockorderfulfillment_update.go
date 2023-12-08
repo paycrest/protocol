@@ -42,12 +42,6 @@ func (lofu *LockOrderFulfillmentUpdate) SetTxID(s string) *LockOrderFulfillmentU
 	return lofu
 }
 
-// SetTxReceiptImage sets the "tx_receipt_image" field.
-func (lofu *LockOrderFulfillmentUpdate) SetTxReceiptImage(s string) *LockOrderFulfillmentUpdate {
-	lofu.mutation.SetTxReceiptImage(s)
-	return lofu
-}
-
 // SetValidationStatus sets the "validation_status" field.
 func (lofu *LockOrderFulfillmentUpdate) SetValidationStatus(ls lockorderfulfillment.ValidationStatus) *LockOrderFulfillmentUpdate {
 	lofu.mutation.SetValidationStatus(ls)
@@ -171,9 +165,6 @@ func (lofu *LockOrderFulfillmentUpdate) sqlSave(ctx context.Context) (n int, err
 	if value, ok := lofu.mutation.TxID(); ok {
 		_spec.SetField(lockorderfulfillment.FieldTxID, field.TypeString, value)
 	}
-	if value, ok := lofu.mutation.TxReceiptImage(); ok {
-		_spec.SetField(lockorderfulfillment.FieldTxReceiptImage, field.TypeString, value)
-	}
 	if value, ok := lofu.mutation.ValidationStatus(); ok {
 		_spec.SetField(lockorderfulfillment.FieldValidationStatus, field.TypeEnum, value)
 	}
@@ -241,12 +232,6 @@ func (lofuo *LockOrderFulfillmentUpdateOne) SetUpdatedAt(t time.Time) *LockOrder
 // SetTxID sets the "tx_id" field.
 func (lofuo *LockOrderFulfillmentUpdateOne) SetTxID(s string) *LockOrderFulfillmentUpdateOne {
 	lofuo.mutation.SetTxID(s)
-	return lofuo
-}
-
-// SetTxReceiptImage sets the "tx_receipt_image" field.
-func (lofuo *LockOrderFulfillmentUpdateOne) SetTxReceiptImage(s string) *LockOrderFulfillmentUpdateOne {
-	lofuo.mutation.SetTxReceiptImage(s)
 	return lofuo
 }
 
@@ -402,9 +387,6 @@ func (lofuo *LockOrderFulfillmentUpdateOne) sqlSave(ctx context.Context) (_node 
 	}
 	if value, ok := lofuo.mutation.TxID(); ok {
 		_spec.SetField(lockorderfulfillment.FieldTxID, field.TypeString, value)
-	}
-	if value, ok := lofuo.mutation.TxReceiptImage(); ok {
-		_spec.SetField(lockorderfulfillment.FieldTxReceiptImage, field.TypeString, value)
 	}
 	if value, ok := lofuo.mutation.ValidationStatus(); ok {
 		_spec.SetField(lockorderfulfillment.FieldValidationStatus, field.TypeEnum, value)

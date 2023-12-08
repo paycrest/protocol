@@ -56,12 +56,6 @@ func (lofc *LockOrderFulfillmentCreate) SetTxID(s string) *LockOrderFulfillmentC
 	return lofc
 }
 
-// SetTxReceiptImage sets the "tx_receipt_image" field.
-func (lofc *LockOrderFulfillmentCreate) SetTxReceiptImage(s string) *LockOrderFulfillmentCreate {
-	lofc.mutation.SetTxReceiptImage(s)
-	return lofc
-}
-
 // SetValidationStatus sets the "validation_status" field.
 func (lofc *LockOrderFulfillmentCreate) SetValidationStatus(ls lockorderfulfillment.ValidationStatus) *LockOrderFulfillmentCreate {
 	lofc.mutation.SetValidationStatus(ls)
@@ -179,9 +173,6 @@ func (lofc *LockOrderFulfillmentCreate) check() error {
 	if _, ok := lofc.mutation.TxID(); !ok {
 		return &ValidationError{Name: "tx_id", err: errors.New(`ent: missing required field "LockOrderFulfillment.tx_id"`)}
 	}
-	if _, ok := lofc.mutation.TxReceiptImage(); !ok {
-		return &ValidationError{Name: "tx_receipt_image", err: errors.New(`ent: missing required field "LockOrderFulfillment.tx_receipt_image"`)}
-	}
 	if _, ok := lofc.mutation.ValidationStatus(); !ok {
 		return &ValidationError{Name: "validation_status", err: errors.New(`ent: missing required field "LockOrderFulfillment.validation_status"`)}
 	}
@@ -239,10 +230,6 @@ func (lofc *LockOrderFulfillmentCreate) createSpec() (*LockOrderFulfillment, *sq
 	if value, ok := lofc.mutation.TxID(); ok {
 		_spec.SetField(lockorderfulfillment.FieldTxID, field.TypeString, value)
 		_node.TxID = value
-	}
-	if value, ok := lofc.mutation.TxReceiptImage(); ok {
-		_spec.SetField(lockorderfulfillment.FieldTxReceiptImage, field.TypeString, value)
-		_node.TxReceiptImage = value
 	}
 	if value, ok := lofc.mutation.ValidationStatus(); ok {
 		_spec.SetField(lockorderfulfillment.FieldValidationStatus, field.TypeEnum, value)

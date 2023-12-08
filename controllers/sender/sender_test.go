@@ -160,7 +160,7 @@ func setup() error {
 	testCtx.apiKey = apiKey
 
 	// Set up test blockchain client
-	backend, err := test.NewSimulatedBlockchain()
+	backend, err := test.SetUpTestBlockchain()
 	if err != nil {
 		return err
 	}

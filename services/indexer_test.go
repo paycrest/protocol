@@ -3,7 +3,9 @@ package services
 import (
 	"context"
 	"testing"
+	"time"
 
+	"github.com/ethereum/go-ethereum/common"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/enttest"
@@ -24,49 +26,22 @@ var testCtx = struct {
 
 func setup() error {
 	// Set up test blockchain client
-	backend, err := test.NewSimulatedBlockchain()
+	client, err := test.SetUpTestBlockchain()
 	if err != nil {
 		return err
 	}
-	testCtx.rpcClient = backend
-
-	// TODO: replace this implementation with the simulated blockchain
-	// We're currently using this tx for testing:
-	// https://etherscan.io/tx/0xd5fb7204066619f207e8d2c87493cdd1edbdd9ec21ab647f95d45faa2ed540cb
+	testCtx.rpcClient = client
 
 	// Create a test token
 	token, err := test.CreateTestToken(
-		backend,
-		map[string]interface{}{
-			"symbol":           "USDT",
-			"contract_address": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
-			"decimals":         6,
-			"networkRPC":       "https://mainnet.infura.io/v3/4818dbcee84d4651a832894818bd4534",
-		})
+		client,
+		map[string]interface{}{})
 	if err != nil {
 		return err
 	}
 
-	// Create receive address
-	// receiveAddressFactory, err := test.DeployEIP4337FactoryContract(backend)
-	// if err != nil {
-	// 	return err
-	// }
-	// receiveAddressService := NewReceiveAddressService()
-	// receiveAddress, err := receiveAddressService.CreateSmartAccount(
-	// 	context.Background(), nil, nil)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// Save address in db
-	receiveAddress, err := db.Client.ReceiveAddress.
-		Create().
-		SetAddress("0xF6F6407410235202CA5Bfa68286a3bBe01F8E5E0").
-		SetSalt([]byte("random salt")).
-		SetStatus(receiveaddress.StatusUnused).
-		SetLastIndexedBlock(17800411). // our target test block with usdt transfer is 17800412
-		Save(context.Background())
+	receiveAddress, err := test.CreateSmartAccount(
+		context.Background(), client)
 	if err != nil {
 		return err
 	}
@@ -74,15 +49,15 @@ func setup() error {
 
 	// Fund receive address
 	amount := decimal.NewFromInt(2990)
-	// err = test.FundAddressWithTestToken(
-	// 	backend,
-	// 	common.HexToAddress(token.ContractAddress),
-	// 	amount,
-	// 	common.HexToAddress(receiveAddress.Address),
-	// )
-	// if err != nil {
-	// 	return err
-	// }
+	err = test.FundAddressWithTestToken(
+		client,
+		common.HexToAddress(token.ContractAddress),
+		amount,
+		common.HexToAddress(receiveAddress.Address),
+	)
+	if err != nil {
+		return err
+	}
 
 	// Create a test api key
 	user, err := test.CreateTestUser(nil)
@@ -144,8 +119,10 @@ func TestIndexer(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Index ERC20 transfers for the receive address
-	_, err = testCtx.indexer.IndexERC20Transfer(context.Background(), nil, testCtx.receiveAddress)
+	_, err = testCtx.indexer.IndexERC20Transfer(context.Background(), testCtx.rpcClient, testCtx.receiveAddress)
 	assert.NoError(t, err)
+
+	time.Sleep(30 * time.Second)
 
 	// Fetch receiveAddress from db
 	receiveAddress, err := db.Client.ReceiveAddress.
