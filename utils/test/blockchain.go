@@ -23,6 +23,7 @@ import (
 	cryptoUtils "github.com/paycrest/protocol/utils/crypto"
 )
 
+// SetUpTestBlockchain sets up a connection to a local Ethereum blockchain.
 func SetUpTestBlockchain() (types.RPCClient, error) {
 	// Connect to local ethereum client
 	client, err := types.NewEthClient("http://localhost:8545")
@@ -61,6 +62,7 @@ func DeployERC20Contract(client types.RPCClient) (*common.Address, error) {
 	return &address, nil
 }
 
+// DeployEIP4337FactoryContract deploys an EIP-4337 factory contract.
 func DeployEIP4337FactoryContract(client types.RPCClient) (common.Address, error) {
 	// Prepare the deployment
 	auth, err := prepareDeployment(client)
