@@ -95,8 +95,8 @@ type Scope string
 
 // Scope values.
 const (
-	ScopeEmailVerification Scope = "email-verification"
-	ScopeResetPassword     Scope = "reset-password"
+	ScopeEmailVerification Scope = "emailVerification"
+	ScopeResetPassword     Scope = "resetPassword"
 )
 
 func (s Scope) String() string {

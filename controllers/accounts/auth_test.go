@@ -670,8 +670,8 @@ func TestAuth(t *testing.T) {
 			assert.NoError(t, err)
 
 			resetPasswordPayload := map[string]string{
-				"new-password": "1111000090",
-				"reset-token":  resetToken.Token,
+				"password": "1111000090",
+				"resetToken":  resetToken.Token,
 			}
 
 			res, err := test.PerformRequest(t, "PATCH", "/reset-password", resetPasswordPayload, nil, router)
@@ -686,7 +686,7 @@ func TestAuth(t *testing.T) {
 				Only(context.Background())
 			assert.NoError(t, getUserErr, "failed to get updated user after password reset")
 
-			passwordCompareErr := bcrypt.CompareHashAndPassword([]byte(updatedUser.Password), []byte(resetPasswordPayload["new-password"]))
+			passwordCompareErr := bcrypt.CompareHashAndPassword([]byte(updatedUser.Password), []byte(resetPasswordPayload["password"]))
 			assert.NoError(t, passwordCompareErr, "Password reset did not update DB properly")
 		})
 	})

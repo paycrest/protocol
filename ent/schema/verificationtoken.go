@@ -32,8 +32,7 @@ func (VerificationToken) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).Default(uuid.New),
 		field.String("token").Immutable(),
-		field.Enum("scope").Values("email-verification", "reset-password"),
-		// field.Time("created_at").Immutable().Default(time.Now),
+		field.Enum("scope").Values("emailVerification", "resetPassword"),
 		field.Time("expiry_at").Immutable().Default(time.Now().Add(time.Hour * 9000)),
 	}
 }

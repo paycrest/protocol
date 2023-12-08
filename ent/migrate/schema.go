@@ -432,7 +432,7 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "token", Type: field.TypeString},
-		{Name: "scope", Type: field.TypeEnum, Enums: []string{"email-verification", "reset-password"}},
+		{Name: "scope", Type: field.TypeEnum, Enums: []string{"emailVerification", "resetPassword"}},
 		{Name: "expiry_at", Type: field.TypeTime},
 		{Name: "user_verification_token", Type: field.TypeUUID},
 	}

@@ -355,7 +355,7 @@ func (ctrl *AuthController) ResendVerificationToken(ctx *gin.Context) {
 	u.APIResponse(ctx, http.StatusOK, "success", "Verification token has been sent to your email", nil)
 }
 
-// Resets user's password. A valid token is required to set new password
+// ResetPassword resets user's password. A valid token is required to set new password
 func (ctrl *AuthController) ResetPassword(ctx *gin.Context) {
 	var payload types.ResetPasswordPayload
 
@@ -391,7 +391,7 @@ func (ctrl *AuthController) ResetPassword(ctx *gin.Context) {
 	u.APIResponse(ctx, http.StatusOK, "success", "Password reset was successful", nil)
 }
 
-// Sends reset password token to user's email
+// ResetPasswordToken sends a reset password token to user's email
 func (ctrl *AuthController) ResetPasswordToken(ctx *gin.Context) {
 	var payload types.ResetPasswordTokenPayload
 

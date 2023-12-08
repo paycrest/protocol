@@ -350,7 +350,7 @@ type MarketRateResponse struct {
 }
 
 type ResendTokenPayload struct {
-	Scope string `json:"scope" binding:"required,oneof=email-verification reset-password"`
+	Scope string `json:"scope" binding:"required,oneof=emailVerification resetPassword"`
 	Email string `json:"email" binding:"required,email"`
 }
 
@@ -385,8 +385,8 @@ type ErrorData struct {
 
 // Payload for reset password request
 type ResetPasswordPayload struct {
-	Password   string `json:"new-password" binding:"required,min=6,max=20"`
-	ResetToken string `json:"reset-token"`
+	Password   string `json:"password" binding:"required,min=6,max=20"`
+	ResetToken string `json:"resetToken"`
 }
 
 // Payload for reset password token endpoint
