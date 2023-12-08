@@ -35,7 +35,7 @@ jobs:
         run: npm install -g ganache-cli
 
       - name: Start Ganache
-        run: ganache -m "${{ secrets.HD_WALLET_MNEMONIC }}" --accounts 10 --networkId 1337 --gasLimit 900000000 --deterministic &
+        run: ganache-cli -m "${{ secrets.HD_WALLET_MNEMONIC }}" --accounts 10 --networkId 1337 --gasLimit 900000000 --deterministic
         env:
           HD_WALLET_MNEMONIC: ${{ secrets.HD_WALLET_MNEMONIC }}
 
