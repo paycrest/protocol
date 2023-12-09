@@ -176,7 +176,15 @@ func Median(data []decimal.Decimal) decimal.Decimal {
 
 // SendPaymentOrderWebhook notifies a sender when the status of a payment order changes
 func SendPaymentOrderWebhook(ctx context.Context, paymentOrder *ent.PaymentOrder) error {
+	var err error
+
 	profile := paymentOrder.Edges.SenderProfile
+	if profile == nil {
+		profile, err = paymentOrder.QuerySenderProfile().Only(ctx)
+		if err != nil {
+			return err
+		}
+	}
 
 	// If webhook URL is empty, return
 	if profile.WebhookURL == "" {
