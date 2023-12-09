@@ -232,6 +232,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 							_, err = paymentOrder.
 								Update().
 								SetAmountPaid(amountPaid).
+								SetTxHash(vLog.TxHash.Hex()).
 								Save(ctx)
 							if err != nil {
 								logger.Errorf("IndexERC20Transfer.db: %v", err)
@@ -283,6 +284,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 							_, err := paymentOrder.
 								Update().
 								SetStatus(paymentorder.StatusReverted).
+								SetTxHash(vLog.TxHash.Hex()).
 								Save(ctx)
 							if err != nil {
 								logger.Errorf("IndexERC20Transfer.db: %v", err)
@@ -805,6 +807,7 @@ func (s *IndexerService) createLockPaymentOrder(ctx context.Context, client type
 		Rate:              rate,
 		Label:             utils.Byte32ToString(deposit.Label),
 		BlockNumber:       int64(deposit.Raw.BlockNumber),
+		TxHash:            deposit.Raw.TxHash.Hex(),
 		Institution:       utils.Byte32ToString(deposit.InstitutionCode),
 		AccountIdentifier: recipient.AccountIdentifier,
 		AccountName:       recipient.AccountName,
@@ -842,6 +845,7 @@ func (s *IndexerService) createLockPaymentOrder(ctx context.Context, client type
 			SetLabel(lockPaymentOrder.Label).
 			SetOrderPercent(decimal.NewFromInt(100)).
 			SetBlockNumber(lockPaymentOrder.BlockNumber).
+			SetTxHash(lockPaymentOrder.TxHash).
 			SetInstitution(lockPaymentOrder.Institution).
 			SetAccountIdentifier(lockPaymentOrder.AccountIdentifier).
 			SetAccountName(lockPaymentOrder.AccountName).
@@ -952,6 +956,7 @@ func (s *IndexerService) splitLockPaymentOrder(ctx context.Context, lockPaymentO
 				SetRate(lockPaymentOrder.Rate).
 				SetOrderPercent(orderPercent).
 				SetBlockNumber(lockPaymentOrder.BlockNumber).
+				SetTxHash(lockPaymentOrder.TxHash).
 				SetInstitution(lockPaymentOrder.Institution).
 				SetAccountIdentifier(lockPaymentOrder.AccountIdentifier).
 				SetAccountName(lockPaymentOrder.AccountName).
@@ -1000,6 +1005,7 @@ func (s *IndexerService) splitLockPaymentOrder(ctx context.Context, lockPaymentO
 			SetAmount(amountToSplit.Div(lockPaymentOrder.Rate)).
 			SetRate(lockPaymentOrder.Rate).
 			SetBlockNumber(lockPaymentOrder.BlockNumber).
+			SetTxHash(lockPaymentOrder.TxHash).
 			SetInstitution(lockPaymentOrder.Institution).
 			SetAccountIdentifier(lockPaymentOrder.AccountIdentifier).
 			SetAccountName(lockPaymentOrder.AccountName).
