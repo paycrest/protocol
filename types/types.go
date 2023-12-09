@@ -247,6 +247,7 @@ type LockPaymentOrderFields struct {
 	Rate              decimal.Decimal
 	Label             string
 	BlockNumber       int64
+	TxHash            string
 	Institution       string
 	AccountIdentifier string
 	AccountName       string

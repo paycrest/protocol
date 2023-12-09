@@ -283,7 +283,7 @@ func (s *OrderService) RevertOrder(ctx context.Context, order *ent.PaymentOrder,
 }
 
 // SettleOrder settles a payment order on-chain.
-func (s *OrderService) SettleOrder(ctx context.Context, client types.RPCClient, orderID uuid.UUID) error {
+func (s *OrderService) SettleOrder(ctx context.Context, orderID uuid.UUID) error {
 	var err error
 
 	// Fetch payment order from db
@@ -300,68 +300,43 @@ func (s *OrderService) SettleOrder(ctx context.Context, client types.RPCClient, 
 		return fmt.Errorf("failed to fetch lock order: %w", err)
 	}
 
-	// Fetch provider address from db
-	token, err := db.Client.ProviderOrderToken.
-		Query().
-		Where(
-			providerordertoken.SymbolEQ(order.Edges.Token.Symbol),
-			providerordertoken.HasProviderWith(
-				providerprofile.IDEQ(order.Edges.Provider.ID),
-			),
-		).
-		Only(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to fetch provider order token: %w", err)
-	}
-
-	var providerAddress string
-	for _, addr := range token.Addresses {
-		if addr.Network == order.Edges.Token.Edges.Network.Identifier {
-			providerAddress = addr.Address
-			break
-		}
-	}
-
-	if providerAddress == "" {
-		return fmt.Errorf("failed to fetch provider address: %w", err)
-	}
-
-	// Connect to RPC endpoint
-	if client == nil {
-		client, err = types.NewEthClient(order.Edges.Token.Edges.Network.RPCEndpoint)
-		if err != nil {
-			return fmt.Errorf("failed to connect to RPC client: %w", err)
-		}
-	}
-
-	// Initialize paycrest order contract
-	orderContract, err := contracts.NewPaycrestOrder(OrderConf.PaycrestOrderContractAddress, client.(bind.ContractBackend))
-	if err != nil {
-		return fmt.Errorf("failed to initialize paycrest order contract: %w", err)
-	}
-
-	orderPercent, _ := order.OrderPercent.Float64()
-
-	// Settle order
-	tx, err := orderContract.Settle(
-		nil,
-		utils.StringToByte32(order.ID.String()),
-		utils.StringToByte32(order.OrderID),
-		utils.StringToByte32(order.Label),
-		nil, // TODO: remove validators input from contract
-		common.HexToAddress(providerAddress),
-		uint64(orderPercent),
-		order.Edges.Provider.IsPartner,
+	// Get default userOperation
+	userOperation, err := utils.InitializeUserOperation(
+		ctx, nil, order.Edges.Token.Edges.Network.RPCEndpoint, CryptoConf.AggregatorSmartAccount, CryptoConf.AggregatorSmartAccountSalt,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to settle order: %w", err)
+		return fmt.Errorf("SettleOrder.initializeUserOperation: %w", err)
 	}
 
+	// Create calldata
+	calldata, err := s.executeBatchSettleCallData(ctx, order)
+	if err != nil {
+		return fmt.Errorf("SettleOrder.settleCallData: %w", err)
+	}
+	userOperation.CallData = calldata
+
+	// Sponsor user operation.
+	// This will populate the following fields in userOperation: PaymasterAndData, PreVerificationGas, VerificationGasLimit, CallGasLimit
+	err = utils.SponsorUserOperation(userOperation, "payg")
+	if err != nil {
+		return fmt.Errorf("SettleOrder.sponsorUserOperation: %w", err)
+	}
+
+	// Sign user operation
+	_ = utils.SignUserOperation(userOperation)
+
+	// Send user operation
+	userOpTxHash, err := utils.SendUserOperation(userOperation)
+	if err != nil {
+		return fmt.Errorf("SettleOrder.sendUserOperation: %w", err)
+	}
+
+	// Update status of lock order
 	_, err = order.Update().
-		SetTxHash(tx.Hash().Hex()).
+		SetTxHash(userOpTxHash).
 		Save(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to update payment order: %w", err)
+		return fmt.Errorf("SettleOrder.updateTxHash: %w", err)
 	}
 
 	return nil
@@ -587,7 +562,7 @@ func (s *OrderService) executeBatchRefundCallData(order *ent.LockPaymentOrder) (
 		return nil, fmt.Errorf("executeBatchRefundCallData.simpleAccountABI: %w", err)
 	}
 
-	executeBatchCreateOrderCallData, err := simpleAccountABI.Pack(
+	executeBatchRefundCallData, err := simpleAccountABI.Pack(
 		"executeBatch",
 		[]common.Address{
 			common.HexToAddress(order.Edges.Token.ContractAddress),
@@ -599,18 +574,17 @@ func (s *OrderService) executeBatchRefundCallData(order *ent.LockPaymentOrder) (
 		return nil, fmt.Errorf("executeBatchRefundCallData: %w", err)
 	}
 
-	return executeBatchCreateOrderCallData, nil
+	return executeBatchRefundCallData, nil
 }
 
 // refundCallData creates the data for the refund method
 func (s *OrderService) refundCallData(orderId, label string) ([]byte, error) {
-	// Refund ABI
 	paycrestOrderABI, err := abi.JSON(strings.NewReader(contracts.PaycrestOrderMetaData.ABI))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse PaycrestOrder ABI: %w", err)
 	}
 
-	// Generate call data for refund, orderID, and label should be byte32
+	// Generate calldata for refund, orderID, and label should be byte32
 	data, err := paycrestOrderABI.Pack(
 		"refund",
 		utils.StringToByte32(orderId),
@@ -619,6 +593,97 @@ func (s *OrderService) refundCallData(orderId, label string) ([]byte, error) {
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to pack refund ABI: %w", err)
+	}
+
+	return data, nil
+}
+
+// executeBatchSettleCallData creates the settle calldata for the execute batch method in the smart account.
+func (s *OrderService) executeBatchSettleCallData(ctx context.Context, order *ent.LockPaymentOrder) ([]byte, error) {
+	// Create approve data for paycrest order contract
+	approvePaycrestData, err := s.approveCallData(
+		OrderConf.PaycrestOrderContractAddress,
+		utils.ToSubunit(order.Amount, order.Edges.Token.Decimals),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("executeBatchSettleCallData.approveOrderContract: %w", err)
+	}
+
+	// Create settle data
+	settleData, err := s.settleCallData(ctx, order)
+	if err != nil {
+		return nil, fmt.Errorf("executeBatchSettleCallData.refundData: %w", err)
+	}
+
+	simpleAccountABI, err := abi.JSON(strings.NewReader(contracts.SimpleAccountMetaData.ABI))
+	if err != nil {
+		return nil, fmt.Errorf("executeBatchSettleCallData.simpleAccountABI: %w", err)
+	}
+
+	executeBatchSettleCallData, err := simpleAccountABI.Pack(
+		"executeBatch",
+		[]common.Address{
+			common.HexToAddress(order.Edges.Token.ContractAddress),
+			OrderConf.PaycrestOrderContractAddress,
+		},
+		[][]byte{approvePaycrestData, settleData},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("executeBatchSettledCallData: %w", err)
+	}
+
+	return executeBatchSettleCallData, nil
+}
+
+// settleCallData creates the data for the settle method in the paycrest order contract
+func (s *OrderService) settleCallData(ctx context.Context, order *ent.LockPaymentOrder) ([]byte, error) {
+	paycrestOrderABI, err := abi.JSON(strings.NewReader(contracts.PaycrestOrderMetaData.ABI))
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse PaycrestOrder ABI: %w", err)
+	}
+
+	// Fetch provider address from db
+	token, err := db.Client.ProviderOrderToken.
+		Query().
+		Where(
+			providerordertoken.SymbolEQ(order.Edges.Token.Symbol),
+			providerordertoken.HasProviderWith(
+				providerprofile.IDEQ(order.Edges.Provider.ID),
+			),
+		).
+		Only(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch provider order token: %w", err)
+	}
+
+	var providerAddress string
+	for _, addr := range token.Addresses {
+		if addr.Network == order.Edges.Token.Edges.Network.Identifier {
+			providerAddress = addr.Address
+			break
+		}
+	}
+
+	if providerAddress == "" {
+		return nil, fmt.Errorf("failed to fetch provider address: %w", err)
+	}
+
+	orderPercent, _ := order.OrderPercent.Float64()
+
+	// Generate calldata for settlement
+	data, err := paycrestOrderABI.Pack(
+		"settle",
+		utils.StringToByte32(order.ID.String()),
+		utils.StringToByte32(order.OrderID),
+		utils.StringToByte32(order.Label),
+		nil, // TODO: remove validators input from contract
+		common.HexToAddress(providerAddress),
+		uint64(orderPercent),
+		order.Edges.Provider.IsPartner,
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to pack settle ABI: %w", err)
 	}
 
 	return data, nil
