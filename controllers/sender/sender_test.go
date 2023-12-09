@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"hash/maphash"
+	"math/rand"
 	"net/http"
 	"strconv"
 	"testing"
@@ -70,6 +72,8 @@ func createPaymentOrder(t *testing.T, router *gin.Engine) {
 		Only(context.Background())
 	assert.NoError(t, err)
 
+	r := rand.New(rand.NewSource(int64(new(maphash.Hash).Sum64())))
+
 	payload := map[string]interface{}{
 		"amount":  100.0,
 		"token":   testCtx.token.Symbol,
@@ -81,7 +85,7 @@ func createPaymentOrder(t *testing.T, router *gin.Engine) {
 			"accountName":       "John Doe",
 			"memo":              "Shola Kehinde - rent for May 2021",
 		},
-		"label":     "cc334ncldfa",
+		"label":     fmt.Sprintf("%d", r.Intn(100000)),
 		"timestamp": time.Now().Unix(),
 	}
 
@@ -202,13 +206,13 @@ func TestSender(t *testing.T) {
 
 	// Create a new instance of the SenderController with the mock service
 	ctrl := NewSenderController(mockIndexerService)
-	router.POST("/orders", ctrl.CreatePaymentOrder)
+	router.POST("/orders", ctrl.InitiatePaymentOrder)
 	router.GET("/orders/:id", ctrl.GetPaymentOrderByID)
 	router.GET("/orders/", ctrl.GetPaymentOrders)
 
 	var paymentOrderUUID uuid.UUID
 
-	t.Run("CreatePaymentOrder", func(t *testing.T) {
+	t.Run("InitiatePaymentOrder", func(t *testing.T) {
 		for i := 0; i < 10; i++ {
 			createPaymentOrder(t, router)
 		}

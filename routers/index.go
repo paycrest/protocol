@@ -88,7 +88,7 @@ func senderRoutes(route *gin.Engine) {
 	v1.Use(middleware.DynamicAuthMiddleware)
 	v1.Use(middleware.OnlySenderMiddleware)
 
-	v1.POST("orders", senderCtrl.CreatePaymentOrder)
+	v1.POST("orders", senderCtrl.InitiatePaymentOrder)
 	v1.GET("orders/:id", senderCtrl.GetPaymentOrderByID)
 	v1.GET("orders", senderCtrl.GetPaymentOrders)
 }

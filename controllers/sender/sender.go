@@ -45,8 +45,8 @@ func NewSenderController(indexer svc.Indexer) *SenderController {
 	}
 }
 
-// CreatePaymentOrder controller creates a payment order
-func (ctrl *SenderController) CreatePaymentOrder(ctx *gin.Context) {
+// InitiatePaymentOrder controller creates a payment order
+func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 	var payload types.NewPaymentOrderPayload
 
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
@@ -82,8 +82,26 @@ func (ctrl *SenderController) CreatePaymentOrder(ctx *gin.Context) {
 		Only(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusBadRequest, "error",
-			"Provided token is not supported", nil)
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Provided token is not supported", nil)
+		return
+	}
+
+	// Ensure label is unique for the sender
+	labelExists, err := db.Client.PaymentOrder.
+		Query().
+		Where(
+			paymentorder.HasSenderProfileWith(senderprofile.IDEQ(sender.ID)),
+			paymentorder.LabelEQ(payload.Label),
+		).
+		Exist(ctx)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to initiate payment order", nil)
+		return
+	}
+
+	if labelExists {
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Label already exists", nil)
 		return
 	}
 
@@ -91,8 +109,7 @@ func (ctrl *SenderController) CreatePaymentOrder(ctx *gin.Context) {
 	receiveAddress, err := ctrl.receiveAddressService.CreateSmartAccount(ctx, nil, nil)
 	if err != nil {
 		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusInternalServerError, "error",
-			"Failed to initiate payment order", nil)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to initiate payment order", nil)
 		return
 	}
 
@@ -100,8 +117,7 @@ func (ctrl *SenderController) CreatePaymentOrder(ctx *gin.Context) {
 	tx, err := db.Client.Tx(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusInternalServerError, "error",
-			"Failed to initiate payment order", nil)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to initiate payment order", nil)
 		return
 	}
 
@@ -120,8 +136,7 @@ func (ctrl *SenderController) CreatePaymentOrder(ctx *gin.Context) {
 		Save(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusInternalServerError, "error",
-			"Failed to initiate payment order", nil)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to initiate payment order", nil)
 		_ = tx.Rollback()
 		return
 	}
@@ -138,8 +153,7 @@ func (ctrl *SenderController) CreatePaymentOrder(ctx *gin.Context) {
 		Save(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusInternalServerError, "error",
-			"Failed to initiate payment order", nil)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to initiate payment order", nil)
 		_ = tx.Rollback()
 		return
 	}
@@ -147,8 +161,7 @@ func (ctrl *SenderController) CreatePaymentOrder(ctx *gin.Context) {
 	// Commit the transaction
 	if err := tx.Commit(); err != nil {
 		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusInternalServerError, "error",
-			"Failed to initiate payment order", nil)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to initiate payment order", nil)
 		return
 	}
 
