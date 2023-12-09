@@ -17,7 +17,6 @@ import (
 	db "github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
 	"github.com/paycrest/protocol/utils/crypto"
-	"github.com/shopspring/decimal"
 
 	"github.com/paycrest/protocol/services/contracts"
 	cryptoUtils "github.com/paycrest/protocol/utils/crypto"
@@ -44,7 +43,7 @@ func DeployERC20Contract(client types.RPCClient) (*common.Address, error) {
 	}
 
 	initialSupply := new(big.Int)
-	initialSupply.SetString("200000000", 10)
+	initialSupply.SetString("2000000000000000000000", 10) // Initial supply of 2,000 tokens (token decimal is 18)
 
 	// Deploy the contract
 	address, tx, _, err := contracts.DeployTestToken(auth, client.(bind.ContractBackend), initialSupply)
@@ -88,7 +87,7 @@ func DeployEIP4337FactoryContract(client types.RPCClient) (common.Address, error
 }
 
 // FundAddressWithTestToken funds an amount of a test ERC20 token from the owner account
-func FundAddressWithTestToken(client types.RPCClient, token common.Address, amount decimal.Decimal, address common.Address) error {
+func FundAddressWithTestToken(client types.RPCClient, token common.Address, amount *big.Int, address common.Address) error {
 	// Get master account
 	_, privateKey, _ := crypto.GenerateAccountFromIndex(0)
 
@@ -101,7 +100,7 @@ func FundAddressWithTestToken(client types.RPCClient, token common.Address, amou
 	auth, _ := bind.NewKeyedTransactorWithChainID(privateKey, big.NewInt(1337))
 
 	// Transfer test token to the address
-	tx, err := testToken.Transfer(auth, address, amount.BigInt())
+	tx, err := testToken.Transfer(auth, address, amount)
 	if err != nil {
 		return err
 	}
