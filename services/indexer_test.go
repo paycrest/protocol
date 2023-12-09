@@ -12,6 +12,7 @@ import (
 	"github.com/paycrest/protocol/ent/receiveaddress"
 	db "github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
+	"github.com/paycrest/protocol/utils"
 	"github.com/paycrest/protocol/utils/test"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
@@ -48,11 +49,12 @@ func setup() error {
 	testCtx.receiveAddress = receiveAddress
 
 	// Fund receive address
-	amount := decimal.NewFromInt(2990)
+	amount := decimal.NewFromFloat(29.93)
+	amountInt := utils.ToSubunit(amount, token.Decimals)
 	err = test.FundAddressWithTestToken(
 		client,
 		common.HexToAddress(token.ContractAddress),
-		amount,
+		amountInt,
 		common.HexToAddress(receiveAddress.Address),
 	)
 	if err != nil {

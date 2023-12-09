@@ -166,7 +166,7 @@ func setup() error {
 	}
 
 	// Create a test token
-	testCtx.networkIdentifier = "polygon-mumbai" + uuid.New().String()
+	testCtx.networkIdentifier = "localhost" + uuid.New().String()
 	token, err := test.CreateTestToken(backend, map[string]interface{}{
 		"identifier": testCtx.networkIdentifier,
 	})
