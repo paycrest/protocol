@@ -10,6 +10,7 @@ import (
 	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/fiatcurrency"
+	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	"github.com/paycrest/protocol/ent/paymentorder"
 	"github.com/paycrest/protocol/ent/providerordertoken"
 	"github.com/paycrest/protocol/ent/receiveaddress"
@@ -56,17 +57,17 @@ func ContinueIndexing() error {
 		go func(network *ent.Network) {
 			err := indexerService.IndexOrderDeposits(ctx, nil, network)
 			if err != nil {
-				logger.Errorf("process order deposits task => %v\n", err)
+				logger.Errorf("process order deposits task => %v", err)
 			}
 
 			err = indexerService.IndexOrderSettlements(ctx, nil, network)
 			if err != nil {
-				logger.Errorf("process order settlements task => %v\n", err)
+				logger.Errorf("process order settlements task => %v", err)
 			}
 
 			err = indexerService.IndexOrderRefunds(ctx, nil, network)
 			if err != nil {
-				logger.Errorf("process order refunds task => %v\n", err)
+				logger.Errorf("process order refunds task => %v", err)
 			}
 		}(network)
 	}
@@ -94,11 +95,39 @@ func ProcessOrders() error {
 	go func() {
 		for _, order := range orders {
 			orderService := services.NewOrderService()
-			order := order
 
 			err := orderService.CreateOrder(ctx, order.ID)
 			if err != nil {
-				logger.Errorf("process orders task => %v\n", err)
+				logger.Errorf("process orders task => %v", err)
+			}
+		}
+	}()
+
+	return nil
+}
+
+// ProcessOrderRefunds processes order refunds
+func ProcessOrderRefunds() error {
+	ctx := context.Background()
+
+	orders, err := storage.GetClient().LockPaymentOrder.
+		Query().
+		Where(
+			lockpaymentorder.StatusEQ(lockpaymentorder.StatusPending),
+			lockpaymentorder.CreatedAtLTE(time.Now().Add(-24*time.Hour)),
+		).
+		All(ctx)
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		for _, order := range orders {
+			orderService := services.NewOrderService()
+
+			err := orderService.RefundOrder(ctx, order.OrderID)
+			if err != nil {
+				logger.Errorf("process order refunds task => %v", err)
 			}
 		}
 	}()
@@ -143,7 +172,7 @@ func ComputeMarketRate() error {
 		nil,
 	)
 	if err != nil {
-		logger.Errorf("failed to fetch third-party rate => %v\n", err)
+		logger.Errorf("failed to fetch third-party rate => %v", err)
 		return err
 	}
 
@@ -162,7 +191,7 @@ func ComputeMarketRate() error {
 			).
 			All(ctx)
 		if err != nil {
-			logger.Errorf("compute market price task => %v\n", err)
+			logger.Errorf("compute market price task => %v", err)
 		}
 
 		var rates []decimal.Decimal
@@ -188,7 +217,7 @@ func ComputeMarketRate() error {
 			SetMarketRate(median).
 			Save(ctx)
 		if err != nil {
-			logger.Errorf("compute market price task => %v\n", err)
+			logger.Errorf("compute market price task => %v", err)
 			return err
 		}
 	}
@@ -209,7 +238,7 @@ func RetryFailedWebhookNotifications() error {
 		).
 		All(ctx)
 	if err != nil {
-		logger.Errorf("RetryFailedWebhookNotifications: %v\n", err)
+		logger.Errorf("RetryFailedWebhookNotifications: %v", err)
 		return err
 	}
 
@@ -248,7 +277,7 @@ func RetryFailedWebhookNotifications() error {
 
 			_, err := attemptUpdate.Save(ctx)
 			if err != nil {
-				logger.Errorf("RetryFailedWebhookNotifications: %v\n", err)
+				logger.Errorf("RetryFailedWebhookNotifications: %v", err)
 			}
 
 			continue
@@ -259,7 +288,7 @@ func RetryFailedWebhookNotifications() error {
 			SetStatus(webhookretryattempt.StatusSuccess).
 			Save(ctx)
 		if err != nil {
-			logger.Errorf("RetryFailedWebhookNotifications: %v\n", err)
+			logger.Errorf("RetryFailedWebhookNotifications: %v", err)
 		}
 	}
 
@@ -275,23 +304,33 @@ func StartCronJobs() {
 	// Compute market rate four times a day - starting at 6AM
 	_, err := scheduler.Cron("0 6,12,18,0 * * *").Do(ComputeMarketRate)
 	if err != nil {
-		logger.Errorf("failed to schedule compute market rate task => %v\n", err)
+		logger.Errorf("failed to schedule compute market rate task => %v", err)
 	}
 
 	// Refresh provision bucket priority queues every X hours
 	_, err = scheduler.Cron(fmt.Sprintf("0 */%d * * *", conf.BucketQueueRebuildInterval)).
 		Do(priorityQueue.ProcessBucketQueues)
 	if err != nil {
-		logger.Errorf("failed to schedule refresh priority queues task => %v\n", err)
+		logger.Errorf("failed to schedule refresh priority queues task => %v", err)
 	}
 
 	// Retry failed webhook notifications every 1 minute
 	_, err = scheduler.Cron("*/1 * * * *").Do(RetryFailedWebhookNotifications)
 	if err != nil {
-		logger.Errorf("cron.RetryFailedWebhookNotifications: %v\n", err)
+		logger.Errorf("cron.RetryFailedWebhookNotifications: %v", err)
 	}
 
-	// TODO: Run a task every 30 minutes for any failed order processing
+	// Reassign declined order requests every 30 minutes
+	_, err = scheduler.Cron("*/30 * * * *").Do(priorityQueue.ReassignDeclinedOrderRequest)
+	if err != nil {
+		logger.Errorf("cron.ReassignDeclinedOrderRequest: %v", err)
+	}
+
+	// Process order refunds once a day
+	_, err = scheduler.Cron("0 0 * * *").Do(ProcessOrderRefunds)
+	if err != nil {
+		logger.Errorf("cron.ProcessOrderRefunds: %v", err)
+	}
 
 	// Start scheduler
 	scheduler.StartAsync()
