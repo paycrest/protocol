@@ -519,3 +519,52 @@ func (s *PriorityQueueService) ReassignUnfulfilledLockOrders(ctx context.Context
 		}
 	}
 }
+
+// ReassignDeclinedOrderRequest reassigns declined order requests to providers
+func (s *PriorityQueueService) ReassignDeclinedOrderRequest(ctx context.Context) {
+	// Query pending lock orders
+	lockOrders, err := storage.Client.LockPaymentOrder.
+		Query().
+		Where(
+			lockpaymentorder.StatusEQ(lockpaymentorder.StatusPending),
+		).
+		WithToken().
+		WithProvider().
+		WithProvisionBucket().
+		All(ctx)
+	if err != nil {
+		logger.Errorf("ReassignDeclinedOrderRequest.db: %v", err)
+		return
+	}
+
+	// Check if order_request_<order_id> exists in Redis
+	for _, order := range lockOrders {
+		orderKey := fmt.Sprintf("order_request_%d", order.ID)
+		exists, err := storage.RedisClient.Exists(ctx, orderKey).Result()
+		if err != nil {
+			logger.Errorf("ReassignDeclinedOrderRequest.redis: %v", err)
+			return
+		}
+
+		if exists == 0 {
+			// Order request doesn't exist in Redis, reassign the order
+			lockPaymentOrder := types.LockPaymentOrderFields{
+				Token:             order.Edges.Token,
+				OrderID:           order.OrderID,
+				Amount:            order.Amount,
+				Rate:              order.Rate,
+				BlockNumber:       order.BlockNumber,
+				Institution:       order.Institution,
+				AccountIdentifier: order.AccountIdentifier,
+				AccountName:       order.AccountName,
+				ProviderID:        order.Edges.Provider.ID,
+				ProvisionBucket:   order.Edges.ProvisionBucket,
+			}
+
+			err := s.AssignLockPaymentOrder(ctx, lockPaymentOrder)
+			if err != nil {
+				logger.Errorf("failed to reassign declined order request: %v", err)
+			}
+		}
+	}
+}
