@@ -5,6 +5,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/paycrest/protocol/utils/logger"
+	"github.com/shopspring/decimal"
 	"github.com/spf13/viper"
 )
 
@@ -19,6 +20,7 @@ type OrderConfiguration struct {
 	EntryPointContractAddress    common.Address
 	BucketQueueRebuildInterval   int // in hours
 	RefundCancellationCount      int
+	NetworkFee                   decimal.Decimal
 }
 
 // OrderConfig sets the order configuration
@@ -27,6 +29,8 @@ func OrderConfig() *OrderConfiguration {
 	viper.SetDefault("ORDER_REQUEST_VALIDITY", 120)
 	viper.SetDefault("ORDER_FULFILLMENT_VALIDITY", 10)
 	viper.SetDefault("BUCKET_QUEUE_REBUILD_INTERVAL", 1)
+	viper.SetDefault("REFUND_CANCELLATION_COUNT", 3)
+	viper.SetDefault("NETWORK_FEE", 0.5)
 
 	return &OrderConfiguration{
 		OrderFulfillmentValidity:     time.Duration(viper.GetInt("ORDER_FULFILLMENT_VALIDITY")) * time.Minute,
@@ -38,6 +42,7 @@ func OrderConfig() *OrderConfiguration {
 		EntryPointContractAddress:    common.HexToAddress(viper.GetString("ENTRY_POINT_CONTRACT_ADDRESS")),
 		BucketQueueRebuildInterval:   viper.GetInt("BUCKET_QUEUE_REBUILD_INTERVAL"),
 		RefundCancellationCount:      viper.GetInt("REFUND_CANCELLATION_COUNT"),
+		NetworkFee:                   decimal.NewFromFloat(viper.GetFloat64("NETWORK_FEE")),
 	}
 }
 
