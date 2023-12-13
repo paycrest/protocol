@@ -215,9 +215,8 @@ func (s *OrderService) RevertOrder(ctx context.Context, order *ent.PaymentOrder,
 		return nil
 	}
 
-	// Subtract the $0.5 fee from the amount
-	fee := decimal.NewFromFloat(0.5)
-	amountMinusFee := amountToRevert.Sub(fee)
+	// Subtract the network fee from the amount
+	amountMinusFee := amountToRevert.Sub(OrderConf.NetworkFee)
 
 	// If amount minus fee is less than zero, return
 	if amountMinusFee.LessThan(decimal.Zero) {
@@ -552,7 +551,8 @@ func (s *OrderService) executeBatchRefundCallData(order *ent.LockPaymentOrder) (
 	}
 
 	// Create refund data
-	refundData, err := s.refundCallData(order.OrderID, order.Label)
+	fee := utils.ToSubunit(OrderConf.NetworkFee, order.Edges.Token.Decimals)
+	refundData, err := s.refundCallData(fee, order.OrderID, order.Label)
 	if err != nil {
 		return nil, fmt.Errorf("executeBatchRefundCallData.refundData: %w", err)
 	}
@@ -578,7 +578,7 @@ func (s *OrderService) executeBatchRefundCallData(order *ent.LockPaymentOrder) (
 }
 
 // refundCallData creates the data for the refund method
-func (s *OrderService) refundCallData(orderId, label string) ([]byte, error) {
+func (s *OrderService) refundCallData(fee *big.Int, orderId, label string) ([]byte, error) {
 	paycrestOrderABI, err := abi.JSON(strings.NewReader(contracts.PaycrestOrderMetaData.ABI))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse PaycrestOrder ABI: %w", err)
@@ -587,6 +587,7 @@ func (s *OrderService) refundCallData(orderId, label string) ([]byte, error) {
 	// Generate calldata for refund, orderID, and label should be byte32
 	data, err := paycrestOrderABI.Pack(
 		"refund",
+		fee,
 		utils.StringToByte32(orderId),
 		utils.StringToByte32(label),
 	)
