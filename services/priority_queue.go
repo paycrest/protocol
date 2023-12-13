@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"math/rand"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -12,7 +14,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/ent"
-	"github.com/paycrest/protocol/ent/fiatcurrency"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	"github.com/paycrest/protocol/ent/providerordertoken"
 	"github.com/paycrest/protocol/ent/providerprofile"
@@ -39,7 +40,7 @@ func NewPriorityQueueService() *PriorityQueueService {
 func (s *PriorityQueueService) ProcessBucketQueues() error {
 	ctx := context.Background()
 
-	buckets, err := s.GetProvidersByBucket(ctx)
+	buckets, err := s.GetProvisionBuckets(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to process bucket queues: %w", err)
 	}
@@ -56,8 +57,8 @@ func (s *PriorityQueueService) ProcessBucketQueues() error {
 	return nil
 }
 
-// GetProvidersByBucket returns a list of providers grouped by bucket
-func (s *PriorityQueueService) GetProvidersByBucket(ctx context.Context) ([]*ent.ProvisionBucket, error) {
+// GetProvisionBuckets returns a list of buckets with their providers
+func (s *PriorityQueueService) GetProvisionBuckets(ctx context.Context) ([]*ent.ProvisionBucket, error) {
 	buckets, err := storage.Client.ProvisionBucket.
 		Query().
 		Select(provisionbucket.EdgeProviderProfiles).
@@ -143,8 +144,7 @@ func (s *PriorityQueueService) CreatePriorityQueueForBucket(ctx context.Context,
 		rate, _ := s.GetProviderRate(ctx, provider)
 
 		// Check provider's rate against the market rate to ensure it's not too far off
-		partnerProviderData, _ := storage.RedisClient.LIndex(ctx, fmt.Sprintf("bucket_%s_default", bucket.Edges.Currency.Code), 0).Result()
-		marketRate, _ := decimal.NewFromString(strings.Split(partnerProviderData, ":")[1])
+		marketRate := bucket.Edges.Currency.MarketRate
 		allowedDeviation := decimal.NewFromFloat(0.01) // 1%
 
 		if marketRate.Cmp(decimal.Zero) != 0 {
@@ -156,7 +156,7 @@ func (s *PriorityQueueService) CreatePriorityQueueForBucket(ctx context.Context,
 		}
 
 		// Serialize the provider ID and rate into a single string
-		data := fmt.Sprintf("%s:%s", providerID, rate)
+		data := fmt.Sprintf("%s:%s:%s", providerID, rate, strconv.FormatBool(provider.IsPartner))
 
 		// Enqueue the serialized data into the circular queue
 		err := storage.RedisClient.RPush(ctx, redisKey, data).Err()
@@ -165,38 +165,6 @@ func (s *PriorityQueueService) CreatePriorityQueueForBucket(ctx context.Context,
 		}
 	}
 }
-
-// CreatePriorityQueueForDefaultBucket creates a priority queue for the default bucket and saves it to redis
-func (s *PriorityQueueService) CreatePriorityQueueForDefaultBucket(ctx context.Context, currency *ent.FiatCurrency) {
-	// Fetch providers with is_partner == true
-	providers, err := storage.Client.ProviderProfile.
-		Query().
-		Where(
-			providerprofile.IsPartnerEQ(true),
-			providerprofile.HasCurrencyWith(fiatcurrency.IDEQ(currency.ID)),
-		).
-		// WithProviderRating(). //  should we sort partner providers by trust score?
-		All(ctx)
-	if err != nil {
-		logger.Errorf("failed to fetch partner providers: %v", err)
-		return
-	}
-
-	// Create default buckets
-	for _, provider := range providers {
-		providerID := provider.ID
-
-		// Enqueue provider ID and market rate as a single string into the circular queue
-		redisKey := fmt.Sprintf("bucket_%s_default", currency.Code)
-		data := fmt.Sprintf("%s:%s", providerID, currency.MarketRate)
-		err := storage.RedisClient.RPush(ctx, redisKey, data).Err()
-		if err != nil {
-			logger.Errorf("failed to enqueue provider data to circular queue: %v", err)
-		}
-	}
-}
-
-// Update services/priority_queue::AssignLockPaymentOrder()` to the fetch from redis bucket and send an order request to a specific provider if one is specified in the order
 
 // AssignLockPaymentOrders assigns lock payment orders to providers
 func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order types.LockPaymentOrderFields) error {
@@ -224,35 +192,41 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 	// Start a Redis transaction
 	pipe := storage.RedisClient.TxPipeline()
 
+	partnerProviders := []string{}
+
 	for index := 0; ; index++ {
 		providerData, err := pipe.LIndex(ctx, redisKey, int64(index)).Result()
 		if err != nil {
-			if err == redis.Nil {
-				logger.Errorf("failed to access index %d from circular queue: %v", index, err)
-
-				// Assign to top provider in default bucket and rotate the default bucket queue
-				_ = s.AssignLockOrderToDefaultBucket(ctx, order)
-			}
+			logger.Errorf("failed to access index %d from circular queue: %v", index, err)
 			break
 		}
 
 		if providerData == "" {
 			// Reached the end of the queue
-			logger.Errorf("no available provider, checking the default bucket...")
-			err = s.AssignLockOrderToDefaultBucket(ctx, order)
-			if err != nil {
-				logger.Errorf("%v", err)
-				return err
+			logger.Errorf("rate didn't match a provider, finding a partner provider")
+
+			if len(partnerProviders) == 0 {
+				logger.Errorf("no partner providers found")
+				return nil
 			}
-			return nil
+
+			// Pick a random partner provider
+			randomIndex := rand.New(rand.NewSource(time.Now().UnixNano())).Intn(len(partnerProviders))
+			providerData = partnerProviders[randomIndex]
 		}
 
 		// Extract the rate from the data (assuming it's in the format "providerID:rate")
 		parts := strings.Split(providerData, ":")
-		if len(parts) != 2 {
+		if len(parts) != 3 {
 			logger.Errorf("invalid data format at index %d: %s", index, providerData)
 			continue // Skip this entry due to invalid format
 		}
+
+		// Check if the provider is a partner
+		if parts[2] == "true" {
+			partnerProviders = append(partnerProviders, providerData)
+		}
+
 		providerID := parts[0]
 
 		// Skip entry if provider is excluded
@@ -349,7 +323,6 @@ func (s *PriorityQueueService) sendOrderRequest(ctx context.Context, order types
 	}
 
 	return nil
-
 }
 
 // notifyProvider sends an order request notification to a provider
@@ -441,66 +414,6 @@ func (s *PriorityQueueService) notifyProvider(ctx context.Context, orderRequestD
 	return nil
 }
 
-// AssignLockOrderToDefaultBucket assigns lock payment orders to providers in the default bucket
-func (s *PriorityQueueService) AssignLockOrderToDefaultBucket(ctx context.Context, order types.LockPaymentOrderFields) error {
-	pipe := storage.RedisClient.TxPipeline()
-	data, err := pipe.LPop(ctx, fmt.Sprintf("bucket_%s_default", order.ProvisionBucket.Edges.Currency.Code)).Result()
-	if err != nil {
-		logger.Errorf("failed to dequeue from circular queue: %v", err)
-		return err
-	}
-
-	if data == "" {
-		return fmt.Errorf("no providers available in default bucket")
-	}
-
-	// Enqueue data to the end of the queue
-	err = pipe.RPush(ctx, fmt.Sprintf("bucket_%s_default", order.ProvisionBucket.Edges.Currency.Code), data).Err()
-	if err != nil {
-		logger.Errorf("failed to enqueue to circular queue: %v", err)
-		return err
-	}
-
-	// Extract the rate from the data (assuming it's in the format "providerID:rate")
-	parts := strings.Split(data, ":")
-	if len(parts) != 2 {
-		logger.Errorf("invalid data format: %s", data)
-		return err
-	}
-	providerID := parts[0]
-
-	// Assign the order to the provider and save it to Redis
-	orderKey := fmt.Sprintf("order_request_%d", order.ID)
-	orderRequestData := map[string]interface{}{
-		"amount":      order.Amount.Mul(order.Rate),
-		"token":       order.Token.Symbol,
-		"institution": order.Institution,
-		"provider_id": providerID,
-	}
-
-	err = pipe.HSet(ctx, orderKey, orderRequestData).Err()
-	if err != nil {
-		logger.Errorf("failed to map order to a provider in Redis: %v", err)
-		return err
-	}
-
-	// Set a TTL for the order request
-	err = pipe.ExpireAt(ctx, orderKey, time.Now().Add(OrderConf.OrderRequestValidity)).Err()
-	if err != nil {
-		logger.Errorf("failed to set TTL for order request: %v", err)
-		return err
-	}
-
-	// Execute all Redis commands within the transaction atomically
-	_, err = pipe.Exec(ctx)
-	if err != nil {
-		logger.Errorf("failed to execute Redis transaction: %v", err)
-		return err
-	}
-
-	return nil
-}
-
 // ReassignStaleOrderRequest reassigns expired order requests to providers
 func (s *PriorityQueueService) ReassignStaleOrderRequest(ctx context.Context, orderRequestChan <-chan *redis.Message) {
 	for msg := range orderRequestChan {
@@ -567,7 +480,7 @@ func (s *PriorityQueueService) ReassignUnfulfilledLockOrders(ctx context.Context
 		WithProvisionBucket().
 		All(ctx)
 	if err != nil {
-		logger.Errorf("failed to fetch unfulfilled lock order => %v\n", err)
+		logger.Errorf("failed to fetch unfulfilled lock order: %v", err)
 		return
 	}
 
@@ -582,7 +495,7 @@ func (s *PriorityQueueService) ReassignUnfulfilledLockOrders(ctx context.Context
 		SetStatus(lockpaymentorder.StatusPending).
 		Save(ctx)
 	if err != nil {
-		logger.Errorf("failed to unassign unfulfilled lock order => %v\n", err)
+		logger.Errorf("failed to unassign unfulfilled lock order: %v", err)
 		return
 	}
 
@@ -602,7 +515,7 @@ func (s *PriorityQueueService) ReassignUnfulfilledLockOrders(ctx context.Context
 
 		err := s.AssignLockPaymentOrder(ctx, lockPaymentOrder)
 		if err != nil {
-			logger.Errorf("task reassign unfulfilled lock order with id: %s => %v\n", order.OrderID, err)
+			logger.Errorf("task reassign unfulfilled lock order with id: %s => %v", order.OrderID, err)
 		}
 	}
 }

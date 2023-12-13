@@ -134,8 +134,6 @@ func ComputeMarketRate() error {
 		return err
 	}
 
-	priorityQueue := services.NewPriorityQueueService()
-
 	// Fetch stable coin rate from third-party API Binance (USDT)
 	resp, err := utils.MakeJSONRequest(
 		ctx,
@@ -185,7 +183,7 @@ func ComputeMarketRate() error {
 		}
 
 		// Update currency with median rate
-		currency, err = storage.Client.FiatCurrency.
+		_, err = storage.Client.FiatCurrency.
 			UpdateOneID(currency.ID).
 			SetMarketRate(median).
 			Save(ctx)
@@ -193,9 +191,6 @@ func ComputeMarketRate() error {
 			logger.Errorf("compute market price task => %v\n", err)
 			return err
 		}
-
-		// Create default bucket for currency
-		priorityQueue.CreatePriorityQueueForDefaultBucket(ctx, currency)
 	}
 
 	return nil
@@ -275,6 +270,7 @@ func RetryFailedWebhookNotifications() error {
 func StartCronJobs() {
 	conf := config.OrderConfig()
 	scheduler := gocron.NewScheduler(time.UTC)
+	priorityQueue := services.NewPriorityQueueService()
 
 	// Compute market rate four times a day - starting at 6AM
 	_, err := scheduler.Cron("0 6,12,18,0 * * *").Do(ComputeMarketRate)
@@ -284,7 +280,7 @@ func StartCronJobs() {
 
 	// Refresh provision bucket priority queues every X hours
 	_, err = scheduler.Cron(fmt.Sprintf("0 */%d * * *", conf.BucketQueueRebuildInterval)).
-		Do(services.NewPriorityQueueService().ProcessBucketQueues)
+		Do(priorityQueue.ProcessBucketQueues)
 	if err != nil {
 		logger.Errorf("failed to schedule refresh priority queues task => %v\n", err)
 	}
