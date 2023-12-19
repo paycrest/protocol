@@ -26,6 +26,9 @@ gen-ent:
 run: gen-ent
 	air
 
+seed:
+	go run main.go -seed-db
+
 test:
 	go test -v ./...
 
