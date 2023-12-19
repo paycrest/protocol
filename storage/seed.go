@@ -31,7 +31,16 @@ func SeedDatabase() error {
 	client := GetClient()
 	ctx := context.Background()
 
+	// Delete existing data
+	_ = client.Network.Delete().ExecX(ctx)
+	_ = client.Token.Delete().ExecX(ctx)
+	_ = client.FiatCurrency.Delete().ExecX(ctx)
+	_ = client.ProvisionBucket.Delete().ExecX(ctx)
+	_ = client.User.Delete().ExecX(ctx)
+	_ = client.ProviderProfile.Delete().ExecX(ctx)
+
 	// Seed Network
+	fmt.Println("seeding network...")
 	network, err := client.Network.
 		Create().
 		SetIdentifier("polygon-mumbai").
@@ -44,18 +53,7 @@ func SeedDatabase() error {
 	}
 
 	// Seed Tokens
-	_, err = client.Token.
-		Create().
-		SetSymbol("DERC20").
-		SetContractAddress("0xfe4F5145f6e09952a5ba9e956ED0C25e3Fa4c7F1").
-		SetDecimals(18).
-		SetNetwork(network).
-		SetIsEnabled(true).
-		Save(ctx)
-	if err != nil {
-		return fmt.Errorf("failed seeding token: %w", err)
-	}
-
+	fmt.Println("seeding tokens...")
 	_, err = client.Token.
 		Create().
 		SetSymbol("6TEST").
@@ -69,9 +67,10 @@ func SeedDatabase() error {
 	}
 
 	// Seed Fiat Currencies and Provision Buckets
+	fmt.Println("fiat currencies and provision buckets...")
 	currencies := []types.SupportedCurrencies{
-		{Code: "NGN", Decimals: 2, Name: "Nigerian naira", ShortName: "Naira", Symbol: "₦", MarketRate: decimal.NewFromFloat(930.00)},
-		{Code: "KES", Decimals: 2, Name: "Kenyan shilling", ShortName: "Swahili", Symbol: "/=", MarketRate: decimal.NewFromFloat(151.45)},
+		{Code: "NGN", Decimals: 2, Name: "Nigerian Naira", ShortName: "Naira", Symbol: "₦", MarketRate: decimal.NewFromFloat(930.00)},
+		{Code: "KES", Decimals: 2, Name: "Kenyan Shilling", ShortName: "Swahili", Symbol: "KSh", MarketRate: decimal.NewFromFloat(151.45)},
 	}
 	sampleBuckets := make([]*ent.ProvisionBucketCreate, 0, 6)
 
@@ -110,10 +109,46 @@ func SeedDatabase() error {
 		sampleBuckets = append(sampleBuckets, createProvisionBucket(1000.00, 50000.00))
 	}
 
-	for _, bucket := range sampleBuckets {
-		_, err := bucket.Save(ctx)
+	for i, bucketCreate := range sampleBuckets {
+		bucket, err := bucketCreate.Save(ctx)
 		if err != nil {
 			return fmt.Errorf("failed seeding provision bucket: %w", err)
+		}
+
+		// Seed users
+		fmt.Println("seed users...")
+		users := make([]*ent.User, 0, len(sampleBuckets)*3)
+		for i := 0; i < len(sampleBuckets)*3; i++ {
+			user, err := client.User.
+				Create().
+				SetFirstName(fmt.Sprintf("User_%d", i)).
+				SetLastName("Doe").
+				SetEmail(fmt.Sprintf("user_%d@example.com", i)).
+				SetPassword("password").
+				SetScope("provider sender").
+				Save(ctx)
+			if err != nil {
+				return fmt.Errorf("failed creating user: %w", err)
+			}
+			users = append(users, user)
+		}
+
+		fmt.Println("seed provider profiles...")
+		currency := bucket.QueryCurrency().FirstX(ctx)
+		for j := 0; j < 3; j++ {
+			fmt.Println(currency.Code)
+			_, err := client.ProviderProfile.
+				Create().
+				SetTradingName(fmt.Sprintf("Provider_%d", i*3+j)).
+				SetUser(users[i*3+j]).
+				SetCurrency(currency).
+				AddProvisionBuckets(bucket).
+				Save(ctx)
+			if err != nil {
+				return fmt.Errorf("failed creating provider: %w", err)
+			}
+
+			fmt.Println(currency.Code)
 		}
 	}
 
