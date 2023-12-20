@@ -381,6 +381,7 @@ func (ctrl *SenderController) GetPaymentOrders(ctx *gin.Context) {
 			CreatedAt: paymentOrder.CreatedAt,
 			UpdatedAt: paymentOrder.UpdatedAt,
 			TxHash:    paymentOrder.TxHash,
+			Token:     paymentOrder.Edges.Token.Symbol,
 			Status:    paymentOrder.Status,
 		})
 	}
