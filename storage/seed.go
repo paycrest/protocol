@@ -113,7 +113,7 @@ func SeedDatabase() error {
 	// Seed users and provider profiles
 	fmt.Println("seed users and provider profiles...")
 
-	for i := 0; i < len(sampleBuckets)*3; i++ {
+	for i := 0; i < len(sampleBuckets); i++ {
 		bucket, err := sampleBuckets[i].Save(ctx)
 		if err != nil {
 			return fmt.Errorf("failed seeding provision bucket: %w", err)
