@@ -90,6 +90,7 @@ func SeedDatabase() error {
 				SetSymbol(currencyVal.Symbol).
 				SetName(currencyVal.Name).
 				SetMarketRate(currencyVal.MarketRate).
+				SetIsEnabled(true).
 				Save(ctx)
 		}
 
@@ -109,46 +110,40 @@ func SeedDatabase() error {
 		sampleBuckets = append(sampleBuckets, createProvisionBucket(1000.00, 50000.00))
 	}
 
-	for i, bucketCreate := range sampleBuckets {
-		bucket, err := bucketCreate.Save(ctx)
+	// Seed users and provider profiles
+	fmt.Println("seed users and provider profiles...")
+
+	for i := 0; i < len(sampleBuckets)*3; i++ {
+		bucket, err := sampleBuckets[i].Save(ctx)
 		if err != nil {
 			return fmt.Errorf("failed seeding provision bucket: %w", err)
 		}
 
-		// Seed users
-		fmt.Println("seed users...")
-		users := make([]*ent.User, 0, len(sampleBuckets)*3)
-		for i := 0; i < len(sampleBuckets)*3; i++ {
-			user, err := client.User.
-				Create().
-				SetFirstName(fmt.Sprintf("User_%d", i)).
-				SetLastName("Doe").
-				SetEmail(fmt.Sprintf("user_%d@example.com", i)).
-				SetPassword("password").
-				SetScope("provider sender").
-				Save(ctx)
-			if err != nil {
-				return fmt.Errorf("failed creating user: %w", err)
-			}
-			users = append(users, user)
+		user, err := client.User.
+			Create().
+			SetFirstName(fmt.Sprintf("User_%d", i)).
+			SetLastName("Doe").
+			SetEmail(fmt.Sprintf("user_%d@example.com", i)).
+			SetPassword("password").
+			SetScope("provider sender").
+			SetIsEmailVerified(true).
+			Save(ctx)
+		if err != nil {
+			return fmt.Errorf("failed creating user: %w", err)
 		}
 
-		fmt.Println("seed provider profiles...")
-		currency := bucket.QueryCurrency().FirstX(ctx)
-		for j := 0; j < 3; j++ {
-			fmt.Println(currency.Code)
-			_, err := client.ProviderProfile.
-				Create().
-				SetTradingName(fmt.Sprintf("Provider_%d", i*3+j)).
-				SetUser(users[i*3+j]).
-				SetCurrency(currency).
-				AddProvisionBuckets(bucket).
-				Save(ctx)
-			if err != nil {
-				return fmt.Errorf("failed creating provider: %w", err)
-			}
+		currency := bucket.QueryCurrency().OnlyX(ctx)
 
-			fmt.Println(currency.Code)
+		_, err = client.ProviderProfile.
+			Create().
+			SetTradingName(fmt.Sprintf("Provider_%d", i)).
+			SetUser(user).
+			SetIsActive(true).
+			SetCurrency(currency).
+			AddProvisionBuckets(bucket).
+			Save(ctx)
+		if err != nil {
+			return fmt.Errorf("failed creating provider: %w", err)
 		}
 	}
 
