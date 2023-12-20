@@ -2,6 +2,7 @@ package test
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/google/uuid"
@@ -48,6 +49,7 @@ func CreateTestToken(client types.RPCClient, overrides map[string]interface{}) (
 	// Deploy ERC20 token contract
 	deployedTokenAddress, err := DeployERC20Contract(client)
 	if err != nil {
+		fmt.Print("got here")
 		return nil, err
 	}
 

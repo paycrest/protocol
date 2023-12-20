@@ -397,5 +397,79 @@ func TestSender(t *testing.T) {
 			assert.Greater(t, len(data["orders"].([]interface{})), 0)
 			assert.Greater(t, firstOrderTimestamp, lastOrderTimestamp)
 		})
+
+		t.Run("with filtering by network", func(t *testing.T) {
+			var payload = map[string]interface{}{
+				"timestamp": time.Now().Unix(),
+			}
+
+			signature := token.GenerateHMACSignature(payload, testCtx.apiKeySecret)
+
+			headers := map[string]string{
+				"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
+			}
+
+			//query params
+			network := testCtx.networkIdentifier
+
+			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/orders/?network=%s", network), payload, headers, router)
+			assert.NoError(t, err)
+
+			// Assert the response body
+			assert.Equal(t, http.StatusOK, res.Code)
+
+			var response types.Response
+			err = json.Unmarshal(res.Body.Bytes(), &response)
+			assert.NoError(t, err)
+			assert.Equal(t, "Payment orders retrieved successfully", response.Message)
+			data, ok := response.Data.(map[string]interface{})
+			assert.True(t, ok, "response.Data is of not type map[string]interface{}")
+			assert.NotNil(t, data, "response.Data is nil")
+
+			assert.NotEmpty(t, data["total"])
+			assert.NotEmpty(t, data["orders"])
+			assert.Greater(t, len(data["orders"].([]interface{})), 0)
+
+			for _, order := range data["orders"].([]interface{}) {
+				assert.Equal(t, order.(map[string]interface{})["network"], network)
+			}
+		})
+
+		t.Run("with filtering by token", func(t *testing.T) {
+			var payload = map[string]interface{}{
+				"timestamp": time.Now().Unix(),
+			}
+
+			signature := token.GenerateHMACSignature(payload, testCtx.apiKeySecret)
+
+			headers := map[string]string{
+				"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
+			}
+
+			//query params
+			token := testCtx.token.Symbol
+
+			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/orders/?token=%s", token), payload, headers, router)
+			assert.NoError(t, err)
+
+			// Assert the response body
+			assert.Equal(t, http.StatusOK, res.Code)
+
+			var response types.Response
+			err = json.Unmarshal(res.Body.Bytes(), &response)
+			assert.NoError(t, err)
+			assert.Equal(t, "Payment orders retrieved successfully", response.Message)
+			data, ok := response.Data.(map[string]interface{})
+			assert.True(t, ok, "response.Data is of not type map[string]interface{}")
+			assert.NotNil(t, data, "response.Data is nil")
+
+			assert.NotEmpty(t, data["total"])
+			assert.NotEmpty(t, data["orders"])
+			assert.Greater(t, len(data["orders"].([]interface{})), 0)
+
+			for _, order := range data["orders"].([]interface{}) {
+				assert.Equal(t, order.(map[string]interface{})["token"], token)
+			}
+		})
 	})
 }
