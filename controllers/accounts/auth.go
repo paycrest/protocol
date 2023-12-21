@@ -6,9 +6,11 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/ent/fiatcurrency"
 	"github.com/paycrest/protocol/ent/providerprofile"
+	"github.com/paycrest/protocol/ent/user"
 	userEnt "github.com/paycrest/protocol/ent/user"
 	"github.com/paycrest/protocol/ent/verificationtoken"
 	svc "github.com/paycrest/protocol/services"
@@ -429,4 +431,60 @@ func (ctrl *AuthController) ResetPasswordToken(ctx *gin.Context) {
 
 	// Return a success response
 	u.APIResponse(ctx, http.StatusOK, "success", "A reset token has been sent to your email", nil)
+}
+
+// ChangePassword changes user's password. An authorized user is required to change password
+func (ctrl *AuthController) ChangePassword(ctx *gin.Context) {
+	var payload types.ChangePasswordPayload
+
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		u.APIResponse(ctx, http.StatusBadRequest, "error",
+			"Failed to validate payload", u.GetErrorData(err))
+		return
+	}
+
+	// get user id from context
+	user_id := ctx.GetString("user_id")
+	// parse user id to uuid
+	userID, err := uuid.Parse(user_id)
+	if err != nil {
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid credential", nil)
+	}
+
+	// Fetch user account.
+	user, err := db.Client.User.
+		Query().
+		Where(user.IDEQ(userID)).
+		Only(ctx)
+	if err != nil {
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid credential", nil)
+	}
+
+	// Check if the old password is correct
+	passwordMatch := crypto.CheckPasswordHash(payload.OldPassword, user.Password)
+	if !passwordMatch {
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Old password is incorrect", nil)
+		return
+	}
+
+	// Check if the new password is the same as the old password
+	passwordMatch = crypto.CheckPasswordHash(payload.NewPassword, user.Password)
+	if passwordMatch {
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "New password cannot be the same as old password", nil)
+		return
+	}
+
+	// Update user password
+	_, err = db.Client.User.
+		UpdateOne(user).
+		SetPassword(payload.NewPassword).
+		Save(ctx)
+
+	if err != nil {
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to change password", nil)
+		return
+	}
+
+	// Return a success response
+	u.APIResponse(ctx, http.StatusOK, "success", "Password changed successfully", nil)
 }
