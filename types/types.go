@@ -412,3 +412,8 @@ type SenderPaymentOrderList struct {
 	PageSize     int                    `json:"pageSize"`
 	Orders       []PaymentOrderResponse `json:"orders"`
 }
+
+type ChangePasswordPayload struct {
+	OldPassword string `json:"oldPassword" binding:"required,min=6,max=20"`
+	NewPassword string `json:"newPassword" binding:"required,min=6,max=20"`
+}

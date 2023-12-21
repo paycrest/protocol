@@ -13,6 +13,7 @@ import (
 	"github.com/jarcoal/httpmock"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/paycrest/protocol/ent"
+	"github.com/paycrest/protocol/routers/middleware"
 	svc "github.com/paycrest/protocol/services"
 	db "github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
@@ -22,6 +23,7 @@ import (
 	"github.com/paycrest/protocol/ent/enttest"
 	"github.com/paycrest/protocol/ent/user"
 	"github.com/paycrest/protocol/ent/verificationtoken"
+	"github.com/paycrest/protocol/utils/crypto"
 	"github.com/paycrest/protocol/utils/test"
 	"github.com/paycrest/protocol/utils/token"
 	"github.com/stretchr/testify/assert"
@@ -62,8 +64,10 @@ func TestAuth(t *testing.T) {
 	router.POST("/refresh", ctrl.RefreshJWT)
 	router.POST("/reset-password-token", ctrl.ResetPasswordToken)
 	router.PATCH("/reset-password", ctrl.ResetPassword)
+	router.PATCH("/change-password", middleware.JWTMiddleware, ctrl.ChangePassword)
 
 	var userID string
+	var accessToken string
 
 	t.Run("Register", func(t *testing.T) {
 		t.Run("with valid payload and both sender and provider scopes", func(t *testing.T) {
@@ -233,10 +237,8 @@ func TestAuth(t *testing.T) {
 				t.Errorf("Expected '%s' to be a valid UUID", data["id"].(string))
 			}
 
-			userID = data["id"].(string)
-
 			// Parse the user ID string to uuid.UUID
-			userUUID, err := uuid.Parse(userID)
+			userUUID, err := uuid.Parse(data["id"].(string))
 			assert.NoError(t, err)
 			assert.Equal(t, payload.Email, data["email"].(string))
 			assert.Equal(t, payload.FirstName, data["firstName"].(string))
@@ -445,11 +447,39 @@ func TestAuth(t *testing.T) {
 	})
 
 	t.Run("Login", func(t *testing.T) {
-		t.Run("with valid credentials", func(t *testing.T) {
+		t.Run("with valid credentials for user with provider and sender scopes", func(t *testing.T) {
 			// Test login with valid credentials
 			payload := types.LoginPayload{
 				Email:    "ikeayo@example.com",
 				Password: "password",
+			}
+
+			res, err := test.PerformRequest(t, "POST", "/login", payload, nil, router)
+			assert.NoError(t, err)
+
+			// Assert the response body
+			assert.Equal(t, http.StatusOK, res.Code)
+
+			var response types.Response
+			err = json.Unmarshal(res.Body.Bytes(), &response)
+			assert.NoError(t, err)
+			assert.Equal(t, "Successfully logged in", response.Message)
+			data, ok := response.Data.(map[string]interface{})
+			assert.True(t, ok, "response.Data is not of type map[string]interface{}")
+			assert.NotNil(t, data, "response.Data is nil")
+
+			// Assert the response data
+			assert.Contains(t, data, "accessToken")
+			assert.NotEmpty(t, data["accessToken"].(string))
+			assert.Contains(t, data, "refreshToken")
+			assert.NotEmpty(t, data["refreshToken"].(string))
+		})
+
+		t.Run("with valid credentials for user with only sender scope", func(t *testing.T) {
+			// Test login with valid credentials
+			payload := types.LoginPayload{
+				Email:    "ikeayo1@example.com",
+				Password: "password1",
 			}
 
 			res, err := test.PerformRequest(t, "POST", "/login", payload, nil, router)
@@ -522,6 +552,7 @@ func TestAuth(t *testing.T) {
 			assert.Contains(t, data, "accessToken")
 			assert.NotEmpty(t, data["accessToken"].(string))
 			assert.NotContains(t, data, "refreshToken")
+			accessToken = data["accessToken"].(string)
 		})
 
 		t.Run("with an invalid refresh token", func(t *testing.T) {
@@ -670,8 +701,8 @@ func TestAuth(t *testing.T) {
 			assert.NoError(t, err)
 
 			resetPasswordPayload := map[string]string{
-				"password": "1111000090",
-				"resetToken":  resetToken.Token,
+				"password":   "1111000090",
+				"resetToken": resetToken.Token,
 			}
 
 			res, err := test.PerformRequest(t, "PATCH", "/reset-password", resetPasswordPayload, nil, router)
@@ -691,4 +722,64 @@ func TestAuth(t *testing.T) {
 		})
 	})
 
+	// test change password for an authenticated user
+	t.Run("ChangePassword", func(t *testing.T) {
+		t.Run("with wrong old password", func(t *testing.T) {
+			// Test change password with invalid old password
+			payload := types.ChangePasswordPayload{
+				OldPassword: "wrong-password",
+				NewPassword: "new-password",
+			}
+
+			headers := map[string]string{
+				"Authorization": "Bearer " + accessToken,
+			}
+
+			res, err := test.PerformRequest(t, "PATCH", "/change-password", payload, headers, router)
+			assert.NoError(t, err)
+
+			// Assert the response body
+			assert.Equal(t, http.StatusBadRequest, res.Code)
+
+			var response types.Response
+			err = json.Unmarshal(res.Body.Bytes(), &response)
+			assert.NoError(t, err)
+			assert.Equal(t, "Old password is incorrect", response.Message)
+			assert.Nil(t, response.Data)
+		})
+
+		t.Run("with correct old password", func(t *testing.T) {
+			// Test change password with valid old password
+			payload := types.ChangePasswordPayload{
+				OldPassword: "1111000090",
+				NewPassword: "new-password",
+			}
+
+			headers := map[string]string{
+				"Authorization": "Bearer " + accessToken,
+			}
+
+			res, err := test.PerformRequest(t, "PATCH", "/change-password", payload, headers, router)
+			assert.NoError(t, err)
+
+			// Assert the response body
+			assert.Equal(t, http.StatusOK, res.Code)
+
+			var response types.Response
+			err = json.Unmarshal(res.Body.Bytes(), &response)
+			assert.NoError(t, err)
+			assert.Equal(t, "Password changed successfully", response.Message)
+			assert.Nil(t, response.Data)
+
+			// Query the database to check if password was changed
+			user, err := db.Client.User.
+				Query().
+				Where(user.IDEQ(uuid.MustParse(userID))).
+				Only(context.Background())
+			assert.NoError(t, err)
+
+			assert.NotNil(t, user)
+			assert.True(t, crypto.CheckPasswordHash(payload.NewPassword, user.Password))
+		})
+	})
 }

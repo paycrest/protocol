@@ -53,6 +53,7 @@ func authRoutes(route *gin.Engine) {
 	v1.POST("auth/refresh", authCtrl.RefreshJWT)
 	v1.POST("auth/reset-password-token", authCtrl.ResetPasswordToken)
 	v1.PATCH("auth/reset-password", authCtrl.ResetPassword)
+	v1.PATCH("auth/change-password", middleware.JWTMiddleware, authCtrl.ChangePassword)
 
 	v1.GET(
 		"settings/provider",
