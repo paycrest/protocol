@@ -521,7 +521,9 @@ func (s *PriorityQueueService) ReassignUnfulfilledLockOrders(ctx context.Context
 }
 
 // ReassignDeclinedOrderRequest reassigns declined order requests to providers
-func (s *PriorityQueueService) ReassignDeclinedOrderRequest(ctx context.Context) {
+func (s *PriorityQueueService) ReassignDeclinedOrderRequest() {
+	ctx := context.Background()
+
 	// Query pending lock orders
 	lockOrders, err := storage.Client.LockPaymentOrder.
 		Query().
