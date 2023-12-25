@@ -72,6 +72,18 @@ func (poc *PaymentOrderCreate) SetAmountReturned(d decimal.Decimal) *PaymentOrde
 	return poc
 }
 
+// SetSenderFee sets the "sender_fee" field.
+func (poc *PaymentOrderCreate) SetSenderFee(d decimal.Decimal) *PaymentOrderCreate {
+	poc.mutation.SetSenderFee(d)
+	return poc
+}
+
+// SetNetworkFeeEstimate sets the "network_fee_estimate" field.
+func (poc *PaymentOrderCreate) SetNetworkFeeEstimate(d decimal.Decimal) *PaymentOrderCreate {
+	poc.mutation.SetNetworkFeeEstimate(d)
+	return poc
+}
+
 // SetRate sets the "rate" field.
 func (poc *PaymentOrderCreate) SetRate(d decimal.Decimal) *PaymentOrderCreate {
 	poc.mutation.SetRate(d)
@@ -262,6 +274,12 @@ func (poc *PaymentOrderCreate) check() error {
 	if _, ok := poc.mutation.AmountReturned(); !ok {
 		return &ValidationError{Name: "amount_returned", err: errors.New(`ent: missing required field "PaymentOrder.amount_returned"`)}
 	}
+	if _, ok := poc.mutation.SenderFee(); !ok {
+		return &ValidationError{Name: "sender_fee", err: errors.New(`ent: missing required field "PaymentOrder.sender_fee"`)}
+	}
+	if _, ok := poc.mutation.NetworkFeeEstimate(); !ok {
+		return &ValidationError{Name: "network_fee_estimate", err: errors.New(`ent: missing required field "PaymentOrder.network_fee_estimate"`)}
+	}
 	if _, ok := poc.mutation.Rate(); !ok {
 		return &ValidationError{Name: "rate", err: errors.New(`ent: missing required field "PaymentOrder.rate"`)}
 	}
@@ -349,6 +367,14 @@ func (poc *PaymentOrderCreate) createSpec() (*PaymentOrder, *sqlgraph.CreateSpec
 	if value, ok := poc.mutation.AmountReturned(); ok {
 		_spec.SetField(paymentorder.FieldAmountReturned, field.TypeFloat64, value)
 		_node.AmountReturned = value
+	}
+	if value, ok := poc.mutation.SenderFee(); ok {
+		_spec.SetField(paymentorder.FieldSenderFee, field.TypeFloat64, value)
+		_node.SenderFee = value
+	}
+	if value, ok := poc.mutation.NetworkFeeEstimate(); ok {
+		_spec.SetField(paymentorder.FieldNetworkFeeEstimate, field.TypeFloat64, value)
+		_node.NetworkFeeEstimate = value
 	}
 	if value, ok := poc.mutation.Rate(); ok {
 		_spec.SetField(paymentorder.FieldRate, field.TypeFloat64, value)

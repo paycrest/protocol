@@ -43,6 +43,7 @@ func SeedDatabase() error {
 	_ = client.User.Delete().ExecX(ctx)
 	_ = client.ProviderProfile.Delete().ExecX(ctx)
 	_ = client.ProviderOrderToken.Delete().ExecX(ctx)
+	_ = client.SenderProfile.Delete().ExecX(ctx)
 
 	// Seed Network
 	fmt.Println("seeding network...")
@@ -133,6 +134,22 @@ func SeedDatabase() error {
 				Save(ctx)
 			if err != nil {
 				return fmt.Errorf("failed creating user: %w", err)
+			}
+
+			if j == 0 {
+				_, err = client.SenderProfile.
+					Create().
+					SetUser(user).
+					SetWebhookURL("https://example.com/webhook").
+					SetFeePerTokenUnit(decimal.NewFromFloat(10)).
+					SetFeeAddress("0x409689E3008d43a9eb439e7B275749D4a71D8E2D").
+					SetRefundAddress("0x409689E3008d43a9eb439e7B275749D4a71D8E2D").
+					SetDomainWhitelist([]string{"https://example.com"}).
+					SetIsActive(true).
+					Save(ctx)
+				if err != nil {
+					return fmt.Errorf("failed creating sender profile: %w", err)
+				}
 			}
 
 			currency := bucket.QueryCurrency().OnlyX(ctx)

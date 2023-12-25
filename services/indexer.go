@@ -204,7 +204,9 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 							return false, nil
 						}
 
-						amountPaid := paymentOrder.AmountPaid.Add(utils.FromSubunit(transferEvent.Value, token.Decimals))
+						indexedValue := utils.FromSubunit(transferEvent.Value, token.Decimals)
+						fees := paymentOrder.NetworkFeeEstimate.Add(paymentOrder.SenderFee)
+						amountPaid := paymentOrder.AmountPaid.Add(indexedValue.Sub(fees))
 
 						// If amount paid meets or exceeds the expected amount, mark receive address as used
 						if amountPaid.GreaterThanOrEqual(paymentOrder.Amount) {

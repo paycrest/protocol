@@ -26,6 +26,10 @@ const (
 	FieldAmountPaid = "amount_paid"
 	// FieldAmountReturned holds the string denoting the amount_returned field in the database.
 	FieldAmountReturned = "amount_returned"
+	// FieldSenderFee holds the string denoting the sender_fee field in the database.
+	FieldSenderFee = "sender_fee"
+	// FieldNetworkFeeEstimate holds the string denoting the network_fee_estimate field in the database.
+	FieldNetworkFeeEstimate = "network_fee_estimate"
 	// FieldRate holds the string denoting the rate field in the database.
 	FieldRate = "rate"
 	// FieldTxHash holds the string denoting the tx_hash field in the database.
@@ -84,6 +88,8 @@ var Columns = []string{
 	FieldAmount,
 	FieldAmountPaid,
 	FieldAmountReturned,
+	FieldSenderFee,
+	FieldNetworkFeeEstimate,
 	FieldRate,
 	FieldTxHash,
 	FieldReceiveAddressText,
@@ -190,6 +196,16 @@ func ByAmountPaid(opts ...sql.OrderTermOption) OrderOption {
 // ByAmountReturned orders the results by the amount_returned field.
 func ByAmountReturned(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAmountReturned, opts...).ToFunc()
+}
+
+// BySenderFee orders the results by the sender_fee field.
+func BySenderFee(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSenderFee, opts...).ToFunc()
+}
+
+// ByNetworkFeeEstimate orders the results by the network_fee_estimate field.
+func ByNetworkFeeEstimate(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldNetworkFeeEstimate, opts...).ToFunc()
 }
 
 // ByRate orders the results by the rate field.

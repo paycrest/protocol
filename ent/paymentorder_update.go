@@ -79,6 +79,32 @@ func (pou *PaymentOrderUpdate) AddAmountReturned(d decimal.Decimal) *PaymentOrde
 	return pou
 }
 
+// SetSenderFee sets the "sender_fee" field.
+func (pou *PaymentOrderUpdate) SetSenderFee(d decimal.Decimal) *PaymentOrderUpdate {
+	pou.mutation.ResetSenderFee()
+	pou.mutation.SetSenderFee(d)
+	return pou
+}
+
+// AddSenderFee adds d to the "sender_fee" field.
+func (pou *PaymentOrderUpdate) AddSenderFee(d decimal.Decimal) *PaymentOrderUpdate {
+	pou.mutation.AddSenderFee(d)
+	return pou
+}
+
+// SetNetworkFeeEstimate sets the "network_fee_estimate" field.
+func (pou *PaymentOrderUpdate) SetNetworkFeeEstimate(d decimal.Decimal) *PaymentOrderUpdate {
+	pou.mutation.ResetNetworkFeeEstimate()
+	pou.mutation.SetNetworkFeeEstimate(d)
+	return pou
+}
+
+// AddNetworkFeeEstimate adds d to the "network_fee_estimate" field.
+func (pou *PaymentOrderUpdate) AddNetworkFeeEstimate(d decimal.Decimal) *PaymentOrderUpdate {
+	pou.mutation.AddNetworkFeeEstimate(d)
+	return pou
+}
+
 // SetRate sets the "rate" field.
 func (pou *PaymentOrderUpdate) SetRate(d decimal.Decimal) *PaymentOrderUpdate {
 	pou.mutation.ResetRate()
@@ -322,6 +348,18 @@ func (pou *PaymentOrderUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if value, ok := pou.mutation.AddedAmountReturned(); ok {
 		_spec.AddField(paymentorder.FieldAmountReturned, field.TypeFloat64, value)
 	}
+	if value, ok := pou.mutation.SenderFee(); ok {
+		_spec.SetField(paymentorder.FieldSenderFee, field.TypeFloat64, value)
+	}
+	if value, ok := pou.mutation.AddedSenderFee(); ok {
+		_spec.AddField(paymentorder.FieldSenderFee, field.TypeFloat64, value)
+	}
+	if value, ok := pou.mutation.NetworkFeeEstimate(); ok {
+		_spec.SetField(paymentorder.FieldNetworkFeeEstimate, field.TypeFloat64, value)
+	}
+	if value, ok := pou.mutation.AddedNetworkFeeEstimate(); ok {
+		_spec.AddField(paymentorder.FieldNetworkFeeEstimate, field.TypeFloat64, value)
+	}
 	if value, ok := pou.mutation.Rate(); ok {
 		_spec.SetField(paymentorder.FieldRate, field.TypeFloat64, value)
 	}
@@ -521,6 +559,32 @@ func (pouo *PaymentOrderUpdateOne) SetAmountReturned(d decimal.Decimal) *Payment
 // AddAmountReturned adds d to the "amount_returned" field.
 func (pouo *PaymentOrderUpdateOne) AddAmountReturned(d decimal.Decimal) *PaymentOrderUpdateOne {
 	pouo.mutation.AddAmountReturned(d)
+	return pouo
+}
+
+// SetSenderFee sets the "sender_fee" field.
+func (pouo *PaymentOrderUpdateOne) SetSenderFee(d decimal.Decimal) *PaymentOrderUpdateOne {
+	pouo.mutation.ResetSenderFee()
+	pouo.mutation.SetSenderFee(d)
+	return pouo
+}
+
+// AddSenderFee adds d to the "sender_fee" field.
+func (pouo *PaymentOrderUpdateOne) AddSenderFee(d decimal.Decimal) *PaymentOrderUpdateOne {
+	pouo.mutation.AddSenderFee(d)
+	return pouo
+}
+
+// SetNetworkFeeEstimate sets the "network_fee_estimate" field.
+func (pouo *PaymentOrderUpdateOne) SetNetworkFeeEstimate(d decimal.Decimal) *PaymentOrderUpdateOne {
+	pouo.mutation.ResetNetworkFeeEstimate()
+	pouo.mutation.SetNetworkFeeEstimate(d)
+	return pouo
+}
+
+// AddNetworkFeeEstimate adds d to the "network_fee_estimate" field.
+func (pouo *PaymentOrderUpdateOne) AddNetworkFeeEstimate(d decimal.Decimal) *PaymentOrderUpdateOne {
+	pouo.mutation.AddNetworkFeeEstimate(d)
 	return pouo
 }
 
@@ -796,6 +860,18 @@ func (pouo *PaymentOrderUpdateOne) sqlSave(ctx context.Context) (_node *PaymentO
 	}
 	if value, ok := pouo.mutation.AddedAmountReturned(); ok {
 		_spec.AddField(paymentorder.FieldAmountReturned, field.TypeFloat64, value)
+	}
+	if value, ok := pouo.mutation.SenderFee(); ok {
+		_spec.SetField(paymentorder.FieldSenderFee, field.TypeFloat64, value)
+	}
+	if value, ok := pouo.mutation.AddedSenderFee(); ok {
+		_spec.AddField(paymentorder.FieldSenderFee, field.TypeFloat64, value)
+	}
+	if value, ok := pouo.mutation.NetworkFeeEstimate(); ok {
+		_spec.SetField(paymentorder.FieldNetworkFeeEstimate, field.TypeFloat64, value)
+	}
+	if value, ok := pouo.mutation.AddedNetworkFeeEstimate(); ok {
+		_spec.AddField(paymentorder.FieldNetworkFeeEstimate, field.TypeFloat64, value)
 	}
 	if value, ok := pouo.mutation.Rate(); ok {
 		_spec.SetField(paymentorder.FieldRate, field.TypeFloat64, value)

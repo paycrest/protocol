@@ -121,6 +121,10 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 		return
 	}
 
+	// Calculate fees
+	senderFee := sender.FeePerTokenUnit.Mul(payload.Amount).Div(payload.Rate)
+	networkFee := decimal.NewFromFloat(1.0) // TODO: calculate network fee
+
 	// Create payment order
 	paymentOrder, err := tx.PaymentOrder.
 		Create().
@@ -128,6 +132,8 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 		SetAmount(payload.Amount).
 		SetAmountPaid(decimal.NewFromInt(0)).
 		SetAmountReturned(decimal.NewFromInt(0)).
+		SetNetworkFeeEstimate(decimal.NewFromInt(0)).
+		SetSenderFee(senderFee).
 		SetToken(token).
 		SetLabel(payload.Label).
 		SetRate(payload.Rate).
@@ -177,8 +183,8 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 			Network:        token.Edges.Network.Identifier,
 			ReceiveAddress: receiveAddress.Address,
 			ValidUntil:     receiveAddress.ValidUntil,
-			SenderFee:      sender.FeePerTokenUnit.Mul(payload.Amount).Div(payload.Rate),
-			NetworkFee:     decimal.NewFromFloat(1.0), // TODO: calculate network fee
+			SenderFee:      senderFee,
+			NetworkFee:     networkFee,
 		})
 }
 

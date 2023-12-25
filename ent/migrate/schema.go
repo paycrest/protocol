@@ -151,6 +151,8 @@ var (
 		{Name: "amount", Type: field.TypeFloat64},
 		{Name: "amount_paid", Type: field.TypeFloat64},
 		{Name: "amount_returned", Type: field.TypeFloat64},
+		{Name: "sender_fee", Type: field.TypeFloat64},
+		{Name: "network_fee_estimate", Type: field.TypeFloat64},
 		{Name: "rate", Type: field.TypeFloat64},
 		{Name: "tx_hash", Type: field.TypeString, Nullable: true, Size: 70},
 		{Name: "receive_address_text", Type: field.TypeString, Size: 60},
@@ -168,19 +170,19 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "payment_orders_api_keys_payment_orders",
-				Columns:    []*schema.Column{PaymentOrdersColumns[11]},
+				Columns:    []*schema.Column{PaymentOrdersColumns[13]},
 				RefColumns: []*schema.Column{APIKeysColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "payment_orders_sender_profiles_payment_orders",
-				Columns:    []*schema.Column{PaymentOrdersColumns[12]},
+				Columns:    []*schema.Column{PaymentOrdersColumns[14]},
 				RefColumns: []*schema.Column{SenderProfilesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "payment_orders_tokens_payment_orders",
-				Columns:    []*schema.Column{PaymentOrdersColumns[13]},
+				Columns:    []*schema.Column{PaymentOrdersColumns[15]},
 				RefColumns: []*schema.Column{TokensColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
