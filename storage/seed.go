@@ -163,6 +163,7 @@ func SeedDatabase() error {
 			if err != nil {
 				return fmt.Errorf("failed to generate API key: %w", err)
 			}
+			fmt.Printf("Provider Name: %s, Provider ID: %s, API Secret Key: %s\n", user.FirstName+" "+user.LastName, provider.ID, secretKey)
 			encryptedSecret, _ := crypto.EncryptPlain([]byte(secretKey))
 			encodedSecret := base64.StdEncoding.EncodeToString(encryptedSecret)
 
