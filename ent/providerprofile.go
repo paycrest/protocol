@@ -46,8 +46,8 @@ type ProviderProfile struct {
 	DateOfBirth time.Time `json:"date_of_birth,omitempty"`
 	// BusinessName holds the value of the "business_name" field.
 	BusinessName string `json:"business_name,omitempty"`
-	// IdentityDocumentType holds the value of the "IdentityDocumentType" field.
-	IdentityDocumentType providerprofile.IdentityDocumentType `json:"IdentityDocumentType,omitempty"`
+	// IdentityDocumentType holds the value of the "identity_document_type" field.
+	IdentityDocumentType providerprofile.IdentityDocumentType `json:"identity_document_type,omitempty"`
 	// IdentityDocument holds the value of the "identity_document" field.
 	IdentityDocument string `json:"identity_document,omitempty"`
 	// BusinessDocument holds the value of the "business_document" field.
@@ -270,7 +270,7 @@ func (pp *ProviderProfile) assignValues(columns []string, values []any) error {
 			}
 		case providerprofile.FieldIdentityDocumentType:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field IdentityDocumentType", values[i])
+				return fmt.Errorf("unexpected type %T for field identity_document_type", values[i])
 			} else if value.Valid {
 				pp.IdentityDocumentType = providerprofile.IdentityDocumentType(value.String)
 			}
@@ -407,7 +407,7 @@ func (pp *ProviderProfile) String() string {
 	builder.WriteString("business_name=")
 	builder.WriteString(pp.BusinessName)
 	builder.WriteString(", ")
-	builder.WriteString("IdentityDocumentType=")
+	builder.WriteString("identity_document_type=")
 	builder.WriteString(fmt.Sprintf("%v", pp.IdentityDocumentType))
 	builder.WriteString(", ")
 	builder.WriteString("identity_document=")

@@ -2,12 +2,16 @@ package storage
 
 import (
 	"context"
+	"encoding/base64"
 	"flag"
 	"fmt"
+	"time"
 
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/fiatcurrency"
 	"github.com/paycrest/protocol/types"
+	"github.com/paycrest/protocol/utils/crypto"
+	"github.com/paycrest/protocol/utils/token"
 	"github.com/shopspring/decimal"
 )
 
@@ -38,6 +42,7 @@ func SeedDatabase() error {
 	_ = client.ProvisionBucket.Delete().ExecX(ctx)
 	_ = client.User.Delete().ExecX(ctx)
 	_ = client.ProviderProfile.Delete().ExecX(ctx)
+	_ = client.ProviderOrderToken.Delete().ExecX(ctx)
 
 	// Seed Network
 	fmt.Println("seeding network...")
@@ -70,7 +75,7 @@ func SeedDatabase() error {
 	fmt.Println("fiat currencies and provision buckets...")
 	currencies := []types.SupportedCurrencies{
 		{Code: "NGN", Decimals: 2, Name: "Nigerian Naira", ShortName: "Naira", Symbol: "₦", MarketRate: decimal.NewFromFloat(930.00)},
-		{Code: "KES", Decimals: 2, Name: "Kenyan Shilling", ShortName: "Swahili", Symbol: "KSh", MarketRate: decimal.NewFromFloat(151.45)},
+		// {Code: "KES", Decimals: 2, Name: "Kenyan Shilling", ShortName: "Swahili", Symbol: "KSh", MarketRate: decimal.NewFromFloat(151.45)},
 	}
 	sampleBuckets := make([]*ent.ProvisionBucketCreate, 0, 6)
 
@@ -102,48 +107,95 @@ func SeedDatabase() error {
 				SetCurrency(currency)
 		}
 
-		sampleBuckets = append(sampleBuckets, createProvisionBucket(20000001.00, 100000000.00))
-		sampleBuckets = append(sampleBuckets, createProvisionBucket(5000001.00, 20000000.00))
-		sampleBuckets = append(sampleBuckets, createProvisionBucket(2000001.00, 5000000.00))
-		sampleBuckets = append(sampleBuckets, createProvisionBucket(500001.00, 2000000.00))
-		sampleBuckets = append(sampleBuckets, createProvisionBucket(50001.00, 500000.00))
-		sampleBuckets = append(sampleBuckets, createProvisionBucket(1000.00, 50000.00))
+		sampleBuckets = append(sampleBuckets, createProvisionBucket(5001.00, 50000.00))
+		sampleBuckets = append(sampleBuckets, createProvisionBucket(1001.00, 5000.00))
+		sampleBuckets = append(sampleBuckets, createProvisionBucket(0.00, 1000.00))
 	}
 
 	// Seed users and provider profiles
-	fmt.Println("seed users and provider profiles...")
+	fmt.Println("seed users, provider profiles, and order tokens...")
 
-	for i := 0; i < len(sampleBuckets); i++ {
-		bucket, err := sampleBuckets[i].Save(ctx)
+	for i, sampleBucket := range sampleBuckets {
+		bucket, err := sampleBucket.Save(ctx)
 		if err != nil {
 			return fmt.Errorf("failed seeding provision bucket: %w", err)
 		}
 
-		user, err := client.User.
-			Create().
-			SetFirstName(fmt.Sprintf("User_%d", i)).
-			SetLastName("Doe").
-			SetEmail(fmt.Sprintf("user_%d@example.com", i)).
-			SetPassword("password").
-			SetScope("provider sender").
-			SetIsEmailVerified(true).
-			Save(ctx)
-		if err != nil {
-			return fmt.Errorf("failed creating user: %w", err)
-		}
+		for j := 0; j < 2; j++ {
+			user, err := client.User.
+				Create().
+				SetFirstName(fmt.Sprintf("User_%d", i+j)).
+				SetLastName("Doe").
+				SetEmail(fmt.Sprintf("user_%d@example.com", i+j)).
+				SetPassword("password").
+				SetScope("provider sender").
+				SetIsEmailVerified(true).
+				Save(ctx)
+			if err != nil {
+				return fmt.Errorf("failed creating user: %w", err)
+			}
 
-		currency := bucket.QueryCurrency().OnlyX(ctx)
+			currency := bucket.QueryCurrency().OnlyX(ctx)
 
-		_, err = client.ProviderProfile.
-			Create().
-			SetTradingName(fmt.Sprintf("Provider_%d", i)).
-			SetUser(user).
-			SetIsActive(true).
-			SetCurrency(currency).
-			AddProvisionBuckets(bucket).
-			Save(ctx)
-		if err != nil {
-			return fmt.Errorf("failed creating provider: %w", err)
+			provider, err := client.ProviderProfile.
+				Create().
+				SetTradingName(fmt.Sprintf("Provider_%d", i+j)).
+				SetHostIdentifier("http://localhost:8001").
+				SetUser(user).
+				SetIsActive(true).
+				SetIsAvailable(true).
+				SetCurrencyID(currency.ID).
+				SetAddress("123 Main St").
+				SetMobileNumber("+2348063000000").
+				SetDateOfBirth(time.Date(1990, time.January, 1, 0, 0, 0, 0, time.UTC)).
+				SetBusinessName("ABC Corporation").
+				SetIdentityDocumentType("passport").
+				SetIdentityDocument("https://example.com/identity_document.jpg").
+				SetBusinessDocument("https://example.com/business_document.pdf").
+				AddProvisionBuckets(bucket).
+				Save(ctx)
+			if err != nil {
+				return fmt.Errorf("failed creating provider: %w", err)
+			}
+
+			// Create API Key
+			secretKey, err := token.GeneratePrivateKey()
+			if err != nil {
+				return fmt.Errorf("failed to generate API key: %w", err)
+			}
+			encryptedSecret, _ := crypto.EncryptPlain([]byte(secretKey))
+			encodedSecret := base64.StdEncoding.EncodeToString(encryptedSecret)
+
+			_, err = client.APIKey.
+				Create().
+				SetSecret(encodedSecret).
+				SetProviderProfile(provider).
+				Save(ctx)
+			if err != nil {
+				return fmt.Errorf("failed to create API key: %w", err)
+			}
+
+			// Configure tokens
+			addresses := []struct {
+				Address string `json:"address"`
+				Network string `json:"network"`
+			}{
+				{Address: "0x409689E3008d43a9eb439e7B275749D4a71D8E2D", Network: "polygon-mumbai"},
+			}
+
+			_, err = client.ProviderOrderToken.
+				Create().
+				SetSymbol("6TEST").
+				SetConversionRateType("fixed").
+				SetFixedConversionRate(decimal.NewFromFloat(1100)).
+				SetMinOrderAmount(bucket.MinAmount).
+				SetMaxOrderAmount(bucket.MaxAmount).
+				SetAddresses(addresses).
+				SetProviderID(provider.ID).
+				Save(ctx)
+			if err != nil {
+				return fmt.Errorf("failed to configure order tokens: %w", err)
+			}
 		}
 	}
 

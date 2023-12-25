@@ -650,32 +650,32 @@ func BusinessNameContainsFold(v string) predicate.ProviderProfile {
 	return predicate.ProviderProfile(sql.FieldContainsFold(FieldBusinessName, v))
 }
 
-// IdentityDocumentTypeEQ applies the EQ predicate on the "IdentityDocumentType" field.
+// IdentityDocumentTypeEQ applies the EQ predicate on the "identity_document_type" field.
 func IdentityDocumentTypeEQ(v IdentityDocumentType) predicate.ProviderProfile {
 	return predicate.ProviderProfile(sql.FieldEQ(FieldIdentityDocumentType, v))
 }
 
-// IdentityDocumentTypeNEQ applies the NEQ predicate on the "IdentityDocumentType" field.
+// IdentityDocumentTypeNEQ applies the NEQ predicate on the "identity_document_type" field.
 func IdentityDocumentTypeNEQ(v IdentityDocumentType) predicate.ProviderProfile {
 	return predicate.ProviderProfile(sql.FieldNEQ(FieldIdentityDocumentType, v))
 }
 
-// IdentityDocumentTypeIn applies the In predicate on the "IdentityDocumentType" field.
+// IdentityDocumentTypeIn applies the In predicate on the "identity_document_type" field.
 func IdentityDocumentTypeIn(vs ...IdentityDocumentType) predicate.ProviderProfile {
 	return predicate.ProviderProfile(sql.FieldIn(FieldIdentityDocumentType, vs...))
 }
 
-// IdentityDocumentTypeNotIn applies the NotIn predicate on the "IdentityDocumentType" field.
+// IdentityDocumentTypeNotIn applies the NotIn predicate on the "identity_document_type" field.
 func IdentityDocumentTypeNotIn(vs ...IdentityDocumentType) predicate.ProviderProfile {
 	return predicate.ProviderProfile(sql.FieldNotIn(FieldIdentityDocumentType, vs...))
 }
 
-// IdentityDocumentTypeIsNil applies the IsNil predicate on the "IdentityDocumentType" field.
+// IdentityDocumentTypeIsNil applies the IsNil predicate on the "identity_document_type" field.
 func IdentityDocumentTypeIsNil() predicate.ProviderProfile {
 	return predicate.ProviderProfile(sql.FieldIsNull(FieldIdentityDocumentType))
 }
 
-// IdentityDocumentTypeNotNil applies the NotNil predicate on the "IdentityDocumentType" field.
+// IdentityDocumentTypeNotNil applies the NotNil predicate on the "identity_document_type" field.
 func IdentityDocumentTypeNotNil() predicate.ProviderProfile {
 	return predicate.ProviderProfile(sql.FieldNotNull(FieldIdentityDocumentType))
 }

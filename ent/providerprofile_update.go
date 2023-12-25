@@ -217,13 +217,13 @@ func (ppu *ProviderProfileUpdate) ClearBusinessName() *ProviderProfileUpdate {
 	return ppu
 }
 
-// SetIdentityDocumentType sets the "IdentityDocumentType" field.
+// SetIdentityDocumentType sets the "identity_document_type" field.
 func (ppu *ProviderProfileUpdate) SetIdentityDocumentType(pdt providerprofile.IdentityDocumentType) *ProviderProfileUpdate {
 	ppu.mutation.SetIdentityDocumentType(pdt)
 	return ppu
 }
 
-// SetNillableIdentityDocumentType sets the "IdentityDocumentType" field if the given value is not nil.
+// SetNillableIdentityDocumentType sets the "identity_document_type" field if the given value is not nil.
 func (ppu *ProviderProfileUpdate) SetNillableIdentityDocumentType(pdt *providerprofile.IdentityDocumentType) *ProviderProfileUpdate {
 	if pdt != nil {
 		ppu.SetIdentityDocumentType(*pdt)
@@ -231,7 +231,7 @@ func (ppu *ProviderProfileUpdate) SetNillableIdentityDocumentType(pdt *providerp
 	return ppu
 }
 
-// ClearIdentityDocumentType clears the value of the "IdentityDocumentType" field.
+// ClearIdentityDocumentType clears the value of the "identity_document_type" field.
 func (ppu *ProviderProfileUpdate) ClearIdentityDocumentType() *ProviderProfileUpdate {
 	ppu.mutation.ClearIdentityDocumentType()
 	return ppu
@@ -512,7 +512,7 @@ func (ppu *ProviderProfileUpdate) check() error {
 	}
 	if v, ok := ppu.mutation.IdentityDocumentType(); ok {
 		if err := providerprofile.IdentityDocumentTypeValidator(v); err != nil {
-			return &ValidationError{Name: "IdentityDocumentType", err: fmt.Errorf(`ent: validator failed for field "ProviderProfile.IdentityDocumentType": %w`, err)}
+			return &ValidationError{Name: "identity_document_type", err: fmt.Errorf(`ent: validator failed for field "ProviderProfile.identity_document_type": %w`, err)}
 		}
 	}
 	if _, ok := ppu.mutation.UserID(); ppu.mutation.UserCleared() && !ok {
@@ -1029,13 +1029,13 @@ func (ppuo *ProviderProfileUpdateOne) ClearBusinessName() *ProviderProfileUpdate
 	return ppuo
 }
 
-// SetIdentityDocumentType sets the "IdentityDocumentType" field.
+// SetIdentityDocumentType sets the "identity_document_type" field.
 func (ppuo *ProviderProfileUpdateOne) SetIdentityDocumentType(pdt providerprofile.IdentityDocumentType) *ProviderProfileUpdateOne {
 	ppuo.mutation.SetIdentityDocumentType(pdt)
 	return ppuo
 }
 
-// SetNillableIdentityDocumentType sets the "IdentityDocumentType" field if the given value is not nil.
+// SetNillableIdentityDocumentType sets the "identity_document_type" field if the given value is not nil.
 func (ppuo *ProviderProfileUpdateOne) SetNillableIdentityDocumentType(pdt *providerprofile.IdentityDocumentType) *ProviderProfileUpdateOne {
 	if pdt != nil {
 		ppuo.SetIdentityDocumentType(*pdt)
@@ -1043,7 +1043,7 @@ func (ppuo *ProviderProfileUpdateOne) SetNillableIdentityDocumentType(pdt *provi
 	return ppuo
 }
 
-// ClearIdentityDocumentType clears the value of the "IdentityDocumentType" field.
+// ClearIdentityDocumentType clears the value of the "identity_document_type" field.
 func (ppuo *ProviderProfileUpdateOne) ClearIdentityDocumentType() *ProviderProfileUpdateOne {
 	ppuo.mutation.ClearIdentityDocumentType()
 	return ppuo
@@ -1337,7 +1337,7 @@ func (ppuo *ProviderProfileUpdateOne) check() error {
 	}
 	if v, ok := ppuo.mutation.IdentityDocumentType(); ok {
 		if err := providerprofile.IdentityDocumentTypeValidator(v); err != nil {
-			return &ValidationError{Name: "IdentityDocumentType", err: fmt.Errorf(`ent: validator failed for field "ProviderProfile.IdentityDocumentType": %w`, err)}
+			return &ValidationError{Name: "identity_document_type", err: fmt.Errorf(`ent: validator failed for field "ProviderProfile.identity_document_type": %w`, err)}
 		}
 	}
 	if _, ok := ppuo.mutation.UserID(); ppuo.mutation.UserCleared() && !ok {

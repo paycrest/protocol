@@ -7493,7 +7493,7 @@ type ProviderProfileMutation struct {
 	mobile_number            *string
 	date_of_birth            *time.Time
 	business_name            *string
-	_IdentityDocumentType    *providerprofile.IdentityDocumentType
+	identity_document_type   *providerprofile.IdentityDocumentType
 	identity_document        *string
 	business_document        *string
 	clearedFields            map[string]struct{}
@@ -8120,21 +8120,21 @@ func (m *ProviderProfileMutation) ResetBusinessName() {
 	delete(m.clearedFields, providerprofile.FieldBusinessName)
 }
 
-// SetIdentityDocumentType sets the "IdentityDocumentType" field.
+// SetIdentityDocumentType sets the "identity_document_type" field.
 func (m *ProviderProfileMutation) SetIdentityDocumentType(pdt providerprofile.IdentityDocumentType) {
-	m._IdentityDocumentType = &pdt
+	m.identity_document_type = &pdt
 }
 
-// IdentityDocumentType returns the value of the "IdentityDocumentType" field in the mutation.
+// IdentityDocumentType returns the value of the "identity_document_type" field in the mutation.
 func (m *ProviderProfileMutation) IdentityDocumentType() (r providerprofile.IdentityDocumentType, exists bool) {
-	v := m._IdentityDocumentType
+	v := m.identity_document_type
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldIdentityDocumentType returns the old "IdentityDocumentType" field's value of the ProviderProfile entity.
+// OldIdentityDocumentType returns the old "identity_document_type" field's value of the ProviderProfile entity.
 // If the ProviderProfile object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
 func (m *ProviderProfileMutation) OldIdentityDocumentType(ctx context.Context) (v providerprofile.IdentityDocumentType, err error) {
@@ -8151,21 +8151,21 @@ func (m *ProviderProfileMutation) OldIdentityDocumentType(ctx context.Context) (
 	return oldValue.IdentityDocumentType, nil
 }
 
-// ClearIdentityDocumentType clears the value of the "IdentityDocumentType" field.
+// ClearIdentityDocumentType clears the value of the "identity_document_type" field.
 func (m *ProviderProfileMutation) ClearIdentityDocumentType() {
-	m._IdentityDocumentType = nil
+	m.identity_document_type = nil
 	m.clearedFields[providerprofile.FieldIdentityDocumentType] = struct{}{}
 }
 
-// IdentityDocumentTypeCleared returns if the "IdentityDocumentType" field was cleared in this mutation.
+// IdentityDocumentTypeCleared returns if the "identity_document_type" field was cleared in this mutation.
 func (m *ProviderProfileMutation) IdentityDocumentTypeCleared() bool {
 	_, ok := m.clearedFields[providerprofile.FieldIdentityDocumentType]
 	return ok
 }
 
-// ResetIdentityDocumentType resets all changes to the "IdentityDocumentType" field.
+// ResetIdentityDocumentType resets all changes to the "identity_document_type" field.
 func (m *ProviderProfileMutation) ResetIdentityDocumentType() {
-	m._IdentityDocumentType = nil
+	m.identity_document_type = nil
 	delete(m.clearedFields, providerprofile.FieldIdentityDocumentType)
 }
 
@@ -8656,7 +8656,7 @@ func (m *ProviderProfileMutation) Fields() []string {
 	if m.business_name != nil {
 		fields = append(fields, providerprofile.FieldBusinessName)
 	}
-	if m._IdentityDocumentType != nil {
+	if m.identity_document_type != nil {
 		fields = append(fields, providerprofile.FieldIdentityDocumentType)
 	}
 	if m.identity_document != nil {

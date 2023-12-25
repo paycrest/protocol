@@ -39,7 +39,7 @@ const (
 	FieldDateOfBirth = "date_of_birth"
 	// FieldBusinessName holds the string denoting the business_name field in the database.
 	FieldBusinessName = "business_name"
-	// FieldIdentityDocumentType holds the string denoting the identitydocumenttype field in the database.
+	// FieldIdentityDocumentType holds the string denoting the identity_document_type field in the database.
 	FieldIdentityDocumentType = "identity_document_type"
 	// FieldIdentityDocument holds the string denoting the identity_document field in the database.
 	FieldIdentityDocument = "identity_document"
@@ -227,7 +227,7 @@ func VisibilityModeValidator(vm VisibilityMode) error {
 	}
 }
 
-// IdentityDocumentType defines the type for the "IdentityDocumentType" enum field.
+// IdentityDocumentType defines the type for the "identity_document_type" enum field.
 type IdentityDocumentType string
 
 // IdentityDocumentType values.
@@ -237,17 +237,17 @@ const (
 	IdentityDocumentTypeNationalID     IdentityDocumentType = "national_id"
 )
 
-func (_identitydocumenttype IdentityDocumentType) String() string {
-	return string(_identitydocumenttype)
+func (idt IdentityDocumentType) String() string {
+	return string(idt)
 }
 
-// IdentityDocumentTypeValidator is a validator for the "IdentityDocumentType" field enum values. It is called by the builders before save.
-func IdentityDocumentTypeValidator(_identitydocumenttype IdentityDocumentType) error {
-	switch _identitydocumenttype {
+// IdentityDocumentTypeValidator is a validator for the "identity_document_type" field enum values. It is called by the builders before save.
+func IdentityDocumentTypeValidator(idt IdentityDocumentType) error {
+	switch idt {
 	case IdentityDocumentTypePassport, IdentityDocumentTypeDriversLicense, IdentityDocumentTypeNationalID:
 		return nil
 	default:
-		return fmt.Errorf("providerprofile: invalid enum value for IdentityDocumentType field: %q", _identitydocumenttype)
+		return fmt.Errorf("providerprofile: invalid enum value for identity_document_type field: %q", idt)
 	}
 }
 
@@ -319,7 +319,7 @@ func ByBusinessName(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldBusinessName, opts...).ToFunc()
 }
 
-// ByIdentityDocumentType orders the results by the IdentityDocumentType field.
+// ByIdentityDocumentType orders the results by the identity_document_type field.
 func ByIdentityDocumentType(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldIdentityDocumentType, opts...).ToFunc()
 }

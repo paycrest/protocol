@@ -188,13 +188,13 @@ func (ppc *ProviderProfileCreate) SetNillableBusinessName(s *string) *ProviderPr
 	return ppc
 }
 
-// SetIdentityDocumentType sets the "IdentityDocumentType" field.
+// SetIdentityDocumentType sets the "identity_document_type" field.
 func (ppc *ProviderProfileCreate) SetIdentityDocumentType(pdt providerprofile.IdentityDocumentType) *ProviderProfileCreate {
 	ppc.mutation.SetIdentityDocumentType(pdt)
 	return ppc
 }
 
-// SetNillableIdentityDocumentType sets the "IdentityDocumentType" field if the given value is not nil.
+// SetNillableIdentityDocumentType sets the "identity_document_type" field if the given value is not nil.
 func (ppc *ProviderProfileCreate) SetNillableIdentityDocumentType(pdt *providerprofile.IdentityDocumentType) *ProviderProfileCreate {
 	if pdt != nil {
 		ppc.SetIdentityDocumentType(*pdt)
@@ -454,7 +454,7 @@ func (ppc *ProviderProfileCreate) check() error {
 	}
 	if v, ok := ppc.mutation.IdentityDocumentType(); ok {
 		if err := providerprofile.IdentityDocumentTypeValidator(v); err != nil {
-			return &ValidationError{Name: "IdentityDocumentType", err: fmt.Errorf(`ent: validator failed for field "ProviderProfile.IdentityDocumentType": %w`, err)}
+			return &ValidationError{Name: "identity_document_type", err: fmt.Errorf(`ent: validator failed for field "ProviderProfile.identity_document_type": %w`, err)}
 		}
 	}
 	if _, ok := ppc.mutation.UserID(); !ok {
