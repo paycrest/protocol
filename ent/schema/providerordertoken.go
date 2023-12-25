@@ -22,8 +22,7 @@ func (ProviderOrderToken) Mixin() []ent.Mixin {
 // Fields of the ProviderOrderToken.
 func (ProviderOrderToken) Fields() []ent.Field {
 	return []ent.Field{
-		field.String("symbol").
-			Unique(),
+		field.String("symbol"),
 		field.Float("fixed_conversion_rate").
 			GoType(decimal.Decimal{}),
 		field.Float("floating_conversion_rate").

@@ -124,9 +124,9 @@ func SeedDatabase() error {
 		for j := 0; j < 2; j++ {
 			user, err := client.User.
 				Create().
-				SetFirstName(fmt.Sprintf("User_%d", i+j)).
+				SetFirstName(fmt.Sprintf("User_%d%d", i, j)).
 				SetLastName("Doe").
-				SetEmail(fmt.Sprintf("user_%d@example.com", i+j)).
+				SetEmail(fmt.Sprintf("user_%d%d@example.com", i, j)).
 				SetPassword("password").
 				SetScope("provider sender").
 				SetIsEmailVerified(true).
@@ -139,7 +139,7 @@ func SeedDatabase() error {
 
 			provider, err := client.ProviderProfile.
 				Create().
-				SetTradingName(fmt.Sprintf("Provider_%d", i+j)).
+				SetTradingName(fmt.Sprintf("Provider_%d%d", i, j)).
 				SetHostIdentifier("http://localhost:8001").
 				SetUser(user).
 				SetIsActive(true).
@@ -188,6 +188,7 @@ func SeedDatabase() error {
 				SetSymbol("6TEST").
 				SetConversionRateType("fixed").
 				SetFixedConversionRate(decimal.NewFromFloat(1100)).
+				SetFloatingConversionRate(decimal.NewFromFloat(0.0)).
 				SetMinOrderAmount(bucket.MinAmount).
 				SetMaxOrderAmount(bucket.MaxAmount).
 				SetAddresses(addresses).
