@@ -10,11 +10,13 @@ import (
 	"github.com/paycrest/protocol/ent/network"
 	"github.com/paycrest/protocol/ent/providerordertoken"
 	"github.com/paycrest/protocol/ent/providerprofile"
+	"github.com/paycrest/protocol/ent/provisionbucket"
 	"github.com/paycrest/protocol/ent/token"
 	svc "github.com/paycrest/protocol/services"
 	"github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
 	u "github.com/paycrest/protocol/utils"
+	"github.com/paycrest/protocol/utils/logger"
 	"github.com/shopspring/decimal"
 
 	"github.com/gin-gonic/gin"
@@ -326,10 +328,12 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 					Save(ctx)
 				if err != nil {
 					u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to set token - "+tokenPayload.Symbol, nil)
+					return
 				}
 			} else {
 				if err != nil {
 					u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to set token - "+tokenPayload.Symbol, nil)
+					return
 				}
 			}
 		} else {
@@ -346,7 +350,22 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 				Save(ctx)
 			if err != nil {
 				u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to set token - "+tokenPayload.Symbol, nil)
+				return
 			}
+		}
+
+		// Add provider to buckets
+		buckets, err := storage.Client.ProvisionBucket.
+			Query().
+			Where(
+				provisionbucket.MinAmountLTE(tokenPayload.MinOrderAmount),
+				provisionbucket.MaxAmountGTE(tokenPayload.MaxOrderAmount),
+			).
+			All(ctx)
+		if err != nil {
+			logger.Errorf("Failed to assign provider %s to buckets", provider.ID)
+		} else {
+			update.AddProvisionBuckets(buckets...)
 		}
 	}
 
