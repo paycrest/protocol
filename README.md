@@ -52,7 +52,7 @@ brew services start postgresql
 brew install redis
 
 # start redis service
-brew service start redis
+brew services start redis
 ```
 
 Setup database
