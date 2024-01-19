@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"flag"
 	"fmt"
+	"math/rand"
 	"time"
 
 	"github.com/paycrest/protocol/ent"
@@ -75,7 +76,7 @@ func SeedDatabase() error {
 	// Seed Fiat Currencies and Provision Buckets
 	fmt.Println("fiat currencies and provision buckets...")
 	currencies := []types.SupportedCurrencies{
-		{Code: "NGN", Decimals: 2, Name: "Nigerian Naira", ShortName: "Naira", Symbol: "₦", MarketRate: decimal.NewFromFloat(930.00)},
+		{Code: "NGN", Decimals: 2, Name: "Nigerian Naira", ShortName: "Naira", Symbol: "₦", MarketRate: decimal.NewFromFloat(1050.00)},
 		// {Code: "KES", Decimals: 2, Name: "Kenyan Shilling", ShortName: "Swahili", Symbol: "KSh", MarketRate: decimal.NewFromFloat(151.45)},
 	}
 	sampleBuckets := make([]*ent.ProvisionBucketCreate, 0, 6)
@@ -113,8 +114,21 @@ func SeedDatabase() error {
 		sampleBuckets = append(sampleBuckets, createProvisionBucket(0.00, 1000.00))
 	}
 
-	// Seed users and provider profiles
-	fmt.Println("seed users, provider profiles, and order tokens...")
+	fmt.Println("seed users, profiles, and order tokens...")
+
+	// Seed a user with sender scope and create sender profile
+	fmt.Println("\n==================================\nSample Senders - COPY THE KEYS\n==================================")
+
+	randomNo := rand.New(rand.NewSource(time.Now().UnixNano())).Intn(10)
+	email, clientID, secretKey, err := seedSender(ctx, client, fmt.Sprint(randomNo))
+	if err != nil {
+		return fmt.Errorf("failed seeding sender: %w", err)
+	}
+
+	fmt.Printf("Email: %s, API Client ID: %s, API Secret Key: %s\n\n", email, clientID, secretKey)
+
+	// Seed users with provider scope and create provider profiles
+	fmt.Println("\n==================================\nSample Providers - COPY THE KEYS\n==================================")
 
 	for i, sampleBucket := range sampleBuckets {
 		bucket, err := sampleBucket.Save(ctx)
@@ -123,100 +137,145 @@ func SeedDatabase() error {
 		}
 
 		for j := 0; j < 2; j++ {
-			user, err := client.User.
-				Create().
-				SetFirstName(fmt.Sprintf("User_%d%d", i, j)).
-				SetLastName("Doe").
-				SetEmail(fmt.Sprintf("user_%d%d@example.com", i, j)).
-				SetPassword("password").
-				SetScope("provider sender").
-				SetIsEmailVerified(true).
-				Save(ctx)
+			email, clientID, secretKey, err := seedProvider(ctx, client, bucket, fmt.Sprintf("%d_%d", i, j))
 			if err != nil {
-				return fmt.Errorf("failed creating user: %w", err)
+				return fmt.Errorf("failed seeding provider: %w", err)
 			}
 
-			if j == 0 {
-				_, err = client.SenderProfile.
-					Create().
-					SetUser(user).
-					SetWebhookURL("https://example.com/webhook").
-					SetFeePerTokenUnit(decimal.NewFromFloat(10)).
-					SetFeeAddress("0x409689E3008d43a9eb439e7B275749D4a71D8E2D").
-					SetRefundAddress("0x409689E3008d43a9eb439e7B275749D4a71D8E2D").
-					SetDomainWhitelist([]string{"https://example.com"}).
-					SetIsActive(true).
-					Save(ctx)
-				if err != nil {
-					return fmt.Errorf("failed creating sender profile: %w", err)
-				}
-			}
-
-			currency := bucket.QueryCurrency().OnlyX(ctx)
-
-			provider, err := client.ProviderProfile.
-				Create().
-				SetTradingName(fmt.Sprintf("Provider_%d%d", i, j)).
-				SetHostIdentifier("http://localhost:8001").
-				SetUser(user).
-				SetIsActive(true).
-				SetIsAvailable(true).
-				SetCurrencyID(currency.ID).
-				SetAddress("123 Main St").
-				SetMobileNumber("+2348063000000").
-				SetDateOfBirth(time.Date(1990, time.January, 1, 0, 0, 0, 0, time.UTC)).
-				SetBusinessName("ABC Corporation").
-				SetIdentityDocumentType("passport").
-				SetIdentityDocument("https://example.com/identity_document.jpg").
-				SetBusinessDocument("https://example.com/business_document.pdf").
-				AddProvisionBuckets(bucket).
-				Save(ctx)
-			if err != nil {
-				return fmt.Errorf("failed creating provider: %w", err)
-			}
-
-			// Create API Key
-			secretKey, err := token.GeneratePrivateKey()
-			if err != nil {
-				return fmt.Errorf("failed to generate API key: %w", err)
-			}
-			fmt.Printf("Provider Name: %s, Provider ID: %s, API Secret Key: %s\n", user.FirstName+" "+user.LastName, provider.ID, secretKey)
-			encryptedSecret, _ := crypto.EncryptPlain([]byte(secretKey))
-			encodedSecret := base64.StdEncoding.EncodeToString(encryptedSecret)
-
-			_, err = client.APIKey.
-				Create().
-				SetSecret(encodedSecret).
-				SetProviderProfile(provider).
-				Save(ctx)
-			if err != nil {
-				return fmt.Errorf("failed to create API key: %w", err)
-			}
-
-			// Configure tokens
-			addresses := []struct {
-				Address string `json:"address"`
-				Network string `json:"network"`
-			}{
-				{Address: "0x409689E3008d43a9eb439e7B275749D4a71D8E2D", Network: "polygon-mumbai"},
-			}
-
-			_, err = client.ProviderOrderToken.
-				Create().
-				SetSymbol("6TEST").
-				SetConversionRateType("fixed").
-				SetFixedConversionRate(decimal.NewFromFloat(1100)).
-				SetFloatingConversionRate(decimal.NewFromFloat(0.0)).
-				SetMinOrderAmount(bucket.MinAmount).
-				SetMaxOrderAmount(bucket.MaxAmount).
-				SetAddresses(addresses).
-				SetProviderID(provider.ID).
-				Save(ctx)
-			if err != nil {
-				return fmt.Errorf("failed to configure order tokens: %w", err)
-			}
+			fmt.Printf("Email: %s, API Client ID: %s, API Secret Key: %s\n\n", email, clientID, secretKey)
 		}
 	}
 
 	return nil
+}
+
+func initAPIKeyCreate(ctx context.Context, client *ent.Client) (*ent.APIKeyCreate, string, string, error) {
+	secretKey, err := token.GeneratePrivateKey()
+	if err != nil {
+		return nil, "", "", fmt.Errorf("failed to generate API key: %w", err)
+	}
+	encryptedSecret, _ := crypto.EncryptPlain([]byte(secretKey))
+	encodedSecret := base64.StdEncoding.EncodeToString(encryptedSecret)
+
+	return client.APIKey.Create(), secretKey, encodedSecret, nil
+}
+
+func seedSender(ctx context.Context, client *ent.Client, serial string) (string, string, string, error) {
+	user, err := client.User.
+		Create().
+		SetFirstName("John").
+		SetLastName("Doe").
+		SetEmail(fmt.Sprintf("sender_%s@example.com", serial)).
+		SetPassword("password").
+		SetScope("sender").
+		SetIsEmailVerified(true).
+		Save(ctx)
+	if err != nil {
+		return "", "", "", fmt.Errorf("failed creating user: %w", err)
+	}
+
+	sender, err := client.SenderProfile.
+		Create().
+		SetUser(user).
+		SetWebhookURL("https://example.com/webhook").
+		SetFeePerTokenUnit(decimal.NewFromFloat(10)).
+		SetFeeAddress("0x409689E3008d43a9eb439e7B275749D4a71D8E2D").
+		SetRefundAddress("0x409689E3008d43a9eb439e7B275749D4a71D8E2D").
+		SetDomainWhitelist([]string{"https://example.com"}).
+		SetIsActive(true).
+		Save(ctx)
+	if err != nil {
+		return "", "", "", fmt.Errorf("failed creating sender profile: %w", err)
+	}
+
+	apiKeyCreate, secretKey, encodedSecret, err := initAPIKeyCreate(ctx, client)
+	if err != nil {
+		return "", "", "", fmt.Errorf("failed to initialize sender API key: %w", err)
+	}
+
+	apiKey, err := apiKeyCreate.
+		SetSecret(encodedSecret).
+		SetSenderProfile(sender).
+		Save(ctx)
+	if err != nil {
+		return "", "", "", fmt.Errorf("failed to create sender API key: %w", err)
+	}
+
+	return user.Email, apiKey.ID.String(), secretKey, nil
+}
+
+func seedProvider(ctx context.Context, client *ent.Client, bucket *ent.ProvisionBucket, serial string) (string, string, string, error) {
+	user, err := client.User.
+		Create().
+		SetFirstName("John").
+		SetLastName("Doe").
+		SetEmail(fmt.Sprintf("user_%s@example.com", serial)).
+		SetPassword("password").
+		SetScope("provider").
+		SetIsEmailVerified(true).
+		Save(ctx)
+	if err != nil {
+		return "", "", "", fmt.Errorf("failed creating provider user: %w", err)
+	}
+
+	currency := bucket.QueryCurrency().OnlyX(ctx)
+
+	provider, err := client.ProviderProfile.
+		Create().
+		SetTradingName(fmt.Sprintf("Provider_%s", serial)).
+		SetHostIdentifier("http://localhost:8001").
+		SetUser(user).
+		SetIsActive(true).
+		SetIsAvailable(true).
+		SetCurrencyID(currency.ID).
+		SetAddress("123 Main St").
+		SetMobileNumber("+2348063000000").
+		SetDateOfBirth(time.Date(1990, time.January, 1, 0, 0, 0, 0, time.UTC)).
+		SetBusinessName("ABC Corporation").
+		SetIdentityDocumentType("passport").
+		SetIdentityDocument("https://example.com/identity_document.jpg").
+		SetBusinessDocument("https://example.com/business_document.pdf").
+		AddProvisionBuckets(bucket).
+		Save(ctx)
+	if err != nil {
+		return "", "", "", fmt.Errorf("failed creating provider: %w", err)
+	}
+
+	apiKeyCreate, secretKey, encodedSecret, err := initAPIKeyCreate(ctx, client)
+	if err != nil {
+		return "", "", "", fmt.Errorf("failed to initialize provider API key: %w", err)
+	}
+
+	apiKey, err := apiKeyCreate.
+		SetSecret(encodedSecret).
+		SetProviderProfile(provider).
+		Save(ctx)
+	if err != nil {
+		return "", "", "", fmt.Errorf("failed to create provider API key: %w", err)
+	}
+
+	// Configure tokens
+	addresses := []struct {
+		Address string `json:"address"`
+		Network string `json:"network"`
+	}{
+		{Address: "0x409689E3008d43a9eb439e7B275749D4a71D8E2D", Network: "polygon-mumbai"},
+	}
+
+	_, err = client.ProviderOrderToken.
+		Create().
+		SetSymbol("6TEST").
+		SetConversionRateType("fixed").
+		SetFixedConversionRate(decimal.NewFromFloat(1100)).
+		SetFloatingConversionRate(decimal.NewFromFloat(0.0)).
+		SetMinOrderAmount(bucket.MinAmount).
+		SetMaxOrderAmount(bucket.MaxAmount).
+		SetAddresses(addresses).
+		SetProviderID(provider.ID).
+		Save(ctx)
+	if err != nil {
+		return "", "", "", fmt.Errorf("failed to configure order tokens: %w", err)
+	}
+
+	return user.Email, apiKey.ID.String(), secretKey, nil
 }
