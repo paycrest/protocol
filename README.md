@@ -1,5 +1,5 @@
 # Paycrest Protocol
-A P2P powered crypto-to-fiat exchange protocol.
+A P2P powered crypto-to-cash exchange protocol.
 
 This is a work in progress. Follow [this guide](https://www.freecodecamp.org/news/how-to-write-a-good-readme-file/) if you want to contribute to this README.
 
@@ -15,8 +15,8 @@ To set up your development environment for Paycrest Protocol, follow these steps
 1. Setup Paycrest Protocol repo in your local machine.
 ```bash
 # clone the repo
-git clone https://github.com/paycrest/paycrest-protocol.git
-cd paycrest-protocol
+git clone https://github.com/paycrest/protocol.git
+cd protocol
 
 # copy and update enviroment variables
 cp .env.example .env
@@ -112,7 +112,7 @@ We welcome contributions to the Paycrest Protocol! To get started, follow these 
 
 2. Clone your forked repository to your local machine:
 ```bash
-$ git clone https://github.com/your-username/paycrest-protocol.git
+$ git clone https://github.com/your-username/protocol.git
 ```
 3. Setup the precommit hook by running 
 ```bash
@@ -126,7 +126,7 @@ sh init.sh
 $ git push origin main
 ```
 
-5. Create a pull request by visiting the (repository page)[https://github.com/paycrest/paycrest-protocol] and clicking the "New pull request" button.
+5. Create a pull request by visiting the [repository page](https://github.com/paycrest/protocol) and clicking the "New pull request" button.
 
 Our team will review your pull request and work with you to get it merged into the main branch of the repository. 
 

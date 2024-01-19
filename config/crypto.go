@@ -21,8 +21,8 @@ func CryptoConfig() *CryptoConfiguration {
 		HDWalletMnemonic:           viper.GetString("HD_WALLET_MNEMONIC"),
 		AggregatorPublicKey:        viper.GetString("AGGREGATOR_PUBLIC_KEY"),
 		AggregatorPrivateKey:       viper.GetString("AGGREGATOR_PRIVATE_KEY"),
-		AggregatorSmartAccount:     viper.GetString(("AGGREGATOR_SMART_ACCOUNT")),
-		AggregatorSmartAccountSalt: viper.GetString(("AGGREGATOR_SMART_ACCOUNT_SALT")),
+		AggregatorSmartAccount:     viper.GetString("AGGREGATOR_SMART_ACCOUNT"),
+		AggregatorSmartAccountSalt: viper.GetString("AGGREGATOR_SMART_ACCOUNT_SALT"),
 	}
 }
 

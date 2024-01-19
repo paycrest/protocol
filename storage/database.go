@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"entgo.io/ent/dialect"
+	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/migrate"
 	_ "github.com/paycrest/protocol/ent/runtime" // ent runtime
@@ -29,9 +30,13 @@ func DBConnection(DSN string) error {
 		return err
 	}
 
+	conf := config.ServerConfig()
+
 	// Run the auto migration tool.
-	if err := client.Schema.Create(context.Background(), migrate.WithGlobalUniqueID(true)); err != nil {
-		return err
+	if conf.Environment == "local" {
+		if err := client.Schema.Create(context.Background(), migrate.WithGlobalUniqueID(true)); err != nil {
+			return err
+		}
 	}
 
 	Client = client
