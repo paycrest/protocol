@@ -63,8 +63,8 @@ func SeedDatabase() error {
 	fmt.Println("seeding tokens...")
 	_, err = client.Token.
 		Create().
-		SetSymbol("6TEST").
-		SetContractAddress("0x3870419Ba2BBf0127060bCB37f69A1b1C090992B").
+		SetSymbol("USDC").
+		SetContractAddress("0x9999f7Fea5938fD3b1E26A12c3f2fb024e194f97").
 		SetDecimals(6).
 		SetNetwork(network).
 		SetIsEnabled(true).
@@ -264,7 +264,7 @@ func seedProvider(ctx context.Context, client *ent.Client, bucket *ent.Provision
 
 	_, err = client.ProviderOrderToken.
 		Create().
-		SetSymbol("6TEST").
+		SetSymbol("USDC").
 		SetConversionRateType("fixed").
 		SetFixedConversionRate(decimal.NewFromFloat(1100)).
 		SetFloatingConversionRate(decimal.NewFromFloat(0.0)).
