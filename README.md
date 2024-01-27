@@ -99,6 +99,12 @@ air -v
 
 That's it! The server will now be running at http://localhost:8000. You can use an API testing tool like Postman or cURL to interact with the API.
 
+**Seed database**
+```bash
+# run seed-db script
+go run 
+```
+
 ## Usage
 TODO: Add API documentation.
 

@@ -65,6 +65,7 @@ var testCtx = struct {
 }{}
 
 func createPaymentOrder(t *testing.T, router *gin.Engine) {
+	fmt.Println(testCtx.networkIdentifier)
 	// Fetch network from db
 	network, err := db.Client.Network.
 		Query().

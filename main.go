@@ -26,11 +26,6 @@ func main() {
 
 	defer storage.GetClient().Close()
 
-	// Seed the database
-	if err := storage.SeedAll(); err != nil {
-		logger.Fatalf("database SeedAll: %s", err)
-	}
-
 	// Initialize Redis
 	if err := storage.InitializeRedis(); err != nil {
 		logger.Fatalf("Redis initialization: %s", err)

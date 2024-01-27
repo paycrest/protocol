@@ -1,39 +1,34 @@
-package storage
+package main
 
 import (
 	"context"
 	"encoding/base64"
-	"flag"
 	"fmt"
 	"math/rand"
 	"time"
 
+	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/fiatcurrency"
+	"github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
 	"github.com/paycrest/protocol/utils/crypto"
+	"github.com/paycrest/protocol/utils/logger"
 	"github.com/paycrest/protocol/utils/token"
 	"github.com/shopspring/decimal"
 )
 
-func SeedAll() error {
-	// Define flags
-	seedDB := flag.Bool("seed-db", false, "Seed the database")
-	flag.Parse()
+func main() {
+	// Connect to the database
+	DSN := config.DBConfig()
 
-	// Run based on flags
-	if *seedDB {
-		err := SeedDatabase()
-		if err != nil {
-			return fmt.Errorf("error seeding database: %w", err)
-		}
+	if err := storage.DBConnection(DSN); err != nil {
+		logger.Fatalf("database DBConnection: %s", err)
 	}
 
-	return nil
-}
+	client := storage.GetClient()
 
-func SeedDatabase() error {
-	client := GetClient()
+	defer client.Close()
 	ctx := context.Background()
 
 	// Delete existing data
@@ -56,7 +51,7 @@ func SeedDatabase() error {
 		SetIsTestnet(true).
 		Save(ctx)
 	if err != nil {
-		return fmt.Errorf("failed seeding network: %w", err)
+		logger.Fatalf("failed seeding network: %s", err)
 	}
 
 	// Seed Tokens
@@ -70,7 +65,7 @@ func SeedDatabase() error {
 		SetIsEnabled(true).
 		Save(ctx)
 	if err != nil {
-		return fmt.Errorf("failed seeding token: %w", err)
+		logger.Fatalf("failed seeding token: %s", err)
 	}
 
 	// Seed Fiat Currencies and Provision Buckets
@@ -122,7 +117,7 @@ func SeedDatabase() error {
 	randomNo := rand.New(rand.NewSource(time.Now().UnixNano())).Intn(10)
 	email, clientID, secretKey, err := seedSender(ctx, client, fmt.Sprint(randomNo))
 	if err != nil {
-		return fmt.Errorf("failed seeding sender: %w", err)
+		logger.Fatalf("failed seeding sender: %s", err)
 	}
 
 	fmt.Printf("Email: %s, API Client ID: %s, API Secret Key: %s\n\n", email, clientID, secretKey)
@@ -133,26 +128,24 @@ func SeedDatabase() error {
 	for i, sampleBucket := range sampleBuckets {
 		bucket, err := sampleBucket.Save(ctx)
 		if err != nil {
-			return fmt.Errorf("failed seeding provision bucket: %w", err)
+			logger.Fatalf("failed seeding provision bucket: %s", err)
 		}
 
 		for j := 0; j < 2; j++ {
 			email, clientID, secretKey, err := seedProvider(ctx, client, bucket, fmt.Sprintf("%d_%d", i, j))
 			if err != nil {
-				return fmt.Errorf("failed seeding provider: %w", err)
+				logger.Fatalf("failed seeding provider: %s", err)
 			}
 
 			fmt.Printf("Email: %s, API Client ID: %s, API Secret Key: %s\n\n", email, clientID, secretKey)
 		}
 	}
-
-	return nil
 }
 
 func initAPIKeyCreate(ctx context.Context, client *ent.Client) (*ent.APIKeyCreate, string, string, error) {
 	secretKey, err := token.GeneratePrivateKey()
 	if err != nil {
-		return nil, "", "", fmt.Errorf("failed to generate API key: %w", err)
+		return nil, "", "", fmt.Errorf("failed to generate API key: %s", err)
 	}
 	encryptedSecret, _ := crypto.EncryptPlain([]byte(secretKey))
 	encodedSecret := base64.StdEncoding.EncodeToString(encryptedSecret)
@@ -171,7 +164,7 @@ func seedSender(ctx context.Context, client *ent.Client, serial string) (string,
 		SetIsEmailVerified(true).
 		Save(ctx)
 	if err != nil {
-		return "", "", "", fmt.Errorf("failed creating user: %w", err)
+		return "", "", "", fmt.Errorf("failed creating user: %s", err)
 	}
 
 	sender, err := client.SenderProfile.
@@ -185,12 +178,12 @@ func seedSender(ctx context.Context, client *ent.Client, serial string) (string,
 		SetIsActive(true).
 		Save(ctx)
 	if err != nil {
-		return "", "", "", fmt.Errorf("failed creating sender profile: %w", err)
+		return "", "", "", fmt.Errorf("failed creating sender profile: %s", err)
 	}
 
 	apiKeyCreate, secretKey, encodedSecret, err := initAPIKeyCreate(ctx, client)
 	if err != nil {
-		return "", "", "", fmt.Errorf("failed to initialize sender API key: %w", err)
+		return "", "", "", fmt.Errorf("failed to initialize sender API key: %s", err)
 	}
 
 	apiKey, err := apiKeyCreate.
@@ -198,7 +191,7 @@ func seedSender(ctx context.Context, client *ent.Client, serial string) (string,
 		SetSenderProfile(sender).
 		Save(ctx)
 	if err != nil {
-		return "", "", "", fmt.Errorf("failed to create sender API key: %w", err)
+		return "", "", "", fmt.Errorf("failed to create sender API key: %s", err)
 	}
 
 	return user.Email, apiKey.ID.String(), secretKey, nil
@@ -215,7 +208,7 @@ func seedProvider(ctx context.Context, client *ent.Client, bucket *ent.Provision
 		SetIsEmailVerified(true).
 		Save(ctx)
 	if err != nil {
-		return "", "", "", fmt.Errorf("failed creating provider user: %w", err)
+		return "", "", "", fmt.Errorf("failed creating provider user: %s", err)
 	}
 
 	currency := bucket.QueryCurrency().OnlyX(ctx)
@@ -238,12 +231,12 @@ func seedProvider(ctx context.Context, client *ent.Client, bucket *ent.Provision
 		AddProvisionBuckets(bucket).
 		Save(ctx)
 	if err != nil {
-		return "", "", "", fmt.Errorf("failed creating provider: %w", err)
+		return "", "", "", fmt.Errorf("failed creating provider: %s", err)
 	}
 
 	apiKeyCreate, secretKey, encodedSecret, err := initAPIKeyCreate(ctx, client)
 	if err != nil {
-		return "", "", "", fmt.Errorf("failed to initialize provider API key: %w", err)
+		return "", "", "", fmt.Errorf("failed to initialize provider API key: %s", err)
 	}
 
 	apiKey, err := apiKeyCreate.
@@ -251,7 +244,7 @@ func seedProvider(ctx context.Context, client *ent.Client, bucket *ent.Provision
 		SetProviderProfile(provider).
 		Save(ctx)
 	if err != nil {
-		return "", "", "", fmt.Errorf("failed to create provider API key: %w", err)
+		return "", "", "", fmt.Errorf("failed to create provider API key: %s", err)
 	}
 
 	// Configure tokens
@@ -274,7 +267,7 @@ func seedProvider(ctx context.Context, client *ent.Client, bucket *ent.Provision
 		SetProviderID(provider.ID).
 		Save(ctx)
 	if err != nil {
-		return "", "", "", fmt.Errorf("failed to configure order tokens: %w", err)
+		return "", "", "", fmt.Errorf("failed to configure order tokens: %s", err)
 	}
 
 	return user.Email, apiKey.ID.String(), secretKey, nil

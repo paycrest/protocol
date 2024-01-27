@@ -34,8 +34,7 @@ func (PaymentOrder) Fields() []ent.Field {
 			GoType(decimal.Decimal{}),
 		field.Float("sender_fee").GoType(decimal.Decimal{}),
 		field.Float("network_fee_estimate").GoType(decimal.Decimal{}),
-		field.Float("rate").
-			GoType(decimal.Decimal{}),
+		field.Float("rate").GoType(decimal.Decimal{}),
 		field.String("tx_hash").
 			MaxLen(70).
 			Optional(),

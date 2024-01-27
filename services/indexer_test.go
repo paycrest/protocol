@@ -92,9 +92,11 @@ func setup() error {
 		SetAmount(amount).
 		SetAmountPaid(decimal.NewFromInt(0)).
 		SetAmountReturned(decimal.NewFromInt(0)).
+		SetSenderFee(decimal.NewFromInt(0)).
+		SetNetworkFeeEstimate(decimal.NewFromInt(0)).
+		SetRate(decimal.NewFromInt(750)).
 		SetToken(token).
 		SetLabel("test payment order").
-		SetRate(decimal.NewFromInt(750)).
 		SetReceiveAddress(receiveAddress).
 		SetReceiveAddressText(receiveAddress.Address).
 		Save(context.Background())

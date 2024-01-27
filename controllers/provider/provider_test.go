@@ -45,7 +45,7 @@ func setup() error {
 		return err
 	}
 
-	provderProfile, err := test.CreateTestProviderProfile(map[string]interface{}{
+	providerProfile, err := test.CreateTestProviderProfile(map[string]interface{}{
 		"user_id":     testCtx.user.ID,
 		"currency_id": currency.ID,
 	})
@@ -56,7 +56,7 @@ func setup() error {
 	for i := 0; i < 10; i++ {
 		_, err := test.CreateTestLockPaymentOrder(map[string]interface{}{
 			"order_id": uuid.New().String(),
-			"provider": provderProfile,
+			"provider": providerProfile,
 		})
 		if err != nil {
 			return err
@@ -68,7 +68,7 @@ func setup() error {
 		context.Background(),
 		nil,
 		nil,
-		provderProfile,
+		providerProfile,
 	)
 	if err != nil {
 		return err
