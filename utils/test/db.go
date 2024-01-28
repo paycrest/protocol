@@ -2,7 +2,6 @@ package test
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"github.com/google/uuid"
@@ -80,8 +79,6 @@ func CreateTestToken(client types.RPCClient, overrides map[string]interface{}) (
 		return nil, err
 	}
 
-	fmt.Println("2:", network.Identifier)
-
 	// Create token
 	token, err := db.Client.Token.
 		Create().
@@ -127,8 +124,6 @@ func CreateTestLockPaymentOrder(overrides map[string]interface{}) (*ent.LockPaym
 	// Create test token
 	backend, _ := SetUpTestBlockchain()
 	token, _ := CreateTestToken(backend, nil)
-
-	fmt.Println("token", token)
 
 	// Create LockPaymentOrder
 	order, err := db.Client.LockPaymentOrder.
