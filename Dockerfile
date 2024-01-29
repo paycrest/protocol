@@ -1,5 +1,5 @@
 # Start from golang base image
-FROM golang:1.20.3-alpine
+FROM golang:1.22rc2-alpine3.19
 
 RUN apk --no-cache add curl
 # Install the air binary so we get live code-reloading when we save files
