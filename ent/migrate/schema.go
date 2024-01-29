@@ -86,7 +86,7 @@ var (
 		{Name: "order_id", Type: field.TypeString},
 		{Name: "amount", Type: field.TypeFloat64},
 		{Name: "rate", Type: field.TypeFloat64},
-		{Name: "order_percent", Type: field.TypeFloat64, Nullable: true},
+		{Name: "order_percent", Type: field.TypeFloat64},
 		{Name: "tx_hash", Type: field.TypeString, Nullable: true, Size: 70},
 		{Name: "label", Type: field.TypeString},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"pending", "processing", "cancelled", "fulfilled", "validated", "settling", "settled", "refunding", "refunded"}, Default: "pending"},

@@ -78,14 +78,6 @@ func (lpoc *LockPaymentOrderCreate) SetOrderPercent(d decimal.Decimal) *LockPaym
 	return lpoc
 }
 
-// SetNillableOrderPercent sets the "order_percent" field if the given value is not nil.
-func (lpoc *LockPaymentOrderCreate) SetNillableOrderPercent(d *decimal.Decimal) *LockPaymentOrderCreate {
-	if d != nil {
-		lpoc.SetOrderPercent(*d)
-	}
-	return lpoc
-}
-
 // SetTxHash sets the "tx_hash" field.
 func (lpoc *LockPaymentOrderCreate) SetTxHash(s string) *LockPaymentOrderCreate {
 	lpoc.mutation.SetTxHash(s)
@@ -337,6 +329,9 @@ func (lpoc *LockPaymentOrderCreate) check() error {
 	}
 	if _, ok := lpoc.mutation.Rate(); !ok {
 		return &ValidationError{Name: "rate", err: errors.New(`ent: missing required field "LockPaymentOrder.rate"`)}
+	}
+	if _, ok := lpoc.mutation.OrderPercent(); !ok {
+		return &ValidationError{Name: "order_percent", err: errors.New(`ent: missing required field "LockPaymentOrder.order_percent"`)}
 	}
 	if v, ok := lpoc.mutation.TxHash(); ok {
 		if err := lockpaymentorder.TxHashValidator(v); err != nil {

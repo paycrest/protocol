@@ -2666,24 +2666,10 @@ func (m *LockPaymentOrderMutation) AddedOrderPercent() (r decimal.Decimal, exist
 	return *v, true
 }
 
-// ClearOrderPercent clears the value of the "order_percent" field.
-func (m *LockPaymentOrderMutation) ClearOrderPercent() {
-	m.order_percent = nil
-	m.addorder_percent = nil
-	m.clearedFields[lockpaymentorder.FieldOrderPercent] = struct{}{}
-}
-
-// OrderPercentCleared returns if the "order_percent" field was cleared in this mutation.
-func (m *LockPaymentOrderMutation) OrderPercentCleared() bool {
-	_, ok := m.clearedFields[lockpaymentorder.FieldOrderPercent]
-	return ok
-}
-
 // ResetOrderPercent resets all changes to the "order_percent" field.
 func (m *LockPaymentOrderMutation) ResetOrderPercent() {
 	m.order_percent = nil
 	m.addorder_percent = nil
-	delete(m.clearedFields, lockpaymentorder.FieldOrderPercent)
 }
 
 // SetTxHash sets the "tx_hash" field.
@@ -3661,9 +3647,6 @@ func (m *LockPaymentOrderMutation) AddField(name string, value ent.Value) error 
 // mutation.
 func (m *LockPaymentOrderMutation) ClearedFields() []string {
 	var fields []string
-	if m.FieldCleared(lockpaymentorder.FieldOrderPercent) {
-		fields = append(fields, lockpaymentorder.FieldOrderPercent)
-	}
 	if m.FieldCleared(lockpaymentorder.FieldTxHash) {
 		fields = append(fields, lockpaymentorder.FieldTxHash)
 	}
@@ -3684,9 +3667,6 @@ func (m *LockPaymentOrderMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *LockPaymentOrderMutation) ClearField(name string) error {
 	switch name {
-	case lockpaymentorder.FieldOrderPercent:
-		m.ClearOrderPercent()
-		return nil
 	case lockpaymentorder.FieldTxHash:
 		m.ClearTxHash()
 		return nil
