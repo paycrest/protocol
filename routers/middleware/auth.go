@@ -63,30 +63,28 @@ func JWTMiddleware(c *gin.Context) {
 
 	userUUID, _ := uuid.Parse(userID)
 
+	senderAndProvider := strings.Contains(scope, "sender") && strings.Contains(scope, "provider")
+
 	// Set user profiles based on scope
-	if strings.Contains(scope, "sender") {
+	if scope == "sender" || senderAndProvider {
 		senderProfile, err := storage.Client.SenderProfile.
 			Query().
 			Where(senderprofile.HasUserWith(user.IDEQ(userUUID))).
 			Only(c)
 		if err != nil {
-			u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid or expired token", nil)
-			c.Abort()
-			return
+			c.Set("sender", nil)
 		}
 
 		c.Set("sender", senderProfile)
 	}
 
-	if strings.Contains(scope, "provider") {
+	if scope == "provider" || senderAndProvider {
 		providerProfile, err := storage.Client.ProviderProfile.
 			Query().
 			Where(providerprofile.HasUserWith(user.IDEQ(userUUID))).
 			Only(c)
-		if err != nil {
-			u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid or expired token", nil)
-			c.Abort()
-			return
+		if err != nil && !senderAndProvider {
+			c.Set("provider", nil)
 		}
 
 		c.Set("provider", providerProfile)
@@ -266,9 +264,9 @@ func DynamicAuthMiddleware(c *gin.Context) {
 
 // OnlySenderMiddleware is a middleware that checks if the user scope is sender.
 func OnlySenderMiddleware(c *gin.Context) {
-	_, ok := c.Get("sender")
+	scope, ok := c.Get("sender")
 
-	if !ok {
+	if !ok && scope == nil {
 		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid API key or token", nil)
 		c.Abort()
 		return
@@ -279,9 +277,9 @@ func OnlySenderMiddleware(c *gin.Context) {
 
 // OnlyProviderMiddleware is a middleware that checks if the user scope is provider.
 func OnlyProviderMiddleware(c *gin.Context) {
-	_, ok := c.Get("provider")
+	scope, ok := c.Get("provider")
 
-	if !ok {
+	if !ok && scope == nil {
 		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid API key or token", nil)
 		c.Abort()
 		return
