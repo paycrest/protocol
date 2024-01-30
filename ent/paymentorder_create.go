@@ -104,6 +104,20 @@ func (poc *PaymentOrderCreate) SetNillableTxHash(s *string) *PaymentOrderCreate 
 	return poc
 }
 
+// SetFromAddress sets the "from_address" field.
+func (poc *PaymentOrderCreate) SetFromAddress(s string) *PaymentOrderCreate {
+	poc.mutation.SetFromAddress(s)
+	return poc
+}
+
+// SetNillableFromAddress sets the "from_address" field if the given value is not nil.
+func (poc *PaymentOrderCreate) SetNillableFromAddress(s *string) *PaymentOrderCreate {
+	if s != nil {
+		poc.SetFromAddress(*s)
+	}
+	return poc
+}
+
 // SetReceiveAddressText sets the "receive_address_text" field.
 func (poc *PaymentOrderCreate) SetReceiveAddressText(s string) *PaymentOrderCreate {
 	poc.mutation.SetReceiveAddressText(s)
@@ -288,6 +302,11 @@ func (poc *PaymentOrderCreate) check() error {
 			return &ValidationError{Name: "tx_hash", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.tx_hash": %w`, err)}
 		}
 	}
+	if v, ok := poc.mutation.FromAddress(); ok {
+		if err := paymentorder.FromAddressValidator(v); err != nil {
+			return &ValidationError{Name: "from_address", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.from_address": %w`, err)}
+		}
+	}
 	if _, ok := poc.mutation.ReceiveAddressText(); !ok {
 		return &ValidationError{Name: "receive_address_text", err: errors.New(`ent: missing required field "PaymentOrder.receive_address_text"`)}
 	}
@@ -383,6 +402,10 @@ func (poc *PaymentOrderCreate) createSpec() (*PaymentOrder, *sqlgraph.CreateSpec
 	if value, ok := poc.mutation.TxHash(); ok {
 		_spec.SetField(paymentorder.FieldTxHash, field.TypeString, value)
 		_node.TxHash = value
+	}
+	if value, ok := poc.mutation.FromAddress(); ok {
+		_spec.SetField(paymentorder.FieldFromAddress, field.TypeString, value)
+		_node.FromAddress = value
 	}
 	if value, ok := poc.mutation.ReceiveAddressText(); ok {
 		_spec.SetField(paymentorder.FieldReceiveAddressText, field.TypeString, value)

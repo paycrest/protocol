@@ -34,6 +34,8 @@ const (
 	FieldRate = "rate"
 	// FieldTxHash holds the string denoting the tx_hash field in the database.
 	FieldTxHash = "tx_hash"
+	// FieldFromAddress holds the string denoting the from_address field in the database.
+	FieldFromAddress = "from_address"
 	// FieldReceiveAddressText holds the string denoting the receive_address_text field in the database.
 	FieldReceiveAddressText = "receive_address_text"
 	// FieldLabel holds the string denoting the label field in the database.
@@ -92,6 +94,7 @@ var Columns = []string{
 	FieldNetworkFeeEstimate,
 	FieldRate,
 	FieldTxHash,
+	FieldFromAddress,
 	FieldReceiveAddressText,
 	FieldLabel,
 	FieldStatus,
@@ -129,6 +132,8 @@ var (
 	UpdateDefaultUpdatedAt func() time.Time
 	// TxHashValidator is a validator for the "tx_hash" field. It is called by the builders before save.
 	TxHashValidator func(string) error
+	// FromAddressValidator is a validator for the "from_address" field. It is called by the builders before save.
+	FromAddressValidator func(string) error
 	// ReceiveAddressTextValidator is a validator for the "receive_address_text" field. It is called by the builders before save.
 	ReceiveAddressTextValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
@@ -216,6 +221,11 @@ func ByRate(opts ...sql.OrderTermOption) OrderOption {
 // ByTxHash orders the results by the tx_hash field.
 func ByTxHash(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldTxHash, opts...).ToFunc()
+}
+
+// ByFromAddress orders the results by the from_address field.
+func ByFromAddress(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFromAddress, opts...).ToFunc()
 }
 
 // ByReceiveAddressText orders the results by the receive_address_text field.

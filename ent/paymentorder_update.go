@@ -138,6 +138,26 @@ func (pou *PaymentOrderUpdate) ClearTxHash() *PaymentOrderUpdate {
 	return pou
 }
 
+// SetFromAddress sets the "from_address" field.
+func (pou *PaymentOrderUpdate) SetFromAddress(s string) *PaymentOrderUpdate {
+	pou.mutation.SetFromAddress(s)
+	return pou
+}
+
+// SetNillableFromAddress sets the "from_address" field if the given value is not nil.
+func (pou *PaymentOrderUpdate) SetNillableFromAddress(s *string) *PaymentOrderUpdate {
+	if s != nil {
+		pou.SetFromAddress(*s)
+	}
+	return pou
+}
+
+// ClearFromAddress clears the value of the "from_address" field.
+func (pou *PaymentOrderUpdate) ClearFromAddress() *PaymentOrderUpdate {
+	pou.mutation.ClearFromAddress()
+	return pou
+}
+
 // SetReceiveAddressText sets the "receive_address_text" field.
 func (pou *PaymentOrderUpdate) SetReceiveAddressText(s string) *PaymentOrderUpdate {
 	pou.mutation.SetReceiveAddressText(s)
@@ -296,6 +316,11 @@ func (pou *PaymentOrderUpdate) check() error {
 			return &ValidationError{Name: "tx_hash", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.tx_hash": %w`, err)}
 		}
 	}
+	if v, ok := pou.mutation.FromAddress(); ok {
+		if err := paymentorder.FromAddressValidator(v); err != nil {
+			return &ValidationError{Name: "from_address", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.from_address": %w`, err)}
+		}
+	}
 	if v, ok := pou.mutation.ReceiveAddressText(); ok {
 		if err := paymentorder.ReceiveAddressTextValidator(v); err != nil {
 			return &ValidationError{Name: "receive_address_text", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.receive_address_text": %w`, err)}
@@ -371,6 +396,12 @@ func (pou *PaymentOrderUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if pou.mutation.TxHashCleared() {
 		_spec.ClearField(paymentorder.FieldTxHash, field.TypeString)
+	}
+	if value, ok := pou.mutation.FromAddress(); ok {
+		_spec.SetField(paymentorder.FieldFromAddress, field.TypeString, value)
+	}
+	if pou.mutation.FromAddressCleared() {
+		_spec.ClearField(paymentorder.FieldFromAddress, field.TypeString)
 	}
 	if value, ok := pou.mutation.ReceiveAddressText(); ok {
 		_spec.SetField(paymentorder.FieldReceiveAddressText, field.TypeString, value)
@@ -621,6 +652,26 @@ func (pouo *PaymentOrderUpdateOne) ClearTxHash() *PaymentOrderUpdateOne {
 	return pouo
 }
 
+// SetFromAddress sets the "from_address" field.
+func (pouo *PaymentOrderUpdateOne) SetFromAddress(s string) *PaymentOrderUpdateOne {
+	pouo.mutation.SetFromAddress(s)
+	return pouo
+}
+
+// SetNillableFromAddress sets the "from_address" field if the given value is not nil.
+func (pouo *PaymentOrderUpdateOne) SetNillableFromAddress(s *string) *PaymentOrderUpdateOne {
+	if s != nil {
+		pouo.SetFromAddress(*s)
+	}
+	return pouo
+}
+
+// ClearFromAddress clears the value of the "from_address" field.
+func (pouo *PaymentOrderUpdateOne) ClearFromAddress() *PaymentOrderUpdateOne {
+	pouo.mutation.ClearFromAddress()
+	return pouo
+}
+
 // SetReceiveAddressText sets the "receive_address_text" field.
 func (pouo *PaymentOrderUpdateOne) SetReceiveAddressText(s string) *PaymentOrderUpdateOne {
 	pouo.mutation.SetReceiveAddressText(s)
@@ -792,6 +843,11 @@ func (pouo *PaymentOrderUpdateOne) check() error {
 			return &ValidationError{Name: "tx_hash", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.tx_hash": %w`, err)}
 		}
 	}
+	if v, ok := pouo.mutation.FromAddress(); ok {
+		if err := paymentorder.FromAddressValidator(v); err != nil {
+			return &ValidationError{Name: "from_address", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.from_address": %w`, err)}
+		}
+	}
 	if v, ok := pouo.mutation.ReceiveAddressText(); ok {
 		if err := paymentorder.ReceiveAddressTextValidator(v); err != nil {
 			return &ValidationError{Name: "receive_address_text", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.receive_address_text": %w`, err)}
@@ -884,6 +940,12 @@ func (pouo *PaymentOrderUpdateOne) sqlSave(ctx context.Context) (_node *PaymentO
 	}
 	if pouo.mutation.TxHashCleared() {
 		_spec.ClearField(paymentorder.FieldTxHash, field.TypeString)
+	}
+	if value, ok := pouo.mutation.FromAddress(); ok {
+		_spec.SetField(paymentorder.FieldFromAddress, field.TypeString, value)
+	}
+	if pouo.mutation.FromAddressCleared() {
+		_spec.ClearField(paymentorder.FieldFromAddress, field.TypeString)
 	}
 	if value, ok := pouo.mutation.ReceiveAddressText(); ok {
 		_spec.SetField(paymentorder.FieldReceiveAddressText, field.TypeString, value)

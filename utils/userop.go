@@ -104,7 +104,7 @@ func SponsorUserOperation(userOp *userop.UserOperation, mode string) error {
 	case "erc20token":
 		payload = map[string]interface{}{
 			"type":  "erc20token",
-			"token": "0x3870419Ba2BBf0127060bCB37f69A1b1C090992B",
+			"token": "0x9999f7Fea5938fD3b1E26A12c3f2fb024e194f97",
 		}
 	default:
 		return fmt.Errorf("invalid mode")
@@ -116,8 +116,8 @@ func SponsorUserOperation(userOp *userop.UserOperation, mode string) error {
 		payload,
 	}
 
-	// op, _ := userOp.MarshalJSON()
-	// fmt.Println(string(op))
+	op, _ := userOp.MarshalJSON()
+	fmt.Println(string(op))
 
 	var result json.RawMessage
 	err = client.Call(&result, "pm_sponsorUserOperation", requestParams...)

@@ -155,6 +155,7 @@ var (
 		{Name: "network_fee_estimate", Type: field.TypeFloat64},
 		{Name: "rate", Type: field.TypeFloat64},
 		{Name: "tx_hash", Type: field.TypeString, Nullable: true, Size: 70},
+		{Name: "from_address", Type: field.TypeString, Nullable: true, Size: 60},
 		{Name: "receive_address_text", Type: field.TypeString, Size: 60},
 		{Name: "label", Type: field.TypeString},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"initiated", "pending", "reverted", "expired", "settled", "refunded"}, Default: "initiated"},
@@ -170,19 +171,19 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "payment_orders_api_keys_payment_orders",
-				Columns:    []*schema.Column{PaymentOrdersColumns[13]},
+				Columns:    []*schema.Column{PaymentOrdersColumns[14]},
 				RefColumns: []*schema.Column{APIKeysColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "payment_orders_sender_profiles_payment_orders",
-				Columns:    []*schema.Column{PaymentOrdersColumns[14]},
+				Columns:    []*schema.Column{PaymentOrdersColumns[15]},
 				RefColumns: []*schema.Column{SenderProfilesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "payment_orders_tokens_payment_orders",
-				Columns:    []*schema.Column{PaymentOrdersColumns[15]},
+				Columns:    []*schema.Column{PaymentOrdersColumns[16]},
 				RefColumns: []*schema.Column{TokensColumns[0]},
 				OnDelete:   schema.Cascade,
 			},

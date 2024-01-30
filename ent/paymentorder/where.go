@@ -102,6 +102,11 @@ func TxHash(v string) predicate.PaymentOrder {
 	return predicate.PaymentOrder(sql.FieldEQ(FieldTxHash, v))
 }
 
+// FromAddress applies equality check predicate on the "from_address" field. It's identical to FromAddressEQ.
+func FromAddress(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldEQ(FieldFromAddress, v))
+}
+
 // ReceiveAddressText applies equality check predicate on the "receive_address_text" field. It's identical to ReceiveAddressTextEQ.
 func ReceiveAddressText(v string) predicate.PaymentOrder {
 	return predicate.PaymentOrder(sql.FieldEQ(FieldReceiveAddressText, v))
@@ -500,6 +505,81 @@ func TxHashEqualFold(v string) predicate.PaymentOrder {
 // TxHashContainsFold applies the ContainsFold predicate on the "tx_hash" field.
 func TxHashContainsFold(v string) predicate.PaymentOrder {
 	return predicate.PaymentOrder(sql.FieldContainsFold(FieldTxHash, v))
+}
+
+// FromAddressEQ applies the EQ predicate on the "from_address" field.
+func FromAddressEQ(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldEQ(FieldFromAddress, v))
+}
+
+// FromAddressNEQ applies the NEQ predicate on the "from_address" field.
+func FromAddressNEQ(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldNEQ(FieldFromAddress, v))
+}
+
+// FromAddressIn applies the In predicate on the "from_address" field.
+func FromAddressIn(vs ...string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldIn(FieldFromAddress, vs...))
+}
+
+// FromAddressNotIn applies the NotIn predicate on the "from_address" field.
+func FromAddressNotIn(vs ...string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldNotIn(FieldFromAddress, vs...))
+}
+
+// FromAddressGT applies the GT predicate on the "from_address" field.
+func FromAddressGT(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldGT(FieldFromAddress, v))
+}
+
+// FromAddressGTE applies the GTE predicate on the "from_address" field.
+func FromAddressGTE(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldGTE(FieldFromAddress, v))
+}
+
+// FromAddressLT applies the LT predicate on the "from_address" field.
+func FromAddressLT(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldLT(FieldFromAddress, v))
+}
+
+// FromAddressLTE applies the LTE predicate on the "from_address" field.
+func FromAddressLTE(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldLTE(FieldFromAddress, v))
+}
+
+// FromAddressContains applies the Contains predicate on the "from_address" field.
+func FromAddressContains(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldContains(FieldFromAddress, v))
+}
+
+// FromAddressHasPrefix applies the HasPrefix predicate on the "from_address" field.
+func FromAddressHasPrefix(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldHasPrefix(FieldFromAddress, v))
+}
+
+// FromAddressHasSuffix applies the HasSuffix predicate on the "from_address" field.
+func FromAddressHasSuffix(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldHasSuffix(FieldFromAddress, v))
+}
+
+// FromAddressIsNil applies the IsNil predicate on the "from_address" field.
+func FromAddressIsNil() predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldIsNull(FieldFromAddress))
+}
+
+// FromAddressNotNil applies the NotNil predicate on the "from_address" field.
+func FromAddressNotNil() predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldNotNull(FieldFromAddress))
+}
+
+// FromAddressEqualFold applies the EqualFold predicate on the "from_address" field.
+func FromAddressEqualFold(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldEqualFold(FieldFromAddress, v))
+}
+
+// FromAddressContainsFold applies the ContainsFold predicate on the "from_address" field.
+func FromAddressContainsFold(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldContainsFold(FieldFromAddress, v))
 }
 
 // ReceiveAddressTextEQ applies the EQ predicate on the "receive_address_text" field.

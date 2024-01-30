@@ -4607,6 +4607,7 @@ type PaymentOrderMutation struct {
 	rate                    *decimal.Decimal
 	addrate                 *decimal.Decimal
 	tx_hash                 *string
+	from_address            *string
 	receive_address_text    *string
 	label                   *string
 	status                  *paymentorder.Status
@@ -5185,6 +5186,55 @@ func (m *PaymentOrderMutation) ResetTxHash() {
 	delete(m.clearedFields, paymentorder.FieldTxHash)
 }
 
+// SetFromAddress sets the "from_address" field.
+func (m *PaymentOrderMutation) SetFromAddress(s string) {
+	m.from_address = &s
+}
+
+// FromAddress returns the value of the "from_address" field in the mutation.
+func (m *PaymentOrderMutation) FromAddress() (r string, exists bool) {
+	v := m.from_address
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFromAddress returns the old "from_address" field's value of the PaymentOrder entity.
+// If the PaymentOrder object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PaymentOrderMutation) OldFromAddress(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFromAddress is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFromAddress requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFromAddress: %w", err)
+	}
+	return oldValue.FromAddress, nil
+}
+
+// ClearFromAddress clears the value of the "from_address" field.
+func (m *PaymentOrderMutation) ClearFromAddress() {
+	m.from_address = nil
+	m.clearedFields[paymentorder.FieldFromAddress] = struct{}{}
+}
+
+// FromAddressCleared returns if the "from_address" field was cleared in this mutation.
+func (m *PaymentOrderMutation) FromAddressCleared() bool {
+	_, ok := m.clearedFields[paymentorder.FieldFromAddress]
+	return ok
+}
+
+// ResetFromAddress resets all changes to the "from_address" field.
+func (m *PaymentOrderMutation) ResetFromAddress() {
+	m.from_address = nil
+	delete(m.clearedFields, paymentorder.FieldFromAddress)
+}
+
 // SetReceiveAddressText sets the "receive_address_text" field.
 func (m *PaymentOrderMutation) SetReceiveAddressText(s string) {
 	m.receive_address_text = &s
@@ -5483,7 +5533,7 @@ func (m *PaymentOrderMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *PaymentOrderMutation) Fields() []string {
-	fields := make([]string, 0, 12)
+	fields := make([]string, 0, 13)
 	if m.created_at != nil {
 		fields = append(fields, paymentorder.FieldCreatedAt)
 	}
@@ -5510,6 +5560,9 @@ func (m *PaymentOrderMutation) Fields() []string {
 	}
 	if m.tx_hash != nil {
 		fields = append(fields, paymentorder.FieldTxHash)
+	}
+	if m.from_address != nil {
+		fields = append(fields, paymentorder.FieldFromAddress)
 	}
 	if m.receive_address_text != nil {
 		fields = append(fields, paymentorder.FieldReceiveAddressText)
@@ -5546,6 +5599,8 @@ func (m *PaymentOrderMutation) Field(name string) (ent.Value, bool) {
 		return m.Rate()
 	case paymentorder.FieldTxHash:
 		return m.TxHash()
+	case paymentorder.FieldFromAddress:
+		return m.FromAddress()
 	case paymentorder.FieldReceiveAddressText:
 		return m.ReceiveAddressText()
 	case paymentorder.FieldLabel:
@@ -5579,6 +5634,8 @@ func (m *PaymentOrderMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldRate(ctx)
 	case paymentorder.FieldTxHash:
 		return m.OldTxHash(ctx)
+	case paymentorder.FieldFromAddress:
+		return m.OldFromAddress(ctx)
 	case paymentorder.FieldReceiveAddressText:
 		return m.OldReceiveAddressText(ctx)
 	case paymentorder.FieldLabel:
@@ -5656,6 +5713,13 @@ func (m *PaymentOrderMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetTxHash(v)
+		return nil
+	case paymentorder.FieldFromAddress:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFromAddress(v)
 		return nil
 	case paymentorder.FieldReceiveAddressText:
 		v, ok := value.(string)
@@ -5786,6 +5850,9 @@ func (m *PaymentOrderMutation) ClearedFields() []string {
 	if m.FieldCleared(paymentorder.FieldTxHash) {
 		fields = append(fields, paymentorder.FieldTxHash)
 	}
+	if m.FieldCleared(paymentorder.FieldFromAddress) {
+		fields = append(fields, paymentorder.FieldFromAddress)
+	}
 	return fields
 }
 
@@ -5802,6 +5869,9 @@ func (m *PaymentOrderMutation) ClearField(name string) error {
 	switch name {
 	case paymentorder.FieldTxHash:
 		m.ClearTxHash()
+		return nil
+	case paymentorder.FieldFromAddress:
+		m.ClearFromAddress()
 		return nil
 	}
 	return fmt.Errorf("unknown PaymentOrder nullable field %s", name)
@@ -5837,6 +5907,9 @@ func (m *PaymentOrderMutation) ResetField(name string) error {
 		return nil
 	case paymentorder.FieldTxHash:
 		m.ResetTxHash()
+		return nil
+	case paymentorder.FieldFromAddress:
+		m.ResetFromAddress()
 		return nil
 	case paymentorder.FieldReceiveAddressText:
 		m.ResetReceiveAddressText()

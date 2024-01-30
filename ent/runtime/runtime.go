@@ -150,8 +150,12 @@ func init() {
 	paymentorderDescTxHash := paymentorderFields[7].Descriptor()
 	// paymentorder.TxHashValidator is a validator for the "tx_hash" field. It is called by the builders before save.
 	paymentorder.TxHashValidator = paymentorderDescTxHash.Validators[0].(func(string) error)
+	// paymentorderDescFromAddress is the schema descriptor for from_address field.
+	paymentorderDescFromAddress := paymentorderFields[8].Descriptor()
+	// paymentorder.FromAddressValidator is a validator for the "from_address" field. It is called by the builders before save.
+	paymentorder.FromAddressValidator = paymentorderDescFromAddress.Validators[0].(func(string) error)
 	// paymentorderDescReceiveAddressText is the schema descriptor for receive_address_text field.
-	paymentorderDescReceiveAddressText := paymentorderFields[8].Descriptor()
+	paymentorderDescReceiveAddressText := paymentorderFields[9].Descriptor()
 	// paymentorder.ReceiveAddressTextValidator is a validator for the "receive_address_text" field. It is called by the builders before save.
 	paymentorder.ReceiveAddressTextValidator = paymentorderDescReceiveAddressText.Validators[0].(func(string) error)
 	// paymentorderDescID is the schema descriptor for id field.

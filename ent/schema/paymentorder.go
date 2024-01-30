@@ -38,6 +38,9 @@ func (PaymentOrder) Fields() []ent.Field {
 		field.String("tx_hash").
 			MaxLen(70).
 			Optional(),
+		field.String("from_address").
+			MaxLen(60).
+			Optional(),
 		field.String("receive_address_text").
 			MaxLen(60),
 		field.String("label"),

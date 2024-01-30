@@ -44,6 +44,7 @@ type CreateOrderParams struct {
 }
 
 var CryptoConf = config.CryptoConfig()
+var ServerConf = config.ServerConfig()
 
 // NewOrderService creates a new instance of OrderService.
 func NewOrderService() *OrderService {
@@ -200,17 +201,21 @@ func (s *OrderService) RevertOrder(ctx context.Context, order *ent.PaymentOrder,
 		WithToken(func(tq *ent.TokenQuery) {
 			tq.WithNetwork()
 		}).
+		WithReceiveAddress().
 		Only(ctx)
 	if err != nil {
 		return fmt.Errorf("RevertOrder.fetchOrder: %w", err)
 	}
 
+	fees := order.NetworkFeeEstimate.Add(order.SenderFee)
+	orderAmountWithFees := order.Amount.Add(fees)
+
 	var amountToRevert decimal.Decimal
 
-	if order.AmountPaid.LessThan(order.Amount) {
+	if order.AmountPaid.LessThan(orderAmountWithFees) {
 		amountToRevert = order.AmountPaid
-	} else if order.AmountPaid.GreaterThan(order.Amount) {
-		amountToRevert = order.AmountPaid.Sub(order.Amount)
+	} else if order.AmountPaid.GreaterThan(orderAmountWithFees) {
+		amountToRevert = order.AmountPaid.Sub(orderAmountWithFees)
 	} else {
 		return nil
 	}
@@ -240,22 +245,16 @@ func (s *OrderService) RevertOrder(ctx context.Context, order *ent.PaymentOrder,
 		return fmt.Errorf("RevertOrder.initializeUserOperation: %w", err)
 	}
 
-	// Compute transfer calldata
-	transferCalldata, err := s.transferCallData(to, amountMinusFeeBigInt)
+	// Create calldata
+	calldata, err := s.executeBatchTransferCallData(order, to, amountMinusFeeBigInt)
 	if err != nil {
-		return fmt.Errorf("RevertOrder.transferCallData: %w", err)
-	}
-
-	// Compute execution calldata
-	calldata, err := s.executeCallData(common.HexToAddress(order.Edges.Token.ContractAddress), big.NewInt(0), transferCalldata)
-	if err != nil {
-		return fmt.Errorf("RevertOrder.executeCallData: %w", err)
+		return fmt.Errorf("RevertOrder.executeBatchTransferCallData: %w", err)
 	}
 	userOperation.CallData = calldata
 
 	// Sponsor user operation.
 	// This will populate the following fields in userOperation: PaymasterAndData, PreVerificationGas, VerificationGasLimit, CallGasLimit
-	err = utils.SponsorUserOperation(userOperation, "payg")
+	err = utils.SponsorUserOperation(userOperation, "erc20token")
 	if err != nil {
 		return fmt.Errorf("RevertOrder.sponsorUserOperation: %w", err)
 	}
@@ -379,6 +378,57 @@ func (s *OrderService) GetSupportedInstitutions(ctx context.Context, client type
 	return supportedInstitution, nil
 }
 
+// executeBatchTransferCallData creates the transfer calldata for the execute batch method in the smart account.
+func (s *OrderService) executeBatchTransferCallData(order *ent.PaymentOrder, to common.Address, amount *big.Int) ([]byte, error) {
+	// Fetch paymaster account
+	paymasterAccount, err := s.getPaymasterAccount()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get paymaster account: %w", err)
+	}
+
+	if ServerConf.Environment != "staging" && ServerConf.Environment != "production" {
+		time.Sleep(5 * time.Second) // TODO: remove in production
+	}
+
+	// Create approve data for paymaster contract
+	approvePaymasterData, err := s.approveCallData(common.HexToAddress(paymasterAccount), amount)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create paymaster approve calldata : %w", err)
+	}
+
+	// Create approve data for erc20 contract
+	approveERC20Data, err := s.approveCallData(to, amount)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create erc20 approve calldata : %w", err)
+	}
+
+	// Create transfer data
+	transferData, err := s.transferCallData(to, amount)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create transfer calldata: %w", err)
+	}
+
+	simpleAccountABI, err := abi.JSON(strings.NewReader(contracts.SimpleAccountMetaData.ABI))
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse smart account ABI: %w", err)
+	}
+
+	executeBatchCallData, err := simpleAccountABI.Pack(
+		"executeBatch",
+		[]common.Address{
+			common.HexToAddress(order.Edges.Token.ContractAddress),
+			common.HexToAddress(order.Edges.Token.ContractAddress),
+			common.HexToAddress(order.Edges.Token.ContractAddress),
+		},
+		[][]byte{approvePaymasterData, approveERC20Data, transferData},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to pack execute ABI: %w", err)
+	}
+
+	return executeBatchCallData, nil
+}
+
 // executeBatchCreateOrderCallData creates the calldata for the execute batch method in the smart account.
 func (s *OrderService) executeBatchCreateOrderCallData(order *ent.PaymentOrder) ([]byte, error) {
 	// Create approve data for paycrest order contract
@@ -396,7 +446,9 @@ func (s *OrderService) executeBatchCreateOrderCallData(order *ent.PaymentOrder) 
 		return nil, fmt.Errorf("failed to get paymaster account: %w", err)
 	}
 
-	time.Sleep(5 * time.Second) // TODO: remove in production
+	if ServerConf.Environment != "staging" && ServerConf.Environment != "production" {
+		time.Sleep(5 * time.Second) // TODO: remove in production
+	}
 
 	// Create approve data for paymaster contract
 	approvePaymasterData, err := s.approveCallData(

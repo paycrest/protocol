@@ -141,7 +141,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 	logTransferSigHash := crypto.Keccak256Hash(logTransferSig)
 
 	logger.Infof(
-		"Indexing transfer logs for %s from Block #%s - #%s",
+		"Indexing transfer logs for %s from Block #%s - #%s\n",
 		receiveAddress.Address,
 		fromBlockBig.String(),
 		finalBlockNumber.String(),
@@ -176,12 +176,14 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 
 				if transferEvent.To.Hex() == receiveAddress.Address {
 					// This is a transfer to the receive address to create an order on-chain
-					// Compare the transferred value with the expected order amount
-					orderAmountInSubunit := utils.ToSubunit(paymentOrder.Amount, token.Decimals)
-					var comparisonResult = transferEvent.Value.Cmp(orderAmountInSubunit)
+					// Compare the transferred value with the expected order amount + fees
+					fees := paymentOrder.NetworkFeeEstimate.Add(paymentOrder.SenderFee)
+					orderAmountWithFees := paymentOrder.Amount.Add(fees)
+					orderAmountWithFeesInSubunit := utils.ToSubunit(orderAmountWithFees, token.Decimals)
+					comparisonResult := transferEvent.Value.Cmp(orderAmountWithFeesInSubunit)
 
 					if comparisonResult == 0 {
-						// Transfer value equals order amount
+						// Transfer value equals order amount with fees
 						_, err = receiveAddress.
 							Update().
 							SetStatus(receiveaddress.StatusUsed).
@@ -194,27 +196,26 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 						}
 						return true, nil
 					} else if comparisonResult < 0 {
-						// Transfer value is less than order amount
-						_, err = receiveAddress.
-							Update().
-							SetStatus(receiveaddress.StatusPartial).
-							Save(ctx)
-						if err != nil {
-							logger.Errorf("IndexERC20Transfer.db: %v", err)
-							return false, nil
-						}
-
+						// Transfer value is less than order amount with fees
 						indexedValue := utils.FromSubunit(transferEvent.Value, token.Decimals)
-						fees := paymentOrder.NetworkFeeEstimate.Add(paymentOrder.SenderFee)
-						amountPaid := paymentOrder.AmountPaid.Add(indexedValue.Sub(fees))
+						amountPaid := paymentOrder.AmountPaid.Add(indexedValue)
 
-						// If amount paid meets or exceeds the expected amount, mark receive address as used
-						if amountPaid.GreaterThanOrEqual(paymentOrder.Amount) {
+						// If amount paid meets or exceeds the order amount with fees, mark receive address as used
+						if amountPaid.GreaterThanOrEqual(orderAmountWithFees) {
 							_, err = receiveAddress.
 								Update().
 								SetStatus(receiveaddress.StatusUsed).
 								SetLastUsed(time.Now()).
 								SetLastIndexedBlock(query.ToBlock.Int64()).
+								Save(ctx)
+							if err != nil {
+								logger.Errorf("IndexERC20Transfer.db: %v", err)
+								return false, nil
+							}
+
+							_, err = paymentOrder.
+								Update().
+								SetFromAddress(transferEvent.From.Hex()).
 								Save(ctx)
 							if err != nil {
 								logger.Errorf("IndexERC20Transfer.db: %v", err)
@@ -230,6 +231,15 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 
 							return true, nil
 						} else {
+							_, err = receiveAddress.
+								Update().
+								SetStatus(receiveaddress.StatusPartial).
+								Save(ctx)
+							if err != nil {
+								logger.Errorf("IndexERC20Transfer.db: %v", err)
+								return false, nil
+							}
+
 							// Update the payment order with amount paid
 							_, err = paymentOrder.
 								Update().
@@ -243,12 +253,21 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 						}
 
 					} else if comparisonResult > 0 {
-						// Transfer value is greater than order amount
+						// Transfer value is greater than order amount with fees
 						_, err = receiveAddress.
 							Update().
 							SetStatus(receiveaddress.StatusUsed).
 							SetLastUsed(time.Now()).
 							SetLastIndexedBlock(query.ToBlock.Int64()).
+							Save(ctx)
+						if err != nil {
+							logger.Errorf("IndexERC20Transfer.db: %v", err)
+							return false, nil
+						}
+
+						_, err = paymentOrder.
+							Update().
+							SetFromAddress(transferEvent.From.Hex()).
 							Save(ctx)
 						if err != nil {
 							logger.Errorf("IndexERC20Transfer.db: %v", err)
@@ -270,39 +289,36 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 				} else if transferEvent.From.Hex() == receiveAddress.Address {
 					// This is a revert transfer
 					// Compare the transferred value with the expected order amount returned
-					orderAmountReturnedInSubunit := utils.ToSubunit(paymentOrder.AmountReturned, token.Decimals)
+					indexedValue := utils.FromSubunit(transferEvent.Value, token.Decimals)
 
-					if transferEvent.Value.Cmp(orderAmountReturnedInSubunit) == 0 {
-						if paymentOrder.AmountPaid.LessThan(paymentOrder.Amount) {
-							_, err = receiveAddress.
-								Update().
-								SetLastIndexedBlock(query.ToBlock.Int64()).
-								Save(ctx)
-							if err != nil {
-								logger.Errorf("IndexERC20Transfer.db: %v", err)
-								return false, nil
-							}
-
-							_, err := paymentOrder.
-								Update().
-								SetStatus(paymentorder.StatusReverted).
-								SetTxHash(vLog.TxHash.Hex()).
-								Save(ctx)
-							if err != nil {
-								logger.Errorf("IndexERC20Transfer.db: %v", err)
-								return false, nil
-							}
-
-							// Send webhook notifcation to sender
-							paymentOrder.Status = paymentorder.StatusReverted
-
-							err = utils.SendPaymentOrderWebhook(ctx, paymentOrder)
-							if err != nil {
-								logger.Errorf("IndexERC20Transfer.webhook: %v", err)
-								return false, nil
-							}
+					if indexedValue.Equal(paymentOrder.AmountReturned) {
+						_, err = receiveAddress.
+							Update().
+							SetLastIndexedBlock(query.ToBlock.Int64()).
+							Save(ctx)
+						if err != nil {
+							logger.Errorf("IndexERC20Transfer.db: %v", err)
+							return false, nil
 						}
 
+						_, err := paymentOrder.
+							Update().
+							SetStatus(paymentorder.StatusReverted).
+							SetTxHash(vLog.TxHash.Hex()).
+							Save(ctx)
+						if err != nil {
+							logger.Errorf("IndexERC20Transfer.db: %v", err)
+							return false, nil
+						}
+
+						// Send webhook notifcation to sender
+						paymentOrder.Status = paymentorder.StatusReverted
+
+						err = utils.SendPaymentOrderWebhook(ctx, paymentOrder)
+						if err != nil {
+							logger.Errorf("IndexERC20Transfer.webhook: %v", err)
+							return false, nil
+						}
 					}
 				}
 
@@ -336,6 +352,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 						_, err = paymentOrder.
 							Update().
 							SetStatus(paymentorder.StatusExpired).
+							SetFromAddress(transferEvent.From.Hex()).
 							Save(ctx)
 						if err != nil {
 							logger.Errorf("IndexERC20Transfer.db: %v", err)
@@ -404,7 +421,7 @@ func (s *IndexerService) RunIndexERC20Transfer(ctx context.Context, receiveAddre
 		}
 
 		if ok {
-			if receiveAddress.Status == receiveaddress.StatusUsed {
+			if receiveAddress.Status == receiveaddress.StatusUsed && receiveAddress.Edges.PaymentOrder.AmountPaid.Equal(receiveAddress.Edges.PaymentOrder.Amount) {
 				// Create order on-chain
 				orderService := NewOrderService()
 				err = orderService.CreateOrder(ctx, receiveAddress.Edges.PaymentOrder.ID)

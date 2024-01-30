@@ -6,6 +6,7 @@ import (
 	"math"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/go-co-op/gocron"
 	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/ent"
@@ -75,10 +76,12 @@ func ContinueIndexing() error {
 	return nil
 }
 
-// ProcessOrders processes orders to the on-chain escrow
+// ProcessOrders processes orders
 func ProcessOrders() error {
 	ctx := context.Background()
+	orderService := services.NewOrderService()
 
+	// Create order process
 	orders, err := storage.GetClient().PaymentOrder.
 		Query().
 		Where(
@@ -94,11 +97,37 @@ func ProcessOrders() error {
 
 	go func() {
 		for _, order := range orders {
-			orderService := services.NewOrderService()
+			if order.AmountPaid.Equal(order.Amount) {
+				err := orderService.CreateOrder(ctx, order.ID)
+				if err != nil {
+					logger.Errorf("process task to create orders => %v", err)
+				}
+			}
+		}
+	}()
 
-			err := orderService.CreateOrder(ctx, order.ID)
-			if err != nil {
-				logger.Errorf("process orders task => %v", err)
+	// Revert order process
+	orders, err = storage.GetClient().PaymentOrder.
+		Query().
+		Where(
+			paymentorder.Or(
+				paymentorder.StatusEQ(paymentorder.StatusInitiated),
+				paymentorder.StatusEQ(paymentorder.StatusExpired),
+			),
+			paymentorder.AmountPaidGT(decimal.Zero),
+		).
+		All(ctx)
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		for _, order := range orders {
+			if !order.AmountPaid.Equal(order.Amount) {
+				err := orderService.RevertOrder(ctx, order, common.HexToAddress(order.FromAddress))
+				if err != nil {
+					logger.Errorf("process task to revert orders => %v", err)
+				}
 			}
 		}
 	}()
