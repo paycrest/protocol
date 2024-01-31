@@ -177,7 +177,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 				if transferEvent.To.Hex() == receiveAddress.Address {
 					// This is a transfer to the receive address to create an order on-chain
 					// Compare the transferred value with the expected order amount + fees
-					fees := paymentOrder.NetworkFeeEstimate.Add(paymentOrder.SenderFee)
+					fees := paymentOrder.NetworkFee.Add(paymentOrder.SenderFee)
 					orderAmountWithFees := paymentOrder.Amount.Add(fees)
 					orderAmountWithFeesInSubunit := utils.ToSubunit(orderAmountWithFees, token.Decimals)
 					comparisonResult := transferEvent.Value.Cmp(orderAmountWithFeesInSubunit)

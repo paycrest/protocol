@@ -92,16 +92,16 @@ func (pou *PaymentOrderUpdate) AddSenderFee(d decimal.Decimal) *PaymentOrderUpda
 	return pou
 }
 
-// SetNetworkFeeEstimate sets the "network_fee_estimate" field.
-func (pou *PaymentOrderUpdate) SetNetworkFeeEstimate(d decimal.Decimal) *PaymentOrderUpdate {
-	pou.mutation.ResetNetworkFeeEstimate()
-	pou.mutation.SetNetworkFeeEstimate(d)
+// SetNetworkFee sets the "network_fee" field.
+func (pou *PaymentOrderUpdate) SetNetworkFee(d decimal.Decimal) *PaymentOrderUpdate {
+	pou.mutation.ResetNetworkFee()
+	pou.mutation.SetNetworkFee(d)
 	return pou
 }
 
-// AddNetworkFeeEstimate adds d to the "network_fee_estimate" field.
-func (pou *PaymentOrderUpdate) AddNetworkFeeEstimate(d decimal.Decimal) *PaymentOrderUpdate {
-	pou.mutation.AddNetworkFeeEstimate(d)
+// AddNetworkFee adds d to the "network_fee" field.
+func (pou *PaymentOrderUpdate) AddNetworkFee(d decimal.Decimal) *PaymentOrderUpdate {
+	pou.mutation.AddNetworkFee(d)
 	return pou
 }
 
@@ -379,11 +379,11 @@ func (pou *PaymentOrderUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if value, ok := pou.mutation.AddedSenderFee(); ok {
 		_spec.AddField(paymentorder.FieldSenderFee, field.TypeFloat64, value)
 	}
-	if value, ok := pou.mutation.NetworkFeeEstimate(); ok {
-		_spec.SetField(paymentorder.FieldNetworkFeeEstimate, field.TypeFloat64, value)
+	if value, ok := pou.mutation.NetworkFee(); ok {
+		_spec.SetField(paymentorder.FieldNetworkFee, field.TypeFloat64, value)
 	}
-	if value, ok := pou.mutation.AddedNetworkFeeEstimate(); ok {
-		_spec.AddField(paymentorder.FieldNetworkFeeEstimate, field.TypeFloat64, value)
+	if value, ok := pou.mutation.AddedNetworkFee(); ok {
+		_spec.AddField(paymentorder.FieldNetworkFee, field.TypeFloat64, value)
 	}
 	if value, ok := pou.mutation.Rate(); ok {
 		_spec.SetField(paymentorder.FieldRate, field.TypeFloat64, value)
@@ -606,16 +606,16 @@ func (pouo *PaymentOrderUpdateOne) AddSenderFee(d decimal.Decimal) *PaymentOrder
 	return pouo
 }
 
-// SetNetworkFeeEstimate sets the "network_fee_estimate" field.
-func (pouo *PaymentOrderUpdateOne) SetNetworkFeeEstimate(d decimal.Decimal) *PaymentOrderUpdateOne {
-	pouo.mutation.ResetNetworkFeeEstimate()
-	pouo.mutation.SetNetworkFeeEstimate(d)
+// SetNetworkFee sets the "network_fee" field.
+func (pouo *PaymentOrderUpdateOne) SetNetworkFee(d decimal.Decimal) *PaymentOrderUpdateOne {
+	pouo.mutation.ResetNetworkFee()
+	pouo.mutation.SetNetworkFee(d)
 	return pouo
 }
 
-// AddNetworkFeeEstimate adds d to the "network_fee_estimate" field.
-func (pouo *PaymentOrderUpdateOne) AddNetworkFeeEstimate(d decimal.Decimal) *PaymentOrderUpdateOne {
-	pouo.mutation.AddNetworkFeeEstimate(d)
+// AddNetworkFee adds d to the "network_fee" field.
+func (pouo *PaymentOrderUpdateOne) AddNetworkFee(d decimal.Decimal) *PaymentOrderUpdateOne {
+	pouo.mutation.AddNetworkFee(d)
 	return pouo
 }
 
@@ -923,11 +923,11 @@ func (pouo *PaymentOrderUpdateOne) sqlSave(ctx context.Context) (_node *PaymentO
 	if value, ok := pouo.mutation.AddedSenderFee(); ok {
 		_spec.AddField(paymentorder.FieldSenderFee, field.TypeFloat64, value)
 	}
-	if value, ok := pouo.mutation.NetworkFeeEstimate(); ok {
-		_spec.SetField(paymentorder.FieldNetworkFeeEstimate, field.TypeFloat64, value)
+	if value, ok := pouo.mutation.NetworkFee(); ok {
+		_spec.SetField(paymentorder.FieldNetworkFee, field.TypeFloat64, value)
 	}
-	if value, ok := pouo.mutation.AddedNetworkFeeEstimate(); ok {
-		_spec.AddField(paymentorder.FieldNetworkFeeEstimate, field.TypeFloat64, value)
+	if value, ok := pouo.mutation.AddedNetworkFee(); ok {
+		_spec.AddField(paymentorder.FieldNetworkFee, field.TypeFloat64, value)
 	}
 	if value, ok := pouo.mutation.Rate(); ok {
 		_spec.SetField(paymentorder.FieldRate, field.TypeFloat64, value)

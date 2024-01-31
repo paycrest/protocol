@@ -152,7 +152,7 @@ var (
 		{Name: "amount_paid", Type: field.TypeFloat64},
 		{Name: "amount_returned", Type: field.TypeFloat64},
 		{Name: "sender_fee", Type: field.TypeFloat64},
-		{Name: "network_fee_estimate", Type: field.TypeFloat64},
+		{Name: "network_fee", Type: field.TypeFloat64},
 		{Name: "rate", Type: field.TypeFloat64},
 		{Name: "tx_hash", Type: field.TypeString, Nullable: true, Size: 70},
 		{Name: "from_address", Type: field.TypeString, Nullable: true, Size: 60},

@@ -87,9 +87,9 @@ func SenderFee(v decimal.Decimal) predicate.PaymentOrder {
 	return predicate.PaymentOrder(sql.FieldEQ(FieldSenderFee, v))
 }
 
-// NetworkFeeEstimate applies equality check predicate on the "network_fee_estimate" field. It's identical to NetworkFeeEstimateEQ.
-func NetworkFeeEstimate(v decimal.Decimal) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldEQ(FieldNetworkFeeEstimate, v))
+// NetworkFee applies equality check predicate on the "network_fee" field. It's identical to NetworkFeeEQ.
+func NetworkFee(v decimal.Decimal) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldEQ(FieldNetworkFee, v))
 }
 
 // Rate applies equality check predicate on the "rate" field. It's identical to RateEQ.
@@ -352,44 +352,44 @@ func SenderFeeLTE(v decimal.Decimal) predicate.PaymentOrder {
 	return predicate.PaymentOrder(sql.FieldLTE(FieldSenderFee, v))
 }
 
-// NetworkFeeEstimateEQ applies the EQ predicate on the "network_fee_estimate" field.
-func NetworkFeeEstimateEQ(v decimal.Decimal) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldEQ(FieldNetworkFeeEstimate, v))
+// NetworkFeeEQ applies the EQ predicate on the "network_fee" field.
+func NetworkFeeEQ(v decimal.Decimal) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldEQ(FieldNetworkFee, v))
 }
 
-// NetworkFeeEstimateNEQ applies the NEQ predicate on the "network_fee_estimate" field.
-func NetworkFeeEstimateNEQ(v decimal.Decimal) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldNEQ(FieldNetworkFeeEstimate, v))
+// NetworkFeeNEQ applies the NEQ predicate on the "network_fee" field.
+func NetworkFeeNEQ(v decimal.Decimal) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldNEQ(FieldNetworkFee, v))
 }
 
-// NetworkFeeEstimateIn applies the In predicate on the "network_fee_estimate" field.
-func NetworkFeeEstimateIn(vs ...decimal.Decimal) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldIn(FieldNetworkFeeEstimate, vs...))
+// NetworkFeeIn applies the In predicate on the "network_fee" field.
+func NetworkFeeIn(vs ...decimal.Decimal) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldIn(FieldNetworkFee, vs...))
 }
 
-// NetworkFeeEstimateNotIn applies the NotIn predicate on the "network_fee_estimate" field.
-func NetworkFeeEstimateNotIn(vs ...decimal.Decimal) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldNotIn(FieldNetworkFeeEstimate, vs...))
+// NetworkFeeNotIn applies the NotIn predicate on the "network_fee" field.
+func NetworkFeeNotIn(vs ...decimal.Decimal) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldNotIn(FieldNetworkFee, vs...))
 }
 
-// NetworkFeeEstimateGT applies the GT predicate on the "network_fee_estimate" field.
-func NetworkFeeEstimateGT(v decimal.Decimal) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldGT(FieldNetworkFeeEstimate, v))
+// NetworkFeeGT applies the GT predicate on the "network_fee" field.
+func NetworkFeeGT(v decimal.Decimal) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldGT(FieldNetworkFee, v))
 }
 
-// NetworkFeeEstimateGTE applies the GTE predicate on the "network_fee_estimate" field.
-func NetworkFeeEstimateGTE(v decimal.Decimal) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldGTE(FieldNetworkFeeEstimate, v))
+// NetworkFeeGTE applies the GTE predicate on the "network_fee" field.
+func NetworkFeeGTE(v decimal.Decimal) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldGTE(FieldNetworkFee, v))
 }
 
-// NetworkFeeEstimateLT applies the LT predicate on the "network_fee_estimate" field.
-func NetworkFeeEstimateLT(v decimal.Decimal) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldLT(FieldNetworkFeeEstimate, v))
+// NetworkFeeLT applies the LT predicate on the "network_fee" field.
+func NetworkFeeLT(v decimal.Decimal) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldLT(FieldNetworkFee, v))
 }
 
-// NetworkFeeEstimateLTE applies the LTE predicate on the "network_fee_estimate" field.
-func NetworkFeeEstimateLTE(v decimal.Decimal) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldLTE(FieldNetworkFeeEstimate, v))
+// NetworkFeeLTE applies the LTE predicate on the "network_fee" field.
+func NetworkFeeLTE(v decimal.Decimal) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldLTE(FieldNetworkFee, v))
 }
 
 // RateEQ applies the EQ predicate on the "rate" field.

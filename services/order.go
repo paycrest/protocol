@@ -207,7 +207,7 @@ func (s *OrderService) RevertOrder(ctx context.Context, order *ent.PaymentOrder,
 		return fmt.Errorf("RevertOrder.fetchOrder: %w", err)
 	}
 
-	fees := order.NetworkFeeEstimate.Add(order.SenderFee)
+	fees := order.NetworkFee.Add(order.SenderFee)
 	orderAmountWithFees := order.Amount.Add(fees)
 
 	var amountToRevert decimal.Decimal
