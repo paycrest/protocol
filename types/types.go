@@ -288,19 +288,22 @@ type ReceiveAddressResponse struct {
 
 // PaymentOrderResponse is the response type for a payment order
 type PaymentOrderResponse struct {
-	ID             uuid.UUID             `json:"id"`
-	Amount         decimal.Decimal       `json:"amount"`
-	AmountPaid     decimal.Decimal       `json:"amountPaid"`
-	AmountReturned decimal.Decimal       `json:"amountReturned"`
-	Token          string                `json:"token"`
-	Rate           decimal.Decimal       `json:"rate"`
-	Network        string                `json:"network"`
-	Label          string                `json:"label"`
-	Recipient      PaymentOrderRecipient `json:"recipient"`
-	CreatedAt      time.Time             `json:"createdAt"`
-	UpdatedAt      time.Time             `json:"updatedAt"`
-	TxHash         string                `json:"txHash"`
-	Status         paymentorder.Status   `json:"status"`
+	ID                 uuid.UUID             `json:"id"`
+	Amount             decimal.Decimal       `json:"amount"`
+	AmountPaid         decimal.Decimal       `json:"amountPaid"`
+	AmountReturned     decimal.Decimal       `json:"amountReturned"`
+	Token              string                `json:"token"`
+	SenderFee          decimal.Decimal       `json:"senderFee"`
+	NetworkFeeEstimate decimal.Decimal       `json:"networkFeeEstimate"`
+	Rate               decimal.Decimal       `json:"rate"`
+	Network            string                `json:"network"`
+	Label              string                `json:"label"`
+	Recipient          PaymentOrderRecipient `json:"recipient"`
+	FromAddress        string                `json:"fromAddress"`
+	CreatedAt          time.Time             `json:"createdAt"`
+	UpdatedAt          time.Time             `json:"updatedAt"`
+	TxHash             string                `json:"txHash"`
+	Status             paymentorder.Status   `json:"status"`
 }
 
 // PaymentOrderWebhookData is the data type for a payment order webhook
