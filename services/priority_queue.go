@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"math/rand"
-	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -17,7 +16,6 @@ import (
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	"github.com/paycrest/protocol/ent/providerordertoken"
 	"github.com/paycrest/protocol/ent/providerprofile"
-	"github.com/paycrest/protocol/ent/providerrating"
 	"github.com/paycrest/protocol/ent/provisionbucket"
 	"github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
@@ -42,7 +40,7 @@ func (s *PriorityQueueService) ProcessBucketQueues() error {
 
 	buckets, err := s.GetProvisionBuckets(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to process bucket queues: %w", err)
+		return fmt.Errorf("ProcessBucketQueues.GetProvisionBuckets: %w", err)
 	}
 
 	var wg sync.WaitGroup
@@ -61,11 +59,11 @@ func (s *PriorityQueueService) ProcessBucketQueues() error {
 func (s *PriorityQueueService) GetProvisionBuckets(ctx context.Context) ([]*ent.ProvisionBucket, error) {
 	buckets, err := storage.Client.ProvisionBucket.
 		Query().
-		Select(provisionbucket.EdgeProviderProfiles).
+		Select(provisionbucket.FieldMinAmount, provisionbucket.FieldMaxAmount).
 		WithProviderProfiles(func(ppq *ent.ProviderProfileQuery) {
-			ppq.WithProviderRating(func(prq *ent.ProviderRatingQuery) {
-				prq.Select(providerrating.FieldTrustScore)
-			})
+			// ppq.WithProviderRating(func(prq *ent.ProviderRatingQuery) {
+			// 	prq.Select(providerrating.FieldTrustScore)
+			// })
 			ppq.Select(providerprofile.FieldID)
 
 			// Filter only providers that are always available
@@ -125,14 +123,14 @@ func (s *PriorityQueueService) GetProviderRate(ctx context.Context, provider *en
 func (s *PriorityQueueService) CreatePriorityQueueForBucket(ctx context.Context, bucket *ent.ProvisionBucket) {
 	// Create a slice to store the provider profiles sorted by trust score
 	providers := bucket.Edges.ProviderProfiles
-	sort.SliceStable(providers, func(i, j int) bool {
-		trustScoreI, _ := providers[i].Edges.ProviderRating.TrustScore.Float64()
-		trustScoreJ, _ := providers[j].Edges.ProviderRating.TrustScore.Float64()
-		return trustScoreI > trustScoreJ // Sort in descending order
-	})
+	// sort.SliceStable(providers, func(i, j int) bool {
+	// 	trustScoreI, _ := providers[i].Edges.ProviderRating.TrustScore.Float64()
+	// 	trustScoreJ, _ := providers[j].Edges.ProviderRating.TrustScore.Float64()
+	// 	return trustScoreI > trustScoreJ // Sort in descending order
+	// })
 
 	// Enqueue provider ID and rate as a single string into the circular queue
-	redisKey := fmt.Sprintf("bucket_%s_%d_%d", bucket.Edges.Currency.Code, bucket.MinAmount, bucket.MaxAmount)
+	redisKey := fmt.Sprintf("bucket_%s_%s_%s", bucket.Edges.Currency.Code, bucket.MinAmount, bucket.MaxAmount)
 
 	_, err := storage.RedisClient.Del(ctx, redisKey).Result() // delete existing queue
 	if err != nil {
@@ -145,7 +143,7 @@ func (s *PriorityQueueService) CreatePriorityQueueForBucket(ctx context.Context,
 
 		// Check provider's rate against the market rate to ensure it's not too far off
 		marketRate := bucket.Edges.Currency.MarketRate
-		allowedDeviation := decimal.NewFromFloat(0.01) // 1%
+		allowedDeviation := decimal.NewFromFloat(0.1) // 10% should this be configurable?
 
 		if marketRate.Cmp(decimal.Zero) != 0 {
 			if rate.LessThan(marketRate.Mul(decimal.NewFromFloat(1).Sub(allowedDeviation))) ||
@@ -187,7 +185,7 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 	}
 
 	// Get the first provider from the circular queue
-	redisKey := fmt.Sprintf("bucket_%s_%d_%d", order.ProvisionBucket.Edges.Currency.Code, order.ProvisionBucket.MinAmount, order.ProvisionBucket.MaxAmount)
+	redisKey := fmt.Sprintf("bucket_%s_%s_%s", order.ProvisionBucket.Edges.Currency.Code, order.ProvisionBucket.MinAmount, order.ProvisionBucket.MaxAmount)
 
 	// Start a Redis transaction
 	pipe := storage.RedisClient.TxPipeline()

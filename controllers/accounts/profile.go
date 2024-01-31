@@ -293,7 +293,7 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 			rate = marketRate.Mul(floatingRate.Div(decimal.NewFromInt(100)))
 		}
 
-		allowedDeviation := decimal.NewFromFloat(0.01) // 1%
+		allowedDeviation := decimal.NewFromFloat(0.1) // 10%
 
 		if marketRate.Cmp(decimal.Zero) != 0 {
 			if rate.LessThan(marketRate.Mul(decimal.NewFromFloat(1).Sub(allowedDeviation))) ||

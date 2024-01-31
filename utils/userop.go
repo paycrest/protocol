@@ -116,8 +116,8 @@ func SponsorUserOperation(userOp *userop.UserOperation, mode string) error {
 		payload,
 	}
 
-	op, _ := userOp.MarshalJSON()
-	fmt.Println(string(op))
+	// op, _ := userOp.MarshalJSON()
+	// fmt.Println(string(op))
 
 	var result json.RawMessage
 	err = client.Call(&result, "pm_sponsorUserOperation", requestParams...)
@@ -175,8 +175,8 @@ func SendUserOperation(userOp *userop.UserOperation) (string, error) {
 		OrderConf.EntryPointContractAddress.Hex(),
 	}
 
-	op, _ := userOp.MarshalJSON()
-	fmt.Println(string(op))
+	// op, _ := userOp.MarshalJSON()
+	// fmt.Println(string(op))
 
 	var result json.RawMessage
 	err = client.Call(&result, "eth_sendUserOperation", requestParams...)
