@@ -143,11 +143,10 @@ func (s *PriorityQueueService) CreatePriorityQueueForBucket(ctx context.Context,
 
 		// Check provider's rate against the market rate to ensure it's not too far off
 		marketRate := bucket.Edges.Currency.MarketRate
-		allowedDeviation := decimal.NewFromFloat(0.1) // 10% should this be configurable?
 
 		if marketRate.Cmp(decimal.Zero) != 0 {
-			if rate.LessThan(marketRate.Mul(decimal.NewFromFloat(1).Sub(allowedDeviation))) ||
-				rate.GreaterThan(marketRate.Mul(decimal.NewFromFloat(1).Add(allowedDeviation))) {
+			if rate.LessThan(marketRate.Mul(decimal.NewFromFloat(1).Sub(OrderConf.PercentDeviationFromMarketRate))) ||
+				rate.GreaterThan(marketRate.Mul(decimal.NewFromFloat(1).Add(OrderConf.PercentDeviationFromMarketRate))) {
 				// Skip this provider if the rate is too far off
 				continue
 			}

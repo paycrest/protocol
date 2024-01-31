@@ -11,16 +11,18 @@ import (
 
 // OrderConfiguration type defines payment order configurations
 type OrderConfiguration struct {
-	OrderFulfillmentValidity     time.Duration
-	ReceiveAddressValidity       time.Duration
-	OrderRequestValidity         time.Duration
-	PaycrestOrderContractAddress common.Address
-	BundlerRPCURL                string
-	PaymasterURL                 string
-	EntryPointContractAddress    common.Address
-	BucketQueueRebuildInterval   int // in hours
-	RefundCancellationCount      int
-	NetworkFee                   decimal.Decimal
+	OrderFulfillmentValidity         time.Duration
+	ReceiveAddressValidity           time.Duration
+	OrderRequestValidity             time.Duration
+	PaycrestOrderContractAddress     common.Address
+	BundlerRPCURL                    string
+	PaymasterURL                     string
+	EntryPointContractAddress        common.Address
+	BucketQueueRebuildInterval       int // in hours
+	RefundCancellationCount          int
+	NetworkFee                       decimal.Decimal
+	PercentDeviationFromExternalRate decimal.Decimal
+	PercentDeviationFromMarketRate   decimal.Decimal
 }
 
 // OrderConfig sets the order configuration
@@ -43,6 +45,8 @@ func OrderConfig() *OrderConfiguration {
 		BucketQueueRebuildInterval:   viper.GetInt("BUCKET_QUEUE_REBUILD_INTERVAL"),
 		RefundCancellationCount:      viper.GetInt("REFUND_CANCELLATION_COUNT"),
 		NetworkFee:                   decimal.NewFromFloat(viper.GetFloat64("NETWORK_FEE")),
+		PercentDeviationFromExternalRate: decimal.NewFromFloat(viper.GetFloat64("PERCENT_DEVIATION_FROM_EXTERNAL_RATE")),
+		PercentDeviationFromMarketRate:   decimal.NewFromFloat(viper.GetFloat64("PERCENT_DEVIATION_FROM_MARKET_RATE")),
 	}
 }
 
