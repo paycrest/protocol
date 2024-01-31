@@ -179,9 +179,59 @@ func SubscribeToRedisKeyspaceEvents() {
 	go services.NewPriorityQueueService().ReassignStaleOrderRequest(ctx, orderRequestChan)
 }
 
+// fetchExternalRate fetches the external rate for a fiat currency
+func fetchExternalRate(ctx context.Context, currency string) (decimal.Decimal, error) {
+	// Fetch stable coin rate from third-party API Binance (USDT)
+	resp, err := utils.MakeJSONRequest(
+		ctx,
+		"POST",
+		"https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search",
+		map[string]interface{}{
+			"asset":     "USDT",
+			"fiat":      currency,
+			"tradeType": "SELL",
+			"page":      1,
+			"rows":      20,
+		},
+		nil,
+	)
+	if err != nil {
+		logger.Errorf("ComputeMarketRate: %v", err)
+		return decimal.Zero, err
+	}
+
+	// Access the data array
+	data, ok := resp["data"].([]interface{})
+	if !ok || len(data) == 0 {
+		return decimal.Zero, fmt.Errorf("ComputeMarketRate: No data in the response")
+	}
+
+	// Loop through the data array and extract prices
+	var prices []decimal.Decimal
+	for _, item := range data {
+		adv, ok := item.(map[string]interface{})["adv"].(map[string]interface{})
+		if !ok {
+			logger.Errorf("ComputeMarketRate: adv not found or not a map.")
+			continue
+		}
+
+		price, err := decimal.NewFromString(adv["price"].(string))
+		if err != nil {
+			logger.Errorf("ComputeMarketRate: %v", err)
+			continue
+		}
+
+		prices = append(prices, price)
+	}
+
+	// Calculate and return the median
+	return utils.Median(prices), nil
+}
+
 // ComputeMarketRate computes the market price for fiat currencies
 func ComputeMarketRate() error {
 	ctx := context.Background()
+	orderConf := config.OrderConfig()
 
 	// Fetch all fiat currencies
 	currencies, err := storage.Client.FiatCurrency.
@@ -192,25 +242,14 @@ func ComputeMarketRate() error {
 		return err
 	}
 
-	// Fetch stable coin rate from third-party API Binance (USDT)
-	resp, err := utils.MakeJSONRequest(
-		ctx,
-		"GET",
-		"https://api.binance.com/api/v3/ticker/price?symbol=USDTNGN",
-		nil,
-		nil,
-	)
-	if err != nil {
-		logger.Errorf("failed to fetch third-party rate => %v", err)
-		return err
-	}
-
-	var externalRate decimal.Decimal
-	if resp != nil {
-		externalRate, _ = decimal.NewFromString(resp["price"].(string))
-	}
-
 	for _, currency := range currencies {
+		// Fetch external rate
+		externalRate, err := fetchExternalRate(ctx, currency.Code)
+		if err != nil {
+			logger.Errorf("ComputeMarketRate: %v", err)
+			return err
+		}
+
 		// Fetch rates from token configs with fixed conversion rate
 		tokenConfigs, err := storage.Client.ProviderOrderToken.
 			Query().
@@ -220,7 +259,7 @@ func ComputeMarketRate() error {
 			).
 			All(ctx)
 		if err != nil {
-			logger.Errorf("compute market price task => %v", err)
+			logger.Errorf("ComputeMarketRate: %v", err)
 		}
 
 		var rates []decimal.Decimal
@@ -232,10 +271,9 @@ func ComputeMarketRate() error {
 		median := utils.Median(rates)
 
 		// Check the median rate against the external rate to ensure it's not too far off
-		allowedDeviation := decimal.NewFromFloat(0.01) // 1%
 		if externalRate.Cmp(decimal.Zero) != 0 {
-			if median.LessThan(externalRate.Mul(decimal.NewFromFloat(1).Sub(allowedDeviation))) ||
-				median.GreaterThan(externalRate.Mul(decimal.NewFromFloat(1).Add(allowedDeviation))) {
+			if median.LessThan(externalRate.Mul(decimal.NewFromFloat(1).Sub(orderConf.PercentDeviationFromExternalRate))) ||
+				median.GreaterThan(externalRate.Mul(decimal.NewFromFloat(1).Add(orderConf.PercentDeviationFromExternalRate))) {
 				median = externalRate
 			}
 		}
@@ -246,9 +284,11 @@ func ComputeMarketRate() error {
 			SetMarketRate(median).
 			Save(ctx)
 		if err != nil {
-			logger.Errorf("compute market price task => %v", err)
+			logger.Errorf("ComputeMarketRate: %v", err)
 			return err
 		}
+
+		logger.Infof("Computed market rate for %s: %s\n", currency.Code, median.String())
 	}
 
 	return nil
@@ -330,6 +370,13 @@ func StartCronJobs() {
 	serverConf := config.ServerConfig()
 	scheduler := gocron.NewScheduler(time.UTC)
 	priorityQueue := services.NewPriorityQueueService()
+
+	if serverConf.Environment == "development" {
+		err := ComputeMarketRate()
+		if err != nil {
+			logger.Errorf("failed to compute market rate => %v", err)
+		}
+	}
 
 	// Compute market rate four times a day - starting at 6AM
 	_, err := scheduler.Cron("0 6,12,18,0 * * *").Do(ComputeMarketRate)

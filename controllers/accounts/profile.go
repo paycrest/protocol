@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/fiatcurrency"
 	"github.com/paycrest/protocol/ent/network"
@@ -107,6 +108,8 @@ func (ctrl *ProfileController) UpdateSenderProfile(ctx *gin.Context) {
 // UpdateProviderProfile controller updates the provider profile
 func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 	var payload types.ProviderProfilePayload
+
+	orderConf := config.OrderConfig()
 
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		u.APIResponse(ctx, http.StatusBadRequest, "error",
@@ -293,11 +296,9 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 			rate = marketRate.Mul(floatingRate.Div(decimal.NewFromInt(100)))
 		}
 
-		allowedDeviation := decimal.NewFromFloat(0.1) // 10%
-
 		if marketRate.Cmp(decimal.Zero) != 0 {
-			if rate.LessThan(marketRate.Mul(decimal.NewFromFloat(1).Sub(allowedDeviation))) ||
-				rate.GreaterThan(marketRate.Mul(decimal.NewFromFloat(1).Add(allowedDeviation))) {
+			if rate.LessThan(marketRate.Mul(decimal.NewFromFloat(1).Sub(orderConf.PercentDeviationFromMarketRate))) ||
+				rate.GreaterThan(marketRate.Mul(decimal.NewFromFloat(1).Add(orderConf.PercentDeviationFromMarketRate))) {
 				u.APIResponse(ctx, http.StatusBadRequest, "error", "Rate is too far from market rate", nil)
 				return
 			}
