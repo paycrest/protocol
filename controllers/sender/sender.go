@@ -132,7 +132,7 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 		SetAmount(payload.Amount).
 		SetAmountPaid(decimal.NewFromInt(0)).
 		SetAmountReturned(decimal.NewFromInt(0)).
-		SetNetworkFeeEstimate(decimal.NewFromInt(0)).
+		SetNetworkFee(decimal.NewFromInt(0)).
 		SetSenderFee(senderFee).
 		SetToken(token).
 		SetLabel(payload.Label).
@@ -231,15 +231,15 @@ func (ctrl *SenderController) GetPaymentOrderByID(ctx *gin.Context) {
 	}
 
 	u.APIResponse(ctx, http.StatusOK, "success", "The order has been successfully retrieved", &types.PaymentOrderResponse{
-		ID:                 paymentOrder.ID,
-		Amount:             paymentOrder.Amount,
-		AmountPaid:         paymentOrder.AmountPaid,
-		AmountReturned:     paymentOrder.AmountReturned,
-		Token:              paymentOrder.Edges.Token.Symbol,
-		SenderFee:          paymentOrder.SenderFee,
-		NetworkFeeEstimate: paymentOrder.NetworkFeeEstimate,
-		Rate:               paymentOrder.Rate,
-		Network:            paymentOrder.Edges.Token.Edges.Network.Identifier,
+		ID:             paymentOrder.ID,
+		Amount:         paymentOrder.Amount,
+		AmountPaid:     paymentOrder.AmountPaid,
+		AmountReturned: paymentOrder.AmountReturned,
+		Token:          paymentOrder.Edges.Token.Symbol,
+		SenderFee:      paymentOrder.SenderFee,
+		NetworkFee:     paymentOrder.NetworkFee,
+		Rate:           paymentOrder.Rate,
+		Network:        paymentOrder.Edges.Token.Edges.Network.Identifier,
 		Recipient: types.PaymentOrderRecipient{
 			Institution:       paymentOrder.Edges.Recipient.Institution,
 			AccountIdentifier: paymentOrder.Edges.Recipient.AccountIdentifier,

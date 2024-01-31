@@ -4589,40 +4589,40 @@ func (m *NetworkMutation) ResetEdge(name string) error {
 // PaymentOrderMutation represents an operation that mutates the PaymentOrder nodes in the graph.
 type PaymentOrderMutation struct {
 	config
-	op                      Op
-	typ                     string
-	id                      *uuid.UUID
-	created_at              *time.Time
-	updated_at              *time.Time
-	amount                  *decimal.Decimal
-	addamount               *decimal.Decimal
-	amount_paid             *decimal.Decimal
-	addamount_paid          *decimal.Decimal
-	amount_returned         *decimal.Decimal
-	addamount_returned      *decimal.Decimal
-	sender_fee              *decimal.Decimal
-	addsender_fee           *decimal.Decimal
-	network_fee_estimate    *decimal.Decimal
-	addnetwork_fee_estimate *decimal.Decimal
-	rate                    *decimal.Decimal
-	addrate                 *decimal.Decimal
-	tx_hash                 *string
-	from_address            *string
-	receive_address_text    *string
-	label                   *string
-	status                  *paymentorder.Status
-	clearedFields           map[string]struct{}
-	sender_profile          *uuid.UUID
-	clearedsender_profile   bool
-	token                   *int
-	clearedtoken            bool
-	receive_address         *int
-	clearedreceive_address  bool
-	recipient               *int
-	clearedrecipient        bool
-	done                    bool
-	oldValue                func(context.Context) (*PaymentOrder, error)
-	predicates              []predicate.PaymentOrder
+	op                     Op
+	typ                    string
+	id                     *uuid.UUID
+	created_at             *time.Time
+	updated_at             *time.Time
+	amount                 *decimal.Decimal
+	addamount              *decimal.Decimal
+	amount_paid            *decimal.Decimal
+	addamount_paid         *decimal.Decimal
+	amount_returned        *decimal.Decimal
+	addamount_returned     *decimal.Decimal
+	sender_fee             *decimal.Decimal
+	addsender_fee          *decimal.Decimal
+	network_fee            *decimal.Decimal
+	addnetwork_fee         *decimal.Decimal
+	rate                   *decimal.Decimal
+	addrate                *decimal.Decimal
+	tx_hash                *string
+	from_address           *string
+	receive_address_text   *string
+	label                  *string
+	status                 *paymentorder.Status
+	clearedFields          map[string]struct{}
+	sender_profile         *uuid.UUID
+	clearedsender_profile  bool
+	token                  *int
+	clearedtoken           bool
+	receive_address        *int
+	clearedreceive_address bool
+	recipient              *int
+	clearedrecipient       bool
+	done                   bool
+	oldValue               func(context.Context) (*PaymentOrder, error)
+	predicates             []predicate.PaymentOrder
 }
 
 var _ ent.Mutation = (*PaymentOrderMutation)(nil)
@@ -5025,60 +5025,60 @@ func (m *PaymentOrderMutation) ResetSenderFee() {
 	m.addsender_fee = nil
 }
 
-// SetNetworkFeeEstimate sets the "network_fee_estimate" field.
-func (m *PaymentOrderMutation) SetNetworkFeeEstimate(d decimal.Decimal) {
-	m.network_fee_estimate = &d
-	m.addnetwork_fee_estimate = nil
+// SetNetworkFee sets the "network_fee" field.
+func (m *PaymentOrderMutation) SetNetworkFee(d decimal.Decimal) {
+	m.network_fee = &d
+	m.addnetwork_fee = nil
 }
 
-// NetworkFeeEstimate returns the value of the "network_fee_estimate" field in the mutation.
-func (m *PaymentOrderMutation) NetworkFeeEstimate() (r decimal.Decimal, exists bool) {
-	v := m.network_fee_estimate
+// NetworkFee returns the value of the "network_fee" field in the mutation.
+func (m *PaymentOrderMutation) NetworkFee() (r decimal.Decimal, exists bool) {
+	v := m.network_fee
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldNetworkFeeEstimate returns the old "network_fee_estimate" field's value of the PaymentOrder entity.
+// OldNetworkFee returns the old "network_fee" field's value of the PaymentOrder entity.
 // If the PaymentOrder object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *PaymentOrderMutation) OldNetworkFeeEstimate(ctx context.Context) (v decimal.Decimal, err error) {
+func (m *PaymentOrderMutation) OldNetworkFee(ctx context.Context) (v decimal.Decimal, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldNetworkFeeEstimate is only allowed on UpdateOne operations")
+		return v, errors.New("OldNetworkFee is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldNetworkFeeEstimate requires an ID field in the mutation")
+		return v, errors.New("OldNetworkFee requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldNetworkFeeEstimate: %w", err)
+		return v, fmt.Errorf("querying old value for OldNetworkFee: %w", err)
 	}
-	return oldValue.NetworkFeeEstimate, nil
+	return oldValue.NetworkFee, nil
 }
 
-// AddNetworkFeeEstimate adds d to the "network_fee_estimate" field.
-func (m *PaymentOrderMutation) AddNetworkFeeEstimate(d decimal.Decimal) {
-	if m.addnetwork_fee_estimate != nil {
-		*m.addnetwork_fee_estimate = m.addnetwork_fee_estimate.Add(d)
+// AddNetworkFee adds d to the "network_fee" field.
+func (m *PaymentOrderMutation) AddNetworkFee(d decimal.Decimal) {
+	if m.addnetwork_fee != nil {
+		*m.addnetwork_fee = m.addnetwork_fee.Add(d)
 	} else {
-		m.addnetwork_fee_estimate = &d
+		m.addnetwork_fee = &d
 	}
 }
 
-// AddedNetworkFeeEstimate returns the value that was added to the "network_fee_estimate" field in this mutation.
-func (m *PaymentOrderMutation) AddedNetworkFeeEstimate() (r decimal.Decimal, exists bool) {
-	v := m.addnetwork_fee_estimate
+// AddedNetworkFee returns the value that was added to the "network_fee" field in this mutation.
+func (m *PaymentOrderMutation) AddedNetworkFee() (r decimal.Decimal, exists bool) {
+	v := m.addnetwork_fee
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// ResetNetworkFeeEstimate resets all changes to the "network_fee_estimate" field.
-func (m *PaymentOrderMutation) ResetNetworkFeeEstimate() {
-	m.network_fee_estimate = nil
-	m.addnetwork_fee_estimate = nil
+// ResetNetworkFee resets all changes to the "network_fee" field.
+func (m *PaymentOrderMutation) ResetNetworkFee() {
+	m.network_fee = nil
+	m.addnetwork_fee = nil
 }
 
 // SetRate sets the "rate" field.
@@ -5552,8 +5552,8 @@ func (m *PaymentOrderMutation) Fields() []string {
 	if m.sender_fee != nil {
 		fields = append(fields, paymentorder.FieldSenderFee)
 	}
-	if m.network_fee_estimate != nil {
-		fields = append(fields, paymentorder.FieldNetworkFeeEstimate)
+	if m.network_fee != nil {
+		fields = append(fields, paymentorder.FieldNetworkFee)
 	}
 	if m.rate != nil {
 		fields = append(fields, paymentorder.FieldRate)
@@ -5593,8 +5593,8 @@ func (m *PaymentOrderMutation) Field(name string) (ent.Value, bool) {
 		return m.AmountReturned()
 	case paymentorder.FieldSenderFee:
 		return m.SenderFee()
-	case paymentorder.FieldNetworkFeeEstimate:
-		return m.NetworkFeeEstimate()
+	case paymentorder.FieldNetworkFee:
+		return m.NetworkFee()
 	case paymentorder.FieldRate:
 		return m.Rate()
 	case paymentorder.FieldTxHash:
@@ -5628,8 +5628,8 @@ func (m *PaymentOrderMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldAmountReturned(ctx)
 	case paymentorder.FieldSenderFee:
 		return m.OldSenderFee(ctx)
-	case paymentorder.FieldNetworkFeeEstimate:
-		return m.OldNetworkFeeEstimate(ctx)
+	case paymentorder.FieldNetworkFee:
+		return m.OldNetworkFee(ctx)
 	case paymentorder.FieldRate:
 		return m.OldRate(ctx)
 	case paymentorder.FieldTxHash:
@@ -5693,12 +5693,12 @@ func (m *PaymentOrderMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetSenderFee(v)
 		return nil
-	case paymentorder.FieldNetworkFeeEstimate:
+	case paymentorder.FieldNetworkFee:
 		v, ok := value.(decimal.Decimal)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetNetworkFeeEstimate(v)
+		m.SetNetworkFee(v)
 		return nil
 	case paymentorder.FieldRate:
 		v, ok := value.(decimal.Decimal)
@@ -5762,8 +5762,8 @@ func (m *PaymentOrderMutation) AddedFields() []string {
 	if m.addsender_fee != nil {
 		fields = append(fields, paymentorder.FieldSenderFee)
 	}
-	if m.addnetwork_fee_estimate != nil {
-		fields = append(fields, paymentorder.FieldNetworkFeeEstimate)
+	if m.addnetwork_fee != nil {
+		fields = append(fields, paymentorder.FieldNetworkFee)
 	}
 	if m.addrate != nil {
 		fields = append(fields, paymentorder.FieldRate)
@@ -5784,8 +5784,8 @@ func (m *PaymentOrderMutation) AddedField(name string) (ent.Value, bool) {
 		return m.AddedAmountReturned()
 	case paymentorder.FieldSenderFee:
 		return m.AddedSenderFee()
-	case paymentorder.FieldNetworkFeeEstimate:
-		return m.AddedNetworkFeeEstimate()
+	case paymentorder.FieldNetworkFee:
+		return m.AddedNetworkFee()
 	case paymentorder.FieldRate:
 		return m.AddedRate()
 	}
@@ -5825,12 +5825,12 @@ func (m *PaymentOrderMutation) AddField(name string, value ent.Value) error {
 		}
 		m.AddSenderFee(v)
 		return nil
-	case paymentorder.FieldNetworkFeeEstimate:
+	case paymentorder.FieldNetworkFee:
 		v, ok := value.(decimal.Decimal)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.AddNetworkFeeEstimate(v)
+		m.AddNetworkFee(v)
 		return nil
 	case paymentorder.FieldRate:
 		v, ok := value.(decimal.Decimal)
@@ -5899,8 +5899,8 @@ func (m *PaymentOrderMutation) ResetField(name string) error {
 	case paymentorder.FieldSenderFee:
 		m.ResetSenderFee()
 		return nil
-	case paymentorder.FieldNetworkFeeEstimate:
-		m.ResetNetworkFeeEstimate()
+	case paymentorder.FieldNetworkFee:
+		m.ResetNetworkFee()
 		return nil
 	case paymentorder.FieldRate:
 		m.ResetRate()
