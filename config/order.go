@@ -33,6 +33,8 @@ func OrderConfig() *OrderConfiguration {
 	viper.SetDefault("BUCKET_QUEUE_REBUILD_INTERVAL", 1)
 	viper.SetDefault("REFUND_CANCELLATION_COUNT", 3)
 	viper.SetDefault("NETWORK_FEE", 0.05)
+	viper.SetDefault("PERCENT_DEVIATION_FROM_EXTERNAL_RATE", 0.01)
+	viper.SetDefault("PERCENT_DEVIATION_FROM_MARKET_RATE", 0.1)
 
 	return &OrderConfiguration{
 		OrderFulfillmentValidity:     time.Duration(viper.GetInt("ORDER_FULFILLMENT_VALIDITY")) * time.Minute,
