@@ -231,13 +231,15 @@ func (ctrl *SenderController) GetPaymentOrderByID(ctx *gin.Context) {
 	}
 
 	u.APIResponse(ctx, http.StatusOK, "success", "The order has been successfully retrieved", &types.PaymentOrderResponse{
-		ID:             paymentOrder.ID,
-		Amount:         paymentOrder.Amount,
-		AmountPaid:     paymentOrder.AmountPaid,
-		AmountReturned: paymentOrder.AmountReturned,
-		Token:          paymentOrder.Edges.Token.Symbol,
-		Rate:           paymentOrder.Rate,
-		Network:        paymentOrder.Edges.Token.Edges.Network.Identifier,
+		ID:                 paymentOrder.ID,
+		Amount:             paymentOrder.Amount,
+		AmountPaid:         paymentOrder.AmountPaid,
+		AmountReturned:     paymentOrder.AmountReturned,
+		Token:              paymentOrder.Edges.Token.Symbol,
+		SenderFee:          paymentOrder.SenderFee,
+		NetworkFeeEstimate: paymentOrder.NetworkFeeEstimate,
+		Rate:               paymentOrder.Rate,
+		Network:            paymentOrder.Edges.Token.Edges.Network.Identifier,
 		Recipient: types.PaymentOrderRecipient{
 			Institution:       paymentOrder.Edges.Recipient.Institution,
 			AccountIdentifier: paymentOrder.Edges.Recipient.AccountIdentifier,
@@ -245,11 +247,12 @@ func (ctrl *SenderController) GetPaymentOrderByID(ctx *gin.Context) {
 			ProviderID:        paymentOrder.Edges.Recipient.ProviderID,
 			Memo:              paymentOrder.Edges.Recipient.Memo,
 		},
-		Label:     paymentOrder.Label,
-		CreatedAt: paymentOrder.CreatedAt,
-		UpdatedAt: paymentOrder.UpdatedAt,
-		TxHash:    paymentOrder.TxHash,
-		Status:    paymentOrder.Status,
+		FromAddress: paymentOrder.FromAddress,
+		Label:       paymentOrder.Label,
+		CreatedAt:   paymentOrder.CreatedAt,
+		UpdatedAt:   paymentOrder.UpdatedAt,
+		TxHash:      paymentOrder.TxHash,
+		Status:      paymentOrder.Status,
 	})
 }
 
