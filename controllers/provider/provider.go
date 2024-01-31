@@ -439,12 +439,12 @@ func (ctrl *ProviderController) GetMarketRate(ctx *gin.Context) {
 	}
 	marketRate, _ := decimal.NewFromString(strings.Split(providerData, ":")[1])
 
-	deviation := decimal.NewFromFloat(0.01) // 1%
+	deviation := decimal.NewFromFloat(0.10) // 10%
 
 	u.APIResponse(ctx, http.StatusOK, "success", "Rate fetched successfully", &types.MarketRateResponse{
 		MarketRate:  marketRate,
-		MinimumRate: marketRate.Mul(decimal.NewFromFloat(1).Sub(deviation)), // market rate - 1%
-		MaximumRate: marketRate.Mul(decimal.NewFromFloat(1).Add(deviation)), // market rate + 1%
+		MinimumRate: marketRate.Mul(decimal.NewFromFloat(1).Sub(deviation)), // market rate - 10%
+		MaximumRate: marketRate.Mul(decimal.NewFromFloat(1).Add(deviation)), // market rate + 10%
 	})
 }
 

@@ -232,7 +232,7 @@ func ComputeMarketRate() error {
 		median := utils.Median(rates)
 
 		// Check the median rate against the external rate to ensure it's not too far off
-		allowedDeviation := decimal.NewFromFloat(0.005) // 0.5%
+		allowedDeviation := decimal.NewFromFloat(0.01) // 1%
 		if externalRate.Cmp(decimal.Zero) != 0 {
 			if median.LessThan(externalRate.Mul(decimal.NewFromFloat(1).Sub(allowedDeviation))) ||
 				median.GreaterThan(externalRate.Mul(decimal.NewFromFloat(1).Add(allowedDeviation))) {
@@ -326,7 +326,8 @@ func RetryFailedWebhookNotifications() error {
 
 // StartCronJobs starts cron jobs
 func StartCronJobs() {
-	conf := config.OrderConfig()
+	orderConf := config.OrderConfig()
+	serverConf := config.ServerConfig()
 	scheduler := gocron.NewScheduler(time.UTC)
 	priorityQueue := services.NewPriorityQueueService()
 
@@ -336,8 +337,15 @@ func StartCronJobs() {
 		logger.Errorf("failed to schedule compute market rate task => %v", err)
 	}
 
+	if serverConf.Environment != "production" {
+		err := priorityQueue.ProcessBucketQueues()
+		if err != nil {
+			logger.Errorf("failed to process bucket queues => %v", err)
+		}
+	}
+
 	// Refresh provision bucket priority queues every X hours
-	_, err = scheduler.Cron(fmt.Sprintf("0 */%d * * *", conf.BucketQueueRebuildInterval)).
+	_, err = scheduler.Cron(fmt.Sprintf("0 */%d * * *", orderConf.BucketQueueRebuildInterval)).
 		Do(priorityQueue.ProcessBucketQueues)
 	if err != nil {
 		logger.Errorf("failed to schedule refresh priority queues task => %v", err)
