@@ -92,6 +92,7 @@ func senderRoutes(route *gin.Engine) {
 	v1.POST("orders", senderCtrl.InitiatePaymentOrder)
 	v1.GET("orders/:id", senderCtrl.GetPaymentOrderByID)
 	v1.GET("orders", senderCtrl.GetPaymentOrders)
+	v1.GET("stats/", senderCtrl.Stats)
 }
 
 func providerRoutes(route *gin.Engine) {
@@ -107,4 +108,5 @@ func providerRoutes(route *gin.Engine) {
 	v1.POST("orders/:id/fulfill", providerCtrl.FulfillOrder)
 	v1.POST("orders/:id/cancel", providerCtrl.CancelOrder)
 	v1.GET("rates/:token/:fiat_symbol", providerCtrl.GetMarketRate)
+	v1.GET("stats/", providerCtrl.Stats)
 }

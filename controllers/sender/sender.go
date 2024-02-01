@@ -6,7 +6,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/ent"
-	db "github.com/paycrest/protocol/storage"
+	"github.com/paycrest/protocol/storage"
 
 	"github.com/paycrest/protocol/ent/network"
 	"github.com/paycrest/protocol/ent/paymentorder"
@@ -72,7 +72,7 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 	}
 
 	// Get token from DB
-	token, err := db.Client.Token.
+	token, err := storage.Client.Token.
 		Query().
 		Where(
 			token.SymbolEQ(payload.Token),
@@ -87,7 +87,7 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 	}
 
 	// Ensure label is unique for the sender
-	labelExists, err := db.Client.PaymentOrder.
+	labelExists, err := storage.Client.PaymentOrder.
 		Query().
 		Where(
 			paymentorder.HasSenderProfileWith(senderprofile.IDEQ(sender.ID)),
@@ -114,7 +114,7 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 	}
 
 	// Create payment order and recipient in a transaction
-	tx, err := db.Client.Tx(ctx)
+	tx, err := storage.Client.Tx(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to initiate payment order", nil)
@@ -211,7 +211,7 @@ func (ctrl *SenderController) GetPaymentOrderByID(ctx *gin.Context) {
 	sender := senderCtx.(*ent.SenderProfile)
 
 	// Fetch payment order from the database
-	paymentOrder, err := db.Client.PaymentOrder.
+	paymentOrder, err := storage.Client.PaymentOrder.
 		Query().
 		Where(
 			paymentorder.IDEQ(id),
@@ -276,7 +276,7 @@ func (ctrl *SenderController) GetPaymentOrders(ctx *gin.Context) {
 	// Get page and pageSize query params
 	page, pageSize := u.Paginate(ctx)
 
-	paymentOrderQuery := db.Client.PaymentOrder.Query()
+	paymentOrderQuery := storage.Client.PaymentOrder.Query()
 
 	// Filter by sender
 	paymentOrderQuery = paymentOrderQuery.Where(
@@ -304,7 +304,7 @@ func (ctrl *SenderController) GetPaymentOrders(ctx *gin.Context) {
 	tokenQueryParam := ctx.Query("token")
 
 	if tokenQueryParam != "" {
-		tokenExists, err := db.Client.Token.
+		tokenExists, err := storage.Client.Token.
 			Query().
 			Where(
 				token.SymbolEQ(tokenQueryParam),
@@ -330,7 +330,7 @@ func (ctrl *SenderController) GetPaymentOrders(ctx *gin.Context) {
 	networkQueryParam := ctx.Query("network")
 
 	if networkQueryParam != "" {
-		networkExists, err := db.Client.Network.
+		networkExists, err := storage.Client.Network.
 			Query().
 			Where(
 				network.IdentifierEQ(networkQueryParam),
@@ -400,5 +400,40 @@ func (ctrl *SenderController) GetPaymentOrders(ctx *gin.Context) {
 		Page:         page + 1,
 		PageSize:     pageSize,
 		Orders:       response,
+	})
+}
+
+// Stats controller fetches sender stats
+func (ctrl *SenderController) Stats(ctx *gin.Context) {
+	// Get sender profile from the context
+	senderCtx, ok := ctx.Get("sender")
+	if !ok {
+		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid API key or token", nil)
+		return
+	}
+	sender := senderCtx.(*ent.SenderProfile)
+
+	// Aggregate sender stats from db
+	var v []struct{ totalOrders, totalOrderVolume, totalFeeEarnings decimal.Decimal }
+
+	err := storage.Client.PaymentOrder.
+		Query().
+		Where(paymentorder.HasSenderProfileWith(senderprofile.IDEQ(sender.ID))).
+		Aggregate(
+			ent.Count(),
+			ent.Sum(paymentorder.FieldAmount),
+			ent.Sum(paymentorder.FieldSenderFee),
+		).
+		Scan(ctx, &v)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch sender stats", nil)
+		return
+	}
+
+	u.APIResponse(ctx, http.StatusOK, "success", "Sender stats retrieved successfully", types.SenderStatsResponse{
+		TotalOrders:      int(v[0].totalOrders.IntPart()),
+		TotalOrderVolume: v[0].totalOrderVolume,
+		TotalFeeEarnings: v[0].totalFeeEarnings,
 	})
 }
