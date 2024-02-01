@@ -283,6 +283,7 @@ func (ctrl *SenderController) GetPaymentOrderByID(ctx *gin.Context) {
 			Memo:              paymentOrder.Edges.Recipient.Memo,
 		},
 		FromAddress: paymentOrder.FromAddress,
+		FeeAddress:  paymentOrder.FeeAddress,
 		Label:       paymentOrder.Label,
 		CreatedAt:   paymentOrder.CreatedAt,
 		UpdatedAt:   paymentOrder.UpdatedAt,
