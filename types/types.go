@@ -346,11 +346,12 @@ type SendEmailPayload struct {
 	ToAddress   string
 	Subject     string
 	Body        string
+	HTMLBody    string
 }
 
-// SendEmailResponse is the mailgunv3.Send response struct
+// SendEmailResponse is the response for a sent email
 type SendEmailResponse struct {
-	Message string `json:"message"`
+	Response string `json:"response"`
 	Id      string `json:"id"`
 }
 

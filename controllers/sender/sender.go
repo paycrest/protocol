@@ -77,6 +77,7 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 		Where(
 			token.SymbolEQ(payload.Token),
 			token.HasNetworkWith(network.IdentifierEQ(payload.Network)),
+			// TODO: check if token is enabled
 		).
 		WithNetwork().
 		Only(ctx)
