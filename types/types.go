@@ -419,7 +419,22 @@ type SenderPaymentOrderList struct {
 	Orders       []PaymentOrderResponse `json:"orders"`
 }
 
+// ChangePasswordPayload is the payload for the change password endpoint
 type ChangePasswordPayload struct {
 	OldPassword string `json:"oldPassword" binding:"required,min=6,max=20"`
 	NewPassword string `json:"newPassword" binding:"required,min=6,max=20"`
+}
+
+// SenderStatsResponse is the response for the sender stats endpoint
+type SenderStatsResponse struct {
+	TotalOrders      int             `json:"totalOrders"`
+	TotalOrderVolume decimal.Decimal `json:"totalOrderVolume"`
+	TotalFeeEarnings decimal.Decimal `json:"totalFeeEarnings"`
+}
+
+// ProviderStatsResponse is the response for the provider stats endpoint
+type ProviderStatsResponse struct {
+	TotalOrders       int             `json:"totalOrders"`
+	TotalFiatVolume   decimal.Decimal `json:"totalFiatVolume"`
+	TotalCryptoVolume decimal.Decimal `json:"totalCryptoVolume"`
 }

@@ -520,25 +520,25 @@ func (s *OrderService) transferCallData(recipient common.Address, amount *big.In
 	return calldata, nil
 }
 
-// executeCallData creates the data for the execute method in the smart account.
-func (s *OrderService) executeCallData(dest common.Address, value *big.Int, data []byte) ([]byte, error) {
-	simpleAccountABI, err := abi.JSON(strings.NewReader(contracts.SimpleAccountMetaData.ABI))
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse smart account ABI: %w", err)
-	}
+// // executeCallData creates the data for the execute method in the smart account.
+// func (s *OrderService) executeCallData(dest common.Address, value *big.Int, data []byte) ([]byte, error) {
+// 	simpleAccountABI, err := abi.JSON(strings.NewReader(contracts.SimpleAccountMetaData.ABI))
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to parse smart account ABI: %w", err)
+// 	}
 
-	executeCallData, err := simpleAccountABI.Pack(
-		"execute",
-		dest,
-		value,
-		data,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to pack execute ABI: %w", err)
-	}
+// 	executeCallData, err := simpleAccountABI.Pack(
+// 		"execute",
+// 		dest,
+// 		value,
+// 		data,
+// 	)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to pack execute ABI: %w", err)
+// 	}
 
-	return executeCallData, nil
-}
+// 	return executeCallData, nil
+// }
 
 // createOrderCallData creates the data for the createOrder method
 func (s *OrderService) createOrderCallData(order *ent.PaymentOrder) ([]byte, error) {

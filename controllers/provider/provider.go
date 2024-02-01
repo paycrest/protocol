@@ -477,3 +477,51 @@ func parseOrderPayload(ctx *gin.Context, provider *ent.ProviderProfile) (uuid.UU
 
 	return orderUUID, nil
 }
+
+// Stats controller fetches provider stats
+func (ctrl *ProviderController) Stats(ctx *gin.Context) {
+	// Get provider profile from the context
+	providerCtx, ok := ctx.Get("provider")
+	if !ok {
+		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid API key or token", nil)
+		return
+	}
+	provider := providerCtx.(*ent.ProviderProfile)
+
+	// Fetch provider stats
+	var v []struct{ totalOrders, totalCryptoVolume decimal.Decimal }
+	var totalFiatVolume decimal.Decimal
+
+	query := storage.Client.LockPaymentOrder.
+		Query().
+		Where(lockpaymentorder.HasProviderWith(providerprofile.IDEQ(provider.ID)))
+
+	err := query.
+		Aggregate(
+			ent.Count(),
+			ent.Sum(lockpaymentorder.FieldAmount),
+		).
+		Scan(ctx, &v)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch provider stats", nil)
+		return
+	}
+
+	orders, err := query.All(ctx)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch provider stats", nil)
+		return
+	}
+
+	for _, order := range orders {
+		totalFiatVolume = totalFiatVolume.Add(order.Amount.Mul(order.Rate))
+	}
+
+	u.APIResponse(ctx, http.StatusOK, "success", "Provider stats fetched successfully", &types.ProviderStatsResponse{
+		TotalOrders:       int(v[0].totalOrders.IntPart()),
+		TotalFiatVolume:   totalFiatVolume,
+		TotalCryptoVolume: v[0].totalCryptoVolume,
+	})
+}
