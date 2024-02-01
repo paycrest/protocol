@@ -302,7 +302,7 @@ type PaymentOrderResponse struct {
 	Label           string                `json:"label"`
 	Recipient       PaymentOrderRecipient `json:"recipient"`
 	FromAddress     string                `json:"fromAddress"`
-	FeePerTokenUnit decimal.Decimal       `json:"feePerTokenUnit"`
+	FeeAddress      string                `json:"feeAddress"`
 	CreatedAt       time.Time             `json:"createdAt"`
 	UpdatedAt       time.Time             `json:"updatedAt"`
 	TxHash          string                `json:"txHash"`
