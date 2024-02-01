@@ -97,7 +97,7 @@ func (ctrl *ProfileController) UpdateSenderProfile(ctx *gin.Context) {
 			})
 			return
 		}
-		if !feeAddressIsValid {
+		if payload.FeeAddress != "" && !feeAddressIsValid {
 			u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
 				Field:   "FeeAddress",
 				Message: "Invalid Ethereum address",
@@ -107,9 +107,11 @@ func (ctrl *ProfileController) UpdateSenderProfile(ctx *gin.Context) {
 	}
 
 	if payload.RefundAddress != "" {
-		update.SetRefundAddress(payload.RefundAddress).SetIsActive(true)
-	} else if payload.RefundAddress == "" && sender.RefundAddress != "" {
-		update.SetRefundAddress(payload.RefundAddress).SetIsActive(false)
+		update.SetRefundAddress(payload.RefundAddress)
+	}
+
+	if !sender.IsActive {
+		update.SetIsActive(true)
 	}
 
 	_, err := update.Save(ctx)

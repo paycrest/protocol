@@ -180,8 +180,8 @@ func CreateTestSenderProfile(overrides map[string]interface{}) (*ent.SenderProfi
 		"fee_per_token_unit": 0.0,
 		"webhook_url":        "https://example.com/hook",
 		"domain_whitelist":   []string{"example.com"},
-		"fee_address":        "0x123...",
-		"refund_address":     "0x123...",
+		"fee_address":        "0x1234567890123456789012345678901234567890",
+		"refund_address":     "0x0987654321098765432109876543210987654321",
 		"user_id":            nil,
 	}
 
