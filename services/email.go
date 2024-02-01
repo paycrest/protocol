@@ -5,6 +5,9 @@ import (
 	"fmt"
 
 	mailgunv3 "github.com/mailgun/mailgun-go/v3"
+	"github.com/sendgrid/sendgrid-go"
+	"github.com/sendgrid/sendgrid-go/helpers/mail"
+
 	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/types"
 )
@@ -12,7 +15,7 @@ import (
 var (
 	notificationConf = config.NotificationConfig()
 
-	mailGunClient mailgunv3.Mailgun
+	mailgunClient mailgunv3.Mailgun
 )
 
 const (
@@ -38,13 +41,25 @@ func NewEmailService(mailProvider MailProvider) *EmailService {
 	return &EmailService{MailProvider: mailProvider}
 }
 
-// SendEmail performs the action for sending a email
+// NewMailgun initialize mailgunv3.Mailgun and can be used to initialize a mocked Mailgun interface.
+func NewMailgun(m mailgunv3.Mailgun) {
+	if m != nil {
+		mailgunClient = m
+		return
+	}
+
+	mailgunClient = mailgunv3.NewMailgun(notificationConf.EmailDomain, notificationConf.EmailAPIKey)
+}
+
+// SendEmail performs the action for sending an email.
 func (m *EmailService) SendEmail(ctx context.Context, payload types.SendEmailPayload) (types.SendEmailResponse, error) {
 	switch m.MailProvider {
 	case MAILGUN_MAIL_PROVIDER:
-		fallthrough
-	default:
 		return sendEmailViaMailgun(ctx, payload)
+	case SENDGRID_MAIL_PROVIDER:
+		return sendEmailViaSendGrid(ctx, payload)
+	default:
+		return types.SendEmailResponse{}, fmt.Errorf("unsupported mail provider")
 	}
 }
 
@@ -65,38 +80,60 @@ func (m *EmailService) SendVerificationEmail(ctx context.Context, token, email s
 // SendPasswordResetEmail performs the actions for sending a password reset token to the user email.
 func (m *EmailService) SendPasswordResetEmail(ctx context.Context, token, email string) (types.SendEmailResponse, error) {
 	// TODO: add custom HTML email verification template.
-	bodyTemplate := fmt.Sprintf("Please confirm your password reset request with this token : %s", token)
+	body := fmt.Sprintf("Please confirm your password reset request with this token: %s", token)
+	htmlBody := ""
 
 	payload := types.SendEmailPayload{
 		FromAddress: _DefaultFromAddress,
 		ToAddress:   email,
 		Subject:     _PasswordResetEmailSubject,
-		Body:        bodyTemplate,
+		Body:        body,
+		HTMLBody:    htmlBody,
 	}
 	return m.SendEmail(ctx, payload)
-}
-
-// NewMailGun initialize mailgunv3.Mailgun and can be used to initialize a mocked Mailgun interface.
-func NewMailGun(m mailgunv3.Mailgun) {
-	if m != nil {
-		mailGunClient = m
-		return
-	}
-
-	mailGunClient = mailgunv3.NewMailgun(notificationConf.EmailDomain, notificationConf.EmailAPIKey)
 }
 
 // sendEmailViaMailgun performs the actions for sending an email.
 func sendEmailViaMailgun(ctx context.Context, content types.SendEmailPayload) (types.SendEmailResponse, error) {
 	// initialize
-	NewMailGun(mailGunClient)
+	NewMailgun(mailgunClient)
 
-	message, id, err := mailGunClient.Send(ctx, mailGunClient.NewMessage(
+	message := mailgunClient.NewMessage(
 		content.FromAddress,
 		content.Subject,
 		content.Body,
 		content.ToAddress,
-	))
+	)
 
-	return types.SendEmailResponse{Id: id, Message: message}, err
+	response, id, err := mailgunClient.Send(ctx, message)
+
+	return types.SendEmailResponse{Id: id, Response: response}, err
+}
+
+// sendEmailViaSendGrid performs the actions for sending an email.
+func sendEmailViaSendGrid(ctx context.Context, content types.SendEmailPayload) (types.SendEmailResponse, error) {
+	from := mail.NewEmail("Paycrest", "<no-reply@paycrest.io>")
+	to := mail.NewEmail("", content.ToAddress)
+	body := mail.NewContent("text/plain", content.Body)
+	htmlBody := mail.NewContent("text/html", content.HTMLBody)
+
+	m := mail.NewV3Mail()
+	m.Subject = content.Subject
+	m.SetFrom(from)
+	m.AddContent(body)
+	m.AddContent(htmlBody)
+
+	p := mail.NewPersonalization()
+	p.AddTos(to)
+	m.AddPersonalizations(p)
+
+	request := sendgrid.GetRequest(notificationConf.EmailAPIKey, "/v3/mail/send", fmt.Sprintf("https://%s", notificationConf.EmailDomain))
+	request.Method = "POST"
+	request.Body = mail.GetRequestBody(m)
+	response, err := sendgrid.API(request)
+	if err != nil {
+		return types.SendEmailResponse{}, err
+	}
+
+	return types.SendEmailResponse{Id: response.Headers["X-Message-Id"][0]}, nil
 }
