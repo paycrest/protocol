@@ -99,6 +99,8 @@ func setup() error {
 		SetLabel("test payment order").
 		SetReceiveAddress(receiveAddress).
 		SetReceiveAddressText(receiveAddress.Address).
+		SetFeePerTokenUnit(senderProfile.FeePerTokenUnit).
+		SetFeeAddress(senderProfile.FeeAddress).
 		Save(context.Background())
 	if err != nil {
 		return err
