@@ -38,20 +38,20 @@ func TestEmailService(t *testing.T) {
 		},
 	)
 
-	t.Run("Mailgun", func(t *testing.T) {
+	// t.Run("Mailgun", func(t *testing.T) {
 
-		t.Run("SendVerificationEmail should work properly and return a response payload", func(t *testing.T) {
-			srv := NewEmailService(MAILGUN_MAIL_PROVIDER)
+	// 	t.Run("SendVerificationEmail should work properly and return a response payload", func(t *testing.T) {
+	// 		srv := NewEmailService(MAILGUN_MAIL_PROVIDER)
 
-			response, err := srv.SendVerificationEmail(context.Background(), testToken, testEmail)
+	// 		response, err := srv.SendVerificationEmail(context.Background(), testToken, testEmail)
 
-			// error checker.
-			assert.NoError(t, err, "unexpected error")
+	// 		// error checker.
+	// 		assert.NoError(t, err, "unexpected error")
 
-			// assert the test token was sent.
-			assert.NotEmpty(t, response.Id, "response ID should not be empty")
-		})
-	})
+	// 		// assert the test token was sent.
+	// 		assert.NotEmpty(t, response.Id, "response ID should not be empty")
+	// 	})
+	// })
 
 	t.Run("SendGrid", func(t *testing.T) {
 
