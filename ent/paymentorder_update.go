@@ -164,6 +164,39 @@ func (pou *PaymentOrderUpdate) SetReceiveAddressText(s string) *PaymentOrderUpda
 	return pou
 }
 
+// SetFeePerTokenUnit sets the "fee_per_token_unit" field.
+func (pou *PaymentOrderUpdate) SetFeePerTokenUnit(d decimal.Decimal) *PaymentOrderUpdate {
+	pou.mutation.ResetFeePerTokenUnit()
+	pou.mutation.SetFeePerTokenUnit(d)
+	return pou
+}
+
+// AddFeePerTokenUnit adds d to the "fee_per_token_unit" field.
+func (pou *PaymentOrderUpdate) AddFeePerTokenUnit(d decimal.Decimal) *PaymentOrderUpdate {
+	pou.mutation.AddFeePerTokenUnit(d)
+	return pou
+}
+
+// SetFeeAddress sets the "fee_address" field.
+func (pou *PaymentOrderUpdate) SetFeeAddress(s string) *PaymentOrderUpdate {
+	pou.mutation.SetFeeAddress(s)
+	return pou
+}
+
+// SetNillableFeeAddress sets the "fee_address" field if the given value is not nil.
+func (pou *PaymentOrderUpdate) SetNillableFeeAddress(s *string) *PaymentOrderUpdate {
+	if s != nil {
+		pou.SetFeeAddress(*s)
+	}
+	return pou
+}
+
+// ClearFeeAddress clears the value of the "fee_address" field.
+func (pou *PaymentOrderUpdate) ClearFeeAddress() *PaymentOrderUpdate {
+	pou.mutation.ClearFeeAddress()
+	return pou
+}
+
 // SetLabel sets the "label" field.
 func (pou *PaymentOrderUpdate) SetLabel(s string) *PaymentOrderUpdate {
 	pou.mutation.SetLabel(s)
@@ -405,6 +438,18 @@ func (pou *PaymentOrderUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if value, ok := pou.mutation.ReceiveAddressText(); ok {
 		_spec.SetField(paymentorder.FieldReceiveAddressText, field.TypeString, value)
+	}
+	if value, ok := pou.mutation.FeePerTokenUnit(); ok {
+		_spec.SetField(paymentorder.FieldFeePerTokenUnit, field.TypeFloat64, value)
+	}
+	if value, ok := pou.mutation.AddedFeePerTokenUnit(); ok {
+		_spec.AddField(paymentorder.FieldFeePerTokenUnit, field.TypeFloat64, value)
+	}
+	if value, ok := pou.mutation.FeeAddress(); ok {
+		_spec.SetField(paymentorder.FieldFeeAddress, field.TypeString, value)
+	}
+	if pou.mutation.FeeAddressCleared() {
+		_spec.ClearField(paymentorder.FieldFeeAddress, field.TypeString)
 	}
 	if value, ok := pou.mutation.Label(); ok {
 		_spec.SetField(paymentorder.FieldLabel, field.TypeString, value)
@@ -675,6 +720,39 @@ func (pouo *PaymentOrderUpdateOne) ClearFromAddress() *PaymentOrderUpdateOne {
 // SetReceiveAddressText sets the "receive_address_text" field.
 func (pouo *PaymentOrderUpdateOne) SetReceiveAddressText(s string) *PaymentOrderUpdateOne {
 	pouo.mutation.SetReceiveAddressText(s)
+	return pouo
+}
+
+// SetFeePerTokenUnit sets the "fee_per_token_unit" field.
+func (pouo *PaymentOrderUpdateOne) SetFeePerTokenUnit(d decimal.Decimal) *PaymentOrderUpdateOne {
+	pouo.mutation.ResetFeePerTokenUnit()
+	pouo.mutation.SetFeePerTokenUnit(d)
+	return pouo
+}
+
+// AddFeePerTokenUnit adds d to the "fee_per_token_unit" field.
+func (pouo *PaymentOrderUpdateOne) AddFeePerTokenUnit(d decimal.Decimal) *PaymentOrderUpdateOne {
+	pouo.mutation.AddFeePerTokenUnit(d)
+	return pouo
+}
+
+// SetFeeAddress sets the "fee_address" field.
+func (pouo *PaymentOrderUpdateOne) SetFeeAddress(s string) *PaymentOrderUpdateOne {
+	pouo.mutation.SetFeeAddress(s)
+	return pouo
+}
+
+// SetNillableFeeAddress sets the "fee_address" field if the given value is not nil.
+func (pouo *PaymentOrderUpdateOne) SetNillableFeeAddress(s *string) *PaymentOrderUpdateOne {
+	if s != nil {
+		pouo.SetFeeAddress(*s)
+	}
+	return pouo
+}
+
+// ClearFeeAddress clears the value of the "fee_address" field.
+func (pouo *PaymentOrderUpdateOne) ClearFeeAddress() *PaymentOrderUpdateOne {
+	pouo.mutation.ClearFeeAddress()
 	return pouo
 }
 
@@ -949,6 +1027,18 @@ func (pouo *PaymentOrderUpdateOne) sqlSave(ctx context.Context) (_node *PaymentO
 	}
 	if value, ok := pouo.mutation.ReceiveAddressText(); ok {
 		_spec.SetField(paymentorder.FieldReceiveAddressText, field.TypeString, value)
+	}
+	if value, ok := pouo.mutation.FeePerTokenUnit(); ok {
+		_spec.SetField(paymentorder.FieldFeePerTokenUnit, field.TypeFloat64, value)
+	}
+	if value, ok := pouo.mutation.AddedFeePerTokenUnit(); ok {
+		_spec.AddField(paymentorder.FieldFeePerTokenUnit, field.TypeFloat64, value)
+	}
+	if value, ok := pouo.mutation.FeeAddress(); ok {
+		_spec.SetField(paymentorder.FieldFeeAddress, field.TypeString, value)
+	}
+	if pouo.mutation.FeeAddressCleared() {
+		_spec.ClearField(paymentorder.FieldFeeAddress, field.TypeString)
 	}
 	if value, ok := pouo.mutation.Label(); ok {
 		_spec.SetField(paymentorder.FieldLabel, field.TypeString, value)

@@ -4609,6 +4609,9 @@ type PaymentOrderMutation struct {
 	tx_hash                *string
 	from_address           *string
 	receive_address_text   *string
+	fee_per_token_unit     *decimal.Decimal
+	addfee_per_token_unit  *decimal.Decimal
+	fee_address            *string
 	label                  *string
 	status                 *paymentorder.Status
 	clearedFields          map[string]struct{}
@@ -5271,6 +5274,111 @@ func (m *PaymentOrderMutation) ResetReceiveAddressText() {
 	m.receive_address_text = nil
 }
 
+// SetFeePerTokenUnit sets the "fee_per_token_unit" field.
+func (m *PaymentOrderMutation) SetFeePerTokenUnit(d decimal.Decimal) {
+	m.fee_per_token_unit = &d
+	m.addfee_per_token_unit = nil
+}
+
+// FeePerTokenUnit returns the value of the "fee_per_token_unit" field in the mutation.
+func (m *PaymentOrderMutation) FeePerTokenUnit() (r decimal.Decimal, exists bool) {
+	v := m.fee_per_token_unit
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFeePerTokenUnit returns the old "fee_per_token_unit" field's value of the PaymentOrder entity.
+// If the PaymentOrder object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PaymentOrderMutation) OldFeePerTokenUnit(ctx context.Context) (v decimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFeePerTokenUnit is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFeePerTokenUnit requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFeePerTokenUnit: %w", err)
+	}
+	return oldValue.FeePerTokenUnit, nil
+}
+
+// AddFeePerTokenUnit adds d to the "fee_per_token_unit" field.
+func (m *PaymentOrderMutation) AddFeePerTokenUnit(d decimal.Decimal) {
+	if m.addfee_per_token_unit != nil {
+		*m.addfee_per_token_unit = m.addfee_per_token_unit.Add(d)
+	} else {
+		m.addfee_per_token_unit = &d
+	}
+}
+
+// AddedFeePerTokenUnit returns the value that was added to the "fee_per_token_unit" field in this mutation.
+func (m *PaymentOrderMutation) AddedFeePerTokenUnit() (r decimal.Decimal, exists bool) {
+	v := m.addfee_per_token_unit
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetFeePerTokenUnit resets all changes to the "fee_per_token_unit" field.
+func (m *PaymentOrderMutation) ResetFeePerTokenUnit() {
+	m.fee_per_token_unit = nil
+	m.addfee_per_token_unit = nil
+}
+
+// SetFeeAddress sets the "fee_address" field.
+func (m *PaymentOrderMutation) SetFeeAddress(s string) {
+	m.fee_address = &s
+}
+
+// FeeAddress returns the value of the "fee_address" field in the mutation.
+func (m *PaymentOrderMutation) FeeAddress() (r string, exists bool) {
+	v := m.fee_address
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFeeAddress returns the old "fee_address" field's value of the PaymentOrder entity.
+// If the PaymentOrder object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PaymentOrderMutation) OldFeeAddress(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFeeAddress is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFeeAddress requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFeeAddress: %w", err)
+	}
+	return oldValue.FeeAddress, nil
+}
+
+// ClearFeeAddress clears the value of the "fee_address" field.
+func (m *PaymentOrderMutation) ClearFeeAddress() {
+	m.fee_address = nil
+	m.clearedFields[paymentorder.FieldFeeAddress] = struct{}{}
+}
+
+// FeeAddressCleared returns if the "fee_address" field was cleared in this mutation.
+func (m *PaymentOrderMutation) FeeAddressCleared() bool {
+	_, ok := m.clearedFields[paymentorder.FieldFeeAddress]
+	return ok
+}
+
+// ResetFeeAddress resets all changes to the "fee_address" field.
+func (m *PaymentOrderMutation) ResetFeeAddress() {
+	m.fee_address = nil
+	delete(m.clearedFields, paymentorder.FieldFeeAddress)
+}
+
 // SetLabel sets the "label" field.
 func (m *PaymentOrderMutation) SetLabel(s string) {
 	m.label = &s
@@ -5533,7 +5641,7 @@ func (m *PaymentOrderMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *PaymentOrderMutation) Fields() []string {
-	fields := make([]string, 0, 13)
+	fields := make([]string, 0, 15)
 	if m.created_at != nil {
 		fields = append(fields, paymentorder.FieldCreatedAt)
 	}
@@ -5566,6 +5674,12 @@ func (m *PaymentOrderMutation) Fields() []string {
 	}
 	if m.receive_address_text != nil {
 		fields = append(fields, paymentorder.FieldReceiveAddressText)
+	}
+	if m.fee_per_token_unit != nil {
+		fields = append(fields, paymentorder.FieldFeePerTokenUnit)
+	}
+	if m.fee_address != nil {
+		fields = append(fields, paymentorder.FieldFeeAddress)
 	}
 	if m.label != nil {
 		fields = append(fields, paymentorder.FieldLabel)
@@ -5603,6 +5717,10 @@ func (m *PaymentOrderMutation) Field(name string) (ent.Value, bool) {
 		return m.FromAddress()
 	case paymentorder.FieldReceiveAddressText:
 		return m.ReceiveAddressText()
+	case paymentorder.FieldFeePerTokenUnit:
+		return m.FeePerTokenUnit()
+	case paymentorder.FieldFeeAddress:
+		return m.FeeAddress()
 	case paymentorder.FieldLabel:
 		return m.Label()
 	case paymentorder.FieldStatus:
@@ -5638,6 +5756,10 @@ func (m *PaymentOrderMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldFromAddress(ctx)
 	case paymentorder.FieldReceiveAddressText:
 		return m.OldReceiveAddressText(ctx)
+	case paymentorder.FieldFeePerTokenUnit:
+		return m.OldFeePerTokenUnit(ctx)
+	case paymentorder.FieldFeeAddress:
+		return m.OldFeeAddress(ctx)
 	case paymentorder.FieldLabel:
 		return m.OldLabel(ctx)
 	case paymentorder.FieldStatus:
@@ -5728,6 +5850,20 @@ func (m *PaymentOrderMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetReceiveAddressText(v)
 		return nil
+	case paymentorder.FieldFeePerTokenUnit:
+		v, ok := value.(decimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFeePerTokenUnit(v)
+		return nil
+	case paymentorder.FieldFeeAddress:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFeeAddress(v)
+		return nil
 	case paymentorder.FieldLabel:
 		v, ok := value.(string)
 		if !ok {
@@ -5768,6 +5904,9 @@ func (m *PaymentOrderMutation) AddedFields() []string {
 	if m.addrate != nil {
 		fields = append(fields, paymentorder.FieldRate)
 	}
+	if m.addfee_per_token_unit != nil {
+		fields = append(fields, paymentorder.FieldFeePerTokenUnit)
+	}
 	return fields
 }
 
@@ -5788,6 +5927,8 @@ func (m *PaymentOrderMutation) AddedField(name string) (ent.Value, bool) {
 		return m.AddedNetworkFee()
 	case paymentorder.FieldRate:
 		return m.AddedRate()
+	case paymentorder.FieldFeePerTokenUnit:
+		return m.AddedFeePerTokenUnit()
 	}
 	return nil, false
 }
@@ -5839,6 +5980,13 @@ func (m *PaymentOrderMutation) AddField(name string, value ent.Value) error {
 		}
 		m.AddRate(v)
 		return nil
+	case paymentorder.FieldFeePerTokenUnit:
+		v, ok := value.(decimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddFeePerTokenUnit(v)
+		return nil
 	}
 	return fmt.Errorf("unknown PaymentOrder numeric field %s", name)
 }
@@ -5852,6 +6000,9 @@ func (m *PaymentOrderMutation) ClearedFields() []string {
 	}
 	if m.FieldCleared(paymentorder.FieldFromAddress) {
 		fields = append(fields, paymentorder.FieldFromAddress)
+	}
+	if m.FieldCleared(paymentorder.FieldFeeAddress) {
+		fields = append(fields, paymentorder.FieldFeeAddress)
 	}
 	return fields
 }
@@ -5872,6 +6023,9 @@ func (m *PaymentOrderMutation) ClearField(name string) error {
 		return nil
 	case paymentorder.FieldFromAddress:
 		m.ClearFromAddress()
+		return nil
+	case paymentorder.FieldFeeAddress:
+		m.ClearFeeAddress()
 		return nil
 	}
 	return fmt.Errorf("unknown PaymentOrder nullable field %s", name)
@@ -5913,6 +6067,12 @@ func (m *PaymentOrderMutation) ResetField(name string) error {
 		return nil
 	case paymentorder.FieldReceiveAddressText:
 		m.ResetReceiveAddressText()
+		return nil
+	case paymentorder.FieldFeePerTokenUnit:
+		m.ResetFeePerTokenUnit()
+		return nil
+	case paymentorder.FieldFeeAddress:
+		m.ResetFeeAddress()
 		return nil
 	case paymentorder.FieldLabel:
 		m.ResetLabel()
@@ -11596,6 +11756,7 @@ type SenderProfileMutation struct {
 	refund_address         *string
 	domain_whitelist       *[]string
 	appenddomain_whitelist []string
+	is_partner             *bool
 	is_active              *bool
 	updated_at             *time.Time
 	clearedFields          map[string]struct{}
@@ -11969,6 +12130,42 @@ func (m *SenderProfileMutation) ResetDomainWhitelist() {
 	m.appenddomain_whitelist = nil
 }
 
+// SetIsPartner sets the "is_partner" field.
+func (m *SenderProfileMutation) SetIsPartner(b bool) {
+	m.is_partner = &b
+}
+
+// IsPartner returns the value of the "is_partner" field in the mutation.
+func (m *SenderProfileMutation) IsPartner() (r bool, exists bool) {
+	v := m.is_partner
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIsPartner returns the old "is_partner" field's value of the SenderProfile entity.
+// If the SenderProfile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SenderProfileMutation) OldIsPartner(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIsPartner is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIsPartner requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIsPartner: %w", err)
+	}
+	return oldValue.IsPartner, nil
+}
+
+// ResetIsPartner resets all changes to the "is_partner" field.
+func (m *SenderProfileMutation) ResetIsPartner() {
+	m.is_partner = nil
+}
+
 // SetIsActive sets the "is_active" field.
 func (m *SenderProfileMutation) SetIsActive(b bool) {
 	m.is_active = &b
@@ -12207,7 +12404,7 @@ func (m *SenderProfileMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *SenderProfileMutation) Fields() []string {
-	fields := make([]string, 0, 7)
+	fields := make([]string, 0, 8)
 	if m.webhook_url != nil {
 		fields = append(fields, senderprofile.FieldWebhookURL)
 	}
@@ -12222,6 +12419,9 @@ func (m *SenderProfileMutation) Fields() []string {
 	}
 	if m.domain_whitelist != nil {
 		fields = append(fields, senderprofile.FieldDomainWhitelist)
+	}
+	if m.is_partner != nil {
+		fields = append(fields, senderprofile.FieldIsPartner)
 	}
 	if m.is_active != nil {
 		fields = append(fields, senderprofile.FieldIsActive)
@@ -12247,6 +12447,8 @@ func (m *SenderProfileMutation) Field(name string) (ent.Value, bool) {
 		return m.RefundAddress()
 	case senderprofile.FieldDomainWhitelist:
 		return m.DomainWhitelist()
+	case senderprofile.FieldIsPartner:
+		return m.IsPartner()
 	case senderprofile.FieldIsActive:
 		return m.IsActive()
 	case senderprofile.FieldUpdatedAt:
@@ -12270,6 +12472,8 @@ func (m *SenderProfileMutation) OldField(ctx context.Context, name string) (ent.
 		return m.OldRefundAddress(ctx)
 	case senderprofile.FieldDomainWhitelist:
 		return m.OldDomainWhitelist(ctx)
+	case senderprofile.FieldIsPartner:
+		return m.OldIsPartner(ctx)
 	case senderprofile.FieldIsActive:
 		return m.OldIsActive(ctx)
 	case senderprofile.FieldUpdatedAt:
@@ -12317,6 +12521,13 @@ func (m *SenderProfileMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetDomainWhitelist(v)
+		return nil
+	case senderprofile.FieldIsPartner:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIsPartner(v)
 		return nil
 	case senderprofile.FieldIsActive:
 		v, ok := value.(bool)
@@ -12431,6 +12642,9 @@ func (m *SenderProfileMutation) ResetField(name string) error {
 		return nil
 	case senderprofile.FieldDomainWhitelist:
 		m.ResetDomainWhitelist()
+		return nil
+	case senderprofile.FieldIsPartner:
+		m.ResetIsPartner()
 		return nil
 	case senderprofile.FieldIsActive:
 		m.ResetIsActive()

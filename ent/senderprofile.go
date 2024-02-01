@@ -32,6 +32,8 @@ type SenderProfile struct {
 	RefundAddress string `json:"refund_address,omitempty"`
 	// DomainWhitelist holds the value of the "domain_whitelist" field.
 	DomainWhitelist []string `json:"domain_whitelist,omitempty"`
+	// IsPartner holds the value of the "is_partner" field.
+	IsPartner bool `json:"is_partner,omitempty"`
 	// IsActive holds the value of the "is_active" field.
 	IsActive bool `json:"is_active,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
@@ -100,7 +102,7 @@ func (*SenderProfile) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case senderprofile.FieldFeePerTokenUnit:
 			values[i] = new(decimal.Decimal)
-		case senderprofile.FieldIsActive:
+		case senderprofile.FieldIsPartner, senderprofile.FieldIsActive:
 			values[i] = new(sql.NullBool)
 		case senderprofile.FieldWebhookURL, senderprofile.FieldFeeAddress, senderprofile.FieldRefundAddress:
 			values[i] = new(sql.NullString)
@@ -162,6 +164,12 @@ func (sp *SenderProfile) assignValues(columns []string, values []any) error {
 				if err := json.Unmarshal(*value, &sp.DomainWhitelist); err != nil {
 					return fmt.Errorf("unmarshal field domain_whitelist: %w", err)
 				}
+			}
+		case senderprofile.FieldIsPartner:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field is_partner", values[i])
+			} else if value.Valid {
+				sp.IsPartner = value.Bool
 			}
 		case senderprofile.FieldIsActive:
 			if value, ok := values[i].(*sql.NullBool); !ok {
@@ -247,6 +255,9 @@ func (sp *SenderProfile) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("domain_whitelist=")
 	builder.WriteString(fmt.Sprintf("%v", sp.DomainWhitelist))
+	builder.WriteString(", ")
+	builder.WriteString("is_partner=")
+	builder.WriteString(fmt.Sprintf("%v", sp.IsPartner))
 	builder.WriteString(", ")
 	builder.WriteString("is_active=")
 	builder.WriteString(fmt.Sprintf("%v", sp.IsActive))

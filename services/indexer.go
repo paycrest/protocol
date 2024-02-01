@@ -182,6 +182,15 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 					orderAmountWithFeesInSubunit := utils.ToSubunit(orderAmountWithFees, token.Decimals)
 					comparisonResult := transferEvent.Value.Cmp(orderAmountWithFeesInSubunit)
 
+					_, err = paymentOrder.
+						Update().
+						SetFromAddress(transferEvent.From.Hex()).
+						Save(ctx)
+					if err != nil {
+						logger.Errorf("IndexERC20Transfer.db: %v", err)
+						return false, nil
+					}
+
 					if comparisonResult == 0 {
 						// Transfer value equals order amount with fees
 						_, err = receiveAddress.
@@ -207,15 +216,6 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 								SetStatus(receiveaddress.StatusUsed).
 								SetLastUsed(time.Now()).
 								SetLastIndexedBlock(query.ToBlock.Int64()).
-								Save(ctx)
-							if err != nil {
-								logger.Errorf("IndexERC20Transfer.db: %v", err)
-								return false, nil
-							}
-
-							_, err = paymentOrder.
-								Update().
-								SetFromAddress(transferEvent.From.Hex()).
 								Save(ctx)
 							if err != nil {
 								logger.Errorf("IndexERC20Transfer.db: %v", err)
@@ -259,15 +259,6 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 							SetStatus(receiveaddress.StatusUsed).
 							SetLastUsed(time.Now()).
 							SetLastIndexedBlock(query.ToBlock.Int64()).
-							Save(ctx)
-						if err != nil {
-							logger.Errorf("IndexERC20Transfer.db: %v", err)
-							return false, nil
-						}
-
-						_, err = paymentOrder.
-							Update().
-							SetFromAddress(transferEvent.From.Hex()).
 							Save(ctx)
 						if err != nil {
 							logger.Errorf("IndexERC20Transfer.db: %v", err)

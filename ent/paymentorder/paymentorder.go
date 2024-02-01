@@ -38,6 +38,10 @@ const (
 	FieldFromAddress = "from_address"
 	// FieldReceiveAddressText holds the string denoting the receive_address_text field in the database.
 	FieldReceiveAddressText = "receive_address_text"
+	// FieldFeePerTokenUnit holds the string denoting the fee_per_token_unit field in the database.
+	FieldFeePerTokenUnit = "fee_per_token_unit"
+	// FieldFeeAddress holds the string denoting the fee_address field in the database.
+	FieldFeeAddress = "fee_address"
 	// FieldLabel holds the string denoting the label field in the database.
 	FieldLabel = "label"
 	// FieldStatus holds the string denoting the status field in the database.
@@ -96,6 +100,8 @@ var Columns = []string{
 	FieldTxHash,
 	FieldFromAddress,
 	FieldReceiveAddressText,
+	FieldFeePerTokenUnit,
+	FieldFeeAddress,
 	FieldLabel,
 	FieldStatus,
 }
@@ -231,6 +237,16 @@ func ByFromAddress(opts ...sql.OrderTermOption) OrderOption {
 // ByReceiveAddressText orders the results by the receive_address_text field.
 func ByReceiveAddressText(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldReceiveAddressText, opts...).ToFunc()
+}
+
+// ByFeePerTokenUnit orders the results by the fee_per_token_unit field.
+func ByFeePerTokenUnit(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFeePerTokenUnit, opts...).ToFunc()
+}
+
+// ByFeeAddress orders the results by the fee_address field.
+func ByFeeAddress(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFeeAddress, opts...).ToFunc()
 }
 
 // ByLabel orders the results by the label field.

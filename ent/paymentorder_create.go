@@ -124,6 +124,26 @@ func (poc *PaymentOrderCreate) SetReceiveAddressText(s string) *PaymentOrderCrea
 	return poc
 }
 
+// SetFeePerTokenUnit sets the "fee_per_token_unit" field.
+func (poc *PaymentOrderCreate) SetFeePerTokenUnit(d decimal.Decimal) *PaymentOrderCreate {
+	poc.mutation.SetFeePerTokenUnit(d)
+	return poc
+}
+
+// SetFeeAddress sets the "fee_address" field.
+func (poc *PaymentOrderCreate) SetFeeAddress(s string) *PaymentOrderCreate {
+	poc.mutation.SetFeeAddress(s)
+	return poc
+}
+
+// SetNillableFeeAddress sets the "fee_address" field if the given value is not nil.
+func (poc *PaymentOrderCreate) SetNillableFeeAddress(s *string) *PaymentOrderCreate {
+	if s != nil {
+		poc.SetFeeAddress(*s)
+	}
+	return poc
+}
+
 // SetLabel sets the "label" field.
 func (poc *PaymentOrderCreate) SetLabel(s string) *PaymentOrderCreate {
 	poc.mutation.SetLabel(s)
@@ -315,6 +335,9 @@ func (poc *PaymentOrderCreate) check() error {
 			return &ValidationError{Name: "receive_address_text", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.receive_address_text": %w`, err)}
 		}
 	}
+	if _, ok := poc.mutation.FeePerTokenUnit(); !ok {
+		return &ValidationError{Name: "fee_per_token_unit", err: errors.New(`ent: missing required field "PaymentOrder.fee_per_token_unit"`)}
+	}
 	if _, ok := poc.mutation.Label(); !ok {
 		return &ValidationError{Name: "label", err: errors.New(`ent: missing required field "PaymentOrder.label"`)}
 	}
@@ -410,6 +433,14 @@ func (poc *PaymentOrderCreate) createSpec() (*PaymentOrder, *sqlgraph.CreateSpec
 	if value, ok := poc.mutation.ReceiveAddressText(); ok {
 		_spec.SetField(paymentorder.FieldReceiveAddressText, field.TypeString, value)
 		_node.ReceiveAddressText = value
+	}
+	if value, ok := poc.mutation.FeePerTokenUnit(); ok {
+		_spec.SetField(paymentorder.FieldFeePerTokenUnit, field.TypeFloat64, value)
+		_node.FeePerTokenUnit = value
+	}
+	if value, ok := poc.mutation.FeeAddress(); ok {
+		_spec.SetField(paymentorder.FieldFeeAddress, field.TypeString, value)
+		_node.FeeAddress = value
 	}
 	if value, ok := poc.mutation.Label(); ok {
 		_spec.SetField(paymentorder.FieldLabel, field.TypeString, value)

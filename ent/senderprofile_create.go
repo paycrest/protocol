@@ -79,6 +79,20 @@ func (spc *SenderProfileCreate) SetDomainWhitelist(s []string) *SenderProfileCre
 	return spc
 }
 
+// SetIsPartner sets the "is_partner" field.
+func (spc *SenderProfileCreate) SetIsPartner(b bool) *SenderProfileCreate {
+	spc.mutation.SetIsPartner(b)
+	return spc
+}
+
+// SetNillableIsPartner sets the "is_partner" field if the given value is not nil.
+func (spc *SenderProfileCreate) SetNillableIsPartner(b *bool) *SenderProfileCreate {
+	if b != nil {
+		spc.SetIsPartner(*b)
+	}
+	return spc
+}
+
 // SetIsActive sets the "is_active" field.
 func (spc *SenderProfileCreate) SetIsActive(b bool) *SenderProfileCreate {
 	spc.mutation.SetIsActive(b)
@@ -205,6 +219,10 @@ func (spc *SenderProfileCreate) defaults() {
 		v := senderprofile.DefaultDomainWhitelist
 		spc.mutation.SetDomainWhitelist(v)
 	}
+	if _, ok := spc.mutation.IsPartner(); !ok {
+		v := senderprofile.DefaultIsPartner
+		spc.mutation.SetIsPartner(v)
+	}
 	if _, ok := spc.mutation.IsActive(); !ok {
 		v := senderprofile.DefaultIsActive
 		spc.mutation.SetIsActive(v)
@@ -226,6 +244,9 @@ func (spc *SenderProfileCreate) check() error {
 	}
 	if _, ok := spc.mutation.DomainWhitelist(); !ok {
 		return &ValidationError{Name: "domain_whitelist", err: errors.New(`ent: missing required field "SenderProfile.domain_whitelist"`)}
+	}
+	if _, ok := spc.mutation.IsPartner(); !ok {
+		return &ValidationError{Name: "is_partner", err: errors.New(`ent: missing required field "SenderProfile.is_partner"`)}
 	}
 	if _, ok := spc.mutation.IsActive(); !ok {
 		return &ValidationError{Name: "is_active", err: errors.New(`ent: missing required field "SenderProfile.is_active"`)}
@@ -290,6 +311,10 @@ func (spc *SenderProfileCreate) createSpec() (*SenderProfile, *sqlgraph.CreateSp
 	if value, ok := spc.mutation.DomainWhitelist(); ok {
 		_spec.SetField(senderprofile.FieldDomainWhitelist, field.TypeJSON, value)
 		_node.DomainWhitelist = value
+	}
+	if value, ok := spc.mutation.IsPartner(); ok {
+		_spec.SetField(senderprofile.FieldIsPartner, field.TypeBool, value)
+		_node.IsPartner = value
 	}
 	if value, ok := spc.mutation.IsActive(); ok {
 		_spec.SetField(senderprofile.FieldIsActive, field.TypeBool, value)
