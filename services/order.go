@@ -221,7 +221,7 @@ func (s *OrderService) RevertOrder(ctx context.Context, order *ent.PaymentOrder,
 	}
 
 	// Subtract the network fee from the amount
-	amountMinusFee := amountToRevert.Sub(OrderConf.NetworkFee)
+	amountMinusFee := amountToRevert.Sub(order.NetworkFee)
 
 	// If amount minus fee is less than zero, return
 	if amountMinusFee.LessThan(decimal.Zero) {
@@ -548,9 +548,12 @@ func (s *OrderService) createOrderCallData(order *ent.PaymentOrder) ([]byte, err
 		return nil, fmt.Errorf("failed to encrypt recipient details: %w", err)
 	}
 
-	// Calculate sender fee
-	feePerTokenUnit := order.Edges.SenderProfile.FeePerTokenUnit
-	senderFee := feePerTokenUnit.Mul(order.Amount)
+	var refundAddress common.Address
+	if order.Edges.SenderProfile.RefundAddress != "" {
+		refundAddress = common.HexToAddress(order.FromAddress)
+	} else {
+		refundAddress = common.HexToAddress(order.Edges.SenderProfile.RefundAddress)
+	}
 
 	// Define params
 	params := &CreateOrderParams{
@@ -559,9 +562,9 @@ func (s *OrderService) createOrderCallData(order *ent.PaymentOrder) ([]byte, err
 		InstitutionCode:    utils.StringToByte32(order.Edges.Recipient.Institution),
 		Label:              utils.StringToByte32(order.Label),
 		Rate:               order.Rate.BigInt(),
-		SenderFeeRecipient: common.HexToAddress("0x3870419Ba2BBf0127060bCB37f69A1b1C090992B"),
-		SenderFee:          senderFee.BigInt(),
-		RefundAddress:      common.HexToAddress("0x3870419Ba2BBf0127060bCB37f69A1b1C090992B"),
+		SenderFeeRecipient: common.HexToAddress(order.FeeAddress),
+		SenderFee:          order.SenderFee.BigInt(),
+		RefundAddress:      refundAddress,
 		MessageHash:        encryptedOrderRecipient,
 	}
 

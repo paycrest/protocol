@@ -77,6 +77,11 @@ func RefundAddress(v string) predicate.SenderProfile {
 	return predicate.SenderProfile(sql.FieldEQ(FieldRefundAddress, v))
 }
 
+// IsPartner applies equality check predicate on the "is_partner" field. It's identical to IsPartnerEQ.
+func IsPartner(v bool) predicate.SenderProfile {
+	return predicate.SenderProfile(sql.FieldEQ(FieldIsPartner, v))
+}
+
 // IsActive applies equality check predicate on the "is_active" field. It's identical to IsActiveEQ.
 func IsActive(v bool) predicate.SenderProfile {
 	return predicate.SenderProfile(sql.FieldEQ(FieldIsActive, v))
@@ -350,6 +355,16 @@ func RefundAddressEqualFold(v string) predicate.SenderProfile {
 // RefundAddressContainsFold applies the ContainsFold predicate on the "refund_address" field.
 func RefundAddressContainsFold(v string) predicate.SenderProfile {
 	return predicate.SenderProfile(sql.FieldContainsFold(FieldRefundAddress, v))
+}
+
+// IsPartnerEQ applies the EQ predicate on the "is_partner" field.
+func IsPartnerEQ(v bool) predicate.SenderProfile {
+	return predicate.SenderProfile(sql.FieldEQ(FieldIsPartner, v))
+}
+
+// IsPartnerNEQ applies the NEQ predicate on the "is_partner" field.
+func IsPartnerNEQ(v bool) predicate.SenderProfile {
+	return predicate.SenderProfile(sql.FieldNEQ(FieldIsPartner, v))
 }
 
 // IsActiveEQ applies the EQ predicate on the "is_active" field.

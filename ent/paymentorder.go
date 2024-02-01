@@ -45,6 +45,10 @@ type PaymentOrder struct {
 	FromAddress string `json:"from_address,omitempty"`
 	// ReceiveAddressText holds the value of the "receive_address_text" field.
 	ReceiveAddressText string `json:"receive_address_text,omitempty"`
+	// FeePerTokenUnit holds the value of the "fee_per_token_unit" field.
+	FeePerTokenUnit decimal.Decimal `json:"fee_per_token_unit,omitempty"`
+	// FeeAddress holds the value of the "fee_address" field.
+	FeeAddress string `json:"fee_address,omitempty"`
 	// Label holds the value of the "label" field.
 	Label string `json:"label,omitempty"`
 	// Status holds the value of the "status" field.
@@ -130,9 +134,9 @@ func (*PaymentOrder) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case paymentorder.FieldAmount, paymentorder.FieldAmountPaid, paymentorder.FieldAmountReturned, paymentorder.FieldSenderFee, paymentorder.FieldNetworkFee, paymentorder.FieldRate:
+		case paymentorder.FieldAmount, paymentorder.FieldAmountPaid, paymentorder.FieldAmountReturned, paymentorder.FieldSenderFee, paymentorder.FieldNetworkFee, paymentorder.FieldRate, paymentorder.FieldFeePerTokenUnit:
 			values[i] = new(decimal.Decimal)
-		case paymentorder.FieldTxHash, paymentorder.FieldFromAddress, paymentorder.FieldReceiveAddressText, paymentorder.FieldLabel, paymentorder.FieldStatus:
+		case paymentorder.FieldTxHash, paymentorder.FieldFromAddress, paymentorder.FieldReceiveAddressText, paymentorder.FieldFeeAddress, paymentorder.FieldLabel, paymentorder.FieldStatus:
 			values[i] = new(sql.NullString)
 		case paymentorder.FieldCreatedAt, paymentorder.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -230,6 +234,18 @@ func (po *PaymentOrder) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field receive_address_text", values[i])
 			} else if value.Valid {
 				po.ReceiveAddressText = value.String
+			}
+		case paymentorder.FieldFeePerTokenUnit:
+			if value, ok := values[i].(*decimal.Decimal); !ok {
+				return fmt.Errorf("unexpected type %T for field fee_per_token_unit", values[i])
+			} else if value != nil {
+				po.FeePerTokenUnit = *value
+			}
+		case paymentorder.FieldFeeAddress:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field fee_address", values[i])
+			} else if value.Valid {
+				po.FeeAddress = value.String
 			}
 		case paymentorder.FieldLabel:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -352,6 +368,12 @@ func (po *PaymentOrder) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("receive_address_text=")
 	builder.WriteString(po.ReceiveAddressText)
+	builder.WriteString(", ")
+	builder.WriteString("fee_per_token_unit=")
+	builder.WriteString(fmt.Sprintf("%v", po.FeePerTokenUnit))
+	builder.WriteString(", ")
+	builder.WriteString("fee_address=")
+	builder.WriteString(po.FeeAddress)
 	builder.WriteString(", ")
 	builder.WriteString("label=")
 	builder.WriteString(po.Label)

@@ -112,6 +112,16 @@ func ReceiveAddressText(v string) predicate.PaymentOrder {
 	return predicate.PaymentOrder(sql.FieldEQ(FieldReceiveAddressText, v))
 }
 
+// FeePerTokenUnit applies equality check predicate on the "fee_per_token_unit" field. It's identical to FeePerTokenUnitEQ.
+func FeePerTokenUnit(v decimal.Decimal) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldEQ(FieldFeePerTokenUnit, v))
+}
+
+// FeeAddress applies equality check predicate on the "fee_address" field. It's identical to FeeAddressEQ.
+func FeeAddress(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldEQ(FieldFeeAddress, v))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.PaymentOrder {
 	return predicate.PaymentOrder(sql.FieldEQ(FieldCreatedAt, v))
@@ -645,6 +655,121 @@ func ReceiveAddressTextEqualFold(v string) predicate.PaymentOrder {
 // ReceiveAddressTextContainsFold applies the ContainsFold predicate on the "receive_address_text" field.
 func ReceiveAddressTextContainsFold(v string) predicate.PaymentOrder {
 	return predicate.PaymentOrder(sql.FieldContainsFold(FieldReceiveAddressText, v))
+}
+
+// FeePerTokenUnitEQ applies the EQ predicate on the "fee_per_token_unit" field.
+func FeePerTokenUnitEQ(v decimal.Decimal) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldEQ(FieldFeePerTokenUnit, v))
+}
+
+// FeePerTokenUnitNEQ applies the NEQ predicate on the "fee_per_token_unit" field.
+func FeePerTokenUnitNEQ(v decimal.Decimal) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldNEQ(FieldFeePerTokenUnit, v))
+}
+
+// FeePerTokenUnitIn applies the In predicate on the "fee_per_token_unit" field.
+func FeePerTokenUnitIn(vs ...decimal.Decimal) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldIn(FieldFeePerTokenUnit, vs...))
+}
+
+// FeePerTokenUnitNotIn applies the NotIn predicate on the "fee_per_token_unit" field.
+func FeePerTokenUnitNotIn(vs ...decimal.Decimal) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldNotIn(FieldFeePerTokenUnit, vs...))
+}
+
+// FeePerTokenUnitGT applies the GT predicate on the "fee_per_token_unit" field.
+func FeePerTokenUnitGT(v decimal.Decimal) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldGT(FieldFeePerTokenUnit, v))
+}
+
+// FeePerTokenUnitGTE applies the GTE predicate on the "fee_per_token_unit" field.
+func FeePerTokenUnitGTE(v decimal.Decimal) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldGTE(FieldFeePerTokenUnit, v))
+}
+
+// FeePerTokenUnitLT applies the LT predicate on the "fee_per_token_unit" field.
+func FeePerTokenUnitLT(v decimal.Decimal) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldLT(FieldFeePerTokenUnit, v))
+}
+
+// FeePerTokenUnitLTE applies the LTE predicate on the "fee_per_token_unit" field.
+func FeePerTokenUnitLTE(v decimal.Decimal) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldLTE(FieldFeePerTokenUnit, v))
+}
+
+// FeeAddressEQ applies the EQ predicate on the "fee_address" field.
+func FeeAddressEQ(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldEQ(FieldFeeAddress, v))
+}
+
+// FeeAddressNEQ applies the NEQ predicate on the "fee_address" field.
+func FeeAddressNEQ(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldNEQ(FieldFeeAddress, v))
+}
+
+// FeeAddressIn applies the In predicate on the "fee_address" field.
+func FeeAddressIn(vs ...string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldIn(FieldFeeAddress, vs...))
+}
+
+// FeeAddressNotIn applies the NotIn predicate on the "fee_address" field.
+func FeeAddressNotIn(vs ...string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldNotIn(FieldFeeAddress, vs...))
+}
+
+// FeeAddressGT applies the GT predicate on the "fee_address" field.
+func FeeAddressGT(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldGT(FieldFeeAddress, v))
+}
+
+// FeeAddressGTE applies the GTE predicate on the "fee_address" field.
+func FeeAddressGTE(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldGTE(FieldFeeAddress, v))
+}
+
+// FeeAddressLT applies the LT predicate on the "fee_address" field.
+func FeeAddressLT(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldLT(FieldFeeAddress, v))
+}
+
+// FeeAddressLTE applies the LTE predicate on the "fee_address" field.
+func FeeAddressLTE(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldLTE(FieldFeeAddress, v))
+}
+
+// FeeAddressContains applies the Contains predicate on the "fee_address" field.
+func FeeAddressContains(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldContains(FieldFeeAddress, v))
+}
+
+// FeeAddressHasPrefix applies the HasPrefix predicate on the "fee_address" field.
+func FeeAddressHasPrefix(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldHasPrefix(FieldFeeAddress, v))
+}
+
+// FeeAddressHasSuffix applies the HasSuffix predicate on the "fee_address" field.
+func FeeAddressHasSuffix(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldHasSuffix(FieldFeeAddress, v))
+}
+
+// FeeAddressIsNil applies the IsNil predicate on the "fee_address" field.
+func FeeAddressIsNil() predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldIsNull(FieldFeeAddress))
+}
+
+// FeeAddressNotNil applies the NotNil predicate on the "fee_address" field.
+func FeeAddressNotNil() predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldNotNull(FieldFeeAddress))
+}
+
+// FeeAddressEqualFold applies the EqualFold predicate on the "fee_address" field.
+func FeeAddressEqualFold(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldEqualFold(FieldFeeAddress, v))
+}
+
+// FeeAddressContainsFold applies the ContainsFold predicate on the "fee_address" field.
+func FeeAddressContainsFold(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldContainsFold(FieldFeeAddress, v))
 }
 
 // LabelEQ applies the EQ predicate on the "label" field.

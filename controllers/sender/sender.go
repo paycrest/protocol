@@ -81,8 +81,10 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 		WithNetwork().
 		Only(ctx)
 	if err != nil {
-		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusBadRequest, "error", "Provided token is not supported", nil)
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
+			Field:   "Token",
+			Message: "Provided token is not supported",
+		})
 		return
 	}
 
@@ -101,7 +103,10 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 	}
 
 	if labelExists {
-		u.APIResponse(ctx, http.StatusBadRequest, "error", "Label already exists", nil)
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
+			Field:   "Label",
+			Message: "Label already exists",
+		})
 		return
 	}
 
@@ -121,9 +126,37 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 		return
 	}
 
-	// Calculate fees
-	senderFee := sender.FeePerTokenUnit.Mul(payload.Amount).Div(payload.Rate)
-	networkFee := decimal.NewFromFloat(1.0) // TODO: calculate network fee
+	// Handle sender profile overrides
+	var feePerTokenUnit decimal.Decimal
+	var feeAddress string
+
+	if payload.FeePerTokenUnit.IsZero() {
+		feePerTokenUnit = sender.FeePerTokenUnit
+	} else {
+		feePerTokenUnit = payload.FeePerTokenUnit
+	}
+
+	if payload.FeeAddress == "" {
+		feeAddress = sender.FeeAddress
+	} else {
+		if !sender.IsPartner {
+			u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
+				Field:   "FeeAddress",
+				Message: "FeeAddress is not allowed",
+			})
+			return
+		}
+		if !u.IsValidEthereumAddress(payload.FeeAddress) {
+			u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
+				Field:   "FeeAddress",
+				Message: "Invalid Ethereum address",
+			})
+			return
+		}
+		feeAddress = payload.FeeAddress
+	}
+
+	senderFee := feePerTokenUnit.Mul(payload.Amount).Div(payload.Rate)
 
 	// Create payment order
 	paymentOrder, err := tx.PaymentOrder.
@@ -132,13 +165,15 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 		SetAmount(payload.Amount).
 		SetAmountPaid(decimal.NewFromInt(0)).
 		SetAmountReturned(decimal.NewFromInt(0)).
-		SetNetworkFee(decimal.NewFromInt(0)).
+		SetNetworkFee(svc.OrderConf.NetworkFee).
 		SetSenderFee(senderFee).
 		SetToken(token).
 		SetLabel(payload.Label).
 		SetRate(payload.Rate).
 		SetReceiveAddress(receiveAddress).
 		SetReceiveAddressText(receiveAddress.Address).
+		SetFeePerTokenUnit(feePerTokenUnit).
+		SetFeeAddress(feeAddress).
 		Save(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
@@ -184,7 +219,7 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 			ReceiveAddress: receiveAddress.Address,
 			ValidUntil:     receiveAddress.ValidUntil,
 			SenderFee:      senderFee,
-			NetworkFee:     networkFee,
+			NetworkFee:     svc.OrderConf.NetworkFee,
 		})
 }
 

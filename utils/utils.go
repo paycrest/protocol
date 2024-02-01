@@ -338,3 +338,10 @@ func IsValidFileURL(url string) bool {
 	matched, _ := regexp.MatchString(pattern, url)
 	return matched
 }
+
+// IsValidEthereumAddress checks if a string is a valid Ethereum address
+func IsValidEthereumAddress(address string) bool {
+	pattern := `^0x[a-fA-F0-9]{40}$`
+	matched, _ := regexp.MatchString(pattern, address)
+	return matched
+}

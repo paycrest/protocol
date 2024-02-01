@@ -267,12 +267,14 @@ type PaymentOrderRecipient struct {
 
 // NewPaymentOrderPayload is the payload for the create payment order endpoint
 type NewPaymentOrderPayload struct {
-	Amount    decimal.Decimal       `json:"amount" binding:"required"`
-	Token     string                `json:"token" binding:"required"`
-	Rate      decimal.Decimal       `json:"rate" binding:"required"`
-	Network   string                `json:"network" binding:"required"`
-	Recipient PaymentOrderRecipient `json:"recipient" binding:"required"`
-	Label     string                `json:"label" binding:"required"`
+	Amount          decimal.Decimal       `json:"amount" binding:"required"`
+	Token           string                `json:"token" binding:"required"`
+	Rate            decimal.Decimal       `json:"rate" binding:"required"`
+	Network         string                `json:"network" binding:"required"`
+	Recipient       PaymentOrderRecipient `json:"recipient" binding:"required"`
+	Label           string                `json:"label" binding:"required"`
+	FeePerTokenUnit decimal.Decimal       `json:"feePerTokenUnit"`
+	FeeAddress      string                `json:"feeAddress"`
 }
 
 // ReceiveAddressResponse is the response type for a receive address
@@ -288,22 +290,23 @@ type ReceiveAddressResponse struct {
 
 // PaymentOrderResponse is the response type for a payment order
 type PaymentOrderResponse struct {
-	ID             uuid.UUID             `json:"id"`
-	Amount         decimal.Decimal       `json:"amount"`
-	AmountPaid     decimal.Decimal       `json:"amountPaid"`
-	AmountReturned decimal.Decimal       `json:"amountReturned"`
-	Token          string                `json:"token"`
-	SenderFee      decimal.Decimal       `json:"senderFee"`
-	NetworkFee     decimal.Decimal       `json:"networkFee"`
-	Rate           decimal.Decimal       `json:"rate"`
-	Network        string                `json:"network"`
-	Label          string                `json:"label"`
-	Recipient      PaymentOrderRecipient `json:"recipient"`
-	FromAddress    string                `json:"fromAddress"`
-	CreatedAt      time.Time             `json:"createdAt"`
-	UpdatedAt      time.Time             `json:"updatedAt"`
-	TxHash         string                `json:"txHash"`
-	Status         paymentorder.Status   `json:"status"`
+	ID              uuid.UUID             `json:"id"`
+	Amount          decimal.Decimal       `json:"amount"`
+	AmountPaid      decimal.Decimal       `json:"amountPaid"`
+	AmountReturned  decimal.Decimal       `json:"amountReturned"`
+	Token           string                `json:"token"`
+	SenderFee       decimal.Decimal       `json:"senderFee"`
+	NetworkFee      decimal.Decimal       `json:"networkFee"`
+	Rate            decimal.Decimal       `json:"rate"`
+	Network         string                `json:"network"`
+	Label           string                `json:"label"`
+	Recipient       PaymentOrderRecipient `json:"recipient"`
+	FromAddress     string                `json:"fromAddress"`
+	FeePerTokenUnit decimal.Decimal       `json:"feePerTokenUnit"`
+	CreatedAt       time.Time             `json:"createdAt"`
+	UpdatedAt       time.Time             `json:"updatedAt"`
+	TxHash          string                `json:"txHash"`
+	Status          paymentorder.Status   `json:"status"`
 }
 
 // PaymentOrderWebhookData is the data type for a payment order webhook

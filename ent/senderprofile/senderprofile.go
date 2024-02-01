@@ -25,6 +25,8 @@ const (
 	FieldRefundAddress = "refund_address"
 	// FieldDomainWhitelist holds the string denoting the domain_whitelist field in the database.
 	FieldDomainWhitelist = "domain_whitelist"
+	// FieldIsPartner holds the string denoting the is_partner field in the database.
+	FieldIsPartner = "is_partner"
 	// FieldIsActive holds the string denoting the is_active field in the database.
 	FieldIsActive = "is_active"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
@@ -68,6 +70,7 @@ var Columns = []string{
 	FieldFeeAddress,
 	FieldRefundAddress,
 	FieldDomainWhitelist,
+	FieldIsPartner,
 	FieldIsActive,
 	FieldUpdatedAt,
 }
@@ -96,6 +99,8 @@ func ValidColumn(column string) bool {
 var (
 	// DefaultDomainWhitelist holds the default value on creation for the "domain_whitelist" field.
 	DefaultDomainWhitelist []string
+	// DefaultIsPartner holds the default value on creation for the "is_partner" field.
+	DefaultIsPartner bool
 	// DefaultIsActive holds the default value on creation for the "is_active" field.
 	DefaultIsActive bool
 	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
@@ -132,6 +137,11 @@ func ByFeeAddress(opts ...sql.OrderTermOption) OrderOption {
 // ByRefundAddress orders the results by the refund_address field.
 func ByRefundAddress(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldRefundAddress, opts...).ToFunc()
+}
+
+// ByIsPartner orders the results by the is_partner field.
+func ByIsPartner(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIsPartner, opts...).ToFunc()
 }
 
 // ByIsActive orders the results by the is_active field.

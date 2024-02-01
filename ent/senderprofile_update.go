@@ -118,6 +118,20 @@ func (spu *SenderProfileUpdate) AppendDomainWhitelist(s []string) *SenderProfile
 	return spu
 }
 
+// SetIsPartner sets the "is_partner" field.
+func (spu *SenderProfileUpdate) SetIsPartner(b bool) *SenderProfileUpdate {
+	spu.mutation.SetIsPartner(b)
+	return spu
+}
+
+// SetNillableIsPartner sets the "is_partner" field if the given value is not nil.
+func (spu *SenderProfileUpdate) SetNillableIsPartner(b *bool) *SenderProfileUpdate {
+	if b != nil {
+		spu.SetIsPartner(*b)
+	}
+	return spu
+}
+
 // SetIsActive sets the "is_active" field.
 func (spu *SenderProfileUpdate) SetIsActive(b bool) *SenderProfileUpdate {
 	spu.mutation.SetIsActive(b)
@@ -291,6 +305,9 @@ func (spu *SenderProfileUpdate) sqlSave(ctx context.Context) (n int, err error) 
 		_spec.AddModifier(func(u *sql.UpdateBuilder) {
 			sqljson.Append(u, senderprofile.FieldDomainWhitelist, value)
 		})
+	}
+	if value, ok := spu.mutation.IsPartner(); ok {
+		_spec.SetField(senderprofile.FieldIsPartner, field.TypeBool, value)
 	}
 	if value, ok := spu.mutation.IsActive(); ok {
 		_spec.SetField(senderprofile.FieldIsActive, field.TypeBool, value)
@@ -474,6 +491,20 @@ func (spuo *SenderProfileUpdateOne) SetDomainWhitelist(s []string) *SenderProfil
 // AppendDomainWhitelist appends s to the "domain_whitelist" field.
 func (spuo *SenderProfileUpdateOne) AppendDomainWhitelist(s []string) *SenderProfileUpdateOne {
 	spuo.mutation.AppendDomainWhitelist(s)
+	return spuo
+}
+
+// SetIsPartner sets the "is_partner" field.
+func (spuo *SenderProfileUpdateOne) SetIsPartner(b bool) *SenderProfileUpdateOne {
+	spuo.mutation.SetIsPartner(b)
+	return spuo
+}
+
+// SetNillableIsPartner sets the "is_partner" field if the given value is not nil.
+func (spuo *SenderProfileUpdateOne) SetNillableIsPartner(b *bool) *SenderProfileUpdateOne {
+	if b != nil {
+		spuo.SetIsPartner(*b)
+	}
 	return spuo
 }
 
@@ -680,6 +711,9 @@ func (spuo *SenderProfileUpdateOne) sqlSave(ctx context.Context) (_node *SenderP
 		_spec.AddModifier(func(u *sql.UpdateBuilder) {
 			sqljson.Append(u, senderprofile.FieldDomainWhitelist, value)
 		})
+	}
+	if value, ok := spuo.mutation.IsPartner(); ok {
+		_spec.SetField(senderprofile.FieldIsPartner, field.TypeBool, value)
 	}
 	if value, ok := spuo.mutation.IsActive(); ok {
 		_spec.SetField(senderprofile.FieldIsActive, field.TypeBool, value)

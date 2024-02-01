@@ -28,6 +28,7 @@ func (SenderProfile) Fields() []ent.Field {
 		field.String("refund_address").Optional(),
 		field.Strings("domain_whitelist").
 			Default([]string{}),
+		field.Bool("is_partner").Default(false),
 		field.Bool("is_active").
 			Default(false),
 		field.Time("updated_at").
