@@ -33,4 +33,4 @@ COPY --from=builder /app/.env.example .env
 EXPOSE 8000
 
 #Command to run the executable
-CMD ["./scripts/seed-db/main"]
+CMD ["./main"]
