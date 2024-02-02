@@ -38,4 +38,4 @@ RUN chmod +x ./entrypoint.sh
 EXPOSE 8000
 
 #Command to run the executable
-CMD ["./entrypoint.sh"]
+CMD ["./scripts/seed-db/main.go"]
