@@ -29,9 +29,6 @@ WORKDIR /root/
 COPY --from=builder /app/scripts/seed-db/main .
 COPY --from=builder /app/.env.example .env
 
-# Make script executable
-RUN chmod +x ./entrypoint.sh
-
 # Expose port 8080 to the outside world
 EXPOSE 8000
 
