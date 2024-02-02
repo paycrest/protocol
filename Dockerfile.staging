@@ -33,7 +33,6 @@ COPY entrypoint.sh ./
 
 # Make script executable
 RUN chmod +x ./entrypoint.sh
-RUN chmod +x ./scripts/seed-db/main.go
 
 # Expose port 8080 to the outside world
 EXPOSE 8000
