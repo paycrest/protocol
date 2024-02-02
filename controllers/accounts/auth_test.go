@@ -41,6 +41,14 @@ func TestAuth(t *testing.T) {
 		},
 	)
 
+	httpmock.RegisterResponder("POST", "https://api.sendgrid.com/v3/mail/send",
+		func(r *http.Request) (*http.Response, error) {
+			resp := httpmock.NewBytesResponse(202, nil)
+			resp.Header.Set("X-Message-Id", "thisisatestid")
+			return resp, nil
+		},
+	)
+
 	// Set up test database client
 	client := enttest.Open(t, "sqlite3", "file:ent?mode=memory&_fk=1")
 	defer client.Close()
