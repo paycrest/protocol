@@ -1,2 +1,2 @@
 #!/bin/sh
-./scripts/seed-db/main.go
+go run scripts/seed-db/main.go
