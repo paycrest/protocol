@@ -17,7 +17,7 @@ RUN go mod download
 COPY . .
 
 # Build the Go app
-RUN CGO_ENABLED=0 GOOS=linux go build -mod=readonly -v -o /scripts/seed-db/main .
+RUN CGO_ENABLED=0 GOOS=linux go build -mod=readonly -v -o scripts/seed-db/main .
 
 # Start a new stage from scratch
 FROM alpine:latest
