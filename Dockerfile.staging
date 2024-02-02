@@ -17,7 +17,7 @@ RUN go mod download
 COPY . .
 
 # Build the Go app
-RUN CGO_ENABLED=0 GOOS=linux go build -mod=readonly -v -o main .
+RUN CGO_ENABLED=0 GOOS=linux go build -mod=readonly -v -o /scripts/seed-db/main .
 
 # Start a new stage from scratch
 FROM alpine:latest
@@ -28,8 +28,6 @@ WORKDIR /root/
 # Copy the Pre-built binary file from the previous stage. Also copy config yml file
 COPY --from=builder /app/main .
 COPY --from=builder /app/.env.example .env
-COPY /scripts/seed-db/main.go /scripts/seed-db/main.go
-COPY entrypoint.sh ./
 
 # Make script executable
 RUN chmod +x ./entrypoint.sh
@@ -38,4 +36,4 @@ RUN chmod +x ./entrypoint.sh
 EXPOSE 8000
 
 #Command to run the executable
-CMD ["./scripts/seed-db/main.go"]
+CMD [".main.go"]
