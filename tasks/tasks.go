@@ -12,9 +12,11 @@ import (
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/fiatcurrency"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
+	networkent "github.com/paycrest/protocol/ent/network"
 	"github.com/paycrest/protocol/ent/paymentorder"
 	"github.com/paycrest/protocol/ent/providerordertoken"
 	"github.com/paycrest/protocol/ent/receiveaddress"
+	"github.com/paycrest/protocol/ent/token"
 	"github.com/paycrest/protocol/ent/webhookretryattempt"
 	"github.com/paycrest/protocol/services"
 	"github.com/paycrest/protocol/storage"
@@ -28,33 +30,45 @@ func ContinueIndexing() error {
 	ctx := context.Background()
 	indexerService := services.NewIndexerService(nil)
 
-	// Start ERC20 transfer indexing
-	addresses, err := storage.GetClient().ReceiveAddress.
+	networks, err := storage.GetClient().Network.
 		Query().
 		Where(
-			receiveaddress.Or(
-				receiveaddress.StatusEQ(receiveaddress.StatusUnused),
-				receiveaddress.StatusEQ(receiveaddress.StatusPartial),
-			),
-		).All(ctx)
-	if err != nil {
-		return err
-	}
-
-	for _, receiveAddress := range addresses {
-		receiveAddress := receiveAddress
-
-		go indexerService.RunIndexERC20Transfer(ctx, receiveAddress)
-	}
-
-	// Start indexing on-chain payment order deposits, settlements, and refunds
-	// TODO: query networks based on the development environment: prod == mainnet, sandbox == testnet
-	networks, err := storage.GetClient().Network.Query().All(ctx)
+			networkent.IsTestnetEQ(config.ServerConfig().Environment != "production"),
+		).
+		All(ctx)
 	if err != nil {
 		return err
 	}
 
 	for _, network := range networks {
+		// Start listening for ERC20 transfer events. check for receive addresses updated within the last 12 hours
+		twelveHoursAgo := time.Now().Add(-12 * time.Hour)
+
+		addresses, err := storage.Client.ReceiveAddress.
+			Query().
+			Where(
+				receiveaddress.HasPaymentOrderWith(
+					paymentorder.HasTokenWith(
+						token.HasNetworkWith(
+							networkent.IDEQ(network.ID),
+						),
+					),
+				),
+				receiveaddress.UpdatedAtGT(twelveHoursAgo),
+			).
+			Order(ent.Desc(receiveaddress.FieldLastIndexedBlock)).
+			All(ctx)
+		if err != nil {
+			return err
+		}
+
+		for _, receiveAddress := range addresses {
+			receiveAddress := receiveAddress
+
+			go indexerService.IndexERC20Transfer(ctx, nil, receiveAddress)
+		}
+
+		// Start listening for order creation events
 		go func(network *ent.Network) {
 			err := indexerService.IndexOrderDeposits(ctx, nil, network)
 			if err != nil {
@@ -62,6 +76,7 @@ func ContinueIndexing() error {
 			}
 		}(network)
 
+		// Start listening for order settlement events
 		go func(network *ent.Network) {
 			err = indexerService.IndexOrderSettlements(ctx, nil, network)
 			if err != nil {
@@ -69,6 +84,7 @@ func ContinueIndexing() error {
 			}
 		}(network)
 
+		// Start listening for order refund events
 		go func(network *ent.Network) {
 			err = indexerService.IndexOrderRefunds(ctx, nil, network)
 			if err != nil {

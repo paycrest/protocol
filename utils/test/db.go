@@ -43,8 +43,8 @@ func CreateTestUser(overrides map[string]string) (*ent.User, error) {
 	return user, err
 }
 
-// CreateTestToken creates a test token with default or custom values
-func CreateTestToken(client types.RPCClient, overrides map[string]interface{}) (*ent.Token, error) {
+// CreateERC20Token creates a test token with default or custom values
+func CreateERC20Token(client types.RPCClient, overrides map[string]interface{}) (*ent.Token, error) {
 	// Deploy ERC20 token contract
 	deployedTokenAddress, err := DeployERC20Contract(client)
 	if err != nil {
@@ -123,7 +123,7 @@ func CreateTestLockPaymentOrder(overrides map[string]interface{}) (*ent.LockPaym
 
 	// Create test token
 	backend, _ := SetUpTestBlockchain()
-	token, _ := CreateTestToken(backend, nil)
+	token, _ := CreateERC20Token(backend, nil)
 
 	// Create LockPaymentOrder
 	order, err := db.Client.LockPaymentOrder.

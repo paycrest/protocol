@@ -35,9 +35,8 @@ type MockIndexerService struct {
 }
 
 // IndexERC20Transfer mocks the IndexERC20Transfer method
-func (m *MockIndexerService) IndexERC20Transfer(ctx context.Context, client types.RPCClient, receiveAddress *ent.ReceiveAddress, done chan<- bool) error {
-	done <- true
-	return nil
+func (m *MockIndexerService) IndexERC20Transfer(ctx context.Context, client types.RPCClient, receiveAddress *ent.ReceiveAddress) {
+	m.Called(ctx, client, receiveAddress)
 }
 
 // IndexOrderDeposits mocks the IndexOrderDeposits method
@@ -171,7 +170,7 @@ func setup() error {
 
 	// Create a test token
 	testCtx.networkIdentifier = "localhost" + uuid.New().String()
-	token, err := test.CreateTestToken(backend, map[string]interface{}{
+	token, err := test.CreateERC20Token(backend, map[string]interface{}{
 		"identifier": testCtx.networkIdentifier,
 	})
 	if err != nil {

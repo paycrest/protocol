@@ -19,7 +19,6 @@ import (
 	"github.com/paycrest/protocol/utils/crypto"
 
 	"github.com/paycrest/protocol/services/contracts"
-	cryptoUtils "github.com/paycrest/protocol/utils/crypto"
 )
 
 // SetUpTestBlockchain sets up a connection to a local Ethereum blockchain.
@@ -46,7 +45,7 @@ func DeployERC20Contract(client types.RPCClient) (*common.Address, error) {
 	initialSupply.SetString("2000000000000000000000", 10) // Initial supply of 2,000 tokens (token decimal is 18)
 
 	// Deploy the contract
-	address, tx, _, err := contracts.DeployTestToken(auth, client.(bind.ContractBackend), initialSupply)
+	address, tx, _, err := contracts.DeployERC20Token(auth, client.(bind.ContractBackend), initialSupply)
 	if err != nil {
 		return nil, err
 	}
@@ -86,13 +85,13 @@ func DeployEIP4337FactoryContract(client types.RPCClient) (common.Address, error
 	return address, nil
 }
 
-// FundAddressWithTestToken funds an amount of a test ERC20 token from the owner account
-func FundAddressWithTestToken(client types.RPCClient, token common.Address, amount *big.Int, address common.Address) error {
+// FundAddressWithERC20Token funds an amount of a test ERC20 token from the owner account
+func FundAddressWithERC20Token(client types.RPCClient, token common.Address, amount *big.Int, address common.Address) error {
 	// Get master account
 	_, privateKey, _ := crypto.GenerateAccountFromIndex(0)
 
-	// Create a new instance of the TestToken contract
-	testToken, err := contracts.NewTestToken(token, client.(bind.ContractBackend))
+	// Create a new instance of the ERC20Token contract
+	testToken, err := contracts.NewERC20Token(token, client.(bind.ContractBackend))
 	if err != nil {
 		return err
 	}
@@ -200,7 +199,7 @@ func CreateSmartAccount(ctx context.Context, client types.RPCClient) (*ent.Recei
 	if err != nil {
 		log.Fatalf("createTx receipt failed: %v", err)
 	}
-	saltEncrypted, err := cryptoUtils.EncryptPlain([]byte(salt.String()))
+	saltEncrypted, err := crypto.EncryptPlain([]byte(salt.String()))
 	if err != nil {
 		return nil, fmt.Errorf("failed to encrypt salt: %w", err)
 	}
