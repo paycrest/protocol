@@ -34,7 +34,7 @@ func setup() error {
 	testCtx.rpcClient = client
 
 	// Create a test token
-	token, err := test.CreateTestToken(
+	token, err := test.CreateERC20Token(
 		client,
 		map[string]interface{}{})
 	if err != nil {
@@ -51,7 +51,7 @@ func setup() error {
 	// Fund receive address
 	amount := decimal.NewFromFloat(29.93)
 	amountInt := utils.ToSubunit(amount, token.Decimals)
-	err = test.FundAddressWithTestToken(
+	err = test.FundAddressWithERC20Token(
 		client,
 		common.HexToAddress(token.ContractAddress),
 		amountInt,
@@ -125,7 +125,7 @@ func TestIndexer(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Index ERC20 transfers for the receive address
-	_, err = testCtx.indexer.IndexERC20Transfer(context.Background(), testCtx.rpcClient, testCtx.receiveAddress)
+	testCtx.indexer.IndexERC20Transfer(context.Background(), testCtx.rpcClient, testCtx.receiveAddress)
 	assert.NoError(t, err)
 
 	time.Sleep(30 * time.Second)

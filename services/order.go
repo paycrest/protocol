@@ -194,6 +194,10 @@ func (s *OrderService) RefundOrder(ctx context.Context, orderID string) error {
 
 // RevertOrder reverts an initiated payment order on-chain.
 func (s *OrderService) RevertOrder(ctx context.Context, order *ent.PaymentOrder, to common.Address) error {
+	if !order.AmountReturned.Equal(decimal.Zero) {
+		return nil
+	}
+
 	// Fetch payment order from db
 	order, err := db.Client.PaymentOrder.
 		Query().
@@ -488,7 +492,7 @@ func (s *OrderService) executeBatchCreateOrderCallData(order *ent.PaymentOrder) 
 // approveCallData creates the data for the ERC20 approve method
 func (s *OrderService) approveCallData(spender common.Address, amount *big.Int) ([]byte, error) {
 	// Create ABI
-	erc20ABI, err := abi.JSON(strings.NewReader(contracts.TestTokenMetaData.ABI))
+	erc20ABI, err := abi.JSON(strings.NewReader(contracts.ERC20TokenMetaData.ABI))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse erc20 ABI: %w", err)
 	}
@@ -505,7 +509,7 @@ func (s *OrderService) approveCallData(spender common.Address, amount *big.Int) 
 // transferCallData creates the data for the ERC20 token transfer method
 func (s *OrderService) transferCallData(recipient common.Address, amount *big.Int) ([]byte, error) {
 	// Create ABI
-	erc20ABI, err := abi.JSON(strings.NewReader(contracts.TestTokenMetaData.ABI))
+	erc20ABI, err := abi.JSON(strings.NewReader(contracts.ERC20TokenMetaData.ABI))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse erc20 ABI: %w", err)
 	}

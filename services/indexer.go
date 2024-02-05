@@ -5,16 +5,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"math"
-	"math/big"
 	"strings"
 	"time"
 
-	ethereum "github.com/ethereum/go-ethereum"
-	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/google/uuid"
 	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/ent"
@@ -38,7 +33,7 @@ var OrderConf = config.OrderConfig()
 
 // Indexer is an interface for indexing blockchain data to the database.
 type Indexer interface {
-	IndexERC20Transfer(ctx context.Context, client types.RPCClient, receiveAddress *ent.ReceiveAddress, done chan<- bool) error
+	IndexERC20Transfer(ctx context.Context, client types.RPCClient, receiveAddress *ent.ReceiveAddress)
 	IndexOrderDeposits(ctx context.Context, client types.RPCClient, network *ent.Network) error
 	IndexOrderSettlements(ctx context.Context, client types.RPCClient, network *ent.Network) error
 	IndexOrderRefunds(ctx context.Context, client types.RPCClient, network *ent.Network) error
@@ -63,8 +58,9 @@ func NewIndexerService(indexer Indexer) *IndexerService {
 	}
 }
 
-// IndexERC20Transfer indexes ERC20 token transfers for a specific receive address.
-func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RPCClient, receiveAddress *ent.ReceiveAddress) (ok bool, err error) {
+// IndexOrderDeposit indexes deposits to the order contract for a specific network.
+func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RPCClient, receiveAddress *ent.ReceiveAddress) {
+	var err error
 
 	// Fetch payment order from db
 	paymentOrder, err := db.Client.PaymentOrder.
@@ -79,394 +75,83 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 		}).
 		Only(ctx)
 	if err != nil {
-		return false, fmt.Errorf("failed to fetch payment order: %w", err)
+		logger.Errorf("IndexERC20Transfer.db: %v", err)
+		return
 	}
 
 	token := paymentOrder.Edges.Token
 
+	// Connect to RPC endpoint
 	if client == nil {
 		client, err = types.NewEthClient(token.Edges.Network.RPCEndpoint)
 		if err != nil {
-			return false, fmt.Errorf("failed to connect to RPC client: %w", err)
+			logger.Errorf("IndexERC20Transfer.NewEthClient: %v", err)
+			return
 		}
 	}
 
-	// Fetch current block header
-	header, err := client.HeaderByNumber(ctx, nil)
+	// Initialize contract filterer
+	filterer, err := contracts.NewERC20TokenFilterer(common.HexToAddress(token.ContractAddress), client)
 	if err != nil {
-		return false, fmt.Errorf("failed to fetch current block number: %w", err)
+		logger.Errorf("IndexERC20Transfer.NewERC20TokenFilterer: %v", err)
+		return
 	}
 
-	// Number of blocks that will be generated within the receive address valid period.
-	// Layer 2 networks have the shortest blocktimes e.g Polygon, Tron etc. are < 5 seconds
-	// We assume a blocktime of 2s for the largest number of blocks to scan.
-	// number of blocks = receive address validity period in seconds / blocktime
-	numOfBlocks := int64(OrderConf.ReceiveAddressValidity.Seconds() / 2)
+	// Index missed blocks
+	go func() {
+		// Filter logs from the last lock payment order block number
+		opts := s.getMissedERC20BlocksOpts(ctx, client, filterer, token.Edges.Network)
 
-	var fromBlock int64
+		// Fetch logs
+		iter, err := filterer.FilterTransfer(opts, nil, nil)
+		if err != nil {
+			logger.Errorf("IndexERC20Transfer.FilterTransfer: %v", err)
+			return
+		}
 
-	if receiveAddress.LastIndexedBlock > 0 {
-		// Continue indexing from last indexed block if the last process failed
-		fromBlock = receiveAddress.LastIndexedBlock + 1
-	} else {
-		fromBlock = int64(math.Max(float64(header.Number.Int64()-numOfBlocks+1), 0))
-	}
+		// Iterate over logs
+		for iter.Next() {
+			ok, err := s.updateReceiveAddressStatus(ctx, client, receiveAddress, paymentOrder, iter.Event)
+			if err != nil {
+				logger.Errorf("IndexERC20Transfer.updateReceiveAddressStatus: %v", err)
+				continue
+			}
+			if ok {
+				return
+			}
+		}
+	}()
 
-	fromBlockBig := big.NewInt(fromBlock)
+	// Start listening for ERC20 transfer events
+	logs := make(chan *contracts.ERC20TokenTransfer)
 
-	// Query event logs of the token contract starting from the oldest block
-	// within the receive address validity period
-	query := ethereum.FilterQuery{
-		FromBlock: fromBlockBig,
-		ToBlock:   header.Number,
-		Addresses: []common.Address{
-			common.HexToAddress(paymentOrder.Edges.Token.ContractAddress),
-		},
-	}
-
-	// Fetch logs in block batches.
-	// This is important because client.FilterLogs function has a limit of 10k results
-	// TODO: explain why batchsize of 200 was chosen
-	currentBlockBatchSize := 200
-	currentBlockNumber := query.FromBlock
-	finalBlockNumber := query.ToBlock
-
-	// Get Transfer event signature hash
-	contractAbi, err := abi.JSON(strings.NewReader(ERC20ABI))
+	sub, err := filterer.WatchTransfer(&bind.WatchOpts{
+		Start: nil,
+	}, logs, nil, nil)
 	if err != nil {
-		return false, fmt.Errorf("failed to parse ABI: %w", err)
+		logger.Errorf("IndexERC20Transfer.WatchTransfer: %v", err)
+		return
 	}
 
-	logTransferSig := []byte("Transfer(address,address,uint256)")
-	logTransferSigHash := crypto.Keccak256Hash(logTransferSig)
+	defer sub.Unsubscribe()
 
-	logger.Infof(
-		"Indexing transfer logs for %s from Block #%s - #%s\n",
-		receiveAddress.Address,
-		fromBlockBig.String(),
-		finalBlockNumber.String(),
-	)
+	logger.Infof("Listening for ERC20 Transfer events...\n")
 
 	for {
-		// Update the filter parameters
-		query.FromBlock = currentBlockNumber
-
-		batchEnd := big.NewInt(currentBlockNumber.Int64() + int64(currentBlockBatchSize-1))
-		query.ToBlock = utils.BigMin(batchEnd, finalBlockNumber)
-
-		// Fetch logs for the current batch
-		logs, err := client.FilterLogs(ctx, query)
-		if err != nil {
-			logger.Errorf("IndexERC20Transfer.fetchLogs: %v", err)
-			return false, nil
-		}
-
-		for _, vLog := range logs {
-			switch vLog.Topics[0].Hex() {
-			case logTransferSigHash.Hex():
-				var transferEvent types.ERC20Transfer
-
-				err := contractAbi.UnpackIntoInterface(&transferEvent, "Transfer", vLog.Data)
-				if err != nil {
-					return false, fmt.Errorf("IndexERC20Transfer.unpackSignature: %w", err)
-				}
-
-				transferEvent.From = common.HexToAddress(vLog.Topics[1].Hex())
-				transferEvent.To = common.HexToAddress(vLog.Topics[2].Hex())
-
-				if transferEvent.To.Hex() == receiveAddress.Address {
-					// Check for existing paymentOrder with txHash
-					orderCount, err := db.Client.PaymentOrder.
-						Query().
-						Where(paymentorder.TxHashEQ(vLog.TxHash.Hex())).
-						Count(ctx)
-					if err != nil {
-						logger.Errorf("IndexERC20Transfer.db: %v", err)
-						return false, nil
-					}
-
-					if orderCount > 0 {
-						// This transfer has already been indexed
-						ok, err := s.checkReceiveAddressValidity(ctx, receiveAddress, paymentOrder, transferEvent)
-						if err != nil {
-							logger.Errorf("IndexERC20Transfer.checkReceiveAddressValidity: %v", err)
-						}
-						if ok {
-							return true, nil
-						} else {
-							continue
-						}
-					}
-
-					// This is a transfer to the receive address to create an order on-chain
-					// Compare the transferred value with the expected order amount + fees
-					fees := paymentOrder.NetworkFee.Add(paymentOrder.SenderFee)
-					orderAmountWithFees := paymentOrder.Amount.Add(fees)
-					orderAmountWithFeesInSubunit := utils.ToSubunit(orderAmountWithFees, token.Decimals)
-					comparisonResult := transferEvent.Value.Cmp(orderAmountWithFeesInSubunit)
-
-					_, err = paymentOrder.
-						Update().
-						SetFromAddress(transferEvent.From.Hex()).
-						Save(ctx)
-					if err != nil {
-						logger.Errorf("IndexERC20Transfer.db: %v", err)
-						return false, nil
-					}
-
-					if comparisonResult == 0 {
-						// Transfer value equals order amount with fees
-						_, err = receiveAddress.
-							Update().
-							SetStatus(receiveaddress.StatusUsed).
-							SetLastUsed(time.Now()).
-							SetLastIndexedBlock(query.ToBlock.Int64()).
-							Save(ctx)
-						if err != nil {
-							logger.Errorf("IndexERC20Transfer.db: %v", err)
-							return false, nil
-						}
-						return true, nil
-					} else if comparisonResult < 0 {
-						// Transfer value is less than order amount with fees
-						indexedValue := utils.FromSubunit(transferEvent.Value, token.Decimals)
-						amountPaid := paymentOrder.AmountPaid.Add(indexedValue)
-
-						// If amount paid meets or exceeds the order amount with fees, mark receive address as used
-						if amountPaid.GreaterThanOrEqual(orderAmountWithFees) {
-							_, err = receiveAddress.
-								Update().
-								SetStatus(receiveaddress.StatusUsed).
-								SetLastUsed(time.Now()).
-								SetLastIndexedBlock(query.ToBlock.Int64()).
-								Save(ctx)
-							if err != nil {
-								logger.Errorf("IndexERC20Transfer.db: %v", err)
-								return false, nil
-							}
-
-							// Revert excess amount to the from address
-							if paymentOrder.AmountReturned.Equal(decimal.Zero) {
-								err := s.order.RevertOrder(ctx, paymentOrder, transferEvent.From)
-								if err != nil {
-									logger.Errorf("IndexERC20Transfer.revertOrder: %v", err)
-									return false, nil
-								}
-							}
-
-							return true, nil
-						} else {
-							_, err = receiveAddress.
-								Update().
-								SetStatus(receiveaddress.StatusPartial).
-								Save(ctx)
-							if err != nil {
-								logger.Errorf("IndexERC20Transfer.db: %v", err)
-								return false, nil
-							}
-
-							// Update the payment order with amount paid
-							_, err = paymentOrder.
-								Update().
-								SetAmountPaid(amountPaid).
-								SetTxHash(vLog.TxHash.Hex()).
-								Save(ctx)
-							if err != nil {
-								logger.Errorf("IndexERC20Transfer.db: %v", err)
-								return false, nil
-							}
-						}
-
-					} else if comparisonResult > 0 {
-						// Transfer value is greater than order amount with fees
-						_, err = receiveAddress.
-							Update().
-							SetStatus(receiveaddress.StatusUsed).
-							SetLastUsed(time.Now()).
-							SetLastIndexedBlock(query.ToBlock.Int64()).
-							Save(ctx)
-						if err != nil {
-							logger.Errorf("IndexERC20Transfer.db: %v", err)
-							return false, nil
-						}
-
-						// Revert excess amount to the from address
-						if paymentOrder.AmountReturned.Equal(decimal.Zero) {
-							err := s.order.RevertOrder(ctx, paymentOrder, transferEvent.From)
-							if err != nil {
-								logger.Errorf("IndexERC20Transfer.revertOrder: %v", err)
-								return false, nil
-							}
-						}
-
-						return true, nil
-					}
-
-					return false, nil
-
-				} else if transferEvent.From.Hex() == receiveAddress.Address {
-					// This is a revert transfer
-					// Compare the transferred value with the expected order amount returned
-					indexedValue := utils.FromSubunit(transferEvent.Value, token.Decimals)
-
-					if indexedValue.Equal(paymentOrder.AmountReturned) {
-						_, err = receiveAddress.
-							Update().
-							SetLastIndexedBlock(query.ToBlock.Int64()).
-							Save(ctx)
-						if err != nil {
-							logger.Errorf("IndexERC20Transfer.db: %v", err)
-							return false, nil
-						}
-
-						_, err := paymentOrder.
-							Update().
-							SetStatus(paymentorder.StatusReverted).
-							SetTxHash(vLog.TxHash.Hex()).
-							Save(ctx)
-						if err != nil {
-							logger.Errorf("IndexERC20Transfer.db: %v", err)
-							return false, nil
-						}
-
-						// Send webhook notifcation to sender
-						paymentOrder.Status = paymentorder.StatusReverted
-
-						err = utils.SendPaymentOrderWebhook(ctx, paymentOrder)
-						if err != nil {
-							logger.Errorf("IndexERC20Transfer.webhook: %v", err)
-							return false, nil
-						}
-					}
-				}
-
-				// Handle receive address validity checks
-				ok, err := s.checkReceiveAddressValidity(ctx, receiveAddress, paymentOrder, transferEvent)
-				if err != nil {
-					logger.Errorf("IndexERC20Transfer.checkReceiveAddressValidity: %v", err)
-					return false, nil
-				}
-				if ok {
-					return true, nil
-				}
-			}
-		}
-
-		// Update last indexed block
-		_, err = receiveAddress.
-			Update().
-			SetLastIndexedBlock(query.ToBlock.Int64()).
-			Save(ctx)
-		if err != nil {
-			logger.Errorf("IndexERC20Transfer.db: %v", err)
-			return false, nil
-		}
-
-		// Check if we have reached the final block number
-		if batchEnd.Cmp(finalBlockNumber) >= 0 {
-			break
-		}
-
-		// Update the current block number for the next batch
-		currentBlockNumber = big.NewInt(query.ToBlock.Int64() + 1)
-
-		// Sleep for a short duration between batches to avoid overwhelming the RPC endpoint
-		time.Sleep(1 * time.Second)
-	}
-
-	return false, nil
-}
-
-// checkReceiveAddressValidity checks the validity of a receive address
-func (s *IndexerService) checkReceiveAddressValidity(ctx context.Context, receiveAddress *ent.ReceiveAddress, paymentOrder *ent.PaymentOrder, transferEvent types.ERC20Transfer) (bool, error) {
-	if receiveAddress.Status != receiveaddress.StatusUsed {
-		amountNotPaidInFull := receiveAddress.Status == receiveaddress.StatusPartial || receiveAddress.Status == receiveaddress.StatusUnused
-		validUntilIsFarGone := receiveAddress.ValidUntil.Before(time.Now().Add(-(5 * time.Minute)))
-		isExpired := receiveAddress.ValidUntil.Before(time.Now())
-
-		if validUntilIsFarGone {
-			fmt.Println("ValidUntilIsFarGone")
-			_, err := receiveAddress.
-				Update().
-				SetValidUntil(time.Now().Add(OrderConf.ReceiveAddressValidity)).
-				Save(ctx)
+		select {
+		case log := <-logs:
+			ok, err := s.updateReceiveAddressStatus(ctx, client, receiveAddress, paymentOrder, log)
 			if err != nil {
-				logger.Errorf("IndexERC20Transfer.db: %v", err)
-				return false, nil
+				logger.Errorf("IndexERC20Transfer.updateReceiveAddressStatus: %v", err)
+				continue
 			}
-		} else if isExpired && amountNotPaidInFull {
-			fmt.Println("Expired")
-			// Receive address hasn't received full payment after validity period, mark status as expired
-			_, err := receiveAddress.
-				Update().
-				SetStatus(receiveaddress.StatusExpired).
-				Save(ctx)
-			if err != nil {
-				logger.Errorf("IndexERC20Transfer.db: %v", err)
-				return false, nil
+			if ok {
+				close(logs)
+				return
 			}
-
-			// Expire payment order
-			_, err = paymentOrder.
-				Update().
-				SetStatus(paymentorder.StatusExpired).
-				SetFromAddress(transferEvent.From.Hex()).
-				Save(ctx)
-			if err != nil {
-				logger.Errorf("IndexERC20Transfer.db: %v", err)
-				return false, nil
-			}
-
-			if paymentOrder.AmountReturned.Equal(decimal.Zero) {
-				// Revert amount to the from address
-				err = s.order.RevertOrder(ctx, paymentOrder, transferEvent.From)
-				if err != nil {
-					logger.Errorf("IndexERC20Transfer.revertOrder: %v", err)
-					return false, nil
-				}
-			}
-
-			return true, nil
-		}
-	}
-	return false, nil
-}
-
-// RunIndexERC20Transfer runs the indexer service for a receive address
-// it loops indefinitely until the address expires or a transfer is found
-func (s *IndexerService) RunIndexERC20Transfer(ctx context.Context, receiveAddress *ent.ReceiveAddress) {
-	for {
-		time.Sleep(2 * time.Minute) // add 2 minutes delay between each indexing operation
-
-		ok, err := s.IndexERC20Transfer(ctx, nil, receiveAddress)
-		if err != nil {
-			logger.Errorf("failed to index erc20 transfer: %v", err)
-			return
-		}
-
-		// Refresh the receive address with payment order
-		receiveAddress, err = db.Client.ReceiveAddress.
-			Query().
-			Where(receiveaddress.AddressEQ(receiveAddress.Address)).
-			WithPaymentOrder().
-			Only(ctx)
-		if err != nil {
-			logger.Errorf("failed to refresh receive address: %v", err)
-			return
-		}
-
-		if ok {
-			if receiveAddress.Status == receiveaddress.StatusUsed && receiveAddress.Edges.PaymentOrder.AmountPaid.Equal(receiveAddress.Edges.PaymentOrder.Amount) {
-				// Create order on-chain
-				orderService := NewOrderService()
-				err = orderService.CreateOrder(ctx, receiveAddress.Edges.PaymentOrder.ID)
-				if err != nil {
-					logger.Errorf("failed to create order on-chain: %v", err)
-				}
-			}
-
-			// Address is expired, stop indexing
-			return
+		case err := <-sub.Err():
+			logger.Errorf("IndexERC20Transfer.logError: %v", err)
+			continue
 		}
 	}
 }
@@ -492,7 +177,7 @@ func (s *IndexerService) IndexOrderDeposits(ctx context.Context, client types.RP
 	// Index missed blocks
 	go func() {
 		// Filter logs from the last lock payment order block number
-		opts := s.getMissedBlocksOpts(ctx, client, filterer, network, lockpaymentorder.StatusPending)
+		opts := s.getMissedOrderBlocksOpts(ctx, client, filterer, network, lockpaymentorder.StatusPending)
 
 		// Fetch logs
 		iter, err := filterer.FilterDeposit(opts, nil, nil, nil)
@@ -560,7 +245,7 @@ func (s *IndexerService) IndexOrderSettlements(ctx context.Context, client types
 	// Index missed blocks
 	go func() {
 		// Filter logs from the last lock payment order block number
-		opts := s.getMissedBlocksOpts(ctx, client, filterer, network, lockpaymentorder.StatusSettled)
+		opts := s.getMissedOrderBlocksOpts(ctx, client, filterer, network, lockpaymentorder.StatusSettled)
 
 		// Fetch logs
 		iter, err := filterer.FilterSettled(opts, nil, nil)
@@ -629,7 +314,7 @@ func (s *IndexerService) IndexOrderRefunds(ctx context.Context, client types.RPC
 	// Index missed blocks
 	go func() {
 		// Filter logs from the last lock payment order block number
-		opts := s.getMissedBlocksOpts(ctx, client, filterer, network, lockpaymentorder.StatusRefunded)
+		opts := s.getMissedOrderBlocksOpts(ctx, client, filterer, network, lockpaymentorder.StatusRefunded)
 
 		// Fetch logs
 		iter, err := filterer.FilterRefunded(opts, nil)
@@ -675,6 +360,52 @@ func (s *IndexerService) IndexOrderRefunds(ctx context.Context, client types.RPC
 			continue
 		}
 	}
+}
+
+// checkReceiveAddressValidity checks the validity of a receive address
+func (s *IndexerService) checkReceiveAddressValidity(ctx context.Context, receiveAddress *ent.ReceiveAddress, paymentOrder *ent.PaymentOrder, event *contracts.ERC20TokenTransfer) (done bool, err error) {
+	if receiveAddress.Status != receiveaddress.StatusUsed {
+		amountNotPaidInFull := receiveAddress.Status == receiveaddress.StatusPartial || receiveAddress.Status == receiveaddress.StatusUnused
+		validUntilIsFarGone := receiveAddress.ValidUntil.Before(time.Now().Add(-(5 * time.Minute)))
+		isExpired := receiveAddress.ValidUntil.Before(time.Now())
+
+		if validUntilIsFarGone {
+			_, err := receiveAddress.
+				Update().
+				SetValidUntil(time.Now().Add(OrderConf.ReceiveAddressValidity)).
+				Save(ctx)
+			if err != nil {
+				return true, fmt.Errorf("checkReceiveAddressValidity.db: %v", err)
+			}
+		} else if isExpired && amountNotPaidInFull {
+			// Receive address hasn't received full payment after validity period, mark status as expired
+			_, err := receiveAddress.
+				Update().
+				SetStatus(receiveaddress.StatusExpired).
+				Save(ctx)
+			if err != nil {
+				return true, fmt.Errorf("checkReceiveAddressValidity.db: %v", err)
+			}
+
+			// Expire payment order
+			_, err = paymentOrder.
+				Update().
+				SetStatus(paymentorder.StatusExpired).
+				SetFromAddress(event.From.Hex()).
+				Save(ctx)
+			if err != nil {
+				return true, fmt.Errorf("checkReceiveAddressValidity.db: %v", err)
+			}
+
+			// Revert amount to the from address
+			err = s.order.RevertOrder(ctx, paymentOrder, event.From)
+			if err != nil {
+				return true, fmt.Errorf("checkReceiveAddressValidity.RevertOrder: %v", err)
+			}
+		}
+	}
+
+	return false, nil
 }
 
 // getOrderRecipientFromMessageHash decrypts the message hash and returns the order recipient
@@ -922,6 +653,169 @@ func (s *IndexerService) createLockPaymentOrder(ctx context.Context, client type
 	return nil
 }
 
+// updateReceiveAddressStatus updates the status of a receive address. if `done` is true, the indexing process is complete for the given receive address
+func (s *IndexerService) updateReceiveAddressStatus(
+	ctx context.Context, client types.RPCClient, receiveAddress *ent.ReceiveAddress, paymentOrder *ent.PaymentOrder, event *contracts.ERC20TokenTransfer,
+) (done bool, err error) {
+
+	if event.To.Hex() == receiveAddress.Address {
+		// Check for existing order with txHash
+		orderCount, err := db.Client.PaymentOrder.
+			Query().
+			Where(paymentorder.TxHashEQ(event.Raw.TxHash.Hex())).
+			Count(ctx)
+		if err != nil {
+			return true, fmt.Errorf("updateReceiveAddressStatus.db: %v", err)
+		}
+
+		if orderCount > 0 {
+			// This transfer has already been indexed
+			ok, err := s.checkReceiveAddressValidity(ctx, receiveAddress, paymentOrder, event)
+			if err != nil {
+				return true, fmt.Errorf("updateReceiveAddressStatus.checkReceiveAddressValidity: %v", err)
+			}
+			return ok, nil
+		}
+
+		// This is a transfer to the receive address to create an order on-chain
+		// Compare the transferred value with the expected order amount + fees
+		fees := paymentOrder.NetworkFee.Add(paymentOrder.SenderFee)
+		orderAmountWithFees := paymentOrder.Amount.Add(fees)
+		orderAmountWithFeesInSubunit := utils.ToSubunit(orderAmountWithFees, paymentOrder.Edges.Token.Decimals)
+		comparisonResult := event.Value.Cmp(orderAmountWithFeesInSubunit)
+
+		_, err = paymentOrder.
+			Update().
+			SetFromAddress(event.From.Hex()).
+			Save(ctx)
+		if err != nil {
+			return true, fmt.Errorf("updateReceiveAddressStatus.db: %v", err)
+		}
+
+		if comparisonResult == 0 {
+			// Transfer value equals order amount with fees
+			_, err = receiveAddress.
+				Update().
+				SetStatus(receiveaddress.StatusUsed).
+				SetLastUsed(time.Now()).
+				SetLastIndexedBlock(int64(event.Raw.BlockNumber)).
+				Save(ctx)
+			if err != nil {
+				return true, fmt.Errorf("updateReceiveAddressStatus.db: %v", err)
+			}
+
+			err = s.order.CreateOrder(ctx, paymentOrder.ID)
+			if err != nil {
+				return true, fmt.Errorf("updateReceiveAddressStatus.CreateOrder: %v", err)
+			}
+
+			return true, nil
+
+		} else if comparisonResult < 0 {
+			// Transfer value is less than order amount with fees
+			indexedValue := utils.FromSubunit(event.Value, paymentOrder.Edges.Token.Decimals)
+			amountPaid := paymentOrder.AmountPaid.Add(indexedValue)
+
+			// If amount paid meets or exceeds the order amount with fees, mark receive address as used
+			if amountPaid.GreaterThanOrEqual(orderAmountWithFees) {
+				_, err = receiveAddress.
+					Update().
+					SetStatus(receiveaddress.StatusUsed).
+					SetLastUsed(time.Now()).
+					SetLastIndexedBlock(int64(event.Raw.BlockNumber)).
+					Save(ctx)
+				if err != nil {
+					return true, fmt.Errorf("updateReceiveAddressStatus.db: %v", err)
+				}
+
+				// Revert excess amount to the from address
+				err := s.order.RevertOrder(ctx, paymentOrder, event.From)
+				if err != nil {
+					return true, fmt.Errorf("updateReceiveAddressStatus.RevertOrder: %v", err)
+				}
+			} else {
+				_, err = receiveAddress.
+					Update().
+					SetStatus(receiveaddress.StatusPartial).
+					SetLastIndexedBlock(int64(event.Raw.BlockNumber)).
+					Save(ctx)
+				if err != nil {
+					return true, fmt.Errorf("updateReceiveAddressStatus.db: %v", err)
+				}
+
+				// Update the payment order with amount paid
+				_, err = paymentOrder.
+					Update().
+					SetAmountPaid(amountPaid).
+					SetTxHash(event.Raw.TxHash.Hex()).
+					Save(ctx)
+				if err != nil {
+					return true, fmt.Errorf("updateReceiveAddressStatus.db: %v", err)
+				}
+			}
+
+		} else if comparisonResult > 0 {
+			// Transfer value is greater than order amount with fees
+			_, err = receiveAddress.
+				Update().
+				SetStatus(receiveaddress.StatusUsed).
+				SetLastUsed(time.Now()).
+				SetLastIndexedBlock(int64(event.Raw.BlockNumber)).
+				Save(ctx)
+			if err != nil {
+				return true, fmt.Errorf("updateReceiveAddressStatus.db: %v", err)
+			}
+
+			// Revert excess amount to the from address
+			err := s.order.RevertOrder(ctx, paymentOrder, event.From)
+			if err != nil {
+				return true, fmt.Errorf("updateReceiveAddressStatus.RevertOrder: %v", err)
+			}
+		}
+
+	} else if event.From.Hex() == receiveAddress.Address {
+		// This is a revert transfer
+		// Compare the transferred value with the expected order amount returned
+		indexedValue := utils.FromSubunit(event.Value, paymentOrder.Edges.Token.Decimals)
+
+		if indexedValue.Equal(paymentOrder.AmountReturned) {
+			_, err := receiveAddress.
+				Update().
+				SetLastIndexedBlock(int64(event.Raw.BlockNumber)).
+				Save(ctx)
+			if err != nil {
+				return true, fmt.Errorf("updateReceiveAddressStatus.db: %v", err)
+			}
+
+			_, err = paymentOrder.
+				Update().
+				SetStatus(paymentorder.StatusReverted).
+				SetTxHash(event.Raw.TxHash.Hex()).
+				Save(ctx)
+			if err != nil {
+				return true, fmt.Errorf("updateReceiveAddressStatus.db: %v", err)
+			}
+
+			// Send webhook notifcation to sender
+			paymentOrder.Status = paymentorder.StatusReverted
+
+			err = utils.SendPaymentOrderWebhook(ctx, paymentOrder)
+			if err != nil {
+				return true, fmt.Errorf("updateReceiveAddressStatus.webhook: %v", err)
+			}
+
+			return true, nil
+		}
+	}
+
+	// Handle receive address validity checks
+	ok, err := s.checkReceiveAddressValidity(ctx, receiveAddress, paymentOrder, event)
+	if err != nil {
+		return true, fmt.Errorf("updateReceiveAddressStatus.checkReceiveAddressValidity: %v", err)
+	}
+	return ok, err
+}
+
 // getProvisionBucket returns the provision bucket for a lock payment order
 func (s *IndexerService) getProvisionBucket(ctx context.Context, client types.RPCClient, amount decimal.Decimal, currency *ent.FiatCurrency) (*ent.ProvisionBucket, error) {
 
@@ -1087,8 +981,8 @@ func (s *IndexerService) splitLockPaymentOrder(ctx context.Context, lockPaymentO
 	return nil
 }
 
-// getMissedBlocksOpts returns the filter options for fetching missed blocks based on lock payment order status
-func (s *IndexerService) getMissedBlocksOpts(
+// getMissedOrderBlocksOpts returns the filter options for fetching missed blocks based on lock payment order status
+func (s *IndexerService) getMissedOrderBlocksOpts(
 	ctx context.Context, client types.RPCClient, filterer *contracts.PaycrestOrderFilterer, network *ent.Network, status lockpaymentorder.Status,
 ) *bind.FilterOpts {
 
@@ -1126,6 +1020,55 @@ func (s *IndexerService) getMissedBlocksOpts(
 	}
 
 	// Filter logs from the last lock payment order block number
+	opts := &bind.FilterOpts{
+		Start: uint64(startBlockNumber),
+		End:   &toBlock,
+	}
+
+	return opts
+}
+
+// getMissedERC20BlocksOpts returns the filter options for fetching missed blocks based on receive address status
+func (s *IndexerService) getMissedERC20BlocksOpts(
+	ctx context.Context, client types.RPCClient, filterer *contracts.ERC20TokenFilterer, network *ent.Network,
+) *bind.FilterOpts {
+
+	// Get receive address with most recent indexed block from db
+	result, err := db.Client.ReceiveAddress.
+		Query().
+		Where(
+			receiveaddress.HasPaymentOrderWith(
+				paymentorder.HasTokenWith(
+					token.HasNetworkWith(
+						networkent.IDEQ(network.ID),
+					),
+				),
+			),
+			receiveaddress.StatusNEQ(receiveaddress.StatusUsed),
+		).
+		Order(ent.Desc(receiveaddress.FieldLastIndexedBlock)).
+		Limit(1).
+		All(ctx)
+	if err != nil {
+		logger.Errorf("getMissedERC20BlocksOpts.db: %v", err)
+	}
+
+	// Fetch current block header
+	header, err := client.HeaderByNumber(ctx, nil)
+	if err != nil {
+		logger.Errorf("getMissedERC20BlocksOpts.HeaderByNumber: %v", err)
+	}
+
+	var startBlockNumber int64
+	toBlock := header.Number.Uint64()
+
+	if len(result) > 0 {
+		startBlockNumber = int64(result[0].LastIndexedBlock)
+	} else {
+		startBlockNumber = int64(toBlock) - 500
+	}
+
+	// Filter logs from the last indexed block number
 	opts := &bind.FilterOpts{
 		Start: uint64(startBlockNumber),
 		End:   &toBlock,

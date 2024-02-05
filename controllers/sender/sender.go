@@ -207,8 +207,8 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 		return
 	}
 
-	// Start a background process to index token transfers to the receive address
-	go ctrl.indexerService.RunIndexERC20Transfer(ctx, receiveAddress)
+	// Start a background process to index token transfers through the lifecycle of the receive address
+	go ctrl.indexerService.IndexERC20Transfer(ctx, nil, receiveAddress)
 
 	paymentOrderAmount, _ := paymentOrder.Amount.Float64()
 
