@@ -65,7 +65,19 @@ func main() {
 		SetIsEnabled(true).
 		Save(ctx)
 	if err != nil {
-		logger.Fatalf("failed seeding token: %s", err)
+		logger.Fatalf("failed seeding USDC: %s", err)
+	}
+
+	_, err = client.Token.
+		Create().
+		SetSymbol("6TEST").
+		SetContractAddress("0x3870419Ba2BBf0127060bCB37f69A1b1C090992B").
+		SetDecimals(6).
+		SetNetwork(network).
+		SetIsEnabled(true).
+		Save(ctx)
+	if err != nil {
+		logger.Fatalf("failed seeding 6TEST: %s", err)
 	}
 
 	// Seed Fiat Currencies and Provision Buckets

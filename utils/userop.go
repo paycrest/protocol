@@ -88,7 +88,7 @@ func InitializeUserOperation(ctx context.Context, client types.RPCClient, rpcUrl
 
 // SponsorUserOperation sponsors the user operation
 // ref: https://docs.stackup.sh/docs/paymaster-api-rpc-methods#pm_sponsoruseroperation
-func SponsorUserOperation(userOp *userop.UserOperation, mode string) error {
+func SponsorUserOperation(userOp *userop.UserOperation, mode string, token string) error {
 	client, err := rpc.Dial(OrderConf.PaymasterURL)
 	if err != nil {
 		return fmt.Errorf("failed to connect to RPC client: %w", err)
@@ -102,9 +102,13 @@ func SponsorUserOperation(userOp *userop.UserOperation, mode string) error {
 			"type": "payg",
 		}
 	case "erc20token":
+		if token == "" {
+			return fmt.Errorf("token address is required")
+		}
+
 		payload = map[string]interface{}{
-			"type":  "erc20token",
-			"token": "0x9999f7Fea5938fD3b1E26A12c3f2fb024e194f97",
+			"type": "erc20token",
+			"token": token,
 		}
 	default:
 		return fmt.Errorf("invalid mode")
@@ -147,11 +151,11 @@ func SponsorUserOperation(userOp *userop.UserOperation, mode string) error {
 }
 
 // SignUserOperation signs the user operation
-func SignUserOperation(userOperation *userop.UserOperation) error {
+func SignUserOperation(userOperation *userop.UserOperation, chainId int64) error {
 	// Sign user operation
 	userOpHash := userOperation.GetUserOpHash(
 		OrderConf.EntryPointContractAddress,
-		big.NewInt(137),
+		big.NewInt(chainId),
 	)
 
 	signature, err := PersonalSign(string(userOpHash[:]), privateKey)
@@ -175,8 +179,8 @@ func SendUserOperation(userOp *userop.UserOperation) (string, error) {
 		OrderConf.EntryPointContractAddress.Hex(),
 	}
 
-	// op, _ := userOp.MarshalJSON()
-	// fmt.Println(string(op))
+	op, _ := userOp.MarshalJSON()
+	fmt.Println(string(op))
 
 	var result json.RawMessage
 	err = client.Call(&result, "eth_sendUserOperation", requestParams...)

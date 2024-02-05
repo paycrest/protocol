@@ -92,13 +92,13 @@ func (s *OrderService) CreateOrder(ctx context.Context, orderID uuid.UUID) error
 
 	// Sponsor user operation.
 	// This will populate the following fields in userOperation: PaymasterAndData, PreVerificationGas, VerificationGasLimit, CallGasLimit
-	err = utils.SponsorUserOperation(userOperation, "erc20token")
+	err = utils.SponsorUserOperation(userOperation, "erc20token", order.Edges.Token.ContractAddress)
 	if err != nil {
 		return fmt.Errorf("failed to sponsor user operation: %w", err)
 	}
 
 	// Sign user operation
-	_ = utils.SignUserOperation(userOperation)
+	_ = utils.SignUserOperation(userOperation, order.Edges.Token.Edges.Network.ChainID)
 
 	// Send user operation
 	userOpHash, err := utils.SendUserOperation(userOperation)
@@ -164,13 +164,13 @@ func (s *OrderService) RefundOrder(ctx context.Context, orderID string) error {
 
 	// Sponsor user operation.
 	// This will populate the following fields in userOperation: PaymasterAndData, PreVerificationGas, VerificationGasLimit, CallGasLimit
-	err = utils.SponsorUserOperation(userOperation, "payg")
+	err = utils.SponsorUserOperation(userOperation, "payg", "")
 	if err != nil {
 		return fmt.Errorf("RefundOrder.sponsorUserOperation: %w", err)
 	}
 
 	// Sign user operation
-	_ = utils.SignUserOperation(userOperation)
+	_ = utils.SignUserOperation(userOperation, lockOrder.Edges.Token.Edges.Network.ChainID)
 
 	// Send user operation
 	userOpTxHash, err := utils.SendUserOperation(userOperation)
@@ -221,7 +221,7 @@ func (s *OrderService) RevertOrder(ctx context.Context, order *ent.PaymentOrder,
 	}
 
 	// Subtract the network fee from the amount
-	amountMinusFee := amountToRevert.Sub(order.NetworkFee)
+	amountMinusFee := amountToRevert.Sub(decimal.NewFromFloat(0.5))
 
 	// If amount minus fee is less than zero, return
 	if amountMinusFee.LessThan(decimal.Zero) {
@@ -254,13 +254,13 @@ func (s *OrderService) RevertOrder(ctx context.Context, order *ent.PaymentOrder,
 
 	// Sponsor user operation.
 	// This will populate the following fields in userOperation: PaymasterAndData, PreVerificationGas, VerificationGasLimit, CallGasLimit
-	err = utils.SponsorUserOperation(userOperation, "erc20token")
+	err = utils.SponsorUserOperation(userOperation, "erc20token", order.Edges.Token.ContractAddress)
 	if err != nil {
 		return fmt.Errorf("RevertOrder.sponsorUserOperation: %w", err)
 	}
 
 	// Sign user operation
-	_ = utils.SignUserOperation(userOperation)
+	_ = utils.SignUserOperation(userOperation, order.Edges.Token.Edges.Network.ChainID)
 
 	// Send user operation
 	userOpHash, err := utils.SendUserOperation(userOperation)
@@ -315,13 +315,13 @@ func (s *OrderService) SettleOrder(ctx context.Context, orderID uuid.UUID) error
 
 	// Sponsor user operation.
 	// This will populate the following fields in userOperation: PaymasterAndData, PreVerificationGas, VerificationGasLimit, CallGasLimit
-	err = utils.SponsorUserOperation(userOperation, "payg")
+	err = utils.SponsorUserOperation(userOperation, "payg", "")
 	if err != nil {
 		return fmt.Errorf("SettleOrder.sponsorUserOperation: %w", err)
 	}
 
 	// Sign user operation
-	_ = utils.SignUserOperation(userOperation)
+	_ = utils.SignUserOperation(userOperation, order.Edges.Token.Edges.Network.ChainID)
 
 	// Send user operation
 	userOpTxHash, err := utils.SendUserOperation(userOperation)
@@ -396,11 +396,11 @@ func (s *OrderService) executeBatchTransferCallData(order *ent.PaymentOrder, to 
 		return nil, fmt.Errorf("failed to create paymaster approve calldata : %w", err)
 	}
 
-	// Create approve data for erc20 contract
-	approveERC20Data, err := s.approveCallData(to, amount)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create erc20 approve calldata : %w", err)
-	}
+	// // Create approve data for erc20 contract
+	// approveERC20Data, err := s.approveCallData(to, amount)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to create erc20 approve calldata : %w", err)
+	// }
 
 	// Create transfer data
 	transferData, err := s.transferCallData(to, amount)
@@ -418,9 +418,8 @@ func (s *OrderService) executeBatchTransferCallData(order *ent.PaymentOrder, to 
 		[]common.Address{
 			common.HexToAddress(order.Edges.Token.ContractAddress),
 			common.HexToAddress(order.Edges.Token.ContractAddress),
-			common.HexToAddress(order.Edges.Token.ContractAddress),
 		},
-		[][]byte{approvePaymasterData, approveERC20Data, transferData},
+		[][]byte{approvePaymasterData, transferData},
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to pack execute ABI: %w", err)
@@ -549,7 +548,7 @@ func (s *OrderService) createOrderCallData(order *ent.PaymentOrder) ([]byte, err
 	}
 
 	var refundAddress common.Address
-	if order.Edges.SenderProfile.RefundAddress != "" {
+	if order.Edges.SenderProfile.RefundAddress == "" {
 		refundAddress = common.HexToAddress(order.FromAddress)
 	} else {
 		refundAddress = common.HexToAddress(order.Edges.SenderProfile.RefundAddress)

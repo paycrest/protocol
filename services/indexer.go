@@ -175,6 +175,29 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 				transferEvent.To = common.HexToAddress(vLog.Topics[2].Hex())
 
 				if transferEvent.To.Hex() == receiveAddress.Address {
+					// Check for existing paymentOrder with txHash
+					orderCount, err := db.Client.PaymentOrder.
+						Query().
+						Where(paymentorder.TxHashEQ(vLog.TxHash.Hex())).
+						Count(ctx)
+					if err != nil {
+						logger.Errorf("IndexERC20Transfer.db: %v", err)
+						return false, nil
+					}
+
+					if orderCount > 0 {
+						// This transfer has already been indexed
+						ok, err := s.checkReceiveAddressValidity(ctx, receiveAddress, paymentOrder, transferEvent)
+						if err != nil {
+							logger.Errorf("IndexERC20Transfer.checkReceiveAddressValidity: %v", err)
+						}
+						if ok {
+							return true, nil
+						} else {
+							continue
+						}
+					}
+
 					// This is a transfer to the receive address to create an order on-chain
 					// Compare the transferred value with the expected order amount + fees
 					fees := paymentOrder.NetworkFee.Add(paymentOrder.SenderFee)
@@ -223,10 +246,12 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 							}
 
 							// Revert excess amount to the from address
-							err := s.order.RevertOrder(ctx, paymentOrder, transferEvent.From)
-							if err != nil {
-								logger.Errorf("IndexERC20Transfer.revertOrder: %v", err)
-								return false, nil
+							if paymentOrder.AmountReturned.Equal(decimal.Zero) {
+								err := s.order.RevertOrder(ctx, paymentOrder, transferEvent.From)
+								if err != nil {
+									logger.Errorf("IndexERC20Transfer.revertOrder: %v", err)
+									return false, nil
+								}
 							}
 
 							return true, nil
@@ -266,10 +291,12 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 						}
 
 						// Revert excess amount to the from address
-						err := s.order.RevertOrder(ctx, paymentOrder, transferEvent.From)
-						if err != nil {
-							logger.Errorf("IndexERC20Transfer.revertOrder: %v", err)
-							return false, nil
+						if paymentOrder.AmountReturned.Equal(decimal.Zero) {
+							err := s.order.RevertOrder(ctx, paymentOrder, transferEvent.From)
+							if err != nil {
+								logger.Errorf("IndexERC20Transfer.revertOrder: %v", err)
+								return false, nil
+							}
 						}
 
 						return true, nil
@@ -314,51 +341,13 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 				}
 
 				// Handle receive address validity checks
-				if receiveAddress.Status != receiveaddress.StatusUsed {
-					amountNotPaidInFull := receiveAddress.Status == receiveaddress.StatusPartial || receiveAddress.Status == receiveaddress.StatusUnused
-					validUntilIsFarGone := receiveAddress.ValidUntil.Before(time.Now().Add(-(5 * time.Minute)))
-					isExpired := receiveAddress.ValidUntil.Before(time.Now())
-
-					if validUntilIsFarGone {
-						_, err = receiveAddress.
-							Update().
-							SetValidUntil(time.Now().Add(OrderConf.ReceiveAddressValidity)).
-							Save(ctx)
-						if err != nil {
-							logger.Errorf("IndexERC20Transfer.db: %v", err)
-							return false, nil
-						}
-					} else if isExpired && amountNotPaidInFull {
-						// Receive address hasn't received full payment after validity period, mark status as expired
-						_, err = receiveAddress.
-							Update().
-							SetStatus(receiveaddress.StatusExpired).
-							Save(ctx)
-						if err != nil {
-							logger.Errorf("IndexERC20Transfer.db: %v", err)
-							return false, nil
-						}
-
-						// Expire payment order
-						_, err = paymentOrder.
-							Update().
-							SetStatus(paymentorder.StatusExpired).
-							SetFromAddress(transferEvent.From.Hex()).
-							Save(ctx)
-						if err != nil {
-							logger.Errorf("IndexERC20Transfer.db: %v", err)
-							return false, nil
-						}
-
-						// Revert amount to the from address
-						err := s.order.RevertOrder(ctx, paymentOrder, transferEvent.From)
-						if err != nil {
-							logger.Errorf("IndexERC20Transfer.revertOrder: %v", err)
-							return false, nil
-						}
-
-						return true, nil
-					}
+				ok, err := s.checkReceiveAddressValidity(ctx, receiveAddress, paymentOrder, transferEvent)
+				if err != nil {
+					logger.Errorf("IndexERC20Transfer.checkReceiveAddressValidity: %v", err)
+					return false, nil
+				}
+				if ok {
+					return true, nil
 				}
 			}
 		}
@@ -385,6 +374,61 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 		time.Sleep(1 * time.Second)
 	}
 
+	return false, nil
+}
+
+// checkReceiveAddressValidity checks the validity of a receive address
+func (s *IndexerService) checkReceiveAddressValidity(ctx context.Context, receiveAddress *ent.ReceiveAddress, paymentOrder *ent.PaymentOrder, transferEvent types.ERC20Transfer) (bool, error) {
+	if receiveAddress.Status != receiveaddress.StatusUsed {
+		amountNotPaidInFull := receiveAddress.Status == receiveaddress.StatusPartial || receiveAddress.Status == receiveaddress.StatusUnused
+		validUntilIsFarGone := receiveAddress.ValidUntil.Before(time.Now().Add(-(5 * time.Minute)))
+		isExpired := receiveAddress.ValidUntil.Before(time.Now())
+
+		if validUntilIsFarGone {
+			fmt.Println("ValidUntilIsFarGone")
+			_, err := receiveAddress.
+				Update().
+				SetValidUntil(time.Now().Add(OrderConf.ReceiveAddressValidity)).
+				Save(ctx)
+			if err != nil {
+				logger.Errorf("IndexERC20Transfer.db: %v", err)
+				return false, nil
+			}
+		} else if isExpired && amountNotPaidInFull {
+			fmt.Println("Expired")
+			// Receive address hasn't received full payment after validity period, mark status as expired
+			_, err := receiveAddress.
+				Update().
+				SetStatus(receiveaddress.StatusExpired).
+				Save(ctx)
+			if err != nil {
+				logger.Errorf("IndexERC20Transfer.db: %v", err)
+				return false, nil
+			}
+
+			// Expire payment order
+			_, err = paymentOrder.
+				Update().
+				SetStatus(paymentorder.StatusExpired).
+				SetFromAddress(transferEvent.From.Hex()).
+				Save(ctx)
+			if err != nil {
+				logger.Errorf("IndexERC20Transfer.db: %v", err)
+				return false, nil
+			}
+
+			if paymentOrder.AmountReturned.Equal(decimal.Zero) {
+				// Revert amount to the from address
+				err = s.order.RevertOrder(ctx, paymentOrder, transferEvent.From)
+				if err != nil {
+					logger.Errorf("IndexERC20Transfer.revertOrder: %v", err)
+					return false, nil
+				}
+			}
+
+			return true, nil
+		}
+	}
 	return false, nil
 }
 

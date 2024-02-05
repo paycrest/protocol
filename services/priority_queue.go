@@ -7,7 +7,6 @@ import (
 	"math/rand"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -43,14 +42,9 @@ func (s *PriorityQueueService) ProcessBucketQueues() error {
 		return fmt.Errorf("ProcessBucketQueues.GetProvisionBuckets: %w", err)
 	}
 
-	var wg sync.WaitGroup
-
 	for _, bucket := range buckets {
-		wg.Add(1)
 		go s.CreatePriorityQueueForBucket(ctx, bucket)
 	}
-
-	wg.Wait()
 
 	return nil
 }

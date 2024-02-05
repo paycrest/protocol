@@ -60,12 +60,16 @@ func ContinueIndexing() error {
 			if err != nil {
 				logger.Errorf("process order deposits task => %v", err)
 			}
+		}(network)
 
+		go func(network *ent.Network) {
 			err = indexerService.IndexOrderSettlements(ctx, nil, network)
 			if err != nil {
 				logger.Errorf("process order settlements task => %v", err)
 			}
+		}(network)
 
+		go func(network *ent.Network) {
 			err = indexerService.IndexOrderRefunds(ctx, nil, network)
 			if err != nil {
 				logger.Errorf("process order refunds task => %v", err)
@@ -123,7 +127,9 @@ func ProcessOrders() error {
 
 	go func() {
 		for _, order := range orders {
-			if !order.AmountPaid.Equal(order.Amount) {
+			fees := order.NetworkFee.Add(order.SenderFee)
+			orderAmountWithFees := order.Amount.Add(fees)
+			if !order.AmountPaid.Equal(orderAmountWithFees) && order.AmountReturned.Equal(decimal.Zero) {
 				err := orderService.RevertOrder(ctx, order, common.HexToAddress(order.FromAddress))
 				if err != nil {
 					logger.Errorf("process task to revert orders => %v", err)
