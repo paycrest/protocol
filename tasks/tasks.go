@@ -70,7 +70,7 @@ func ContinueIndexing() error {
 
 		// Start listening for order creation events
 		go func(network *ent.Network) {
-			err := indexerService.IndexOrderDeposits(ctx, nil, network)
+			err := indexerService.IndexOrderCreated(ctx, nil, network)
 			if err != nil {
 				logger.Errorf("process order deposits task => %v", err)
 			}
@@ -78,7 +78,7 @@ func ContinueIndexing() error {
 
 		// Start listening for order settlement events
 		go func(network *ent.Network) {
-			err = indexerService.IndexOrderSettlements(ctx, nil, network)
+			err = indexerService.IndexOrderSettled(ctx, nil, network)
 			if err != nil {
 				logger.Errorf("process order settlements task => %v", err)
 			}
@@ -86,7 +86,7 @@ func ContinueIndexing() error {
 
 		// Start listening for order refund events
 		go func(network *ent.Network) {
-			err = indexerService.IndexOrderRefunds(ctx, nil, network)
+			err = indexerService.IndexOrderRefunded(ctx, nil, network)
 			if err != nil {
 				logger.Errorf("process order refunds task => %v", err)
 			}

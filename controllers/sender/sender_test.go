@@ -39,18 +39,18 @@ func (m *MockIndexerService) IndexERC20Transfer(ctx context.Context, client type
 	m.Called(ctx, client, receiveAddress)
 }
 
-// IndexOrderDeposits mocks the IndexOrderDeposits method
-func (m *MockIndexerService) IndexOrderDeposits(ctx context.Context, client types.RPCClient, network *ent.Network) error {
+// IndexOrderCreated mocks the IndexOrderCreated method
+func (m *MockIndexerService) IndexOrderCreated(ctx context.Context, client types.RPCClient, network *ent.Network) error {
 	return nil
 }
 
-// IndexOrderSettlements mocks the IndexOrderSettlements method
-func (m *MockIndexerService) IndexOrderSettlements(ctx context.Context, client types.RPCClient, network *ent.Network) error {
+// IndexOrderSettled mocks the IndexOrderSettled method
+func (m *MockIndexerService) IndexOrderSettled(ctx context.Context, client types.RPCClient, network *ent.Network) error {
 	return nil
 }
 
-// IndexOrderRefunds mocks the IndexOrderRefunds method
-func (m *MockIndexerService) IndexOrderRefunds(ctx context.Context, client types.RPCClient, network *ent.Network) error {
+// IndexOrderRefunded mocks the IndexOrderRefunded method
+func (m *MockIndexerService) IndexOrderRefunded(ctx context.Context, client types.RPCClient, network *ent.Network) error {
 	return nil
 }
 

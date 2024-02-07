@@ -34,9 +34,9 @@ var OrderConf = config.OrderConfig()
 // Indexer is an interface for indexing blockchain data to the database.
 type Indexer interface {
 	IndexERC20Transfer(ctx context.Context, client types.RPCClient, receiveAddress *ent.ReceiveAddress)
-	IndexOrderDeposits(ctx context.Context, client types.RPCClient, network *ent.Network) error
-	IndexOrderSettlements(ctx context.Context, client types.RPCClient, network *ent.Network) error
-	IndexOrderRefunds(ctx context.Context, client types.RPCClient, network *ent.Network) error
+	IndexOrderCreated(ctx context.Context, client types.RPCClient, network *ent.Network) error
+	IndexOrderSettled(ctx context.Context, client types.RPCClient, network *ent.Network) error
+	IndexOrderRefunded(ctx context.Context, client types.RPCClient, network *ent.Network) error
 }
 
 // IndexerService performs blockchain to database extract, transform, load (ETL) operations.
@@ -58,7 +58,7 @@ func NewIndexerService(indexer Indexer) *IndexerService {
 	}
 }
 
-// IndexOrderDeposit indexes deposits to the order contract for a specific network.
+// IndexERC20Transfer indexes deposits to the order contract for a specific network.
 func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RPCClient, receiveAddress *ent.ReceiveAddress) {
 	var err error
 
@@ -156,8 +156,8 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 	}
 }
 
-// IndexOrderDeposit indexes deposits to the order contract for a specific network.
-func (s *IndexerService) IndexOrderDeposits(ctx context.Context, client types.RPCClient, network *ent.Network) error {
+// IndexOrderCreated indexes deposits to the order contract for a specific network.
+func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPCClient, network *ent.Network) error {
 	var err error
 
 	// Connect to RPC endpoint
@@ -169,7 +169,7 @@ func (s *IndexerService) IndexOrderDeposits(ctx context.Context, client types.RP
 	}
 
 	// Initialize contract filterer
-	filterer, err := contracts.NewPaycrestOrderFilterer(OrderConf.PaycrestOrderContractAddress, client)
+	filterer, err := contracts.NewPaycrestFilterer(OrderConf.PaycrestOrderContractAddress, client)
 	if err != nil {
 		return fmt.Errorf("failed to create filterer: %w", err)
 	}
@@ -180,25 +180,25 @@ func (s *IndexerService) IndexOrderDeposits(ctx context.Context, client types.RP
 		opts := s.getMissedOrderBlocksOpts(ctx, client, filterer, network, lockpaymentorder.StatusPending)
 
 		// Fetch logs
-		iter, err := filterer.FilterDeposit(opts, nil, nil, nil)
+		iter, err := filterer.FilterOrderCreated(opts, nil, nil, nil)
 		if err != nil {
-			logger.Errorf("IndexOrderDeposits.fetchLogs: %v", err)
+			logger.Errorf("IndexOrderCreated.fetchLogs: %v", err)
 		}
 
 		// Iterate over logs
 		for iter.Next() {
 			err := s.createLockPaymentOrder(ctx, client, network, iter.Event)
 			if err != nil {
-				logger.Errorf("IndexOrderDeposits.createOrder: %v", err)
+				logger.Errorf("IndexOrderCreated.createOrder: %v", err)
 				continue
 			}
 		}
 	}()
 
 	// Start listening for deposit events
-	logs := make(chan *contracts.PaycrestOrderDeposit)
+	logs := make(chan *contracts.PaycrestOrderCreated)
 
-	sub, err := filterer.WatchDeposit(&bind.WatchOpts{
+	sub, err := filterer.WatchOrderCreated(&bind.WatchOpts{
 		Start: nil,
 	}, logs, nil, nil, nil)
 	if err != nil {
@@ -224,8 +224,8 @@ func (s *IndexerService) IndexOrderDeposits(ctx context.Context, client types.RP
 	}
 }
 
-// IndexOrderSettlements indexes order settlements for a specific network.
-func (s *IndexerService) IndexOrderSettlements(ctx context.Context, client types.RPCClient, network *ent.Network) error {
+// IndexOrderSettled indexes order settlements for a specific network.
+func (s *IndexerService) IndexOrderSettled(ctx context.Context, client types.RPCClient, network *ent.Network) error {
 	var err error
 
 	// Connect to RPC endpoint
@@ -237,7 +237,7 @@ func (s *IndexerService) IndexOrderSettlements(ctx context.Context, client types
 	}
 
 	// Initialize contract filterer
-	filterer, err := contracts.NewPaycrestOrderFilterer(OrderConf.PaycrestOrderContractAddress, client)
+	filterer, err := contracts.NewPaycrestFilterer(OrderConf.PaycrestOrderContractAddress, client)
 	if err != nil {
 		return fmt.Errorf("failed to create filterer: %w", err)
 	}
@@ -248,9 +248,9 @@ func (s *IndexerService) IndexOrderSettlements(ctx context.Context, client types
 		opts := s.getMissedOrderBlocksOpts(ctx, client, filterer, network, lockpaymentorder.StatusSettled)
 
 		// Fetch logs
-		iter, err := filterer.FilterSettled(opts, nil, nil)
+		iter, err := filterer.FilterOrderSettled(opts, nil, nil)
 		if err != nil {
-			logger.Errorf("IndexOrderSettlements.fetchLogs: %v", err)
+			logger.Errorf("IndexOrderSettled.fetchLogs: %v", err)
 		}
 
 		// Iterate over logs
@@ -258,7 +258,7 @@ func (s *IndexerService) IndexOrderSettlements(ctx context.Context, client types
 			log := iter.Event
 			err := s.updateOrderStatusSettled(ctx, log)
 			if err != nil {
-				logger.Errorf("IndexOrderSettlements.update: %v", err)
+				logger.Errorf("IndexOrderSettled.update: %v", err)
 				continue
 			}
 		}
@@ -267,7 +267,7 @@ func (s *IndexerService) IndexOrderSettlements(ctx context.Context, client types
 	// Start listening for settlement events
 	logs := make(chan *contracts.PaycrestOrderSettled)
 
-	sub, err := filterer.WatchSettled(&bind.WatchOpts{
+	sub, err := filterer.WatchOrderSettled(&bind.WatchOpts{
 		Start: nil,
 	}, logs, nil, nil)
 	if err != nil {
@@ -283,7 +283,7 @@ func (s *IndexerService) IndexOrderSettlements(ctx context.Context, client types
 		case log := <-logs:
 			err := s.updateOrderStatusSettled(ctx, log)
 			if err != nil {
-				logger.Errorf("IndexOrderSettlements.update: %v", err)
+				logger.Errorf("IndexOrderSettled.update: %v", err)
 				continue
 			}
 		case err := <-sub.Err():
@@ -293,8 +293,8 @@ func (s *IndexerService) IndexOrderSettlements(ctx context.Context, client types
 	}
 }
 
-// IndexOrderRefunds indexes order refunds for a specific network.
-func (s *IndexerService) IndexOrderRefunds(ctx context.Context, client types.RPCClient, network *ent.Network) error {
+// IndexOrderRefunded indexes order refunds for a specific network.
+func (s *IndexerService) IndexOrderRefunded(ctx context.Context, client types.RPCClient, network *ent.Network) error {
 	var err error
 
 	// Connect to RPC endpoint
@@ -306,7 +306,7 @@ func (s *IndexerService) IndexOrderRefunds(ctx context.Context, client types.RPC
 	}
 
 	// Initialize contract filterer
-	filterer, err := contracts.NewPaycrestOrderFilterer(OrderConf.PaycrestOrderContractAddress, client)
+	filterer, err := contracts.NewPaycrestFilterer(OrderConf.PaycrestOrderContractAddress, client)
 	if err != nil {
 		return fmt.Errorf("failed to create filterer: %w", err)
 	}
@@ -317,9 +317,9 @@ func (s *IndexerService) IndexOrderRefunds(ctx context.Context, client types.RPC
 		opts := s.getMissedOrderBlocksOpts(ctx, client, filterer, network, lockpaymentorder.StatusRefunded)
 
 		// Fetch logs
-		iter, err := filterer.FilterRefunded(opts, nil)
+		iter, err := filterer.FilterOrderRefunded(opts, nil)
 		if err != nil {
-			logger.Errorf("IndexOrderRefunds.fetchLogs: %v", err)
+			logger.Errorf("IndexOrderRefunded.fetchLogs: %v", err)
 		}
 
 		// Iterate over logs
@@ -327,7 +327,7 @@ func (s *IndexerService) IndexOrderRefunds(ctx context.Context, client types.RPC
 			log := iter.Event
 			err := s.updateOrderStatusRefunded(ctx, log)
 			if err != nil {
-				logger.Errorf("IndexOrderRefunds.update: %v", err)
+				logger.Errorf("IndexOrderRefunded.update: %v", err)
 				continue
 			}
 		}
@@ -336,7 +336,7 @@ func (s *IndexerService) IndexOrderRefunds(ctx context.Context, client types.RPC
 	// Start listening for refund events
 	logs := make(chan *contracts.PaycrestOrderRefunded)
 
-	sub, err := filterer.WatchRefunded(&bind.WatchOpts{
+	sub, err := filterer.WatchOrderRefunded(&bind.WatchOpts{
 		Start: nil,
 	}, logs, nil)
 	if err != nil {
@@ -352,11 +352,11 @@ func (s *IndexerService) IndexOrderRefunds(ctx context.Context, client types.RPC
 		case log := <-logs:
 			err := s.updateOrderStatusRefunded(ctx, log)
 			if err != nil {
-				logger.Errorf("IndexOrderRefunds.update: %v", err)
+				logger.Errorf("IndexOrderRefunded.update: %v", err)
 				continue
 			}
 		case err := <-sub.Err():
-			logger.Errorf("IndexOrderRefunds.parseEvent: %v", err)
+			logger.Errorf("IndexOrderRefunded.parseEvent: %v", err)
 			continue
 		}
 	}
@@ -536,7 +536,7 @@ func (s *IndexerService) updateOrderStatusSettled(ctx context.Context, log *cont
 }
 
 // createLockPaymentOrder saves a lock payment order in the database
-func (s *IndexerService) createLockPaymentOrder(ctx context.Context, client types.RPCClient, network *ent.Network, deposit *contracts.PaycrestOrderDeposit) error {
+func (s *IndexerService) createLockPaymentOrder(ctx context.Context, client types.RPCClient, network *ent.Network, deposit *contracts.PaycrestOrderCreated) error {
 	// Get token from db
 	token, err := db.Client.Token.
 		Query().
@@ -839,13 +839,13 @@ func (s *IndexerService) getProvisionBucket(ctx context.Context, client types.RP
 }
 
 // getInstitutionByCode returns the institution for a given institution code
-func (s *IndexerService) getInstitutionByCode(ctx context.Context, client types.RPCClient, institutionCode [32]byte) (*contracts.PaycrestSettingManagerInstitutionByCode, error) {
-	instance, err := contracts.NewPaycrestOrder(OrderConf.PaycrestOrderContractAddress, client.(bind.ContractBackend))
+func (s *IndexerService) getInstitutionByCode(ctx context.Context, client types.RPCClient, institutionCode [32]byte) (*contracts.SharedStructsInstitutionByCode, error) {
+	instance, err := contracts.NewPaycrest(OrderConf.PaycrestOrderContractAddress, client.(bind.ContractBackend))
 	if err != nil {
 		return nil, err
 	}
 
-	institution, err := instance.GetSupportedInstitutionName(nil, institutionCode)
+	institution, err := instance.GetSupportedInstitutionByCode(nil, institutionCode)
 	if err != nil {
 		return nil, err
 	}
@@ -983,7 +983,7 @@ func (s *IndexerService) splitLockPaymentOrder(ctx context.Context, lockPaymentO
 
 // getMissedOrderBlocksOpts returns the filter options for fetching missed blocks based on lock payment order status
 func (s *IndexerService) getMissedOrderBlocksOpts(
-	ctx context.Context, client types.RPCClient, filterer *contracts.PaycrestOrderFilterer, network *ent.Network, status lockpaymentorder.Status,
+	ctx context.Context, client types.RPCClient, filterer *contracts.PaycrestFilterer, network *ent.Network, status lockpaymentorder.Status,
 ) *bind.FilterOpts {
 
 	// Get the last lock payment order from db

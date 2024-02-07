@@ -359,7 +359,7 @@ func (s *OrderService) GetSupportedInstitutions(ctx context.Context, client type
 	currency := utils.StringToByte32(currencyCode)
 
 	// Initialize contract filterer
-	instance, err := contracts.NewPaycrestOrder(OrderConf.PaycrestOrderContractAddress, client.(bind.ContractBackend))
+	instance, err := contracts.NewPaycrest(OrderConf.PaycrestOrderContractAddress, client.(bind.ContractBackend))
 	if err != nil {
 		return nil, fmt.Errorf("GetSupportedInstitutions.NewPaycrestOrder: %w", err)
 	}
@@ -572,7 +572,7 @@ func (s *OrderService) createOrderCallData(order *ent.PaymentOrder) ([]byte, err
 	}
 
 	// Create ABI
-	paycrestOrderABI, err := abi.JSON(strings.NewReader(contracts.PaycrestOrderMetaData.ABI))
+	paycrestOrderABI, err := abi.JSON(strings.NewReader(contracts.PaycrestMetaData.ABI))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse PaycrestOrder ABI: %w", err)
 	}
@@ -637,7 +637,7 @@ func (s *OrderService) executeBatchRefundCallData(order *ent.LockPaymentOrder) (
 
 // refundCallData creates the data for the refund method
 func (s *OrderService) refundCallData(fee *big.Int, orderId, label string) ([]byte, error) {
-	paycrestOrderABI, err := abi.JSON(strings.NewReader(contracts.PaycrestOrderMetaData.ABI))
+	paycrestOrderABI, err := abi.JSON(strings.NewReader(contracts.PaycrestMetaData.ABI))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse PaycrestOrder ABI: %w", err)
 	}
@@ -696,7 +696,7 @@ func (s *OrderService) executeBatchSettleCallData(ctx context.Context, order *en
 
 // settleCallData creates the data for the settle method in the paycrest order contract
 func (s *OrderService) settleCallData(ctx context.Context, order *ent.LockPaymentOrder) ([]byte, error) {
-	paycrestOrderABI, err := abi.JSON(strings.NewReader(contracts.PaycrestOrderMetaData.ABI))
+	paycrestOrderABI, err := abi.JSON(strings.NewReader(contracts.PaycrestMetaData.ABI))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse PaycrestOrder ABI: %w", err)
 	}
