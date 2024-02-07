@@ -104,6 +104,20 @@ func (rac *ReceiveAddressCreate) SetNillableLastUsed(t *time.Time) *ReceiveAddre
 	return rac
 }
 
+// SetTxHash sets the "tx_hash" field.
+func (rac *ReceiveAddressCreate) SetTxHash(s string) *ReceiveAddressCreate {
+	rac.mutation.SetTxHash(s)
+	return rac
+}
+
+// SetNillableTxHash sets the "tx_hash" field if the given value is not nil.
+func (rac *ReceiveAddressCreate) SetNillableTxHash(s *string) *ReceiveAddressCreate {
+	if s != nil {
+		rac.SetTxHash(*s)
+	}
+	return rac
+}
+
 // SetValidUntil sets the "valid_until" field.
 func (rac *ReceiveAddressCreate) SetValidUntil(t time.Time) *ReceiveAddressCreate {
 	rac.mutation.SetValidUntil(t)
@@ -208,6 +222,11 @@ func (rac *ReceiveAddressCreate) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "ReceiveAddress.status": %w`, err)}
 		}
 	}
+	if v, ok := rac.mutation.TxHash(); ok {
+		if err := receiveaddress.TxHashValidator(v); err != nil {
+			return &ValidationError{Name: "tx_hash", err: fmt.Errorf(`ent: validator failed for field "ReceiveAddress.tx_hash": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -261,6 +280,10 @@ func (rac *ReceiveAddressCreate) createSpec() (*ReceiveAddress, *sqlgraph.Create
 	if value, ok := rac.mutation.LastUsed(); ok {
 		_spec.SetField(receiveaddress.FieldLastUsed, field.TypeTime, value)
 		_node.LastUsed = value
+	}
+	if value, ok := rac.mutation.TxHash(); ok {
+		_spec.SetField(receiveaddress.FieldTxHash, field.TypeString, value)
+		_node.TxHash = value
 	}
 	if value, ok := rac.mutation.ValidUntil(); ok {
 		_spec.SetField(receiveaddress.FieldValidUntil, field.TypeTime, value)

@@ -241,6 +241,10 @@ func init() {
 	receiveaddress.DefaultUpdatedAt = receiveaddressDescUpdatedAt.Default.(func() time.Time)
 	// receiveaddress.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	receiveaddress.UpdateDefaultUpdatedAt = receiveaddressDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// receiveaddressDescTxHash is the schema descriptor for tx_hash field.
+	receiveaddressDescTxHash := receiveaddressFields[5].Descriptor()
+	// receiveaddress.TxHashValidator is a validator for the "tx_hash" field. It is called by the builders before save.
+	receiveaddress.TxHashValidator = receiveaddressDescTxHash.Validators[0].(func(string) error)
 	senderprofileFields := schema.SenderProfile{}.Fields()
 	_ = senderprofileFields
 	// senderprofileDescDomainWhitelist is the schema descriptor for domain_whitelist field.

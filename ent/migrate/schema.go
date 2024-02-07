@@ -338,6 +338,7 @@ var (
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"unused", "partial", "used", "expired"}, Default: "unused"},
 		{Name: "last_indexed_block", Type: field.TypeInt64, Nullable: true},
 		{Name: "last_used", Type: field.TypeTime, Nullable: true},
+		{Name: "tx_hash", Type: field.TypeString, Nullable: true, Size: 70},
 		{Name: "valid_until", Type: field.TypeTime, Nullable: true},
 		{Name: "payment_order_receive_address", Type: field.TypeUUID, Unique: true, Nullable: true},
 	}
@@ -349,7 +350,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "receive_addresses_payment_orders_receive_address",
-				Columns:    []*schema.Column{ReceiveAddressesColumns[9]},
+				Columns:    []*schema.Column{ReceiveAddressesColumns[10]},
 				RefColumns: []*schema.Column{PaymentOrdersColumns[0]},
 				OnDelete:   schema.SetNull,
 			},

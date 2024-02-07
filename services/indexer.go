@@ -41,18 +41,16 @@ type Indexer interface {
 
 // IndexerService performs blockchain to database extract, transform, load (ETL) operations.
 type IndexerService struct {
-	indexer       Indexer
 	priorityQueue *PriorityQueueService
 	order         *OrderService
 }
 
 // NewIndexerService creates a new instance of IndexerService.
-func NewIndexerService(indexer Indexer) *IndexerService {
+func NewIndexerService() *IndexerService {
 	priorityQueue := NewPriorityQueueService()
 	order := NewOrderService()
 
 	return &IndexerService{
-		indexer:       indexer,
 		priorityQueue: priorityQueue,
 		order:         order,
 	}
@@ -658,16 +656,16 @@ func (s *IndexerService) updateReceiveAddressStatus(
 	ctx context.Context, client types.RPCClient, receiveAddress *ent.ReceiveAddress, paymentOrder *ent.PaymentOrder, event *contracts.ERC20TokenTransfer,
 ) (done bool, err error) {
 
-	if event.To.Hex() == receiveAddress.Address {
-		// Check for existing order with txHash
-		orderCount, err := db.Client.PaymentOrder.
-			Query().
-			Where(paymentorder.TxHashEQ(event.Raw.TxHash.Hex())).
-			Count(ctx)
-		if err != nil {
-			return true, fmt.Errorf("updateReceiveAddressStatus.db: %v", err)
-		}
+	// Check for existing address with txHash
+	orderCount, err := db.Client.ReceiveAddress.
+		Query().
+		Where(receiveaddress.TxHashEQ(event.Raw.TxHash.Hex())).
+		Count(ctx)
+	if err != nil {
+		return true, fmt.Errorf("updateReceiveAddressStatus.db: %v", err)
+	}
 
+	if event.To.Hex() == receiveAddress.Address {
 		if orderCount > 0 {
 			// This transfer has already been indexed
 			ok, err := s.checkReceiveAddressValidity(ctx, receiveAddress, paymentOrder, event)
@@ -774,7 +772,12 @@ func (s *IndexerService) updateReceiveAddressStatus(
 		}
 
 	} else if event.From.Hex() == receiveAddress.Address {
-		// This is a revert transfer
+		// This is a revert transfer from the receive address
+		if orderCount > 0 {
+			// This transfer has already been indexed
+			return false, nil
+		}
+
 		// Compare the transferred value with the expected order amount returned
 		indexedValue := utils.FromSubunit(event.Value, paymentOrder.Edges.Token.Decimals)
 
@@ -1044,7 +1047,6 @@ func (s *IndexerService) getMissedERC20BlocksOpts(
 					),
 				),
 			),
-			receiveaddress.StatusNEQ(receiveaddress.StatusUsed),
 		).
 		Order(ent.Desc(receiveaddress.FieldLastIndexedBlock)).
 		Limit(1).

@@ -107,7 +107,7 @@ func setup() error {
 	}
 	testCtx.paymentOrder = paymentOrder
 
-	indexer := NewIndexerService(nil)
+	indexer := NewIndexerService()
 	testCtx.indexer = indexer
 
 	return nil

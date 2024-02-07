@@ -225,7 +225,7 @@ func (s *OrderService) RevertOrder(ctx context.Context, order *ent.PaymentOrder,
 	}
 
 	// Subtract the network fee from the amount
-	amountMinusFee := amountToRevert.Sub(decimal.NewFromFloat(0.5))
+	amountMinusFee := amountToRevert.Sub(OrderConf.NetworkFee)
 
 	// If amount minus fee is less than zero, return
 	if amountMinusFee.LessThan(decimal.Zero) {
@@ -561,7 +561,7 @@ func (s *OrderService) createOrderCallData(order *ent.PaymentOrder) ([]byte, err
 	// Define params
 	params := &CreateOrderParams{
 		Token:              common.HexToAddress(order.Edges.Token.ContractAddress),
-		Amount:             utils.ToSubunit(order.Amount.Sub(decimal.NewFromFloat(3)), order.Edges.Token.Decimals),
+		Amount:             utils.ToSubunit(order.Amount, order.Edges.Token.Decimals),
 		InstitutionCode:    utils.StringToByte32(order.Edges.Recipient.Institution),
 		Label:              utils.StringToByte32(order.Label),
 		Rate:               order.Rate.BigInt(),

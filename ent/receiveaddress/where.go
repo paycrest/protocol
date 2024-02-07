@@ -85,6 +85,11 @@ func LastUsed(v time.Time) predicate.ReceiveAddress {
 	return predicate.ReceiveAddress(sql.FieldEQ(FieldLastUsed, v))
 }
 
+// TxHash applies equality check predicate on the "tx_hash" field. It's identical to TxHashEQ.
+func TxHash(v string) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldEQ(FieldTxHash, v))
+}
+
 // ValidUntil applies equality check predicate on the "valid_until" field. It's identical to ValidUntilEQ.
 func ValidUntil(v time.Time) predicate.ReceiveAddress {
 	return predicate.ReceiveAddress(sql.FieldEQ(FieldValidUntil, v))
@@ -393,6 +398,81 @@ func LastUsedIsNil() predicate.ReceiveAddress {
 // LastUsedNotNil applies the NotNil predicate on the "last_used" field.
 func LastUsedNotNil() predicate.ReceiveAddress {
 	return predicate.ReceiveAddress(sql.FieldNotNull(FieldLastUsed))
+}
+
+// TxHashEQ applies the EQ predicate on the "tx_hash" field.
+func TxHashEQ(v string) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldEQ(FieldTxHash, v))
+}
+
+// TxHashNEQ applies the NEQ predicate on the "tx_hash" field.
+func TxHashNEQ(v string) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldNEQ(FieldTxHash, v))
+}
+
+// TxHashIn applies the In predicate on the "tx_hash" field.
+func TxHashIn(vs ...string) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldIn(FieldTxHash, vs...))
+}
+
+// TxHashNotIn applies the NotIn predicate on the "tx_hash" field.
+func TxHashNotIn(vs ...string) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldNotIn(FieldTxHash, vs...))
+}
+
+// TxHashGT applies the GT predicate on the "tx_hash" field.
+func TxHashGT(v string) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldGT(FieldTxHash, v))
+}
+
+// TxHashGTE applies the GTE predicate on the "tx_hash" field.
+func TxHashGTE(v string) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldGTE(FieldTxHash, v))
+}
+
+// TxHashLT applies the LT predicate on the "tx_hash" field.
+func TxHashLT(v string) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldLT(FieldTxHash, v))
+}
+
+// TxHashLTE applies the LTE predicate on the "tx_hash" field.
+func TxHashLTE(v string) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldLTE(FieldTxHash, v))
+}
+
+// TxHashContains applies the Contains predicate on the "tx_hash" field.
+func TxHashContains(v string) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldContains(FieldTxHash, v))
+}
+
+// TxHashHasPrefix applies the HasPrefix predicate on the "tx_hash" field.
+func TxHashHasPrefix(v string) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldHasPrefix(FieldTxHash, v))
+}
+
+// TxHashHasSuffix applies the HasSuffix predicate on the "tx_hash" field.
+func TxHashHasSuffix(v string) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldHasSuffix(FieldTxHash, v))
+}
+
+// TxHashIsNil applies the IsNil predicate on the "tx_hash" field.
+func TxHashIsNil() predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldIsNull(FieldTxHash))
+}
+
+// TxHashNotNil applies the NotNil predicate on the "tx_hash" field.
+func TxHashNotNil() predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldNotNull(FieldTxHash))
+}
+
+// TxHashEqualFold applies the EqualFold predicate on the "tx_hash" field.
+func TxHashEqualFold(v string) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldEqualFold(FieldTxHash, v))
+}
+
+// TxHashContainsFold applies the ContainsFold predicate on the "tx_hash" field.
+func TxHashContainsFold(v string) predicate.ReceiveAddress {
+	return predicate.ReceiveAddress(sql.FieldContainsFold(FieldTxHash, v))
 }
 
 // ValidUntilEQ applies the EQ predicate on the "valid_until" field.
