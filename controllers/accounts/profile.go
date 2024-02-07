@@ -418,6 +418,13 @@ func (ctrl *ProfileController) GetProviderProfile(ctx *gin.Context) {
 		return
 	}
 
+	// Get currency
+	currency, err := provider.QueryCurrency().Only(ctx)
+	if err != nil {
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to retrieve profile", nil)
+		return
+	}
+
 	// Get tokens
 	tokens, err := provider.QueryOrderTokens().All(ctx)
 	if err != nil {
@@ -438,7 +445,7 @@ func (ctrl *ProfileController) GetProviderProfile(ctx *gin.Context) {
 		LastName:             user.LastName,
 		Email:                user.Email,
 		TradingName:          provider.TradingName,
-		Currency:             provider.Edges.Currency.Code,
+		Currency:             currency.Code,
 		HostIdentifier:       provider.HostIdentifier,
 		IsPartner:            provider.IsPartner,
 		IsAvailable:          provider.IsAvailable,
