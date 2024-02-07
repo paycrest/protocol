@@ -29,6 +29,8 @@ const (
 	FieldLastIndexedBlock = "last_indexed_block"
 	// FieldLastUsed holds the string denoting the last_used field in the database.
 	FieldLastUsed = "last_used"
+	// FieldTxHash holds the string denoting the tx_hash field in the database.
+	FieldTxHash = "tx_hash"
 	// FieldValidUntil holds the string denoting the valid_until field in the database.
 	FieldValidUntil = "valid_until"
 	// EdgePaymentOrder holds the string denoting the payment_order edge name in mutations.
@@ -54,6 +56,7 @@ var Columns = []string{
 	FieldStatus,
 	FieldLastIndexedBlock,
 	FieldLastUsed,
+	FieldTxHash,
 	FieldValidUntil,
 }
 
@@ -85,6 +88,8 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
+	// TxHashValidator is a validator for the "tx_hash" field. It is called by the builders before save.
+	TxHashValidator func(string) error
 )
 
 // Status defines the type for the "status" enum field.
@@ -151,6 +156,11 @@ func ByLastIndexedBlock(opts ...sql.OrderTermOption) OrderOption {
 // ByLastUsed orders the results by the last_used field.
 func ByLastUsed(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldLastUsed, opts...).ToFunc()
+}
+
+// ByTxHash orders the results by the tx_hash field.
+func ByTxHash(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTxHash, opts...).ToFunc()
 }
 
 // ByValidUntil orders the results by the valid_until field.

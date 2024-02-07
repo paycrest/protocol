@@ -26,6 +26,9 @@ func (ReceiveAddress) Fields() []ent.Field {
 		field.Enum("status").Values("unused", "partial", "used", "expired").Default("unused"),
 		field.Int64("last_indexed_block").Optional(),
 		field.Time("last_used").Optional(),
+		field.String("tx_hash").
+			MaxLen(70).
+			Optional(),
 		field.Time("valid_until").Optional(),
 	}
 }

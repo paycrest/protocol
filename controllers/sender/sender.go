@@ -23,19 +23,19 @@ import (
 
 // SenderController is a controller type for sender endpoints
 type SenderController struct {
-	indexerService        *svc.IndexerService
+	indexerService        svc.Indexer
 	receiveAddressService *svc.ReceiveAddressService
 	orderService          *svc.OrderService
 }
 
 // NewSenderController creates a new instance of SenderController
 func NewSenderController(indexer svc.Indexer) *SenderController {
-	var indexerService *svc.IndexerService
+	var indexerService svc.Indexer
 
 	if indexer != nil {
-		indexerService = svc.NewIndexerService(indexer)
+		indexerService = indexer
 	} else {
-		indexerService = svc.NewIndexerService(nil)
+		indexerService = svc.NewIndexerService()
 	}
 
 	return &SenderController{

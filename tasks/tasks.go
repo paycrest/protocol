@@ -28,7 +28,7 @@ import (
 // ContinueIndexing continues indexing
 func ContinueIndexing() error {
 	ctx := context.Background()
-	indexerService := services.NewIndexerService(nil)
+	indexerService := services.NewIndexerService()
 
 	networks, err := storage.GetClient().Network.
 		Query().

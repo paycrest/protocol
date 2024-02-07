@@ -10889,6 +10889,7 @@ type ReceiveAddressMutation struct {
 	last_indexed_block    *int64
 	addlast_indexed_block *int64
 	last_used             *time.Time
+	tx_hash               *string
 	valid_until           *time.Time
 	clearedFields         map[string]struct{}
 	payment_order         *uuid.UUID
@@ -11295,6 +11296,55 @@ func (m *ReceiveAddressMutation) ResetLastUsed() {
 	delete(m.clearedFields, receiveaddress.FieldLastUsed)
 }
 
+// SetTxHash sets the "tx_hash" field.
+func (m *ReceiveAddressMutation) SetTxHash(s string) {
+	m.tx_hash = &s
+}
+
+// TxHash returns the value of the "tx_hash" field in the mutation.
+func (m *ReceiveAddressMutation) TxHash() (r string, exists bool) {
+	v := m.tx_hash
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTxHash returns the old "tx_hash" field's value of the ReceiveAddress entity.
+// If the ReceiveAddress object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReceiveAddressMutation) OldTxHash(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTxHash is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTxHash requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTxHash: %w", err)
+	}
+	return oldValue.TxHash, nil
+}
+
+// ClearTxHash clears the value of the "tx_hash" field.
+func (m *ReceiveAddressMutation) ClearTxHash() {
+	m.tx_hash = nil
+	m.clearedFields[receiveaddress.FieldTxHash] = struct{}{}
+}
+
+// TxHashCleared returns if the "tx_hash" field was cleared in this mutation.
+func (m *ReceiveAddressMutation) TxHashCleared() bool {
+	_, ok := m.clearedFields[receiveaddress.FieldTxHash]
+	return ok
+}
+
+// ResetTxHash resets all changes to the "tx_hash" field.
+func (m *ReceiveAddressMutation) ResetTxHash() {
+	m.tx_hash = nil
+	delete(m.clearedFields, receiveaddress.FieldTxHash)
+}
+
 // SetValidUntil sets the "valid_until" field.
 func (m *ReceiveAddressMutation) SetValidUntil(t time.Time) {
 	m.valid_until = &t
@@ -11417,7 +11467,7 @@ func (m *ReceiveAddressMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ReceiveAddressMutation) Fields() []string {
-	fields := make([]string, 0, 8)
+	fields := make([]string, 0, 9)
 	if m.created_at != nil {
 		fields = append(fields, receiveaddress.FieldCreatedAt)
 	}
@@ -11438,6 +11488,9 @@ func (m *ReceiveAddressMutation) Fields() []string {
 	}
 	if m.last_used != nil {
 		fields = append(fields, receiveaddress.FieldLastUsed)
+	}
+	if m.tx_hash != nil {
+		fields = append(fields, receiveaddress.FieldTxHash)
 	}
 	if m.valid_until != nil {
 		fields = append(fields, receiveaddress.FieldValidUntil)
@@ -11464,6 +11517,8 @@ func (m *ReceiveAddressMutation) Field(name string) (ent.Value, bool) {
 		return m.LastIndexedBlock()
 	case receiveaddress.FieldLastUsed:
 		return m.LastUsed()
+	case receiveaddress.FieldTxHash:
+		return m.TxHash()
 	case receiveaddress.FieldValidUntil:
 		return m.ValidUntil()
 	}
@@ -11489,6 +11544,8 @@ func (m *ReceiveAddressMutation) OldField(ctx context.Context, name string) (ent
 		return m.OldLastIndexedBlock(ctx)
 	case receiveaddress.FieldLastUsed:
 		return m.OldLastUsed(ctx)
+	case receiveaddress.FieldTxHash:
+		return m.OldTxHash(ctx)
 	case receiveaddress.FieldValidUntil:
 		return m.OldValidUntil(ctx)
 	}
@@ -11549,6 +11606,13 @@ func (m *ReceiveAddressMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetLastUsed(v)
 		return nil
+	case receiveaddress.FieldTxHash:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTxHash(v)
+		return nil
 	case receiveaddress.FieldValidUntil:
 		v, ok := value.(time.Time)
 		if !ok {
@@ -11607,6 +11671,9 @@ func (m *ReceiveAddressMutation) ClearedFields() []string {
 	if m.FieldCleared(receiveaddress.FieldLastUsed) {
 		fields = append(fields, receiveaddress.FieldLastUsed)
 	}
+	if m.FieldCleared(receiveaddress.FieldTxHash) {
+		fields = append(fields, receiveaddress.FieldTxHash)
+	}
 	if m.FieldCleared(receiveaddress.FieldValidUntil) {
 		fields = append(fields, receiveaddress.FieldValidUntil)
 	}
@@ -11629,6 +11696,9 @@ func (m *ReceiveAddressMutation) ClearField(name string) error {
 		return nil
 	case receiveaddress.FieldLastUsed:
 		m.ClearLastUsed()
+		return nil
+	case receiveaddress.FieldTxHash:
+		m.ClearTxHash()
 		return nil
 	case receiveaddress.FieldValidUntil:
 		m.ClearValidUntil()
@@ -11661,6 +11731,9 @@ func (m *ReceiveAddressMutation) ResetField(name string) error {
 		return nil
 	case receiveaddress.FieldLastUsed:
 		m.ResetLastUsed()
+		return nil
+	case receiveaddress.FieldTxHash:
+		m.ResetTxHash()
 		return nil
 	case receiveaddress.FieldValidUntil:
 		m.ResetValidUntil()

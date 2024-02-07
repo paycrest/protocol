@@ -103,6 +103,26 @@ func (rau *ReceiveAddressUpdate) ClearLastUsed() *ReceiveAddressUpdate {
 	return rau
 }
 
+// SetTxHash sets the "tx_hash" field.
+func (rau *ReceiveAddressUpdate) SetTxHash(s string) *ReceiveAddressUpdate {
+	rau.mutation.SetTxHash(s)
+	return rau
+}
+
+// SetNillableTxHash sets the "tx_hash" field if the given value is not nil.
+func (rau *ReceiveAddressUpdate) SetNillableTxHash(s *string) *ReceiveAddressUpdate {
+	if s != nil {
+		rau.SetTxHash(*s)
+	}
+	return rau
+}
+
+// ClearTxHash clears the value of the "tx_hash" field.
+func (rau *ReceiveAddressUpdate) ClearTxHash() *ReceiveAddressUpdate {
+	rau.mutation.ClearTxHash()
+	return rau
+}
+
 // SetValidUntil sets the "valid_until" field.
 func (rau *ReceiveAddressUpdate) SetValidUntil(t time.Time) *ReceiveAddressUpdate {
 	rau.mutation.SetValidUntil(t)
@@ -196,6 +216,11 @@ func (rau *ReceiveAddressUpdate) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "ReceiveAddress.status": %w`, err)}
 		}
 	}
+	if v, ok := rau.mutation.TxHash(); ok {
+		if err := receiveaddress.TxHashValidator(v); err != nil {
+			return &ValidationError{Name: "tx_hash", err: fmt.Errorf(`ent: validator failed for field "ReceiveAddress.tx_hash": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -234,6 +259,12 @@ func (rau *ReceiveAddressUpdate) sqlSave(ctx context.Context) (n int, err error)
 	}
 	if rau.mutation.LastUsedCleared() {
 		_spec.ClearField(receiveaddress.FieldLastUsed, field.TypeTime)
+	}
+	if value, ok := rau.mutation.TxHash(); ok {
+		_spec.SetField(receiveaddress.FieldTxHash, field.TypeString, value)
+	}
+	if rau.mutation.TxHashCleared() {
+		_spec.ClearField(receiveaddress.FieldTxHash, field.TypeString)
 	}
 	if value, ok := rau.mutation.ValidUntil(); ok {
 		_spec.SetField(receiveaddress.FieldValidUntil, field.TypeTime, value)
@@ -363,6 +394,26 @@ func (rauo *ReceiveAddressUpdateOne) ClearLastUsed() *ReceiveAddressUpdateOne {
 	return rauo
 }
 
+// SetTxHash sets the "tx_hash" field.
+func (rauo *ReceiveAddressUpdateOne) SetTxHash(s string) *ReceiveAddressUpdateOne {
+	rauo.mutation.SetTxHash(s)
+	return rauo
+}
+
+// SetNillableTxHash sets the "tx_hash" field if the given value is not nil.
+func (rauo *ReceiveAddressUpdateOne) SetNillableTxHash(s *string) *ReceiveAddressUpdateOne {
+	if s != nil {
+		rauo.SetTxHash(*s)
+	}
+	return rauo
+}
+
+// ClearTxHash clears the value of the "tx_hash" field.
+func (rauo *ReceiveAddressUpdateOne) ClearTxHash() *ReceiveAddressUpdateOne {
+	rauo.mutation.ClearTxHash()
+	return rauo
+}
+
 // SetValidUntil sets the "valid_until" field.
 func (rauo *ReceiveAddressUpdateOne) SetValidUntil(t time.Time) *ReceiveAddressUpdateOne {
 	rauo.mutation.SetValidUntil(t)
@@ -469,6 +520,11 @@ func (rauo *ReceiveAddressUpdateOne) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "ReceiveAddress.status": %w`, err)}
 		}
 	}
+	if v, ok := rauo.mutation.TxHash(); ok {
+		if err := receiveaddress.TxHashValidator(v); err != nil {
+			return &ValidationError{Name: "tx_hash", err: fmt.Errorf(`ent: validator failed for field "ReceiveAddress.tx_hash": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -524,6 +580,12 @@ func (rauo *ReceiveAddressUpdateOne) sqlSave(ctx context.Context) (_node *Receiv
 	}
 	if rauo.mutation.LastUsedCleared() {
 		_spec.ClearField(receiveaddress.FieldLastUsed, field.TypeTime)
+	}
+	if value, ok := rauo.mutation.TxHash(); ok {
+		_spec.SetField(receiveaddress.FieldTxHash, field.TypeString, value)
+	}
+	if rauo.mutation.TxHashCleared() {
+		_spec.ClearField(receiveaddress.FieldTxHash, field.TypeString)
 	}
 	if value, ok := rauo.mutation.ValidUntil(); ok {
 		_spec.SetField(receiveaddress.FieldValidUntil, field.TypeTime, value)

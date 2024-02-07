@@ -33,6 +33,8 @@ type ReceiveAddress struct {
 	LastIndexedBlock int64 `json:"last_indexed_block,omitempty"`
 	// LastUsed holds the value of the "last_used" field.
 	LastUsed time.Time `json:"last_used,omitempty"`
+	// TxHash holds the value of the "tx_hash" field.
+	TxHash string `json:"tx_hash,omitempty"`
 	// ValidUntil holds the value of the "valid_until" field.
 	ValidUntil time.Time `json:"valid_until,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -73,7 +75,7 @@ func (*ReceiveAddress) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case receiveaddress.FieldID, receiveaddress.FieldLastIndexedBlock:
 			values[i] = new(sql.NullInt64)
-		case receiveaddress.FieldAddress, receiveaddress.FieldStatus:
+		case receiveaddress.FieldAddress, receiveaddress.FieldStatus, receiveaddress.FieldTxHash:
 			values[i] = new(sql.NullString)
 		case receiveaddress.FieldCreatedAt, receiveaddress.FieldUpdatedAt, receiveaddress.FieldLastUsed, receiveaddress.FieldValidUntil:
 			values[i] = new(sql.NullTime)
@@ -141,6 +143,12 @@ func (ra *ReceiveAddress) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field last_used", values[i])
 			} else if value.Valid {
 				ra.LastUsed = value.Time
+			}
+		case receiveaddress.FieldTxHash:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field tx_hash", values[i])
+			} else if value.Valid {
+				ra.TxHash = value.String
 			}
 		case receiveaddress.FieldValidUntil:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -216,6 +224,9 @@ func (ra *ReceiveAddress) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("last_used=")
 	builder.WriteString(ra.LastUsed.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("tx_hash=")
+	builder.WriteString(ra.TxHash)
 	builder.WriteString(", ")
 	builder.WriteString("valid_until=")
 	builder.WriteString(ra.ValidUntil.Format(time.ANSIC))
