@@ -32,7 +32,7 @@ var testCtx = struct {
 
 func setup() error {
 	// Set up test data
-	user, err := test.CreateTestUser(map[string]string{
+	user, err := test.CreateTestUser(map[string]interface{}{
 		"scope": "provider",
 		"email": "providerjohndoe@test.com",
 	})
@@ -107,7 +107,7 @@ func TestProfile(t *testing.T) {
 
 	t.Run("UpdateSenderProfile", func(t *testing.T) {
 		t.Run("with all fields", func(t *testing.T) {
-			testUser, err := test.CreateTestUser(map[string]string{"scope": "sender"})
+			testUser, err := test.CreateTestUser(map[string]interface{}{"scope": "sender"})
 			assert.NoError(t, err)
 
 			_, err = test.CreateTestSenderProfile(map[string]interface{}{
@@ -148,7 +148,7 @@ func TestProfile(t *testing.T) {
 		})
 
 		t.Run("with an invalid webhook", func(t *testing.T) {
-			testUser, err := test.CreateTestUser(map[string]string{
+			testUser, err := test.CreateTestUser(map[string]interface{}{
 				"scope": "sender",
 				"email": "johndoe2@test.com",
 			})
@@ -198,7 +198,7 @@ func TestProfile(t *testing.T) {
 		})
 
 		t.Run("with all fields and check if it is active", func(t *testing.T) {
-			testUser, err := test.CreateTestUser(map[string]string{
+			testUser, err := test.CreateTestUser(map[string]interface{}{
 				"scope": "sender",
 				"email": "johndoe3@test.com",
 			})
@@ -256,7 +256,7 @@ func TestProfile(t *testing.T) {
 				TradingName:    "My Trading Name",
 				Currency:       "KES",
 				HostIdentifier: "example.com",
-				IsAvailable:   true,
+				IsAvailable:    true,
 			}
 
 			res, err := test.PerformRequest(t, "PATCH", "/settings/provider", payload, headers, router)
@@ -464,7 +464,7 @@ func TestProfile(t *testing.T) {
 	})
 
 	t.Run("GetSenderProfile", func(t *testing.T) {
-		testUser, err := test.CreateTestUser(map[string]string{
+		testUser, err := test.CreateTestUser(map[string]interface{}{
 			"email": "hello@test.com",
 			"scope": "sender",
 		})
