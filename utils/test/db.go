@@ -14,15 +14,16 @@ import (
 )
 
 // CreateTestUser creates a test user with default or custom values
-func CreateTestUser(overrides map[string]string) (*ent.User, error) {
+func CreateTestUser(overrides map[string]interface{}) (*ent.User, error) {
 
 	// Default payload
-	payload := map[string]string{
-		"firstName": "John",
-		"lastName":  "Doe",
-		"email":     "johndoe@test.com",
-		"password":  "password",
-		"scope":     "sender",
+	payload := map[string]interface{}{
+		"firstName":       "John",
+		"lastName":        "Doe",
+		"email":           "johndoe@test.com",
+		"password":        "password",
+		"scope":           "sender",
+		"isEmailVerified": false,
 	}
 
 	// Apply overrides
@@ -33,11 +34,12 @@ func CreateTestUser(overrides map[string]string) (*ent.User, error) {
 	// Create user
 	user, err := db.Client.User.
 		Create().
-		SetFirstName(payload["firstName"]).
-		SetLastName(payload["lastName"]).
-		SetEmail(strings.ToLower(payload["email"])).
-		SetPassword(payload["password"]).
-		SetScope(payload["scope"]).
+		SetFirstName(payload["firstName"].(string)).
+		SetLastName(payload["lastName"].(string)).
+		SetEmail(strings.ToLower(payload["email"].(string))).
+		SetPassword(payload["password"].(string)).
+		SetScope(payload["scope"].(string)).
+		SetIsEmailVerified(payload["isEmailVerified"].(bool)).
 		Save(context.Background())
 
 	return user, err
