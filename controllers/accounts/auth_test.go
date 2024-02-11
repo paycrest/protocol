@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"regexp"
+	"strings"
 	"testing"
 	"time"
 
@@ -22,6 +23,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/paycrest/protocol/ent/enttest"
 	"github.com/paycrest/protocol/ent/user"
+	userEnt "github.com/paycrest/protocol/ent/user"
 	"github.com/paycrest/protocol/ent/verificationtoken"
 	"github.com/paycrest/protocol/utils/crypto"
 	"github.com/paycrest/protocol/utils/test"
@@ -455,12 +457,43 @@ func TestAuth(t *testing.T) {
 	})
 
 	t.Run("Login", func(t *testing.T) {
+		t.Run("with valid credentials for user with unverified email", func(t *testing.T) {
+			// Test login with unverified account
+			payload := types.LoginPayload{
+				Email:    "ikeayo@example.com",
+				Password: "password",
+			}
+
+			res, err := test.PerformRequest(t, "POST", "/login", payload, nil, router)
+			assert.NoError(t, err)
+
+			// Assert the response body
+			assert.Equal(t, http.StatusBadRequest, res.Code)
+
+			var response types.Response
+			err = json.Unmarshal(res.Body.Bytes(), &response)
+			assert.NoError(t, err)
+			assert.Equal(t, "Email is not verified, please verify your email", response.Message)
+			assert.Nil(t, response.Data)
+		})
+
 		t.Run("with valid credentials for user with provider and sender scopes", func(t *testing.T) {
 			// Test login with valid credentials
 			payload := types.LoginPayload{
 				Email:    "ikeayo@example.com",
 				Password: "password",
 			}
+
+			// Mark user as verified
+			user, _ := db.Client.User.
+				Query().
+				Where(userEnt.EmailEQ(strings.ToLower(payload.Email))).
+				Only(context.Background())
+
+			db.Client.User.
+				UpdateOne(user).
+				SetIsEmailVerified(true).
+				Save(context.Background())
 
 			res, err := test.PerformRequest(t, "POST", "/login", payload, nil, router)
 			assert.NoError(t, err)
