@@ -243,6 +243,14 @@ func (ctrl *AuthController) Login(ctx *gin.Context) {
 		return
 	}
 
+	// Check if user's email is verified
+	if !user.IsEmailVerified {
+		u.APIResponse(ctx, http.StatusBadRequest, "error",
+			"Email is not verified, please verify your email", nil,
+		)
+		return
+	}
+
 	u.APIResponse(ctx, http.StatusOK, "success", "Successfully logged in", &types.LoginResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
