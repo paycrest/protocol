@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/ent"
+	"github.com/paycrest/protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	"github.com/paycrest/protocol/ent/providerordertoken"
 	"github.com/paycrest/protocol/ent/providerprofile"
@@ -159,9 +160,9 @@ func (s *PriorityQueueService) CreatePriorityQueueForBucket(ctx context.Context,
 
 // AssignLockPaymentOrders assigns lock payment orders to providers
 func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order types.LockPaymentOrderFields) error {
-	go s.ReassignUnfulfilledLockOrders(ctx)
+	s.ReassignUnfulfilledLockOrders(ctx)
 
-	excludeList, err := storage.RedisClient.LRange(ctx, fmt.Sprintf("order_exclude_list_%d", order.ID), 0, -1).Result()
+	excludeList, err := storage.RedisClient.LRange(ctx, fmt.Sprintf("order_exclude_list_%s", order.ID), 0, -1).Result()
 	if err != nil {
 		logger.Errorf("failed to get exclude list for order %d: %v", order.ID, err)
 		return err
@@ -173,20 +174,17 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 		if err == nil {
 			return nil
 		}
-		logger.Errorf("failed to send order request to specific provider %s: %v. Sending order to queue",
+		logger.Errorf("failed to send order request to specific provider %s: %v. sending order to queue",
 			order.ProviderID, err)
 	}
 
 	// Get the first provider from the circular queue
 	redisKey := fmt.Sprintf("bucket_%s_%s_%s", order.ProvisionBucket.Edges.Currency.Code, order.ProvisionBucket.MinAmount, order.ProvisionBucket.MaxAmount)
 
-	// Start a Redis transaction
-	pipe := storage.RedisClient.TxPipeline()
-
 	partnerProviders := []string{}
 
 	for index := 0; ; index++ {
-		providerData, err := pipe.LIndex(ctx, redisKey, int64(index)).Result()
+		providerData, err := storage.RedisClient.LIndex(ctx, redisKey, int64(index)).Result()
 		if err != nil {
 			logger.Errorf("failed to access index %d from circular queue: %v", index, err)
 			break
@@ -218,10 +216,10 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 			partnerProviders = append(partnerProviders, providerData)
 		}
 
-		providerID := parts[0]
+		order.ProviderID = parts[0]
 
 		// Skip entry if provider is excluded
-		if utils.ContainsString(excludeList, providerID) {
+		if utils.ContainsString(excludeList, order.ProviderID) {
 			continue
 		}
 
@@ -235,14 +233,14 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 			// Found a match for the rate
 			if index == 0 {
 				// Match found at index 0, perform LPOP to dequeue
-				data, err := pipe.LPop(ctx, redisKey).Result()
+				data, err := storage.RedisClient.LPop(ctx, redisKey).Result()
 				if err != nil {
 					logger.Errorf("failed to dequeue from circular queue: %v", err)
 					return err
 				}
 
 				// Enqueue data to the end of the queue
-				err = pipe.RPush(ctx, redisKey, data).Err()
+				err = storage.RedisClient.RPush(ctx, redisKey, data).Err()
 				if err != nil {
 					logger.Errorf("failed to enqueue to circular queue: %v", err)
 					return err
@@ -255,10 +253,10 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 				logger.Errorf("failed to send order request to specific provider %s: %v", order.ProviderID, err)
 
 				// Push provider ID to order exclude list
-				orderKey := fmt.Sprintf("order_exclude_list_%d", order.ID)
-				_, err = storage.RedisClient.RPush(ctx, orderKey, providerID).Result()
+				orderKey := fmt.Sprintf("order_exclude_list_%s", order.ID)
+				_, err = storage.RedisClient.RPush(ctx, orderKey, order.ProviderID).Result()
 				if err != nil {
-					logger.Errorf("error pushing provider %s to order %d exclude_list on Redis: %v", providerID, order.ID, err)
+					logger.Errorf("error pushing provider %s to order %d exclude_list on Redis: %v", order.ProviderID, order.ID, err)
 				}
 
 				// Reassign the lock payment order to another provider
@@ -269,13 +267,6 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 		}
 	}
 
-	// Execute all Redis commands within the transaction atomically
-	_, err = pipe.Exec(ctx)
-	if err != nil {
-		logger.Errorf("failed to execute Redis transaction: %v", err)
-		return err
-	}
-
 	return nil
 }
 
@@ -283,13 +274,13 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 func (s *PriorityQueueService) sendOrderRequest(ctx context.Context, order types.LockPaymentOrderFields) error {
 
 	// Assign the order to the provider and save it to Redis
-	orderKey := fmt.Sprintf("order_request_%d", order.ID)
+	orderKey := fmt.Sprintf("order_request_%s", order.ID)
 
 	approxAmount := order.Amount.Mul(order.Rate).Floor()
 	approxAmount = approxAmount.Round(2)
 
 	orderRequestData := map[string]interface{}{
-		"amount":      approxAmount,
+		"amount":      approxAmount.String(),
 		"institution": order.Institution,
 		"providerId":  order.ProviderID,
 	}
@@ -341,12 +332,10 @@ func (s *PriorityQueueService) notifyProvider(ctx context.Context, orderRequestD
 		if err != nil {
 			return err
 		}
-
 		decryptedSecret, err := cryptoUtils.DecryptPlain(decodedSecret)
 		if err != nil {
 			return err
 		}
-
 		signature := tokenUtils.GenerateHMACSignature(orderRequestData, string(decryptedSecret))
 
 		// Send POST request to the provider's node
@@ -424,7 +413,7 @@ func (s *PriorityQueueService) ReassignStaleOrderRequest(ctx context.Context, or
 				lockpaymentorder.IDEQ(orderUUID),
 			).
 			WithProvisionBucket().
-			Only(context.Background())
+			Only(ctx)
 		if err != nil {
 			logger.Errorf("ReassignStaleOrderRequest: %v", err)
 			return
@@ -435,10 +424,12 @@ func (s *PriorityQueueService) ReassignStaleOrderRequest(ctx context.Context, or
 			OrderID:           order.OrderID,
 			Amount:            order.Amount,
 			Rate:              order.Rate,
+			Label:             order.Label,
 			BlockNumber:       order.BlockNumber,
 			Institution:       order.Institution,
 			AccountIdentifier: order.AccountIdentifier,
 			AccountName:       order.AccountName,
+			Memo:              order.Memo,
 			ProvisionBucket:   order.Edges.ProvisionBucket,
 		}
 
@@ -492,6 +483,7 @@ func (s *PriorityQueueService) ReassignUnfulfilledLockOrders(ctx context.Context
 
 	for _, order := range lockOrders {
 		lockPaymentOrder := types.LockPaymentOrderFields{
+			ID:                order.ID,
 			Token:             order.Edges.Token,
 			OrderID:           order.OrderID,
 			Amount:            order.Amount,
@@ -501,18 +493,68 @@ func (s *PriorityQueueService) ReassignUnfulfilledLockOrders(ctx context.Context
 			AccountIdentifier: order.AccountIdentifier,
 			AccountName:       order.AccountName,
 			ProviderID:        order.Edges.Provider.ID,
+			Memo:              order.Memo,
 			ProvisionBucket:   order.Edges.ProvisionBucket,
 		}
 
 		err := s.AssignLockPaymentOrder(ctx, lockPaymentOrder)
 		if err != nil {
-			logger.Errorf("task reassign unfulfilled lock order with id: %s => %v", order.OrderID, err)
+			logger.Errorf("failed to reassign unfulfilled lock order with id: %s => %v", order.OrderID, err)
 		}
 	}
 }
 
-// ReassignDeclinedOrderRequest reassigns declined order requests to providers
-func (s *PriorityQueueService) ReassignDeclinedOrderRequest() {
+// ReassignUnvalidatedLockOrders reassigns unvalidated lock orders to providers
+func (s *PriorityQueueService) ReassignUnvalidatedLockOrders() {
+	ctx := context.Background()
+
+	// Query unvalidated lock orders.
+	lockOrders, err := storage.Client.LockPaymentOrder.
+		Query().
+		Where(
+			lockpaymentorder.StatusEQ(lockpaymentorder.StatusFulfilled),
+			lockpaymentorder.HasFulfillmentWith(
+				lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusFailed),
+			),
+		).
+		WithToken().
+		WithProvider().
+		WithProvisionBucket(
+			func(pbq *ent.ProvisionBucketQuery) {
+				pbq.WithCurrency()
+			},
+		).
+		All(ctx)
+	if err != nil {
+		logger.Errorf("ReassignUnvalidatedLockOrders.db: %v", err)
+		return
+	}
+
+	for _, order := range lockOrders {
+		lockPaymentOrder := types.LockPaymentOrderFields{
+			ID:                order.ID,
+			Token:             order.Edges.Token,
+			OrderID:           order.OrderID,
+			Amount:            order.Amount,
+			Rate:              order.Rate,
+			BlockNumber:       order.BlockNumber,
+			Institution:       order.Institution,
+			AccountIdentifier: order.AccountIdentifier,
+			AccountName:       order.AccountName,
+			ProviderID:        order.Edges.Provider.ID,
+			Memo:              order.Memo,
+			ProvisionBucket:   order.Edges.ProvisionBucket,
+		}
+
+		err := s.AssignLockPaymentOrder(ctx, lockPaymentOrder)
+		if err != nil {
+			logger.Errorf("failed to reassign unvalidated order request: %v", err)
+		}
+	}
+}
+
+// ReassignPendingOrders reassigns declined order requests to providers
+func (s *PriorityQueueService) ReassignPendingOrders() {
 	ctx := context.Background()
 
 	// Query pending lock orders
@@ -520,28 +562,34 @@ func (s *PriorityQueueService) ReassignDeclinedOrderRequest() {
 		Query().
 		Where(
 			lockpaymentorder.StatusEQ(lockpaymentorder.StatusPending),
+			lockpaymentorder.Not(lockpaymentorder.HasFulfillment()),
 		).
 		WithToken().
 		WithProvider().
-		WithProvisionBucket().
+		WithProvisionBucket(
+			func(pbq *ent.ProvisionBucketQuery) {
+				pbq.WithCurrency()
+			},
+		).
 		All(ctx)
 	if err != nil {
-		logger.Errorf("ReassignDeclinedOrderRequest.db: %v", err)
+		logger.Errorf("ReassignPendingOrders.db: %v", err)
 		return
 	}
 
 	// Check if order_request_<order_id> exists in Redis
 	for _, order := range lockOrders {
-		orderKey := fmt.Sprintf("order_request_%d", order.ID)
+		orderKey := fmt.Sprintf("order_request_%s", order.ID)
 		exists, err := storage.RedisClient.Exists(ctx, orderKey).Result()
 		if err != nil {
-			logger.Errorf("ReassignDeclinedOrderRequest.redis: %v", err)
+			logger.Errorf("ReassignPendingOrders.redis: %v", err)
 			return
 		}
 
 		if exists == 0 {
 			// Order request doesn't exist in Redis, reassign the order
 			lockPaymentOrder := types.LockPaymentOrderFields{
+				ID:                order.ID,
 				Token:             order.Edges.Token,
 				OrderID:           order.OrderID,
 				Amount:            order.Amount,
@@ -551,6 +599,7 @@ func (s *PriorityQueueService) ReassignDeclinedOrderRequest() {
 				AccountIdentifier: order.AccountIdentifier,
 				AccountName:       order.AccountName,
 				ProviderID:        order.Edges.Provider.ID,
+				Memo:              order.Memo,
 				ProvisionBucket:   order.Edges.ProvisionBucket,
 			}
 
