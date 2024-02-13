@@ -271,7 +271,22 @@ func seedProvider(ctx context.Context, client *ent.Client, bucket *ent.Provision
 		Create().
 		SetSymbol("USDC").
 		SetConversionRateType("fixed").
-		SetFixedConversionRate(decimal.NewFromFloat(1100)).
+		SetFixedConversionRate(decimal.NewFromFloat(1500)).
+		SetFloatingConversionRate(decimal.NewFromFloat(0.0)).
+		SetMinOrderAmount(bucket.MinAmount).
+		SetMaxOrderAmount(bucket.MaxAmount).
+		SetAddresses(addresses).
+		SetProviderID(provider.ID).
+		Save(ctx)
+	if err != nil {
+		return "", "", "", fmt.Errorf("failed to configure order tokens: %s", err)
+	}
+
+	_, err = client.ProviderOrderToken.
+		Create().
+		SetSymbol("6TEST").
+		SetConversionRateType("fixed").
+		SetFixedConversionRate(decimal.NewFromFloat(1500)).
 		SetFloatingConversionRate(decimal.NewFromFloat(0.0)).
 		SetMinOrderAmount(bucket.MinAmount).
 		SetMaxOrderAmount(bucket.MaxAmount).

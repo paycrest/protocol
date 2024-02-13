@@ -251,6 +251,7 @@ type LockPaymentOrderFields struct {
 	AccountIdentifier string
 	AccountName       string
 	ProviderID        string
+	Memo              string
 	ProvisionBucket   *ent.ProvisionBucket
 	UpdatedAt         time.Time
 	CreatedAt         time.Time
@@ -262,7 +263,7 @@ type PaymentOrderRecipient struct {
 	AccountIdentifier string `json:"accountIdentifier" binding:"required"`
 	AccountName       string `json:"accountName" binding:"required"`
 	ProviderID        string `json:"providerId"`
-	Memo              string `json:"memo"`
+	Memo              string `json:"memo" binding:"required"`
 }
 
 // NewPaymentOrderPayload is the payload for the create payment order endpoint
@@ -290,23 +291,23 @@ type ReceiveAddressResponse struct {
 
 // PaymentOrderResponse is the response type for a payment order
 type PaymentOrderResponse struct {
-	ID              uuid.UUID             `json:"id"`
-	Amount          decimal.Decimal       `json:"amount"`
-	AmountPaid      decimal.Decimal       `json:"amountPaid"`
-	AmountReturned  decimal.Decimal       `json:"amountReturned"`
-	Token           string                `json:"token"`
-	SenderFee       decimal.Decimal       `json:"senderFee"`
-	NetworkFee      decimal.Decimal       `json:"networkFee"`
-	Rate            decimal.Decimal       `json:"rate"`
-	Network         string                `json:"network"`
-	Label           string                `json:"label"`
-	Recipient       PaymentOrderRecipient `json:"recipient"`
-	FromAddress     string                `json:"fromAddress"`
-	FeeAddress      string                `json:"feeAddress"`
-	CreatedAt       time.Time             `json:"createdAt"`
-	UpdatedAt       time.Time             `json:"updatedAt"`
-	TxHash          string                `json:"txHash"`
-	Status          paymentorder.Status   `json:"status"`
+	ID             uuid.UUID             `json:"id"`
+	Amount         decimal.Decimal       `json:"amount"`
+	AmountPaid     decimal.Decimal       `json:"amountPaid"`
+	AmountReturned decimal.Decimal       `json:"amountReturned"`
+	Token          string                `json:"token"`
+	SenderFee      decimal.Decimal       `json:"senderFee"`
+	NetworkFee     decimal.Decimal       `json:"networkFee"`
+	Rate           decimal.Decimal       `json:"rate"`
+	Network        string                `json:"network"`
+	Label          string                `json:"label"`
+	Recipient      PaymentOrderRecipient `json:"recipient"`
+	FromAddress    string                `json:"fromAddress"`
+	FeeAddress     string                `json:"feeAddress"`
+	CreatedAt      time.Time             `json:"createdAt"`
+	UpdatedAt      time.Time             `json:"updatedAt"`
+	TxHash         string                `json:"txHash"`
+	Status         paymentorder.Status   `json:"status"`
 }
 
 // PaymentOrderWebhookData is the data type for a payment order webhook
@@ -352,7 +353,7 @@ type SendEmailPayload struct {
 // SendEmailResponse is the response for a sent email
 type SendEmailResponse struct {
 	Response string `json:"response"`
-	Id      string `json:"id"`
+	Id       string `json:"id"`
 }
 
 // MarketRateResponse is the response for the market rate endpoint

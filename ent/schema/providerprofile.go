@@ -39,6 +39,8 @@ func (ProviderProfile) Fields() []ent.Field {
 		field.Enum("visibility_mode").
 			Values("private", "public").
 			Default("public"),
+
+		// KYB fields
 		field.Text("address").Optional(),
 		field.String("mobile_number").Optional(),
 		field.Time("date_of_birth").Optional(),

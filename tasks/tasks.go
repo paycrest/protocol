@@ -6,11 +6,11 @@ import (
 	"math"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/go-co-op/gocron"
 	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/fiatcurrency"
+	"github.com/paycrest/protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	networkent "github.com/paycrest/protocol/ent/network"
 	"github.com/paycrest/protocol/ent/paymentorder"
@@ -42,7 +42,7 @@ func ContinueIndexing() error {
 
 	for _, network := range networks {
 		// Start listening for ERC20 transfer events. check for receive addresses updated within the last 12 hours
-		twelveHoursAgo := time.Now().Add(-12 * time.Hour)
+		twelveHoursAgo := time.Now().Add(-60 * time.Hour)
 
 		addresses, err := storage.Client.ReceiveAddress.
 			Query().
@@ -126,15 +126,42 @@ func ProcessOrders() error {
 		}
 	}()
 
-	// Revert order process
-	orders, err = storage.GetClient().PaymentOrder.
+	// // Revert order process
+	// orders, err = storage.GetClient().PaymentOrder.
+	// 	Query().
+	// 	Where(
+	// 		paymentorder.Or(
+	// 			paymentorder.StatusEQ(paymentorder.StatusInitiated),
+	// 			paymentorder.StatusEQ(paymentorder.StatusExpired),
+	// 		),
+	// 		paymentorder.AmountPaidGT(decimal.Zero),
+	// 	).
+	// 	All(ctx)
+	// if err != nil {
+	// 	return err
+	// }
+
+	// go func() {
+	// 	for _, order := range orders {
+	// 		fees := order.NetworkFee.Add(order.SenderFee)
+	// 		orderAmountWithFees := order.Amount.Add(fees)
+	// 		if !order.AmountPaid.Equal(orderAmountWithFees) && order.AmountReturned.Equal(decimal.Zero) {
+	// 			err := orderService.RevertOrder(ctx, order, common.HexToAddress(order.FromAddress))
+	// 			if err != nil {
+	// 				logger.Errorf("process task to revert orders => %v", err)
+	// 			}
+	// 		}
+	// 	}
+	// }()
+
+	// Settle order process
+	lockOrders, err := storage.GetClient().LockPaymentOrder.
 		Query().
 		Where(
-			paymentorder.Or(
-				paymentorder.StatusEQ(paymentorder.StatusInitiated),
-				paymentorder.StatusEQ(paymentorder.StatusExpired),
+			lockpaymentorder.StatusEQ(lockpaymentorder.StatusValidated),
+			lockpaymentorder.HasFulfillmentWith(
+				lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusSuccess),
 			),
-			paymentorder.AmountPaidGT(decimal.Zero),
 		).
 		All(ctx)
 	if err != nil {
@@ -142,14 +169,12 @@ func ProcessOrders() error {
 	}
 
 	go func() {
-		for _, order := range orders {
-			fees := order.NetworkFee.Add(order.SenderFee)
-			orderAmountWithFees := order.Amount.Add(fees)
-			if !order.AmountPaid.Equal(orderAmountWithFees) && order.AmountReturned.Equal(decimal.Zero) {
-				err := orderService.RevertOrder(ctx, order, common.HexToAddress(order.FromAddress))
-				if err != nil {
-					logger.Errorf("process task to revert orders => %v", err)
-				}
+		for _, order := range lockOrders {
+			orderService := services.NewOrderService()
+
+			err := orderService.SettleOrder(ctx, order.ID)
+			if err != nil {
+				logger.Errorf("process order settlements task => %v", err)
 			}
 		}
 	}()
@@ -161,6 +186,7 @@ func ProcessOrders() error {
 func ProcessOrderRefunds() error {
 	ctx := context.Background()
 
+	// Refund orders
 	orders, err := storage.GetClient().LockPaymentOrder.
 		Query().
 		Where(
@@ -400,6 +426,8 @@ func StartCronJobs() {
 		}
 	}
 
+	// TODO: Cron job to check and handle receive address validity if expired and not reverted
+
 	// Compute market rate four times a day - starting at 6AM
 	_, err := scheduler.Cron("0 6,12,18,0 * * *").Do(ComputeMarketRate)
 	if err != nil {
@@ -426,10 +454,16 @@ func StartCronJobs() {
 		logger.Errorf("cron.RetryFailedWebhookNotifications: %v", err)
 	}
 
-	// Reassign declined order requests every 30 minutes
-	_, err = scheduler.Cron("*/30 * * * *").Do(priorityQueue.ReassignDeclinedOrderRequest)
+	// Reassign pending order requests every 15 minutes
+	_, err = scheduler.Cron("*/1 * * * *").Do(priorityQueue.ReassignPendingOrders)
 	if err != nil {
-		logger.Errorf("cron.ReassignDeclinedOrderRequest: %v", err)
+		logger.Errorf("cron.ReassignPendingOrders: %v", err)
+	}
+
+	// Reassign unvalidated order requests every 20 minutes
+	_, err = scheduler.Cron("*/2 * * * *").Do(priorityQueue.ReassignUnvalidatedLockOrders)
+	if err != nil {
+		logger.Errorf("cron.ReassignUnvalidatedLockOrders: %v", err)
 	}
 
 	// Process order refunds once a day

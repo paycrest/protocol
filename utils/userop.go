@@ -107,7 +107,7 @@ func SponsorUserOperation(userOp *userop.UserOperation, mode string, token strin
 		}
 
 		payload = map[string]interface{}{
-			"type": "erc20token",
+			"type":  "erc20token",
 			"token": token,
 		}
 	default:
@@ -120,8 +120,8 @@ func SponsorUserOperation(userOp *userop.UserOperation, mode string, token strin
 		payload,
 	}
 
-	// op, _ := userOp.MarshalJSON()
-	// fmt.Println(string(op))
+	op, _ := userOp.MarshalJSON()
+	fmt.Println(string(op))
 
 	var result json.RawMessage
 	err = client.Call(&result, "pm_sponsorUserOperation", requestParams...)
@@ -135,7 +135,7 @@ func SponsorUserOperation(userOp *userop.UserOperation, mode string, token strin
 		VerificationGasLimit string `json:"verificationGasLimit" mapstructure:"verificationGasLimit"`
 		CallGasLimit         string `json:"callGasLimit"         mapstructure:"callGasLimit"`
 	}
-
+	
 	var response Response
 	err = json.Unmarshal(result, &response)
 	if err != nil {
@@ -179,8 +179,8 @@ func SendUserOperation(userOp *userop.UserOperation) (string, error) {
 		OrderConf.EntryPointContractAddress.Hex(),
 	}
 
-	// op, _ := userOp.MarshalJSON()
-	// fmt.Println(string(op))
+	op, _ := userOp.MarshalJSON()
+	fmt.Println(string(op))
 
 	var result json.RawMessage
 	err = client.Call(&result, "eth_sendUserOperation", requestParams...)

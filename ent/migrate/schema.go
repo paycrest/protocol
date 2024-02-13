@@ -60,7 +60,7 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "tx_id", Type: field.TypeString, Unique: true},
-		{Name: "validation_status", Type: field.TypeEnum, Enums: []string{"pending", "success", "failure"}, Default: "pending"},
+		{Name: "validation_status", Type: field.TypeEnum, Enums: []string{"pending", "success", "failed"}, Default: "pending"},
 		{Name: "validation_error", Type: field.TypeString, Nullable: true},
 		{Name: "lock_payment_order_fulfillment", Type: field.TypeUUID, Unique: true},
 	}

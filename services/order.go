@@ -19,6 +19,7 @@ import (
 	db "github.com/paycrest/protocol/storage"
 	"github.com/shopspring/decimal"
 
+	"github.com/paycrest/protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	"github.com/paycrest/protocol/ent/paymentorder"
 	"github.com/paycrest/protocol/ent/providerordertoken"
@@ -164,7 +165,11 @@ func (s *OrderService) RefundOrder(ctx context.Context, orderID string) error {
 
 	// Sponsor user operation.
 	// This will populate the following fields in userOperation: PaymasterAndData, PreVerificationGas, VerificationGasLimit, CallGasLimit
-	err = utils.SponsorUserOperation(userOperation, "payg", "")
+	if ServerConf.Environment != "production" {
+		err = utils.SponsorUserOperation(userOperation, "erc20token", lockOrder.Edges.Token.ContractAddress)
+	} else {
+		err = utils.SponsorUserOperation(userOperation, "payg", "")
+	}
 	if err != nil {
 		return fmt.Errorf("RefundOrder.sponsorUserOperation: %w", err)
 	}
@@ -291,11 +296,16 @@ func (s *OrderService) SettleOrder(ctx context.Context, orderID uuid.UUID) error
 	// Fetch payment order from db
 	order, err := db.Client.LockPaymentOrder.
 		Query().
-		Where(lockpaymentorder.IDEQ(orderID)).
+		Where(
+			lockpaymentorder.IDEQ(orderID),
+			lockpaymentorder.StatusEQ(lockpaymentorder.StatusValidated),
+			lockpaymentorder.HasFulfillmentWith(
+				lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusSuccess),
+			),
+		).
 		WithToken(func(tq *ent.TokenQuery) {
 			tq.WithNetwork()
 		}).
-		WithFulfillment().
 		WithProvider().
 		Only(ctx)
 	if err != nil {
@@ -313,13 +323,17 @@ func (s *OrderService) SettleOrder(ctx context.Context, orderID uuid.UUID) error
 	// Create calldata
 	calldata, err := s.executeBatchSettleCallData(ctx, order)
 	if err != nil {
-		return fmt.Errorf("SettleOrder.settleCallData: %w", err)
+		return fmt.Errorf("SettleOrder.executeBatchSettleCallData: %w", err)
 	}
 	userOperation.CallData = calldata
 
 	// Sponsor user operation.
 	// This will populate the following fields in userOperation: PaymasterAndData, PreVerificationGas, VerificationGasLimit, CallGasLimit
-	err = utils.SponsorUserOperation(userOperation, "payg", "")
+	if ServerConf.Environment != "production" {
+		err = utils.SponsorUserOperation(userOperation, "erc20token", order.Edges.Token.ContractAddress)
+	} else {
+		err = utils.SponsorUserOperation(userOperation, "payg", "")
+	}
 	if err != nil {
 		return fmt.Errorf("SettleOrder.sponsorUserOperation: %w", err)
 	}
@@ -336,6 +350,7 @@ func (s *OrderService) SettleOrder(ctx context.Context, orderID uuid.UUID) error
 	// Update status of lock order
 	_, err = order.Update().
 		SetTxHash(userOpTxHash).
+		SetStatus(lockpaymentorder.StatusSettling).
 		Save(ctx)
 	if err != nil {
 		return fmt.Errorf("SettleOrder.updateTxHash: %w", err)
@@ -400,12 +415,6 @@ func (s *OrderService) executeBatchTransferCallData(order *ent.PaymentOrder, to 
 		return nil, fmt.Errorf("failed to create paymaster approve calldata : %w", err)
 	}
 
-	// // Create approve data for erc20 contract
-	// approveERC20Data, err := s.approveCallData(to, amount)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to create erc20 approve calldata : %w", err)
-	// }
-
 	// Create transfer data
 	transferData, err := s.transferCallData(to, amount)
 	if err != nil {
@@ -449,8 +458,8 @@ func (s *OrderService) executeBatchCreateOrderCallData(order *ent.PaymentOrder) 
 		return nil, fmt.Errorf("failed to get paymaster account: %w", err)
 	}
 
-	if ServerConf.Environment != "staging" && ServerConf.Environment != "production" {
-		time.Sleep(5 * time.Second) // TODO: remove in production
+	if ServerConf.Environment != "production" {
+		time.Sleep(5 * time.Second)
 	}
 
 	// Create approve data for paymaster contract
@@ -620,13 +629,43 @@ func (s *OrderService) executeBatchRefundCallData(order *ent.LockPaymentOrder) (
 		return nil, fmt.Errorf("executeBatchRefundCallData.simpleAccountABI: %w", err)
 	}
 
+	contractAddresses := []common.Address{
+		common.HexToAddress(order.Edges.Token.ContractAddress),
+		OrderConf.PaycrestOrderContractAddress,
+	}
+
+	data := [][]byte{approvePaycrestData, refundData}
+
+	if ServerConf.Environment != "production" {
+		paymasterAccount, err := s.getPaymasterAccount()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get paymaster account: %w", err)
+		}
+		time.Sleep(5 * time.Second)
+
+		// Create approve data for paymaster contract
+		approvePaymasterData, err := s.approveCallData(
+			common.HexToAddress(paymasterAccount),
+			utils.ToSubunit(order.Amount, order.Edges.Token.Decimals),
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create paymaster approve calldata : %w", err)
+		}
+
+		contractAddresses = append(
+			[]common.Address{common.HexToAddress(order.Edges.Token.ContractAddress)},
+			contractAddresses...,
+		)
+		data = append(
+			[][]byte{approvePaymasterData},
+			data...,
+		)
+	}
+
 	executeBatchRefundCallData, err := simpleAccountABI.Pack(
 		"executeBatch",
-		[]common.Address{
-			common.HexToAddress(order.Edges.Token.ContractAddress),
-			OrderConf.PaycrestOrderContractAddress,
-		},
-		[][]byte{approvePaycrestData, refundData},
+		contractAddresses,
+		data,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("executeBatchRefundCallData: %w", err)
@@ -665,27 +704,60 @@ func (s *OrderService) executeBatchSettleCallData(ctx context.Context, order *en
 		utils.ToSubunit(order.Amount, order.Edges.Token.Decimals),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("executeBatchSettleCallData.approveOrderContract: %w", err)
+		return nil, fmt.Errorf("approveOrderContract: %w", err)
+	}
+
+	contractAddresses := []common.Address{
+		common.HexToAddress(order.Edges.Token.ContractAddress),
+	}
+
+	data := [][]byte{approvePaycrestData}
+
+	if ServerConf.Environment != "production" {
+		// Fetch paymaster account
+		paymasterAccount, err := s.getPaymasterAccount()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get paymaster account: %w", err)
+		}
+		time.Sleep(5 * time.Second)
+
+		// Create approve data for paymaster contract
+		approvePaymasterData, err := s.approveCallData(
+			common.HexToAddress(paymasterAccount),
+			utils.ToSubunit(order.Amount, order.Edges.Token.Decimals),
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create paymaster approve calldata : %w", err)
+		}
+
+		contractAddresses = append(
+			contractAddresses,
+			common.HexToAddress(order.Edges.Token.ContractAddress),
+		)
+		data = append(data, approvePaymasterData)
 	}
 
 	// Create settle data
 	settleData, err := s.settleCallData(ctx, order)
 	if err != nil {
-		return nil, fmt.Errorf("executeBatchSettleCallData.refundData: %w", err)
+		return nil, fmt.Errorf("settleData: %w", err)
 	}
 
 	simpleAccountABI, err := abi.JSON(strings.NewReader(contracts.SimpleAccountMetaData.ABI))
 	if err != nil {
-		return nil, fmt.Errorf("executeBatchSettleCallData.simpleAccountABI: %w", err)
+		return nil, fmt.Errorf("simpleAccountABI: %w", err)
 	}
+
+	contractAddresses = append(
+		contractAddresses,
+		OrderConf.PaycrestOrderContractAddress,
+	)
+	data = append(data, settleData)
 
 	executeBatchSettleCallData, err := simpleAccountABI.Pack(
 		"executeBatch",
-		[]common.Address{
-			common.HexToAddress(order.Edges.Token.ContractAddress),
-			OrderConf.PaycrestOrderContractAddress,
-		},
-		[][]byte{approvePaycrestData, settleData},
+		contractAddresses,
+		data,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("executeBatchSettledCallData: %w", err)
@@ -735,7 +807,6 @@ func (s *OrderService) settleCallData(ctx context.Context, order *ent.LockPaymen
 		utils.StringToByte32(order.ID.String()),
 		utils.StringToByte32(order.OrderID),
 		utils.StringToByte32(order.Label),
-		nil, // TODO: remove validators input from contract
 		common.HexToAddress(providerAddress),
 		uint64(orderPercent),
 		order.Edges.Provider.IsPartner,
@@ -755,8 +826,9 @@ func (s *OrderService) encryptOrderRecipient(recipient *ent.PaymentOrderRecipien
 		AccountName       string
 		Institution       string
 		ProviderID        string
+		Memo              string
 	}{
-		recipient.AccountIdentifier, recipient.AccountName, recipient.Institution, recipient.ProviderID,
+		recipient.AccountIdentifier, recipient.AccountName, recipient.Institution, recipient.ProviderID, recipient.Memo,
 	}
 
 	// Encrypt with the public key of the aggregator

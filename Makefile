@@ -29,7 +29,7 @@ run: gen-ent
 	air
 
 seed:
-	go run main.go -seed-db
+	go run scripts/seed-db/main.go
 
 test:
 	go test -v ./...

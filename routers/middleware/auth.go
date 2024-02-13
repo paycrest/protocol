@@ -251,12 +251,8 @@ func DynamicAuthMiddleware(c *gin.Context) {
 	switch clientType {
 	case "web":
 		JWTMiddleware(c)
-	case "backend":
-		HMACVerificationMiddleware(c)
 	default:
-		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid client type", nil)
-		c.Abort()
-		return
+		HMACVerificationMiddleware(c)
 	}
 
 	c.Next()

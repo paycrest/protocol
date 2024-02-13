@@ -133,7 +133,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 
 	defer sub.Unsubscribe()
 
-	logger.Infof("Listening for ERC20 Transfer events...\n")
+	logger.Infof(fmt.Sprintf("Listening for ERC20 Transfer event: %s\n", receiveAddress.Address))
 
 	for {
 		select {
@@ -205,7 +205,7 @@ func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPC
 
 	defer sub.Unsubscribe()
 
-	logger.Infof("Listening for Deposit events...\n")
+	logger.Infof("Listening for OrderCreated events...\n")
 
 	for {
 		select {
@@ -274,7 +274,7 @@ func (s *IndexerService) IndexOrderSettled(ctx context.Context, client types.RPC
 
 	defer sub.Unsubscribe()
 
-	logger.Infof("Listening for Settlement events...\n")
+	logger.Infof("Listening for OrderSettled events...\n")
 
 	for {
 		select {
@@ -343,7 +343,7 @@ func (s *IndexerService) IndexOrderRefunded(ctx context.Context, client types.RP
 
 	defer sub.Unsubscribe()
 
-	logger.Infof("Listening for Refund events...\n")
+	logger.Infof("Listening for OrderRefunded events...\n")
 
 	for {
 		select {
@@ -360,8 +360,8 @@ func (s *IndexerService) IndexOrderRefunded(ctx context.Context, client types.RP
 	}
 }
 
-// checkReceiveAddressValidity checks the validity of a receive address
-func (s *IndexerService) checkReceiveAddressValidity(ctx context.Context, receiveAddress *ent.ReceiveAddress, paymentOrder *ent.PaymentOrder, event *contracts.ERC20TokenTransfer) (done bool, err error) {
+// handleReceiveAddressValidity checks the validity of a receive address
+func (s *IndexerService) handleReceiveAddressValidity(ctx context.Context, receiveAddress *ent.ReceiveAddress, paymentOrder *ent.PaymentOrder, event *contracts.ERC20TokenTransfer) error {
 	if receiveAddress.Status != receiveaddress.StatusUsed {
 		amountNotPaidInFull := receiveAddress.Status == receiveaddress.StatusPartial || receiveAddress.Status == receiveaddress.StatusUnused
 		validUntilIsFarGone := receiveAddress.ValidUntil.Before(time.Now().Add(-(5 * time.Minute)))
@@ -373,7 +373,7 @@ func (s *IndexerService) checkReceiveAddressValidity(ctx context.Context, receiv
 				SetValidUntil(time.Now().Add(OrderConf.ReceiveAddressValidity)).
 				Save(ctx)
 			if err != nil {
-				return true, fmt.Errorf("checkReceiveAddressValidity.db: %v", err)
+				return fmt.Errorf("handleReceiveAddressValidity.db: %v", err)
 			}
 		} else if isExpired && amountNotPaidInFull {
 			// Receive address hasn't received full payment after validity period, mark status as expired
@@ -382,7 +382,7 @@ func (s *IndexerService) checkReceiveAddressValidity(ctx context.Context, receiv
 				SetStatus(receiveaddress.StatusExpired).
 				Save(ctx)
 			if err != nil {
-				return true, fmt.Errorf("checkReceiveAddressValidity.db: %v", err)
+				return fmt.Errorf("handleReceiveAddressValidity.db: %v", err)
 			}
 
 			// Expire payment order
@@ -392,18 +392,24 @@ func (s *IndexerService) checkReceiveAddressValidity(ctx context.Context, receiv
 				SetFromAddress(event.From.Hex()).
 				Save(ctx)
 			if err != nil {
-				return true, fmt.Errorf("checkReceiveAddressValidity.db: %v", err)
+				return fmt.Errorf("handleReceiveAddressValidity.db: %v", err)
 			}
 
 			// Revert amount to the from address
 			err = s.order.RevertOrder(ctx, paymentOrder, event.From)
 			if err != nil {
-				return true, fmt.Errorf("checkReceiveAddressValidity.RevertOrder: %v", err)
+				return fmt.Errorf("handleReceiveAddressValidity.RevertOrder: %v", err)
 			}
+		}
+	} else {
+		// Revert excess amount to the from address
+		err := s.order.RevertOrder(ctx, paymentOrder, event.From)
+		if err != nil {
+			return fmt.Errorf("handleReceiveAddressValidity.RevertOrder: %v", err)
 		}
 	}
 
-	return false, nil
+	return nil
 }
 
 // getOrderRecipientFromMessageHash decrypts the message hash and returns the order recipient
@@ -483,16 +489,30 @@ func (s *IndexerService) updateOrderStatusRefunded(ctx context.Context, log *con
 }
 
 // updateOrderStatusSettled updates the status of a payment order to settled
-func (s *IndexerService) updateOrderStatusSettled(ctx context.Context, log *contracts.PaycrestOrderSettled) error {
+func (s *IndexerService) updateOrderStatusSettled(ctx context.Context, event *contracts.PaycrestOrderSettled) error {
+	// Check for existing lock order with txHash
+	orderCount, err := db.Client.LockPaymentOrder.
+		Query().
+		Where(lockpaymentorder.TxHashEQ(event.Raw.TxHash.Hex())).
+		Count(ctx)
+	if err != nil {
+		return fmt.Errorf("updateOrderStatusSettled.db: %v", err)
+	}
+
+	if orderCount > 0 {
+		// This log has already been indexed
+		return nil
+	}
+
 	// Aggregator side status update
-	splitOrderId, _ := uuid.Parse(utils.Byte32ToString(log.SplitOrderId))
-	_, err := db.Client.LockPaymentOrder.
+	splitOrderId, _ := uuid.Parse(utils.Byte32ToString(event.SplitOrderId))
+	_, err = db.Client.LockPaymentOrder.
 		Update().
 		Where(
 			lockpaymentorder.IDEQ(splitOrderId),
 		).
-		SetBlockNumber(int64(log.Raw.BlockNumber)).
-		SetTxHash(log.Raw.TxHash.Hex()).
+		SetBlockNumber(int64(event.Raw.BlockNumber)).
+		SetTxHash(event.Raw.TxHash.Hex()).
 		SetStatus(lockpaymentorder.StatusSettled).
 		Save(ctx)
 	if err != nil {
@@ -503,9 +523,9 @@ func (s *IndexerService) updateOrderStatusSettled(ctx context.Context, log *cont
 	_, err = db.Client.PaymentOrder.
 		Update().
 		Where(
-			paymentorder.LabelEQ(utils.Byte32ToString(log.Label)),
+			paymentorder.LabelEQ(utils.Byte32ToString(event.Label)),
 		).
-		SetTxHash(log.Raw.TxHash.Hex()).
+		SetTxHash(event.Raw.TxHash.Hex()).
 		SetStatus(paymentorder.StatusSettled).
 		Save(ctx)
 	if err != nil {
@@ -516,7 +536,7 @@ func (s *IndexerService) updateOrderStatusSettled(ctx context.Context, log *cont
 	paymentOrder, err := db.Client.PaymentOrder.
 		Query().
 		Where(
-			paymentorder.LabelEQ(utils.Byte32ToString(log.Label)),
+			paymentorder.LabelEQ(utils.Byte32ToString(event.Label)),
 		).
 		WithSenderProfile().
 		Only(ctx)
@@ -535,6 +555,20 @@ func (s *IndexerService) updateOrderStatusSettled(ctx context.Context, log *cont
 
 // createLockPaymentOrder saves a lock payment order in the database
 func (s *IndexerService) createLockPaymentOrder(ctx context.Context, client types.RPCClient, network *ent.Network, deposit *contracts.PaycrestOrderCreated) error {
+	// Check for existing address with txHash
+	orderCount, err := db.Client.LockPaymentOrder.
+		Query().
+		Where(lockpaymentorder.TxHashEQ(deposit.Raw.TxHash.Hex())).
+		Count(ctx)
+	if err != nil {
+		return fmt.Errorf("createLockPaymentOrder.db: %v", err)
+	}
+
+	if orderCount > 0 {
+		// This transfer has already been indexed
+		return nil
+	}
+
 	// Get token from db
 	token, err := db.Client.Token.
 		Query().
@@ -595,6 +629,7 @@ func (s *IndexerService) createLockPaymentOrder(ctx context.Context, client type
 		AccountIdentifier: recipient.AccountIdentifier,
 		AccountName:       recipient.AccountName,
 		ProviderID:        recipient.ProviderID,
+		Memo:              recipient.Memo,
 		ProvisionBucket:   provisionBucket,
 	}
 
@@ -656,23 +691,19 @@ func (s *IndexerService) updateReceiveAddressStatus(
 	ctx context.Context, client types.RPCClient, receiveAddress *ent.ReceiveAddress, paymentOrder *ent.PaymentOrder, event *contracts.ERC20TokenTransfer,
 ) (done bool, err error) {
 
-	// Check for existing address with txHash
-	orderCount, err := db.Client.ReceiveAddress.
-		Query().
-		Where(receiveaddress.TxHashEQ(event.Raw.TxHash.Hex())).
-		Count(ctx)
-	if err != nil {
-		return true, fmt.Errorf("updateReceiveAddressStatus.db: %v", err)
-	}
-
 	if event.To.Hex() == receiveAddress.Address {
-		if orderCount > 0 {
+		// Check for existing address with txHash
+		count, err := db.Client.ReceiveAddress.
+			Query().
+			Where(receiveaddress.TxHashEQ(event.Raw.TxHash.Hex())).
+			Count(ctx)
+		if err != nil {
+			return true, fmt.Errorf("updateReceiveAddressStatus.db: %v", err)
+		}
+
+		if count > 0 && receiveAddress.Status != receiveaddress.StatusUnused {
 			// This transfer has already been indexed
-			ok, err := s.checkReceiveAddressValidity(ctx, receiveAddress, paymentOrder, event)
-			if err != nil {
-				return true, fmt.Errorf("updateReceiveAddressStatus.checkReceiveAddressValidity: %v", err)
-			}
-			return ok, nil
+			return false, nil
 		}
 
 		// This is a transfer to the receive address to create an order on-chain
@@ -696,6 +727,7 @@ func (s *IndexerService) updateReceiveAddressStatus(
 				Update().
 				SetStatus(receiveaddress.StatusUsed).
 				SetLastUsed(time.Now()).
+				SetTxHash(event.Raw.TxHash.Hex()).
 				SetLastIndexedBlock(int64(event.Raw.BlockNumber)).
 				Save(ctx)
 			if err != nil {
@@ -720,21 +752,17 @@ func (s *IndexerService) updateReceiveAddressStatus(
 					Update().
 					SetStatus(receiveaddress.StatusUsed).
 					SetLastUsed(time.Now()).
+					SetTxHash(event.Raw.TxHash.Hex()).
 					SetLastIndexedBlock(int64(event.Raw.BlockNumber)).
 					Save(ctx)
 				if err != nil {
 					return true, fmt.Errorf("updateReceiveAddressStatus.db: %v", err)
 				}
-
-				// Revert excess amount to the from address
-				err := s.order.RevertOrder(ctx, paymentOrder, event.From)
-				if err != nil {
-					return true, fmt.Errorf("updateReceiveAddressStatus.RevertOrder: %v", err)
-				}
 			} else {
 				_, err = receiveAddress.
 					Update().
 					SetStatus(receiveaddress.StatusPartial).
+					SetTxHash(event.Raw.TxHash.Hex()).
 					SetLastIndexedBlock(int64(event.Raw.BlockNumber)).
 					Save(ctx)
 				if err != nil {
@@ -763,17 +791,26 @@ func (s *IndexerService) updateReceiveAddressStatus(
 			if err != nil {
 				return true, fmt.Errorf("updateReceiveAddressStatus.db: %v", err)
 			}
+		}
 
-			// Revert excess amount to the from address
-			err := s.order.RevertOrder(ctx, paymentOrder, event.From)
-			if err != nil {
-				return true, fmt.Errorf("updateReceiveAddressStatus.RevertOrder: %v", err)
-			}
+		err = s.handleReceiveAddressValidity(ctx, receiveAddress, paymentOrder, event)
+		if err != nil {
+			return true, fmt.Errorf("updateReceiveAddressStatus.handleReceiveAddressValidity: %v", err)
 		}
 
 	} else if event.From.Hex() == receiveAddress.Address {
 		// This is a revert transfer from the receive address
-		if orderCount > 0 {
+
+		// Check for existing address with txHash
+		count, err := db.Client.ReceiveAddress.
+			Query().
+			Where(receiveaddress.TxHashEQ(event.Raw.TxHash.Hex())).
+			Count(ctx)
+		if err != nil {
+			return true, fmt.Errorf("updateReceiveAddressStatus.db: %v", err)
+		}
+
+		if count > 0 && paymentOrder.Status == paymentorder.StatusReverted {
 			// This transfer has already been indexed
 			return false, nil
 		}
@@ -784,6 +821,7 @@ func (s *IndexerService) updateReceiveAddressStatus(
 		if indexedValue.Equal(paymentOrder.AmountReturned) {
 			_, err := receiveAddress.
 				Update().
+				SetTxHash(event.Raw.TxHash.Hex()).
 				SetLastIndexedBlock(int64(event.Raw.BlockNumber)).
 				Save(ctx)
 			if err != nil {
@@ -811,12 +849,7 @@ func (s *IndexerService) updateReceiveAddressStatus(
 		}
 	}
 
-	// Handle receive address validity checks
-	ok, err := s.checkReceiveAddressValidity(ctx, receiveAddress, paymentOrder, event)
-	if err != nil {
-		return true, fmt.Errorf("updateReceiveAddressStatus.checkReceiveAddressValidity: %v", err)
-	}
-	return ok, err
+	return false, nil
 }
 
 // getProvisionBucket returns the provision bucket for a lock payment order
@@ -1017,7 +1050,7 @@ func (s *IndexerService) getMissedOrderBlocksOpts(
 	toBlock := header.Number.Uint64()
 
 	if len(result) > 0 {
-		startBlockNumber = int64(result[0].BlockNumber)
+		startBlockNumber = int64(result[0].BlockNumber) + 1
 	} else {
 		startBlockNumber = int64(toBlock) - 500
 	}
