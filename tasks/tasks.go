@@ -42,7 +42,7 @@ func ContinueIndexing() error {
 
 	for _, network := range networks {
 		// Start listening for ERC20 transfer events. check for receive addresses updated within the last 12 hours
-		twelveHoursAgo := time.Now().Add(-60 * time.Hour)
+		twelveHoursAgo := time.Now().Add(-12 * time.Hour)
 
 		addresses, err := storage.Client.ReceiveAddress.
 			Query().
@@ -208,6 +208,44 @@ func ProcessOrderRefunds() error {
 			}
 		}
 	}()
+
+	return nil
+}
+
+// HandleReceiveAddressValidity handles receive address validity
+func HandleReceiveAddressValidity() error {
+	ctx := context.Background()
+	orderConf := config.OrderConfig()
+
+	// Fetch expired receive addresses that are due for validity check
+	addresses, err := storage.Client.ReceiveAddress.
+		Query().
+		Where(
+			receiveaddress.ValidUntilLTE(time.Now().Add(-orderConf.ReceiveAddressValidity)),
+			receiveaddress.Or(
+				receiveaddress.StatusNEQ(receiveaddress.StatusUsed),
+				receiveaddress.And(
+					receiveaddress.StatusEQ(receiveaddress.StatusUsed),
+					receiveaddress.HasPaymentOrderWith(
+						paymentorder.StatusEQ(paymentorder.StatusInitiated),
+					),
+				),
+			),
+		).
+		WithPaymentOrder().
+		All(ctx)
+	if err != nil {
+		return err
+	}
+
+	indexerService := services.NewIndexerService()
+
+	for _, address := range addresses {
+		err := indexerService.HandleReceiveAddressValidity(ctx, address, address.Edges.PaymentOrder)
+		if err != nil {
+			continue
+		}
+	}
 
 	return nil
 }
@@ -426,8 +464,6 @@ func StartCronJobs() {
 		}
 	}
 
-	// TODO: Cron job to check and handle receive address validity if expired and not reverted
-
 	// Compute market rate four times a day - starting at 6AM
 	_, err := scheduler.Cron("0 6,12,18,0 * * *").Do(ComputeMarketRate)
 	if err != nil {
@@ -455,15 +491,21 @@ func StartCronJobs() {
 	}
 
 	// Reassign pending order requests every 15 minutes
-	_, err = scheduler.Cron("*/1 * * * *").Do(priorityQueue.ReassignPendingOrders)
+	_, err = scheduler.Cron("*/15 * * * *").Do(priorityQueue.ReassignPendingOrders)
 	if err != nil {
 		logger.Errorf("cron.ReassignPendingOrders: %v", err)
 	}
 
 	// Reassign unvalidated order requests every 20 minutes
-	_, err = scheduler.Cron("*/2 * * * *").Do(priorityQueue.ReassignUnvalidatedLockOrders)
+	_, err = scheduler.Cron("*/20 * * * *").Do(priorityQueue.ReassignUnvalidatedLockOrders)
 	if err != nil {
 		logger.Errorf("cron.ReassignUnvalidatedLockOrders: %v", err)
+	}
+
+	// Handle receive address validity every 30 minutes
+	_, err = scheduler.Cron("*/30 * * * *").Do(HandleReceiveAddressValidity)
+	if err != nil {
+		logger.Errorf("cron.HandleReceiveAddressValidity: %v", err)
 	}
 
 	// Process order refunds once a day

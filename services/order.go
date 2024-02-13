@@ -198,7 +198,7 @@ func (s *OrderService) RefundOrder(ctx context.Context, orderID string) error {
 }
 
 // RevertOrder reverts an initiated payment order on-chain.
-func (s *OrderService) RevertOrder(ctx context.Context, order *ent.PaymentOrder, to common.Address) error {
+func (s *OrderService) RevertOrder(ctx context.Context, order *ent.PaymentOrder) error {
 	if !order.AmountReturned.Equal(decimal.Zero) {
 		return nil
 	}
@@ -255,7 +255,7 @@ func (s *OrderService) RevertOrder(ctx context.Context, order *ent.PaymentOrder,
 	}
 
 	// Create calldata
-	calldata, err := s.executeBatchTransferCallData(order, to, amountMinusFeeBigInt)
+	calldata, err := s.executeBatchTransferCallData(order, common.HexToAddress(order.FromAddress), amountMinusFeeBigInt)
 	if err != nil {
 		return fmt.Errorf("RevertOrder.executeBatchTransferCallData: %w", err)
 	}
