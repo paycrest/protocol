@@ -37,6 +37,7 @@ type Indexer interface {
 	IndexOrderCreated(ctx context.Context, client types.RPCClient, network *ent.Network) error
 	IndexOrderSettled(ctx context.Context, client types.RPCClient, network *ent.Network) error
 	IndexOrderRefunded(ctx context.Context, client types.RPCClient, network *ent.Network) error
+	HandleReceiveAddressValidity(ctx context.Context, receiveAddress *ent.ReceiveAddress, paymentOrder *ent.PaymentOrder) error
 }
 
 // IndexerService performs blockchain to database extract, transform, load (ETL) operations.
@@ -360,8 +361,8 @@ func (s *IndexerService) IndexOrderRefunded(ctx context.Context, client types.RP
 	}
 }
 
-// handleReceiveAddressValidity checks the validity of a receive address
-func (s *IndexerService) handleReceiveAddressValidity(ctx context.Context, receiveAddress *ent.ReceiveAddress, paymentOrder *ent.PaymentOrder, event *contracts.ERC20TokenTransfer) error {
+// HandleReceiveAddressValidity checks the validity of a receive address
+func (s *IndexerService) HandleReceiveAddressValidity(ctx context.Context, receiveAddress *ent.ReceiveAddress, paymentOrder *ent.PaymentOrder) error {
 	if receiveAddress.Status != receiveaddress.StatusUsed {
 		amountNotPaidInFull := receiveAddress.Status == receiveaddress.StatusPartial || receiveAddress.Status == receiveaddress.StatusUnused
 		validUntilIsFarGone := receiveAddress.ValidUntil.Before(time.Now().Add(-(5 * time.Minute)))
@@ -373,7 +374,7 @@ func (s *IndexerService) handleReceiveAddressValidity(ctx context.Context, recei
 				SetValidUntil(time.Now().Add(OrderConf.ReceiveAddressValidity)).
 				Save(ctx)
 			if err != nil {
-				return fmt.Errorf("handleReceiveAddressValidity.db: %v", err)
+				return fmt.Errorf("HandleReceiveAddressValidity.db: %v", err)
 			}
 		} else if isExpired && amountNotPaidInFull {
 			// Receive address hasn't received full payment after validity period, mark status as expired
@@ -382,30 +383,29 @@ func (s *IndexerService) handleReceiveAddressValidity(ctx context.Context, recei
 				SetStatus(receiveaddress.StatusExpired).
 				Save(ctx)
 			if err != nil {
-				return fmt.Errorf("handleReceiveAddressValidity.db: %v", err)
+				return fmt.Errorf("HandleReceiveAddressValidity.db: %v", err)
 			}
 
 			// Expire payment order
 			_, err = paymentOrder.
 				Update().
 				SetStatus(paymentorder.StatusExpired).
-				SetFromAddress(event.From.Hex()).
 				Save(ctx)
 			if err != nil {
-				return fmt.Errorf("handleReceiveAddressValidity.db: %v", err)
+				return fmt.Errorf("HandleReceiveAddressValidity.db: %v", err)
 			}
 
 			// Revert amount to the from address
-			err = s.order.RevertOrder(ctx, paymentOrder, event.From)
+			err = s.order.RevertOrder(ctx, paymentOrder)
 			if err != nil {
-				return fmt.Errorf("handleReceiveAddressValidity.RevertOrder: %v", err)
+				return fmt.Errorf("HandleReceiveAddressValidity.RevertOrder: %v", err)
 			}
 		}
 	} else {
 		// Revert excess amount to the from address
-		err := s.order.RevertOrder(ctx, paymentOrder, event.From)
+		err := s.order.RevertOrder(ctx, paymentOrder)
 		if err != nil {
-			return fmt.Errorf("handleReceiveAddressValidity.RevertOrder: %v", err)
+			return fmt.Errorf("HandleReceiveAddressValidity.RevertOrder: %v", err)
 		}
 	}
 
@@ -793,9 +793,9 @@ func (s *IndexerService) updateReceiveAddressStatus(
 			}
 		}
 
-		err = s.handleReceiveAddressValidity(ctx, receiveAddress, paymentOrder, event)
+		err = s.HandleReceiveAddressValidity(ctx, receiveAddress, paymentOrder)
 		if err != nil {
-			return true, fmt.Errorf("updateReceiveAddressStatus.handleReceiveAddressValidity: %v", err)
+			return true, fmt.Errorf("updateReceiveAddressStatus.HandleReceiveAddressValidity: %v", err)
 		}
 
 	} else if event.From.Hex() == receiveAddress.Address {
