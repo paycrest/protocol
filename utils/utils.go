@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"regexp"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum/crypto"
@@ -232,6 +233,7 @@ func SendPaymentOrderWebhook(ctx context.Context, paymentOrder *ent.PaymentOrder
 			Amount:         paymentOrder.Amount,
 			AmountPaid:     paymentOrder.AmountPaid,
 			AmountReturned: paymentOrder.AmountReturned,
+			PercentSettled: paymentOrder.PercentSettled,
 			SenderFee:      paymentOrder.SenderFee,
 			NetworkFee:     paymentOrder.NetworkFee,
 			Rate:           paymentOrder.Rate,
@@ -310,7 +312,7 @@ func StructToMap(input interface{}) map[string]interface{} {
 
 	for i := 0; i < valueOf.NumField(); i++ {
 		field := valueOf.Field(i)
-		fieldName := typeOf.Field(i).Name
+		fieldName := strings.ToLower(typeOf.Field(i).Name)
 
 		// Convert the field value to interface{}
 		result[fieldName] = field.Interface()

@@ -24,14 +24,11 @@ func (PaymentOrder) Mixin() []ent.Mixin {
 // Fields of the PaymentOrder.
 func (PaymentOrder) Fields() []ent.Field {
 	return []ent.Field{
-		field.UUID("id", uuid.UUID{}).
-			Default(uuid.New),
-		field.Float("amount").
-			GoType(decimal.Decimal{}),
-		field.Float("amount_paid").
-			GoType(decimal.Decimal{}),
-		field.Float("amount_returned").
-			GoType(decimal.Decimal{}),
+		field.UUID("id", uuid.UUID{}).Default(uuid.New),
+		field.Float("amount").GoType(decimal.Decimal{}),
+		field.Float("amount_paid").GoType(decimal.Decimal{}),
+		field.Float("amount_returned").GoType(decimal.Decimal{}),
+		field.Float("percent_settled").GoType(decimal.Decimal{}),
 		field.Float("sender_fee").GoType(decimal.Decimal{}),
 		field.Float("network_fee").GoType(decimal.Decimal{}),
 		field.Float("rate").GoType(decimal.Decimal{}),
@@ -43,8 +40,7 @@ func (PaymentOrder) Fields() []ent.Field {
 			Optional(),
 		field.String("receive_address_text").
 			MaxLen(60),
-		field.Float("fee_per_token_unit").
-			GoType(decimal.Decimal{}),
+		field.Float("fee_per_token_unit").GoType(decimal.Decimal{}),
 		field.String("fee_address").Optional(),
 		field.String("label"),
 		field.Enum("status").

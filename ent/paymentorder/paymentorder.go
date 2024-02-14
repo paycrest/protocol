@@ -26,6 +26,8 @@ const (
 	FieldAmountPaid = "amount_paid"
 	// FieldAmountReturned holds the string denoting the amount_returned field in the database.
 	FieldAmountReturned = "amount_returned"
+	// FieldPercentSettled holds the string denoting the percent_settled field in the database.
+	FieldPercentSettled = "percent_settled"
 	// FieldSenderFee holds the string denoting the sender_fee field in the database.
 	FieldSenderFee = "sender_fee"
 	// FieldNetworkFee holds the string denoting the network_fee field in the database.
@@ -94,6 +96,7 @@ var Columns = []string{
 	FieldAmount,
 	FieldAmountPaid,
 	FieldAmountReturned,
+	FieldPercentSettled,
 	FieldSenderFee,
 	FieldNetworkFee,
 	FieldRate,
@@ -207,6 +210,11 @@ func ByAmountPaid(opts ...sql.OrderTermOption) OrderOption {
 // ByAmountReturned orders the results by the amount_returned field.
 func ByAmountReturned(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAmountReturned, opts...).ToFunc()
+}
+
+// ByPercentSettled orders the results by the percent_settled field.
+func ByPercentSettled(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPercentSettled, opts...).ToFunc()
 }
 
 // BySenderFee orders the results by the sender_fee field.

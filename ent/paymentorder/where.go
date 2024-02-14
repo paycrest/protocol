@@ -82,6 +82,11 @@ func AmountReturned(v decimal.Decimal) predicate.PaymentOrder {
 	return predicate.PaymentOrder(sql.FieldEQ(FieldAmountReturned, v))
 }
 
+// PercentSettled applies equality check predicate on the "percent_settled" field. It's identical to PercentSettledEQ.
+func PercentSettled(v decimal.Decimal) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldEQ(FieldPercentSettled, v))
+}
+
 // SenderFee applies equality check predicate on the "sender_fee" field. It's identical to SenderFeeEQ.
 func SenderFee(v decimal.Decimal) predicate.PaymentOrder {
 	return predicate.PaymentOrder(sql.FieldEQ(FieldSenderFee, v))
@@ -320,6 +325,46 @@ func AmountReturnedLT(v decimal.Decimal) predicate.PaymentOrder {
 // AmountReturnedLTE applies the LTE predicate on the "amount_returned" field.
 func AmountReturnedLTE(v decimal.Decimal) predicate.PaymentOrder {
 	return predicate.PaymentOrder(sql.FieldLTE(FieldAmountReturned, v))
+}
+
+// PercentSettledEQ applies the EQ predicate on the "percent_settled" field.
+func PercentSettledEQ(v decimal.Decimal) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldEQ(FieldPercentSettled, v))
+}
+
+// PercentSettledNEQ applies the NEQ predicate on the "percent_settled" field.
+func PercentSettledNEQ(v decimal.Decimal) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldNEQ(FieldPercentSettled, v))
+}
+
+// PercentSettledIn applies the In predicate on the "percent_settled" field.
+func PercentSettledIn(vs ...decimal.Decimal) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldIn(FieldPercentSettled, vs...))
+}
+
+// PercentSettledNotIn applies the NotIn predicate on the "percent_settled" field.
+func PercentSettledNotIn(vs ...decimal.Decimal) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldNotIn(FieldPercentSettled, vs...))
+}
+
+// PercentSettledGT applies the GT predicate on the "percent_settled" field.
+func PercentSettledGT(v decimal.Decimal) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldGT(FieldPercentSettled, v))
+}
+
+// PercentSettledGTE applies the GTE predicate on the "percent_settled" field.
+func PercentSettledGTE(v decimal.Decimal) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldGTE(FieldPercentSettled, v))
+}
+
+// PercentSettledLT applies the LT predicate on the "percent_settled" field.
+func PercentSettledLT(v decimal.Decimal) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldLT(FieldPercentSettled, v))
+}
+
+// PercentSettledLTE applies the LTE predicate on the "percent_settled" field.
+func PercentSettledLTE(v decimal.Decimal) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldLTE(FieldPercentSettled, v))
 }
 
 // SenderFeeEQ applies the EQ predicate on the "sender_fee" field.

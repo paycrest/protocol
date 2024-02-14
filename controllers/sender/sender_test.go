@@ -54,6 +54,11 @@ func (m *MockIndexerService) IndexOrderRefunded(ctx context.Context, client type
 	return nil
 }
 
+// HandleReceiveAddressValidity mocks the HandleReceiveAddressValidity method
+func (m *MockIndexerService) HandleReceiveAddressValidity(ctx context.Context, receiveAddress *ent.ReceiveAddress, paymentOrder *ent.PaymentOrder) error {
+	return nil
+}
+
 var testCtx = struct {
 	user              *ent.User
 	token             *ent.Token

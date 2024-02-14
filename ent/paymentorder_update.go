@@ -79,6 +79,19 @@ func (pou *PaymentOrderUpdate) AddAmountReturned(d decimal.Decimal) *PaymentOrde
 	return pou
 }
 
+// SetPercentSettled sets the "percent_settled" field.
+func (pou *PaymentOrderUpdate) SetPercentSettled(d decimal.Decimal) *PaymentOrderUpdate {
+	pou.mutation.ResetPercentSettled()
+	pou.mutation.SetPercentSettled(d)
+	return pou
+}
+
+// AddPercentSettled adds d to the "percent_settled" field.
+func (pou *PaymentOrderUpdate) AddPercentSettled(d decimal.Decimal) *PaymentOrderUpdate {
+	pou.mutation.AddPercentSettled(d)
+	return pou
+}
+
 // SetSenderFee sets the "sender_fee" field.
 func (pou *PaymentOrderUpdate) SetSenderFee(d decimal.Decimal) *PaymentOrderUpdate {
 	pou.mutation.ResetSenderFee()
@@ -406,6 +419,12 @@ func (pou *PaymentOrderUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if value, ok := pou.mutation.AddedAmountReturned(); ok {
 		_spec.AddField(paymentorder.FieldAmountReturned, field.TypeFloat64, value)
 	}
+	if value, ok := pou.mutation.PercentSettled(); ok {
+		_spec.SetField(paymentorder.FieldPercentSettled, field.TypeFloat64, value)
+	}
+	if value, ok := pou.mutation.AddedPercentSettled(); ok {
+		_spec.AddField(paymentorder.FieldPercentSettled, field.TypeFloat64, value)
+	}
 	if value, ok := pou.mutation.SenderFee(); ok {
 		_spec.SetField(paymentorder.FieldSenderFee, field.TypeFloat64, value)
 	}
@@ -635,6 +654,19 @@ func (pouo *PaymentOrderUpdateOne) SetAmountReturned(d decimal.Decimal) *Payment
 // AddAmountReturned adds d to the "amount_returned" field.
 func (pouo *PaymentOrderUpdateOne) AddAmountReturned(d decimal.Decimal) *PaymentOrderUpdateOne {
 	pouo.mutation.AddAmountReturned(d)
+	return pouo
+}
+
+// SetPercentSettled sets the "percent_settled" field.
+func (pouo *PaymentOrderUpdateOne) SetPercentSettled(d decimal.Decimal) *PaymentOrderUpdateOne {
+	pouo.mutation.ResetPercentSettled()
+	pouo.mutation.SetPercentSettled(d)
+	return pouo
+}
+
+// AddPercentSettled adds d to the "percent_settled" field.
+func (pouo *PaymentOrderUpdateOne) AddPercentSettled(d decimal.Decimal) *PaymentOrderUpdateOne {
+	pouo.mutation.AddPercentSettled(d)
 	return pouo
 }
 
@@ -994,6 +1026,12 @@ func (pouo *PaymentOrderUpdateOne) sqlSave(ctx context.Context) (_node *PaymentO
 	}
 	if value, ok := pouo.mutation.AddedAmountReturned(); ok {
 		_spec.AddField(paymentorder.FieldAmountReturned, field.TypeFloat64, value)
+	}
+	if value, ok := pouo.mutation.PercentSettled(); ok {
+		_spec.SetField(paymentorder.FieldPercentSettled, field.TypeFloat64, value)
+	}
+	if value, ok := pouo.mutation.AddedPercentSettled(); ok {
+		_spec.AddField(paymentorder.FieldPercentSettled, field.TypeFloat64, value)
 	}
 	if value, ok := pouo.mutation.SenderFee(); ok {
 		_spec.SetField(paymentorder.FieldSenderFee, field.TypeFloat64, value)

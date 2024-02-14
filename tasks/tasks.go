@@ -55,6 +55,7 @@ func ContinueIndexing() error {
 					),
 				),
 				receiveaddress.UpdatedAtGT(twelveHoursAgo),
+				receiveaddress.StatusNEQ(receiveaddress.StatusExpired),
 			).
 			Order(ent.Desc(receiveaddress.FieldLastIndexedBlock)).
 			All(ctx)
