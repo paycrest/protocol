@@ -33,6 +33,8 @@ type PaymentOrder struct {
 	AmountPaid decimal.Decimal `json:"amount_paid,omitempty"`
 	// AmountReturned holds the value of the "amount_returned" field.
 	AmountReturned decimal.Decimal `json:"amount_returned,omitempty"`
+	// PercentSettled holds the value of the "percent_settled" field.
+	PercentSettled decimal.Decimal `json:"percent_settled,omitempty"`
 	// SenderFee holds the value of the "sender_fee" field.
 	SenderFee decimal.Decimal `json:"sender_fee,omitempty"`
 	// NetworkFee holds the value of the "network_fee" field.
@@ -134,7 +136,7 @@ func (*PaymentOrder) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case paymentorder.FieldAmount, paymentorder.FieldAmountPaid, paymentorder.FieldAmountReturned, paymentorder.FieldSenderFee, paymentorder.FieldNetworkFee, paymentorder.FieldRate, paymentorder.FieldFeePerTokenUnit:
+		case paymentorder.FieldAmount, paymentorder.FieldAmountPaid, paymentorder.FieldAmountReturned, paymentorder.FieldPercentSettled, paymentorder.FieldSenderFee, paymentorder.FieldNetworkFee, paymentorder.FieldRate, paymentorder.FieldFeePerTokenUnit:
 			values[i] = new(decimal.Decimal)
 		case paymentorder.FieldTxHash, paymentorder.FieldFromAddress, paymentorder.FieldReceiveAddressText, paymentorder.FieldFeeAddress, paymentorder.FieldLabel, paymentorder.FieldStatus:
 			values[i] = new(sql.NullString)
@@ -198,6 +200,12 @@ func (po *PaymentOrder) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field amount_returned", values[i])
 			} else if value != nil {
 				po.AmountReturned = *value
+			}
+		case paymentorder.FieldPercentSettled:
+			if value, ok := values[i].(*decimal.Decimal); !ok {
+				return fmt.Errorf("unexpected type %T for field percent_settled", values[i])
+			} else if value != nil {
+				po.PercentSettled = *value
 			}
 		case paymentorder.FieldSenderFee:
 			if value, ok := values[i].(*decimal.Decimal); !ok {
@@ -350,6 +358,9 @@ func (po *PaymentOrder) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("amount_returned=")
 	builder.WriteString(fmt.Sprintf("%v", po.AmountReturned))
+	builder.WriteString(", ")
+	builder.WriteString("percent_settled=")
+	builder.WriteString(fmt.Sprintf("%v", po.PercentSettled))
 	builder.WriteString(", ")
 	builder.WriteString("sender_fee=")
 	builder.WriteString(fmt.Sprintf("%v", po.SenderFee))

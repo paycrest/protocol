@@ -244,7 +244,7 @@ func (s *IndexerService) IndexOrderSettled(ctx context.Context, client types.RPC
 	// Index missed blocks
 	go func() {
 		// Filter logs from the last lock payment order block number
-		opts := s.getMissedOrderBlocksOpts(ctx, client, filterer, network, lockpaymentorder.StatusSettled)
+		opts := s.getMissedOrderBlocksOpts(ctx, client, filterer, network, lockpaymentorder.StatusSettling)
 
 		// Fetch logs
 		iter, err := filterer.FilterOrderSettled(opts, nil, nil)
@@ -313,7 +313,7 @@ func (s *IndexerService) IndexOrderRefunded(ctx context.Context, client types.RP
 	// Index missed blocks
 	go func() {
 		// Filter logs from the last lock payment order block number
-		opts := s.getMissedOrderBlocksOpts(ctx, client, filterer, network, lockpaymentorder.StatusRefunded)
+		opts := s.getMissedOrderBlocksOpts(ctx, client, filterer, network, lockpaymentorder.StatusRefunding)
 
 		// Fetch logs
 		iter, err := filterer.FilterOrderRefunded(opts, nil)
@@ -520,13 +520,23 @@ func (s *IndexerService) updateOrderStatusSettled(ctx context.Context, event *co
 	}
 
 	// Sender side status update
-	_, err = db.Client.PaymentOrder.
+	paymentOrderUpdate := db.Client.PaymentOrder.
 		Update().
 		Where(
 			paymentorder.LabelEQ(utils.Byte32ToString(event.Label)),
-		).
+		)
+
+	// Convert settled percent to BPS
+	settledPercent := decimal.NewFromBigInt(event.SettlePercent, 0).Div(decimal.NewFromInt(1000))
+
+	// If settled percent is 100%, mark order as settled
+	if settledPercent.Equal(decimal.NewFromInt(100)) {
+		paymentOrderUpdate = paymentOrderUpdate.SetStatus(paymentorder.StatusSettled)
+	}
+
+	_, err = paymentOrderUpdate.
 		SetTxHash(event.Raw.TxHash.Hex()).
-		SetStatus(paymentorder.StatusSettled).
+		SetPercentSettled(settledPercent).
 		Save(ctx)
 	if err != nil {
 		return fmt.Errorf("updateOrderStatusSettled.sender: %v", err)
@@ -911,7 +921,7 @@ func (s *IndexerService) splitLockPaymentOrder(ctx context.Context, lockPaymentO
 		bucketSize := int64(len(bucket.Edges.ProviderProfiles))
 
 		// Get the number of allocations to make in the bucket
-		numberOfAllocations := amountToSplit.Div(bucket.MaxAmount).IntPart() // e.g 100000 / 10000 = 10, TODO: verify integer conversion
+		numberOfAllocations := amountToSplit.Div(bucket.MaxAmount).IntPart() // e.g 100000 / 10000 = 10
 
 		var trips int64
 

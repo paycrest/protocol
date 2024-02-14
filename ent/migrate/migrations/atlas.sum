@@ -1,5 +1,6 @@
-h1:q2Mp2kOT8SXhMQcxplSAlC4S/FnbOtBIfUuQys+wm44=
+h1:ESB+7P4C+fC32VlfdaD6EOHqy9N0KQ4Rykp/xnepMB4=
 20240118234246_initial.sql h1:dYuYBqns33WT+3p8VQvbKUP62k3k6w6h8S+FqNqgSvU=
 20240130122324_order_from_address.sql h1:mMVI2iBUd1roIYLUqu0d2jZ7+B6exppRN8qqn+aIHx4=
 20240202010744_fees_on_order.sql h1:P7ngxZKqDKefBM5vk6M3kbWeMPVwbZ4MZVcLBjEfS34=
 20240207044652_receive_address_tx_hash.sql h1:T0h4o87gnBeqSEcT7m92/GvRsSYPGX6rtAYhhVRfl1g=
+20240214041318_order_settled_percent.sql h1:Mz/cichXKrBBoc/s9jXunxsTcZzlKRfw7CLPErdTwF0=

@@ -108,7 +108,8 @@ func (s *PriorityQueueService) GetProviderRate(ctx context.Context, provider *en
 		floatingRate := tokenConfig.FloatingConversionRate // in percentage
 
 		// Calculate the floating rate based on the market rate
-		rate = marketRate.Mul(floatingRate.Div(decimal.NewFromInt(100)))
+		deviation := marketRate.Mul(floatingRate.Div(decimal.NewFromInt(100)))
+		rate = rate.Add(deviation)
 	}
 
 	return rate, nil
@@ -143,6 +144,7 @@ func (s *PriorityQueueService) CreatePriorityQueueForBucket(ctx context.Context,
 			if rate.LessThan(marketRate.Mul(decimal.NewFromFloat(1).Sub(OrderConf.PercentDeviationFromMarketRate))) ||
 				rate.GreaterThan(marketRate.Mul(decimal.NewFromFloat(1).Add(OrderConf.PercentDeviationFromMarketRate))) {
 				// Skip this provider if the rate is too far off
+				// TODO: add a logic to notify the provider(s) to update his rate since it's stale. could be a cron job
 				continue
 			}
 		}

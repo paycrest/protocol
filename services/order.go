@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"math/big"
@@ -681,11 +682,16 @@ func (s *OrderService) refundCallData(fee *big.Int, orderId, label string) ([]by
 		return nil, fmt.Errorf("failed to parse PaycrestOrder ABI: %w", err)
 	}
 
+	decodedOrderID, err := hex.DecodeString(orderId[2:])
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode orderId: %w", err)
+	}
+
 	// Generate calldata for refund, orderID, and label should be byte32
 	data, err := paycrestOrderABI.Pack(
 		"refund",
 		fee,
-		utils.StringToByte32(orderId),
+		utils.StringToByte32(string(decodedOrderID)),
 		utils.StringToByte32(label),
 	)
 
@@ -799,19 +805,27 @@ func (s *OrderService) settleCallData(ctx context.Context, order *ent.LockPaymen
 		return nil, fmt.Errorf("failed to fetch provider address: %w", err)
 	}
 
-	orderPercent, _ := order.OrderPercent.Float64()
+	orderPercent, _ := order.OrderPercent.
+		Mul(decimal.NewFromInt(1000)). // convert percent to BPS
+		Float64()
+
+	orderID, err := hex.DecodeString(order.OrderID[2:])
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode orderID: %w", err)
+	}
+
+	splitOrderID := strings.ReplaceAll(order.ID.String(), "-", "")
 
 	// Generate calldata for settlement
 	data, err := paycrestOrderABI.Pack(
 		"settle",
-		utils.StringToByte32(order.ID.String()),
-		utils.StringToByte32(order.OrderID),
+		utils.StringToByte32(splitOrderID),
+		utils.StringToByte32(string(orderID)),
 		utils.StringToByte32(order.Label),
 		common.HexToAddress(providerAddress),
 		uint64(orderPercent),
 		order.Edges.Provider.IsPartner,
 	)
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to pack settle ABI: %w", err)
 	}

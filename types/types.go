@@ -316,6 +316,7 @@ type PaymentOrderWebhookData struct {
 	Amount         decimal.Decimal       `json:"amount"`
 	AmountPaid     decimal.Decimal       `json:"amountPaid"`
 	AmountReturned decimal.Decimal       `json:"amountReturned"`
+	PercentSettled decimal.Decimal       `json:"percentSettled"`
 	SenderFee      decimal.Decimal       `json:"senderFee"`
 	NetworkFee     decimal.Decimal       `json:"networkFee"`
 	Rate           decimal.Decimal       `json:"rate"`

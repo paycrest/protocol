@@ -4600,6 +4600,8 @@ type PaymentOrderMutation struct {
 	addamount_paid         *decimal.Decimal
 	amount_returned        *decimal.Decimal
 	addamount_returned     *decimal.Decimal
+	percent_settled        *decimal.Decimal
+	addpercent_settled     *decimal.Decimal
 	sender_fee             *decimal.Decimal
 	addsender_fee          *decimal.Decimal
 	network_fee            *decimal.Decimal
@@ -4970,6 +4972,62 @@ func (m *PaymentOrderMutation) AddedAmountReturned() (r decimal.Decimal, exists 
 func (m *PaymentOrderMutation) ResetAmountReturned() {
 	m.amount_returned = nil
 	m.addamount_returned = nil
+}
+
+// SetPercentSettled sets the "percent_settled" field.
+func (m *PaymentOrderMutation) SetPercentSettled(d decimal.Decimal) {
+	m.percent_settled = &d
+	m.addpercent_settled = nil
+}
+
+// PercentSettled returns the value of the "percent_settled" field in the mutation.
+func (m *PaymentOrderMutation) PercentSettled() (r decimal.Decimal, exists bool) {
+	v := m.percent_settled
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPercentSettled returns the old "percent_settled" field's value of the PaymentOrder entity.
+// If the PaymentOrder object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PaymentOrderMutation) OldPercentSettled(ctx context.Context) (v decimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPercentSettled is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPercentSettled requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPercentSettled: %w", err)
+	}
+	return oldValue.PercentSettled, nil
+}
+
+// AddPercentSettled adds d to the "percent_settled" field.
+func (m *PaymentOrderMutation) AddPercentSettled(d decimal.Decimal) {
+	if m.addpercent_settled != nil {
+		*m.addpercent_settled = m.addpercent_settled.Add(d)
+	} else {
+		m.addpercent_settled = &d
+	}
+}
+
+// AddedPercentSettled returns the value that was added to the "percent_settled" field in this mutation.
+func (m *PaymentOrderMutation) AddedPercentSettled() (r decimal.Decimal, exists bool) {
+	v := m.addpercent_settled
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetPercentSettled resets all changes to the "percent_settled" field.
+func (m *PaymentOrderMutation) ResetPercentSettled() {
+	m.percent_settled = nil
+	m.addpercent_settled = nil
 }
 
 // SetSenderFee sets the "sender_fee" field.
@@ -5641,7 +5699,7 @@ func (m *PaymentOrderMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *PaymentOrderMutation) Fields() []string {
-	fields := make([]string, 0, 15)
+	fields := make([]string, 0, 16)
 	if m.created_at != nil {
 		fields = append(fields, paymentorder.FieldCreatedAt)
 	}
@@ -5656,6 +5714,9 @@ func (m *PaymentOrderMutation) Fields() []string {
 	}
 	if m.amount_returned != nil {
 		fields = append(fields, paymentorder.FieldAmountReturned)
+	}
+	if m.percent_settled != nil {
+		fields = append(fields, paymentorder.FieldPercentSettled)
 	}
 	if m.sender_fee != nil {
 		fields = append(fields, paymentorder.FieldSenderFee)
@@ -5705,6 +5766,8 @@ func (m *PaymentOrderMutation) Field(name string) (ent.Value, bool) {
 		return m.AmountPaid()
 	case paymentorder.FieldAmountReturned:
 		return m.AmountReturned()
+	case paymentorder.FieldPercentSettled:
+		return m.PercentSettled()
 	case paymentorder.FieldSenderFee:
 		return m.SenderFee()
 	case paymentorder.FieldNetworkFee:
@@ -5744,6 +5807,8 @@ func (m *PaymentOrderMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldAmountPaid(ctx)
 	case paymentorder.FieldAmountReturned:
 		return m.OldAmountReturned(ctx)
+	case paymentorder.FieldPercentSettled:
+		return m.OldPercentSettled(ctx)
 	case paymentorder.FieldSenderFee:
 		return m.OldSenderFee(ctx)
 	case paymentorder.FieldNetworkFee:
@@ -5807,6 +5872,13 @@ func (m *PaymentOrderMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetAmountReturned(v)
+		return nil
+	case paymentorder.FieldPercentSettled:
+		v, ok := value.(decimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPercentSettled(v)
 		return nil
 	case paymentorder.FieldSenderFee:
 		v, ok := value.(decimal.Decimal)
@@ -5895,6 +5967,9 @@ func (m *PaymentOrderMutation) AddedFields() []string {
 	if m.addamount_returned != nil {
 		fields = append(fields, paymentorder.FieldAmountReturned)
 	}
+	if m.addpercent_settled != nil {
+		fields = append(fields, paymentorder.FieldPercentSettled)
+	}
 	if m.addsender_fee != nil {
 		fields = append(fields, paymentorder.FieldSenderFee)
 	}
@@ -5921,6 +5996,8 @@ func (m *PaymentOrderMutation) AddedField(name string) (ent.Value, bool) {
 		return m.AddedAmountPaid()
 	case paymentorder.FieldAmountReturned:
 		return m.AddedAmountReturned()
+	case paymentorder.FieldPercentSettled:
+		return m.AddedPercentSettled()
 	case paymentorder.FieldSenderFee:
 		return m.AddedSenderFee()
 	case paymentorder.FieldNetworkFee:
@@ -5958,6 +6035,13 @@ func (m *PaymentOrderMutation) AddField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.AddAmountReturned(v)
+		return nil
+	case paymentorder.FieldPercentSettled:
+		v, ok := value.(decimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddPercentSettled(v)
 		return nil
 	case paymentorder.FieldSenderFee:
 		v, ok := value.(decimal.Decimal)
@@ -6049,6 +6133,9 @@ func (m *PaymentOrderMutation) ResetField(name string) error {
 		return nil
 	case paymentorder.FieldAmountReturned:
 		m.ResetAmountReturned()
+		return nil
+	case paymentorder.FieldPercentSettled:
+		m.ResetPercentSettled()
 		return nil
 	case paymentorder.FieldSenderFee:
 		m.ResetSenderFee()
