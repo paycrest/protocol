@@ -2,7 +2,7 @@ name: Pre Merge CI Pipeline
 
 on:
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "staging" ]
 
 jobs:
   build-and-test:
