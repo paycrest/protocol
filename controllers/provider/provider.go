@@ -502,7 +502,10 @@ func (ctrl *ProviderController) Stats(ctx *gin.Context) {
 	provider := providerCtx.(*ent.ProviderProfile)
 
 	// Fetch provider stats
-	var v []struct{ totalOrders, totalCryptoVolume decimal.Decimal }
+	var v []struct {
+		Count int
+		Sum   decimal.Decimal
+	}
 	var totalFiatVolume decimal.Decimal
 
 	query := storage.Client.LockPaymentOrder.
@@ -533,8 +536,8 @@ func (ctrl *ProviderController) Stats(ctx *gin.Context) {
 	}
 
 	u.APIResponse(ctx, http.StatusOK, "success", "Provider stats fetched successfully", &types.ProviderStatsResponse{
-		TotalOrders:       int(v[0].totalOrders.IntPart()),
+		TotalOrders:       v[0].Count,
 		TotalFiatVolume:   totalFiatVolume,
-		TotalCryptoVolume: v[0].totalCryptoVolume,
+		TotalCryptoVolume: v[0].Sum,
 	})
 }

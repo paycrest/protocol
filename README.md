@@ -94,7 +94,7 @@ curl -sSfL https://raw.githubusercontent.com/cosmtrek/air/master/install.sh | sh
 go install github.com/cosmtrek/air@latest
 
 # start server
-air -v
+air
 ```
 
 That's it! The server will now be running at http://localhost:8000. You can use an API testing tool like Postman or cURL to interact with the API.
