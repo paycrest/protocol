@@ -462,14 +462,32 @@ func (ctrl *SenderController) Stats(ctx *gin.Context) {
 	sender := senderCtx.(*ent.SenderProfile)
 
 	// Aggregate sender stats from db
-	var v []struct{ totalOrders, totalOrderVolume, totalFeeEarnings decimal.Decimal }
 
+	var w []struct {
+		Sum decimal.Decimal
+	}
 	err := storage.Client.PaymentOrder.
 		Query().
 		Where(paymentorder.HasSenderProfileWith(senderprofile.IDEQ(sender.ID))).
 		Aggregate(
-			ent.Count(),
 			ent.Sum(paymentorder.FieldAmount),
+		).
+		Scan(ctx, &w)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch sender stats", nil)
+		return
+	}
+
+	var v []struct {
+		Count int
+		Sum   decimal.Decimal
+	}
+	err = storage.Client.PaymentOrder.
+		Query().
+		Where(paymentorder.HasSenderProfileWith(senderprofile.IDEQ(sender.ID))).
+		Aggregate(
+			ent.Count(),
 			ent.Sum(paymentorder.FieldSenderFee),
 		).
 		Scan(ctx, &v)
@@ -480,8 +498,8 @@ func (ctrl *SenderController) Stats(ctx *gin.Context) {
 	}
 
 	u.APIResponse(ctx, http.StatusOK, "success", "Sender stats retrieved successfully", types.SenderStatsResponse{
-		TotalOrders:      int(v[0].totalOrders.IntPart()),
-		TotalOrderVolume: v[0].totalOrderVolume,
-		TotalFeeEarnings: v[0].totalFeeEarnings,
+		TotalOrders:      v[0].Count,
+		TotalOrderVolume: w[0].Sum,
+		TotalFeeEarnings: v[0].Sum,
 	})
 }
