@@ -2,9 +2,15 @@ package logger
 
 import (
 	"bytes"
-	"github.com/sirupsen/logrus"
+	"fmt"
+	"os"
 	"strings"
 	"time"
+
+	sentryhook "github.com/chadsr/logrus-sentry"
+	"github.com/getsentry/sentry-go"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
 var logger = logrus.New()
@@ -13,12 +19,46 @@ func init() {
 	logger.Level = logrus.InfoLevel
 	logger.Formatter = &formatter{}
 
+	sentryDSN, environment := getSentryConfig()
+
+	if environment == "production" {
+		// init sentry
+		err := sentry.Init(sentry.ClientOptions{
+			Dsn: sentryDSN,
+		})
+		if err != nil {
+			logger.Fatalf("Sentry initialization failed: %v", err)
+		}
+
+		// Sentry hook
+		hook := sentryhook.New([]logrus.Level{
+			logrus.PanicLevel,
+			logrus.FatalLevel,
+			logrus.ErrorLevel,
+		})
+		logger.Hooks.Add(hook)
+	}
 	logger.SetReportCaller(true)
 }
 
 // SetLogLevel sets the log level for the logger.
 func SetLogLevel(level logrus.Level) {
 	logger.Level = level
+}
+
+func getSentryConfig() (string, string) {
+	viper.AddConfigPath(".")
+	envFilePath := os.Getenv("ENV_FILE_PATH")
+	if envFilePath == "" {
+		envFilePath = ".env" // Set default value to ".env"
+	}
+	viper.SetConfigName(envFilePath)
+	viper.SetConfigType("env")
+
+	if err := viper.ReadInConfig(); err != nil {
+		fmt.Print("Error to reading config file, ", err, "\n")
+	}
+	return viper.GetString("SENTRY_DSN"), viper.GetString("ENVIRONMENT")
 }
 
 // Fields type, used to pass to `WithFields`.
