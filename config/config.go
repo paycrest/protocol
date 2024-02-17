@@ -1,10 +1,10 @@
 package config
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/cosmos/go-bip39"
-	"github.com/paycrest/protocol/utils/logger"
 	"github.com/spf13/viper"
 )
 
@@ -36,13 +36,13 @@ func SetupConfig() error {
 	viper.AutomaticEnv()
 
 	if err := viper.ReadInConfig(); err != nil {
-		logger.Errorf("Error to reading config file, %s", err)
+		fmt.Printf("Error to reading config file, %s", err)
 		return err
 	}
 
 	err := viper.Unmarshal(&configuration)
 	if err != nil {
-		logger.Errorf("error to decode, %v", err)
+		fmt.Printf("error to decode, %v", err)
 		return err
 	}
 
@@ -50,7 +50,7 @@ func SetupConfig() error {
 
 	valid := bip39.IsMnemonicValid(cryptoConf.HDWalletMnemonic)
 	if !valid {
-		logger.Errorf("Invalid mnemonic phrase")
+		fmt.Printf("Invalid mnemonic phrase")
 		return nil
 	}
 
