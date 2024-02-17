@@ -23,7 +23,7 @@ import (
 
 // ProviderController is a controller type for provider endpoints
 type ProviderController struct {
-	orderService *services.OrderService
+	orderService services.Order
 }
 
 // NewProviderController creates a new instance of ProviderController with injected services
@@ -489,36 +489,6 @@ func (ctrl *ProviderController) GetMarketRate(ctx *gin.Context) {
 		MinimumRate: marketRate.Mul(decimal.NewFromFloat(1).Sub(deviation)), // market rate - 10%
 		MaximumRate: marketRate.Mul(decimal.NewFromFloat(1).Add(deviation)), // market rate + 10%
 	})
-}
-
-// parseOrderPayload parses the order payload
-func parseOrderPayload(ctx *gin.Context, provider *ent.ProviderProfile) (uuid.UUID, error) {
-	// Get lock order ID from URL
-	orderID := ctx.Param("id")
-
-	// Parse the Order ID string into a UUID
-	orderUUID, err := uuid.Parse(orderID)
-	if err != nil {
-		logger.Errorf("error parsing order ID: %v", err)
-		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid Order ID", nil)
-		return uuid.UUID{}, err
-	}
-
-	// Get Order request from Redis
-	result, err := storage.RedisClient.HGetAll(ctx, fmt.Sprintf("order_request_%s", orderUUID)).Result()
-	if err != nil {
-		logger.Errorf("error getting order request from Redis: %v", err)
-		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Internal server error", nil)
-		return uuid.UUID{}, err
-	}
-
-	if result["providerId"] != provider.ID || len(result) == 0 {
-		logger.Errorf("order request not found in Redis: %v", orderUUID)
-		u.APIResponse(ctx, http.StatusNotFound, "error", "Order request not found or is expired", nil)
-		return uuid.UUID{}, err
-	}
-
-	return orderUUID, nil
 }
 
 // Stats controller fetches provider stats

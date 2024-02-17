@@ -26,38 +26,7 @@ import (
 	"github.com/paycrest/protocol/utils/test"
 	"github.com/paycrest/protocol/utils/token"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
-
-// Mock indexer service
-type MockIndexerService struct {
-	mock.Mock
-}
-
-// IndexERC20Transfer mocks the IndexERC20Transfer method
-func (m *MockIndexerService) IndexERC20Transfer(ctx context.Context, client types.RPCClient, receiveAddress *ent.ReceiveAddress) error {
-	return nil
-}
-
-// IndexOrderCreated mocks the IndexOrderCreated method
-func (m *MockIndexerService) IndexOrderCreated(ctx context.Context, client types.RPCClient, network *ent.Network) error {
-	return nil
-}
-
-// IndexOrderSettled mocks the IndexOrderSettled method
-func (m *MockIndexerService) IndexOrderSettled(ctx context.Context, client types.RPCClient, network *ent.Network) error {
-	return nil
-}
-
-// IndexOrderRefunded mocks the IndexOrderRefunded method
-func (m *MockIndexerService) IndexOrderRefunded(ctx context.Context, client types.RPCClient, network *ent.Network) error {
-	return nil
-}
-
-// HandleReceiveAddressValidity mocks the HandleReceiveAddressValidity method
-func (m *MockIndexerService) HandleReceiveAddressValidity(ctx context.Context, receiveAddress *ent.ReceiveAddress, paymentOrder *ent.PaymentOrder) error {
-	return nil
-}
 
 var testCtx = struct {
 	user              *ent.User
@@ -84,7 +53,7 @@ func createPaymentOrder(t *testing.T, router *gin.Engine) {
 		"rate":    750.0,
 		"network": network.Identifier,
 		"recipient": map[string]interface{}{
-			"institution":       "First Bank Nigeria PLC",
+			"institution":       "ABNGNGLA",
 			"accountIdentifier": "1234567890",
 			"accountName":       "John Doe",
 			"memo":              "Shola Kehinde - rent for May 2021",
@@ -205,11 +174,14 @@ func TestSender(t *testing.T) {
 	router.Use(middleware.HMACVerificationMiddleware)
 	router.Use(middleware.OnlySenderMiddleware)
 
+	// Create a mock instance of the OrderService
+	mockOrderService := &test.MockOrderService{}
+
 	// Create a mock instance of the IndexerService
-	mockIndexerService := &MockIndexerService{}
+	mockIndexerService := &test.MockIndexerService{}
 
 	// Create a new instance of the SenderController with the mock service
-	ctrl := NewSenderController(mockIndexerService)
+	ctrl := NewSenderController(mockIndexerService, mockOrderService)
 	router.POST("/orders", ctrl.InitiatePaymentOrder)
 	router.GET("/orders/:id", ctrl.GetPaymentOrderByID)
 	router.GET("/orders/", ctrl.GetPaymentOrders)

@@ -43,13 +43,12 @@ type Indexer interface {
 // IndexerService performs blockchain to database extract, transform, load (ETL) operations.
 type IndexerService struct {
 	priorityQueue *PriorityQueueService
-	order         *OrderService
+	order         Order
 }
 
 // NewIndexerService creates a new instance of IndexerService.
-func NewIndexerService() Indexer {
+func NewIndexerService(order Order) Indexer {
 	priorityQueue := NewPriorityQueueService()
-	order := NewOrderService()
 
 	return &IndexerService{
 		priorityQueue: priorityQueue,
@@ -121,38 +120,42 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 		}
 	}()
 
-	// Start listening for ERC20 transfer events
-	logs := make(chan *contracts.ERC20TokenTransfer)
+	if ServerConf.Environment != "test" {
+		// Start listening for ERC20 transfer events
+		logs := make(chan *contracts.ERC20TokenTransfer)
 
-	sub, err := filterer.WatchTransfer(&bind.WatchOpts{
-		Start: nil,
-	}, logs, nil, nil)
-	if err != nil {
-		logger.Errorf("IndexERC20Transfer.WatchTransfer: %v", err)
-		return nil
-	}
+		sub, err := filterer.WatchTransfer(&bind.WatchOpts{
+			Start: nil,
+		}, logs, nil, nil)
+		if err != nil {
+			logger.Errorf("IndexERC20Transfer.WatchTransfer: %v", err)
+			return nil
+		}
 
-	defer sub.Unsubscribe()
+		defer sub.Unsubscribe()
 
-	logger.Infof(fmt.Sprintf("Listening for ERC20 Transfer event: %s\n", receiveAddress.Address))
+		logger.Infof(fmt.Sprintf("Listening for ERC20 Transfer event: %s\n", receiveAddress.Address))
 
-	for {
-		select {
-		case log := <-logs:
-			ok, err := s.updateReceiveAddressStatus(ctx, client, receiveAddress, paymentOrder, log)
-			if err != nil {
-				logger.Errorf("IndexERC20Transfer.updateReceiveAddressStatus: %v", err)
+		for {
+			select {
+			case log := <-logs:
+				ok, err := s.updateReceiveAddressStatus(ctx, client, receiveAddress, paymentOrder, log)
+				if err != nil {
+					logger.Errorf("IndexERC20Transfer.updateReceiveAddressStatus: %v", err)
+					continue
+				}
+				if ok {
+					close(logs)
+					return nil
+				}
+			case err := <-sub.Err():
+				logger.Errorf("IndexERC20Transfer.logError: %v", err)
 				continue
 			}
-			if ok {
-				close(logs)
-				return nil
-			}
-		case err := <-sub.Err():
-			logger.Errorf("IndexERC20Transfer.logError: %v", err)
-			continue
 		}
 	}
+
+	return nil
 }
 
 // IndexOrderCreated indexes deposits to the order contract for a specific network.

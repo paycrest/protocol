@@ -83,7 +83,7 @@ func authRoutes(route *gin.Engine) {
 }
 
 func senderRoutes(route *gin.Engine) {
-	senderCtrl := sender.NewSenderController(nil)
+	senderCtrl := sender.NewSenderController(nil, nil)
 
 	v1 := route.Group("/v1/sender/")
 	v1.Use(middleware.DynamicAuthMiddleware)

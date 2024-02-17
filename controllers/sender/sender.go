@@ -25,23 +25,31 @@ import (
 type SenderController struct {
 	indexerService        svc.Indexer
 	receiveAddressService *svc.ReceiveAddressService
-	orderService          *svc.OrderService
+	orderService          svc.Order
 }
 
 // NewSenderController creates a new instance of SenderController
-func NewSenderController(indexer svc.Indexer) *SenderController {
+func NewSenderController(indexer svc.Indexer, order svc.Order) *SenderController {
 	var indexerService svc.Indexer
+	var orderService svc.Order
+	
+	if order == nil {
+		orderService = svc.NewOrderService()
+	} else {
+		orderService = order
+	}
 
 	if indexer != nil {
 		indexerService = indexer
 	} else {
-		indexerService = svc.NewIndexerService()
+		indexerService = svc.NewIndexerService(orderService)
 	}
+
 
 	return &SenderController{
 		indexerService:        indexerService,
 		receiveAddressService: svc.NewReceiveAddressService(),
-		orderService:          svc.NewOrderService(),
+		orderService:          orderService,
 	}
 }
 
@@ -209,7 +217,9 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 	}
 
 	// Start a background process to index token transfers through the lifecycle of the receive address
-	go ctrl.indexerService.IndexERC20Transfer(ctx, nil, receiveAddress)
+	go func() {
+		_ = ctrl.indexerService.IndexERC20Transfer(ctx, nil, receiveAddress)
+	}()
 
 	paymentOrderAmount, _ := paymentOrder.Amount.Float64()
 
