@@ -1,7 +1,8 @@
 package config
 
 import (
-	"github.com/paycrest/protocol/utils/logger"
+	"fmt"
+
 	"github.com/spf13/viper"
 )
 
@@ -13,6 +14,7 @@ type ServerConfiguration struct {
 	Timezone     string
 	AllowedHosts string
 	Environment  string
+	SentryDSN    string
 }
 
 // ServerConfig sets the server configuration
@@ -23,6 +25,7 @@ func ServerConfig() *ServerConfiguration {
 	viper.SetDefault("SERVER_TIMEZONE", "Africa/Lagos")
 	viper.SetDefault("ALLOWED_HOSTS", "*")
 	viper.SetDefault("ENVIRONMENT", "local")
+	viper.SetDefault("SENTRY_DSN", "")
 
 	return &ServerConfiguration{
 		Debug:        viper.GetBool("DEBUG"),
@@ -31,11 +34,12 @@ func ServerConfig() *ServerConfiguration {
 		Timezone:     viper.GetString("SERVER_TIMEZONE"),
 		AllowedHosts: viper.GetString("ALLOWED_HOSTS"),
 		Environment:  viper.GetString("ENVIRONMENT"),
+		SentryDSN:    viper.GetString("SENTRY_DSN"),
 	}
 }
 
 func init() {
 	if err := SetupConfig(); err != nil {
-		logger.Fatalf("config SetupConfig() error: %s", err)
+		panic(fmt.Sprintf("config SetupConfig() error: %s", err))
 	}
 }

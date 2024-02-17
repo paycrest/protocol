@@ -1,7 +1,8 @@
 package config
 
 import (
-	"github.com/paycrest/protocol/utils/logger"
+	"fmt"
+
 	"github.com/spf13/viper"
 )
 
@@ -28,6 +29,6 @@ func CryptoConfig() *CryptoConfiguration {
 
 func init() {
 	if err := SetupConfig(); err != nil {
-		logger.Fatalf("config SetupConfig() error: %s", err)
+		panic(fmt.Sprintf("config SetupConfig() error: %s", err))
 	}
 }

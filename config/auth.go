@@ -1,9 +1,9 @@
 package config
 
 import (
+	"fmt"
 	"time"
 
-	"github.com/paycrest/protocol/utils/logger"
 	"github.com/spf13/viper"
 )
 
@@ -34,6 +34,6 @@ func AuthConfig() (config *AuthConfiguration) {
 
 func init() {
 	if err := SetupConfig(); err != nil {
-		logger.Fatalf("config SetupConfig() error: %s", err)
+		panic(fmt.Sprintf("config SetupConfig() error: %s", err))
 	}
 }
