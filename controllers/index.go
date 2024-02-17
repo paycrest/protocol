@@ -19,7 +19,7 @@ import (
 
 // Controller is the default controller for other endpoints
 type Controller struct {
-	orderService         *svc.OrderService
+	orderService         svc.Order
 	priorityQueueService *svc.PriorityQueueService
 }
 
