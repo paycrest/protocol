@@ -286,7 +286,7 @@ type ReceiveAddressResponse struct {
 	ReceiveAddress string          `json:"receiveAddress"`
 	ValidUntil     time.Time       `json:"validUntil"`
 	SenderFee      decimal.Decimal `json:"senderFee"`
-	NetworkFee     decimal.Decimal `json:"networkFee"`
+	TransactionFee decimal.Decimal `json:"transactionFee"`
 }
 
 // PaymentOrderResponse is the response type for a payment order
@@ -297,7 +297,7 @@ type PaymentOrderResponse struct {
 	AmountReturned decimal.Decimal       `json:"amountReturned"`
 	Token          string                `json:"token"`
 	SenderFee      decimal.Decimal       `json:"senderFee"`
-	NetworkFee     decimal.Decimal       `json:"networkFee"`
+	TransactionFee decimal.Decimal       `json:"transactionFee"`
 	Rate           decimal.Decimal       `json:"rate"`
 	Network        string                `json:"network"`
 	Label          string                `json:"label"`

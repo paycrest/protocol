@@ -106,7 +106,7 @@ func createPaymentOrder(t *testing.T, router *gin.Engine) {
 	assert.Equal(t, paymentOrder.Edges.Recipient.AccountName, payload["recipient"].(map[string]interface{})["accountName"])
 	assert.Equal(t, paymentOrder.Edges.Recipient.Institution, payload["recipient"].(map[string]interface{})["institution"])
 	assert.Equal(t, data["senderFee"], "0.2")
-	assert.Equal(t, data["networkFee"], services.OrderConf.NetworkFee.String())
+	assert.Equal(t, data["transactionFee"], services.OrderConf.NetworkFee.Add(paymentOrder.Amount.Mul(decimal.NewFromFloat(0.001))).String()) // 0.1% protocol fee
 }
 
 func setup() error {
@@ -519,7 +519,7 @@ func TestSender(t *testing.T) {
 			assert.Equal(t, totalFeeEarnings, decimal.NewFromInt(0))
 		})
 
-		t.Run("when orders have been initiated", func(t *testing.T) {			
+		t.Run("when orders have been initiated", func(t *testing.T) {
 			var payload = map[string]interface{}{
 				"timestamp": time.Now().Unix(),
 			}

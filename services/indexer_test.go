@@ -48,19 +48,6 @@ func setup() error {
 	}
 	testCtx.receiveAddress = receiveAddress
 
-	// Fund receive address
-	amount := decimal.NewFromFloat(29.93)
-	amountInt := utils.ToSubunit(amount, token.Decimals)
-	err = test.FundAddressWithERC20Token(
-		client,
-		common.HexToAddress(token.ContractAddress),
-		amountInt,
-		common.HexToAddress(receiveAddress.Address),
-	)
-	if err != nil {
-		return err
-	}
-
 	// Create a test api key
 	user, err := test.CreateTestUser(nil)
 	if err != nil {
@@ -86,6 +73,9 @@ func setup() error {
 	}
 
 	// Create a payment order
+	amount := decimal.NewFromFloat(29.93)
+	protocolFee := amount.Mul(decimal.NewFromFloat(0.001)) // 0.1% protocol fee
+
 	paymentOrder, err := db.Client.PaymentOrder.
 		Create().
 		SetSenderProfile(senderProfile).
@@ -93,7 +83,8 @@ func setup() error {
 		SetAmountPaid(decimal.NewFromInt(0)).
 		SetAmountReturned(decimal.NewFromInt(0)).
 		SetSenderFee(decimal.NewFromInt(0)).
-		SetNetworkFee(decimal.NewFromInt(0)).
+		SetNetworkFee(OrderConf.NetworkFee).
+		SetProtocolFee(protocolFee). // 0.1% protocol fee
 		SetPercentSettled(decimal.NewFromInt(0)).
 		SetRate(decimal.NewFromInt(750)).
 		SetToken(token).
@@ -107,6 +98,18 @@ func setup() error {
 		return err
 	}
 	testCtx.paymentOrder = paymentOrder
+
+	// Fund receive address
+	amountWithFees := amount.Add(paymentOrder.ProtocolFee).Add(paymentOrder.NetworkFee).Add(paymentOrder.SenderFee)
+	err = test.FundAddressWithERC20Token(
+		client,
+		common.HexToAddress(token.ContractAddress),
+		utils.ToSubunit(amountWithFees, token.Decimals),
+		common.HexToAddress(receiveAddress.Address),
+	)
+	if err != nil {
+		return err
+	}
 
 	// Create a mock instance of the OrderService
 	mockOrderService := &test.MockOrderService{}
@@ -143,5 +146,4 @@ func TestIndexer(t *testing.T) {
 
 	// Assert state changes after indexing
 	assert.Equal(t, receiveaddress.StatusUsed, receiveAddress.Status)
-
 }

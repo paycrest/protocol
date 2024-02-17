@@ -719,11 +719,17 @@ func (s *IndexerService) updateReceiveAddressStatus(
 			return false, nil
 		}
 
+		fmt.Println("address matched")
+
+		fmt.Println("event.Value", event.Value)
+		fmt.Println("paymentOrder.Amount", paymentOrder.Amount)
+
 		// This is a transfer to the receive address to create an order on-chain
 		// Compare the transferred value with the expected order amount + fees
-		fees := paymentOrder.NetworkFee.Add(paymentOrder.SenderFee)
+		fees := paymentOrder.NetworkFee.Add(paymentOrder.SenderFee).Add(paymentOrder.ProtocolFee)
 		orderAmountWithFees := paymentOrder.Amount.Add(fees)
 		orderAmountWithFeesInSubunit := utils.ToSubunit(orderAmountWithFees, paymentOrder.Edges.Token.Decimals)
+		fmt.Println("orderAmountWithFeesInSubunit", orderAmountWithFeesInSubunit)
 		comparisonResult := event.Value.Cmp(orderAmountWithFeesInSubunit)
 
 		_, err = paymentOrder.

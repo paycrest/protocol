@@ -81,9 +81,6 @@ func (s *OrderService) CreateOrder(ctx context.Context, orderID uuid.UUID) error
 		return fmt.Errorf("failed to fetch payment order: %w", err)
 	}
 
-	fmt.Println("order", order)
-	fmt.Println("recipient", order.Edges.Recipient)
-
 	saltDecrypted, err := cryptoUtils.DecryptPlain(order.Edges.ReceiveAddress.Salt)
 	if err != nil {
 		return fmt.Errorf("failed to decrypt salt: %w", err)
@@ -229,7 +226,7 @@ func (s *OrderService) RevertOrder(ctx context.Context, order *ent.PaymentOrder)
 		return fmt.Errorf("RevertOrder.fetchOrder: %w", err)
 	}
 
-	fees := order.NetworkFee.Add(order.SenderFee)
+	fees := order.NetworkFee.Add(order.SenderFee).Add(order.ProtocolFee)
 	orderAmountWithFees := order.Amount.Add(fees)
 
 	var amountToRevert decimal.Decimal
@@ -580,10 +577,12 @@ func (s *OrderService) createOrderCallData(order *ent.PaymentOrder) ([]byte, err
 		refundAddress = common.HexToAddress(order.Edges.SenderProfile.RefundAddress)
 	}
 
+	amountWithProtocolFee := order.Amount.Add(order.ProtocolFee)
+
 	// Define params
 	params := &CreateOrderParams{
 		Token:              common.HexToAddress(order.Edges.Token.ContractAddress),
-		Amount:             utils.ToSubunit(order.Amount, order.Edges.Token.Decimals),
+		Amount:             utils.ToSubunit(amountWithProtocolFee, order.Edges.Token.Decimals),
 		InstitutionCode:    utils.StringToByte32(order.Edges.Recipient.Institution),
 		Label:              utils.StringToByte32(order.Label),
 		Rate:               order.Rate.BigInt(),
@@ -836,7 +835,6 @@ func (s *OrderService) settleCallData(ctx context.Context, order *ent.LockPaymen
 		utils.StringToByte32(order.Label),
 		common.HexToAddress(providerAddress),
 		uint64(orderPercent),
-		order.Edges.Provider.IsPartner,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to pack settle ABI: %w", err)

@@ -32,7 +32,7 @@ type SenderController struct {
 func NewSenderController(indexer svc.Indexer, order svc.Order) *SenderController {
 	var indexerService svc.Indexer
 	var orderService svc.Order
-	
+
 	if order == nil {
 		orderService = svc.NewOrderService()
 	} else {
@@ -44,7 +44,6 @@ func NewSenderController(indexer svc.Indexer, order svc.Order) *SenderController
 	} else {
 		indexerService = svc.NewIndexerService(orderService)
 	}
-
 
 	return &SenderController{
 		indexerService:        indexerService,
@@ -166,6 +165,7 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 	}
 
 	senderFee := feePerTokenUnit.Mul(payload.Amount).Div(payload.Rate)
+	protocolFee := payload.Amount.Mul(decimal.NewFromFloat(0.001)) // TODO: get protocol fee from contract -- currently 0.1%
 
 	// Create payment order
 	paymentOrder, err := tx.PaymentOrder.
@@ -176,6 +176,7 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 		SetAmountReturned(decimal.NewFromInt(0)).
 		SetPercentSettled(decimal.NewFromInt(0)).
 		SetNetworkFee(svc.OrderConf.NetworkFee).
+		SetProtocolFee(protocolFee).
 		SetSenderFee(senderFee).
 		SetToken(token).
 		SetLabel(payload.Label).
@@ -231,7 +232,7 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 			ReceiveAddress: receiveAddress.Address,
 			ValidUntil:     receiveAddress.ValidUntil,
 			SenderFee:      senderFee,
-			NetworkFee:     svc.OrderConf.NetworkFee,
+			TransactionFee: protocolFee.Add(svc.OrderConf.NetworkFee),
 		})
 }
 
@@ -284,7 +285,7 @@ func (ctrl *SenderController) GetPaymentOrderByID(ctx *gin.Context) {
 		AmountReturned: paymentOrder.AmountReturned,
 		Token:          paymentOrder.Edges.Token.Symbol,
 		SenderFee:      paymentOrder.SenderFee,
-		NetworkFee:     paymentOrder.NetworkFee,
+		TransactionFee: paymentOrder.NetworkFee.Add(paymentOrder.ProtocolFee),
 		Rate:           paymentOrder.Rate,
 		Network:        paymentOrder.Edges.Token.Edges.Network.Identifier,
 		Recipient: types.PaymentOrderRecipient{
