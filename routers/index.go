@@ -46,13 +46,13 @@ func authRoutes(route *gin.Engine) {
 	var profileCtrl accounts.ProfileController
 
 	v1 := route.Group("/v1/")
-	v1.POST("auth/register", authCtrl.Register)
-	v1.POST("auth/login", authCtrl.Login)
-	v1.POST("auth/confirm-account", authCtrl.ConfirmEmail)
-	v1.POST("auth/resend-token", authCtrl.ResendVerificationToken)
-	v1.POST("auth/refresh", authCtrl.RefreshJWT)
-	v1.POST("auth/reset-password-token", authCtrl.ResetPasswordToken)
-	v1.PATCH("auth/reset-password", authCtrl.ResetPassword)
+	v1.POST("auth/register", middleware.OnlyWebMiddleware, authCtrl.Register)
+	v1.POST("auth/login", middleware.OnlyWebMiddleware, authCtrl.Login)
+	v1.POST("auth/confirm-account", middleware.OnlyWebMiddleware, authCtrl.ConfirmEmail)
+	v1.POST("auth/resend-token", middleware.OnlyWebMiddleware, authCtrl.ResendVerificationToken)
+	v1.POST("auth/refresh", middleware.OnlyWebMiddleware, authCtrl.RefreshJWT)
+	v1.POST("auth/reset-password-token", middleware.OnlyWebMiddleware, authCtrl.ResetPasswordToken)
+	v1.PATCH("auth/reset-password", middleware.OnlyWebMiddleware, authCtrl.ResetPassword)
 	v1.PATCH("auth/change-password", middleware.JWTMiddleware, authCtrl.ChangePassword)
 
 	v1.GET(

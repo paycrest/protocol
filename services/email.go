@@ -73,6 +73,7 @@ func (m *EmailService) SendVerificationEmail(ctx context.Context, token, email s
 		ToAddress:   email,
 		Subject:     _EmailVerificationSubject,
 		Body:        bodyTemplate,
+		HTMLBody:    fmt.Sprintf("<div> %s </div>", bodyTemplate),
 	}
 	return m.SendEmail(ctx, payload)
 }
@@ -131,7 +132,7 @@ func sendEmailViaSendGrid(ctx context.Context, content types.SendEmailPayload) (
 	request.Method = "POST"
 	request.Body = mail.GetRequestBody(m)
 	response, err := sendgrid.API(request)
-	if err != nil {
+	if err != nil || response.StatusCode >= 400 {
 		return types.SendEmailResponse{}, err
 	}
 

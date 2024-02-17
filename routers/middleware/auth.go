@@ -283,3 +283,17 @@ func OnlyProviderMiddleware(c *gin.Context) {
 
 	c.Next()
 }
+
+// OnlyWebMiddleware is a middle that checks your Client-Type and allows for auth
+func OnlyWebMiddleware(c *gin.Context) {
+	// Check the request headers to determine the desired authentication method
+	clientType := c.GetHeader("Client-Type")
+
+	if clientType != "web" {
+		u.APIResponse(c, http.StatusUnauthorized, "error", "Unrecognized Client-Type", nil)
+		c.Abort()
+		return
+	}
+
+	c.Next()
+}

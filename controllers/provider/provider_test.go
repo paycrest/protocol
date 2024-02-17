@@ -16,6 +16,7 @@ import (
 	"github.com/paycrest/protocol/services"
 	db "github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
+	"github.com/shopspring/decimal"
 
 	"github.com/gin-gonic/gin"
 	"github.com/paycrest/protocol/ent/enttest"
@@ -100,6 +101,7 @@ func TestProvider(t *testing.T) {
 	// Create a new instance of the SenderController with the mock service
 	ctrl := NewProviderController()
 	router.GET("/orders/", ctrl.GetLockPaymentOrders)
+	router.GET("/stats", ctrl.Stats)
 
 	t.Run("GetLockPaymentOrders", func(t *testing.T) {
 		t.Run("fetch default list", func(t *testing.T) {
@@ -266,5 +268,128 @@ func TestProvider(t *testing.T) {
 			assert.Greater(t, firstOrderTimestamp, lastOrderTimestamp)
 		})
 
+	})
+
+	t.Run("GetStats", func(t *testing.T) {
+		t.Run("when no orders have been initiated", func(t *testing.T) {
+			// Create a new user with no orders
+			user, err := test.CreateTestUser(map[string]interface{}{
+				"email": "no_order_user@test.com",
+			})
+			if err != nil {
+				return
+			}
+
+			currency, err := test.CreateTestFiatCurrency(nil)
+			if err != nil {
+				return
+			}
+
+			providerProfile, err := test.CreateTestProviderProfile(map[string]interface{}{
+				"user_id":     user.ID,
+				"currency_id": currency.ID,
+			})
+			if err != nil {
+				return
+			}
+
+			apiKeyService := services.NewAPIKeyService()
+			apiKey, secretKey, err := apiKeyService.GenerateAPIKey(
+				context.Background(),
+				nil,
+				nil,
+				providerProfile,
+			)
+			if err != nil {
+				return
+			}
+
+			// Test default params
+			var payload = map[string]interface{}{
+				"timestamp": time.Now().Unix(),
+			}
+
+			signature := token.GenerateHMACSignature(payload, secretKey)
+
+			headers := map[string]string{
+				"Authorization": "HMAC " + apiKey.ID.String() + ":" + signature,
+				"Client-Type":   "backend",
+			}
+
+			res, err := test.PerformRequest(t, "GET", "/stats", payload, headers, router)
+			assert.NoError(t, err)
+
+			// Assert the response body
+			assert.Equal(t, http.StatusOK, res.Code)
+
+			var response types.Response
+			err = json.Unmarshal(res.Body.Bytes(), &response)
+			assert.NoError(t, err)
+			assert.Equal(t, "Provider stats fetched successfully", response.Message)
+			data, ok := response.Data.(map[string]interface{})
+			assert.True(t, ok, "response.Data is of not type map[string]interface{}")
+			assert.NotNil(t, data, "response.Data is nil")
+
+			assert.Equal(t, int(data["totalOrders"].(float64)), 0)
+
+			totalFiatVolumeStr, ok := data["totalFiatVolume"].(string)
+			assert.True(t, ok, "totalFiatVolume is not of type string")
+			totalFiatVolume, err := decimal.NewFromString(totalFiatVolumeStr)
+			assert.NoError(t, err, "Failed to convert totalFiatVolume to decimal")
+			assert.Equal(t, totalFiatVolume, decimal.NewFromInt(0))
+
+			totalCryptoVolumeStr, ok := data["totalCryptoVolume"].(string)
+			assert.True(t, ok, "totalCryptoVolume is not of type string")
+			totalCryptoVolume, err := decimal.NewFromString(totalCryptoVolumeStr)
+			assert.NoError(t, err, "Failed to convert totalCryptoVolume to decimal")
+			assert.Equal(t, totalCryptoVolume, decimal.NewFromInt(0))
+		})
+
+		t.Run("when orders have been initiated", func(t *testing.T) {
+			// Test default params
+			var payload = map[string]interface{}{
+				"timestamp": time.Now().Unix(),
+			}
+
+			signature := token.GenerateHMACSignature(payload, testCtx.apiKeySecret)
+
+			headers := map[string]string{
+				"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
+				"Client-Type":   "backend",
+			}
+
+			res, err := test.PerformRequest(t, "GET", "/stats", payload, headers, router)
+			assert.NoError(t, err)
+
+			// Assert the response body
+			assert.Equal(t, http.StatusOK, res.Code)
+
+			var response types.Response
+			err = json.Unmarshal(res.Body.Bytes(), &response)
+			assert.NoError(t, err)
+			assert.Equal(t, "Provider stats fetched successfully", response.Message)
+			data, ok := response.Data.(map[string]interface{})
+			assert.True(t, ok, "response.Data is of not type *types.ProviderStatsResponse")
+			assert.NotNil(t, data, "response.Data is nil")
+
+			// Assert the totalOrders value
+			totalOrders, ok := data["totalOrders"].(float64)
+			assert.True(t, ok, "totalOrders is not of type float64")
+			assert.Greater(t, int(totalOrders), 0)
+
+			// Assert the totalFiatVolume value
+			totalFiatVolumeStr, ok := data["totalFiatVolume"].(string)
+			assert.True(t, ok, "totalFiatVolume is not of type string")
+			totalFiatVolume, err := decimal.NewFromString(totalFiatVolumeStr)
+			assert.NoError(t, err, "Failed to convert totalFiatVolume to decimal")
+			assert.Greater(t, totalFiatVolume.Cmp(decimal.NewFromInt(0)), 0)
+
+			// Assert the totalCryptoVolume value
+			totalCryptoVolumeStr, ok := data["totalCryptoVolume"].(string)
+			assert.True(t, ok, "totalCryptoVolume is not of type string")
+			totalCryptoVolume, err := decimal.NewFromString(totalCryptoVolumeStr)
+			assert.NoError(t, err, "Failed to convert totalCryptoVolume to decimal")
+			assert.Greater(t, totalCryptoVolume.Cmp(decimal.NewFromInt(0)), 0)
+		})
 	})
 }
