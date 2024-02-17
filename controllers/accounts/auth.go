@@ -134,7 +134,7 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 			SetTradingName(payload.TradingName).
 			SetCurrency(currency).
 			SetUser(user).
-			SetProvisionMode(providerprofile.ProvisionModeManual).
+			SetProvisionMode(providerprofile.ProvisionModeAuto).
 			Save(ctx)
 		if err != nil {
 			_ = tx.Rollback()
