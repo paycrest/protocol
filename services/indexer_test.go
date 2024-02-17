@@ -108,7 +108,10 @@ func setup() error {
 	}
 	testCtx.paymentOrder = paymentOrder
 
-	indexer := NewIndexerService()
+	// Create a mock instance of the OrderService
+	mockOrderService := &test.MockOrderService{}
+
+	indexer := NewIndexerService(mockOrderService)
 	testCtx.indexer = indexer.(*IndexerService)
 
 	return nil
@@ -126,7 +129,7 @@ func TestIndexer(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Index ERC20 transfers for the receive address
-	testCtx.indexer.IndexERC20Transfer(context.Background(), testCtx.rpcClient, testCtx.receiveAddress)
+	_ = testCtx.indexer.IndexERC20Transfer(context.Background(), testCtx.rpcClient, testCtx.receiveAddress)
 	assert.NoError(t, err)
 
 	time.Sleep(30 * time.Second)

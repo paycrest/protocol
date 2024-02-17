@@ -28,7 +28,8 @@ import (
 // ContinueIndexing continues indexing
 func ContinueIndexing() error {
 	ctx := context.Background()
-	indexerService := services.NewIndexerService()
+	orderService := services.NewOrderService()
+	indexerService := services.NewIndexerService(orderService)
 
 	networks, err := storage.GetClient().Network.
 		Query().
@@ -66,7 +67,9 @@ func ContinueIndexing() error {
 		for _, receiveAddress := range addresses {
 			receiveAddress := receiveAddress
 
-			go indexerService.IndexERC20Transfer(ctx, nil, receiveAddress)
+			go func() {
+				_ = indexerService.IndexERC20Transfer(ctx, nil, receiveAddress)
+			}()
 		}
 
 		// Start listening for order creation events
@@ -239,7 +242,8 @@ func HandleReceiveAddressValidity() error {
 		return err
 	}
 
-	indexerService := services.NewIndexerService()
+	orderService := services.NewOrderService()
+	indexerService := services.NewIndexerService(orderService)
 
 	for _, address := range addresses {
 		err := indexerService.HandleReceiveAddressValidity(ctx, address, address.Edges.PaymentOrder)

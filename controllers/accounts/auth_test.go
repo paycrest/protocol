@@ -490,10 +490,11 @@ func TestAuth(t *testing.T) {
 				Where(userEnt.EmailEQ(strings.ToLower(payload.Email))).
 				Only(context.Background())
 
-			db.Client.User.
+			_, err := db.Client.User.
 				UpdateOne(user).
 				SetIsEmailVerified(true).
 				Save(context.Background())
+			assert.NoError(t, err, "failed to set isEmailVerified to true")
 
 			res, err := test.PerformRequest(t, "POST", "/login", payload, nil, router)
 			assert.NoError(t, err)

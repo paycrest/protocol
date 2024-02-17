@@ -30,9 +30,6 @@ import (
 	cryptoUtils "github.com/paycrest/protocol/utils/crypto"
 )
 
-// OrderService provides functionality related to on-chain interactions for payment orders
-type OrderService struct{}
-
 type CreateOrderParams struct {
 	Token              common.Address
 	Amount             *big.Int
@@ -48,8 +45,20 @@ type CreateOrderParams struct {
 var CryptoConf = config.CryptoConfig()
 var ServerConf = config.ServerConfig()
 
+// Order provides an interface for the OrderService
+type Order interface {
+	CreateOrder(ctx context.Context, orderID uuid.UUID) error
+	RefundOrder(ctx context.Context, orderID string) error
+	RevertOrder(ctx context.Context, order *ent.PaymentOrder) error
+	SettleOrder(ctx context.Context, orderID uuid.UUID) error
+	GetSupportedInstitutions(ctx context.Context, client types.RPCClient, currencyCode string) ([]types.Institution, error)
+}
+
+// OrderService provides functionality related to on-chain interactions for payment orders
+type OrderService struct{}
+
 // NewOrderService creates a new instance of OrderService.
-func NewOrderService() *OrderService {
+func NewOrderService() Order {
 	return &OrderService{}
 }
 
@@ -71,6 +80,9 @@ func (s *OrderService) CreateOrder(ctx context.Context, orderID uuid.UUID) error
 	if err != nil {
 		return fmt.Errorf("failed to fetch payment order: %w", err)
 	}
+
+	fmt.Println("order", order)
+	fmt.Println("recipient", order.Edges.Recipient)
 
 	saltDecrypted, err := cryptoUtils.DecryptPlain(order.Edges.ReceiveAddress.Salt)
 	if err != nil {
