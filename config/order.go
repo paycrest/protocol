@@ -1,10 +1,10 @@
 package config
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/paycrest/protocol/utils/logger"
 	"github.com/shopspring/decimal"
 	"github.com/spf13/viper"
 )
@@ -37,16 +37,16 @@ func OrderConfig() *OrderConfiguration {
 	viper.SetDefault("PERCENT_DEVIATION_FROM_MARKET_RATE", 0.1)
 
 	return &OrderConfiguration{
-		OrderFulfillmentValidity:     time.Duration(viper.GetInt("ORDER_FULFILLMENT_VALIDITY")) * time.Minute,
-		ReceiveAddressValidity:       time.Duration(viper.GetInt("RECEIVE_ADDRESS_VALIDITY")) * time.Minute,
-		OrderRequestValidity:         time.Duration(viper.GetInt("ORDER_REQUEST_VALIDITY")) * time.Second,
-		PaycrestOrderContractAddress: common.HexToAddress(viper.GetString("PAYCREST_ORDER_CONTRACT_ADDRESS")),
-		BundlerRPCURL:                viper.GetString("BUNDLER_RPC_URL"),
-		PaymasterURL:                 viper.GetString("PAYMASTER_URL"),
-		EntryPointContractAddress:    common.HexToAddress(viper.GetString("ENTRY_POINT_CONTRACT_ADDRESS")),
-		BucketQueueRebuildInterval:   viper.GetInt("BUCKET_QUEUE_REBUILD_INTERVAL"),
-		RefundCancellationCount:      viper.GetInt("REFUND_CANCELLATION_COUNT"),
-		NetworkFee:                   decimal.NewFromFloat(viper.GetFloat64("NETWORK_FEE")),
+		OrderFulfillmentValidity:         time.Duration(viper.GetInt("ORDER_FULFILLMENT_VALIDITY")) * time.Minute,
+		ReceiveAddressValidity:           time.Duration(viper.GetInt("RECEIVE_ADDRESS_VALIDITY")) * time.Minute,
+		OrderRequestValidity:             time.Duration(viper.GetInt("ORDER_REQUEST_VALIDITY")) * time.Second,
+		PaycrestOrderContractAddress:     common.HexToAddress(viper.GetString("PAYCREST_ORDER_CONTRACT_ADDRESS")),
+		BundlerRPCURL:                    viper.GetString("BUNDLER_RPC_URL"),
+		PaymasterURL:                     viper.GetString("PAYMASTER_URL"),
+		EntryPointContractAddress:        common.HexToAddress(viper.GetString("ENTRY_POINT_CONTRACT_ADDRESS")),
+		BucketQueueRebuildInterval:       viper.GetInt("BUCKET_QUEUE_REBUILD_INTERVAL"),
+		RefundCancellationCount:          viper.GetInt("REFUND_CANCELLATION_COUNT"),
+		NetworkFee:                       decimal.NewFromFloat(viper.GetFloat64("NETWORK_FEE")),
 		PercentDeviationFromExternalRate: decimal.NewFromFloat(viper.GetFloat64("PERCENT_DEVIATION_FROM_EXTERNAL_RATE")),
 		PercentDeviationFromMarketRate:   decimal.NewFromFloat(viper.GetFloat64("PERCENT_DEVIATION_FROM_MARKET_RATE")),
 	}
@@ -54,6 +54,6 @@ func OrderConfig() *OrderConfiguration {
 
 func init() {
 	if err := SetupConfig(); err != nil {
-		logger.Fatalf("config SetupConfig() error: %s", err)
+		panic(fmt.Sprintf("config SetupConfig() error: %s", err))
 	}
 }
