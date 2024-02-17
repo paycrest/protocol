@@ -13,7 +13,7 @@ COPY go.mod go.sum ./
 # Download all dependencies
 RUN go mod download
 
-# Copy everythings
+# Copy everything
 COPY . .
 
 # Build the Go app
@@ -28,9 +28,18 @@ WORKDIR /root/
 # Copy the Pre-built binary file from the previous stage. Also copy config yml file
 COPY --from=builder /app/main .
 COPY --from=builder /app/.env.example .env
+COPY --from=builder /app/ent/migrate ./ent/migrate
+
+# Install atlas
+RUN apk --no-cache add curl && curl -sSf https://atlasgo.sh | sh
+
+# Apply atlas migrations
+RUN atlas migrate apply \
+    --dir "file://ent/migrate/migrations" \
+    --url "postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=${SSL_MODE}&search_path=public"
 
 # Expose port 8080 to the outside world
 EXPOSE 8000
 
-#Command to run the executable
+# Command to run the executable
 CMD ["./main"]
