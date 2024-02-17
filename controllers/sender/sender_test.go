@@ -35,8 +35,8 @@ type MockIndexerService struct {
 }
 
 // IndexERC20Transfer mocks the IndexERC20Transfer method
-func (m *MockIndexerService) IndexERC20Transfer(ctx context.Context, client types.RPCClient, receiveAddress *ent.ReceiveAddress) {
-	m.Called(ctx, client, receiveAddress)
+func (m *MockIndexerService) IndexERC20Transfer(ctx context.Context, client types.RPCClient, receiveAddress *ent.ReceiveAddress) error {
+	return nil
 }
 
 // IndexOrderCreated mocks the IndexOrderCreated method

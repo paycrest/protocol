@@ -94,6 +94,7 @@ func setup() error {
 		SetAmountReturned(decimal.NewFromInt(0)).
 		SetSenderFee(decimal.NewFromInt(0)).
 		SetNetworkFee(decimal.NewFromInt(0)).
+		SetPercentSettled(decimal.NewFromInt(0)).
 		SetRate(decimal.NewFromInt(750)).
 		SetToken(token).
 		SetLabel("test payment order").
@@ -108,7 +109,7 @@ func setup() error {
 	testCtx.paymentOrder = paymentOrder
 
 	indexer := NewIndexerService()
-	testCtx.indexer = indexer
+	testCtx.indexer = indexer.(*IndexerService)
 
 	return nil
 }
