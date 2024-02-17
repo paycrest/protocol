@@ -2,7 +2,7 @@ name: Atlas
 on:
   push:
     branches:
-      - staging
+      - main
     paths:
       - .github/workflows/ci-atlas.yaml
       - 'ent/migrate/migrations/*'
@@ -41,13 +41,13 @@ jobs:
       - uses: ariga/atlas-action/migrate/lint@v1
         with:
           dir: 'file://ent/migrate/migrations'
-          dir-name: 'protocol-staging'
+          dir-name: 'protocol-production'
           dev-url: 'postgres://postgres:pass@localhost:5432/dev?search_path=public&sslmode=disable'
         env:
           GITHUB_TOKEN: ${{ github.token }}
       - uses: ariga/atlas-action/migrate/push@v1
-        if: github.ref == 'refs/heads/staging'
+        if: github.ref == 'refs/heads/main'
         with:
             dir: 'file://ent/migrate/migrations'
-            dir-name: 'protocol-staging'
+            dir-name: 'protocol-production'
             dev-url: 'postgres://postgres:pass@localhost:5432/dev?search_path=public&sslmode=disable'
