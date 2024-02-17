@@ -166,6 +166,7 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 		SetAmount(payload.Amount).
 		SetAmountPaid(decimal.NewFromInt(0)).
 		SetAmountReturned(decimal.NewFromInt(0)).
+		SetPercentSettled(decimal.NewFromInt(0)).
 		SetNetworkFee(svc.OrderConf.NetworkFee).
 		SetSenderFee(senderFee).
 		SetToken(token).

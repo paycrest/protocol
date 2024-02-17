@@ -33,7 +33,7 @@ var OrderConf = config.OrderConfig()
 
 // Indexer is an interface for indexing blockchain data to the database.
 type Indexer interface {
-	IndexERC20Transfer(ctx context.Context, client types.RPCClient, receiveAddress *ent.ReceiveAddress)
+	IndexERC20Transfer(ctx context.Context, client types.RPCClient, receiveAddress *ent.ReceiveAddress) error
 	IndexOrderCreated(ctx context.Context, client types.RPCClient, network *ent.Network) error
 	IndexOrderSettled(ctx context.Context, client types.RPCClient, network *ent.Network) error
 	IndexOrderRefunded(ctx context.Context, client types.RPCClient, network *ent.Network) error
@@ -47,7 +47,7 @@ type IndexerService struct {
 }
 
 // NewIndexerService creates a new instance of IndexerService.
-func NewIndexerService() *IndexerService {
+func NewIndexerService() Indexer {
 	priorityQueue := NewPriorityQueueService()
 	order := NewOrderService()
 
@@ -58,7 +58,7 @@ func NewIndexerService() *IndexerService {
 }
 
 // IndexERC20Transfer indexes deposits to the order contract for a specific network.
-func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RPCClient, receiveAddress *ent.ReceiveAddress) {
+func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RPCClient, receiveAddress *ent.ReceiveAddress) error {
 	var err error
 
 	// Fetch payment order from db
@@ -75,7 +75,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 		Only(ctx)
 	if err != nil {
 		logger.Errorf("IndexERC20Transfer.db: %v", err)
-		return
+		return nil
 	}
 
 	token := paymentOrder.Edges.Token
@@ -85,7 +85,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 		client, err = types.NewEthClient(token.Edges.Network.RPCEndpoint)
 		if err != nil {
 			logger.Errorf("IndexERC20Transfer.NewEthClient: %v", err)
-			return
+			return nil
 		}
 	}
 
@@ -93,7 +93,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 	filterer, err := contracts.NewERC20TokenFilterer(common.HexToAddress(token.ContractAddress), client)
 	if err != nil {
 		logger.Errorf("IndexERC20Transfer.NewERC20TokenFilterer: %v", err)
-		return
+		return nil
 	}
 
 	// Index missed blocks
@@ -129,7 +129,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 	}, logs, nil, nil)
 	if err != nil {
 		logger.Errorf("IndexERC20Transfer.WatchTransfer: %v", err)
-		return
+		return nil
 	}
 
 	defer sub.Unsubscribe()
@@ -146,7 +146,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 			}
 			if ok {
 				close(logs)
-				return
+				return nil
 			}
 		case err := <-sub.Err():
 			logger.Errorf("IndexERC20Transfer.logError: %v", err)
