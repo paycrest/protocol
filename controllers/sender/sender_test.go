@@ -454,7 +454,7 @@ func TestSender(t *testing.T) {
 	t.Run("GetStats", func(t *testing.T) {
 		t.Run("when no orders have been initiated", func(t *testing.T) {
 			// Create a new user with no orders
-			user, err := test.CreateTestUser(map[string]string{
+			user, err := test.CreateTestUser(map[string]interface{}{
 				"email": "no_order_user@test.com",
 			})
 			if err != nil {
