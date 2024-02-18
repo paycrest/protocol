@@ -10,7 +10,7 @@ jobs:
           - staging
         paths:
           - .github/workflows/deploy-migrations.yaml
-          # - 'ent/migrate/migrations/*'
+          - 'ent/migrate/migrations/*'
 
     steps:
       - name: Checkout repository
@@ -30,7 +30,7 @@ jobs:
           - main
         paths:
           - .github/workflows/deploy-migrations.yaml
-          # - 'ent/migrate/migrations/*'
+          - 'ent/migrate/migrations/*'
 
     steps:
       - name: Checkout repository
