@@ -1,0 +1,21 @@
+name: Deploy Database Migrations (Staging)
+
+on:
+  push:
+    branches:
+      - staging
+
+jobs:
+
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3.0.1
+
+      - uses: ariga/setup-atlas@v0
+      - name: Deploy atlas migrations
+        uses: ariga/atlas-action/migrate/apply@v1
+        with:
+          url: ${{ secrets.STAGING_DATABASE_URL }}
+          dir: atlas://protocol-staging
