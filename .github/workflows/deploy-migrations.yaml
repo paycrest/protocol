@@ -1,0 +1,45 @@
+name: Deploy Database Migrations
+
+jobs:
+  runs-on: ubuntu-latest
+
+  staging:
+    on:
+      push:
+        branches:
+          - staging
+        paths:
+          - .github/workflows/cd-atlas.yaml
+          - 'ent/migrate/migrations/*'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3.0.1
+
+      - uses: ariga/setup-atlas@v0
+      - name: Deploy atlas migrations
+        uses: ariga/atlas-action/migrate/apply@v1
+        with:
+          url: ${{ secrets.STAGING_DATABASE_URL }}
+          dir: atlas://protocol-staging
+
+  production:
+    on:
+      push:
+        branches:
+          - main
+        paths:
+          - .github/workflows/cd-atlas.yaml
+          - 'ent/migrate/migrations/*'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3.0.1
+
+      - uses: ariga/setup-atlas@v0
+      - name: Deploy atlas migrations
+        uses: ariga/atlas-action/migrate/apply@v1
+        with:
+          url: ${{ secrets.PRODUCTION_DATABASE_URL }}
+          dir: atlas://protocol-production
+
