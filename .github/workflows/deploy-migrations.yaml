@@ -8,10 +8,6 @@ jobs:
       push:
         branches:
           - staging
-        paths:
-          - .github/workflows/deploy-migrations.yaml
-          - 'ent/migrate/migrations/*'
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3.0.1
@@ -28,10 +24,6 @@ jobs:
       push:
         branches:
           - main
-        paths:
-          - .github/workflows/deploy-migrations.yaml
-          - 'ent/migrate/migrations/*'
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3.0.1
@@ -42,4 +34,3 @@ jobs:
         with:
           url: ${{ secrets.PRODUCTION_DATABASE_URL }}
           dir: atlas://protocol-production
-
