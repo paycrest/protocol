@@ -22,3 +22,7 @@ jobs:
         with:
           url: ${{ secrets.STAGING_DATABASE_URL }}
           dir: atlas://protocol-staging
+          env: staging
+        env:
+          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+          ATLAS_TOKEN: ${{ secrets.STAGING_ATLAS_TOKEN }}
