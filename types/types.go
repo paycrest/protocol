@@ -163,14 +163,14 @@ type ProviderProfilePayload struct {
 	IsPartner            bool                        `json:"isPartner"`
 	IsAvailable          bool                        `json:"isAvailable"`
 	Tokens               []ProviderOrderTokenPayload `json:"tokens"`
-	VisibilityMode       string                      `json:"visibility_mode"`
+	VisibilityMode       string                      `json:"visibilityMode"`
 	Address              string                      `json:"address"`
-	MobileNumber         string                      `json:"mobile"`
-	DateOfBirth          time.Time                   `json:"date_of_birth"`
-	BusinessName         string                      `json:"business_name"`
-	IdentityDocumentType string                      `json:"identity_type"`
-	IdentityDocument     string                      `json:"identity_document"`
-	BusinessDocument     string                      `json:"business_document"`
+	MobileNumber         string                      `json:"mobileNumber"`
+	DateOfBirth          time.Time                   `json:"dateOfBirth"`
+	BusinessName         string                      `json:"businessName"`
+	IdentityDocumentType string                      `json:"identityType"`
+	IdentityDocument     string                      `json:"identityDocument"`
+	BusinessDocument     string                      `json:"businessDocument"`
 }
 
 // ProviderProfileResponse is the response for the provider profile endpoint
@@ -191,9 +191,9 @@ type ProviderProfileResponse struct {
 	MobileNumber         string                    `json:"mobileNumber"`
 	DateOfBirth          time.Time                 `json:"dateOfBirth"`
 	BusinessName         string                    `json:"businessName"`
-	IdentityDocumentType string                    `json:"identity_type"`
-	IdentityDocument     string                    `json:"identity_document"`
-	BusinessDocument     string                    `json:"business_document"`
+	IdentityDocumentType string                    `json:"identityType"`
+	IdentityDocument     string                    `json:"identityDocument"`
+	BusinessDocument     string                    `json:"businessDocument"`
 }
 
 // ValidatorProfileResponse is the response for the validator profile endpoint
