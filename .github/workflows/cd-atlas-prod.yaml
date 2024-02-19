@@ -22,3 +22,7 @@ jobs:
         with:
           url: ${{ secrets.PRODUCTION_DATABASE_URL }}
           dir: atlas://protocol-production
+          env: production
+        env:
+          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+          ATLAS_TOKEN: ${{ secrets.PRODUCTION_ATLAS_TOKEN }}
