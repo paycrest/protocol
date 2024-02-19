@@ -1,4 +1,4 @@
-name: Atlas
+name: Atlas CI (Staging)
 on:
   push:
     branches:
