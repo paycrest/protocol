@@ -15,14 +15,18 @@ type OrderConfiguration struct {
 	ReceiveAddressValidity           time.Duration
 	OrderRequestValidity             time.Duration
 	PaycrestOrderContractAddress     common.Address
-	BundlerRPCURL                    string
-	PaymasterURL                     string
 	EntryPointContractAddress        common.Address
 	BucketQueueRebuildInterval       int // in hours
 	RefundCancellationCount          int
 	NetworkFee                       decimal.Decimal
 	PercentDeviationFromExternalRate decimal.Decimal
 	PercentDeviationFromMarketRate   decimal.Decimal
+	BundlerUrlPolygon                string
+	PaymasterUrlPolygon              string
+	BundlerUrlBase                   string
+	PaymasterUrlBase                 string
+	BundlerUrlBsc                    string
+	PaymasterUrlBsc                  string
 }
 
 // OrderConfig sets the order configuration
@@ -41,8 +45,12 @@ func OrderConfig() *OrderConfiguration {
 		ReceiveAddressValidity:           time.Duration(viper.GetInt("RECEIVE_ADDRESS_VALIDITY")) * time.Minute,
 		OrderRequestValidity:             time.Duration(viper.GetInt("ORDER_REQUEST_VALIDITY")) * time.Second,
 		PaycrestOrderContractAddress:     common.HexToAddress(viper.GetString("PAYCREST_ORDER_CONTRACT_ADDRESS")),
-		BundlerRPCURL:                    viper.GetString("BUNDLER_RPC_URL"),
-		PaymasterURL:                     viper.GetString("PAYMASTER_URL"),
+		BundlerUrlPolygon:                viper.GetString("BUNDLER_URL_POLYGON"),
+		PaymasterUrlPolygon:              viper.GetString("PAYMASTER_URL_POLYGON"),
+		BundlerUrlBase:                   viper.GetString("BUNDLER_URL_BASE"),
+		PaymasterUrlBase:                 viper.GetString("PAYMASTER_URL_BASE"),
+		BundlerUrlBsc:                    viper.GetString("BUNDLER_URL_BSC"),
+		PaymasterUrlBsc:                  viper.GetString("PAYMASTER_URL_BSC"),
 		EntryPointContractAddress:        common.HexToAddress(viper.GetString("ENTRY_POINT_CONTRACT_ADDRESS")),
 		BucketQueueRebuildInterval:       viper.GetInt("BUCKET_QUEUE_REBUILD_INTERVAL"),
 		RefundCancellationCount:          viper.GetInt("REFUND_CANCELLATION_COUNT"),

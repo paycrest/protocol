@@ -86,10 +86,15 @@ func InitializeUserOperation(ctx context.Context, client types.RPCClient, rpcUrl
 	return userOperation, nil
 }
 
-// SponsorUserOperation sponsors the user operation
+// SponsorUserOperation sponsors the user operation from stackup
 // ref: https://docs.stackup.sh/docs/paymaster-api-rpc-methods#pm_sponsoruseroperation
-func SponsorUserOperation(userOp *userop.UserOperation, mode string, token string) error {
-	client, err := rpc.Dial(OrderConf.PaymasterURL)
+func SponsorUserOperation(userOp *userop.UserOperation, mode string, token string, chainId int64) error {
+	_, paymasterUrl, err := getEndpoints(chainId)
+	if err != nil {
+		return fmt.Errorf("failed to get endpoints: %w", err)
+	}
+
+	client, err := rpc.Dial(paymasterUrl)
 	if err != nil {
 		return fmt.Errorf("failed to connect to RPC client: %w", err)
 	}
@@ -168,8 +173,13 @@ func SignUserOperation(userOperation *userop.UserOperation, chainId int64) error
 }
 
 // SendUserOperation sends the user operation
-func SendUserOperation(userOp *userop.UserOperation) (string, error) {
-	client, err := rpc.Dial(OrderConf.BundlerRPCURL)
+func SendUserOperation(userOp *userop.UserOperation, chainId int64) (string, error) {
+	bundlerUrl, _, err := getEndpoints(chainId)
+	if err != nil {
+		return "", fmt.Errorf("failed to get endpoints: %w", err)
+	}
+
+	client, err := rpc.Dial(bundlerUrl)
 	if err != nil {
 		return "", fmt.Errorf("failed to connect to RPC client: %w", err)
 	}
@@ -197,9 +207,46 @@ func SendUserOperation(userOp *userop.UserOperation) (string, error) {
 	return userOpHash, nil
 }
 
+// GetPaymasterAccount fetches the paymaster account from stackup
+// ref: https://docs.stackup.sh/docs/paymaster-api-rpc-methods#pm_accounts
+func GetPaymasterAccount(chainId int64) (string, error) {
+	_, paymasterUrl, err := getEndpoints(chainId)
+	if err != nil {
+		return "", fmt.Errorf("failed to get endpoints: %w", err)
+	}
+
+	client, err := rpc.Dial(paymasterUrl)
+	if err != nil {
+		return "", fmt.Errorf("failed to connect to RPC client: %w", err)
+	}
+
+	requestParams := []interface{}{
+		OrderConf.EntryPointContractAddress.Hex(),
+	}
+
+	var result json.RawMessage
+	err = client.Call(&result, "pm_accounts", requestParams...)
+	if err != nil {
+		return "", fmt.Errorf("RPC error: %w", err)
+	}
+
+	var response []string
+	err = json.Unmarshal(result, &response)
+	if err != nil {
+		return "", fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+
+	return response[0], nil
+}
+
 // GetUserOperationStatus returns the status of the user operation
-func GetUserOperationStatus(userOpHash string) (bool, error) {
-	client, err := rpc.Dial(OrderConf.BundlerRPCURL)
+func GetUserOperationStatus(userOpHash string, chainId int64) (bool, error) {
+	bundlerUrl, _, err := getEndpoints(chainId)
+	if err != nil {
+		return false, fmt.Errorf("failed to get endpoints: %w", err)
+	}
+
+	client, err := rpc.Dial(bundlerUrl)
 	if err != nil {
 		return false, fmt.Errorf("failed to connect to RPC client: %w", err)
 	}
@@ -257,4 +304,24 @@ func eip1559GasPrice(ctx context.Context, client types.RPCClient) (maxFeePerGas,
 	}
 
 	return maxFeePerGas, maxPriorityFeePerGas
+}
+
+// getEndpoints returns the bundler and paymaster URLs for the given chain ID
+func getEndpoints(chainId int64) (bundlerUrl, paymasterUrl string, err error) {
+	switch chainId {
+	case 137:
+	case 80001:
+		bundlerUrl = OrderConf.BundlerUrlPolygon
+		paymasterUrl = OrderConf.PaymasterUrlPolygon
+	case 56:
+		bundlerUrl = OrderConf.BundlerUrlBsc
+		paymasterUrl = OrderConf.PaymasterUrlBsc
+	case 8453:
+		bundlerUrl = OrderConf.BundlerUrlBase
+		paymasterUrl = OrderConf.PaymasterUrlBase
+	default:
+		return "", "", fmt.Errorf("unsupported chain ID")
+	}
+
+	return bundlerUrl, paymasterUrl, nil
 }

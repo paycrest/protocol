@@ -3,7 +3,6 @@ package services
 import (
 	"context"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"strings"
@@ -12,7 +11,6 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/google/uuid"
 	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/ent"
@@ -103,7 +101,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, orderID uuid.UUID) error
 
 	// Sponsor user operation.
 	// This will populate the following fields in userOperation: PaymasterAndData, PreVerificationGas, VerificationGasLimit, CallGasLimit
-	err = utils.SponsorUserOperation(userOperation, "erc20token", order.Edges.Token.ContractAddress)
+	err = utils.SponsorUserOperation(userOperation, "erc20token", order.Edges.Token.ContractAddress, order.Edges.Token.Edges.Network.ChainID)
 	if err != nil {
 		return fmt.Errorf("failed to sponsor user operation: %w", err)
 	}
@@ -112,7 +110,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, orderID uuid.UUID) error
 	_ = utils.SignUserOperation(userOperation, order.Edges.Token.Edges.Network.ChainID)
 
 	// Send user operation
-	userOpHash, err := utils.SendUserOperation(userOperation)
+	userOpHash, err := utils.SendUserOperation(userOperation, order.Edges.Token.Edges.Network.ChainID)
 	if err != nil {
 		return fmt.Errorf("failed to send user operation: %w", err)
 	}
@@ -176,9 +174,9 @@ func (s *OrderService) RefundOrder(ctx context.Context, orderID string) error {
 	// Sponsor user operation.
 	// This will populate the following fields in userOperation: PaymasterAndData, PreVerificationGas, VerificationGasLimit, CallGasLimit
 	if ServerConf.Environment != "production" {
-		err = utils.SponsorUserOperation(userOperation, "erc20token", lockOrder.Edges.Token.ContractAddress)
+		err = utils.SponsorUserOperation(userOperation, "erc20token", lockOrder.Edges.Token.ContractAddress, lockOrder.Edges.Token.Edges.Network.ChainID)
 	} else {
-		err = utils.SponsorUserOperation(userOperation, "payg", "")
+		err = utils.SponsorUserOperation(userOperation, "payg", "", lockOrder.Edges.Token.Edges.Network.ChainID)
 	}
 	if err != nil {
 		return fmt.Errorf("RefundOrder.sponsorUserOperation: %w", err)
@@ -188,7 +186,7 @@ func (s *OrderService) RefundOrder(ctx context.Context, orderID string) error {
 	_ = utils.SignUserOperation(userOperation, lockOrder.Edges.Token.Edges.Network.ChainID)
 
 	// Send user operation
-	userOpTxHash, err := utils.SendUserOperation(userOperation)
+	userOpTxHash, err := utils.SendUserOperation(userOperation, lockOrder.Edges.Token.Edges.Network.ChainID)
 	if err != nil {
 		return fmt.Errorf("RefundOrder.sendUserOperation: %w", err)
 	}
@@ -273,7 +271,7 @@ func (s *OrderService) RevertOrder(ctx context.Context, order *ent.PaymentOrder)
 
 	// Sponsor user operation.
 	// This will populate the following fields in userOperation: PaymasterAndData, PreVerificationGas, VerificationGasLimit, CallGasLimit
-	err = utils.SponsorUserOperation(userOperation, "erc20token", order.Edges.Token.ContractAddress)
+	err = utils.SponsorUserOperation(userOperation, "erc20token", order.Edges.Token.ContractAddress, order.Edges.Token.Edges.Network.ChainID)
 	if err != nil {
 		return fmt.Errorf("RevertOrder.sponsorUserOperation: %w", err)
 	}
@@ -282,7 +280,7 @@ func (s *OrderService) RevertOrder(ctx context.Context, order *ent.PaymentOrder)
 	_ = utils.SignUserOperation(userOperation, order.Edges.Token.Edges.Network.ChainID)
 
 	// Send user operation
-	userOpHash, err := utils.SendUserOperation(userOperation)
+	userOpHash, err := utils.SendUserOperation(userOperation, order.Edges.Token.Edges.Network.ChainID)
 	if err != nil {
 		return fmt.Errorf("RevertOrder.sendUserOperation: %w", err)
 	}
@@ -340,9 +338,9 @@ func (s *OrderService) SettleOrder(ctx context.Context, orderID uuid.UUID) error
 	// Sponsor user operation.
 	// This will populate the following fields in userOperation: PaymasterAndData, PreVerificationGas, VerificationGasLimit, CallGasLimit
 	if ServerConf.Environment != "production" {
-		err = utils.SponsorUserOperation(userOperation, "erc20token", order.Edges.Token.ContractAddress)
+		err = utils.SponsorUserOperation(userOperation, "erc20token", order.Edges.Token.ContractAddress, order.Edges.Token.Edges.Network.ChainID)
 	} else {
-		err = utils.SponsorUserOperation(userOperation, "payg", "")
+		err = utils.SponsorUserOperation(userOperation, "payg", "", order.Edges.Token.Edges.Network.ChainID)
 	}
 	if err != nil {
 		return fmt.Errorf("SettleOrder.sponsorUserOperation: %w", err)
@@ -352,7 +350,7 @@ func (s *OrderService) SettleOrder(ctx context.Context, orderID uuid.UUID) error
 	_ = utils.SignUserOperation(userOperation, order.Edges.Token.Edges.Network.ChainID)
 
 	// Send user operation
-	userOpTxHash, err := utils.SendUserOperation(userOperation)
+	userOpTxHash, err := utils.SendUserOperation(userOperation, order.Edges.Token.Edges.Network.ChainID)
 	if err != nil {
 		return fmt.Errorf("SettleOrder.sendUserOperation: %w", err)
 	}
@@ -410,7 +408,7 @@ func (s *OrderService) GetSupportedInstitutions(ctx context.Context, client type
 // executeBatchTransferCallData creates the transfer calldata for the execute batch method in the smart account.
 func (s *OrderService) executeBatchTransferCallData(order *ent.PaymentOrder, to common.Address, amount *big.Int) ([]byte, error) {
 	// Fetch paymaster account
-	paymasterAccount, err := s.getPaymasterAccount()
+	paymasterAccount, err := utils.GetPaymasterAccount(order.Edges.Token.Edges.Network.ChainID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get paymaster account: %w", err)
 	}
@@ -463,7 +461,7 @@ func (s *OrderService) executeBatchCreateOrderCallData(order *ent.PaymentOrder) 
 	}
 
 	// Fetch paymaster account
-	paymasterAccount, err := s.getPaymasterAccount()
+	paymasterAccount, err := utils.GetPaymasterAccount(order.Edges.Token.Edges.Network.ChainID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get paymaster account: %w", err)
 	}
@@ -649,7 +647,7 @@ func (s *OrderService) executeBatchRefundCallData(order *ent.LockPaymentOrder) (
 	data := [][]byte{approvePaycrestData, refundData}
 
 	if ServerConf.Environment != "production" {
-		paymasterAccount, err := s.getPaymasterAccount()
+		paymasterAccount, err := utils.GetPaymasterAccount(order.Edges.Token.Edges.Network.ChainID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get paymaster account: %w", err)
 		}
@@ -732,7 +730,7 @@ func (s *OrderService) executeBatchSettleCallData(ctx context.Context, order *en
 
 	if ServerConf.Environment != "production" {
 		// Fetch paymaster account
-		paymasterAccount, err := s.getPaymasterAccount()
+		paymasterAccount, err := utils.GetPaymasterAccount(order.Edges.Token.Edges.Network.ChainID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get paymaster account: %w", err)
 		}
@@ -862,30 +860,4 @@ func (s *OrderService) encryptOrderRecipient(recipient *ent.PaymentOrderRecipien
 	}
 
 	return fmt.Sprintf("0x%x", messageCipher), nil
-}
-
-// getPaymasterAccount fetches the paymaster account from stackup
-func (s *OrderService) getPaymasterAccount() (string, error) {
-	client, err := rpc.Dial(OrderConf.PaymasterURL)
-	if err != nil {
-		return "", fmt.Errorf("failed to connect to RPC client: %w", err)
-	}
-
-	requestParams := []interface{}{
-		OrderConf.EntryPointContractAddress.Hex(),
-	}
-
-	var result json.RawMessage
-	err = client.Call(&result, "pm_accounts", requestParams...)
-	if err != nil {
-		return "", fmt.Errorf("RPC error: %w", err)
-	}
-
-	var response []string
-	err = json.Unmarshal(result, &response)
-	if err != nil {
-		return "", fmt.Errorf("failed to unmarshal response: %w", err)
-	}
-
-	return response[0], nil
 }
