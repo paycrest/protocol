@@ -145,11 +145,11 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 
 	update := provider.Update()
 
-	if payload.TradingName != "" || (payload.TradingName == "" && provider.TradingName != "") {
+	if payload.TradingName != "" {
 		update.SetTradingName(payload.TradingName)
 	}
 
-	if payload.HostIdentifier != "" || (payload.HostIdentifier == "" && provider.HostIdentifier != "") {
+	if payload.HostIdentifier != "" {
 		update.SetHostIdentifier(payload.HostIdentifier)
 	}
 
