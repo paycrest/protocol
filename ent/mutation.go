@@ -8057,6 +8057,7 @@ type ProviderProfileMutation struct {
 	identity_document_type   *providerprofile.IdentityDocumentType
 	identity_document        *string
 	business_document        *string
+	is_kyb_verified          *bool
 	clearedFields            map[string]struct{}
 	user                     *uuid.UUID
 	cleareduser              bool
@@ -8215,9 +8216,22 @@ func (m *ProviderProfileMutation) OldTradingName(ctx context.Context) (v string,
 	return oldValue.TradingName, nil
 }
 
+// ClearTradingName clears the value of the "trading_name" field.
+func (m *ProviderProfileMutation) ClearTradingName() {
+	m.trading_name = nil
+	m.clearedFields[providerprofile.FieldTradingName] = struct{}{}
+}
+
+// TradingNameCleared returns if the "trading_name" field was cleared in this mutation.
+func (m *ProviderProfileMutation) TradingNameCleared() bool {
+	_, ok := m.clearedFields[providerprofile.FieldTradingName]
+	return ok
+}
+
 // ResetTradingName resets all changes to the "trading_name" field.
 func (m *ProviderProfileMutation) ResetTradingName() {
 	m.trading_name = nil
+	delete(m.clearedFields, providerprofile.FieldTradingName)
 }
 
 // SetHostIdentifier sets the "host_identifier" field.
@@ -8828,6 +8842,42 @@ func (m *ProviderProfileMutation) ResetBusinessDocument() {
 	delete(m.clearedFields, providerprofile.FieldBusinessDocument)
 }
 
+// SetIsKybVerified sets the "is_kyb_verified" field.
+func (m *ProviderProfileMutation) SetIsKybVerified(b bool) {
+	m.is_kyb_verified = &b
+}
+
+// IsKybVerified returns the value of the "is_kyb_verified" field in the mutation.
+func (m *ProviderProfileMutation) IsKybVerified() (r bool, exists bool) {
+	v := m.is_kyb_verified
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIsKybVerified returns the old "is_kyb_verified" field's value of the ProviderProfile entity.
+// If the ProviderProfile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderProfileMutation) OldIsKybVerified(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIsKybVerified is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIsKybVerified requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIsKybVerified: %w", err)
+	}
+	return oldValue.IsKybVerified, nil
+}
+
+// ResetIsKybVerified resets all changes to the "is_kyb_verified" field.
+func (m *ProviderProfileMutation) ResetIsKybVerified() {
+	m.is_kyb_verified = nil
+}
+
 // SetUserID sets the "user" edge to the User entity by id.
 func (m *ProviderProfileMutation) SetUserID(id uuid.UUID) {
 	m.user = &id
@@ -9180,7 +9230,7 @@ func (m *ProviderProfileMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ProviderProfileMutation) Fields() []string {
-	fields := make([]string, 0, 15)
+	fields := make([]string, 0, 16)
 	if m.trading_name != nil {
 		fields = append(fields, providerprofile.FieldTradingName)
 	}
@@ -9226,6 +9276,9 @@ func (m *ProviderProfileMutation) Fields() []string {
 	if m.business_document != nil {
 		fields = append(fields, providerprofile.FieldBusinessDocument)
 	}
+	if m.is_kyb_verified != nil {
+		fields = append(fields, providerprofile.FieldIsKybVerified)
+	}
 	return fields
 }
 
@@ -9264,6 +9317,8 @@ func (m *ProviderProfileMutation) Field(name string) (ent.Value, bool) {
 		return m.IdentityDocument()
 	case providerprofile.FieldBusinessDocument:
 		return m.BusinessDocument()
+	case providerprofile.FieldIsKybVerified:
+		return m.IsKybVerified()
 	}
 	return nil, false
 }
@@ -9303,6 +9358,8 @@ func (m *ProviderProfileMutation) OldField(ctx context.Context, name string) (en
 		return m.OldIdentityDocument(ctx)
 	case providerprofile.FieldBusinessDocument:
 		return m.OldBusinessDocument(ctx)
+	case providerprofile.FieldIsKybVerified:
+		return m.OldIsKybVerified(ctx)
 	}
 	return nil, fmt.Errorf("unknown ProviderProfile field %s", name)
 }
@@ -9417,6 +9474,13 @@ func (m *ProviderProfileMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetBusinessDocument(v)
 		return nil
+	case providerprofile.FieldIsKybVerified:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIsKybVerified(v)
+		return nil
 	}
 	return fmt.Errorf("unknown ProviderProfile field %s", name)
 }
@@ -9447,6 +9511,9 @@ func (m *ProviderProfileMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *ProviderProfileMutation) ClearedFields() []string {
 	var fields []string
+	if m.FieldCleared(providerprofile.FieldTradingName) {
+		fields = append(fields, providerprofile.FieldTradingName)
+	}
 	if m.FieldCleared(providerprofile.FieldHostIdentifier) {
 		fields = append(fields, providerprofile.FieldHostIdentifier)
 	}
@@ -9485,6 +9552,9 @@ func (m *ProviderProfileMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *ProviderProfileMutation) ClearField(name string) error {
 	switch name {
+	case providerprofile.FieldTradingName:
+		m.ClearTradingName()
+		return nil
 	case providerprofile.FieldHostIdentifier:
 		m.ClearHostIdentifier()
 		return nil
@@ -9561,6 +9631,9 @@ func (m *ProviderProfileMutation) ResetField(name string) error {
 		return nil
 	case providerprofile.FieldBusinessDocument:
 		m.ResetBusinessDocument()
+		return nil
+	case providerprofile.FieldIsKybVerified:
+		m.ResetIsKybVerified()
 		return nil
 	}
 	return fmt.Errorf("unknown ProviderProfile field %s", name)

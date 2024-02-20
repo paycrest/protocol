@@ -125,6 +125,11 @@ func BusinessDocument(v string) predicate.ProviderProfile {
 	return predicate.ProviderProfile(sql.FieldEQ(FieldBusinessDocument, v))
 }
 
+// IsKybVerified applies equality check predicate on the "is_kyb_verified" field. It's identical to IsKybVerifiedEQ.
+func IsKybVerified(v bool) predicate.ProviderProfile {
+	return predicate.ProviderProfile(sql.FieldEQ(FieldIsKybVerified, v))
+}
+
 // TradingNameEQ applies the EQ predicate on the "trading_name" field.
 func TradingNameEQ(v string) predicate.ProviderProfile {
 	return predicate.ProviderProfile(sql.FieldEQ(FieldTradingName, v))
@@ -178,6 +183,16 @@ func TradingNameHasPrefix(v string) predicate.ProviderProfile {
 // TradingNameHasSuffix applies the HasSuffix predicate on the "trading_name" field.
 func TradingNameHasSuffix(v string) predicate.ProviderProfile {
 	return predicate.ProviderProfile(sql.FieldHasSuffix(FieldTradingName, v))
+}
+
+// TradingNameIsNil applies the IsNil predicate on the "trading_name" field.
+func TradingNameIsNil() predicate.ProviderProfile {
+	return predicate.ProviderProfile(sql.FieldIsNull(FieldTradingName))
+}
+
+// TradingNameNotNil applies the NotNil predicate on the "trading_name" field.
+func TradingNameNotNil() predicate.ProviderProfile {
+	return predicate.ProviderProfile(sql.FieldNotNull(FieldTradingName))
 }
 
 // TradingNameEqualFold applies the EqualFold predicate on the "trading_name" field.
@@ -828,6 +843,16 @@ func BusinessDocumentEqualFold(v string) predicate.ProviderProfile {
 // BusinessDocumentContainsFold applies the ContainsFold predicate on the "business_document" field.
 func BusinessDocumentContainsFold(v string) predicate.ProviderProfile {
 	return predicate.ProviderProfile(sql.FieldContainsFold(FieldBusinessDocument, v))
+}
+
+// IsKybVerifiedEQ applies the EQ predicate on the "is_kyb_verified" field.
+func IsKybVerifiedEQ(v bool) predicate.ProviderProfile {
+	return predicate.ProviderProfile(sql.FieldEQ(FieldIsKybVerified, v))
+}
+
+// IsKybVerifiedNEQ applies the NEQ predicate on the "is_kyb_verified" field.
+func IsKybVerifiedNEQ(v bool) predicate.ProviderProfile {
+	return predicate.ProviderProfile(sql.FieldNEQ(FieldIsKybVerified, v))
 }
 
 // HasUser applies the HasEdge predicate on the "user" edge.

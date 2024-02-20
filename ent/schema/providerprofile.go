@@ -22,7 +22,7 @@ func (ProviderProfile) Fields() []ent.Field {
 		field.String("id").
 			DefaultFunc(generateProviderID).
 			Unique(),
-		field.String("trading_name").MaxLen(80),
+		field.String("trading_name").MaxLen(80).Optional(),
 		field.String("host_identifier").
 			Optional(),
 		field.Enum("provision_mode").
@@ -50,6 +50,7 @@ func (ProviderProfile) Fields() []ent.Field {
 			Optional(),
 		field.String("identity_document").Optional(),
 		field.String("business_document").Optional(),
+		field.Bool("is_kyb_verified").Default(false),
 	}
 }
 

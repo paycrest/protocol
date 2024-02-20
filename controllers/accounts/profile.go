@@ -349,10 +349,8 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 	}
 
 	// Activate profile
-	if payload.HostIdentifier != "" && payload.TradingName != "" {
+	if payload.BusinessDocument != "" && payload.IdentityDocument != "" {
 		update.SetIsActive(true)
-	} else {
-		update.SetIsActive(false)
 	}
 
 	_, err := update.Save(ctx)
@@ -459,5 +457,6 @@ func (ctrl *ProfileController) GetProviderProfile(ctx *gin.Context) {
 		IdentityDocumentType: string(provider.IdentityDocumentType),
 		IdentityDocument:     provider.IdentityDocument,
 		BusinessDocument:     provider.BusinessDocument,
+		IsKybVerified:        provider.IsKybVerified,
 	})
 }

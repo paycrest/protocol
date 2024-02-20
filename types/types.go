@@ -194,6 +194,7 @@ type ProviderProfileResponse struct {
 	IdentityDocumentType string                    `json:"identityType"`
 	IdentityDocument     string                    `json:"identityDocument"`
 	BusinessDocument     string                    `json:"businessDocument"`
+	IsKybVerified        bool                      `json:"isKybVerified"`
 }
 
 // ValidatorProfileResponse is the response for the validator profile endpoint

@@ -34,6 +34,14 @@ func (ppc *ProviderProfileCreate) SetTradingName(s string) *ProviderProfileCreat
 	return ppc
 }
 
+// SetNillableTradingName sets the "trading_name" field if the given value is not nil.
+func (ppc *ProviderProfileCreate) SetNillableTradingName(s *string) *ProviderProfileCreate {
+	if s != nil {
+		ppc.SetTradingName(*s)
+	}
+	return ppc
+}
+
 // SetHostIdentifier sets the "host_identifier" field.
 func (ppc *ProviderProfileCreate) SetHostIdentifier(s string) *ProviderProfileCreate {
 	ppc.mutation.SetHostIdentifier(s)
@@ -230,6 +238,20 @@ func (ppc *ProviderProfileCreate) SetNillableBusinessDocument(s *string) *Provid
 	return ppc
 }
 
+// SetIsKybVerified sets the "is_kyb_verified" field.
+func (ppc *ProviderProfileCreate) SetIsKybVerified(b bool) *ProviderProfileCreate {
+	ppc.mutation.SetIsKybVerified(b)
+	return ppc
+}
+
+// SetNillableIsKybVerified sets the "is_kyb_verified" field if the given value is not nil.
+func (ppc *ProviderProfileCreate) SetNillableIsKybVerified(b *bool) *ProviderProfileCreate {
+	if b != nil {
+		ppc.SetIsKybVerified(*b)
+	}
+	return ppc
+}
+
 // SetID sets the "id" field.
 func (ppc *ProviderProfileCreate) SetID(s string) *ProviderProfileCreate {
 	ppc.mutation.SetID(s)
@@ -408,6 +430,10 @@ func (ppc *ProviderProfileCreate) defaults() {
 		v := providerprofile.DefaultVisibilityMode
 		ppc.mutation.SetVisibilityMode(v)
 	}
+	if _, ok := ppc.mutation.IsKybVerified(); !ok {
+		v := providerprofile.DefaultIsKybVerified
+		ppc.mutation.SetIsKybVerified(v)
+	}
 	if _, ok := ppc.mutation.ID(); !ok {
 		v := providerprofile.DefaultID()
 		ppc.mutation.SetID(v)
@@ -416,9 +442,6 @@ func (ppc *ProviderProfileCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (ppc *ProviderProfileCreate) check() error {
-	if _, ok := ppc.mutation.TradingName(); !ok {
-		return &ValidationError{Name: "trading_name", err: errors.New(`ent: missing required field "ProviderProfile.trading_name"`)}
-	}
 	if v, ok := ppc.mutation.TradingName(); ok {
 		if err := providerprofile.TradingNameValidator(v); err != nil {
 			return &ValidationError{Name: "trading_name", err: fmt.Errorf(`ent: validator failed for field "ProviderProfile.trading_name": %w`, err)}
@@ -456,6 +479,9 @@ func (ppc *ProviderProfileCreate) check() error {
 		if err := providerprofile.IdentityDocumentTypeValidator(v); err != nil {
 			return &ValidationError{Name: "identity_document_type", err: fmt.Errorf(`ent: validator failed for field "ProviderProfile.identity_document_type": %w`, err)}
 		}
+	}
+	if _, ok := ppc.mutation.IsKybVerified(); !ok {
+		return &ValidationError{Name: "is_kyb_verified", err: errors.New(`ent: missing required field "ProviderProfile.is_kyb_verified"`)}
 	}
 	if _, ok := ppc.mutation.UserID(); !ok {
 		return &ValidationError{Name: "user", err: errors.New(`ent: missing required edge "ProviderProfile.user"`)}
@@ -557,6 +583,10 @@ func (ppc *ProviderProfileCreate) createSpec() (*ProviderProfile, *sqlgraph.Crea
 	if value, ok := ppc.mutation.BusinessDocument(); ok {
 		_spec.SetField(providerprofile.FieldBusinessDocument, field.TypeString, value)
 		_node.BusinessDocument = value
+	}
+	if value, ok := ppc.mutation.IsKybVerified(); ok {
+		_spec.SetField(providerprofile.FieldIsKybVerified, field.TypeBool, value)
+		_node.IsKybVerified = value
 	}
 	if nodes := ppc.mutation.UserIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

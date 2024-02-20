@@ -45,6 +45,8 @@ const (
 	FieldIdentityDocument = "identity_document"
 	// FieldBusinessDocument holds the string denoting the business_document field in the database.
 	FieldBusinessDocument = "business_document"
+	// FieldIsKybVerified holds the string denoting the is_kyb_verified field in the database.
+	FieldIsKybVerified = "is_kyb_verified"
 	// EdgeUser holds the string denoting the user edge name in mutations.
 	EdgeUser = "user"
 	// EdgeAPIKey holds the string denoting the api_key edge name in mutations.
@@ -128,6 +130,7 @@ var Columns = []string{
 	FieldIdentityDocumentType,
 	FieldIdentityDocument,
 	FieldBusinessDocument,
+	FieldIsKybVerified,
 }
 
 // ForeignKeys holds the SQL foreign-keys that are owned by the "provider_profiles"
@@ -171,6 +174,8 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
+	// DefaultIsKybVerified holds the default value on creation for the "is_kyb_verified" field.
+	DefaultIsKybVerified bool
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
@@ -332,6 +337,11 @@ func ByIdentityDocument(opts ...sql.OrderTermOption) OrderOption {
 // ByBusinessDocument orders the results by the business_document field.
 func ByBusinessDocument(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldBusinessDocument, opts...).ToFunc()
+}
+
+// ByIsKybVerified orders the results by the is_kyb_verified field.
+func ByIsKybVerified(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIsKybVerified, opts...).ToFunc()
 }
 
 // ByUserField orders the results by user field.
