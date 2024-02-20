@@ -214,7 +214,7 @@ func CreateTestProviderProfile(overrides map[string]interface{}) (*ent.ProviderP
 		"user_id":         uuid.New(),
 		"trading_name":    "Elon Musk Trading Co.",
 		"currency_id":     uuid.New(),
-		"host_identifier": "https://example.com/hook",
+		"host_identifier": "https://example.com",
 		"provision_mode":  "auto",
 		"is_partner":      false,
 		"visibility_mode": "public",

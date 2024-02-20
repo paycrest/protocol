@@ -109,4 +109,5 @@ func providerRoutes(route *gin.Engine) {
 	v1.POST("orders/:id/cancel", providerCtrl.CancelOrder)
 	v1.GET("rates/:token/:fiat_symbol", providerCtrl.GetMarketRate)
 	v1.GET("stats", providerCtrl.Stats)
+	v1.GET("node-info", providerCtrl.NodeInfo)
 }
