@@ -1,6 +1,6 @@
 module github.com/paycrest/protocol
 
-go 1.21.6
+go 1.22.0
 
 require (
 	github.com/chadsr/logrus-sentry v0.4.1
