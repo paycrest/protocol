@@ -256,6 +256,8 @@ func TestProfile(t *testing.T) {
 				TradingName:    "My Trading Name",
 				Currency:       "KES",
 				HostIdentifier: "example.com",
+				BusinessDocument: "https://example.com/business_doc.png",
+				IdentityDocument: "https://example.com/national_id.png",
 				IsAvailable:    true,
 			}
 
@@ -281,6 +283,8 @@ func TestProfile(t *testing.T) {
 			assert.Contains(t, providerProfile.TradingName, payload.TradingName)
 			assert.Contains(t, providerProfile.HostIdentifier, payload.HostIdentifier)
 			assert.Contains(t, providerProfile.Edges.Currency.Code, payload.Currency)
+			assert.Contains(t, providerProfile.BusinessDocument, payload.BusinessDocument)
+			assert.Contains(t, providerProfile.IdentityDocument, payload.IdentityDocument)
 			assert.True(t, providerProfile.IsActive)
 		})
 

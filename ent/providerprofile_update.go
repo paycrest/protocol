@@ -41,6 +41,20 @@ func (ppu *ProviderProfileUpdate) SetTradingName(s string) *ProviderProfileUpdat
 	return ppu
 }
 
+// SetNillableTradingName sets the "trading_name" field if the given value is not nil.
+func (ppu *ProviderProfileUpdate) SetNillableTradingName(s *string) *ProviderProfileUpdate {
+	if s != nil {
+		ppu.SetTradingName(*s)
+	}
+	return ppu
+}
+
+// ClearTradingName clears the value of the "trading_name" field.
+func (ppu *ProviderProfileUpdate) ClearTradingName() *ProviderProfileUpdate {
+	ppu.mutation.ClearTradingName()
+	return ppu
+}
+
 // SetHostIdentifier sets the "host_identifier" field.
 func (ppu *ProviderProfileUpdate) SetHostIdentifier(s string) *ProviderProfileUpdate {
 	ppu.mutation.SetHostIdentifier(s)
@@ -274,6 +288,20 @@ func (ppu *ProviderProfileUpdate) SetNillableBusinessDocument(s *string) *Provid
 // ClearBusinessDocument clears the value of the "business_document" field.
 func (ppu *ProviderProfileUpdate) ClearBusinessDocument() *ProviderProfileUpdate {
 	ppu.mutation.ClearBusinessDocument()
+	return ppu
+}
+
+// SetIsKybVerified sets the "is_kyb_verified" field.
+func (ppu *ProviderProfileUpdate) SetIsKybVerified(b bool) *ProviderProfileUpdate {
+	ppu.mutation.SetIsKybVerified(b)
+	return ppu
+}
+
+// SetNillableIsKybVerified sets the "is_kyb_verified" field if the given value is not nil.
+func (ppu *ProviderProfileUpdate) SetNillableIsKybVerified(b *bool) *ProviderProfileUpdate {
+	if b != nil {
+		ppu.SetIsKybVerified(*b)
+	}
 	return ppu
 }
 
@@ -539,6 +567,9 @@ func (ppu *ProviderProfileUpdate) sqlSave(ctx context.Context) (n int, err error
 	if value, ok := ppu.mutation.TradingName(); ok {
 		_spec.SetField(providerprofile.FieldTradingName, field.TypeString, value)
 	}
+	if ppu.mutation.TradingNameCleared() {
+		_spec.ClearField(providerprofile.FieldTradingName, field.TypeString)
+	}
 	if value, ok := ppu.mutation.HostIdentifier(); ok {
 		_spec.SetField(providerprofile.FieldHostIdentifier, field.TypeString, value)
 	}
@@ -604,6 +635,9 @@ func (ppu *ProviderProfileUpdate) sqlSave(ctx context.Context) (n int, err error
 	}
 	if ppu.mutation.BusinessDocumentCleared() {
 		_spec.ClearField(providerprofile.FieldBusinessDocument, field.TypeString)
+	}
+	if value, ok := ppu.mutation.IsKybVerified(); ok {
+		_spec.SetField(providerprofile.FieldIsKybVerified, field.TypeBool, value)
 	}
 	if ppu.mutation.APIKeyCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -853,6 +887,20 @@ func (ppuo *ProviderProfileUpdateOne) SetTradingName(s string) *ProviderProfileU
 	return ppuo
 }
 
+// SetNillableTradingName sets the "trading_name" field if the given value is not nil.
+func (ppuo *ProviderProfileUpdateOne) SetNillableTradingName(s *string) *ProviderProfileUpdateOne {
+	if s != nil {
+		ppuo.SetTradingName(*s)
+	}
+	return ppuo
+}
+
+// ClearTradingName clears the value of the "trading_name" field.
+func (ppuo *ProviderProfileUpdateOne) ClearTradingName() *ProviderProfileUpdateOne {
+	ppuo.mutation.ClearTradingName()
+	return ppuo
+}
+
 // SetHostIdentifier sets the "host_identifier" field.
 func (ppuo *ProviderProfileUpdateOne) SetHostIdentifier(s string) *ProviderProfileUpdateOne {
 	ppuo.mutation.SetHostIdentifier(s)
@@ -1086,6 +1134,20 @@ func (ppuo *ProviderProfileUpdateOne) SetNillableBusinessDocument(s *string) *Pr
 // ClearBusinessDocument clears the value of the "business_document" field.
 func (ppuo *ProviderProfileUpdateOne) ClearBusinessDocument() *ProviderProfileUpdateOne {
 	ppuo.mutation.ClearBusinessDocument()
+	return ppuo
+}
+
+// SetIsKybVerified sets the "is_kyb_verified" field.
+func (ppuo *ProviderProfileUpdateOne) SetIsKybVerified(b bool) *ProviderProfileUpdateOne {
+	ppuo.mutation.SetIsKybVerified(b)
+	return ppuo
+}
+
+// SetNillableIsKybVerified sets the "is_kyb_verified" field if the given value is not nil.
+func (ppuo *ProviderProfileUpdateOne) SetNillableIsKybVerified(b *bool) *ProviderProfileUpdateOne {
+	if b != nil {
+		ppuo.SetIsKybVerified(*b)
+	}
 	return ppuo
 }
 
@@ -1381,6 +1443,9 @@ func (ppuo *ProviderProfileUpdateOne) sqlSave(ctx context.Context) (_node *Provi
 	if value, ok := ppuo.mutation.TradingName(); ok {
 		_spec.SetField(providerprofile.FieldTradingName, field.TypeString, value)
 	}
+	if ppuo.mutation.TradingNameCleared() {
+		_spec.ClearField(providerprofile.FieldTradingName, field.TypeString)
+	}
 	if value, ok := ppuo.mutation.HostIdentifier(); ok {
 		_spec.SetField(providerprofile.FieldHostIdentifier, field.TypeString, value)
 	}
@@ -1446,6 +1511,9 @@ func (ppuo *ProviderProfileUpdateOne) sqlSave(ctx context.Context) (_node *Provi
 	}
 	if ppuo.mutation.BusinessDocumentCleared() {
 		_spec.ClearField(providerprofile.FieldBusinessDocument, field.TypeString)
+	}
+	if value, ok := ppuo.mutation.IsKybVerified(); ok {
+		_spec.SetField(providerprofile.FieldIsKybVerified, field.TypeBool, value)
 	}
 	if ppuo.mutation.APIKeyCleared() {
 		edge := &sqlgraph.EdgeSpec{

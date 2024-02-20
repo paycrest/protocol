@@ -248,7 +248,7 @@ var (
 	// ProviderProfilesColumns holds the columns for the "provider_profiles" table.
 	ProviderProfilesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true},
-		{Name: "trading_name", Type: field.TypeString, Size: 80},
+		{Name: "trading_name", Type: field.TypeString, Nullable: true, Size: 80},
 		{Name: "host_identifier", Type: field.TypeString, Nullable: true},
 		{Name: "provision_mode", Type: field.TypeEnum, Enums: []string{"manual", "auto"}, Default: "auto"},
 		{Name: "is_partner", Type: field.TypeBool, Default: false},
@@ -263,6 +263,7 @@ var (
 		{Name: "identity_document_type", Type: field.TypeEnum, Nullable: true, Enums: []string{"passport", "drivers_license", "national_id"}},
 		{Name: "identity_document", Type: field.TypeString, Nullable: true},
 		{Name: "business_document", Type: field.TypeString, Nullable: true},
+		{Name: "is_kyb_verified", Type: field.TypeBool, Default: false},
 		{Name: "fiat_currency_providers", Type: field.TypeUUID},
 		{Name: "user_provider_profile", Type: field.TypeUUID, Unique: true},
 	}
@@ -274,13 +275,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "provider_profiles_fiat_currencies_providers",
-				Columns:    []*schema.Column{ProviderProfilesColumns[16]},
+				Columns:    []*schema.Column{ProviderProfilesColumns[17]},
 				RefColumns: []*schema.Column{FiatCurrenciesColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "provider_profiles_users_provider_profile",
-				Columns:    []*schema.Column{ProviderProfilesColumns[17]},
+				Columns:    []*schema.Column{ProviderProfilesColumns[18]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.Cascade,
 			},

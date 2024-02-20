@@ -52,6 +52,8 @@ type ProviderProfile struct {
 	IdentityDocument string `json:"identity_document,omitempty"`
 	// BusinessDocument holds the value of the "business_document" field.
 	BusinessDocument string `json:"business_document,omitempty"`
+	// IsKybVerified holds the value of the "is_kyb_verified" field.
+	IsKybVerified bool `json:"is_kyb_verified,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ProviderProfileQuery when eager-loading is set.
 	Edges                   ProviderProfileEdges `json:"edges"`
@@ -165,7 +167,7 @@ func (*ProviderProfile) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case providerprofile.FieldIsPartner, providerprofile.FieldIsActive, providerprofile.FieldIsAvailable:
+		case providerprofile.FieldIsPartner, providerprofile.FieldIsActive, providerprofile.FieldIsAvailable, providerprofile.FieldIsKybVerified:
 			values[i] = new(sql.NullBool)
 		case providerprofile.FieldID, providerprofile.FieldTradingName, providerprofile.FieldHostIdentifier, providerprofile.FieldProvisionMode, providerprofile.FieldVisibilityMode, providerprofile.FieldAddress, providerprofile.FieldMobileNumber, providerprofile.FieldBusinessName, providerprofile.FieldIdentityDocumentType, providerprofile.FieldIdentityDocument, providerprofile.FieldBusinessDocument:
 			values[i] = new(sql.NullString)
@@ -285,6 +287,12 @@ func (pp *ProviderProfile) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field business_document", values[i])
 			} else if value.Valid {
 				pp.BusinessDocument = value.String
+			}
+		case providerprofile.FieldIsKybVerified:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field is_kyb_verified", values[i])
+			} else if value.Valid {
+				pp.IsKybVerified = value.Bool
 			}
 		case providerprofile.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullScanner); !ok {
@@ -415,6 +423,9 @@ func (pp *ProviderProfile) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("business_document=")
 	builder.WriteString(pp.BusinessDocument)
+	builder.WriteString(", ")
+	builder.WriteString("is_kyb_verified=")
+	builder.WriteString(fmt.Sprintf("%v", pp.IsKybVerified))
 	builder.WriteByte(')')
 	return builder.String()
 }

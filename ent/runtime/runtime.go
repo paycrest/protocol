@@ -201,6 +201,10 @@ func init() {
 	providerprofile.DefaultUpdatedAt = providerprofileDescUpdatedAt.Default.(func() time.Time)
 	// providerprofile.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	providerprofile.UpdateDefaultUpdatedAt = providerprofileDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// providerprofileDescIsKybVerified is the schema descriptor for is_kyb_verified field.
+	providerprofileDescIsKybVerified := providerprofileFields[16].Descriptor()
+	// providerprofile.DefaultIsKybVerified holds the default value on creation for the is_kyb_verified field.
+	providerprofile.DefaultIsKybVerified = providerprofileDescIsKybVerified.Default.(bool)
 	// providerprofileDescID is the schema descriptor for id field.
 	providerprofileDescID := providerprofileFields[0].Descriptor()
 	// providerprofile.DefaultID holds the default value on creation for the id field.

@@ -111,14 +111,13 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 	scopes := payload.Scopes
 
 	// Create a provider profile
-	clientType := ctx.GetHeader("Client-Type")
-	if u.ContainsString(scopes, "provider") && (clientType == "web" || clientType == "mobile") {
+	if u.ContainsString(scopes, "provider") {
 		// Fetch currency
 		currency, err := tx.FiatCurrency.
 			Query().
 			Where(
 				fiatcurrency.IsEnabledEQ(true),
-				fiatcurrency.CodeEQ(payload.Currency),
+				fiatcurrency.CodeEQ("NGN"),
 			).
 			Only(ctx)
 		if err != nil {
@@ -131,7 +130,6 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 
 		provider, err := tx.ProviderProfile.
 			Create().
-			SetTradingName(payload.TradingName).
 			SetCurrency(currency).
 			SetUser(user).
 			SetProvisionMode(providerprofile.ProvisionModeAuto).
