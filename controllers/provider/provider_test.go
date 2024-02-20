@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jarcoal/httpmock"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/routers/middleware"
@@ -100,8 +101,9 @@ func TestProvider(t *testing.T) {
 
 	// Create a new instance of the SenderController with the mock service
 	ctrl := NewProviderController()
-	router.GET("/orders/", ctrl.GetLockPaymentOrders)
+	router.GET("/orders", ctrl.GetLockPaymentOrders)
 	router.GET("/stats", ctrl.Stats)
+	router.GET("/node-info", ctrl.NodeInfo)
 
 	t.Run("GetLockPaymentOrders", func(t *testing.T) {
 		t.Run("fetch default list", func(t *testing.T) {
@@ -117,7 +119,7 @@ func TestProvider(t *testing.T) {
 				"Client-Type":   "backend",
 			}
 
-			res, err := test.PerformRequest(t, "GET", "/orders/", payload, headers, router)
+			res, err := test.PerformRequest(t, "GET", "/orders", payload, headers, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -155,7 +157,7 @@ func TestProvider(t *testing.T) {
 			//query params
 			status := "pending"
 
-			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/orders/?status=%s", status), payload, headers, router)
+			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/orders?status=%s", status), payload, headers, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -194,7 +196,7 @@ func TestProvider(t *testing.T) {
 			page := 1
 			pageSize := 5
 
-			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/orders/?page=%s&pageSize=%s", strconv.Itoa(page), strconv.Itoa(pageSize)), payload, headers, router)
+			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/orders?page=%s&pageSize=%s", strconv.Itoa(page), strconv.Itoa(pageSize)), payload, headers, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -233,7 +235,7 @@ func TestProvider(t *testing.T) {
 			//query params
 			ordering := "desc"
 
-			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/orders/?ordering=%s", ordering), payload, headers, router)
+			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/orders?ordering=%s", ordering), payload, headers, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -390,6 +392,71 @@ func TestProvider(t *testing.T) {
 			totalCryptoVolume, err := decimal.NewFromString(totalCryptoVolumeStr)
 			assert.NoError(t, err, "Failed to convert totalCryptoVolume to decimal")
 			assert.Greater(t, totalCryptoVolume.Cmp(decimal.NewFromInt(0)), 0)
+		})
+	})
+
+	t.Run("NodeInfo", func(t *testing.T) {
+
+		t.Run("when node is healthy", func(t *testing.T) {
+			// Activate httpmock
+			httpmock.Activate()
+			defer httpmock.Deactivate()
+
+			// Register mock response
+			httpmock.RegisterResponder("GET", "https://example.com/health",
+				func(r *http.Request) (*http.Response, error) {
+					return httpmock.NewJsonResponse(200, map[string]interface{}{
+						"currency": "NGN",
+					})
+				},
+			)
+
+			// Test default params
+			var payload = map[string]interface{}{
+				"timestamp": time.Now().Unix(),
+			}
+
+			signature := token.GenerateHMACSignature(payload, testCtx.apiKeySecret)
+
+			headers := map[string]string{
+				"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
+			}
+
+			res, err := test.PerformRequest(t, "GET", "/node-info", payload, headers, router)
+			assert.NoError(t, err)
+
+			// Assert the response body
+			assert.Equal(t, http.StatusOK, res.Code)
+
+			var response types.Response
+			err = json.Unmarshal(res.Body.Bytes(), &response)
+			assert.NoError(t, err)
+			assert.Equal(t, "Node info fetched successfully", response.Message)
+		})
+
+		t.Run("when node is unhealthy", func(t *testing.T) {
+			// Test default params
+			var payload = map[string]interface{}{
+				"timestamp": time.Now().Unix(),
+			}
+
+			signature := token.GenerateHMACSignature(payload, testCtx.apiKeySecret)
+
+			headers := map[string]string{
+				"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
+			}
+
+			res, err := test.PerformRequest(t, "GET", "/node-info", payload, headers, router)
+			assert.NoError(t, err)
+
+			// Assert the response body
+			assert.Equal(t, http.StatusServiceUnavailable, res.Code)
+
+			var response types.Response
+			err = json.Unmarshal(res.Body.Bytes(), &response)
+			assert.NoError(t, err)
+			fmt.Println(response.Message)
+			assert.Equal(t, "Failed to fetch node info", response.Message)
 		})
 	})
 }
