@@ -105,6 +105,7 @@ func MakeJSONRequest(ctx context.Context, method, url string, payload map[string
 	if err != nil {
 		return nil, err
 	}
+
 	defer res.Body.Close()
 
 	if res.StatusCode >= 500 { // Return on server errors

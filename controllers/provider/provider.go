@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"strings"
@@ -14,8 +15,11 @@ import (
 	"github.com/paycrest/protocol/services"
 	"github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
+	"github.com/paycrest/protocol/utils"
 	u "github.com/paycrest/protocol/utils"
+	cryptoUtils "github.com/paycrest/protocol/utils/crypto"
 	"github.com/paycrest/protocol/utils/logger"
+	tokenUtils "github.com/paycrest/protocol/utils/token"
 	"github.com/shopspring/decimal"
 
 	"github.com/gin-gonic/gin"
@@ -540,4 +544,58 @@ func (ctrl *ProviderController) Stats(ctx *gin.Context) {
 		TotalFiatVolume:   totalFiatVolume,
 		TotalCryptoVolume: v[0].Sum,
 	})
+}
+
+// NodeInfo controller fetches the provision node info
+func (ctrl *ProviderController) NodeInfo(ctx *gin.Context) {
+	// Get provider profile from the context
+	providerCtx, ok := ctx.Get("provider")
+	if !ok {
+		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid API key or token", nil)
+		return
+	}
+
+	provider, err := storage.Client.ProviderProfile.
+		Query().
+		Where(providerprofile.IDEQ(providerCtx.(*ent.ProviderProfile).ID)).
+		WithAPIKey().
+		WithCurrency().
+		Only(ctx)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch node info", nil)
+		return
+	}
+
+	// Compute HMAC
+	decodedSecret, err := base64.StdEncoding.DecodeString(provider.Edges.APIKey.Secret)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch node info", nil)
+		return
+	}
+	decryptedSecret, err := cryptoUtils.DecryptPlain(decodedSecret)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch node info", nil)
+		return
+	}
+	signature := tokenUtils.GenerateHMACSignature(map[string]interface{}{}, string(decryptedSecret))
+
+	resp, err := utils.MakeJSONRequest(
+		ctx,
+		"GET",
+		fmt.Sprintf("%s/health", provider.HostIdentifier),
+		nil,
+		map[string]string{
+			"X-Paycrest-Signature": signature,
+		},
+	)
+	if err != nil || (resp != nil && resp["currency"].(string) != provider.Edges.Currency.Code) {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusServiceUnavailable, "error", "Failed to fetch node info", nil)
+		return
+	}
+
+	u.APIResponse(ctx, http.StatusOK, "success", "Node info fetched successfully", resp)
 }
