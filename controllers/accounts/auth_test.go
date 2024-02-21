@@ -437,6 +437,7 @@ func TestAuth(t *testing.T) {
 			// Test user email confirmation-token
 			payload := types.ConfirmEmailPayload{
 				Token: verificationtoken.Token,
+				Email: user.Email,
 			}
 
 			res, err := test.PerformRequest(t, "POST", "/confirm-account", payload, nil, router)

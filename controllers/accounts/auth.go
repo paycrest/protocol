@@ -305,7 +305,10 @@ func (ctrl *AuthController) ConfirmEmail(ctx *gin.Context) {
 	// Fetch verification token
 	verificationToken, vtErr := db.Client.VerificationToken.
 		Query().
-		Where(verificationtoken.TokenEQ(payload.Token)).
+		Where(
+			verificationtoken.TokenEQ(payload.Token),
+			verificationtoken.HasOwnerWith(userEnt.EmailEQ(payload.Email)),
+		).
 		WithOwner().
 		Only(ctx)
 	if vtErr != nil {
