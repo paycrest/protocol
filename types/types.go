@@ -341,6 +341,7 @@ type PaymentOrderWebhookPayload struct {
 // ConfirmEmailPayload is the payload for the confirmEmail endpoint
 type ConfirmEmailPayload struct {
 	Token string `json:"token" binding:"required"`
+	Email string `json:"email" binding:"required,email"`
 }
 
 // SendEmailPayload is content of a email request.
