@@ -164,7 +164,7 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 		feeAddress = payload.FeeAddress
 	}
 
-	senderFee := feePerTokenUnit.Mul(payload.Amount).Div(payload.Rate).Floor().Round(int32(token.Decimals))
+	senderFee := feePerTokenUnit.Mul(payload.Amount).Div(payload.Rate).Round(int32(token.Decimals))
 	protocolFee := payload.Amount.Mul(decimal.NewFromFloat(0.001)) // TODO: get protocol fee from contract -- currently 0.1%
 
 	// Create payment order

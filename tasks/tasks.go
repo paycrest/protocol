@@ -362,11 +362,9 @@ func ComputeMarketRate() error {
 		median := utils.Median(rates)
 
 		// Check the median rate against the external rate to ensure it's not too far off
-		if externalRate.Cmp(decimal.Zero) != 0 {
-			if median.LessThan(externalRate.Mul(decimal.NewFromFloat(1).Sub(orderConf.PercentDeviationFromExternalRate))) ||
-				median.GreaterThan(externalRate.Mul(decimal.NewFromFloat(1).Add(orderConf.PercentDeviationFromExternalRate))) {
-				median = externalRate
-			}
+		percentDeviation := utils.AbsPercentageDeviation(externalRate, median)
+		if percentDeviation.GreaterThan(orderConf.PercentDeviationFromExternalRate) {
+			median = externalRate
 		}
 
 		// Update currency with median rate

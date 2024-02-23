@@ -175,6 +175,16 @@ func Median(data []decimal.Decimal) decimal.Decimal {
 	return result
 }
 
+// AbsPercentageDeviation returns the absolute percentage deviation between two values
+func AbsPercentageDeviation(trueValue, measuredValue decimal.Decimal) decimal.Decimal {
+	if trueValue.IsZero() {
+		return decimal.Zero
+	}
+
+	deviation := measuredValue.Sub(trueValue).Div(trueValue).Mul(decimal.NewFromInt(100))
+	return deviation.Abs()
+}
+
 // SendPaymentOrderWebhook notifies a sender when the status of a payment order changes
 func SendPaymentOrderWebhook(ctx context.Context, paymentOrder *ent.PaymentOrder) error {
 	var err error
