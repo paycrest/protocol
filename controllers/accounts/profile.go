@@ -1,9 +1,7 @@
 package accounts
 
 import (
-	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/ent"
@@ -15,6 +13,7 @@ import (
 	"github.com/paycrest/protocol/ent/token"
 	svc "github.com/paycrest/protocol/services"
 	"github.com/paycrest/protocol/storage"
+	db "github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
 	u "github.com/paycrest/protocol/utils"
 	"github.com/paycrest/protocol/utils/logger"
@@ -262,21 +261,27 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 		}
 
 		// Ensure rate is within allowed deviation from the market rate
-		partnerProviderData, _ := storage.RedisClient.LIndex(ctx, fmt.Sprintf("bucket_%s_default", payload.Currency), 0).Result()
-		marketRate, _ := decimal.NewFromString(strings.Split(partnerProviderData, ":")[1])
+		currency, err := db.Client.FiatCurrency.
+			Query().
+			Where(
+				fiatcurrency.IsEnabledEQ(true),
+				fiatcurrency.CodeEQ(payload.Currency),
+			).
+			Only(ctx)
+		if err != nil {
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch currency", nil)
+			return
+		}
 
 		var rate decimal.Decimal
 
-		if tokenPayload.ConversionRateType == providerordertoken.ConversionRateTypeFixed {
-			rate = tokenPayload.FixedConversionRate
-		} else {
+		if tokenPayload.ConversionRateType == providerordertoken.ConversionRateTypeFloating {
 			floatingRate := tokenPayload.FloatingConversionRate // in percentage
-			rate = marketRate.Mul(floatingRate.Div(decimal.NewFromInt(100)))
-		}
+			deviation := currency.MarketRate.Mul(floatingRate.Div(decimal.NewFromInt(100)))
+			rate = currency.MarketRate.Add(deviation)
 
-		if marketRate.Cmp(decimal.Zero) != 0 {
-			if rate.LessThan(marketRate.Mul(decimal.NewFromFloat(1).Sub(orderConf.PercentDeviationFromMarketRate))) ||
-				rate.GreaterThan(marketRate.Mul(decimal.NewFromFloat(1).Add(orderConf.PercentDeviationFromMarketRate))) {
+			percentDeviation := u.AbsPercentageDeviation(currency.MarketRate, rate)
+			if percentDeviation.GreaterThan(orderConf.PercentDeviationFromMarketRate) {
 				u.APIResponse(ctx, http.StatusBadRequest, "error", "Rate is too far from market rate", nil)
 				return
 			}

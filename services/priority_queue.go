@@ -109,7 +109,7 @@ func (s *PriorityQueueService) GetProviderRate(ctx context.Context, provider *en
 
 		// Calculate the floating rate based on the market rate
 		deviation := marketRate.Mul(floatingRate.Div(decimal.NewFromInt(100)))
-		rate = rate.Add(deviation)
+		rate = rate.Add(deviation).RoundBank(2)
 	}
 
 	return rate, nil
@@ -138,15 +138,11 @@ func (s *PriorityQueueService) CreatePriorityQueueForBucket(ctx context.Context,
 		rate, _ := s.GetProviderRate(ctx, provider)
 
 		// Check provider's rate against the market rate to ensure it's not too far off
-		marketRate := bucket.Edges.Currency.MarketRate
-
-		if marketRate.Cmp(decimal.Zero) != 0 {
-			if rate.LessThan(marketRate.Mul(decimal.NewFromFloat(1).Sub(OrderConf.PercentDeviationFromMarketRate))) ||
-				rate.GreaterThan(marketRate.Mul(decimal.NewFromFloat(1).Add(OrderConf.PercentDeviationFromMarketRate))) {
-				// Skip this provider if the rate is too far off
-				// TODO: add a logic to notify the provider(s) to update his rate since it's stale. could be a cron job
-				continue
-			}
+		percentDeviation := utils.AbsPercentageDeviation(bucket.Edges.Currency.MarketRate, rate)
+		if percentDeviation.GreaterThan(OrderConf.PercentDeviationFromMarketRate) {
+			// Skip this provider if the rate is too far off
+			// TODO: add a logic to notify the provider(s) to update his rate since it's stale. could be a cron job
+			continue
 		}
 
 		// Serialize the provider ID and rate into a single string
@@ -278,10 +274,8 @@ func (s *PriorityQueueService) sendOrderRequest(ctx context.Context, order types
 	// Assign the order to the provider and save it to Redis
 	orderKey := fmt.Sprintf("order_request_%s", order.ID)
 
-	approxAmount := order.Amount.Mul(order.Rate).Floor().Round(2)
-
 	orderRequestData := map[string]interface{}{
-		"amount":      approxAmount.String(),
+		"amount":      order.Amount.Mul(order.Rate).RoundBank(2).String(),
 		"institution": order.Institution,
 		"providerId":  order.ProviderID,
 	}
