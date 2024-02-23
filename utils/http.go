@@ -108,11 +108,8 @@ func MakeJSONRequest(ctx context.Context, method, url string, payload map[string
 
 	defer res.Body.Close()
 
-	if res.StatusCode >= 500 { // Return on server errors
-		return nil, fmt.Errorf(fmt.Sprintf("server error: %d", res.StatusCode))
-	}
-	if res.StatusCode >= 400 { // Return on client errors
-		return nil, fmt.Errorf(fmt.Sprintf("client error: %d", res.StatusCode))
+	if res.StatusCode >= 400 {
+		return nil, fmt.Errorf(fmt.Sprint(res.StatusCode))
 	}
 
 	// Decode the response body into a map
