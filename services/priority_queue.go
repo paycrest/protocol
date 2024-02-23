@@ -278,8 +278,7 @@ func (s *PriorityQueueService) sendOrderRequest(ctx context.Context, order types
 	// Assign the order to the provider and save it to Redis
 	orderKey := fmt.Sprintf("order_request_%s", order.ID)
 
-	approxAmount := order.Amount.Mul(order.Rate).Floor()
-	approxAmount = approxAmount.Round(2)
+	approxAmount := order.Amount.Mul(order.Rate).Floor().Round(2)
 
 	orderRequestData := map[string]interface{}{
 		"amount":      approxAmount.String(),

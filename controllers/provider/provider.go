@@ -144,7 +144,7 @@ func (ctrl *ProviderController) AcceptOrder(ctx *gin.Context) {
 	result, err := storage.RedisClient.HGetAll(ctx, fmt.Sprintf("order_request_%s", orderID)).Result()
 	if err != nil {
 		logger.Errorf("error getting order request from Redis: %v", err)
-		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Internal server error", nil)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to accept order request", nil)
 		return
 	}
 
@@ -210,7 +210,7 @@ func (ctrl *ProviderController) DeclineOrder(ctx *gin.Context) {
 	result, err := storage.RedisClient.HGetAll(ctx, fmt.Sprintf("order_request_%s", orderID)).Result()
 	if err != nil {
 		logger.Errorf("error getting order request from Redis: %v", err)
-		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Internal server error", nil)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to decline order request", nil)
 		return
 	}
 
@@ -224,7 +224,7 @@ func (ctrl *ProviderController) DeclineOrder(ctx *gin.Context) {
 	_, err = storage.RedisClient.Del(ctx, fmt.Sprintf("order_request_%s", orderID)).Result()
 	if err != nil {
 		logger.Errorf("error deleting order request from Redis: %v", err)
-		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to accept order request", nil)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to decline order request", nil)
 		return
 	}
 
