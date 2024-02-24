@@ -258,6 +258,25 @@ type LockPaymentOrderFields struct {
 	CreatedAt         time.Time
 }
 
+// LockPaymentOrderResponse is the response for a lock payment order
+type LockPaymentOrderResponse struct {
+	ID                uuid.UUID       `json:"id"`
+	Token             *ent.Token      `json:"token"`
+	OrderID           string          `json:"orderId"`
+	Amount            decimal.Decimal `json:"amount"`
+	Rate              decimal.Decimal `json:"rate"`
+	Label             string          `json:"label"`
+	BlockNumber       int64           `json:"blockNumber"`
+	TxHash            string          `json:"txHash"`
+	Institution       string          `json:"institution"`
+	AccountIdentifier string          `json:"accountIdentifier"`
+	AccountName       string          `json:"accountName"`
+	ProviderID        string          `json:"providerId"`
+	Memo              string          `json:"memo"`
+	UpdatedAt         time.Time       `json:"updatedAt"`
+	CreatedAt         time.Time       `json:"createdAt"`
+}
+
 // PaymentOrderRecipient describes a payment order recipient
 type PaymentOrderRecipient struct {
 	Institution       string `json:"institution" binding:"required"`
@@ -413,10 +432,10 @@ type ResetPasswordTokenPayload struct {
 
 // ProviderLockOrderList is the struct for a list of provider lock orders
 type ProviderLockOrderList struct {
-	TotalRecords int                      `json:"total"`
-	Page         int                      `json:"page"`
-	PageSize     int                      `json:"pageSize"`
-	Orders       []LockPaymentOrderFields `json:"orders"`
+	TotalRecords int                        `json:"total"`
+	Page         int                        `json:"page"`
+	PageSize     int                        `json:"pageSize"`
+	Orders       []LockPaymentOrderResponse `json:"orders"`
 }
 
 // SenderOrderList is the struct for a list of sender payment orders
