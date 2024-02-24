@@ -88,7 +88,11 @@ func (ctrl *ProviderController) GetLockPaymentOrders(ctx *gin.Context) {
 		Offset(page).
 		Order(order).
 		WithProvider().
-		WithToken().
+		WithToken(
+			func(query *ent.TokenQuery) {
+				query.WithNetwork()
+			},
+		).
 		All(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
@@ -101,7 +105,7 @@ func (ctrl *ProviderController) GetLockPaymentOrders(ctx *gin.Context) {
 	for _, order := range lockPaymentOrders {
 		orders = append(orders, types.LockPaymentOrderResponse{
 			ID:                order.ID,
-			Token:             order.Edges.Token,
+			Token:             order.Edges.Token.Symbol,
 			OrderID:           order.OrderID,
 			Amount:            order.Amount.Mul(order.Rate),
 			Rate:              order.Rate,
@@ -110,6 +114,8 @@ func (ctrl *ProviderController) GetLockPaymentOrders(ctx *gin.Context) {
 			AccountIdentifier: order.AccountIdentifier,
 			AccountName:       order.AccountName,
 			TxHash:            order.TxHash,
+			Status:            order.Status.String(),
+			Network:           order.Edges.Token.Edges.Network.Identifier,
 			UpdatedAt:         order.UpdatedAt,
 			CreatedAt:         order.CreatedAt,
 		})
