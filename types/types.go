@@ -261,7 +261,7 @@ type LockPaymentOrderFields struct {
 // LockPaymentOrderResponse is the response for a lock payment order
 type LockPaymentOrderResponse struct {
 	ID                uuid.UUID       `json:"id"`
-	Token             *ent.Token      `json:"token"`
+	Token             string          `json:"token"`
 	OrderID           string          `json:"orderId"`
 	Amount            decimal.Decimal `json:"amount"`
 	Rate              decimal.Decimal `json:"rate"`
@@ -273,6 +273,8 @@ type LockPaymentOrderResponse struct {
 	AccountName       string          `json:"accountName"`
 	ProviderID        string          `json:"providerId"`
 	Memo              string          `json:"memo"`
+	Network           string          `json:"network"`
+	Status            string          `json:"status"`
 	UpdatedAt         time.Time       `json:"updatedAt"`
 	CreatedAt         time.Time       `json:"createdAt"`
 }
