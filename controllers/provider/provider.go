@@ -88,6 +88,7 @@ func (ctrl *ProviderController) GetLockPaymentOrders(ctx *gin.Context) {
 		Offset(page).
 		Order(order).
 		WithProvider().
+		WithToken().
 		All(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
@@ -95,10 +96,10 @@ func (ctrl *ProviderController) GetLockPaymentOrders(ctx *gin.Context) {
 		return
 	}
 
-	var orders []types.LockPaymentOrderFields
+	var orders []types.LockPaymentOrderResponse
 
 	for _, order := range lockPaymentOrders {
-		orders = append(orders, types.LockPaymentOrderFields{
+		orders = append(orders, types.LockPaymentOrderResponse{
 			ID:                order.ID,
 			Token:             order.Edges.Token,
 			OrderID:           order.OrderID,
