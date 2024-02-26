@@ -40,6 +40,7 @@ func main() {
 	_ = client.ProviderProfile.Delete().ExecX(ctx)
 	_ = client.ProviderOrderToken.Delete().ExecX(ctx)
 	_ = client.SenderProfile.Delete().ExecX(ctx)
+	_ = client.ReceiveAddress.Delete().ExecX(ctx)
 
 	// Seed Network
 	fmt.Println("seeding network...")
@@ -270,13 +271,13 @@ func seedProvider(ctx context.Context, client *ent.Client, bucket *ent.Provision
 	_, err = client.ProviderOrderToken.
 		Create().
 		SetSymbol("USDC").
-		SetConversionRateType("fixed").
-		SetFixedConversionRate(decimal.NewFromFloat(1500)).
-		SetFloatingConversionRate(decimal.NewFromFloat(0.0)).
+		SetConversionRateType("floating").
+		SetFixedConversionRate(decimal.NewFromFloat(0)).
+		SetFloatingConversionRate(decimal.NewFromFloat(1)).
 		SetMinOrderAmount(bucket.MinAmount).
 		SetMaxOrderAmount(bucket.MaxAmount).
 		SetAddresses(addresses).
-		SetProviderID(provider.ID).
+		SetProvider(provider).
 		Save(ctx)
 	if err != nil {
 		return "", "", "", fmt.Errorf("failed to configure order tokens: %s", err)
@@ -285,13 +286,13 @@ func seedProvider(ctx context.Context, client *ent.Client, bucket *ent.Provision
 	_, err = client.ProviderOrderToken.
 		Create().
 		SetSymbol("6TEST").
-		SetConversionRateType("fixed").
-		SetFixedConversionRate(decimal.NewFromFloat(1500)).
-		SetFloatingConversionRate(decimal.NewFromFloat(0.0)).
+		SetConversionRateType("floating").
+		SetFixedConversionRate(decimal.NewFromFloat(0)).
+		SetFloatingConversionRate(decimal.NewFromFloat(1)).
 		SetMinOrderAmount(bucket.MinAmount).
 		SetMaxOrderAmount(bucket.MaxAmount).
 		SetAddresses(addresses).
-		SetProviderID(provider.ID).
+		SetProvider(provider).
 		Save(ctx)
 	if err != nil {
 		return "", "", "", fmt.Errorf("failed to configure order tokens: %s", err)

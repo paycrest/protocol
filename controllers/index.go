@@ -7,6 +7,7 @@ import (
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/fiatcurrency"
 	"github.com/paycrest/protocol/ent/providerprofile"
+	"github.com/paycrest/protocol/ent/token"
 	svc "github.com/paycrest/protocol/services"
 	"github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
@@ -79,16 +80,27 @@ func (ctrl *Controller) GetInstitutionsByCurrency(ctx *gin.Context) {
 // GetTokenRate controller fetches the current rate of the cryptocurrency token against the fiat currency
 func (ctrl *Controller) GetTokenRate(ctx *gin.Context) {
 	// Parse path parameters
-	token := ctx.Param("token")
-	tokenIsValid := u.ContainsString([]string{"USDT", "USDC"}, token) // TODO: fetch supported tokens from db
-	if !tokenIsValid {
+	_, err := storage.Client.Token.
+		Query().
+		Where(token.Symbol(strings.ToUpper(ctx.Param("token")))).
+		Only(ctx)
+	if err != nil {
+		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusBadRequest, "error", "Token is not supported", nil)
+		return
 	}
 
-	fiatSymbol := ctx.Param("fiat")
-	fiatIsValid := u.ContainsString([]string{"NGN"}, fiatSymbol) // TODO: fetch supported fiat currencies from db
-	if !fiatIsValid {
+	currency, err := storage.Client.FiatCurrency.
+		Query().
+		Where(
+			fiatcurrency.IsEnabledEQ(true),
+			fiatcurrency.CodeEQ(strings.ToUpper(ctx.Param("fiat"))),
+		).
+		Only(ctx)
+	if err != nil {
+		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusBadRequest, "error", "Fiat currency is not supported", nil)
+		return
 	}
 
 	tokenAmount, err := decimal.NewFromString(ctx.Param("amount"))
@@ -125,7 +137,7 @@ func (ctrl *Controller) GetTokenRate(ctx *gin.Context) {
 
 	} else {
 		// Get redis keys for provision buckets
-		keys, _, err := storage.RedisClient.Scan(ctx, uint64(0), "bucket_"+fiatSymbol+"_%d_%d", 100).Result()
+		keys, _, err := storage.RedisClient.Scan(ctx, uint64(0), "bucket_"+currency.Code+"_*_*", 100).Result()
 		if err != nil {
 			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch rates", nil)
 			return
@@ -155,21 +167,10 @@ func (ctrl *Controller) GetTokenRate(ctx *gin.Context) {
 		}
 
 		if rateResponse.Equal(decimal.NewFromInt(0)) {
-			// No rate found in the regular buckets, return market rate from a provider in the default bucket
-			keys, _, err := storage.RedisClient.Scan(ctx, uint64(0), "bucket_"+fiatSymbol+"_default", 1).Result()
-			if err != nil {
-				u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch rates", nil)
-				return
-			}
-			// Get rate of the topmost provider in the priority queue of the default bucket
-			providerData, err := storage.RedisClient.LIndex(ctx, keys[0], 0).Result()
-			if err != nil {
-				u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch rates", nil)
-				return
-			}
-			rateResponse, _ = decimal.NewFromString(strings.Split(providerData, ":")[1])
+			u.APIResponse(ctx, http.StatusBadRequest, "error", "Couldn't find a matching rate", nil)
+			return
 		}
 	}
 
-	u.APIResponse(ctx, http.StatusOK, "success", "Rates fetched successfully", rateResponse)
+	u.APIResponse(ctx, http.StatusOK, "success", "Rate fetched successfully", rateResponse)
 }
