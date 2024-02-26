@@ -451,10 +451,12 @@ func (s *OrderService) executeBatchTransferCallData(order *ent.PaymentOrder, to 
 
 // executeBatchCreateOrderCallData creates the calldata for the execute batch method in the smart account.
 func (s *OrderService) executeBatchCreateOrderCallData(order *ent.PaymentOrder) ([]byte, error) {
+	orderAmountWithFees := order.Amount.Add(order.ProtocolFee).Add(order.SenderFee)
+
 	// Create approve data for paycrest order contract
 	approvePaycrestData, err := s.approveCallData(
 		OrderConf.PaycrestOrderContractAddress,
-		utils.ToSubunit(order.Amount, order.Edges.Token.Decimals),
+		utils.ToSubunit(orderAmountWithFees, order.Edges.Token.Decimals),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create paycrest approve calldata: %w", err)
@@ -473,7 +475,7 @@ func (s *OrderService) executeBatchCreateOrderCallData(order *ent.PaymentOrder) 
 	// Create approve data for paymaster contract
 	approvePaymasterData, err := s.approveCallData(
 		common.HexToAddress(paymasterAccount),
-		utils.ToSubunit(order.Amount, order.Edges.Token.Decimals),
+		utils.ToSubunit(orderAmountWithFees, order.Edges.Token.Decimals),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create paymaster approve calldata : %w", err)

@@ -109,7 +109,7 @@ func (s *PriorityQueueService) GetProviderRate(ctx context.Context, provider *en
 
 		// Calculate the floating rate based on the market rate
 		deviation := marketRate.Mul(floatingRate.Div(decimal.NewFromInt(100)))
-		rate = rate.Add(deviation).RoundBank(2)
+		rate = marketRate.Add(deviation).RoundBank(2)
 	}
 
 	return rate, nil
@@ -158,13 +158,13 @@ func (s *PriorityQueueService) CreatePriorityQueueForBucket(ctx context.Context,
 
 // AssignLockPaymentOrders assigns lock payment orders to providers
 func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order types.LockPaymentOrderFields) error {
-	s.ReassignUnfulfilledLockOrders(ctx)
-
 	excludeList, err := storage.RedisClient.LRange(ctx, fmt.Sprintf("order_exclude_list_%s", order.ID), 0, -1).Result()
 	if err != nil {
 		logger.Errorf("failed to get exclude list for order %d: %v", order.ID, err)
 		return err
 	}
+
+	fmt.Println("excludeList", excludeList)
 
 	// Sends order directly to the specified provider in order. Incase of failure, proceed to queue
 	if order.ProviderID != "" && !utils.ContainsString(excludeList, order.ProviderID) {
@@ -454,7 +454,9 @@ func (s *PriorityQueueService) ReassignUnfulfilledLockOrders(ctx context.Context
 		).
 		WithToken().
 		WithProvider().
-		WithProvisionBucket().
+		WithProvisionBucket(func(pbq *ent.ProvisionBucketQuery) {
+			pbq.WithCurrency()
+		}).
 		All(ctx)
 	if err != nil {
 		logger.Errorf("failed to fetch unfulfilled lock order: %v", err)
@@ -593,9 +595,12 @@ func (s *PriorityQueueService) ReassignPendingOrders() {
 				Institution:       order.Institution,
 				AccountIdentifier: order.AccountIdentifier,
 				AccountName:       order.AccountName,
-				ProviderID:        order.Edges.Provider.ID,
 				Memo:              order.Memo,
 				ProvisionBucket:   order.Edges.ProvisionBucket,
+			}
+
+			if order.Edges.Provider != nil {
+				lockPaymentOrder.ProviderID = order.Edges.Provider.ID
 			}
 
 			err := s.AssignLockPaymentOrder(ctx, lockPaymentOrder)

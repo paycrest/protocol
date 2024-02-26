@@ -722,7 +722,7 @@ func (s *IndexerService) updateReceiveAddressStatus(
 		// This is a transfer to the receive address to create an order on-chain
 		// Compare the transferred value with the expected order amount + fees
 		fees := paymentOrder.NetworkFee.Add(paymentOrder.SenderFee).Add(paymentOrder.ProtocolFee)
-		orderAmountWithFees := paymentOrder.Amount.Add(fees)
+		orderAmountWithFees := paymentOrder.Amount.Add(fees).Round(int32(paymentOrder.Edges.Token.Decimals))
 		orderAmountWithFeesInSubunit := utils.ToSubunit(orderAmountWithFees, paymentOrder.Edges.Token.Decimals)
 		comparisonResult := event.Value.Cmp(orderAmountWithFeesInSubunit)
 

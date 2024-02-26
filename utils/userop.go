@@ -51,7 +51,7 @@ func InitializeUserOperation(ctx context.Context, client types.RPCClient, rpcUrl
 	}
 
 	// Get nonce
-	nonce, err := client.PendingNonceAt(ctx, *fromAddress)
+	nonce, err := client.PendingNonceAt(ctx, common.HexToAddress(sender))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get nonce: %w", err)
 	}
@@ -125,8 +125,8 @@ func SponsorUserOperation(userOp *userop.UserOperation, mode string, token strin
 		payload,
 	}
 
-	// op, _ := userOp.MarshalJSON()
-	// fmt.Println(string(op))
+	op, _ := userOp.MarshalJSON()
+	fmt.Println(string(op))
 
 	var result json.RawMessage
 	err = client.Call(&result, "pm_sponsorUserOperation", requestParams...)
