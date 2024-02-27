@@ -249,15 +249,19 @@ func TestProvider(t *testing.T) {
 			assert.True(t, ok, "response.Data is of not type map[string]interface{}")
 			assert.NotNil(t, data, "response.Data is nil")
 
-			fmt.Printf("firstOrderTimestamp: %s\n", data["orders"].([]interface{})[0].(map[string]interface{})["CreatedAt"])
-
 			// Try to parse the first and last order time strings using a set of predefined layouts
-			firstOrderTimestamp, err := time.Parse(time.RFC3339Nano, data["orders"].([]interface{})[0].(map[string]interface{})["CreatedAt"].(string))
+			firstOrderTimestamp, err := time.Parse(
+				time.RFC3339Nano,
+				data["orders"].([]interface{})[0].(map[string]interface{})["createdAt"].(string),
+			)
 			if err != nil {
 				return
 			}
 
-			lastOrderTimestamp, err := time.Parse(time.RFC3339Nano, data["orders"].([]interface{})[len(data["orders"].([]interface{}))-1].(map[string]interface{})["CreatedAt"].(string))
+			lastOrderTimestamp, err := time.Parse(
+				time.RFC3339Nano,
+				data["orders"].([]interface{})[len(data["orders"].([]interface{}))-1].(map[string]interface{})["createdAt"].(string),
+			)
 			if err != nil {
 				return
 			}
