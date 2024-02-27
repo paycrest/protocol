@@ -460,24 +460,22 @@ func StartCronJobs() {
 	scheduler := gocron.NewScheduler(time.UTC)
 	priorityQueue := services.NewPriorityQueueService()
 
-	if serverConf.Environment == "development" {
+	if serverConf.Environment != "production" {
 		err := ComputeMarketRate()
 		if err != nil {
 			logger.Errorf("failed to compute market rate => %v", err)
 		}
-	}
 
-	// Compute market rate four times a day - starting at 6AM
-	_, err := scheduler.Cron("0 6,12,18,0 * * *").Do(ComputeMarketRate)
-	if err != nil {
-		logger.Errorf("failed to schedule compute market rate task => %v", err)
-	}
-
-	if serverConf.Environment != "production" {
-		err := priorityQueue.ProcessBucketQueues()
+		err = priorityQueue.ProcessBucketQueues()
 		if err != nil {
 			logger.Errorf("failed to process bucket queues => %v", err)
 		}
+	}
+
+	// Compute market rate every 10 minutes
+	_, err := scheduler.Cron("*/10 * * * *").Do(ComputeMarketRate)
+	if err != nil {
+		logger.Errorf("failed to schedule compute market rate task => %v", err)
 	}
 
 	// Refresh provision bucket priority queues every X minutes
