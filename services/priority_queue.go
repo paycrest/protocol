@@ -139,7 +139,8 @@ func (s *PriorityQueueService) CreatePriorityQueueForBucket(ctx context.Context,
 
 		// Check provider's rate against the market rate to ensure it's not too far off
 		percentDeviation := utils.AbsPercentageDeviation(bucket.Edges.Currency.MarketRate, rate)
-		if percentDeviation.GreaterThan(OrderConf.PercentDeviationFromMarketRate) {
+
+		if ServerConf.Environment == "production" && percentDeviation.GreaterThan(OrderConf.PercentDeviationFromMarketRate) {
 			// Skip this provider if the rate is too far off
 			// TODO: add a logic to notify the provider(s) to update his rate since it's stale. could be a cron job
 			continue

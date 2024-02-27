@@ -480,8 +480,8 @@ func StartCronJobs() {
 		}
 	}
 
-	// Refresh provision bucket priority queues every X hours
-	_, err = scheduler.Cron(fmt.Sprintf("0 */%d * * *", orderConf.BucketQueueRebuildInterval)).
+	// Refresh provision bucket priority queues every X minutes
+	_, err = scheduler.Cron(fmt.Sprintf("*/%d * * * *", orderConf.BucketQueueRebuildInterval)).
 		Do(priorityQueue.ProcessBucketQueues)
 	if err != nil {
 		logger.Errorf("failed to schedule refresh priority queues task => %v", err)
