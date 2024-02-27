@@ -164,8 +164,6 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 		return err
 	}
 
-	fmt.Println("excludeList", excludeList)
-
 	// Sends order directly to the specified provider in order. Incase of failure, proceed to queue
 	if order.ProviderID != "" && !utils.ContainsString(excludeList, order.ProviderID) {
 		err := s.sendOrderRequest(ctx, order)
