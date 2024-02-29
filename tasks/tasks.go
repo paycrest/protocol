@@ -25,6 +25,8 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+var orderConf = config.OrderConfig()
+
 // ContinueIndexing continues indexing
 func ContinueIndexing() error {
 	ctx := context.Background()
@@ -219,7 +221,6 @@ func ProcessOrderRefunds() error {
 // HandleReceiveAddressValidity handles receive address validity
 func HandleReceiveAddressValidity() error {
 	ctx := context.Background()
-	orderConf := config.OrderConfig()
 
 	// Fetch expired receive addresses that are due for validity check
 	addresses, err := storage.Client.ReceiveAddress.
@@ -322,7 +323,6 @@ func fetchExternalRate(ctx context.Context, currency string) (decimal.Decimal, e
 // ComputeMarketRate computes the market price for fiat currencies
 func ComputeMarketRate() error {
 	ctx := context.Background()
-	orderConf := config.OrderConfig()
 
 	// Fetch all fiat currencies
 	currencies, err := storage.Client.FiatCurrency.
@@ -455,7 +455,6 @@ func RetryFailedWebhookNotifications() error {
 
 // StartCronJobs starts cron jobs
 func StartCronJobs() {
-	orderConf := config.OrderConfig()
 	serverConf := config.ServerConfig()
 	scheduler := gocron.NewScheduler(time.UTC)
 	priorityQueue := services.NewPriorityQueueService()
