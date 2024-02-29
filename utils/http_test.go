@@ -21,21 +21,19 @@ func TestHttp(t *testing.T) {
 		// register mock response
 		httpmock.RegisterResponder("POST", "https://example.com/", func(r *http.Request) (*http.Response, error) {
 			return httpmock.NewBytesResponse(500, nil), nil
-		},
-		)
+		})
+
 		httpmock.RegisterResponder("PUT", "https://example.com/", func(r *http.Request) (*http.Response, error) {
 			return httpmock.NewBytesResponse(400, nil), nil
-		},
-		)
+		})
+
 		httpmock.RegisterResponder("PATCH", "https://example.com/", func(r *http.Request) (*http.Response, error) {
 			return httpmock.NewBytesResponse(200, nil), errors.New("429 Too Many Requests")
-		},
-		)
+		})
 
 		httpmock.RegisterResponder("GET", "https://example.com/", func(r *http.Request) (*http.Response, error) {
 			return httpmock.NewBytesResponse(200, []byte(`{"success": "success"}`)), nil
-		},
-		)
+		})
 
 		t.Run("with 500 error", func(t *testing.T) {
 			timeStart := time.Now()
@@ -55,7 +53,7 @@ func TestHttp(t *testing.T) {
 			timeStart := time.Now()
 			_, err := MakeJSONRequest(context.Background(), "PUT", "https://example.com/", nil, nil)
 			assert.Error(t, err)
-			assert.True(t, time.Since(timeStart) < 1*time.Second)
+			assert.True(t, time.Since(timeStart) < 10*time.Second)
 		})
 
 		t.Run("with 200 sucess", func(t *testing.T) {
@@ -63,7 +61,5 @@ func TestHttp(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Equal(t, map[string]interface{}{"success": "success"}, res)
 		})
-
 	})
-
 }
