@@ -74,7 +74,10 @@ func MakeJSONRequest(ctx context.Context, method, url string, payload map[string
 	}
 
 	// Create a new request
-	requestBody, _ := json.Marshal(payload)
+	requestBody, err := json.Marshal(payload)
+	if err != nil {
+		return nil, err
+	}
 	req, err := http.NewRequest(method, url, bytes.NewReader(requestBody))
 	if err != nil {
 		return nil, err
@@ -108,10 +111,6 @@ func MakeJSONRequest(ctx context.Context, method, url string, payload map[string
 
 	defer res.Body.Close()
 
-	if res.StatusCode >= 400 {
-		return nil, fmt.Errorf(fmt.Sprint(res.StatusCode))
-	}
-
 	// Decode the response body into a map
 	responseBody, err := io.ReadAll(res.Body)
 	if err != nil {
@@ -121,7 +120,18 @@ func MakeJSONRequest(ctx context.Context, method, url string, payload map[string
 	var body map[string]interface{}
 	err = json.Unmarshal(responseBody, &body)
 	if err != nil {
+		// If the response is not JSON, create a custom error message
+		if strings.Contains(err.Error(), "invalid character") {
+			return nil, fmt.Errorf("received non-JSON response: %s", string(responseBody))
+		}
 		return nil, err
+	}
+
+	if res.StatusCode >= 500 { // Return on server errors
+		return body, fmt.Errorf(fmt.Sprint(res.StatusCode))
+	}
+	if res.StatusCode >= 400 { // Return on client errors
+		return body, fmt.Errorf(fmt.Sprint(res.StatusCode))
 	}
 
 	return body, nil

@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rpc"
 
@@ -51,11 +52,11 @@ func InitializeUserOperation(ctx context.Context, client types.RPCClient, rpcUrl
 	}
 
 	// Get nonce
-	nonce, err := client.PendingNonceAt(ctx, userOperation.Sender)
+	nonce, err := getNonce(client, userOperation.Sender)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get nonce: %w", err)
 	}
-	userOperation.Nonce = big.NewInt(int64(nonce))
+	userOperation.Nonce = nonce
 
 	// Create initcode
 	code, err := client.CodeAt(ctx, userOperation.Sender, nil)
@@ -124,9 +125,6 @@ func SponsorUserOperation(userOp *userop.UserOperation, mode string, token strin
 		OrderConf.EntryPointContractAddress.Hex(),
 		payload,
 	}
-
-	// op, _ := userOp.MarshalJSON()
-	// fmt.Println(string(op))
 
 	var result json.RawMessage
 	err = client.Call(&result, "pm_sponsorUserOperation", requestParams...)
@@ -324,4 +322,21 @@ func getEndpoints(chainId int64) (bundlerUrl, paymasterUrl string, err error) {
 	}
 
 	return bundlerUrl, paymasterUrl, nil
+}
+
+// getNonce returns the nonce for the given sender
+// https://docs.stackup.sh/docs/useroperation-nonce
+func getNonce(client types.RPCClient, sender common.Address) (nonce *big.Int, err error) {
+	entrypoint, err := contracts.NewEntryPoint(OrderConf.EntryPointContractAddress, client.(bind.ContractBackend))
+	if err != nil {
+		return nil, err
+	}
+
+	key := big.NewInt(0)
+	nonce, err = entrypoint.GetNonce(nil, sender, key)
+	if err != nil {
+		return nil, err
+	}
+
+	return nonce, nil
 }
