@@ -109,7 +109,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 
 		// Iterate over logs
 		for iter.Next() {
-			ok, err := s.updateReceiveAddressStatus(ctx, client, receiveAddress, paymentOrder, iter.Event)
+			ok, err := s.updateReceiveAddressStatus(ctx, receiveAddress, paymentOrder, iter.Event)
 			if err != nil {
 				logger.Errorf("IndexERC20Transfer.updateReceiveAddressStatus: %v", err)
 				continue
@@ -139,7 +139,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 		for {
 			select {
 			case log := <-logs:
-				ok, err := s.updateReceiveAddressStatus(ctx, client, receiveAddress, paymentOrder, log)
+				ok, err := s.updateReceiveAddressStatus(ctx, receiveAddress, paymentOrder, log)
 				if err != nil {
 					logger.Errorf("IndexERC20Transfer.updateReceiveAddressStatus: %v", err)
 					continue
@@ -447,7 +447,7 @@ func (s *IndexerService) updateOrderStatusRefunded(ctx context.Context, log *con
 	_, err := db.Client.LockPaymentOrder.
 		Update().
 		Where(
-			lockpaymentorder.OrderIDEQ(utils.Byte32ToString(log.OrderId)),
+			lockpaymentorder.OrderIDEQ(fmt.Sprintf("0x%v", hex.EncodeToString(log.OrderId[:]))),
 		).
 		SetBlockNumber(int64(log.Raw.BlockNumber)).
 		SetTxHash(log.Raw.TxHash.Hex()).
@@ -622,9 +622,7 @@ func (s *IndexerService) createLockPaymentOrder(ctx context.Context, client type
 
 	rate := decimal.NewFromBigInt(deposit.Rate, 0)
 
-	provisionBucket, err := s.getProvisionBucket(
-		ctx, nil, amountInDecimals.Mul(rate), currency,
-	)
+	provisionBucket, err := s.getProvisionBucket(ctx, amountInDecimals.Mul(rate), currency)
 	if err != nil {
 		return fmt.Errorf("failed to fetch provision bucket: %w", err)
 	}
@@ -701,7 +699,7 @@ func (s *IndexerService) createLockPaymentOrder(ctx context.Context, client type
 
 // updateReceiveAddressStatus updates the status of a receive address. if `done` is true, the indexing process is complete for the given receive address
 func (s *IndexerService) updateReceiveAddressStatus(
-	ctx context.Context, client types.RPCClient, receiveAddress *ent.ReceiveAddress, paymentOrder *ent.PaymentOrder, event *contracts.ERC20TokenTransfer,
+	ctx context.Context, receiveAddress *ent.ReceiveAddress, paymentOrder *ent.PaymentOrder, event *contracts.ERC20TokenTransfer,
 ) (done bool, err error) {
 
 	if event.To.Hex() == receiveAddress.Address {
@@ -729,6 +727,8 @@ func (s *IndexerService) updateReceiveAddressStatus(
 		_, err = paymentOrder.
 			Update().
 			SetFromAddress(event.From.Hex()).
+			SetTxHash(event.Raw.TxHash.Hex()).
+			AddAmountPaid(utils.FromSubunit(event.Value, paymentOrder.Edges.Token.Decimals)).
 			Save(ctx)
 		if err != nil {
 			return true, fmt.Errorf("updateReceiveAddressStatus.db: %v", err)
@@ -756,11 +756,9 @@ func (s *IndexerService) updateReceiveAddressStatus(
 
 		} else if comparisonResult < 0 {
 			// Transfer value is less than order amount with fees
-			indexedValue := utils.FromSubunit(event.Value, paymentOrder.Edges.Token.Decimals)
-			amountPaid := paymentOrder.AmountPaid.Add(indexedValue)
 
 			// If amount paid meets or exceeds the order amount with fees, mark receive address as used
-			if amountPaid.GreaterThanOrEqual(orderAmountWithFees) {
+			if paymentOrder.AmountPaid.GreaterThanOrEqual(orderAmountWithFees) {
 				_, err = receiveAddress.
 					Update().
 					SetStatus(receiveaddress.StatusUsed).
@@ -777,16 +775,6 @@ func (s *IndexerService) updateReceiveAddressStatus(
 					SetStatus(receiveaddress.StatusPartial).
 					SetTxHash(event.Raw.TxHash.Hex()).
 					SetLastIndexedBlock(int64(event.Raw.BlockNumber)).
-					Save(ctx)
-				if err != nil {
-					return true, fmt.Errorf("updateReceiveAddressStatus.db: %v", err)
-				}
-
-				// Update the payment order with amount paid
-				_, err = paymentOrder.
-					Update().
-					SetAmountPaid(amountPaid).
-					SetTxHash(event.Raw.TxHash.Hex()).
 					Save(ctx)
 				if err != nil {
 					return true, fmt.Errorf("updateReceiveAddressStatus.db: %v", err)
@@ -866,7 +854,7 @@ func (s *IndexerService) updateReceiveAddressStatus(
 }
 
 // getProvisionBucket returns the provision bucket for a lock payment order
-func (s *IndexerService) getProvisionBucket(ctx context.Context, client types.RPCClient, amount decimal.Decimal, currency *ent.FiatCurrency) (*ent.ProvisionBucket, error) {
+func (s *IndexerService) getProvisionBucket(ctx context.Context, amount decimal.Decimal, currency *ent.FiatCurrency) (*ent.ProvisionBucket, error) {
 
 	provisionBucket, err := db.Client.ProvisionBucket.
 		Query().
@@ -990,7 +978,7 @@ func (s *IndexerService) splitLockPaymentOrder(ctx context.Context, lockPaymentO
 	largestBucket := buckets[0]
 
 	if amountToSplit.LessThan(largestBucket.MaxAmount) {
-		bucket, err := s.getProvisionBucket(ctx, nil, amountToSplit, currency)
+		bucket, err := s.getProvisionBucket(ctx, amountToSplit, currency)
 		if err != nil {
 			return err
 		}

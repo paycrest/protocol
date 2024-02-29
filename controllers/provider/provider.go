@@ -276,23 +276,16 @@ func (ctrl *ProviderController) FulfillOrder(ctx *gin.Context) {
 		return
 	}
 
-	tx, err := storage.Client.Tx(ctx)
-	if err != nil {
-		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update lock order status", nil)
-		return
-	}
-
-	updateLockOrder := tx.LockPaymentOrder.UpdateOneID(orderID)
+	updateLockOrder := storage.Client.LockPaymentOrder.UpdateOneID(orderID)
 
 	// Query or create lock order fulfillment
-	fulfillment, err := tx.LockOrderFulfillment.
+	fulfillment, err := storage.Client.LockOrderFulfillment.
 		Query().
 		Where(lockorderfulfillment.TxIDEQ(payload.TxID)).
 		Only(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {
-			fulfillment, err = tx.LockOrderFulfillment.
+			fulfillment, err = storage.Client.LockOrderFulfillment.
 				Create().
 				SetOrderID(orderID).
 				SetTxID(payload.TxID).
@@ -300,13 +293,11 @@ func (ctrl *ProviderController) FulfillOrder(ctx *gin.Context) {
 			if err != nil {
 				logger.Errorf("error: %v", err)
 				u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update lock order status", nil)
-				_ = tx.Rollback()
 				return
 			}
 		} else {
 			logger.Errorf("error: %v", err)
 			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update lock order status", nil)
-			_ = tx.Rollback()
 			return
 		}
 	}
@@ -318,7 +309,6 @@ func (ctrl *ProviderController) FulfillOrder(ctx *gin.Context) {
 		if err != nil {
 			logger.Errorf("error: %v", err)
 			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update lock order status", nil)
-			_ = tx.Rollback()
 			return
 		}
 
@@ -328,11 +318,11 @@ func (ctrl *ProviderController) FulfillOrder(ctx *gin.Context) {
 		if err != nil {
 			logger.Errorf("error: %v", err)
 			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update lock order status", nil)
-			_ = tx.Rollback()
 			return
 		}
 
 		// Settle order or fail silently
+		fmt.Println("orderId: ", orderID)
 		err = ctrl.orderService.SettleOrder(ctx, orderID)
 		if err != nil {
 			logger.Errorf("FulfillOrder.SettleOrder: %v", err)
@@ -346,7 +336,6 @@ func (ctrl *ProviderController) FulfillOrder(ctx *gin.Context) {
 		if err != nil {
 			logger.Errorf("error: %v", err)
 			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update lock order status", nil)
-			_ = tx.Rollback()
 			return
 		}
 
@@ -356,7 +345,6 @@ func (ctrl *ProviderController) FulfillOrder(ctx *gin.Context) {
 		if err != nil {
 			logger.Errorf("error: %v", err)
 			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update lock order status", nil)
-			_ = tx.Rollback()
 			return
 		}
 
@@ -367,15 +355,8 @@ func (ctrl *ProviderController) FulfillOrder(ctx *gin.Context) {
 		if err != nil {
 			logger.Errorf("error: %v", err)
 			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update lock order status", nil)
-			_ = tx.Rollback()
 			return
 		}
-	}
-
-	if err := tx.Commit(); err != nil {
-		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update lock order status", nil)
-		return
 	}
 
 	u.APIResponse(ctx, http.StatusOK, "success", "Order fulfilled successfully", nil)
