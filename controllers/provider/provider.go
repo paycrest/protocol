@@ -322,7 +322,6 @@ func (ctrl *ProviderController) FulfillOrder(ctx *gin.Context) {
 		}
 
 		// Settle order or fail silently
-		fmt.Println("orderId: ", orderID)
 		err = ctrl.orderService.SettleOrder(ctx, orderID)
 		if err != nil {
 			logger.Errorf("FulfillOrder.SettleOrder: %v", err)
