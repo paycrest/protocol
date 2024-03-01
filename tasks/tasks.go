@@ -123,7 +123,8 @@ func ProcessOrders() error {
 
 	go func() {
 		for _, order := range orders {
-			if order.AmountPaid.Equal(order.Amount) {
+			orderAmountWithFees := order.Amount.Add(order.NetworkFee).Add(order.SenderFee).Add(order.ProtocolFee)
+			if order.AmountPaid.Equal(orderAmountWithFees) {
 				err := orderService.CreateOrder(ctx, order.ID)
 				if err != nil {
 					logger.Errorf("process task to create orders => %v", err)
