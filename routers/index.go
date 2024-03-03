@@ -24,7 +24,7 @@ func RegisterRoutes(route *gin.Engine) {
 	senderRoutes(route)
 	providerRoutes(route)
 
-	var ctrl controllers.Controller
+	ctrl := controllers.NewController()
 
 	v1 := route.Group("/v1/")
 

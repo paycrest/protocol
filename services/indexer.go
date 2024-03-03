@@ -604,7 +604,7 @@ func (s *IndexerService) createLockPaymentOrder(ctx context.Context, client type
 
 	// Get provision bucket
 	amountInDecimals := utils.FromSubunit(deposit.Amount, token.Decimals)
-	institution, err := s.getInstitutionByCode(ctx, client, deposit.InstitutionCode)
+	institution, err := s.getInstitutionByCode(client, deposit.InstitutionCode)
 	if err != nil {
 		return fmt.Errorf("failed to fetch institution: %w", err)
 	}
@@ -877,7 +877,7 @@ func (s *IndexerService) getProvisionBucket(ctx context.Context, amount decimal.
 }
 
 // getInstitutionByCode returns the institution for a given institution code
-func (s *IndexerService) getInstitutionByCode(ctx context.Context, client types.RPCClient, institutionCode [32]byte) (*contracts.SharedStructsInstitutionByCode, error) {
+func (s *IndexerService) getInstitutionByCode(client types.RPCClient, institutionCode [32]byte) (*contracts.SharedStructsInstitutionByCode, error) {
 	instance, err := contracts.NewPaycrest(OrderConf.PaycrestOrderContractAddress, client.(bind.ContractBackend))
 	if err != nil {
 		return nil, err

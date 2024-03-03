@@ -66,7 +66,7 @@ func (ctrl *Controller) GetInstitutionsByCurrency(ctx *gin.Context) {
 	// Get currency code from the URL
 	currencyCode := ctx.Param("currency_code")
 
-	institutions, err := ctrl.orderService.GetSupportedInstitutions(ctx, nil, currencyCode)
+	institutions, err := ctrl.orderService.GetSupportedInstitutions(ctx, nil, strings.ToUpper(currencyCode))
 	if err != nil {
 		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusBadRequest, "error",
