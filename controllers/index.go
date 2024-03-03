@@ -143,6 +143,8 @@ func (ctrl *Controller) GetTokenRate(ctx *gin.Context) {
 			return
 		}
 
+		highestMaxAmount := decimal.NewFromInt(0)
+
 		// Scan through the buckets to find a matching rate
 		for _, key := range keys {
 			bucketData := strings.Split(key, "_")
@@ -163,12 +165,14 @@ func (ctrl *Controller) GetTokenRate(ctx *gin.Context) {
 			// Check if fiat amount is within the bucket range and set the rate
 			if fiatAmount.GreaterThanOrEqual(minAmount) && fiatAmount.LessThanOrEqual(maxAmount) {
 				rateResponse = rate
+				break
+			} else {
+				// Get the highest max amount
+				if maxAmount.GreaterThan(highestMaxAmount) {
+					highestMaxAmount = maxAmount
+					rateResponse = rate
+				}
 			}
-		}
-
-		if rateResponse.Equal(decimal.NewFromInt(0)) {
-			u.APIResponse(ctx, http.StatusBadRequest, "error", "Couldn't find a matching rate", nil)
-			return
 		}
 	}
 
