@@ -459,6 +459,7 @@ func (ctrl *ProfileController) GetProviderProfile(ctx *gin.Context) {
 		MobileNumber:         provider.MobileNumber,
 		DateOfBirth:          provider.DateOfBirth,
 		BusinessName:         provider.BusinessName,
+		VisibilityMode:       string(provider.VisibilityMode),
 		IdentityDocumentType: string(provider.IdentityDocumentType),
 		IdentityDocument:     provider.IdentityDocument,
 		BusinessDocument:     provider.BusinessDocument,
