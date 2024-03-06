@@ -189,6 +189,7 @@ type ProviderProfileResponse struct {
 	IsActive             bool                      `json:"isActive"`
 	Address              string                    `json:"address"`
 	MobileNumber         string                    `json:"mobileNumber"`
+	VisibilityMode       string                    `json:"visibilityMode"`
 	DateOfBirth          time.Time                 `json:"dateOfBirth"`
 	BusinessName         string                    `json:"businessName"`
 	IdentityDocumentType string                    `json:"identityType"`
