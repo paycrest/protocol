@@ -10,8 +10,6 @@ import (
 type NotificationConfiguration struct {
 	EmailDomain         string
 	EmailAPIKey         string
-	OneSignalRESTAPIKey string
-	OneSignalAppID      string
 }
 
 // EmailConfig sets the email configurations
@@ -21,8 +19,6 @@ func NotificationConfig() (config *NotificationConfiguration) {
 	return &NotificationConfiguration{
 		EmailDomain:         viper.GetString("EMAIL_DOMAIN"),
 		EmailAPIKey:         viper.GetString("EMAIL_API_KEY"),
-		OneSignalRESTAPIKey: viper.GetString("ONESIGNAL_REST_API_KEY"),
-		OneSignalAppID:      viper.GetString("ONESIGNAL_APP_ID"),
 	}
 }
 

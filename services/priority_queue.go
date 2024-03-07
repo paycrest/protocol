@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
@@ -320,69 +319,29 @@ func (s *PriorityQueueService) notifyProvider(ctx context.Context, orderRequestD
 		return err
 	}
 
-	if provider.ProvisionMode == providerprofile.ProvisionModeAuto {
-		// Compute HMAC
-		decodedSecret, err := base64.StdEncoding.DecodeString(provider.Edges.APIKey.Secret)
-		if err != nil {
-			return err
-		}
-		decryptedSecret, err := cryptoUtils.DecryptPlain(decodedSecret)
-		if err != nil {
-			return err
-		}
-		signature := tokenUtils.GenerateHMACSignature(orderRequestData, string(decryptedSecret))
+	// Compute HMAC
+	decodedSecret, err := base64.StdEncoding.DecodeString(provider.Edges.APIKey.Secret)
+	if err != nil {
+		return err
+	}
+	decryptedSecret, err := cryptoUtils.DecryptPlain(decodedSecret)
+	if err != nil {
+		return err
+	}
+	signature := tokenUtils.GenerateHMACSignature(orderRequestData, string(decryptedSecret))
 
-		// Send POST request to the provider's node
-		_, err = utils.MakeJSONRequest(
-			ctx,
-			"POST",
-			fmt.Sprintf("%s/new_order", provider.HostIdentifier),
-			orderRequestData,
-			map[string]string{
-				"X-Paycrest-Signature": signature,
-			},
-		)
-		if err != nil {
-			return err
-		}
-	} else {
-		notificationConf := config.NotificationConfig()
-		// Send POST request to the provider's mobile device
-		requestBody := map[string]interface{}{
-			"app_id": notificationConf.OneSignalAppID,
-			"include_aliases": map[string]interface{}{
-				"external_id": []string{providerID},
-			},
-			"target_channel": "push",
-			"headings": map[string]interface{}{
-				"en": "Incoming Order 💸",
-			},
-			"contents": map[string]interface{}{
-				// TODO: format currency string with commas
-				"en": "You have a payment order of ₦" + orderRequestData["amount"].(decimal.Decimal).String(),
-			},
-			"data": orderRequestData,
-			"buttons": []map[string]interface{}{
-				{"id": "accept-button", "text": "Accept"},
-				{"id": "decline-button", "text": "Decline"},
-			},
-			"name": "Order Requests",
-		}
-
-		headers := map[string]string{
-			"accept":        "application/json",
-			"Authorization": fmt.Sprintf("Basic %s", notificationConf.OneSignalRESTAPIKey),
-		}
-		_, err := utils.MakeJSONRequest(
-			ctx,
-			"POST",
-			"https://onesignal.com/api/v1/notifications",
-			requestBody,
-			headers,
-		)
-		if err != nil {
-			return err
-		}
+	// Send POST request to the provider's node
+	_, err = utils.MakeJSONRequest(
+		ctx,
+		"POST",
+		fmt.Sprintf("%s/new_order", provider.HostIdentifier),
+		orderRequestData,
+		map[string]string{
+			"X-Request-Signature": signature,
+		},
+	)
+	if err != nil {
+		return err
 	}
 
 	return nil
