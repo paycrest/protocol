@@ -576,10 +576,12 @@ func (ctrl *ProviderController) NodeInfo(ctx *gin.Context) {
 		fmt.Sprintf("%s/health", provider.HostIdentifier),
 		nil,
 		map[string]string{
-			"X-Paycrest-Signature": signature,
+			"X-Request-Signature": signature,
 		},
 	)
-	if err != nil || (resp != nil && resp["currency"].(string) != provider.Edges.Currency.Code) {
+
+	currency := resp["data"].(map[string]interface{})["currency"].(string)
+	if err != nil || (currency != provider.Edges.Currency.Code) {
 		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusServiceUnavailable, "error", "Failed to fetch node info", nil)
 		return
