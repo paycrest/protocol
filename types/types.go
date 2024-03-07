@@ -15,6 +15,7 @@ import (
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	"github.com/paycrest/protocol/ent/paymentorder"
 	"github.com/paycrest/protocol/ent/providerordertoken"
+	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/shopspring/decimal"
 )
 
@@ -175,27 +176,27 @@ type ProviderProfilePayload struct {
 
 // ProviderProfileResponse is the response for the provider profile endpoint
 type ProviderProfileResponse struct {
-	ID                   string                    `json:"id"`
-	FirstName            string                    `json:"firstName"`
-	LastName             string                    `json:"lastName"`
-	Email                string                    `json:"email"`
-	TradingName          string                    `json:"tradingName"`
-	Currency             string                    `json:"currency"`
-	HostIdentifier       string                    `json:"hostIdentifier"`
-	IsPartner            bool                      `json:"isPartner"`
-	IsAvailable          bool                      `json:"isAvailable"`
-	Tokens               []*ent.ProviderOrderToken `json:"tokens"`
-	APIKey               APIKeyResponse            `json:"apiKey"`
-	IsActive             bool                      `json:"isActive"`
-	Address              string                    `json:"address"`
-	MobileNumber         string                    `json:"mobileNumber"`
-	VisibilityMode       string                    `json:"visibilityMode"`
-	DateOfBirth          time.Time                 `json:"dateOfBirth"`
-	BusinessName         string                    `json:"businessName"`
-	IdentityDocumentType string                    `json:"identityType"`
-	IdentityDocument     string                    `json:"identityDocument"`
-	BusinessDocument     string                    `json:"businessDocument"`
-	IsKybVerified        bool                      `json:"isKybVerified"`
+	ID                   string                               `json:"id"`
+	FirstName            string                               `json:"firstName"`
+	LastName             string                               `json:"lastName"`
+	Email                string                               `json:"email"`
+	TradingName          string                               `json:"tradingName"`
+	Currency             string                               `json:"currency"`
+	HostIdentifier       string                               `json:"hostIdentifier"`
+	IsPartner            bool                                 `json:"isPartner"`
+	IsAvailable          bool                                 `json:"isAvailable"`
+	Tokens               []*ent.ProviderOrderToken            `json:"tokens"`
+	APIKey               APIKeyResponse                       `json:"apiKey"`
+	IsActive             bool                                 `json:"isActive"`
+	Address              string                               `json:"address"`
+	MobileNumber         string                               `json:"mobileNumber"`
+	VisibilityMode       providerprofile.VisibilityMode       `json:"visibilityMode"`
+	DateOfBirth          time.Time                            `json:"dateOfBirth"`
+	BusinessName         string                               `json:"businessName"`
+	IdentityDocumentType providerprofile.IdentityDocumentType `json:"identityType"`
+	IdentityDocument     string                               `json:"identityDocument"`
+	BusinessDocument     string                               `json:"businessDocument"`
+	IsKybVerified        bool                                 `json:"isKybVerified"`
 }
 
 // ValidatorProfileResponse is the response for the validator profile endpoint
