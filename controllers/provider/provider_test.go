@@ -410,7 +410,11 @@ func TestProvider(t *testing.T) {
 			httpmock.RegisterResponder("GET", "https://example.com/health",
 				func(r *http.Request) (*http.Response, error) {
 					return httpmock.NewJsonResponse(200, map[string]interface{}{
-						"currency": "NGN",
+						"status":  "success",
+						"message": "Node is live",
+						"data": map[string]interface{}{
+							"currency": "NGN",
+						},
 					})
 				},
 			)
