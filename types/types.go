@@ -182,6 +182,7 @@ type ProviderProfileResponse struct {
 	Email                string                               `json:"email"`
 	TradingName          string                               `json:"tradingName"`
 	Currency             string                               `json:"currency"`
+	Rate                 decimal.Decimal                      `json:"rate"`
 	HostIdentifier       string                               `json:"hostIdentifier"`
 	IsPartner            bool                                 `json:"isPartner"`
 	IsAvailable          bool                                 `json:"isAvailable"`
@@ -305,7 +306,8 @@ type NewPaymentOrderPayload struct {
 // ReceiveAddressResponse is the response type for a receive address
 type ReceiveAddressResponse struct {
 	ID             uuid.UUID       `json:"id"`
-	Amount         float64         `json:"amount"`
+	Amount         decimal.Decimal `json:"amount"`
+	Token          string          `json:"token"`
 	Network        string          `json:"network"`
 	ReceiveAddress string          `json:"receiveAddress"`
 	ValidUntil     time.Time       `json:"validUntil"`

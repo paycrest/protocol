@@ -579,9 +579,14 @@ func (ctrl *ProviderController) NodeInfo(ctx *gin.Context) {
 			"X-Request-Signature": signature,
 		},
 	)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusServiceUnavailable, "error", "Failed to fetch node info", nil)
+		return
+	}
 
 	currency := resp["data"].(map[string]interface{})["currency"].(string)
-	if err != nil || (currency != provider.Edges.Currency.Code) {
+	if currency != provider.Edges.Currency.Code {
 		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusServiceUnavailable, "error", "Failed to fetch node info", nil)
 		return

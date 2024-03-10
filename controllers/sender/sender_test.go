@@ -49,9 +49,9 @@ func createPaymentOrder(t *testing.T, router *gin.Engine) {
 	r := rand.New(rand.NewSource(int64(new(maphash.Hash).Sum64())))
 
 	payload := map[string]interface{}{
-		"amount":  100.0,
+		"amount":  "100",
 		"token":   testCtx.token.Symbol,
-		"rate":    750.0,
+		"rate":    "750",
 		"network": network.Identifier,
 		"recipient": map[string]interface{}{
 			"institution":       "ABNGNGLA",
