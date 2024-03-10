@@ -24,13 +24,15 @@ import (
 
 // ProfileController is a controller type for profile settings
 type ProfileController struct {
-	apiKeyService *svc.APIKeyService
+	apiKeyService        *svc.APIKeyService
+	priorityQueueService *svc.PriorityQueueService
 }
 
 // NewProfileController creates a new instance of ProfileController
 func NewProfileController() *ProfileController {
 	return &ProfileController{
-		apiKeyService: svc.NewAPIKeyService(),
+		apiKeyService:        svc.NewAPIKeyService(),
+		priorityQueueService: svc.NewPriorityQueueService(),
 	}
 }
 
@@ -442,6 +444,12 @@ func (ctrl *ProfileController) GetProviderProfile(ctx *gin.Context) {
 		return
 	}
 
+	rate, err := ctrl.priorityQueueService.GetProviderRate(ctx, provider)
+	if err != nil {
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to retrieve profile", nil)
+		return
+	}
+
 	u.APIResponse(ctx, http.StatusOK, "success", "Profile retrieved successfully", &types.ProviderProfileResponse{
 		ID:                   provider.ID,
 		FirstName:            user.FirstName,
@@ -449,6 +457,7 @@ func (ctrl *ProfileController) GetProviderProfile(ctx *gin.Context) {
 		Email:                user.Email,
 		TradingName:          provider.TradingName,
 		Currency:             currency.Code,
+		Rate:                 rate,
 		HostIdentifier:       provider.HostIdentifier,
 		IsPartner:            provider.IsPartner,
 		IsAvailable:          provider.IsAvailable,

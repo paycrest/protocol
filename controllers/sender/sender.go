@@ -222,12 +222,11 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 		_ = ctrl.indexerService.IndexERC20Transfer(ctx, nil, receiveAddress)
 	}()
 
-	paymentOrderAmount, _ := paymentOrder.Amount.Float64()
-
 	u.APIResponse(ctx, http.StatusCreated, "success", "Payment order initiated successfully",
 		&types.ReceiveAddressResponse{
 			ID:             paymentOrder.ID,
-			Amount:         paymentOrderAmount,
+			Amount:         paymentOrder.Amount,
+			Token:          payload.Token,
 			Network:        token.Edges.Network.Identifier,
 			ReceiveAddress: receiveAddress.Address,
 			ValidUntil:     receiveAddress.ValidUntil,

@@ -443,6 +443,17 @@ func TestProvider(t *testing.T) {
 		})
 
 		t.Run("when node is unhealthy", func(t *testing.T) {
+			// Activate httpmock
+			httpmock.Activate()
+			defer httpmock.Deactivate()
+
+			// Register mock response
+			httpmock.RegisterResponder("GET", "https://example.com/health",
+				func(r *http.Request) (*http.Response, error) {
+					return httpmock.NewJsonResponse(503, nil)
+				},
+			)
+
 			// Test default params
 			var payload = map[string]interface{}{
 				"timestamp": time.Now().Unix(),
@@ -463,7 +474,6 @@ func TestProvider(t *testing.T) {
 			var response types.Response
 			err = json.Unmarshal(res.Body.Bytes(), &response)
 			assert.NoError(t, err)
-			fmt.Println(response.Message)
 			assert.Equal(t, "Failed to fetch node info", response.Message)
 		})
 	})
