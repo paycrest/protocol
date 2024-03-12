@@ -22,7 +22,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/paycrest/protocol/ent/enttest"
-	"github.com/paycrest/protocol/ent/user"
 	userEnt "github.com/paycrest/protocol/ent/user"
 	"github.com/paycrest/protocol/ent/verificationtoken"
 	"github.com/paycrest/protocol/utils/crypto"
@@ -132,7 +131,7 @@ func TestAuth(t *testing.T) {
 			// Query the database to check if API key and profile were created for the sender
 			user, err := db.Client.User.
 				Query().
-				Where(user.IDEQ(userUUID)).
+				Where(userEnt.IDEQ(userUUID)).
 				WithProviderProfile(
 					func(q *ent.ProviderProfileQuery) {
 						q.WithAPIKey()
@@ -195,7 +194,7 @@ func TestAuth(t *testing.T) {
 			// Query the database to check if API key and profile were created for the sender
 			user, err := db.Client.User.
 				Query().
-				Where(user.IDEQ(userUUID)).
+				Where(userEnt.IDEQ(userUUID)).
 				WithProviderProfile().
 				WithSenderProfile(func(spq *ent.SenderProfileQuery) {
 					spq.WithAPIKey()
@@ -257,7 +256,7 @@ func TestAuth(t *testing.T) {
 			// Query the database to check if API key and profile were created for the sender
 			user, err := db.Client.User.
 				Query().
-				Where(user.IDEQ(userUUID)).
+				Where(userEnt.IDEQ(userUUID)).
 				WithProviderProfile(
 					func(ppq *ent.ProviderProfileQuery) {
 						ppq.WithAPIKey()
@@ -306,7 +305,7 @@ func TestAuth(t *testing.T) {
 			// Query the database to check if API key and profile were created for the provider
 			user, err := db.Client.User.
 				Query().
-				Where(user.IDEQ(userUUID)).
+				Where(userEnt.IDEQ(userUUID)).
 				WithProviderProfile(
 					func(q *ent.ProviderProfileQuery) {
 						q.WithAPIKey()
@@ -423,7 +422,7 @@ func TestAuth(t *testing.T) {
 
 		user, fetchUserErr := db.Client.User.
 			Query().
-			Where(user.IDEQ(userUUID)).
+			Where(userEnt.IDEQ(userUUID)).
 			Only(context.Background())
 		assert.NoError(t, fetchUserErr, "failed to fetch user by userID")
 
@@ -623,7 +622,7 @@ func TestAuth(t *testing.T) {
 		// fetch user
 		user, fetchUserErr := db.Client.User.
 			Query().
-			Where(user.IDEQ(uuid.MustParse(userID))).
+			Where(userEnt.IDEQ(uuid.MustParse(userID))).
 			Only(context.Background())
 		assert.NoError(t, fetchUserErr, "failed to fetch user by userID")
 
@@ -654,7 +653,7 @@ func TestAuth(t *testing.T) {
 	t.Run("ResetPasswordToken", func(t *testing.T) {
 		user, err := db.Client.User.
 			Query().
-			Where(user.IDEQ(uuid.MustParse(userID))).
+			Where(userEnt.IDEQ(uuid.MustParse(userID))).
 			Only(context.Background())
 		assert.NoError(t, err, "Failed to fetch user by userID")
 
@@ -685,7 +684,7 @@ func TestAuth(t *testing.T) {
 
 		userInstance, getUserErr := db.Client.User.
 			Query().
-			Where(user.IDEQ(userUUID)).
+			Where(userEnt.IDEQ(userUUID)).
 			Only(context.Background())
 		assert.NoError(t, getUserErr, "failed to get user by userID")
 
@@ -756,7 +755,7 @@ func TestAuth(t *testing.T) {
 			// Check password in DB is reset for user
 			updatedUser, getUserErr := db.Client.User.
 				Query().
-				Where(user.IDEQ(userUUID)).
+				Where(userEnt.IDEQ(userUUID)).
 				Only(context.Background())
 			assert.NoError(t, getUserErr, "failed to get updated user after password reset")
 
@@ -817,7 +816,7 @@ func TestAuth(t *testing.T) {
 			// Query the database to check if password was changed
 			user, err := db.Client.User.
 				Query().
-				Where(user.IDEQ(uuid.MustParse(userID))).
+				Where(userEnt.IDEQ(uuid.MustParse(userID))).
 				Only(context.Background())
 			assert.NoError(t, err)
 

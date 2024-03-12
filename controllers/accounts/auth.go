@@ -10,7 +10,6 @@ import (
 	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/ent/fiatcurrency"
 	"github.com/paycrest/protocol/ent/providerprofile"
-	"github.com/paycrest/protocol/ent/user"
 	userEnt "github.com/paycrest/protocol/ent/user"
 	"github.com/paycrest/protocol/ent/verificationtoken"
 	svc "github.com/paycrest/protocol/services"
@@ -274,7 +273,7 @@ func (ctrl *AuthController) RefreshJWT(ctx *gin.Context) {
 		return
 	}
 	scope, ok := claims["scope"].(string)
-	if err != nil || !ok {
+	if !ok {
 		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid or expired refresh token", nil)
 		return
 	}
@@ -358,7 +357,7 @@ func (ctrl *AuthController) ResendVerificationToken(ctx *gin.Context) {
 	}
 
 	if _, err := ctrl.emailService.SendVerificationEmail(ctx, verificationtoken.Token, user.Email); err != nil {
-		u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to send verification email", vtErr.Error())
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to send verification email", err.Error())
 		return
 	}
 
@@ -463,7 +462,7 @@ func (ctrl *AuthController) ChangePassword(ctx *gin.Context) {
 	// Fetch user account.
 	user, err := db.Client.User.
 		Query().
-		Where(user.IDEQ(userID)).
+		Where(userEnt.IDEQ(userID)).
 		Only(ctx)
 	if err != nil {
 		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid credential", nil)

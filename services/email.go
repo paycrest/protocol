@@ -113,6 +113,7 @@ func sendEmailViaMailgun(ctx context.Context, content types.SendEmailPayload) (t
 
 // sendEmailViaSendGrid performs the actions for sending an email.
 func sendEmailViaSendGrid(ctx context.Context, content types.SendEmailPayload) (types.SendEmailResponse, error) {
+	_ = ctx
 	from := mail.NewEmail("Paycrest", "<no-reply@paycrest.io>")
 	to := mail.NewEmail("", content.ToAddress)
 	body := mail.NewContent("text/plain", content.Body)
