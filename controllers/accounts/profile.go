@@ -13,7 +13,6 @@ import (
 	"github.com/paycrest/protocol/ent/token"
 	svc "github.com/paycrest/protocol/services"
 	"github.com/paycrest/protocol/storage"
-	db "github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
 	u "github.com/paycrest/protocol/utils"
 	"github.com/paycrest/protocol/utils/logger"
@@ -263,7 +262,7 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 		}
 
 		// Ensure rate is within allowed deviation from the market rate
-		currency, err := db.Client.FiatCurrency.
+		currency, err := storage.Client.FiatCurrency.
 			Query().
 			Where(
 				fiatcurrency.IsEnabledEQ(true),
@@ -317,10 +316,8 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 					return
 				}
 			} else {
-				if err != nil {
-					u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to set token - "+tokenPayload.Symbol, nil)
-					return
-				}
+				u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to set token - "+tokenPayload.Symbol, nil)
+				return
 			}
 		} else {
 			// Token exists, update it
