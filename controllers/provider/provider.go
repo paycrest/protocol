@@ -109,7 +109,7 @@ func (ctrl *ProviderController) GetLockPaymentOrders(ctx *gin.Context) {
 			ID:                order.ID,
 			Token:             order.Edges.Token.Symbol,
 			OrderID:           order.OrderID,
-			Amount:            order.Amount.Mul(order.Rate),
+			Amount:            order.Amount,
 			Rate:              order.Rate,
 			Label:             order.Label,
 			Institution:       order.Institution,
