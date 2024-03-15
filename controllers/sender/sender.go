@@ -294,13 +294,14 @@ func (ctrl *SenderController) GetPaymentOrderByID(ctx *gin.Context) {
 			ProviderID:        paymentOrder.Edges.Recipient.ProviderID,
 			Memo:              paymentOrder.Edges.Recipient.Memo,
 		},
-		FromAddress: paymentOrder.FromAddress,
-		FeeAddress:  paymentOrder.FeeAddress,
-		Label:       paymentOrder.Label,
-		CreatedAt:   paymentOrder.CreatedAt,
-		UpdatedAt:   paymentOrder.UpdatedAt,
-		TxHash:      paymentOrder.TxHash,
-		Status:      paymentOrder.Status,
+		FromAddress:    paymentOrder.FromAddress,
+		ReceiveAddress: paymentOrder.ReceiveAddressText,
+		FeeAddress:     paymentOrder.FeeAddress,
+		Label:          paymentOrder.Label,
+		CreatedAt:      paymentOrder.CreatedAt,
+		UpdatedAt:      paymentOrder.UpdatedAt,
+		TxHash:         paymentOrder.TxHash,
+		Status:         paymentOrder.Status,
 	})
 }
 
@@ -439,13 +440,14 @@ func (ctrl *SenderController) GetPaymentOrders(ctx *gin.Context) {
 				ProviderID:        paymentOrder.Edges.Recipient.ProviderID,
 				Memo:              paymentOrder.Edges.Recipient.Memo,
 			},
-			FromAddress: paymentOrder.FromAddress,
-			FeeAddress:  paymentOrder.FeeAddress,
-			Label:       paymentOrder.Label,
-			CreatedAt:   paymentOrder.CreatedAt,
-			UpdatedAt:   paymentOrder.UpdatedAt,
-			TxHash:      paymentOrder.TxHash,
-			Status:      paymentOrder.Status,
+			FromAddress:    paymentOrder.FromAddress,
+			ReceiveAddress: paymentOrder.ReceiveAddressText,
+			FeeAddress:     paymentOrder.FeeAddress,
+			Label:          paymentOrder.Label,
+			CreatedAt:      paymentOrder.CreatedAt,
+			UpdatedAt:      paymentOrder.UpdatedAt,
+			TxHash:         paymentOrder.TxHash,
+			Status:         paymentOrder.Status,
 		})
 	}
 
