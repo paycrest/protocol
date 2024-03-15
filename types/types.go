@@ -329,6 +329,7 @@ type PaymentOrderResponse struct {
 	Label          string                `json:"label"`
 	Recipient      PaymentOrderRecipient `json:"recipient"`
 	FromAddress    string                `json:"fromAddress"`
+	ReceiveAddress string                `json:"receiveAddress"`
 	FeeAddress     string                `json:"feeAddress"`
 	CreatedAt      time.Time             `json:"createdAt"`
 	UpdatedAt      time.Time             `json:"updatedAt"`
