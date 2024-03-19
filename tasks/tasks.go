@@ -461,25 +461,25 @@ func StartCronJobs() {
 	priorityQueue := services.NewPriorityQueueService()
 
 	if serverConf.Environment != "production" {
-		err := ComputeMarketRate()
-		if err != nil {
-			logger.Errorf("failed to compute market rate => %v", err)
-		}
+		// err := ComputeMarketRate()
+		// if err != nil {
+		// 	logger.Errorf("failed to compute market rate => %v", err)
+		// }
 
-		err = priorityQueue.ProcessBucketQueues()
+		err := priorityQueue.ProcessBucketQueues()
 		if err != nil {
 			logger.Errorf("failed to process bucket queues => %v", err)
 		}
 	}
 
 	// Compute market rate every 10 minutes
-	_, err := scheduler.Cron("*/10 * * * *").Do(ComputeMarketRate)
-	if err != nil {
-		logger.Errorf("failed to schedule compute market rate task => %v", err)
-	}
+	// _, err := scheduler.Cron("*/10 * * * *").Do(ComputeMarketRate)
+	// if err != nil {
+	// 	logger.Errorf("failed to schedule compute market rate task => %v", err)
+	// }
 
 	// Refresh provision bucket priority queues every X minutes
-	_, err = scheduler.Cron(fmt.Sprintf("*/%d * * * *", orderConf.BucketQueueRebuildInterval)).
+	_, err := scheduler.Cron(fmt.Sprintf("*/%d * * * *", orderConf.BucketQueueRebuildInterval)).
 		Do(priorityQueue.ProcessBucketQueues)
 	if err != nil {
 		logger.Errorf("failed to schedule refresh priority queues task => %v", err)
