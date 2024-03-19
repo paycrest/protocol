@@ -22,7 +22,7 @@ func GenerateAccessJWT(userID string, scope string) (string, error) {
 	claims := token.Claims.(jwt.MapClaims)
 	claims["sub"] = userID
 	claims["scope"] = scope
-	claims["exp"] = time.Now().Add(conf.JwtAccessHourLifespan).Unix()
+	claims["exp"] = time.Now().Add(conf.JwtAccessLifespan).Unix()
 
 	return token.SignedString([]byte(conf.Secret))
 }
@@ -33,7 +33,7 @@ func GenerateRefreshJWT(userID string, scope string) (string, error) {
 	claims := token.Claims.(jwt.MapClaims)
 	claims["sub"] = userID
 	claims["scope"] = scope
-	claims["exp"] = time.Now().Add(conf.JwtRefreshHourLifespan).Unix()
+	claims["exp"] = time.Now().Add(conf.JwtRefreshLifespan).Unix()
 
 	return token.SignedString([]byte(conf.Secret))
 }
@@ -61,7 +61,6 @@ func ValidateJWT(tokenString string) (jwt.MapClaims, error) {
 		}
 		return []byte(conf.Secret), nil
 	}, jwt.WithValidMethods([]string{"HS256"}))
-
 	if err != nil {
 		return nil, err
 	}
@@ -69,12 +68,6 @@ func ValidateJWT(tokenString string) (jwt.MapClaims, error) {
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok || !token.Valid {
 		return nil, fmt.Errorf("invalid token")
-	}
-
-	// Check if token is expired
-	expirationTime := time.Unix(int64(claims["exp"].(float64)), 0)
-	if time.Now().After(expirationTime) {
-		return nil, fmt.Errorf("token has expired")
 	}
 
 	return claims, nil
