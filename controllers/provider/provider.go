@@ -17,7 +17,6 @@ import (
 	"github.com/paycrest/protocol/services"
 	"github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
-	"github.com/paycrest/protocol/utils"
 	u "github.com/paycrest/protocol/utils"
 	cryptoUtils "github.com/paycrest/protocol/utils/crypto"
 	"github.com/paycrest/protocol/utils/logger"
@@ -42,7 +41,7 @@ func NewProviderController() *ProviderController {
 // GetLockPaymentOrders controller fetches all assigned orders
 func (ctrl *ProviderController) GetLockPaymentOrders(ctx *gin.Context) {
 	// get page and pageSize query params
-	page, pageSize := u.Paginate(ctx)
+	page, offset, pageSize := u.Paginate(ctx)
 
 	// Set ordering
 	ordering := ctx.Query("ordering")
@@ -84,10 +83,17 @@ func (ctrl *ProviderController) GetLockPaymentOrders(ctx *gin.Context) {
 		)
 	}
 
+	count, err := lockPaymentOrderQuery.Count(ctx)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch orders", nil)
+		return
+	}
+
 	// Fetch all orders assigned to the provider
 	lockPaymentOrders, err := lockPaymentOrderQuery.
 		Limit(pageSize).
-		Offset(page).
+		Offset(offset).
 		Order(order).
 		WithProvider().
 		WithToken(
@@ -122,11 +128,12 @@ func (ctrl *ProviderController) GetLockPaymentOrders(ctx *gin.Context) {
 			CreatedAt:         order.CreatedAt,
 		})
 	}
+
 	// return paginated orders
 	u.APIResponse(ctx, http.StatusOK, "success", "Orders successfully retrieved", types.ProviderLockOrderList{
-		Page:         page + 1,
+		Page:         page,
 		PageSize:     pageSize,
-		TotalRecords: len(orders),
+		TotalRecords: count,
 		Orders:       orders,
 	})
 }
@@ -570,7 +577,7 @@ func (ctrl *ProviderController) NodeInfo(ctx *gin.Context) {
 	}
 	signature := tokenUtils.GenerateHMACSignature(map[string]interface{}{}, string(decryptedSecret))
 
-	resp, err := utils.MakeJSONRequest(
+	resp, err := u.MakeJSONRequest(
 		ctx,
 		"GET",
 		fmt.Sprintf("%s/health", provider.HostIdentifier),
