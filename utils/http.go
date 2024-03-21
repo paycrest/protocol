@@ -138,7 +138,7 @@ func MakeJSONRequest(ctx context.Context, method, url string, payload map[string
 }
 
 // Paginate parses the pagination query params and returns the offset(page) and limit(pageSize)
-func Paginate(ctx *gin.Context) (page int, pageSize int) {
+func Paginate(ctx *gin.Context) (page int, offset int, limit int) {
 	// Parse pagination query params
 	page, err := strconv.Atoi(ctx.Query("page"))
 	pageSize, err2 := strconv.Atoi(ctx.Query("pageSize"))
@@ -152,9 +152,9 @@ func Paginate(ctx *gin.Context) (page int, pageSize int) {
 	}
 
 	// Calculate offsets
-	page = (page - 1) * pageSize
+	offset = (page - 1) * pageSize
 
-	return page, pageSize
+	return page, offset, pageSize
 }
 
 // IsURL checks if a string is a valid URL

@@ -323,7 +323,7 @@ func (ctrl *SenderController) GetPaymentOrders(ctx *gin.Context) {
 	}
 
 	// Get page and pageSize query params
-	page, pageSize := u.Paginate(ctx)
+	page, offset, pageSize := u.Paginate(ctx)
 
 	paymentOrderQuery := storage.Client.PaymentOrder.Query()
 
@@ -403,6 +403,13 @@ func (ctrl *SenderController) GetPaymentOrders(ctx *gin.Context) {
 		}
 	}
 
+	count, err := paymentOrderQuery.Count(ctx)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch payment orders", nil)
+		return
+	}
+
 	// Fetch payment orders
 	paymentOrders, err := paymentOrderQuery.
 		WithRecipient().
@@ -410,7 +417,7 @@ func (ctrl *SenderController) GetPaymentOrders(ctx *gin.Context) {
 			tq.WithNetwork()
 		}).
 		Limit(pageSize).
-		Offset(page).
+		Offset(offset).
 		Order(order).
 		All(ctx)
 	if err != nil {
@@ -420,10 +427,10 @@ func (ctrl *SenderController) GetPaymentOrders(ctx *gin.Context) {
 		return
 	}
 
-	var response []types.PaymentOrderResponse
+	var orders []types.PaymentOrderResponse
 
 	for _, paymentOrder := range paymentOrders {
-		response = append(response, types.PaymentOrderResponse{
+		orders = append(orders, types.PaymentOrderResponse{
 			ID:             paymentOrder.ID,
 			Amount:         paymentOrder.Amount,
 			AmountPaid:     paymentOrder.AmountPaid,
@@ -452,10 +459,10 @@ func (ctrl *SenderController) GetPaymentOrders(ctx *gin.Context) {
 	}
 
 	u.APIResponse(ctx, http.StatusOK, "success", "Payment orders retrieved successfully", types.SenderPaymentOrderList{
-		TotalRecords: len(response),
-		Page:         page + 1,
+		Page:         page,
 		PageSize:     pageSize,
-		Orders:       response,
+		TotalRecords: count,
+		Orders:       orders,
 	})
 }
 
