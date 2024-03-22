@@ -357,3 +357,23 @@ func IsValidEthereumAddress(address string) bool {
 	matched, _ := regexp.MatchString(pattern, address)
 	return matched
 }
+
+// Retry is a function that attempts to execute a given function multiple times until it succeeds or the maximum number of attempts is reached.
+// It sleeps for a specified duration between each attempt.
+// Parameters:
+// - attempts: The maximum number of attempts to execute the function.
+// - sleep: The duration to sleep between each attempt.
+// - fn: The function to be executed.
+// Returns:
+// - error: The error returned by the function, if any.
+func Retry(attempts int, sleep time.Duration, fn func() error) error {
+	var err error
+	for i := 0; i < attempts; i++ {
+		err = fn()
+		if err == nil {
+			return nil
+		}
+		time.Sleep(sleep)
+	}
+	return err
+}

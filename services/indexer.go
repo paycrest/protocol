@@ -74,7 +74,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 		Only(ctx)
 	if err != nil {
 		logger.Errorf("IndexERC20Transfer.db: %v", err)
-		return nil
+		return err
 	}
 
 	token := paymentOrder.Edges.Token
@@ -84,7 +84,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 		client, err = types.NewEthClient(token.Edges.Network.RPCEndpoint)
 		if err != nil {
 			logger.Errorf("IndexERC20Transfer.NewEthClient: %v", err)
-			return nil
+			return err
 		}
 	}
 
@@ -92,7 +92,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 	filterer, err := contracts.NewERC20TokenFilterer(common.HexToAddress(token.ContractAddress), client)
 	if err != nil {
 		logger.Errorf("IndexERC20Transfer.NewERC20TokenFilterer: %v", err)
-		return nil
+		return err
 	}
 
 	// Index missed blocks
@@ -101,9 +101,14 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 		opts := s.getMissedERC20BlocksOpts(ctx, client, token.Edges.Network)
 
 		// Fetch logs
-		iter, err := filterer.FilterTransfer(opts, nil, nil)
-		if err != nil {
-			logger.Errorf("IndexERC20Transfer.FilterTransfer: %v", err)
+		var iter *contracts.ERC20TokenTransferIterator
+		retryErr := utils.Retry(3, 5*time.Second, func() error {
+			var err error
+			iter, err = filterer.FilterTransfer(opts, nil, nil)
+			return err
+		})
+		if retryErr != nil {
+			logger.Errorf("IndexERC20Transfer.FilterTransfer: %v", retryErr)
 			return
 		}
 
@@ -129,7 +134,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 		}, logs, nil, nil)
 		if err != nil {
 			logger.Errorf("IndexERC20Transfer.WatchTransfer: %v", err)
-			return nil
+			return err
 		}
 
 		defer sub.Unsubscribe()
@@ -149,8 +154,24 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 					return nil
 				}
 			case err := <-sub.Err():
-				logger.Errorf("IndexERC20Transfer.logError: %v", err)
-				continue
+				if err == nil {
+					sub.Unsubscribe()
+
+					// Retry the subscription
+					retryErr := utils.Retry(3, 5*time.Second, func() error {
+						sub, err = filterer.WatchTransfer(&bind.WatchOpts{
+							Start: nil,
+						}, logs, nil, nil)
+						return err
+					})
+					if retryErr != nil {
+						logger.Errorf("IndexERC20Transfer.WatchTransfer: %v", retryErr)
+						return retryErr
+					}
+				} else {
+					logger.Errorf("IndexERC20Transfer.logError: %v", err)
+					continue
+				}
 			}
 		}
 	}
@@ -166,14 +187,14 @@ func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPC
 	if client == nil {
 		client, err = types.NewEthClient(network.RPCEndpoint)
 		if err != nil {
-			return fmt.Errorf("failed to connect to RPC client: %w", err)
+			return fmt.Errorf("IndexOrderCreated.NewEthClient: %w", err)
 		}
 	}
 
 	// Initialize contract filterer
 	filterer, err := contracts.NewPaycrestFilterer(OrderConf.PaycrestOrderContractAddress, client)
 	if err != nil {
-		return fmt.Errorf("failed to create filterer: %w", err)
+		return fmt.Errorf("IndexOrderCreated.NewPaycrestFilterer: %w", err)
 	}
 
 	// Index missed blocks
@@ -182,9 +203,15 @@ func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPC
 		opts := s.getMissedOrderBlocksOpts(ctx, client, network, lockpaymentorder.StatusPending)
 
 		// Fetch logs
-		iter, err := filterer.FilterOrderCreated(opts, nil, nil, nil)
-		if err != nil {
-			logger.Errorf("IndexOrderCreated.fetchLogs: %v", err)
+		var iter *contracts.PaycrestOrderCreatedIterator
+		retryErr := utils.Retry(3, 5*time.Second, func() error {
+			var err error
+			iter, err = filterer.FilterOrderCreated(opts, nil, nil, nil)
+			return err
+		})
+		if retryErr != nil {
+			logger.Errorf("IndexOrderCreated.FilterOrderCreated: %v", retryErr)
+			return
 		}
 
 		// Iterate over logs
@@ -197,33 +224,53 @@ func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPC
 		}
 	}()
 
-	// Start listening for deposit events
-	logs := make(chan *contracts.PaycrestOrderCreated)
+	if ServerConf.Environment != "test" {
+		// Start listening for deposit events
+		logs := make(chan *contracts.PaycrestOrderCreated)
 
-	sub, err := filterer.WatchOrderCreated(&bind.WatchOpts{
-		Start: nil,
-	}, logs, nil, nil, nil)
-	if err != nil {
-		return fmt.Errorf("failed to watch deposit events: %w", err)
-	}
+		sub, err := filterer.WatchOrderCreated(&bind.WatchOpts{
+			Start: nil,
+		}, logs, nil, nil, nil)
+		if err != nil {
+			return fmt.Errorf("IndexOrderCreated.WatchOrderCreated: %w", err)
+		}
 
-	defer sub.Unsubscribe()
+		defer sub.Unsubscribe()
 
-	logger.Infof("Listening for OrderCreated events...\n")
+		logger.Infof("Listening for OrderCreated events...\n")
 
-	for {
-		select {
-		case log := <-logs:
-			err := s.createLockPaymentOrder(ctx, client, network, log)
-			if err != nil {
-				logger.Errorf("failed to create lock payment order: %v", err)
-				continue
+		for {
+			select {
+			case log := <-logs:
+				err := s.createLockPaymentOrder(ctx, client, network, log)
+				if err != nil {
+					logger.Errorf("IndexOrderCreated.createLockPaymentOrder: %v", err)
+					continue
+				}
+			case err := <-sub.Err():
+				if err == nil {
+					sub.Unsubscribe()
+
+					// Retry the subscription
+					retryErr := utils.Retry(3, 5*time.Second, func() error {
+						sub, err = filterer.WatchOrderCreated(&bind.WatchOpts{
+							Start: nil,
+						}, logs, nil, nil, nil)
+						return err
+					})
+					if retryErr != nil {
+						logger.Errorf("IndexOrderCreated.WatchOrderCreated: %v", retryErr)
+						return retryErr
+					}
+				} else {
+					logger.Errorf("IndexOrderCreated.logError: %v", err)
+					continue
+				}
 			}
-		case err := <-sub.Err():
-			logger.Errorf("failed to parse deposit event: %v", err)
-			continue
 		}
 	}
+
+	return nil
 }
 
 // IndexOrderSettled indexes order settlements for a specific network.
@@ -234,14 +281,14 @@ func (s *IndexerService) IndexOrderSettled(ctx context.Context, client types.RPC
 	if client == nil {
 		client, err = types.NewEthClient(network.RPCEndpoint)
 		if err != nil {
-			return fmt.Errorf("failed to connect to RPC client: %w", err)
+			return fmt.Errorf("IndexOrderSettled.NewEthClient: %w", err)
 		}
 	}
 
 	// Initialize contract filterer
 	filterer, err := contracts.NewPaycrestFilterer(OrderConf.PaycrestOrderContractAddress, client)
 	if err != nil {
-		return fmt.Errorf("failed to create filterer: %w", err)
+		return fmt.Errorf("IndexOrderSettled.NewPaycrestFilterer: %w", err)
 	}
 
 	// Index missed blocks
@@ -250,9 +297,15 @@ func (s *IndexerService) IndexOrderSettled(ctx context.Context, client types.RPC
 		opts := s.getMissedOrderBlocksOpts(ctx, client, network, lockpaymentorder.StatusSettling)
 
 		// Fetch logs
-		iter, err := filterer.FilterOrderSettled(opts, nil, nil)
-		if err != nil {
-			logger.Errorf("IndexOrderSettled.fetchLogs: %v", err)
+		var iter *contracts.PaycrestOrderSettledIterator
+		retryErr := utils.Retry(3, 5*time.Second, func() error {
+			var err error
+			iter, err = filterer.FilterOrderSettled(opts, nil, nil)
+			return err
+		})
+		if retryErr != nil {
+			logger.Errorf("IndexOrderSettled.FilterOrderSettled: %v", retryErr)
+			return
 		}
 
 		// Iterate over logs
@@ -266,33 +319,52 @@ func (s *IndexerService) IndexOrderSettled(ctx context.Context, client types.RPC
 		}
 	}()
 
-	// Start listening for settlement events
-	logs := make(chan *contracts.PaycrestOrderSettled)
+	if ServerConf.Environment != "test" {
+		// Start listening for settlement events
+		logs := make(chan *contracts.PaycrestOrderSettled)
 
-	sub, err := filterer.WatchOrderSettled(&bind.WatchOpts{
-		Start: nil,
-	}, logs, nil, nil)
-	if err != nil {
-		return fmt.Errorf("failed to watch settlement events: %w", err)
-	}
+		sub, err := filterer.WatchOrderSettled(&bind.WatchOpts{
+			Start: nil,
+		}, logs, nil, nil)
+		if err != nil {
+			return fmt.Errorf("IndexOrderSettled.WatchOrderSettled: %w", err)
+		}
 
-	defer sub.Unsubscribe()
+		defer sub.Unsubscribe()
 
-	logger.Infof("Listening for OrderSettled events...\n")
+		logger.Infof("Listening for OrderSettled events...\n")
 
-	for {
-		select {
-		case log := <-logs:
-			err := s.updateOrderStatusSettled(ctx, log)
-			if err != nil {
-				logger.Errorf("IndexOrderSettled.update: %v", err)
-				continue
+		for {
+			select {
+			case log := <-logs:
+				err := s.updateOrderStatusSettled(ctx, log)
+				if err != nil {
+					logger.Errorf("IndexOrderSettled.update: %v", err)
+					continue
+				}
+			case err := <-sub.Err():
+				if err == nil {
+					sub.Unsubscribe()
+
+					// Retry the subscription
+					retryErr := utils.Retry(3, 5*time.Second, func() error {
+						sub, err = filterer.WatchOrderSettled(&bind.WatchOpts{
+							Start: nil,
+						}, logs, nil, nil)
+						return err
+					})
+					if retryErr != nil {
+						logger.Errorf("IndexOrderSettled.WatchOrderSettled: %v", retryErr)
+						return retryErr
+					}
+				} else {
+					logger.Errorf("IndexOrderSettled.logError: %v", err)
+					continue
+				}
 			}
-		case err := <-sub.Err():
-			logger.Errorf("failed to parse settlement event: %v", err)
-			continue
 		}
 	}
+	return nil
 }
 
 // IndexOrderRefunded indexes order refunds for a specific network.
@@ -303,14 +375,14 @@ func (s *IndexerService) IndexOrderRefunded(ctx context.Context, client types.RP
 	if client == nil {
 		client, err = types.NewEthClient(network.RPCEndpoint)
 		if err != nil {
-			return fmt.Errorf("failed to connect to RPC client: %w", err)
+			return fmt.Errorf("IndexOrderRefunded.NewEthClient: %w", err)
 		}
 	}
 
 	// Initialize contract filterer
 	filterer, err := contracts.NewPaycrestFilterer(OrderConf.PaycrestOrderContractAddress, client)
 	if err != nil {
-		return fmt.Errorf("failed to create filterer: %w", err)
+		return fmt.Errorf("IndexOrderRefunded.NewPaycrestFilterer: %w", err)
 	}
 
 	// Index missed blocks
@@ -319,9 +391,15 @@ func (s *IndexerService) IndexOrderRefunded(ctx context.Context, client types.RP
 		opts := s.getMissedOrderBlocksOpts(ctx, client, network, lockpaymentorder.StatusRefunding)
 
 		// Fetch logs
-		iter, err := filterer.FilterOrderRefunded(opts, nil)
-		if err != nil {
-			logger.Errorf("IndexOrderRefunded.fetchLogs: %v", err)
+		var iter *contracts.PaycrestOrderRefundedIterator
+		retryErr := utils.Retry(3, 5*time.Second, func() error {
+			var err error
+			iter, err = filterer.FilterOrderRefunded(opts, nil)
+			return err
+		})
+		if retryErr != nil {
+			logger.Errorf("IndexOrderRefunded.FilterOrderRefunded: %v", retryErr)
+			return
 		}
 
 		// Iterate over logs
@@ -335,33 +413,53 @@ func (s *IndexerService) IndexOrderRefunded(ctx context.Context, client types.RP
 		}
 	}()
 
-	// Start listening for refund events
-	logs := make(chan *contracts.PaycrestOrderRefunded)
+	if ServerConf.Environment != "test" {
+		// Start listening for refund events
+		logs := make(chan *contracts.PaycrestOrderRefunded)
 
-	sub, err := filterer.WatchOrderRefunded(&bind.WatchOpts{
-		Start: nil,
-	}, logs, nil)
-	if err != nil {
-		return fmt.Errorf("failed to watch refund events: %w", err)
-	}
+		sub, err := filterer.WatchOrderRefunded(&bind.WatchOpts{
+			Start: nil,
+		}, logs, nil)
+		if err != nil {
+			return fmt.Errorf("IndexOrderRefunded.WatchOrderRefunded: %w", err)
+		}
 
-	defer sub.Unsubscribe()
+		defer sub.Unsubscribe()
 
-	logger.Infof("Listening for OrderRefunded events...\n")
+		logger.Infof("Listening for OrderRefunded events...\n")
 
-	for {
-		select {
-		case log := <-logs:
-			err := s.updateOrderStatusRefunded(ctx, log)
-			if err != nil {
-				logger.Errorf("IndexOrderRefunded.update: %v", err)
-				continue
+		for {
+			select {
+			case log := <-logs:
+				err := s.updateOrderStatusRefunded(ctx, log)
+				if err != nil {
+					logger.Errorf("IndexOrderRefunded.update: %v", err)
+					continue
+				}
+			case err := <-sub.Err():
+				if err == nil {
+					sub.Unsubscribe()
+
+					// Retry the subscription
+					retryErr := utils.Retry(3, 5*time.Second, func() error {
+						sub, err = filterer.WatchOrderRefunded(&bind.WatchOpts{
+							Start: nil,
+						}, logs, nil)
+						return err
+					})
+					if retryErr != nil {
+						logger.Errorf("IndexOrderRefunded.WatchOrderRefunded: %v", retryErr)
+						return retryErr
+					}
+				} else {
+					logger.Errorf("IndexOrderRefunded.logError: %v", err)
+					continue
+				}
 			}
-		case err := <-sub.Err():
-			logger.Errorf("IndexOrderRefunded.parseEvent: %v", err)
-			continue
 		}
 	}
+
+	return nil
 }
 
 // HandleReceiveAddressValidity checks the validity of a receive address
