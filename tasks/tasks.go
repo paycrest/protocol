@@ -133,33 +133,32 @@ func ProcessOrders() error {
 		}
 	}()
 
-	// // Revert order process
-	// orders, err = storage.GetClient().PaymentOrder.
-	// 	Query().
-	// 	Where(
-	// 		paymentorder.Or(
-	// 			paymentorder.StatusEQ(paymentorder.StatusInitiated),
-	// 			paymentorder.StatusEQ(paymentorder.StatusExpired),
-	// 		),
-	// 		paymentorder.AmountPaidGT(decimal.Zero),
-	// 	).
-	// 	All(ctx)
-	// if err != nil {
-	// 	return err
-	// }
+	// Revert order process
+	orders, err = storage.GetClient().PaymentOrder.
+		Query().
+		Where(
+			paymentorder.Or(
+				paymentorder.StatusEQ(paymentorder.StatusInitiated),
+				paymentorder.StatusEQ(paymentorder.StatusExpired),
+			),
+			paymentorder.AmountPaidGT(decimal.Zero),
+		).
+		All(ctx)
+	if err != nil {
+		return err
+	}
 
-	// go func() {
-	// 	for _, order := range orders {
-	// 		fees := order.NetworkFee.Add(order.SenderFee)
-	// 		orderAmountWithFees := order.Amount.Add(fees)
-	// 		if !order.AmountPaid.Equal(orderAmountWithFees) && order.AmountReturned.Equal(decimal.Zero) {
-	// 			err := orderService.RevertOrder(ctx, order, common.HexToAddress(order.FromAddress))
-	// 			if err != nil {
-	// 				logger.Errorf("process task to revert orders => %v", err)
-	// 			}
-	// 		}
-	// 	}
-	// }()
+	go func() {
+		for _, order := range orders {
+			orderAmountWithFees := order.Amount.Add(order.NetworkFee).Add(order.SenderFee).Add(order.ProtocolFee)
+			if !order.AmountPaid.Equal(orderAmountWithFees) && order.AmountReturned.Equal(decimal.Zero) {
+				err := orderService.RevertOrder(ctx, order)
+				if err != nil {
+					logger.Errorf("process task to revert orders => %v", err)
+				}
+			}
+		}
+	}()
 
 	// Settle order process
 	lockOrders, err := storage.GetClient().LockPaymentOrder.
