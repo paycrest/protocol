@@ -143,6 +143,7 @@ func ProcessOrders() error {
 			),
 			paymentorder.AmountPaidGT(decimal.Zero),
 		).
+		WithReceiveAddress().
 		All(ctx)
 	if err != nil {
 		return err
@@ -151,7 +152,7 @@ func ProcessOrders() error {
 	go func() {
 		for _, order := range orders {
 			orderAmountWithFees := order.Amount.Add(order.NetworkFee).Add(order.SenderFee).Add(order.ProtocolFee)
-			if !order.AmountPaid.Equal(orderAmountWithFees) && order.AmountReturned.Equal(decimal.Zero) {
+			if !order.AmountPaid.Equal(orderAmountWithFees) && order.AmountReturned.Equal(decimal.Zero) && order.Edges.ReceiveAddress.Status == receiveaddress.StatusExpired {
 				err := orderService.RevertOrder(ctx, order)
 				if err != nil {
 					logger.Errorf("process task to revert orders => %v", err)
