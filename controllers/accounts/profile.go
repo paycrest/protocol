@@ -378,6 +378,7 @@ func (ctrl *ProfileController) GetSenderProfile(ctx *gin.Context) {
 
 	user, err := sender.QueryUser().Only(ctx)
 	if err != nil {
+		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to retrieve profile", nil)
 		return
 	}
@@ -385,6 +386,7 @@ func (ctrl *ProfileController) GetSenderProfile(ctx *gin.Context) {
 	// Get API key
 	apiKey, err := ctrl.apiKeyService.GetAPIKey(ctx, sender, nil)
 	if err != nil {
+		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to retrieve profile", nil)
 		return
 	}
@@ -416,6 +418,7 @@ func (ctrl *ProfileController) GetProviderProfile(ctx *gin.Context) {
 
 	user, err := provider.QueryUser().Only(ctx)
 	if err != nil {
+		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to retrieve profile", nil)
 		return
 	}
@@ -423,6 +426,7 @@ func (ctrl *ProfileController) GetProviderProfile(ctx *gin.Context) {
 	// Get currency
 	currency, err := provider.QueryCurrency().Only(ctx)
 	if err != nil {
+		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to retrieve profile", nil)
 		return
 	}
@@ -430,6 +434,7 @@ func (ctrl *ProfileController) GetProviderProfile(ctx *gin.Context) {
 	// Get tokens
 	tokens, err := provider.QueryOrderTokens().All(ctx)
 	if err != nil {
+		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to retrieve profile", nil)
 		return
 	}
@@ -437,12 +442,14 @@ func (ctrl *ProfileController) GetProviderProfile(ctx *gin.Context) {
 	// Get API key
 	apiKey, err := ctrl.apiKeyService.GetAPIKey(ctx, nil, provider)
 	if err != nil {
+		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to retrieve profile", nil)
 		return
 	}
 
 	rate, err := ctrl.priorityQueueService.GetProviderRate(ctx, provider)
 	if err != nil {
+		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to retrieve profile", nil)
 		return
 	}
