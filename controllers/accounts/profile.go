@@ -447,11 +447,14 @@ func (ctrl *ProfileController) GetProviderProfile(ctx *gin.Context) {
 		return
 	}
 
-	rate, err := ctrl.priorityQueueService.GetProviderRate(ctx, provider)
-	if err != nil {
-		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to retrieve profile", nil)
-		return
+	rate := decimal.NewFromInt(0)
+	if len(tokens) != 0 {
+		rate, err = ctrl.priorityQueueService.GetProviderRate(ctx, provider)
+		if err != nil {
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to retrieve profile", nil)
+			return
+		}
 	}
 
 	u.APIResponse(ctx, http.StatusOK, "success", "Profile retrieved successfully", &types.ProviderProfileResponse{
