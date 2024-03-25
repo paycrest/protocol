@@ -237,6 +237,10 @@ func (s *OrderService) RevertOrder(ctx context.Context, order *ent.PaymentOrder)
 		return nil
 	}
 
+	if amountToRevert.Equal(decimal.Zero) {
+		return nil
+	}
+
 	// Subtract the network fee from the amount
 	amountMinusFee := amountToRevert.Sub(OrderConf.NetworkFee)
 
