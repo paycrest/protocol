@@ -467,7 +467,7 @@ func (s *IndexerService) HandleReceiveAddressValidity(ctx context.Context, recei
 	if receiveAddress.Status != receiveaddress.StatusUsed {
 		amountNotPaidInFull := receiveAddress.Status == receiveaddress.StatusPartial || receiveAddress.Status == receiveaddress.StatusUnused
 		validUntilIsFarGone := receiveAddress.ValidUntil.Before(time.Now().Add(-(5 * time.Minute)))
-		isExpired := receiveAddress.ValidUntil.Before(time.Now()) || receiveAddress.CreatedAt.Before(time.Now().Add(-OrderConf.ReceiveAddressValidity))
+		isExpired := receiveAddress.ValidUntil.Before(time.Now())
 
 		if validUntilIsFarGone {
 			_, err := receiveAddress.
