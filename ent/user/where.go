@@ -96,6 +96,11 @@ func IsEmailVerified(v bool) predicate.User {
 	return predicate.User(sql.FieldEQ(FieldIsEmailVerified, v))
 }
 
+// HasEarlyAccess applies equality check predicate on the "has_early_access" field. It's identical to HasEarlyAccessEQ.
+func HasEarlyAccess(v bool) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldHasEarlyAccess, v))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.User {
 	return predicate.User(sql.FieldEQ(FieldCreatedAt, v))
@@ -509,6 +514,16 @@ func IsEmailVerifiedEQ(v bool) predicate.User {
 // IsEmailVerifiedNEQ applies the NEQ predicate on the "is_email_verified" field.
 func IsEmailVerifiedNEQ(v bool) predicate.User {
 	return predicate.User(sql.FieldNEQ(FieldIsEmailVerified, v))
+}
+
+// HasEarlyAccessEQ applies the EQ predicate on the "has_early_access" field.
+func HasEarlyAccessEQ(v bool) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldHasEarlyAccess, v))
+}
+
+// HasEarlyAccessNEQ applies the NEQ predicate on the "has_early_access" field.
+func HasEarlyAccessNEQ(v bool) predicate.User {
+	return predicate.User(sql.FieldNEQ(FieldHasEarlyAccess, v))
 }
 
 // HasSenderProfile applies the HasEdge predicate on the "sender_profile" edge.

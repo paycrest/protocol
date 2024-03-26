@@ -13977,6 +13977,7 @@ type UserMutation struct {
 	password                  *string
 	scope                     *string
 	is_email_verified         *bool
+	has_early_access          *bool
 	clearedFields             map[string]struct{}
 	sender_profile            *uuid.UUID
 	clearedsender_profile     bool
@@ -14382,6 +14383,42 @@ func (m *UserMutation) ResetIsEmailVerified() {
 	m.is_email_verified = nil
 }
 
+// SetHasEarlyAccess sets the "has_early_access" field.
+func (m *UserMutation) SetHasEarlyAccess(b bool) {
+	m.has_early_access = &b
+}
+
+// HasEarlyAccess returns the value of the "has_early_access" field in the mutation.
+func (m *UserMutation) HasEarlyAccess() (r bool, exists bool) {
+	v := m.has_early_access
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldHasEarlyAccess returns the old "has_early_access" field's value of the User entity.
+// If the User object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UserMutation) OldHasEarlyAccess(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldHasEarlyAccess is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldHasEarlyAccess requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldHasEarlyAccess: %w", err)
+	}
+	return oldValue.HasEarlyAccess, nil
+}
+
+// ResetHasEarlyAccess resets all changes to the "has_early_access" field.
+func (m *UserMutation) ResetHasEarlyAccess() {
+	m.has_early_access = nil
+}
+
 // SetSenderProfileID sets the "sender_profile" edge to the SenderProfile entity by id.
 func (m *UserMutation) SetSenderProfileID(id uuid.UUID) {
 	m.sender_profile = &id
@@ -14548,7 +14585,7 @@ func (m *UserMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *UserMutation) Fields() []string {
-	fields := make([]string, 0, 8)
+	fields := make([]string, 0, 9)
 	if m.created_at != nil {
 		fields = append(fields, user.FieldCreatedAt)
 	}
@@ -14572,6 +14609,9 @@ func (m *UserMutation) Fields() []string {
 	}
 	if m.is_email_verified != nil {
 		fields = append(fields, user.FieldIsEmailVerified)
+	}
+	if m.has_early_access != nil {
+		fields = append(fields, user.FieldHasEarlyAccess)
 	}
 	return fields
 }
@@ -14597,6 +14637,8 @@ func (m *UserMutation) Field(name string) (ent.Value, bool) {
 		return m.Scope()
 	case user.FieldIsEmailVerified:
 		return m.IsEmailVerified()
+	case user.FieldHasEarlyAccess:
+		return m.HasEarlyAccess()
 	}
 	return nil, false
 }
@@ -14622,6 +14664,8 @@ func (m *UserMutation) OldField(ctx context.Context, name string) (ent.Value, er
 		return m.OldScope(ctx)
 	case user.FieldIsEmailVerified:
 		return m.OldIsEmailVerified(ctx)
+	case user.FieldHasEarlyAccess:
+		return m.OldHasEarlyAccess(ctx)
 	}
 	return nil, fmt.Errorf("unknown User field %s", name)
 }
@@ -14686,6 +14730,13 @@ func (m *UserMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetIsEmailVerified(v)
+		return nil
+	case user.FieldHasEarlyAccess:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetHasEarlyAccess(v)
 		return nil
 	}
 	return fmt.Errorf("unknown User field %s", name)
@@ -14759,6 +14810,9 @@ func (m *UserMutation) ResetField(name string) error {
 		return nil
 	case user.FieldIsEmailVerified:
 		m.ResetIsEmailVerified()
+		return nil
+	case user.FieldHasEarlyAccess:
+		m.ResetHasEarlyAccess()
 		return nil
 	}
 	return fmt.Errorf("unknown User field %s", name)

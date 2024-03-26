@@ -82,6 +82,20 @@ func (uu *UserUpdate) SetNillableIsEmailVerified(b *bool) *UserUpdate {
 	return uu
 }
 
+// SetHasEarlyAccess sets the "has_early_access" field.
+func (uu *UserUpdate) SetHasEarlyAccess(b bool) *UserUpdate {
+	uu.mutation.SetHasEarlyAccess(b)
+	return uu
+}
+
+// SetNillableHasEarlyAccess sets the "has_early_access" field if the given value is not nil.
+func (uu *UserUpdate) SetNillableHasEarlyAccess(b *bool) *UserUpdate {
+	if b != nil {
+		uu.SetHasEarlyAccess(*b)
+	}
+	return uu
+}
+
 // SetSenderProfileID sets the "sender_profile" edge to the SenderProfile entity by ID.
 func (uu *UserUpdate) SetSenderProfileID(id uuid.UUID) *UserUpdate {
 	uu.mutation.SetSenderProfileID(id)
@@ -263,6 +277,9 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if value, ok := uu.mutation.IsEmailVerified(); ok {
 		_spec.SetField(user.FieldIsEmailVerified, field.TypeBool, value)
 	}
+	if value, ok := uu.mutation.HasEarlyAccess(); ok {
+		_spec.SetField(user.FieldHasEarlyAccess, field.TypeBool, value)
+	}
 	if uu.mutation.SenderProfileCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
@@ -432,6 +449,20 @@ func (uuo *UserUpdateOne) SetIsEmailVerified(b bool) *UserUpdateOne {
 func (uuo *UserUpdateOne) SetNillableIsEmailVerified(b *bool) *UserUpdateOne {
 	if b != nil {
 		uuo.SetIsEmailVerified(*b)
+	}
+	return uuo
+}
+
+// SetHasEarlyAccess sets the "has_early_access" field.
+func (uuo *UserUpdateOne) SetHasEarlyAccess(b bool) *UserUpdateOne {
+	uuo.mutation.SetHasEarlyAccess(b)
+	return uuo
+}
+
+// SetNillableHasEarlyAccess sets the "has_early_access" field if the given value is not nil.
+func (uuo *UserUpdateOne) SetNillableHasEarlyAccess(b *bool) *UserUpdateOne {
+	if b != nil {
+		uuo.SetHasEarlyAccess(*b)
 	}
 	return uuo
 }
@@ -646,6 +677,9 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 	}
 	if value, ok := uuo.mutation.IsEmailVerified(); ok {
 		_spec.SetField(user.FieldIsEmailVerified, field.TypeBool, value)
+	}
+	if value, ok := uuo.mutation.HasEarlyAccess(); ok {
+		_spec.SetField(user.FieldHasEarlyAccess, field.TypeBool, value)
 	}
 	if uuo.mutation.SenderProfileCleared() {
 		edge := &sqlgraph.EdgeSpec{

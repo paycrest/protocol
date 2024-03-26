@@ -32,6 +32,8 @@ const (
 	FieldScope = "scope"
 	// FieldIsEmailVerified holds the string denoting the is_email_verified field in the database.
 	FieldIsEmailVerified = "is_email_verified"
+	// FieldHasEarlyAccess holds the string denoting the has_early_access field in the database.
+	FieldHasEarlyAccess = "has_early_access"
 	// EdgeSenderProfile holds the string denoting the sender_profile edge name in mutations.
 	EdgeSenderProfile = "sender_profile"
 	// EdgeProviderProfile holds the string denoting the provider_profile edge name in mutations.
@@ -74,6 +76,7 @@ var Columns = []string{
 	FieldPassword,
 	FieldScope,
 	FieldIsEmailVerified,
+	FieldHasEarlyAccess,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -105,6 +108,8 @@ var (
 	LastNameValidator func(string) error
 	// DefaultIsEmailVerified holds the default value on creation for the "is_email_verified" field.
 	DefaultIsEmailVerified bool
+	// DefaultHasEarlyAccess holds the default value on creation for the "has_early_access" field.
+	DefaultHasEarlyAccess bool
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() uuid.UUID
 )
@@ -155,6 +160,11 @@ func ByScope(opts ...sql.OrderTermOption) OrderOption {
 // ByIsEmailVerified orders the results by the is_email_verified field.
 func ByIsEmailVerified(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldIsEmailVerified, opts...).ToFunc()
+}
+
+// ByHasEarlyAccess orders the results by the has_early_access field.
+func ByHasEarlyAccess(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldHasEarlyAccess, opts...).ToFunc()
 }
 
 // BySenderProfileField orders the results by sender_profile field.
