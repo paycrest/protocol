@@ -96,6 +96,20 @@ func (uc *UserCreate) SetNillableIsEmailVerified(b *bool) *UserCreate {
 	return uc
 }
 
+// SetHasEarlyAccess sets the "has_early_access" field.
+func (uc *UserCreate) SetHasEarlyAccess(b bool) *UserCreate {
+	uc.mutation.SetHasEarlyAccess(b)
+	return uc
+}
+
+// SetNillableHasEarlyAccess sets the "has_early_access" field if the given value is not nil.
+func (uc *UserCreate) SetNillableHasEarlyAccess(b *bool) *UserCreate {
+	if b != nil {
+		uc.SetHasEarlyAccess(*b)
+	}
+	return uc
+}
+
 // SetID sets the "id" field.
 func (uc *UserCreate) SetID(u uuid.UUID) *UserCreate {
 	uc.mutation.SetID(u)
@@ -218,6 +232,10 @@ func (uc *UserCreate) defaults() error {
 		v := user.DefaultIsEmailVerified
 		uc.mutation.SetIsEmailVerified(v)
 	}
+	if _, ok := uc.mutation.HasEarlyAccess(); !ok {
+		v := user.DefaultHasEarlyAccess
+		uc.mutation.SetHasEarlyAccess(v)
+	}
 	if _, ok := uc.mutation.ID(); !ok {
 		if user.DefaultID == nil {
 			return fmt.Errorf("ent: uninitialized user.DefaultID (forgotten import ent/runtime?)")
@@ -263,6 +281,9 @@ func (uc *UserCreate) check() error {
 	}
 	if _, ok := uc.mutation.IsEmailVerified(); !ok {
 		return &ValidationError{Name: "is_email_verified", err: errors.New(`ent: missing required field "User.is_email_verified"`)}
+	}
+	if _, ok := uc.mutation.HasEarlyAccess(); !ok {
+		return &ValidationError{Name: "has_early_access", err: errors.New(`ent: missing required field "User.has_early_access"`)}
 	}
 	return nil
 }
@@ -330,6 +351,10 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 	if value, ok := uc.mutation.IsEmailVerified(); ok {
 		_spec.SetField(user.FieldIsEmailVerified, field.TypeBool, value)
 		_node.IsEmailVerified = value
+	}
+	if value, ok := uc.mutation.HasEarlyAccess(); ok {
+		_spec.SetField(user.FieldHasEarlyAccess, field.TypeBool, value)
+		_node.HasEarlyAccess = value
 	}
 	if nodes := uc.mutation.SenderProfileIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

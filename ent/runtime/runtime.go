@@ -329,6 +329,10 @@ func init() {
 	userDescIsEmailVerified := userFields[6].Descriptor()
 	// user.DefaultIsEmailVerified holds the default value on creation for the is_email_verified field.
 	user.DefaultIsEmailVerified = userDescIsEmailVerified.Default.(bool)
+	// userDescHasEarlyAccess is the schema descriptor for has_early_access field.
+	userDescHasEarlyAccess := userFields[7].Descriptor()
+	// user.DefaultHasEarlyAccess holds the default value on creation for the has_early_access field.
+	user.DefaultHasEarlyAccess = userDescHasEarlyAccess.Default.(bool)
 	// userDescID is the schema descriptor for id field.
 	userDescID := userFields[0].Descriptor()
 	// user.DefaultID holds the default value on creation for the id field.

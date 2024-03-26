@@ -39,6 +39,8 @@ func (User) Fields() []ent.Field {
 		field.String("scope"),
 		field.Bool("is_email_verified").
 			Default(false),
+		field.Bool("has_early_access").
+			Default(false),
 	}
 }
 

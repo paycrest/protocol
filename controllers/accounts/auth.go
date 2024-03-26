@@ -221,10 +221,18 @@ func (ctrl *AuthController) Login(ctx *gin.Context) {
 
 	// Check if the password is correct
 	passwordMatch := crypto.CheckPasswordHash(payload.Password, user.Password)
-
 	if !passwordMatch {
 		u.APIResponse(ctx, http.StatusUnauthorized, "error",
 			"Email and password do not match any user", nil,
+		)
+		return
+	}
+
+	// Check if user has early access
+	environment := config.ServerConfig().Environment
+	if !user.HasEarlyAccess && (environment == "production" || environment == "staging") {
+		u.APIResponse(ctx, http.StatusUnauthorized, "error",
+			"Your early access request is still pending", nil,
 		)
 		return
 	}
