@@ -6,6 +6,7 @@ import (
 	"math"
 	"time"
 
+	"entgo.io/ent/dialect/sql"
 	"github.com/go-co-op/gocron"
 	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/ent"
@@ -110,12 +111,24 @@ func ProcessOrders() error {
 	// Create order process
 	orders, err := storage.GetClient().PaymentOrder.
 		Query().
-		Where(
-			paymentorder.StatusEQ(paymentorder.StatusInitiated),
-			paymentorder.HasReceiveAddressWith(
-				receiveaddress.StatusEQ(receiveaddress.StatusUsed),
-			),
-		).
+		Where(func(s *sql.Selector) {
+			ra := sql.Table(receiveaddress.Table)
+			lpo := sql.Table(lockpaymentorder.Table)
+			s.LeftJoin(ra).On(s.C(paymentorder.FieldReceiveAddressText), ra.C(receiveaddress.FieldAddress)).
+				Where(sql.And(
+					sql.Or(
+						sql.EQ(s.C(paymentorder.FieldStatus), paymentorder.StatusInitiated),
+						sql.EQ(s.C(paymentorder.FieldStatus), paymentorder.StatusPending),
+					),
+					sql.EQ(ra.C(receiveaddress.FieldStatus), receiveaddress.StatusUsed),
+					// Exclude orders with matching labels in lockpaymentorder table i.e fetch only orders without corresponding lock payment orders
+					sql.NotExists(
+						sql.Select().
+							From(lpo).
+							Where(sql.ColumnsEQ(s.C(paymentorder.FieldLabel), lpo.C(lockpaymentorder.FieldLabel))),
+					),
+				))
+		}).
 		All(ctx)
 	if err != nil {
 		return err

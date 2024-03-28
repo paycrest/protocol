@@ -127,9 +127,6 @@ func SponsorUserOperation(userOp *userop.UserOperation, mode string, token strin
 		payload,
 	}
 
-	op, _ := userOp.MarshalJSON()
-	logger.Errorf(string(op))
-
 	var result json.RawMessage
 	err = client.Call(&result, "pm_sponsorUserOperation", requestParams...)
 	if err != nil {
@@ -149,6 +146,9 @@ func SponsorUserOperation(userOp *userop.UserOperation, mode string, token strin
 		return fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
+	op, _ := result.MarshalJSON()
+	logger.Errorf(string(op))
+
 	userOp.CallGasLimit, _ = new(big.Int).SetString(response.CallGasLimit, 0)
 	userOp.VerificationGasLimit, _ = new(big.Int).SetString(response.VerificationGasLimit, 0)
 	userOp.PreVerificationGas, _ = new(big.Int).SetString(response.PreVerificationGas, 0)
@@ -167,7 +167,7 @@ func SignUserOperation(userOperation *userop.UserOperation, chainId int64) error
 
 	signature, err := PersonalSign(string(userOpHash[:]), privateKey)
 	if err != nil {
-		return fmt.Errorf("failed to sign user operation: %w", err)
+		return err
 	}
 	userOperation.Signature = signature
 

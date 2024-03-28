@@ -107,7 +107,10 @@ func (s *OrderService) CreateOrder(ctx context.Context, orderID uuid.UUID) error
 	}
 
 	// Sign user operation
-	_ = utils.SignUserOperation(userOperation, order.Edges.Token.Edges.Network.ChainID)
+	err = utils.SignUserOperation(userOperation, order.Edges.Token.Edges.Network.ChainID)
+	if err != nil {
+		return fmt.Errorf("failed to sign user operation: %w", err)
+	}
 
 	// Send user operation
 	userOpHash, err := utils.SendUserOperation(userOperation, order.Edges.Token.Edges.Network.ChainID)
