@@ -158,9 +158,11 @@ func (s *PriorityQueueService) CreatePriorityQueueForBucket(ctx context.Context,
 
 // AssignLockPaymentOrders assigns lock payment orders to providers
 func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order types.LockPaymentOrderFields) error {
+	orderIDPrefix := strings.Split(order.ID.String(), "-")[0]
+
 	excludeList, err := storage.RedisClient.LRange(ctx, fmt.Sprintf("order_exclude_list_%s", order.ID), 0, -1).Result()
 	if err != nil {
-		logger.Errorf("failed to get exclude list for order %d: %v", order.ID, err)
+		logger.Errorf("%s - failed to get exclude list: %v", order.ID, err)
 		return err
 	}
 
@@ -170,8 +172,14 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 		if err == nil {
 			return nil
 		}
-		logger.Errorf("failed to send order request to specific provider %s: %v. sending order to queue",
-			order.ProviderID, err)
+		logger.Errorf("%s - failed to send order request to specific provider %s: %v", orderIDPrefix, order.ProviderID, err)
+
+		// Push provider ID to order exclude list
+		orderKey := fmt.Sprintf("order_exclude_list_%s", order.ID)
+		_, err = storage.RedisClient.RPush(ctx, orderKey, order.ProviderID).Result()
+		if err != nil {
+			logger.Errorf("%s - error pushing provider %s to order_exclude_list on Redis: %v", orderIDPrefix, order.ProviderID, err)
+		}
 	}
 
 	// Get the first provider from the circular queue
@@ -182,16 +190,16 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 	for index := 0; ; index++ {
 		providerData, err := storage.RedisClient.LIndex(ctx, redisKey, int64(index)).Result()
 		if err != nil {
-			logger.Errorf("failed to access index %d from circular queue: %v", index, err)
+			logger.Errorf("%s - failed to access index %d from circular queue: %v", orderIDPrefix, index, err)
 			break
 		}
 
 		if providerData == "" {
 			// Reached the end of the queue
-			logger.Errorf("rate didn't match a provider, finding a partner provider")
+			logger.Errorf("%s - rate didn't match a provider, finding a partner provider", orderIDPrefix)
 
 			if len(partnerProviders) == 0 {
-				logger.Errorf("no partner providers found")
+				logger.Errorf("%s - no partner providers found", orderIDPrefix)
 				return nil
 			}
 
@@ -203,7 +211,7 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 		// Extract the rate from the data (assuming it's in the format "providerID:rate:is_partner")
 		parts := strings.Split(providerData, ":")
 		if len(parts) != 3 {
-			logger.Errorf("invalid data format at index %d: %s", index, providerData)
+			logger.Errorf("%s - invalid data format at index %d: %s", orderIDPrefix, index, providerData)
 			continue // Skip this entry due to invalid format
 		}
 
@@ -221,7 +229,7 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 
 		rate, err := decimal.NewFromString(parts[1])
 		if err != nil {
-			logger.Errorf("failed to parse rate at index %d: %v", index, err)
+			logger.Errorf("%s - failed to parse rate at index %d: %v", orderIDPrefix, index, err)
 			continue // Skip this entry due to parsing error
 		}
 
@@ -231,14 +239,14 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 				// Match found at index 0, perform LPOP to dequeue
 				data, err := storage.RedisClient.LPop(ctx, redisKey).Result()
 				if err != nil {
-					logger.Errorf("failed to dequeue from circular queue: %v", err)
+					logger.Errorf("%s - failed to dequeue from circular queue: %v", orderIDPrefix, err)
 					return err
 				}
 
 				// Enqueue data to the end of the queue
 				err = storage.RedisClient.RPush(ctx, redisKey, data).Err()
 				if err != nil {
-					logger.Errorf("failed to enqueue to circular queue: %v", err)
+					logger.Errorf("%s - failed to enqueue to circular queue: %v", orderIDPrefix, err)
 					return err
 				}
 			}
@@ -246,13 +254,13 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 			// Assign the order to the provider and save it to Redis
 			err = s.sendOrderRequest(ctx, order)
 			if err != nil {
-				logger.Errorf("failed to send order request to specific provider %s: %v", order.ProviderID, err)
+				logger.Errorf("%s - failed to send order request to specific provider %s: %v", orderIDPrefix, order.ProviderID, err)
 
 				// Push provider ID to order exclude list
 				orderKey := fmt.Sprintf("order_exclude_list_%s", order.ID)
 				_, err = storage.RedisClient.RPush(ctx, orderKey, order.ProviderID).Result()
 				if err != nil {
-					logger.Errorf("error pushing provider %s to order %d exclude_list on Redis: %v", order.ProviderID, order.ID, err)
+					logger.Errorf("%s - error pushing provider %s to order_exclude_list on Redis: %v", orderIDPrefix, order.ProviderID, err)
 				}
 
 				// Reassign the lock payment order to another provider
@@ -268,7 +276,6 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 
 // sendOrderRequest sends an order request to a provider
 func (s *PriorityQueueService) sendOrderRequest(ctx context.Context, order types.LockPaymentOrderFields) error {
-
 	// Assign the order to the provider and save it to Redis
 	orderKey := fmt.Sprintf("order_request_%s", order.ID)
 

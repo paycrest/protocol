@@ -12,7 +12,7 @@ import (
 
 // PerformRequest performs a http request with the given method, path, and payload
 func PerformRequest(t *testing.T, method string, path string, payload interface{}, headers map[string]string, router *gin.Engine) (*httptest.ResponseRecorder, error) {
-	req, _ := getRequest(t, method, path, payload, router)
+	req, _ := getRequest(method, path, payload)
 
 	// Set headers
 	for key, value := range headers {
@@ -25,7 +25,7 @@ func PerformRequest(t *testing.T, method string, path string, payload interface{
 }
 
 // getRequest returns a new http.Request with the given method, path, and payload
-func getRequest(t *testing.T, method string, path string, payload interface{}, router *gin.Engine) (*http.Request, error) {
+func getRequest(method string, path string, payload interface{}) (*http.Request, error) {
 	body, err := json.Marshal(payload)
 	if err != nil {
 		return nil, err
