@@ -16,7 +16,6 @@ import (
 	"github.com/paycrest/protocol/services/contracts"
 	"github.com/paycrest/protocol/types"
 	cryptoUtils "github.com/paycrest/protocol/utils/crypto"
-	"github.com/paycrest/protocol/utils/logger"
 	"github.com/stackup-wallet/stackup-bundler/pkg/userop"
 )
 
@@ -146,8 +145,8 @@ func SponsorUserOperation(userOp *userop.UserOperation, mode string, token strin
 		return fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
-	op, _ := result.MarshalJSON()
-	logger.Errorf(string(op))
+	// op, _ := result.MarshalJSON()
+	// logger.Errorf(string(op))
 
 	userOp.CallGasLimit, _ = new(big.Int).SetString(response.CallGasLimit, 0)
 	userOp.VerificationGasLimit, _ = new(big.Int).SetString(response.VerificationGasLimit, 0)
@@ -191,8 +190,8 @@ func SendUserOperation(userOp *userop.UserOperation, chainId int64) (string, err
 		OrderConf.EntryPointContractAddress.Hex(),
 	}
 
-	op, _ := userOp.MarshalJSON()
-	logger.Errorf(string(op))
+	// op, _ := userOp.MarshalJSON()
+	// logger.Errorf(string(op))
 
 	var result json.RawMessage
 	err = client.Call(&result, "eth_sendUserOperation", requestParams...)
