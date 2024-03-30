@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/ethereum/go-ethereum/common"
 	hdwallet "github.com/miguelmota/go-ethereum-hdwallet"
 	"github.com/paycrest/protocol/config"
@@ -199,7 +200,6 @@ func PublicKeyDecryptJSON(ciphertext []byte, privateKeyPEM string) (interface{},
 
 // GenerateAccountFromIndex generates a crypto wallet account from HD wallet mnemonic
 func GenerateAccountFromIndex(accountIndex int) (*common.Address, *ecdsa.PrivateKey, error) {
-	//added code to test generate addrress
 	mnemonic := cryptoConf.HDWalletMnemonic
 
 	wallet, err := hdwallet.NewFromMnemonic(mnemonic)
@@ -221,6 +221,7 @@ func GenerateAccountFromIndex(accountIndex int) (*common.Address, *ecdsa.Private
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get private key: %w", err)
 	}
+	privateKey.Curve = btcec.S256()
 
 	return &account.Address, privateKey, nil
 }
