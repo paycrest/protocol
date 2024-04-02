@@ -296,6 +296,7 @@ func (s *OrderService) RevertOrder(ctx context.Context, order *ent.PaymentOrder)
 	_, err = order.Update().
 		SetTxHash(userOpHash).
 		SetAmountReturned(amountMinusFee).
+		SetStatus(paymentorder.StatusReverting).
 		Save(ctx)
 	if err != nil {
 		return fmt.Errorf("RevertOrder.updateTxHash(%v): %w", userOpHash, err)
