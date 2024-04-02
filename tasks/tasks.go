@@ -178,9 +178,20 @@ func ProcessOrders() error {
 	lockOrders, err := storage.GetClient().LockPaymentOrder.
 		Query().
 		Where(
-			lockpaymentorder.StatusEQ(lockpaymentorder.StatusValidated),
-			lockpaymentorder.HasFulfillmentWith(
-				lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusSuccess),
+			lockpaymentorder.Or(
+				lockpaymentorder.And(
+					lockpaymentorder.StatusEQ(lockpaymentorder.StatusValidated),
+					lockpaymentorder.HasFulfillmentWith(
+						lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusSuccess),
+					),
+				),
+				lockpaymentorder.And(
+					lockpaymentorder.StatusEQ(lockpaymentorder.StatusSettling),
+					lockpaymentorder.HasFulfillmentWith(
+						lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusSuccess),
+					),
+					lockpaymentorder.UpdatedAtLT(time.Now().Add(-10*time.Minute)),
+				),
 			),
 		).
 		All(ctx)
@@ -190,8 +201,14 @@ func ProcessOrders() error {
 
 	go func() {
 		for _, order := range lockOrders {
-			orderService := services.NewOrderService()
+			if order.Status == lockpaymentorder.StatusSettling {
+				_, err := order.Update().SetStatus(lockpaymentorder.StatusValidated).Save(ctx)
+				if err != nil {
+					continue
+				}
+			}
 
+			orderService := services.NewOrderService()
 			err := orderService.SettleOrder(ctx, order.ID)
 			if err != nil {
 				logger.Errorf("process order settlements task => %v", err)
