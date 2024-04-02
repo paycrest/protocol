@@ -669,7 +669,12 @@ func (s *IndexerService) createLockPaymentOrder(ctx context.Context, client type
 	// Check for existing address with txHash
 	orderCount, err := db.Client.LockPaymentOrder.
 		Query().
-		Where(lockpaymentorder.TxHashEQ(deposit.Raw.TxHash.Hex())).
+		Where(
+			lockpaymentorder.Or(
+				lockpaymentorder.TxHashEQ(deposit.Raw.TxHash.Hex()),
+				lockpaymentorder.LabelEQ(utils.Byte32ToString(deposit.Label)),
+			),
+		).
 		Count(ctx)
 	if err != nil {
 		return fmt.Errorf("createLockPaymentOrder.db: %v", err)
@@ -759,7 +764,7 @@ func (s *IndexerService) createLockPaymentOrder(ctx context.Context, client type
 			ctx, lockPaymentOrder, currency,
 		)
 		if err != nil {
-			return fmt.Errorf("failed to split lock payment order: %w", err)
+			return fmt.Errorf("%s - failed to split lock payment order: %w", lockPaymentOrder.Label, err)
 		}
 	} else {
 		// Create lock payment order in db
@@ -785,7 +790,7 @@ func (s *IndexerService) createLockPaymentOrder(ctx context.Context, client type
 
 		orderCreated, err := orderBuilder.Save(ctx)
 		if err != nil {
-			return fmt.Errorf("failed to create lock payment order: %w", err)
+			return fmt.Errorf("%s - failed to create lock payment order: %w", lockPaymentOrder.Label, err)
 		}
 
 		// Assign the lock payment order to a provider
