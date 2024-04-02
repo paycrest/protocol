@@ -162,7 +162,7 @@ var (
 		{Name: "fee_per_token_unit", Type: field.TypeFloat64},
 		{Name: "fee_address", Type: field.TypeString, Nullable: true},
 		{Name: "label", Type: field.TypeString},
-		{Name: "status", Type: field.TypeEnum, Enums: []string{"initiated", "pending", "reverted", "expired", "settled", "refunded"}, Default: "initiated"},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"initiated", "reverting", "reverted", "pending", "expired", "settled", "refunded"}, Default: "initiated"},
 		{Name: "api_key_payment_orders", Type: field.TypeUUID, Nullable: true},
 		{Name: "sender_profile_payment_orders", Type: field.TypeUUID},
 		{Name: "token_payment_orders", Type: field.TypeInt},
