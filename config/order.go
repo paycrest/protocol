@@ -21,6 +21,8 @@ type OrderConfiguration struct {
 	NetworkFee                       decimal.Decimal
 	PercentDeviationFromExternalRate decimal.Decimal
 	PercentDeviationFromMarketRate   decimal.Decimal
+	BundlerUrlEthereum               string
+	PaymasterUrlEthereum             string
 	BundlerUrlPolygon                string
 	PaymasterUrlPolygon              string
 	BundlerUrlBase                   string
@@ -45,6 +47,8 @@ func OrderConfig() *OrderConfiguration {
 		ReceiveAddressValidity:           time.Duration(viper.GetInt("RECEIVE_ADDRESS_VALIDITY")) * time.Minute,
 		OrderRequestValidity:             time.Duration(viper.GetInt("ORDER_REQUEST_VALIDITY")) * time.Second,
 		GatewayContractAddress:           common.HexToAddress(viper.GetString("GATEWAY_CONTRACT_ADDRESS")),
+		BundlerUrlEthereum:               viper.GetString("BUNDLER_URL_ETHEREUM"),
+		PaymasterUrlEthereum:             viper.GetString("PAYMASTER_URL_ETHEREUM"),
 		BundlerUrlPolygon:                viper.GetString("BUNDLER_URL_POLYGON"),
 		PaymasterUrlPolygon:              viper.GetString("PAYMASTER_URL_POLYGON"),
 		BundlerUrlBase:                   viper.GetString("BUNDLER_URL_BASE"),

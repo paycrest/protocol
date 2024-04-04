@@ -364,8 +364,11 @@ func eip1559GasPrice(ctx context.Context, client types.RPCClient) (maxFeePerGas,
 // getEndpoints returns the bundler and paymaster URLs for the given chain ID
 func getEndpoints(chainId int64) (bundlerUrl, paymasterUrl string, err error) {
 	switch chainId {
+	case 1:
+	case 11155111:
+		bundlerUrl = OrderConf.BundlerUrlEthereum
+		paymasterUrl = OrderConf.PaymasterUrlEthereum
 	case 137:
-	case 80001:
 		bundlerUrl = OrderConf.BundlerUrlPolygon
 		paymasterUrl = OrderConf.PaymasterUrlPolygon
 	case 56:
