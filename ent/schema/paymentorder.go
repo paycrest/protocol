@@ -45,7 +45,7 @@ func (PaymentOrder) Fields() []ent.Field {
 		field.String("fee_address").Optional(),
 		field.String("gateway_id").Optional(),
 		field.Enum("status").
-			Values("initiated", "reverting", "reverted", "pending", "expired", "settled", "refunded").
+			Values("initiated", "reverted", "pending", "expired", "settled", "refunded").
 			Default("initiated"),
 	}
 }

@@ -294,7 +294,7 @@ func (s *IndexerService) IndexOrderSettled(ctx context.Context, client types.RPC
 	// Index missed blocks
 	go func() {
 		// Filter logs from the last lock payment order block number
-		opts := s.getMissedOrderBlocksOpts(ctx, client, network, lockpaymentorder.StatusSettling)
+		opts := s.getMissedOrderBlocksOpts(ctx, client, network, lockpaymentorder.StatusSettled)
 
 		// Fetch logs
 		var iter *contracts.GatewayOrderSettledIterator
@@ -388,7 +388,7 @@ func (s *IndexerService) IndexOrderRefunded(ctx context.Context, client types.RP
 	// Index missed blocks
 	go func() {
 		// Filter logs from the last lock payment order block number
-		opts := s.getMissedOrderBlocksOpts(ctx, client, network, lockpaymentorder.StatusRefunding)
+		opts := s.getMissedOrderBlocksOpts(ctx, client, network, lockpaymentorder.StatusRefunded)
 
 		// Fetch logs
 		var iter *contracts.GatewayOrderRefundedIterator

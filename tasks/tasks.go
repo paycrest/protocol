@@ -103,12 +103,12 @@ func ContinueIndexing() error {
 	return nil
 }
 
-// ProcessOrders processes orders
-func ProcessOrders() error {
+// RetryStaleUserOperations retries stale user operations
+func RetryStaleUserOperations() error {
 	ctx := context.Background()
 	orderService := services.NewOrderService()
 
-	// Create order process
+	// Process initiated orders
 	orders, err := storage.GetClient().PaymentOrder.
 		Query().
 		Where(func(s *sql.Selector) {
@@ -117,7 +117,6 @@ func ProcessOrders() error {
 			s.LeftJoin(ra).On(s.C(paymentorder.FieldReceiveAddressText), ra.C(receiveaddress.FieldAddress)).
 				Where(sql.And(
 					sql.EQ(s.C(paymentorder.FieldStatus), paymentorder.StatusInitiated),
-					sql.IsNull(s.C(paymentorder.FieldTxHash)),
 					sql.EQ(ra.C(receiveaddress.FieldStatus), receiveaddress.StatusUsed),
 					// Exclude orders with matching labels in lockpaymentorder table i.e fetch only orders without corresponding lock payment orders
 					sql.NotExists(
@@ -153,6 +152,7 @@ func ProcessOrders() error {
 				paymentorder.StatusEQ(paymentorder.StatusExpired),
 			),
 			paymentorder.AmountPaidGT(decimal.Zero),
+			paymentorder.UpdatedAtLT(time.Now().Add(-5*time.Minute)),
 		).
 		WithReceiveAddress().
 		All(ctx)
@@ -180,6 +180,7 @@ func ProcessOrders() error {
 			lockpaymentorder.HasFulfillmentWith(
 				lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusSuccess),
 			),
+			lockpaymentorder.UpdatedAtLT(time.Now().Add(-5*time.Minute)),
 		).
 		All(ctx)
 	if err != nil {
@@ -195,19 +196,12 @@ func ProcessOrders() error {
 		}
 	}()
 
-	return nil
-}
-
-// ProcessOrderRefunds processes order refunds
-func ProcessOrderRefunds() error {
-	ctx := context.Background()
-
-	// Refund orders
-	orders, err := storage.GetClient().LockPaymentOrder.
+	// Refund order process
+	lockOrders, err = storage.GetClient().LockPaymentOrder.
 		Query().
 		Where(
 			lockpaymentorder.StatusEQ(lockpaymentorder.StatusPending),
-			lockpaymentorder.CreatedAtLTE(time.Now().Add(-24*time.Hour)),
+			lockpaymentorder.CreatedAtLTE(time.Now().Add(-1*time.Hour)),
 		).
 		All(ctx)
 	if err != nil {
@@ -215,9 +209,7 @@ func ProcessOrderRefunds() error {
 	}
 
 	go func() {
-		for _, order := range orders {
-			orderService := services.NewOrderService()
-
+		for _, order := range lockOrders {
 			err := orderService.RefundOrder(ctx, order.GatewayID)
 			if err != nil {
 				logger.Errorf("process order refunds task => %v", err)
@@ -463,128 +455,6 @@ func RetryFailedWebhookNotifications() error {
 	return nil
 }
 
-// RetryStaleUserOperations retries stale user operations
-// this is necessary to ensure that user operations are not stuck in a pending state because of bundler issues
-func RetryStaleUserOperations() error {
-	ctx := context.Background()
-	orderService := services.NewOrderService()
-
-	// Retry stale settling lock orders
-	lockOrders, err := storage.GetClient().LockPaymentOrder.
-		Query().
-		Where(
-			lockpaymentorder.StatusEQ(lockpaymentorder.StatusSettling),
-			lockpaymentorder.UpdatedAtLT(time.Now().Add(-10*time.Minute)),
-		).
-		All(ctx)
-	if err != nil {
-		return err
-	}
-
-	go func() {
-		for _, order := range lockOrders {
-			_, err := order.Update().SetStatus(lockpaymentorder.StatusValidated).Save(ctx)
-			if err != nil {
-				continue
-			}
-			err = orderService.SettleOrder(ctx, order.ID)
-			if err != nil {
-				logger.Errorf("RetryStaleUserOperations.SettleOrder task: %v", err)
-			}
-		}
-	}()
-
-	// Retry stale refunding lock orders
-	lockOrders, err = storage.GetClient().LockPaymentOrder.
-		Query().
-		Where(
-			lockpaymentorder.StatusEQ(lockpaymentorder.StatusRefunding),
-			lockpaymentorder.HasFulfillmentWith(
-				lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusSuccess),
-			),
-			lockpaymentorder.UpdatedAtLT(time.Now().Add(-10*time.Minute)),
-		).
-		All(ctx)
-	if err != nil {
-		return err
-	}
-
-	go func() {
-		for _, order := range lockOrders {
-			_, err := order.Update().SetStatus(lockpaymentorder.StatusPending).Save(ctx)
-			if err != nil {
-				continue
-			}
-			err = orderService.RefundOrder(ctx, order.GatewayID)
-			if err != nil {
-				logger.Errorf("RetryStaleUserOperations.RefundOrder task: %v", err)
-			}
-		}
-	}()
-
-	// Retry stale pending orders
-	orders, err := storage.GetClient().PaymentOrder.
-		Query().
-		Where(func(s *sql.Selector) {
-			lpo := sql.Table(lockpaymentorder.Table)
-			s.Where(sql.And(
-				sql.EQ(s.C(paymentorder.FieldStatus), paymentorder.StatusPending),
-				sql.NotNull(s.C(paymentorder.FieldTxHash)),
-				sql.LT(s.C(paymentorder.FieldUpdatedAt), time.Now().Add(-10*time.Minute)),
-				// Exclude orders with matching labels in lockpaymentorder table i.e fetch only orders without corresponding lock payment orders
-				sql.NotExists(
-					sql.Select().
-						From(lpo).
-						Where(sql.ColumnsEQ(s.C(paymentorder.FieldGatewayID), lpo.C(lockpaymentorder.FieldGatewayID))),
-				),
-			))
-		}).
-		All(ctx)
-	if err != nil {
-		return err
-	}
-
-	go func() {
-		for _, order := range orders {
-			err = orderService.CreateOrder(ctx, order.ID)
-			if err != nil {
-				logger.Errorf("RetryStaleUserOperations.CreateOrder task: %v", err)
-			}
-		}
-	}()
-
-	// Retry stale reverting orders
-	orders, err = storage.GetClient().PaymentOrder.
-		Query().
-		Where(
-			paymentorder.StatusEQ(paymentorder.StatusReverting),
-			paymentorder.AmountReturnedGT(decimal.Zero),
-			paymentorder.UpdatedAtLT(time.Now().Add(-10*time.Minute)),
-		).
-		All(ctx)
-	if err != nil {
-		return err
-	}
-
-	go func() {
-		for _, order := range orders {
-			_, err := order.Update().
-				SetStatus(paymentorder.StatusInitiated).
-				SetAmountReturned(decimal.Zero).
-				Save(ctx)
-			if err != nil {
-				continue
-			}
-			err = orderService.RevertOrder(ctx, order)
-			if err != nil {
-				logger.Errorf("RetryStaleUserOperations.RevertOrder task: %v", err)
-			}
-		}
-	}()
-
-	return nil
-}
-
 // StartCronJobs starts cron jobs
 func StartCronJobs() {
 	serverConf := config.ServerConfig()
@@ -640,14 +510,8 @@ func StartCronJobs() {
 		logger.Errorf("StartCronJobs: %v", err)
 	}
 
-	// Process order refunds once a day
-	_, err = scheduler.Cron("0 0 * * *").Do(ProcessOrderRefunds)
-	if err != nil {
-		logger.Errorf("StartCronJobs: %v", err)
-	}
-
-	// Retry stale user operations every 30 minutes
-	_, err = scheduler.Cron("*/30 * * * *").Do(RetryStaleUserOperations)
+	// Retry stale user operations every 15 minutes
+	_, err = scheduler.Cron("*/15 * * * *").Do(RetryStaleUserOperations)
 	if err != nil {
 		logger.Errorf("StartCronJobs: %v", err)
 	}
