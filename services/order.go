@@ -199,7 +199,7 @@ func (s *OrderService) RefundOrder(ctx context.Context, orderID string) error {
 		Update().
 		Where(lockpaymentorder.GatewayIDEQ(lockOrder.GatewayID)).
 		SetTxHash(txHash).
-		SetStatus(lockpaymentorder.StatusRefunding).
+		SetStatus(lockpaymentorder.StatusRefunded).
 		Save(ctx)
 	if err != nil {
 		return fmt.Errorf("RefundOrder.updateTxHash(%v): %w", txHash, err)
@@ -296,7 +296,7 @@ func (s *OrderService) RevertOrder(ctx context.Context, order *ent.PaymentOrder)
 	_, err = order.Update().
 		SetTxHash(txHash).
 		SetAmountReturned(amountMinusFee).
-		SetStatus(paymentorder.StatusReverting).
+		SetStatus(paymentorder.StatusReverted).
 		Save(ctx)
 	if err != nil {
 		return fmt.Errorf("RevertOrder.updateTxHash(%v): %w", txHash, err)
@@ -366,7 +366,7 @@ func (s *OrderService) SettleOrder(ctx context.Context, orderID uuid.UUID) error
 	// Update status of lock order
 	_, err = order.Update().
 		SetTxHash(txHash).
-		SetStatus(lockpaymentorder.StatusSettling).
+		SetStatus(lockpaymentorder.StatusSettled).
 		Save(ctx)
 	if err != nil {
 		return fmt.Errorf("SettleOrder.updateTxHash: %w", err)
@@ -461,13 +461,13 @@ func (s *OrderService) executeBatchTransferCallData(order *ent.PaymentOrder, to 
 func (s *OrderService) executeBatchCreateOrderCallData(order *ent.PaymentOrder) ([]byte, error) {
 	orderAmountWithFees := order.Amount.Add(order.ProtocolFee).Add(order.SenderFee)
 
-	// Create approve data for paycrest order contract
+	// Create approve data for gateway contract
 	approveGatewayData, err := s.approveCallData(
 		OrderConf.GatewayContractAddress,
 		utils.ToSubunit(orderAmountWithFees, order.Edges.Token.Decimals),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create paycrest approve calldata: %w", err)
+		return nil, fmt.Errorf("failed to create gateway approve calldata: %w", err)
 	}
 
 	// Fetch paymaster account
@@ -600,13 +600,13 @@ func (s *OrderService) createOrderCallData(order *ent.PaymentOrder) ([]byte, err
 	}
 
 	// Create ABI
-	paycrestOrderABI, err := abi.JSON(strings.NewReader(contracts.GatewayMetaData.ABI))
+	gatewayABI, err := abi.JSON(strings.NewReader(contracts.GatewayMetaData.ABI))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse GatewayOrder ABI: %w", err)
 	}
 
 	// Generate call data
-	data, err := paycrestOrderABI.Pack(
+	data, err := gatewayABI.Pack(
 		"createOrder",
 		params.Token,
 		params.Amount,
@@ -626,7 +626,7 @@ func (s *OrderService) createOrderCallData(order *ent.PaymentOrder) ([]byte, err
 
 // executeBatchRefundCallData creates the refund calldata for the execute batch method in the smart account.
 func (s *OrderService) executeBatchRefundCallData(order *ent.LockPaymentOrder) ([]byte, error) {
-	// Create approve data for paycrest order contract
+	// Create approve data for gateway contract
 	approveGatewayData, err := s.approveCallData(
 		OrderConf.GatewayContractAddress,
 		utils.ToSubunit(order.Amount, order.Edges.Token.Decimals),
@@ -694,7 +694,7 @@ func (s *OrderService) executeBatchRefundCallData(order *ent.LockPaymentOrder) (
 
 // refundCallData creates the data for the refund method
 func (s *OrderService) refundCallData(fee *big.Int, orderId string) ([]byte, error) {
-	paycrestOrderABI, err := abi.JSON(strings.NewReader(contracts.GatewayMetaData.ABI))
+	gatewayABI, err := abi.JSON(strings.NewReader(contracts.GatewayMetaData.ABI))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse GatewayOrder ABI: %w", err)
 	}
@@ -705,7 +705,7 @@ func (s *OrderService) refundCallData(fee *big.Int, orderId string) ([]byte, err
 	}
 
 	// Generate calldata for refund, orderID, and label should be byte32
-	data, err := paycrestOrderABI.Pack(
+	data, err := gatewayABI.Pack(
 		"refund",
 		fee,
 		utils.StringToByte32(string(decodedOrderID)),
@@ -720,7 +720,7 @@ func (s *OrderService) refundCallData(fee *big.Int, orderId string) ([]byte, err
 
 // executeBatchSettleCallData creates the settle calldata for the execute batch method in the smart account.
 func (s *OrderService) executeBatchSettleCallData(ctx context.Context, order *ent.LockPaymentOrder) ([]byte, error) {
-	// Create approve data for paycrest order contract
+	// Create approve data for gateway contract
 	approveGatewayData, err := s.approveCallData(
 		OrderConf.GatewayContractAddress,
 		utils.ToSubunit(order.Amount, order.Edges.Token.Decimals),
@@ -788,9 +788,9 @@ func (s *OrderService) executeBatchSettleCallData(ctx context.Context, order *en
 	return executeBatchSettleCallData, nil
 }
 
-// settleCallData creates the data for the settle method in the paycrest order contract
+// settleCallData creates the data for the settle method in the gateway contract
 func (s *OrderService) settleCallData(ctx context.Context, order *ent.LockPaymentOrder) ([]byte, error) {
-	paycrestOrderABI, err := abi.JSON(strings.NewReader(contracts.GatewayMetaData.ABI))
+	gatewayABI, err := abi.JSON(strings.NewReader(contracts.GatewayMetaData.ABI))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse GatewayOrder ABI: %w", err)
 	}
@@ -833,7 +833,7 @@ func (s *OrderService) settleCallData(ctx context.Context, order *ent.LockPaymen
 	splitOrderID := strings.ReplaceAll(order.ID.String(), "-", "")
 
 	// Generate calldata for settlement
-	data, err := paycrestOrderABI.Pack(
+	data, err := gatewayABI.Pack(
 		"settle",
 		utils.StringToByte32(splitOrderID),
 		utils.StringToByte32(string(orderID)),

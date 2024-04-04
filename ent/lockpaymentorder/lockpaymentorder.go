@@ -136,6 +136,8 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
+	// DefaultGatewayID holds the default value on creation for the "gateway_id" field.
+	DefaultGatewayID string
 	// TxHashValidator is a validator for the "tx_hash" field. It is called by the builders before save.
 	TxHashValidator func(string) error
 	// DefaultCancellationCount holds the default value on creation for the "cancellation_count" field.
@@ -159,9 +161,7 @@ const (
 	StatusCancelled  Status = "cancelled"
 	StatusFulfilled  Status = "fulfilled"
 	StatusValidated  Status = "validated"
-	StatusSettling   Status = "settling"
 	StatusSettled    Status = "settled"
-	StatusRefunding  Status = "refunding"
 	StatusRefunded   Status = "refunded"
 )
 
@@ -172,7 +172,7 @@ func (s Status) String() string {
 // StatusValidator is a validator for the "status" field enum values. It is called by the builders before save.
 func StatusValidator(s Status) error {
 	switch s {
-	case StatusPending, StatusProcessing, StatusCancelled, StatusFulfilled, StatusValidated, StatusSettling, StatusSettled, StatusRefunding, StatusRefunded:
+	case StatusPending, StatusProcessing, StatusCancelled, StatusFulfilled, StatusValidated, StatusSettled, StatusRefunded:
 		return nil
 	default:
 		return fmt.Errorf("lockpaymentorder: invalid enum value for status field: %q", s)

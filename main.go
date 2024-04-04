@@ -36,11 +36,6 @@ func main() {
 		logger.Fatalf("ContinueIndexing: %s", err)
 	}
 
-	// Start processing orders
-	if err := tasks.ProcessOrders(); err != nil {
-		logger.Fatalf("ProcessOrders: %s", err)
-	}
-
 	// Subscribe to Redis keyspace events
 	tasks.SubscribeToRedisKeyspaceEvents()
 

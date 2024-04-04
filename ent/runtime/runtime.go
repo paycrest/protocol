@@ -100,6 +100,10 @@ func init() {
 	lockpaymentorder.DefaultUpdatedAt = lockpaymentorderDescUpdatedAt.Default.(func() time.Time)
 	// lockpaymentorder.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	lockpaymentorder.UpdateDefaultUpdatedAt = lockpaymentorderDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// lockpaymentorderDescGatewayID is the schema descriptor for gateway_id field.
+	lockpaymentorderDescGatewayID := lockpaymentorderFields[1].Descriptor()
+	// lockpaymentorder.DefaultGatewayID holds the default value on creation for the gateway_id field.
+	lockpaymentorder.DefaultGatewayID = lockpaymentorderDescGatewayID.Default.(string)
 	// lockpaymentorderDescTxHash is the schema descriptor for tx_hash field.
 	lockpaymentorderDescTxHash := lockpaymentorderFields[5].Descriptor()
 	// lockpaymentorder.TxHashValidator is a validator for the "tx_hash" field. It is called by the builders before save.
