@@ -20,8 +20,8 @@ const (
 	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
 	FieldUpdatedAt = "updated_at"
-	// FieldOrderID holds the string denoting the order_id field in the database.
-	FieldOrderID = "order_id"
+	// FieldGatewayID holds the string denoting the gateway_id field in the database.
+	FieldGatewayID = "gateway_id"
 	// FieldAmount holds the string denoting the amount field in the database.
 	FieldAmount = "amount"
 	// FieldRate holds the string denoting the rate field in the database.
@@ -30,8 +30,6 @@ const (
 	FieldOrderPercent = "order_percent"
 	// FieldTxHash holds the string denoting the tx_hash field in the database.
 	FieldTxHash = "tx_hash"
-	// FieldLabel holds the string denoting the label field in the database.
-	FieldLabel = "label"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
 	// FieldBlockNumber holds the string denoting the block_number field in the database.
@@ -93,12 +91,11 @@ var Columns = []string{
 	FieldID,
 	FieldCreatedAt,
 	FieldUpdatedAt,
-	FieldOrderID,
+	FieldGatewayID,
 	FieldAmount,
 	FieldRate,
 	FieldOrderPercent,
 	FieldTxHash,
-	FieldLabel,
 	FieldStatus,
 	FieldBlockNumber,
 	FieldInstitution,
@@ -200,9 +197,9 @@ func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldUpdatedAt, opts...).ToFunc()
 }
 
-// ByOrderID orders the results by the order_id field.
-func ByOrderID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldOrderID, opts...).ToFunc()
+// ByGatewayID orders the results by the gateway_id field.
+func ByGatewayID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldGatewayID, opts...).ToFunc()
 }
 
 // ByAmount orders the results by the amount field.
@@ -223,11 +220,6 @@ func ByOrderPercent(opts ...sql.OrderTermOption) OrderOption {
 // ByTxHash orders the results by the tx_hash field.
 func ByTxHash(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldTxHash, opts...).ToFunc()
-}
-
-// ByLabel orders the results by the label field.
-func ByLabel(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldLabel, opts...).ToFunc()
 }
 
 // ByStatus orders the results by the status field.

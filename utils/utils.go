@@ -248,7 +248,7 @@ func SendPaymentOrderWebhook(ctx context.Context, paymentOrder *ent.PaymentOrder
 			NetworkFee:     paymentOrder.NetworkFee,
 			Rate:           paymentOrder.Rate,
 			Network:        token.Edges.Network.Identifier,
-			Label:          paymentOrder.Label,
+			GatewayID:      paymentOrder.GatewayID,
 			SenderID:       profile.ID,
 			Recipient: types.PaymentOrderRecipient{
 				Institution:       recipient.Institution,

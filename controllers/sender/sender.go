@@ -96,28 +96,6 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 		return
 	}
 
-	// Ensure label is unique for the sender
-	labelExists, err := storage.Client.PaymentOrder.
-		Query().
-		Where(
-			paymentorder.HasSenderProfileWith(senderprofile.IDEQ(sender.ID)),
-			paymentorder.LabelEQ(payload.Label),
-		).
-		Exist(ctx)
-	if err != nil {
-		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to initiate payment order", nil)
-		return
-	}
-
-	if labelExists {
-		u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
-			Field:   "Label",
-			Message: "Label already exists",
-		})
-		return
-	}
-
 	// Generate receive address
 	receiveAddress, err := ctrl.receiveAddressService.CreateSmartAccount(ctx, nil, nil)
 	if err != nil {
@@ -179,7 +157,6 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 		SetProtocolFee(protocolFee).
 		SetSenderFee(senderFee).
 		SetToken(token).
-		SetLabel(payload.Label).
 		SetRate(payload.Rate).
 		SetReceiveAddress(receiveAddress).
 		SetReceiveAddressText(receiveAddress.Address).
@@ -297,7 +274,7 @@ func (ctrl *SenderController) GetPaymentOrderByID(ctx *gin.Context) {
 		FromAddress:    paymentOrder.FromAddress,
 		ReceiveAddress: paymentOrder.ReceiveAddressText,
 		FeeAddress:     paymentOrder.FeeAddress,
-		Label:          paymentOrder.Label,
+		GatewayID:      paymentOrder.GatewayID,
 		CreatedAt:      paymentOrder.CreatedAt,
 		UpdatedAt:      paymentOrder.UpdatedAt,
 		TxHash:         paymentOrder.TxHash,
@@ -450,7 +427,7 @@ func (ctrl *SenderController) GetPaymentOrders(ctx *gin.Context) {
 			FromAddress:    paymentOrder.FromAddress,
 			ReceiveAddress: paymentOrder.ReceiveAddressText,
 			FeeAddress:     paymentOrder.FeeAddress,
-			Label:          paymentOrder.Label,
+			GatewayID:      paymentOrder.GatewayID,
 			CreatedAt:      paymentOrder.CreatedAt,
 			UpdatedAt:      paymentOrder.UpdatedAt,
 			TxHash:         paymentOrder.TxHash,

@@ -123,7 +123,7 @@ func ProcessOrders() error {
 					sql.NotExists(
 						sql.Select().
 							From(lpo).
-							Where(sql.ColumnsEQ(s.C(paymentorder.FieldLabel), lpo.C(lockpaymentorder.FieldLabel))),
+							Where(sql.ColumnsEQ(s.C(paymentorder.FieldGatewayID), lpo.C(lockpaymentorder.FieldGatewayID))),
 					),
 				))
 		}).
@@ -218,7 +218,7 @@ func ProcessOrderRefunds() error {
 		for _, order := range orders {
 			orderService := services.NewOrderService()
 
-			err := orderService.RefundOrder(ctx, order.OrderID)
+			err := orderService.RefundOrder(ctx, order.GatewayID)
 			if err != nil {
 				logger.Errorf("process order refunds task => %v", err)
 			}
@@ -515,7 +515,7 @@ func RetryStaleUserOperations() error {
 			if err != nil {
 				continue
 			}
-			err = orderService.RefundOrder(ctx, order.OrderID)
+			err = orderService.RefundOrder(ctx, order.GatewayID)
 			if err != nil {
 				logger.Errorf("RetryStaleUserOperations.RefundOrder task: %v", err)
 			}
@@ -535,7 +535,7 @@ func RetryStaleUserOperations() error {
 				sql.NotExists(
 					sql.Select().
 						From(lpo).
-						Where(sql.ColumnsEQ(s.C(paymentorder.FieldLabel), lpo.C(lockpaymentorder.FieldLabel))),
+						Where(sql.ColumnsEQ(s.C(paymentorder.FieldGatewayID), lpo.C(lockpaymentorder.FieldGatewayID))),
 				),
 			))
 		}).

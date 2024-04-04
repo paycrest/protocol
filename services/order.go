@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -32,7 +33,6 @@ type CreateOrderParams struct {
 	Token              common.Address
 	Amount             *big.Int
 	InstitutionCode    [32]byte
-	Label              [32]byte
 	Rate               *big.Int
 	SenderFeeRecipient common.Address
 	SenderFee          *big.Int
@@ -113,14 +113,14 @@ func (s *OrderService) CreateOrder(ctx context.Context, orderID uuid.UUID) error
 	}
 
 	// Send user operation
-	userOpHash, err := utils.SendUserOperation(userOperation, order.Edges.Token.Edges.Network.ChainID)
+	txHash, err := utils.SendUserOperation(userOperation, order.Edges.Token.Edges.Network.ChainID)
 	if err != nil {
 		return fmt.Errorf("failed to send user operation: %w", err)
 	}
 
 	// Update payment order with userOpHash
 	_, err = order.Update().
-		SetTxHash(userOpHash).
+		SetTxHash(txHash).
 		SetStatus(paymentorder.StatusPending).
 		Save(ctx)
 	if err != nil {
@@ -150,7 +150,7 @@ func (s *OrderService) RefundOrder(ctx context.Context, orderID string) error {
 	// Fetch lock order from db
 	lockOrder, err := db.Client.LockPaymentOrder.
 		Query().
-		Where(lockpaymentorder.OrderIDEQ(orderID)).
+		Where(lockpaymentorder.GatewayIDEQ(orderID)).
 		WithToken(func(tq *ent.TokenQuery) {
 			tq.WithNetwork()
 		}).
@@ -189,7 +189,7 @@ func (s *OrderService) RefundOrder(ctx context.Context, orderID string) error {
 	_ = utils.SignUserOperation(userOperation, lockOrder.Edges.Token.Edges.Network.ChainID)
 
 	// Send user operation
-	userOpTxHash, err := utils.SendUserOperation(userOperation, lockOrder.Edges.Token.Edges.Network.ChainID)
+	txHash, err := utils.SendUserOperation(userOperation, lockOrder.Edges.Token.Edges.Network.ChainID)
 	if err != nil {
 		return fmt.Errorf("RefundOrder.sendUserOperation: %w", err)
 	}
@@ -197,12 +197,12 @@ func (s *OrderService) RefundOrder(ctx context.Context, orderID string) error {
 	// Update status of all lock orders with same order_id
 	_, err = db.Client.LockPaymentOrder.
 		Update().
-		Where(lockpaymentorder.OrderIDEQ(lockOrder.OrderID)).
-		SetTxHash(userOpTxHash).
+		Where(lockpaymentorder.GatewayIDEQ(lockOrder.GatewayID)).
+		SetTxHash(txHash).
 		SetStatus(lockpaymentorder.StatusRefunding).
 		Save(ctx)
 	if err != nil {
-		return fmt.Errorf("RefundOrder.updateTxHash(%v): %w", userOpTxHash, err)
+		return fmt.Errorf("RefundOrder.updateTxHash(%v): %w", txHash, err)
 	}
 
 	return nil
@@ -287,19 +287,19 @@ func (s *OrderService) RevertOrder(ctx context.Context, order *ent.PaymentOrder)
 	_ = utils.SignUserOperation(userOperation, order.Edges.Token.Edges.Network.ChainID)
 
 	// Send user operation
-	userOpHash, err := utils.SendUserOperation(userOperation, order.Edges.Token.Edges.Network.ChainID)
+	txHash, err := utils.SendUserOperation(userOperation, order.Edges.Token.Edges.Network.ChainID)
 	if err != nil {
 		return fmt.Errorf("RevertOrder.sendUserOperation: %w", err)
 	}
 
 	// Update payment order with userOpHash
 	_, err = order.Update().
-		SetTxHash(userOpHash).
+		SetTxHash(txHash).
 		SetAmountReturned(amountMinusFee).
 		SetStatus(paymentorder.StatusReverting).
 		Save(ctx)
 	if err != nil {
-		return fmt.Errorf("RevertOrder.updateTxHash(%v): %w", userOpHash, err)
+		return fmt.Errorf("RevertOrder.updateTxHash(%v): %w", txHash, err)
 	}
 
 	return nil
@@ -358,14 +358,14 @@ func (s *OrderService) SettleOrder(ctx context.Context, orderID uuid.UUID) error
 	_ = utils.SignUserOperation(userOperation, order.Edges.Token.Edges.Network.ChainID)
 
 	// Send user operation
-	userOpTxHash, err := utils.SendUserOperation(userOperation, order.Edges.Token.Edges.Network.ChainID)
+	txHash, err := utils.SendUserOperation(userOperation, order.Edges.Token.Edges.Network.ChainID)
 	if err != nil {
 		return fmt.Errorf("SettleOrder.sendUserOperation: %w", err)
 	}
 
 	// Update status of lock order
 	_, err = order.Update().
-		SetTxHash(userOpTxHash).
+		SetTxHash(txHash).
 		SetStatus(lockpaymentorder.StatusSettling).
 		Save(ctx)
 	if err != nil {
@@ -390,9 +390,9 @@ func (s *OrderService) GetSupportedInstitutions(ctx context.Context, client type
 	currency := utils.StringToByte32(currencyCode)
 
 	// Initialize contract filterer
-	instance, err := contracts.NewPaycrest(OrderConf.PaycrestOrderContractAddress, client.(bind.ContractBackend))
+	instance, err := contracts.NewGateway(OrderConf.GatewayContractAddress, client.(bind.ContractBackend))
 	if err != nil {
-		return nil, fmt.Errorf("GetSupportedInstitutions.NewPaycrestOrder: %w", err)
+		return nil, fmt.Errorf("GetSupportedInstitutions.NewGatewayOrder: %w", err)
 	}
 
 	institutions, err := instance.GetSupportedInstitutions(nil, currency)
@@ -462,8 +462,8 @@ func (s *OrderService) executeBatchCreateOrderCallData(order *ent.PaymentOrder) 
 	orderAmountWithFees := order.Amount.Add(order.ProtocolFee).Add(order.SenderFee)
 
 	// Create approve data for paycrest order contract
-	approvePaycrestData, err := s.approveCallData(
-		OrderConf.PaycrestOrderContractAddress,
+	approveGatewayData, err := s.approveCallData(
+		OrderConf.GatewayContractAddress,
 		utils.ToSubunit(orderAmountWithFees, order.Edges.Token.Decimals),
 	)
 	if err != nil {
@@ -505,9 +505,9 @@ func (s *OrderService) executeBatchCreateOrderCallData(order *ent.PaymentOrder) 
 		[]common.Address{
 			common.HexToAddress(order.Edges.Token.ContractAddress),
 			common.HexToAddress(order.Edges.Token.ContractAddress),
-			OrderConf.PaycrestOrderContractAddress,
+			OrderConf.GatewayContractAddress,
 		},
-		[][]byte{approvePaymasterData, approvePaycrestData, createOrderData},
+		[][]byte{approvePaymasterData, approveGatewayData, createOrderData},
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to pack execute ABI: %w", err)
@@ -592,7 +592,6 @@ func (s *OrderService) createOrderCallData(order *ent.PaymentOrder) ([]byte, err
 		Token:              common.HexToAddress(order.Edges.Token.ContractAddress),
 		Amount:             utils.ToSubunit(amountWithProtocolFee, order.Edges.Token.Decimals),
 		InstitutionCode:    utils.StringToByte32(order.Edges.Recipient.Institution),
-		Label:              utils.StringToByte32(order.Label),
 		Rate:               order.Rate.BigInt(),
 		SenderFeeRecipient: common.HexToAddress(order.FeeAddress),
 		SenderFee:          order.SenderFee.BigInt(),
@@ -601,9 +600,9 @@ func (s *OrderService) createOrderCallData(order *ent.PaymentOrder) ([]byte, err
 	}
 
 	// Create ABI
-	paycrestOrderABI, err := abi.JSON(strings.NewReader(contracts.PaycrestMetaData.ABI))
+	paycrestOrderABI, err := abi.JSON(strings.NewReader(contracts.GatewayMetaData.ABI))
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse PaycrestOrder ABI: %w", err)
+		return nil, fmt.Errorf("failed to parse GatewayOrder ABI: %w", err)
 	}
 
 	// Generate call data
@@ -612,7 +611,6 @@ func (s *OrderService) createOrderCallData(order *ent.PaymentOrder) ([]byte, err
 		params.Token,
 		params.Amount,
 		params.InstitutionCode,
-		params.Label,
 		params.Rate,
 		params.SenderFeeRecipient,
 		params.SenderFee,
@@ -629,8 +627,8 @@ func (s *OrderService) createOrderCallData(order *ent.PaymentOrder) ([]byte, err
 // executeBatchRefundCallData creates the refund calldata for the execute batch method in the smart account.
 func (s *OrderService) executeBatchRefundCallData(order *ent.LockPaymentOrder) ([]byte, error) {
 	// Create approve data for paycrest order contract
-	approvePaycrestData, err := s.approveCallData(
-		OrderConf.PaycrestOrderContractAddress,
+	approveGatewayData, err := s.approveCallData(
+		OrderConf.GatewayContractAddress,
 		utils.ToSubunit(order.Amount, order.Edges.Token.Decimals),
 	)
 	if err != nil {
@@ -639,7 +637,7 @@ func (s *OrderService) executeBatchRefundCallData(order *ent.LockPaymentOrder) (
 
 	// Create refund data
 	fee := utils.ToSubunit(OrderConf.NetworkFee, order.Edges.Token.Decimals)
-	refundData, err := s.refundCallData(fee, order.OrderID, order.Label)
+	refundData, err := s.refundCallData(fee, order.GatewayID)
 	if err != nil {
 		return nil, fmt.Errorf("executeBatchRefundCallData.refundData: %w", err)
 	}
@@ -651,10 +649,10 @@ func (s *OrderService) executeBatchRefundCallData(order *ent.LockPaymentOrder) (
 
 	contractAddresses := []common.Address{
 		common.HexToAddress(order.Edges.Token.ContractAddress),
-		OrderConf.PaycrestOrderContractAddress,
+		OrderConf.GatewayContractAddress,
 	}
 
-	data := [][]byte{approvePaycrestData, refundData}
+	data := [][]byte{approveGatewayData, refundData}
 
 	if ServerConf.Environment != "production" {
 		paymasterAccount, err := utils.GetPaymasterAccount(order.Edges.Token.Edges.Network.ChainID)
@@ -695,10 +693,10 @@ func (s *OrderService) executeBatchRefundCallData(order *ent.LockPaymentOrder) (
 }
 
 // refundCallData creates the data for the refund method
-func (s *OrderService) refundCallData(fee *big.Int, orderId, label string) ([]byte, error) {
-	paycrestOrderABI, err := abi.JSON(strings.NewReader(contracts.PaycrestMetaData.ABI))
+func (s *OrderService) refundCallData(fee *big.Int, orderId string) ([]byte, error) {
+	paycrestOrderABI, err := abi.JSON(strings.NewReader(contracts.GatewayMetaData.ABI))
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse PaycrestOrder ABI: %w", err)
+		return nil, fmt.Errorf("failed to parse GatewayOrder ABI: %w", err)
 	}
 
 	decodedOrderID, err := hex.DecodeString(orderId[2:])
@@ -711,7 +709,6 @@ func (s *OrderService) refundCallData(fee *big.Int, orderId, label string) ([]by
 		"refund",
 		fee,
 		utils.StringToByte32(string(decodedOrderID)),
-		utils.StringToByte32(label),
 	)
 
 	if err != nil {
@@ -724,8 +721,8 @@ func (s *OrderService) refundCallData(fee *big.Int, orderId, label string) ([]by
 // executeBatchSettleCallData creates the settle calldata for the execute batch method in the smart account.
 func (s *OrderService) executeBatchSettleCallData(ctx context.Context, order *ent.LockPaymentOrder) ([]byte, error) {
 	// Create approve data for paycrest order contract
-	approvePaycrestData, err := s.approveCallData(
-		OrderConf.PaycrestOrderContractAddress,
+	approveGatewayData, err := s.approveCallData(
+		OrderConf.GatewayContractAddress,
 		utils.ToSubunit(order.Amount, order.Edges.Token.Decimals),
 	)
 	if err != nil {
@@ -736,7 +733,7 @@ func (s *OrderService) executeBatchSettleCallData(ctx context.Context, order *en
 		common.HexToAddress(order.Edges.Token.ContractAddress),
 	}
 
-	data := [][]byte{approvePaycrestData}
+	data := [][]byte{approveGatewayData}
 
 	if ServerConf.Environment != "production" {
 		// Fetch paymaster account
@@ -775,7 +772,7 @@ func (s *OrderService) executeBatchSettleCallData(ctx context.Context, order *en
 
 	contractAddresses = append(
 		contractAddresses,
-		OrderConf.PaycrestOrderContractAddress,
+		OrderConf.GatewayContractAddress,
 	)
 	data = append(data, settleData)
 
@@ -793,9 +790,9 @@ func (s *OrderService) executeBatchSettleCallData(ctx context.Context, order *en
 
 // settleCallData creates the data for the settle method in the paycrest order contract
 func (s *OrderService) settleCallData(ctx context.Context, order *ent.LockPaymentOrder) ([]byte, error) {
-	paycrestOrderABI, err := abi.JSON(strings.NewReader(contracts.PaycrestMetaData.ABI))
+	paycrestOrderABI, err := abi.JSON(strings.NewReader(contracts.GatewayMetaData.ABI))
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse PaycrestOrder ABI: %w", err)
+		return nil, fmt.Errorf("failed to parse GatewayOrder ABI: %w", err)
 	}
 
 	// Fetch provider address from db
@@ -828,7 +825,7 @@ func (s *OrderService) settleCallData(ctx context.Context, order *ent.LockPaymen
 		Mul(decimal.NewFromInt(1000)). // convert percent to BPS
 		Float64()
 
-	orderID, err := hex.DecodeString(order.OrderID[2:])
+	orderID, err := hex.DecodeString(order.GatewayID[2:])
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode orderID: %w", err)
 	}
@@ -840,7 +837,6 @@ func (s *OrderService) settleCallData(ctx context.Context, order *ent.LockPaymen
 		"settle",
 		utils.StringToByte32(splitOrderID),
 		utils.StringToByte32(string(orderID)),
-		utils.StringToByte32(order.Label),
 		common.HexToAddress(providerAddress),
 		uint64(orderPercent),
 	)
@@ -869,5 +865,5 @@ func (s *OrderService) encryptOrderRecipient(recipient *ent.PaymentOrderRecipien
 		return "", fmt.Errorf("failed to encrypt message: %w", err)
 	}
 
-	return fmt.Sprintf("0x%x", messageCipher), nil
+	return base64.StdEncoding.EncodeToString(messageCipher), nil
 }

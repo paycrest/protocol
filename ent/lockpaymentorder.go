@@ -28,8 +28,8 @@ type LockPaymentOrder struct {
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
-	// OrderID holds the value of the "order_id" field.
-	OrderID string `json:"order_id,omitempty"`
+	// GatewayID holds the value of the "gateway_id" field.
+	GatewayID string `json:"gateway_id,omitempty"`
 	// Amount holds the value of the "amount" field.
 	Amount decimal.Decimal `json:"amount,omitempty"`
 	// Rate holds the value of the "rate" field.
@@ -38,8 +38,6 @@ type LockPaymentOrder struct {
 	OrderPercent decimal.Decimal `json:"order_percent,omitempty"`
 	// TxHash holds the value of the "tx_hash" field.
 	TxHash string `json:"tx_hash,omitempty"`
-	// Label holds the value of the "label" field.
-	Label string `json:"label,omitempty"`
 	// Status holds the value of the "status" field.
 	Status lockpaymentorder.Status `json:"status,omitempty"`
 	// BlockNumber holds the value of the "block_number" field.
@@ -143,7 +141,7 @@ func (*LockPaymentOrder) scanValues(columns []string) ([]any, error) {
 			values[i] = new(decimal.Decimal)
 		case lockpaymentorder.FieldBlockNumber, lockpaymentorder.FieldCancellationCount:
 			values[i] = new(sql.NullInt64)
-		case lockpaymentorder.FieldOrderID, lockpaymentorder.FieldTxHash, lockpaymentorder.FieldLabel, lockpaymentorder.FieldStatus, lockpaymentorder.FieldInstitution, lockpaymentorder.FieldAccountIdentifier, lockpaymentorder.FieldAccountName, lockpaymentorder.FieldMemo:
+		case lockpaymentorder.FieldGatewayID, lockpaymentorder.FieldTxHash, lockpaymentorder.FieldStatus, lockpaymentorder.FieldInstitution, lockpaymentorder.FieldAccountIdentifier, lockpaymentorder.FieldAccountName, lockpaymentorder.FieldMemo:
 			values[i] = new(sql.NullString)
 		case lockpaymentorder.FieldCreatedAt, lockpaymentorder.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -188,11 +186,11 @@ func (lpo *LockPaymentOrder) assignValues(columns []string, values []any) error 
 			} else if value.Valid {
 				lpo.UpdatedAt = value.Time
 			}
-		case lockpaymentorder.FieldOrderID:
+		case lockpaymentorder.FieldGatewayID:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field order_id", values[i])
+				return fmt.Errorf("unexpected type %T for field gateway_id", values[i])
 			} else if value.Valid {
-				lpo.OrderID = value.String
+				lpo.GatewayID = value.String
 			}
 		case lockpaymentorder.FieldAmount:
 			if value, ok := values[i].(*decimal.Decimal); !ok {
@@ -217,12 +215,6 @@ func (lpo *LockPaymentOrder) assignValues(columns []string, values []any) error 
 				return fmt.Errorf("unexpected type %T for field tx_hash", values[i])
 			} else if value.Valid {
 				lpo.TxHash = value.String
-			}
-		case lockpaymentorder.FieldLabel:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field label", values[i])
-			} else if value.Valid {
-				lpo.Label = value.String
 			}
 		case lockpaymentorder.FieldStatus:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -357,8 +349,8 @@ func (lpo *LockPaymentOrder) String() string {
 	builder.WriteString("updated_at=")
 	builder.WriteString(lpo.UpdatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
-	builder.WriteString("order_id=")
-	builder.WriteString(lpo.OrderID)
+	builder.WriteString("gateway_id=")
+	builder.WriteString(lpo.GatewayID)
 	builder.WriteString(", ")
 	builder.WriteString("amount=")
 	builder.WriteString(fmt.Sprintf("%v", lpo.Amount))
@@ -371,9 +363,6 @@ func (lpo *LockPaymentOrder) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("tx_hash=")
 	builder.WriteString(lpo.TxHash)
-	builder.WriteString(", ")
-	builder.WriteString("label=")
-	builder.WriteString(lpo.Label)
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(fmt.Sprintf("%v", lpo.Status))

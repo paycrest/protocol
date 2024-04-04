@@ -156,9 +156,17 @@ func (poc *PaymentOrderCreate) SetNillableFeeAddress(s *string) *PaymentOrderCre
 	return poc
 }
 
-// SetLabel sets the "label" field.
-func (poc *PaymentOrderCreate) SetLabel(s string) *PaymentOrderCreate {
-	poc.mutation.SetLabel(s)
+// SetGatewayID sets the "gateway_id" field.
+func (poc *PaymentOrderCreate) SetGatewayID(s string) *PaymentOrderCreate {
+	poc.mutation.SetGatewayID(s)
+	return poc
+}
+
+// SetNillableGatewayID sets the "gateway_id" field if the given value is not nil.
+func (poc *PaymentOrderCreate) SetNillableGatewayID(s *string) *PaymentOrderCreate {
+	if s != nil {
+		poc.SetGatewayID(*s)
+	}
 	return poc
 }
 
@@ -356,9 +364,6 @@ func (poc *PaymentOrderCreate) check() error {
 	if _, ok := poc.mutation.FeePerTokenUnit(); !ok {
 		return &ValidationError{Name: "fee_per_token_unit", err: errors.New(`ent: missing required field "PaymentOrder.fee_per_token_unit"`)}
 	}
-	if _, ok := poc.mutation.Label(); !ok {
-		return &ValidationError{Name: "label", err: errors.New(`ent: missing required field "PaymentOrder.label"`)}
-	}
 	if _, ok := poc.mutation.Status(); !ok {
 		return &ValidationError{Name: "status", err: errors.New(`ent: missing required field "PaymentOrder.status"`)}
 	}
@@ -468,9 +473,9 @@ func (poc *PaymentOrderCreate) createSpec() (*PaymentOrder, *sqlgraph.CreateSpec
 		_spec.SetField(paymentorder.FieldFeeAddress, field.TypeString, value)
 		_node.FeeAddress = value
 	}
-	if value, ok := poc.mutation.Label(); ok {
-		_spec.SetField(paymentorder.FieldLabel, field.TypeString, value)
-		_node.Label = value
+	if value, ok := poc.mutation.GatewayID(); ok {
+		_spec.SetField(paymentorder.FieldGatewayID, field.TypeString, value)
+		_node.GatewayID = value
 	}
 	if value, ok := poc.mutation.Status(); ok {
 		_spec.SetField(paymentorder.FieldStatus, field.TypeEnum, value)

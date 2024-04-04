@@ -244,10 +244,9 @@ type ERC20Transfer struct {
 type LockPaymentOrderFields struct {
 	ID                uuid.UUID
 	Token             *ent.Token
-	OrderID           string
+	GatewayID         string
 	Amount            decimal.Decimal
 	Rate              decimal.Decimal
-	Label             string
 	BlockNumber       int64
 	TxHash            string
 	Institution       string
@@ -264,7 +263,7 @@ type LockPaymentOrderFields struct {
 type LockPaymentOrderResponse struct {
 	ID                uuid.UUID       `json:"id"`
 	Token             string          `json:"token"`
-	OrderID           string          `json:"orderId"`
+	GatewayID         string          `json:"gatewayId"`
 	Amount            decimal.Decimal `json:"amount"`
 	Rate              decimal.Decimal `json:"rate"`
 	Label             string          `json:"label"`
@@ -325,7 +324,7 @@ type PaymentOrderResponse struct {
 	TransactionFee decimal.Decimal       `json:"transactionFee"`
 	Rate           decimal.Decimal       `json:"rate"`
 	Network        string                `json:"network"`
-	Label          string                `json:"label"`
+	GatewayID      string                `json:"gatewayId"`
 	Recipient      PaymentOrderRecipient `json:"recipient"`
 	FromAddress    string                `json:"fromAddress"`
 	ReceiveAddress string                `json:"receiveAddress"`
@@ -347,7 +346,7 @@ type PaymentOrderWebhookData struct {
 	NetworkFee     decimal.Decimal       `json:"networkFee"`
 	Rate           decimal.Decimal       `json:"rate"`
 	Network        string                `json:"network"`
-	Label          string                `json:"label"`
+	GatewayID      string                `json:"gatewayId"`
 	SenderID       uuid.UUID             `json:"senderId"`
 	Recipient      PaymentOrderRecipient `json:"recipient"`
 	FromAddress    string                `json:"fromAddress"`
