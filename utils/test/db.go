@@ -99,7 +99,7 @@ func CreateTestLockPaymentOrder(overrides map[string]interface{}) (*ent.LockPaym
 
 	// Default payload
 	payload := map[string]interface{}{
-		"order_id":           "order-123",
+		"gateway_id":         "order-123",
 		"amount":             100.50,
 		"rate":               750.0,
 		"label":              "thisisatestlabel",
@@ -130,11 +130,10 @@ func CreateTestLockPaymentOrder(overrides map[string]interface{}) (*ent.LockPaym
 	// Create LockPaymentOrder
 	order, err := db.Client.LockPaymentOrder.
 		Create().
-		SetOrderID(payload["order_id"].(string)).
+		SetGatewayID(payload["gateway_id"].(string)).
 		SetAmount(decimal.NewFromFloat(payload["amount"].(float64))).
 		SetRate(decimal.NewFromFloat(payload["rate"].(float64))).
 		SetStatus(lockpaymentorder.Status(payload["status"].(string))).
-		SetLabel(payload["label"].(string)).
 		SetOrderPercent(decimal.NewFromFloat(100.0)).
 		SetBlockNumber(int64(payload["block_number"].(int))).
 		SetInstitution(payload["institution"].(string)).

@@ -14,7 +14,7 @@ type OrderConfiguration struct {
 	OrderFulfillmentValidity         time.Duration
 	ReceiveAddressValidity           time.Duration
 	OrderRequestValidity             time.Duration
-	PaycrestOrderContractAddress     common.Address
+	GatewayContractAddress           common.Address
 	EntryPointContractAddress        common.Address
 	BucketQueueRebuildInterval       int // in hours
 	RefundCancellationCount          int
@@ -44,7 +44,7 @@ func OrderConfig() *OrderConfiguration {
 		OrderFulfillmentValidity:         time.Duration(viper.GetInt("ORDER_FULFILLMENT_VALIDITY")) * time.Minute,
 		ReceiveAddressValidity:           time.Duration(viper.GetInt("RECEIVE_ADDRESS_VALIDITY")) * time.Minute,
 		OrderRequestValidity:             time.Duration(viper.GetInt("ORDER_REQUEST_VALIDITY")) * time.Second,
-		PaycrestOrderContractAddress:     common.HexToAddress(viper.GetString("PAYCREST_ORDER_CONTRACT_ADDRESS")),
+		GatewayContractAddress:           common.HexToAddress(viper.GetString("GATEWAY_CONTRACT_ADDRESS")),
 		BundlerUrlPolygon:                viper.GetString("BUNDLER_URL_POLYGON"),
 		PaymasterUrlPolygon:              viper.GetString("PAYMASTER_URL_POLYGON"),
 		BundlerUrlBase:                   viper.GetString("BUNDLER_URL_BASE"),

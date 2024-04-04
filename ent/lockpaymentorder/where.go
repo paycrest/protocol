@@ -67,9 +67,9 @@ func UpdatedAt(v time.Time) predicate.LockPaymentOrder {
 	return predicate.LockPaymentOrder(sql.FieldEQ(FieldUpdatedAt, v))
 }
 
-// OrderID applies equality check predicate on the "order_id" field. It's identical to OrderIDEQ.
-func OrderID(v string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldEQ(FieldOrderID, v))
+// GatewayID applies equality check predicate on the "gateway_id" field. It's identical to GatewayIDEQ.
+func GatewayID(v string) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(sql.FieldEQ(FieldGatewayID, v))
 }
 
 // Amount applies equality check predicate on the "amount" field. It's identical to AmountEQ.
@@ -202,69 +202,69 @@ func UpdatedAtLTE(v time.Time) predicate.LockPaymentOrder {
 	return predicate.LockPaymentOrder(sql.FieldLTE(FieldUpdatedAt, v))
 }
 
-// OrderIDEQ applies the EQ predicate on the "order_id" field.
-func OrderIDEQ(v string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldEQ(FieldOrderID, v))
+// GatewayIDEQ applies the EQ predicate on the "gateway_id" field.
+func GatewayIDEQ(v string) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(sql.FieldEQ(FieldGatewayID, v))
 }
 
-// OrderIDNEQ applies the NEQ predicate on the "order_id" field.
-func OrderIDNEQ(v string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldNEQ(FieldOrderID, v))
+// GatewayIDNEQ applies the NEQ predicate on the "gateway_id" field.
+func GatewayIDNEQ(v string) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(sql.FieldNEQ(FieldGatewayID, v))
 }
 
-// OrderIDIn applies the In predicate on the "order_id" field.
-func OrderIDIn(vs ...string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldIn(FieldOrderID, vs...))
+// GatewayIDIn applies the In predicate on the "gateway_id" field.
+func GatewayIDIn(vs ...string) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(sql.FieldIn(FieldGatewayID, vs...))
 }
 
-// OrderIDNotIn applies the NotIn predicate on the "order_id" field.
-func OrderIDNotIn(vs ...string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldNotIn(FieldOrderID, vs...))
+// GatewayIDNotIn applies the NotIn predicate on the "gateway_id" field.
+func GatewayIDNotIn(vs ...string) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(sql.FieldNotIn(FieldGatewayID, vs...))
 }
 
-// OrderIDGT applies the GT predicate on the "order_id" field.
-func OrderIDGT(v string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldGT(FieldOrderID, v))
+// GatewayIDGT applies the GT predicate on the "gateway_id" field.
+func GatewayIDGT(v string) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(sql.FieldGT(FieldGatewayID, v))
 }
 
-// OrderIDGTE applies the GTE predicate on the "order_id" field.
-func OrderIDGTE(v string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldGTE(FieldOrderID, v))
+// GatewayIDGTE applies the GTE predicate on the "gateway_id" field.
+func GatewayIDGTE(v string) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(sql.FieldGTE(FieldGatewayID, v))
 }
 
-// OrderIDLT applies the LT predicate on the "order_id" field.
-func OrderIDLT(v string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldLT(FieldOrderID, v))
+// GatewayIDLT applies the LT predicate on the "gateway_id" field.
+func GatewayIDLT(v string) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(sql.FieldLT(FieldGatewayID, v))
 }
 
-// OrderIDLTE applies the LTE predicate on the "order_id" field.
-func OrderIDLTE(v string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldLTE(FieldOrderID, v))
+// GatewayIDLTE applies the LTE predicate on the "gateway_id" field.
+func GatewayIDLTE(v string) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(sql.FieldLTE(FieldGatewayID, v))
 }
 
-// OrderIDContains applies the Contains predicate on the "order_id" field.
-func OrderIDContains(v string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldContains(FieldOrderID, v))
+// GatewayIDContains applies the Contains predicate on the "gateway_id" field.
+func GatewayIDContains(v string) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(sql.FieldContains(FieldGatewayID, v))
 }
 
-// OrderIDHasPrefix applies the HasPrefix predicate on the "order_id" field.
-func OrderIDHasPrefix(v string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldHasPrefix(FieldOrderID, v))
+// GatewayIDHasPrefix applies the HasPrefix predicate on the "gateway_id" field.
+func GatewayIDHasPrefix(v string) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(sql.FieldHasPrefix(FieldGatewayID, v))
 }
 
-// OrderIDHasSuffix applies the HasSuffix predicate on the "order_id" field.
-func OrderIDHasSuffix(v string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldHasSuffix(FieldOrderID, v))
+// GatewayIDHasSuffix applies the HasSuffix predicate on the "gateway_id" field.
+func GatewayIDHasSuffix(v string) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(sql.FieldHasSuffix(FieldGatewayID, v))
 }
 
-// OrderIDEqualFold applies the EqualFold predicate on the "order_id" field.
-func OrderIDEqualFold(v string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldEqualFold(FieldOrderID, v))
+// GatewayIDEqualFold applies the EqualFold predicate on the "gateway_id" field.
+func GatewayIDEqualFold(v string) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(sql.FieldEqualFold(FieldGatewayID, v))
 }
 
-// OrderIDContainsFold applies the ContainsFold predicate on the "order_id" field.
-func OrderIDContainsFold(v string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldContainsFold(FieldOrderID, v))
+// GatewayIDContainsFold applies the ContainsFold predicate on the "gateway_id" field.
+func GatewayIDContainsFold(v string) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(sql.FieldContainsFold(FieldGatewayID, v))
 }
 
 // AmountEQ applies the EQ predicate on the "amount" field.
@@ -460,71 +460,6 @@ func TxHashEqualFold(v string) predicate.LockPaymentOrder {
 // TxHashContainsFold applies the ContainsFold predicate on the "tx_hash" field.
 func TxHashContainsFold(v string) predicate.LockPaymentOrder {
 	return predicate.LockPaymentOrder(sql.FieldContainsFold(FieldTxHash, v))
-}
-
-// LabelEQ applies the EQ predicate on the "label" field.
-func LabelEQ(v string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldEQ(FieldLabel, v))
-}
-
-// LabelNEQ applies the NEQ predicate on the "label" field.
-func LabelNEQ(v string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldNEQ(FieldLabel, v))
-}
-
-// LabelIn applies the In predicate on the "label" field.
-func LabelIn(vs ...string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldIn(FieldLabel, vs...))
-}
-
-// LabelNotIn applies the NotIn predicate on the "label" field.
-func LabelNotIn(vs ...string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldNotIn(FieldLabel, vs...))
-}
-
-// LabelGT applies the GT predicate on the "label" field.
-func LabelGT(v string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldGT(FieldLabel, v))
-}
-
-// LabelGTE applies the GTE predicate on the "label" field.
-func LabelGTE(v string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldGTE(FieldLabel, v))
-}
-
-// LabelLT applies the LT predicate on the "label" field.
-func LabelLT(v string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldLT(FieldLabel, v))
-}
-
-// LabelLTE applies the LTE predicate on the "label" field.
-func LabelLTE(v string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldLTE(FieldLabel, v))
-}
-
-// LabelContains applies the Contains predicate on the "label" field.
-func LabelContains(v string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldContains(FieldLabel, v))
-}
-
-// LabelHasPrefix applies the HasPrefix predicate on the "label" field.
-func LabelHasPrefix(v string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldHasPrefix(FieldLabel, v))
-}
-
-// LabelHasSuffix applies the HasSuffix predicate on the "label" field.
-func LabelHasSuffix(v string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldHasSuffix(FieldLabel, v))
-}
-
-// LabelEqualFold applies the EqualFold predicate on the "label" field.
-func LabelEqualFold(v string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldEqualFold(FieldLabel, v))
-}
-
-// LabelContainsFold applies the ContainsFold predicate on the "label" field.
-func LabelContainsFold(v string) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(sql.FieldContainsFold(FieldLabel, v))
 }
 
 // StatusEQ applies the EQ predicate on the "status" field.

@@ -41,9 +41,9 @@ func (lpou *LockPaymentOrderUpdate) SetUpdatedAt(t time.Time) *LockPaymentOrderU
 	return lpou
 }
 
-// SetOrderID sets the "order_id" field.
-func (lpou *LockPaymentOrderUpdate) SetOrderID(s string) *LockPaymentOrderUpdate {
-	lpou.mutation.SetOrderID(s)
+// SetGatewayID sets the "gateway_id" field.
+func (lpou *LockPaymentOrderUpdate) SetGatewayID(s string) *LockPaymentOrderUpdate {
+	lpou.mutation.SetGatewayID(s)
 	return lpou
 }
 
@@ -103,12 +103,6 @@ func (lpou *LockPaymentOrderUpdate) SetNillableTxHash(s *string) *LockPaymentOrd
 // ClearTxHash clears the value of the "tx_hash" field.
 func (lpou *LockPaymentOrderUpdate) ClearTxHash() *LockPaymentOrderUpdate {
 	lpou.mutation.ClearTxHash()
-	return lpou
-}
-
-// SetLabel sets the "label" field.
-func (lpou *LockPaymentOrderUpdate) SetLabel(s string) *LockPaymentOrderUpdate {
-	lpou.mutation.SetLabel(s)
 	return lpou
 }
 
@@ -376,8 +370,8 @@ func (lpou *LockPaymentOrderUpdate) sqlSave(ctx context.Context) (n int, err err
 	if value, ok := lpou.mutation.UpdatedAt(); ok {
 		_spec.SetField(lockpaymentorder.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := lpou.mutation.OrderID(); ok {
-		_spec.SetField(lockpaymentorder.FieldOrderID, field.TypeString, value)
+	if value, ok := lpou.mutation.GatewayID(); ok {
+		_spec.SetField(lockpaymentorder.FieldGatewayID, field.TypeString, value)
 	}
 	if value, ok := lpou.mutation.Amount(); ok {
 		_spec.SetField(lockpaymentorder.FieldAmount, field.TypeFloat64, value)
@@ -402,9 +396,6 @@ func (lpou *LockPaymentOrderUpdate) sqlSave(ctx context.Context) (n int, err err
 	}
 	if lpou.mutation.TxHashCleared() {
 		_spec.ClearField(lockpaymentorder.FieldTxHash, field.TypeString)
-	}
-	if value, ok := lpou.mutation.Label(); ok {
-		_spec.SetField(lockpaymentorder.FieldLabel, field.TypeString, value)
 	}
 	if value, ok := lpou.mutation.Status(); ok {
 		_spec.SetField(lockpaymentorder.FieldStatus, field.TypeEnum, value)
@@ -586,9 +577,9 @@ func (lpouo *LockPaymentOrderUpdateOne) SetUpdatedAt(t time.Time) *LockPaymentOr
 	return lpouo
 }
 
-// SetOrderID sets the "order_id" field.
-func (lpouo *LockPaymentOrderUpdateOne) SetOrderID(s string) *LockPaymentOrderUpdateOne {
-	lpouo.mutation.SetOrderID(s)
+// SetGatewayID sets the "gateway_id" field.
+func (lpouo *LockPaymentOrderUpdateOne) SetGatewayID(s string) *LockPaymentOrderUpdateOne {
+	lpouo.mutation.SetGatewayID(s)
 	return lpouo
 }
 
@@ -648,12 +639,6 @@ func (lpouo *LockPaymentOrderUpdateOne) SetNillableTxHash(s *string) *LockPaymen
 // ClearTxHash clears the value of the "tx_hash" field.
 func (lpouo *LockPaymentOrderUpdateOne) ClearTxHash() *LockPaymentOrderUpdateOne {
 	lpouo.mutation.ClearTxHash()
-	return lpouo
-}
-
-// SetLabel sets the "label" field.
-func (lpouo *LockPaymentOrderUpdateOne) SetLabel(s string) *LockPaymentOrderUpdateOne {
-	lpouo.mutation.SetLabel(s)
 	return lpouo
 }
 
@@ -951,8 +936,8 @@ func (lpouo *LockPaymentOrderUpdateOne) sqlSave(ctx context.Context) (_node *Loc
 	if value, ok := lpouo.mutation.UpdatedAt(); ok {
 		_spec.SetField(lockpaymentorder.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := lpouo.mutation.OrderID(); ok {
-		_spec.SetField(lockpaymentorder.FieldOrderID, field.TypeString, value)
+	if value, ok := lpouo.mutation.GatewayID(); ok {
+		_spec.SetField(lockpaymentorder.FieldGatewayID, field.TypeString, value)
 	}
 	if value, ok := lpouo.mutation.Amount(); ok {
 		_spec.SetField(lockpaymentorder.FieldAmount, field.TypeFloat64, value)
@@ -977,9 +962,6 @@ func (lpouo *LockPaymentOrderUpdateOne) sqlSave(ctx context.Context) (_node *Loc
 	}
 	if lpouo.mutation.TxHashCleared() {
 		_spec.ClearField(lockpaymentorder.FieldTxHash, field.TypeString)
-	}
-	if value, ok := lpouo.mutation.Label(); ok {
-		_spec.SetField(lockpaymentorder.FieldLabel, field.TypeString, value)
 	}
 	if value, ok := lpouo.mutation.Status(); ok {
 		_spec.SetField(lockpaymentorder.FieldStatus, field.TypeEnum, value)

@@ -43,7 +43,7 @@ func (PaymentOrder) Fields() []ent.Field {
 			MaxLen(60),
 		field.Float("fee_per_token_unit").GoType(decimal.Decimal{}),
 		field.String("fee_address").Optional(),
-		field.String("label"),
+		field.String("gateway_id").Optional(),
 		field.Enum("status").
 			Values("initiated", "reverting", "reverted", "pending", "expired", "settled", "refunded").
 			Default("initiated"),

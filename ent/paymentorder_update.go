@@ -223,9 +223,23 @@ func (pou *PaymentOrderUpdate) ClearFeeAddress() *PaymentOrderUpdate {
 	return pou
 }
 
-// SetLabel sets the "label" field.
-func (pou *PaymentOrderUpdate) SetLabel(s string) *PaymentOrderUpdate {
-	pou.mutation.SetLabel(s)
+// SetGatewayID sets the "gateway_id" field.
+func (pou *PaymentOrderUpdate) SetGatewayID(s string) *PaymentOrderUpdate {
+	pou.mutation.SetGatewayID(s)
+	return pou
+}
+
+// SetNillableGatewayID sets the "gateway_id" field if the given value is not nil.
+func (pou *PaymentOrderUpdate) SetNillableGatewayID(s *string) *PaymentOrderUpdate {
+	if s != nil {
+		pou.SetGatewayID(*s)
+	}
+	return pou
+}
+
+// ClearGatewayID clears the value of the "gateway_id" field.
+func (pou *PaymentOrderUpdate) ClearGatewayID() *PaymentOrderUpdate {
+	pou.mutation.ClearGatewayID()
 	return pou
 }
 
@@ -489,8 +503,11 @@ func (pou *PaymentOrderUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if pou.mutation.FeeAddressCleared() {
 		_spec.ClearField(paymentorder.FieldFeeAddress, field.TypeString)
 	}
-	if value, ok := pou.mutation.Label(); ok {
-		_spec.SetField(paymentorder.FieldLabel, field.TypeString, value)
+	if value, ok := pou.mutation.GatewayID(); ok {
+		_spec.SetField(paymentorder.FieldGatewayID, field.TypeString, value)
+	}
+	if pou.mutation.GatewayIDCleared() {
+		_spec.ClearField(paymentorder.FieldGatewayID, field.TypeString)
 	}
 	if value, ok := pou.mutation.Status(); ok {
 		_spec.SetField(paymentorder.FieldStatus, field.TypeEnum, value)
@@ -820,9 +837,23 @@ func (pouo *PaymentOrderUpdateOne) ClearFeeAddress() *PaymentOrderUpdateOne {
 	return pouo
 }
 
-// SetLabel sets the "label" field.
-func (pouo *PaymentOrderUpdateOne) SetLabel(s string) *PaymentOrderUpdateOne {
-	pouo.mutation.SetLabel(s)
+// SetGatewayID sets the "gateway_id" field.
+func (pouo *PaymentOrderUpdateOne) SetGatewayID(s string) *PaymentOrderUpdateOne {
+	pouo.mutation.SetGatewayID(s)
+	return pouo
+}
+
+// SetNillableGatewayID sets the "gateway_id" field if the given value is not nil.
+func (pouo *PaymentOrderUpdateOne) SetNillableGatewayID(s *string) *PaymentOrderUpdateOne {
+	if s != nil {
+		pouo.SetGatewayID(*s)
+	}
+	return pouo
+}
+
+// ClearGatewayID clears the value of the "gateway_id" field.
+func (pouo *PaymentOrderUpdateOne) ClearGatewayID() *PaymentOrderUpdateOne {
+	pouo.mutation.ClearGatewayID()
 	return pouo
 }
 
@@ -1116,8 +1147,11 @@ func (pouo *PaymentOrderUpdateOne) sqlSave(ctx context.Context) (_node *PaymentO
 	if pouo.mutation.FeeAddressCleared() {
 		_spec.ClearField(paymentorder.FieldFeeAddress, field.TypeString)
 	}
-	if value, ok := pouo.mutation.Label(); ok {
-		_spec.SetField(paymentorder.FieldLabel, field.TypeString, value)
+	if value, ok := pouo.mutation.GatewayID(); ok {
+		_spec.SetField(paymentorder.FieldGatewayID, field.TypeString, value)
+	}
+	if pouo.mutation.GatewayIDCleared() {
+		_spec.ClearField(paymentorder.FieldGatewayID, field.TypeString)
 	}
 	if value, ok := pouo.mutation.Status(); ok {
 		_spec.SetField(paymentorder.FieldStatus, field.TypeEnum, value)

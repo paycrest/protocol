@@ -114,10 +114,9 @@ func (ctrl *ProviderController) GetLockPaymentOrders(ctx *gin.Context) {
 		orders = append(orders, types.LockPaymentOrderResponse{
 			ID:                order.ID,
 			Token:             order.Edges.Token.Symbol,
-			OrderID:           order.OrderID,
+			GatewayID:         order.GatewayID,
 			Amount:            order.Amount,
 			Rate:              order.Rate,
-			Label:             order.Label,
 			Institution:       order.Institution,
 			AccountIdentifier: order.AccountIdentifier,
 			AccountName:       order.AccountName,
@@ -436,7 +435,7 @@ func (ctrl *ProviderController) CancelOrder(ctx *gin.Context) {
 	// Check if order cancellation count is equal or greater than RefundCancellationCount in config,
 	// and the order has not been refunded, then trigger refund
 	if order.CancellationCount >= orderConf.RefundCancellationCount && order.Status == lockpaymentorder.StatusCancelled {
-		err = ctrl.orderService.RefundOrder(ctx, order.OrderID)
+		err = ctrl.orderService.RefundOrder(ctx, order.GatewayID)
 		if err != nil {
 			logger.Errorf("CancelOrder.RefundOrder(%v): %v", orderID, err)
 		}

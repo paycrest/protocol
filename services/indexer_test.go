@@ -88,7 +88,6 @@ func setup() error {
 		SetPercentSettled(decimal.NewFromInt(0)).
 		SetRate(decimal.NewFromInt(750)).
 		SetToken(token).
-		SetLabel("test payment order").
 		SetReceiveAddress(receiveAddress).
 		SetReceiveAddressText(receiveAddress.Address).
 		SetFeePerTokenUnit(senderProfile.FeePerTokenUnit).

@@ -53,8 +53,8 @@ type PaymentOrder struct {
 	FeePerTokenUnit decimal.Decimal `json:"fee_per_token_unit,omitempty"`
 	// FeeAddress holds the value of the "fee_address" field.
 	FeeAddress string `json:"fee_address,omitempty"`
-	// Label holds the value of the "label" field.
-	Label string `json:"label,omitempty"`
+	// GatewayID holds the value of the "gateway_id" field.
+	GatewayID string `json:"gateway_id,omitempty"`
 	// Status holds the value of the "status" field.
 	Status paymentorder.Status `json:"status,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -140,7 +140,7 @@ func (*PaymentOrder) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case paymentorder.FieldAmount, paymentorder.FieldAmountPaid, paymentorder.FieldAmountReturned, paymentorder.FieldPercentSettled, paymentorder.FieldSenderFee, paymentorder.FieldNetworkFee, paymentorder.FieldProtocolFee, paymentorder.FieldRate, paymentorder.FieldFeePerTokenUnit:
 			values[i] = new(decimal.Decimal)
-		case paymentorder.FieldTxHash, paymentorder.FieldFromAddress, paymentorder.FieldReceiveAddressText, paymentorder.FieldFeeAddress, paymentorder.FieldLabel, paymentorder.FieldStatus:
+		case paymentorder.FieldTxHash, paymentorder.FieldFromAddress, paymentorder.FieldReceiveAddressText, paymentorder.FieldFeeAddress, paymentorder.FieldGatewayID, paymentorder.FieldStatus:
 			values[i] = new(sql.NullString)
 		case paymentorder.FieldCreatedAt, paymentorder.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -263,11 +263,11 @@ func (po *PaymentOrder) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				po.FeeAddress = value.String
 			}
-		case paymentorder.FieldLabel:
+		case paymentorder.FieldGatewayID:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field label", values[i])
+				return fmt.Errorf("unexpected type %T for field gateway_id", values[i])
 			} else if value.Valid {
-				po.Label = value.String
+				po.GatewayID = value.String
 			}
 		case paymentorder.FieldStatus:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -397,8 +397,8 @@ func (po *PaymentOrder) String() string {
 	builder.WriteString("fee_address=")
 	builder.WriteString(po.FeeAddress)
 	builder.WriteString(", ")
-	builder.WriteString("label=")
-	builder.WriteString(po.Label)
+	builder.WriteString("gateway_id=")
+	builder.WriteString(po.GatewayID)
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(fmt.Sprintf("%v", po.Status))

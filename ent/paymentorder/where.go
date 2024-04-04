@@ -132,6 +132,11 @@ func FeeAddress(v string) predicate.PaymentOrder {
 	return predicate.PaymentOrder(sql.FieldEQ(FieldFeeAddress, v))
 }
 
+// GatewayID applies equality check predicate on the "gateway_id" field. It's identical to GatewayIDEQ.
+func GatewayID(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldEQ(FieldGatewayID, v))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.PaymentOrder {
 	return predicate.PaymentOrder(sql.FieldEQ(FieldCreatedAt, v))
@@ -862,69 +867,79 @@ func FeeAddressContainsFold(v string) predicate.PaymentOrder {
 	return predicate.PaymentOrder(sql.FieldContainsFold(FieldFeeAddress, v))
 }
 
-// LabelEQ applies the EQ predicate on the "label" field.
-func LabelEQ(v string) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldEQ(FieldLabel, v))
+// GatewayIDEQ applies the EQ predicate on the "gateway_id" field.
+func GatewayIDEQ(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldEQ(FieldGatewayID, v))
 }
 
-// LabelNEQ applies the NEQ predicate on the "label" field.
-func LabelNEQ(v string) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldNEQ(FieldLabel, v))
+// GatewayIDNEQ applies the NEQ predicate on the "gateway_id" field.
+func GatewayIDNEQ(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldNEQ(FieldGatewayID, v))
 }
 
-// LabelIn applies the In predicate on the "label" field.
-func LabelIn(vs ...string) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldIn(FieldLabel, vs...))
+// GatewayIDIn applies the In predicate on the "gateway_id" field.
+func GatewayIDIn(vs ...string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldIn(FieldGatewayID, vs...))
 }
 
-// LabelNotIn applies the NotIn predicate on the "label" field.
-func LabelNotIn(vs ...string) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldNotIn(FieldLabel, vs...))
+// GatewayIDNotIn applies the NotIn predicate on the "gateway_id" field.
+func GatewayIDNotIn(vs ...string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldNotIn(FieldGatewayID, vs...))
 }
 
-// LabelGT applies the GT predicate on the "label" field.
-func LabelGT(v string) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldGT(FieldLabel, v))
+// GatewayIDGT applies the GT predicate on the "gateway_id" field.
+func GatewayIDGT(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldGT(FieldGatewayID, v))
 }
 
-// LabelGTE applies the GTE predicate on the "label" field.
-func LabelGTE(v string) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldGTE(FieldLabel, v))
+// GatewayIDGTE applies the GTE predicate on the "gateway_id" field.
+func GatewayIDGTE(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldGTE(FieldGatewayID, v))
 }
 
-// LabelLT applies the LT predicate on the "label" field.
-func LabelLT(v string) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldLT(FieldLabel, v))
+// GatewayIDLT applies the LT predicate on the "gateway_id" field.
+func GatewayIDLT(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldLT(FieldGatewayID, v))
 }
 
-// LabelLTE applies the LTE predicate on the "label" field.
-func LabelLTE(v string) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldLTE(FieldLabel, v))
+// GatewayIDLTE applies the LTE predicate on the "gateway_id" field.
+func GatewayIDLTE(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldLTE(FieldGatewayID, v))
 }
 
-// LabelContains applies the Contains predicate on the "label" field.
-func LabelContains(v string) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldContains(FieldLabel, v))
+// GatewayIDContains applies the Contains predicate on the "gateway_id" field.
+func GatewayIDContains(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldContains(FieldGatewayID, v))
 }
 
-// LabelHasPrefix applies the HasPrefix predicate on the "label" field.
-func LabelHasPrefix(v string) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldHasPrefix(FieldLabel, v))
+// GatewayIDHasPrefix applies the HasPrefix predicate on the "gateway_id" field.
+func GatewayIDHasPrefix(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldHasPrefix(FieldGatewayID, v))
 }
 
-// LabelHasSuffix applies the HasSuffix predicate on the "label" field.
-func LabelHasSuffix(v string) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldHasSuffix(FieldLabel, v))
+// GatewayIDHasSuffix applies the HasSuffix predicate on the "gateway_id" field.
+func GatewayIDHasSuffix(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldHasSuffix(FieldGatewayID, v))
 }
 
-// LabelEqualFold applies the EqualFold predicate on the "label" field.
-func LabelEqualFold(v string) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldEqualFold(FieldLabel, v))
+// GatewayIDIsNil applies the IsNil predicate on the "gateway_id" field.
+func GatewayIDIsNil() predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldIsNull(FieldGatewayID))
 }
 
-// LabelContainsFold applies the ContainsFold predicate on the "label" field.
-func LabelContainsFold(v string) predicate.PaymentOrder {
-	return predicate.PaymentOrder(sql.FieldContainsFold(FieldLabel, v))
+// GatewayIDNotNil applies the NotNil predicate on the "gateway_id" field.
+func GatewayIDNotNil() predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldNotNull(FieldGatewayID))
+}
+
+// GatewayIDEqualFold applies the EqualFold predicate on the "gateway_id" field.
+func GatewayIDEqualFold(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldEqualFold(FieldGatewayID, v))
+}
+
+// GatewayIDContainsFold applies the ContainsFold predicate on the "gateway_id" field.
+func GatewayIDContainsFold(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldContainsFold(FieldGatewayID, v))
 }
 
 // StatusEQ applies the EQ predicate on the "status" field.

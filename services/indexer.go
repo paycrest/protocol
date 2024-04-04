@@ -2,10 +2,10 @@ package services
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -192,9 +192,9 @@ func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPC
 	}
 
 	// Initialize contract filterer
-	filterer, err := contracts.NewPaycrestFilterer(OrderConf.PaycrestOrderContractAddress, client)
+	filterer, err := contracts.NewGatewayFilterer(OrderConf.GatewayContractAddress, client)
 	if err != nil {
-		return fmt.Errorf("IndexOrderCreated.NewPaycrestFilterer: %w", err)
+		return fmt.Errorf("IndexOrderCreated.NewGatewayFilterer: %w", err)
 	}
 
 	// Index missed blocks
@@ -203,7 +203,7 @@ func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPC
 		opts := s.getMissedOrderBlocksOpts(ctx, client, network, lockpaymentorder.StatusPending)
 
 		// Fetch logs
-		var iter *contracts.PaycrestOrderCreatedIterator
+		var iter *contracts.GatewayOrderCreatedIterator
 		retryErr := utils.Retry(3, 5*time.Second, func() error {
 			var err error
 			iter, err = filterer.FilterOrderCreated(opts, nil, nil, nil)
@@ -226,7 +226,7 @@ func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPC
 
 	if ServerConf.Environment != "test" {
 		// Start listening for deposit events
-		logs := make(chan *contracts.PaycrestOrderCreated)
+		logs := make(chan *contracts.GatewayOrderCreated)
 
 		sub, err := filterer.WatchOrderCreated(&bind.WatchOpts{
 			Start: nil,
@@ -286,9 +286,9 @@ func (s *IndexerService) IndexOrderSettled(ctx context.Context, client types.RPC
 	}
 
 	// Initialize contract filterer
-	filterer, err := contracts.NewPaycrestFilterer(OrderConf.PaycrestOrderContractAddress, client)
+	filterer, err := contracts.NewGatewayFilterer(OrderConf.GatewayContractAddress, client)
 	if err != nil {
-		return fmt.Errorf("IndexOrderSettled.NewPaycrestFilterer: %w", err)
+		return fmt.Errorf("IndexOrderSettled.NewGatewayFilterer: %w", err)
 	}
 
 	// Index missed blocks
@@ -297,7 +297,7 @@ func (s *IndexerService) IndexOrderSettled(ctx context.Context, client types.RPC
 		opts := s.getMissedOrderBlocksOpts(ctx, client, network, lockpaymentorder.StatusSettling)
 
 		// Fetch logs
-		var iter *contracts.PaycrestOrderSettledIterator
+		var iter *contracts.GatewayOrderSettledIterator
 		retryErr := utils.Retry(3, 5*time.Second, func() error {
 			var err error
 			iter, err = filterer.FilterOrderSettled(opts, nil, nil)
@@ -321,7 +321,7 @@ func (s *IndexerService) IndexOrderSettled(ctx context.Context, client types.RPC
 
 	if ServerConf.Environment != "test" {
 		// Start listening for settlement events
-		logs := make(chan *contracts.PaycrestOrderSettled)
+		logs := make(chan *contracts.GatewayOrderSettled)
 
 		sub, err := filterer.WatchOrderSettled(&bind.WatchOpts{
 			Start: nil,
@@ -380,9 +380,9 @@ func (s *IndexerService) IndexOrderRefunded(ctx context.Context, client types.RP
 	}
 
 	// Initialize contract filterer
-	filterer, err := contracts.NewPaycrestFilterer(OrderConf.PaycrestOrderContractAddress, client)
+	filterer, err := contracts.NewGatewayFilterer(OrderConf.GatewayContractAddress, client)
 	if err != nil {
-		return fmt.Errorf("IndexOrderRefunded.NewPaycrestFilterer: %w", err)
+		return fmt.Errorf("IndexOrderRefunded.NewGatewayFilterer: %w", err)
 	}
 
 	// Index missed blocks
@@ -391,7 +391,7 @@ func (s *IndexerService) IndexOrderRefunded(ctx context.Context, client types.RP
 		opts := s.getMissedOrderBlocksOpts(ctx, client, network, lockpaymentorder.StatusRefunding)
 
 		// Fetch logs
-		var iter *contracts.PaycrestOrderRefundedIterator
+		var iter *contracts.GatewayOrderRefundedIterator
 		retryErr := utils.Retry(3, 5*time.Second, func() error {
 			var err error
 			iter, err = filterer.FilterOrderRefunded(opts, nil)
@@ -415,7 +415,7 @@ func (s *IndexerService) IndexOrderRefunded(ctx context.Context, client types.RP
 
 	if ServerConf.Environment != "test" {
 		// Start listening for refund events
-		logs := make(chan *contracts.PaycrestOrderRefunded)
+		logs := make(chan *contracts.GatewayOrderRefunded)
 
 		sub, err := filterer.WatchOrderRefunded(&bind.WatchOpts{
 			Start: nil,
@@ -515,7 +515,7 @@ func (s *IndexerService) HandleReceiveAddressValidity(ctx context.Context, recei
 
 // getOrderRecipientFromMessageHash decrypts the message hash and returns the order recipient
 func (s *IndexerService) getOrderRecipientFromMessageHash(messageHash string) (*types.PaymentOrderRecipient, error) {
-	messageCipher, err := hex.DecodeString(strings.TrimPrefix(messageHash, "0x"))
+	messageCipher, err := base64.StdEncoding.DecodeString(messageHash)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode message hash: %w", err)
 	}
@@ -540,12 +540,14 @@ func (s *IndexerService) getOrderRecipientFromMessageHash(messageHash string) (*
 }
 
 // updateOrderStatusRefunded updates the status of a payment order to refunded
-func (s *IndexerService) updateOrderStatusRefunded(ctx context.Context, log *contracts.PaycrestOrderRefunded) error {
+func (s *IndexerService) updateOrderStatusRefunded(ctx context.Context, log *contracts.GatewayOrderRefunded) error {
+	gatewayId := fmt.Sprintf("0x%v", hex.EncodeToString(log.OrderId[:]))
+
 	// Aggregator side status update
 	_, err := db.Client.LockPaymentOrder.
 		Update().
 		Where(
-			lockpaymentorder.OrderIDEQ(fmt.Sprintf("0x%v", hex.EncodeToString(log.OrderId[:]))),
+			lockpaymentorder.GatewayIDEQ(gatewayId),
 		).
 		SetBlockNumber(int64(log.Raw.BlockNumber)).
 		SetTxHash(log.Raw.TxHash.Hex()).
@@ -559,7 +561,7 @@ func (s *IndexerService) updateOrderStatusRefunded(ctx context.Context, log *con
 	_, err = db.Client.PaymentOrder.
 		Update().
 		Where(
-			paymentorder.LabelEQ(utils.Byte32ToString(log.Label)),
+			paymentorder.GatewayIDEQ(gatewayId),
 		).
 		SetTxHash(log.Raw.TxHash.Hex()).
 		SetStatus(paymentorder.StatusRefunded).
@@ -572,7 +574,7 @@ func (s *IndexerService) updateOrderStatusRefunded(ctx context.Context, log *con
 	paymentOrder, err := db.Client.PaymentOrder.
 		Query().
 		Where(
-			paymentorder.LabelEQ(utils.Byte32ToString(log.Label)),
+			paymentorder.GatewayIDEQ(gatewayId),
 		).
 		WithSenderProfile().
 		Only(ctx)
@@ -590,7 +592,9 @@ func (s *IndexerService) updateOrderStatusRefunded(ctx context.Context, log *con
 }
 
 // updateOrderStatusSettled updates the status of a payment order to settled
-func (s *IndexerService) updateOrderStatusSettled(ctx context.Context, event *contracts.PaycrestOrderSettled) error {
+func (s *IndexerService) updateOrderStatusSettled(ctx context.Context, event *contracts.GatewayOrderSettled) error {
+	gatewayId := fmt.Sprintf("0x%v", hex.EncodeToString(event.OrderId[:]))
+
 	// Check for existing lock order with txHash
 	orderCount, err := db.Client.LockPaymentOrder.
 		Query().
@@ -624,7 +628,7 @@ func (s *IndexerService) updateOrderStatusSettled(ctx context.Context, event *co
 	paymentOrderUpdate := db.Client.PaymentOrder.
 		Update().
 		Where(
-			paymentorder.LabelEQ(utils.Byte32ToString(event.Label)),
+			paymentorder.GatewayIDEQ(gatewayId),
 		)
 
 	// Convert settled percent to BPS
@@ -647,7 +651,7 @@ func (s *IndexerService) updateOrderStatusSettled(ctx context.Context, event *co
 	paymentOrder, err := db.Client.PaymentOrder.
 		Query().
 		Where(
-			paymentorder.LabelEQ(utils.Byte32ToString(event.Label)),
+			paymentorder.GatewayIDEQ(gatewayId),
 		).
 		WithSenderProfile().
 		Only(ctx)
@@ -665,14 +669,16 @@ func (s *IndexerService) updateOrderStatusSettled(ctx context.Context, event *co
 }
 
 // createLockPaymentOrder saves a lock payment order in the database
-func (s *IndexerService) createLockPaymentOrder(ctx context.Context, client types.RPCClient, network *ent.Network, deposit *contracts.PaycrestOrderCreated) error {
+func (s *IndexerService) createLockPaymentOrder(ctx context.Context, client types.RPCClient, network *ent.Network, deposit *contracts.GatewayOrderCreated) error {
+	gatewayId := fmt.Sprintf("0x%v", hex.EncodeToString(deposit.OrderId[:]))
+
 	// Check for existing address with txHash
 	orderCount, err := db.Client.LockPaymentOrder.
 		Query().
 		Where(
 			lockpaymentorder.Or(
 				lockpaymentorder.TxHashEQ(deposit.Raw.TxHash.Hex()),
-				lockpaymentorder.LabelEQ(utils.Byte32ToString(deposit.Label)),
+				lockpaymentorder.GatewayIDEQ(gatewayId),
 			),
 		).
 		Count(ctx)
@@ -683,6 +689,28 @@ func (s *IndexerService) createLockPaymentOrder(ctx context.Context, client type
 	if orderCount > 0 {
 		// This transfer has already been indexed
 		return nil
+	}
+
+	// Update payment order with the gateway ID
+	start := time.Now()
+	timeout := time.Minute
+	for {
+		_, err = db.Client.PaymentOrder.
+			Update().
+			Where(
+				paymentorder.TxHashEQ(deposit.Raw.TxHash.Hex()),
+			).
+			SetGatewayID(gatewayId).
+			Save(ctx)
+		if err != nil {
+			elapsed := time.Since(start)
+			if elapsed >= timeout {
+				return fmt.Errorf("createLockPaymentOrder.db: timeout reached, giving up after %v", elapsed)
+			}
+			time.Sleep(5 * time.Second)
+			continue
+		}
+		break
 	}
 
 	// Get token from db
@@ -733,10 +761,9 @@ func (s *IndexerService) createLockPaymentOrder(ctx context.Context, client type
 	// Create lock payment order fields
 	lockPaymentOrder := types.LockPaymentOrderFields{
 		Token:             token,
-		OrderID:           fmt.Sprintf("0x%v", hex.EncodeToString(deposit.OrderId[:])),
+		GatewayID:         gatewayId,
 		Amount:            amountInDecimals,
 		Rate:              rate,
-		Label:             utils.Byte32ToString(deposit.Label),
 		BlockNumber:       int64(deposit.Raw.BlockNumber),
 		TxHash:            deposit.Raw.TxHash.Hex(),
 		Institution:       utils.Byte32ToString(deposit.InstitutionCode),
@@ -764,17 +791,16 @@ func (s *IndexerService) createLockPaymentOrder(ctx context.Context, client type
 			ctx, lockPaymentOrder, currency,
 		)
 		if err != nil {
-			return fmt.Errorf("%s - failed to split lock payment order: %w", lockPaymentOrder.Label, err)
+			return fmt.Errorf("%s - failed to split lock payment order: %w", lockPaymentOrder.GatewayID, err)
 		}
 	} else {
 		// Create lock payment order in db
 		orderBuilder := db.Client.LockPaymentOrder.
 			Create().
 			SetToken(lockPaymentOrder.Token).
-			SetOrderID(lockPaymentOrder.OrderID).
+			SetGatewayID(lockPaymentOrder.GatewayID).
 			SetAmount(lockPaymentOrder.Amount).
 			SetRate(lockPaymentOrder.Rate).
-			SetLabel(lockPaymentOrder.Label).
 			SetOrderPercent(decimal.NewFromInt(100)).
 			SetBlockNumber(lockPaymentOrder.BlockNumber).
 			SetTxHash(lockPaymentOrder.TxHash).
@@ -790,7 +816,7 @@ func (s *IndexerService) createLockPaymentOrder(ctx context.Context, client type
 
 		orderCreated, err := orderBuilder.Save(ctx)
 		if err != nil {
-			return fmt.Errorf("%s - failed to create lock payment order: %w", lockPaymentOrder.Label, err)
+			return fmt.Errorf("%s - failed to create lock payment order: %w", lockPaymentOrder.GatewayID, err)
 		}
 
 		// Assign the lock payment order to a provider
@@ -981,7 +1007,7 @@ func (s *IndexerService) getProvisionBucket(ctx context.Context, amount decimal.
 
 // getInstitutionByCode returns the institution for a given institution code
 func (s *IndexerService) getInstitutionByCode(client types.RPCClient, institutionCode [32]byte) (*contracts.SharedStructsInstitutionByCode, error) {
-	instance, err := contracts.NewPaycrest(OrderConf.PaycrestOrderContractAddress, client.(bind.ContractBackend))
+	instance, err := contracts.NewGateway(OrderConf.GatewayContractAddress, client.(bind.ContractBackend))
 	if err != nil {
 		return nil, err
 	}
@@ -1040,7 +1066,7 @@ func (s *IndexerService) splitLockPaymentOrder(ctx context.Context, lockPaymentO
 			lockOrder := tx.LockPaymentOrder.
 				Create().
 				SetToken(lockPaymentOrder.Token).
-				SetOrderID(lockPaymentOrder.OrderID).
+				SetGatewayID(lockPaymentOrder.GatewayID).
 				SetAmount(bucket.MaxAmount.Div(lockPaymentOrder.Rate)).
 				SetRate(lockPaymentOrder.Rate).
 				SetOrderPercent(orderPercent).
@@ -1090,7 +1116,7 @@ func (s *IndexerService) splitLockPaymentOrder(ctx context.Context, lockPaymentO
 		orderCreated, err := db.Client.LockPaymentOrder.
 			Create().
 			SetToken(lockPaymentOrder.Token).
-			SetOrderID(lockPaymentOrder.OrderID).
+			SetGatewayID(lockPaymentOrder.GatewayID).
 			SetAmount(amountToSplit.Div(lockPaymentOrder.Rate)).
 			SetRate(lockPaymentOrder.Rate).
 			SetBlockNumber(lockPaymentOrder.BlockNumber).

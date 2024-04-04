@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
+	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -205,7 +206,60 @@ func SendUserOperation(userOp *userop.UserOperation, chainId int64) (string, err
 		return "", fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
-	return userOpHash, nil
+	response, err := GetUserOperationByHash(userOpHash, chainId)
+	if err != nil {
+		return "", fmt.Errorf("failed to get user operation: %w", err)
+	}
+
+	transactionHash, ok := response["transactionHash"].(string)
+	if !ok {
+		return "", fmt.Errorf("failed to get transaction hash")
+	}
+
+	return transactionHash, nil
+}
+
+// GetUserOperationByHash fetches the user operation by hash
+func GetUserOperationByHash(userOpHash string, chainId int64) (map[string]interface{}, error) {
+	bundlerUrl, _, err := getEndpoints(chainId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get endpoints: %w", err)
+	}
+
+	client, err := rpc.Dial(bundlerUrl)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to RPC client: %w", err)
+	}
+
+	start := time.Now()
+	timeout := time.Minute
+
+	var response map[string]interface{}
+	for {
+		time.Sleep(5 * time.Second)
+		var result json.RawMessage
+		err = client.Call(&result, "eth_getUserOperationByHash", []interface{}{userOpHash}...)
+		if err != nil {
+			return nil, fmt.Errorf("RPC error: %w", err)
+		}
+
+		err = json.Unmarshal(result, &response)
+		if err != nil {
+			return nil, err
+		}
+
+		if response == nil && response["transactionHash"] == nil {
+			elapsed := time.Since(start)
+			if elapsed >= timeout {
+				return nil, err
+			}
+			continue
+		}
+
+		break
+	}
+
+	return response, nil
 }
 
 // GetPaymasterAccount fetches the paymaster account from stackup

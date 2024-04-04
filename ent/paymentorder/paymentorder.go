@@ -46,8 +46,8 @@ const (
 	FieldFeePerTokenUnit = "fee_per_token_unit"
 	// FieldFeeAddress holds the string denoting the fee_address field in the database.
 	FieldFeeAddress = "fee_address"
-	// FieldLabel holds the string denoting the label field in the database.
-	FieldLabel = "label"
+	// FieldGatewayID holds the string denoting the gateway_id field in the database.
+	FieldGatewayID = "gateway_id"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
 	// EdgeSenderProfile holds the string denoting the sender_profile edge name in mutations.
@@ -108,7 +108,7 @@ var Columns = []string{
 	FieldReceiveAddressText,
 	FieldFeePerTokenUnit,
 	FieldFeeAddress,
-	FieldLabel,
+	FieldGatewayID,
 	FieldStatus,
 }
 
@@ -266,9 +266,9 @@ func ByFeeAddress(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldFeeAddress, opts...).ToFunc()
 }
 
-// ByLabel orders the results by the label field.
-func ByLabel(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldLabel, opts...).ToFunc()
+// ByGatewayID orders the results by the gateway_id field.
+func ByGatewayID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldGatewayID, opts...).ToFunc()
 }
 
 // ByStatus orders the results by the status field.

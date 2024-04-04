@@ -54,9 +54,9 @@ func (lpoc *LockPaymentOrderCreate) SetNillableUpdatedAt(t *time.Time) *LockPaym
 	return lpoc
 }
 
-// SetOrderID sets the "order_id" field.
-func (lpoc *LockPaymentOrderCreate) SetOrderID(s string) *LockPaymentOrderCreate {
-	lpoc.mutation.SetOrderID(s)
+// SetGatewayID sets the "gateway_id" field.
+func (lpoc *LockPaymentOrderCreate) SetGatewayID(s string) *LockPaymentOrderCreate {
+	lpoc.mutation.SetGatewayID(s)
 	return lpoc
 }
 
@@ -89,12 +89,6 @@ func (lpoc *LockPaymentOrderCreate) SetNillableTxHash(s *string) *LockPaymentOrd
 	if s != nil {
 		lpoc.SetTxHash(*s)
 	}
-	return lpoc
-}
-
-// SetLabel sets the "label" field.
-func (lpoc *LockPaymentOrderCreate) SetLabel(s string) *LockPaymentOrderCreate {
-	lpoc.mutation.SetLabel(s)
 	return lpoc
 }
 
@@ -321,8 +315,8 @@ func (lpoc *LockPaymentOrderCreate) check() error {
 	if _, ok := lpoc.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "LockPaymentOrder.updated_at"`)}
 	}
-	if _, ok := lpoc.mutation.OrderID(); !ok {
-		return &ValidationError{Name: "order_id", err: errors.New(`ent: missing required field "LockPaymentOrder.order_id"`)}
+	if _, ok := lpoc.mutation.GatewayID(); !ok {
+		return &ValidationError{Name: "gateway_id", err: errors.New(`ent: missing required field "LockPaymentOrder.gateway_id"`)}
 	}
 	if _, ok := lpoc.mutation.Amount(); !ok {
 		return &ValidationError{Name: "amount", err: errors.New(`ent: missing required field "LockPaymentOrder.amount"`)}
@@ -337,9 +331,6 @@ func (lpoc *LockPaymentOrderCreate) check() error {
 		if err := lockpaymentorder.TxHashValidator(v); err != nil {
 			return &ValidationError{Name: "tx_hash", err: fmt.Errorf(`ent: validator failed for field "LockPaymentOrder.tx_hash": %w`, err)}
 		}
-	}
-	if _, ok := lpoc.mutation.Label(); !ok {
-		return &ValidationError{Name: "label", err: errors.New(`ent: missing required field "LockPaymentOrder.label"`)}
 	}
 	if _, ok := lpoc.mutation.Status(); !ok {
 		return &ValidationError{Name: "status", err: errors.New(`ent: missing required field "LockPaymentOrder.status"`)}
@@ -413,9 +404,9 @@ func (lpoc *LockPaymentOrderCreate) createSpec() (*LockPaymentOrder, *sqlgraph.C
 		_spec.SetField(lockpaymentorder.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
 	}
-	if value, ok := lpoc.mutation.OrderID(); ok {
-		_spec.SetField(lockpaymentorder.FieldOrderID, field.TypeString, value)
-		_node.OrderID = value
+	if value, ok := lpoc.mutation.GatewayID(); ok {
+		_spec.SetField(lockpaymentorder.FieldGatewayID, field.TypeString, value)
+		_node.GatewayID = value
 	}
 	if value, ok := lpoc.mutation.Amount(); ok {
 		_spec.SetField(lockpaymentorder.FieldAmount, field.TypeFloat64, value)
@@ -432,10 +423,6 @@ func (lpoc *LockPaymentOrderCreate) createSpec() (*LockPaymentOrder, *sqlgraph.C
 	if value, ok := lpoc.mutation.TxHash(); ok {
 		_spec.SetField(lockpaymentorder.FieldTxHash, field.TypeString, value)
 		_node.TxHash = value
-	}
-	if value, ok := lpoc.mutation.Label(); ok {
-		_spec.SetField(lockpaymentorder.FieldLabel, field.TypeString, value)
-		_node.Label = value
 	}
 	if value, ok := lpoc.mutation.Status(); ok {
 		_spec.SetField(lockpaymentorder.FieldStatus, field.TypeEnum, value)

@@ -2258,7 +2258,7 @@ type LockPaymentOrderMutation struct {
 	id                         *uuid.UUID
 	created_at                 *time.Time
 	updated_at                 *time.Time
-	order_id                   *string
+	gateway_id                 *string
 	amount                     *decimal.Decimal
 	addamount                  *decimal.Decimal
 	rate                       *decimal.Decimal
@@ -2266,7 +2266,6 @@ type LockPaymentOrderMutation struct {
 	order_percent              *decimal.Decimal
 	addorder_percent           *decimal.Decimal
 	tx_hash                    *string
-	label                      *string
 	status                     *lockpaymentorder.Status
 	block_number               *int64
 	addblock_number            *int64
@@ -2468,40 +2467,40 @@ func (m *LockPaymentOrderMutation) ResetUpdatedAt() {
 	m.updated_at = nil
 }
 
-// SetOrderID sets the "order_id" field.
-func (m *LockPaymentOrderMutation) SetOrderID(s string) {
-	m.order_id = &s
+// SetGatewayID sets the "gateway_id" field.
+func (m *LockPaymentOrderMutation) SetGatewayID(s string) {
+	m.gateway_id = &s
 }
 
-// OrderID returns the value of the "order_id" field in the mutation.
-func (m *LockPaymentOrderMutation) OrderID() (r string, exists bool) {
-	v := m.order_id
+// GatewayID returns the value of the "gateway_id" field in the mutation.
+func (m *LockPaymentOrderMutation) GatewayID() (r string, exists bool) {
+	v := m.gateway_id
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldOrderID returns the old "order_id" field's value of the LockPaymentOrder entity.
+// OldGatewayID returns the old "gateway_id" field's value of the LockPaymentOrder entity.
 // If the LockPaymentOrder object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *LockPaymentOrderMutation) OldOrderID(ctx context.Context) (v string, err error) {
+func (m *LockPaymentOrderMutation) OldGatewayID(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldOrderID is only allowed on UpdateOne operations")
+		return v, errors.New("OldGatewayID is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldOrderID requires an ID field in the mutation")
+		return v, errors.New("OldGatewayID requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldOrderID: %w", err)
+		return v, fmt.Errorf("querying old value for OldGatewayID: %w", err)
 	}
-	return oldValue.OrderID, nil
+	return oldValue.GatewayID, nil
 }
 
-// ResetOrderID resets all changes to the "order_id" field.
-func (m *LockPaymentOrderMutation) ResetOrderID() {
-	m.order_id = nil
+// ResetGatewayID resets all changes to the "gateway_id" field.
+func (m *LockPaymentOrderMutation) ResetGatewayID() {
+	m.gateway_id = nil
 }
 
 // SetAmount sets the "amount" field.
@@ -2719,42 +2718,6 @@ func (m *LockPaymentOrderMutation) TxHashCleared() bool {
 func (m *LockPaymentOrderMutation) ResetTxHash() {
 	m.tx_hash = nil
 	delete(m.clearedFields, lockpaymentorder.FieldTxHash)
-}
-
-// SetLabel sets the "label" field.
-func (m *LockPaymentOrderMutation) SetLabel(s string) {
-	m.label = &s
-}
-
-// Label returns the value of the "label" field in the mutation.
-func (m *LockPaymentOrderMutation) Label() (r string, exists bool) {
-	v := m.label
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldLabel returns the old "label" field's value of the LockPaymentOrder entity.
-// If the LockPaymentOrder object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *LockPaymentOrderMutation) OldLabel(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldLabel is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldLabel requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldLabel: %w", err)
-	}
-	return oldValue.Label, nil
-}
-
-// ResetLabel resets all changes to the "label" field.
-func (m *LockPaymentOrderMutation) ResetLabel() {
-	m.label = nil
 }
 
 // SetStatus sets the "status" field.
@@ -3303,15 +3266,15 @@ func (m *LockPaymentOrderMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *LockPaymentOrderMutation) Fields() []string {
-	fields := make([]string, 0, 16)
+	fields := make([]string, 0, 15)
 	if m.created_at != nil {
 		fields = append(fields, lockpaymentorder.FieldCreatedAt)
 	}
 	if m.updated_at != nil {
 		fields = append(fields, lockpaymentorder.FieldUpdatedAt)
 	}
-	if m.order_id != nil {
-		fields = append(fields, lockpaymentorder.FieldOrderID)
+	if m.gateway_id != nil {
+		fields = append(fields, lockpaymentorder.FieldGatewayID)
 	}
 	if m.amount != nil {
 		fields = append(fields, lockpaymentorder.FieldAmount)
@@ -3324,9 +3287,6 @@ func (m *LockPaymentOrderMutation) Fields() []string {
 	}
 	if m.tx_hash != nil {
 		fields = append(fields, lockpaymentorder.FieldTxHash)
-	}
-	if m.label != nil {
-		fields = append(fields, lockpaymentorder.FieldLabel)
 	}
 	if m.status != nil {
 		fields = append(fields, lockpaymentorder.FieldStatus)
@@ -3364,8 +3324,8 @@ func (m *LockPaymentOrderMutation) Field(name string) (ent.Value, bool) {
 		return m.CreatedAt()
 	case lockpaymentorder.FieldUpdatedAt:
 		return m.UpdatedAt()
-	case lockpaymentorder.FieldOrderID:
-		return m.OrderID()
+	case lockpaymentorder.FieldGatewayID:
+		return m.GatewayID()
 	case lockpaymentorder.FieldAmount:
 		return m.Amount()
 	case lockpaymentorder.FieldRate:
@@ -3374,8 +3334,6 @@ func (m *LockPaymentOrderMutation) Field(name string) (ent.Value, bool) {
 		return m.OrderPercent()
 	case lockpaymentorder.FieldTxHash:
 		return m.TxHash()
-	case lockpaymentorder.FieldLabel:
-		return m.Label()
 	case lockpaymentorder.FieldStatus:
 		return m.Status()
 	case lockpaymentorder.FieldBlockNumber:
@@ -3405,8 +3363,8 @@ func (m *LockPaymentOrderMutation) OldField(ctx context.Context, name string) (e
 		return m.OldCreatedAt(ctx)
 	case lockpaymentorder.FieldUpdatedAt:
 		return m.OldUpdatedAt(ctx)
-	case lockpaymentorder.FieldOrderID:
-		return m.OldOrderID(ctx)
+	case lockpaymentorder.FieldGatewayID:
+		return m.OldGatewayID(ctx)
 	case lockpaymentorder.FieldAmount:
 		return m.OldAmount(ctx)
 	case lockpaymentorder.FieldRate:
@@ -3415,8 +3373,6 @@ func (m *LockPaymentOrderMutation) OldField(ctx context.Context, name string) (e
 		return m.OldOrderPercent(ctx)
 	case lockpaymentorder.FieldTxHash:
 		return m.OldTxHash(ctx)
-	case lockpaymentorder.FieldLabel:
-		return m.OldLabel(ctx)
 	case lockpaymentorder.FieldStatus:
 		return m.OldStatus(ctx)
 	case lockpaymentorder.FieldBlockNumber:
@@ -3456,12 +3412,12 @@ func (m *LockPaymentOrderMutation) SetField(name string, value ent.Value) error 
 		}
 		m.SetUpdatedAt(v)
 		return nil
-	case lockpaymentorder.FieldOrderID:
+	case lockpaymentorder.FieldGatewayID:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetOrderID(v)
+		m.SetGatewayID(v)
 		return nil
 	case lockpaymentorder.FieldAmount:
 		v, ok := value.(decimal.Decimal)
@@ -3490,13 +3446,6 @@ func (m *LockPaymentOrderMutation) SetField(name string, value ent.Value) error 
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetTxHash(v)
-		return nil
-	case lockpaymentorder.FieldLabel:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetLabel(v)
 		return nil
 	case lockpaymentorder.FieldStatus:
 		v, ok := value.(lockpaymentorder.Status)
@@ -3687,8 +3636,8 @@ func (m *LockPaymentOrderMutation) ResetField(name string) error {
 	case lockpaymentorder.FieldUpdatedAt:
 		m.ResetUpdatedAt()
 		return nil
-	case lockpaymentorder.FieldOrderID:
-		m.ResetOrderID()
+	case lockpaymentorder.FieldGatewayID:
+		m.ResetGatewayID()
 		return nil
 	case lockpaymentorder.FieldAmount:
 		m.ResetAmount()
@@ -3701,9 +3650,6 @@ func (m *LockPaymentOrderMutation) ResetField(name string) error {
 		return nil
 	case lockpaymentorder.FieldTxHash:
 		m.ResetTxHash()
-		return nil
-	case lockpaymentorder.FieldLabel:
-		m.ResetLabel()
 		return nil
 	case lockpaymentorder.FieldStatus:
 		m.ResetStatus()
@@ -4616,7 +4562,7 @@ type PaymentOrderMutation struct {
 	fee_per_token_unit     *decimal.Decimal
 	addfee_per_token_unit  *decimal.Decimal
 	fee_address            *string
-	label                  *string
+	gateway_id             *string
 	status                 *paymentorder.Status
 	clearedFields          map[string]struct{}
 	sender_profile         *uuid.UUID
@@ -5495,40 +5441,53 @@ func (m *PaymentOrderMutation) ResetFeeAddress() {
 	delete(m.clearedFields, paymentorder.FieldFeeAddress)
 }
 
-// SetLabel sets the "label" field.
-func (m *PaymentOrderMutation) SetLabel(s string) {
-	m.label = &s
+// SetGatewayID sets the "gateway_id" field.
+func (m *PaymentOrderMutation) SetGatewayID(s string) {
+	m.gateway_id = &s
 }
 
-// Label returns the value of the "label" field in the mutation.
-func (m *PaymentOrderMutation) Label() (r string, exists bool) {
-	v := m.label
+// GatewayID returns the value of the "gateway_id" field in the mutation.
+func (m *PaymentOrderMutation) GatewayID() (r string, exists bool) {
+	v := m.gateway_id
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldLabel returns the old "label" field's value of the PaymentOrder entity.
+// OldGatewayID returns the old "gateway_id" field's value of the PaymentOrder entity.
 // If the PaymentOrder object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *PaymentOrderMutation) OldLabel(ctx context.Context) (v string, err error) {
+func (m *PaymentOrderMutation) OldGatewayID(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldLabel is only allowed on UpdateOne operations")
+		return v, errors.New("OldGatewayID is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldLabel requires an ID field in the mutation")
+		return v, errors.New("OldGatewayID requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldLabel: %w", err)
+		return v, fmt.Errorf("querying old value for OldGatewayID: %w", err)
 	}
-	return oldValue.Label, nil
+	return oldValue.GatewayID, nil
 }
 
-// ResetLabel resets all changes to the "label" field.
-func (m *PaymentOrderMutation) ResetLabel() {
-	m.label = nil
+// ClearGatewayID clears the value of the "gateway_id" field.
+func (m *PaymentOrderMutation) ClearGatewayID() {
+	m.gateway_id = nil
+	m.clearedFields[paymentorder.FieldGatewayID] = struct{}{}
+}
+
+// GatewayIDCleared returns if the "gateway_id" field was cleared in this mutation.
+func (m *PaymentOrderMutation) GatewayIDCleared() bool {
+	_, ok := m.clearedFields[paymentorder.FieldGatewayID]
+	return ok
+}
+
+// ResetGatewayID resets all changes to the "gateway_id" field.
+func (m *PaymentOrderMutation) ResetGatewayID() {
+	m.gateway_id = nil
+	delete(m.clearedFields, paymentorder.FieldGatewayID)
 }
 
 // SetStatus sets the "status" field.
@@ -5803,8 +5762,8 @@ func (m *PaymentOrderMutation) Fields() []string {
 	if m.fee_address != nil {
 		fields = append(fields, paymentorder.FieldFeeAddress)
 	}
-	if m.label != nil {
-		fields = append(fields, paymentorder.FieldLabel)
+	if m.gateway_id != nil {
+		fields = append(fields, paymentorder.FieldGatewayID)
 	}
 	if m.status != nil {
 		fields = append(fields, paymentorder.FieldStatus)
@@ -5847,8 +5806,8 @@ func (m *PaymentOrderMutation) Field(name string) (ent.Value, bool) {
 		return m.FeePerTokenUnit()
 	case paymentorder.FieldFeeAddress:
 		return m.FeeAddress()
-	case paymentorder.FieldLabel:
-		return m.Label()
+	case paymentorder.FieldGatewayID:
+		return m.GatewayID()
 	case paymentorder.FieldStatus:
 		return m.Status()
 	}
@@ -5890,8 +5849,8 @@ func (m *PaymentOrderMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldFeePerTokenUnit(ctx)
 	case paymentorder.FieldFeeAddress:
 		return m.OldFeeAddress(ctx)
-	case paymentorder.FieldLabel:
-		return m.OldLabel(ctx)
+	case paymentorder.FieldGatewayID:
+		return m.OldGatewayID(ctx)
 	case paymentorder.FieldStatus:
 		return m.OldStatus(ctx)
 	}
@@ -6008,12 +5967,12 @@ func (m *PaymentOrderMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetFeeAddress(v)
 		return nil
-	case paymentorder.FieldLabel:
+	case paymentorder.FieldGatewayID:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetLabel(v)
+		m.SetGatewayID(v)
 		return nil
 	case paymentorder.FieldStatus:
 		v, ok := value.(paymentorder.Status)
@@ -6172,6 +6131,9 @@ func (m *PaymentOrderMutation) ClearedFields() []string {
 	if m.FieldCleared(paymentorder.FieldFeeAddress) {
 		fields = append(fields, paymentorder.FieldFeeAddress)
 	}
+	if m.FieldCleared(paymentorder.FieldGatewayID) {
+		fields = append(fields, paymentorder.FieldGatewayID)
+	}
 	return fields
 }
 
@@ -6194,6 +6156,9 @@ func (m *PaymentOrderMutation) ClearField(name string) error {
 		return nil
 	case paymentorder.FieldFeeAddress:
 		m.ClearFeeAddress()
+		return nil
+	case paymentorder.FieldGatewayID:
+		m.ClearGatewayID()
 		return nil
 	}
 	return fmt.Errorf("unknown PaymentOrder nullable field %s", name)
@@ -6248,8 +6213,8 @@ func (m *PaymentOrderMutation) ResetField(name string) error {
 	case paymentorder.FieldFeeAddress:
 		m.ResetFeeAddress()
 		return nil
-	case paymentorder.FieldLabel:
-		m.ResetLabel()
+	case paymentorder.FieldGatewayID:
+		m.ResetGatewayID()
 		return nil
 	case paymentorder.FieldStatus:
 		m.ResetStatus()

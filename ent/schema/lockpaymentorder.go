@@ -26,7 +26,7 @@ func (LockPaymentOrder) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
 			Default(uuid.New),
-		field.String("order_id"),
+		field.String("gateway_id").Default(""),
 		field.Float("amount").
 			GoType(decimal.Decimal{}),
 		field.Float("rate").
@@ -36,7 +36,6 @@ func (LockPaymentOrder) Fields() []ent.Field {
 		field.String("tx_hash").
 			MaxLen(70).
 			Optional(),
-		field.String("label"),
 		field.Enum("status").
 			Values("pending", "processing", "cancelled", "fulfilled", "validated", "settling", "settled", "refunding", "refunded").
 			Default("pending"),

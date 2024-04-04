@@ -381,10 +381,9 @@ func (s *PriorityQueueService) ReassignStaleOrderRequest(ctx context.Context, or
 
 		orderFields := types.LockPaymentOrderFields{
 			ID:                order.ID,
-			OrderID:           order.OrderID,
+			GatewayID:         order.GatewayID,
 			Amount:            order.Amount,
 			Rate:              order.Rate,
-			Label:             order.Label,
 			BlockNumber:       order.BlockNumber,
 			Institution:       order.Institution,
 			AccountIdentifier: order.AccountIdentifier,
@@ -447,7 +446,7 @@ func (s *PriorityQueueService) ReassignUnfulfilledLockOrders(ctx context.Context
 		lockPaymentOrder := types.LockPaymentOrderFields{
 			ID:                order.ID,
 			Token:             order.Edges.Token,
-			OrderID:           order.OrderID,
+			GatewayID:         order.GatewayID,
 			Amount:            order.Amount,
 			Rate:              order.Rate,
 			BlockNumber:       order.BlockNumber,
@@ -461,7 +460,7 @@ func (s *PriorityQueueService) ReassignUnfulfilledLockOrders(ctx context.Context
 
 		err := s.AssignLockPaymentOrder(ctx, lockPaymentOrder)
 		if err != nil {
-			logger.Errorf("failed to reassign unfulfilled lock order with id: %s => %v", order.OrderID, err)
+			logger.Errorf("failed to reassign unfulfilled lock order with id: %s => %v", order.GatewayID, err)
 		}
 	}
 }
@@ -496,7 +495,7 @@ func (s *PriorityQueueService) ReassignUnvalidatedLockOrders() {
 		lockPaymentOrder := types.LockPaymentOrderFields{
 			ID:                order.ID,
 			Token:             order.Edges.Token,
-			OrderID:           order.OrderID,
+			GatewayID:         order.GatewayID,
 			Amount:            order.Amount,
 			Rate:              order.Rate,
 			BlockNumber:       order.BlockNumber,
@@ -553,7 +552,7 @@ func (s *PriorityQueueService) ReassignPendingOrders() {
 			lockPaymentOrder := types.LockPaymentOrderFields{
 				ID:                order.ID,
 				Token:             order.Edges.Token,
-				OrderID:           order.OrderID,
+				GatewayID:         order.GatewayID,
 				Amount:            order.Amount,
 				Rate:              order.Rate,
 				BlockNumber:       order.BlockNumber,
