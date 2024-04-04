@@ -46,9 +46,9 @@ func main() {
 	fmt.Println("seeding network...")
 	network, err := client.Network.
 		Create().
-		SetIdentifier("polygon-mumbai").
-		SetChainID(80001).
-		SetRPCEndpoint("wss://polygon-mumbai.infura.io/ws/v3/4458cf4d1689497b9a38b1d6bbf05e78").
+		SetIdentifier("ethereum-sepolia").
+		SetChainID(11155111).
+		SetRPCEndpoint("wss://sepolia.infura.io/ws/v3/4458cf4d1689497b9a38b1d6bbf05e78").
 		SetIsTestnet(true).
 		Save(ctx)
 	if err != nil {
@@ -57,18 +57,6 @@ func main() {
 
 	// Seed Tokens
 	fmt.Println("seeding tokens...")
-	_, err = client.Token.
-		Create().
-		SetSymbol("USDC").
-		SetContractAddress("0x9999f7Fea5938fD3b1E26A12c3f2fb024e194f97").
-		SetDecimals(6).
-		SetNetwork(network).
-		SetIsEnabled(true).
-		Save(ctx)
-	if err != nil {
-		logger.Fatalf("failed seeding USDC: %s", err)
-	}
-
 	_, err = client.Token.
 		Create().
 		SetSymbol("6TEST").
@@ -265,22 +253,7 @@ func seedProvider(ctx context.Context, client *ent.Client, bucket *ent.Provision
 		Address string `json:"address"`
 		Network string `json:"network"`
 	}{
-		{Address: "0x409689E3008d43a9eb439e7B275749D4a71D8E2D", Network: "polygon-mumbai"},
-	}
-
-	_, err = client.ProviderOrderToken.
-		Create().
-		SetSymbol("USDC").
-		SetConversionRateType("floating").
-		SetFixedConversionRate(decimal.NewFromFloat(0)).
-		SetFloatingConversionRate(decimal.NewFromFloat(1)).
-		SetMinOrderAmount(bucket.MinAmount).
-		SetMaxOrderAmount(bucket.MaxAmount).
-		SetAddresses(addresses).
-		SetProvider(provider).
-		Save(ctx)
-	if err != nil {
-		return "", "", "", fmt.Errorf("failed to configure order tokens: %s", err)
+		{Address: "0x409689E3008d43a9eb439e7B275749D4a71D8E2D", Network: "ethereum-sepolia"},
 	}
 
 	_, err = client.ProviderOrderToken.

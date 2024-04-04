@@ -266,7 +266,6 @@ type LockPaymentOrderResponse struct {
 	GatewayID         string          `json:"gatewayId"`
 	Amount            decimal.Decimal `json:"amount"`
 	Rate              decimal.Decimal `json:"rate"`
-	Label             string          `json:"label"`
 	BlockNumber       int64           `json:"blockNumber"`
 	TxHash            string          `json:"txHash"`
 	Institution       string          `json:"institution"`
@@ -296,7 +295,6 @@ type NewPaymentOrderPayload struct {
 	Rate            decimal.Decimal       `json:"rate" binding:"required"`
 	Network         string                `json:"network" binding:"required"`
 	Recipient       PaymentOrderRecipient `json:"recipient" binding:"required"`
-	Label           string                `json:"label" binding:"required"`
 	FeePerTokenUnit decimal.Decimal       `json:"feePerTokenUnit"`
 	FeeAddress      string                `json:"feeAddress"`
 }
