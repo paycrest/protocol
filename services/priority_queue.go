@@ -166,20 +166,32 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 		return err
 	}
 
-	// Sends order directly to the specified provider in order. Incase of failure, proceed to queue
+	// Sends order directly to the specified provider in order.
+	// Incase of failure, do nothing. The order will eventually refund
 	if order.ProviderID != "" && !utils.ContainsString(excludeList, order.ProviderID) {
-		err := s.sendOrderRequest(ctx, order)
-		if err == nil {
-			return nil
-		}
-		logger.Errorf("%s - failed to send order request to specific provider %s: %v", orderIDPrefix, order.ProviderID, err)
+		provider, err := storage.Client.ProviderProfile.
+			Query().
+			Where(
+				providerprofile.IDEQ(order.ProviderID),
+			).
+			Only(ctx)
 
-		// Push provider ID to order exclude list
-		orderKey := fmt.Sprintf("order_exclude_list_%s", order.ID)
-		_, err = storage.RedisClient.RPush(ctx, orderKey, order.ProviderID).Result()
-		if err != nil {
-			logger.Errorf("%s - error pushing provider %s to order_exclude_list on Redis: %v", orderIDPrefix, order.ProviderID, err)
+		if err == nil {
+			order.Rate, err = s.GetProviderRate(ctx, provider)
+			if err == nil {
+				err = s.sendOrderRequest(ctx, order)
+				if err == nil {
+					return nil
+				}
+				logger.Errorf("%s - failed to send order request to specific provider %s: %v", orderIDPrefix, order.ProviderID, err)
+			} else {
+				logger.Errorf("%s - failed to get rate for provider %s: %v", orderIDPrefix, order.ProviderID, err)
+			}
+		} else {
+			logger.Errorf("%s - failed to get provider: %v", orderIDPrefix, err)
 		}
+
+		return nil
 	}
 
 	// Get the first provider from the circular queue

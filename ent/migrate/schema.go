@@ -135,6 +135,7 @@ var (
 		{Name: "identifier", Type: field.TypeString, Unique: true},
 		{Name: "rpc_endpoint", Type: field.TypeString},
 		{Name: "is_testnet", Type: field.TypeBool},
+		{Name: "fee", Type: field.TypeFloat64},
 	}
 	// NetworksTable holds the schema information for the "networks" table.
 	NetworksTable = &schema.Table{

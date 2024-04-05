@@ -8,6 +8,7 @@ import (
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	"github.com/paycrest/protocol/ent/providerprofile"
+	entToken "github.com/paycrest/protocol/ent/token"
 	db "github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
 	"github.com/shopspring/decimal"
@@ -75,6 +76,7 @@ func CreateERC20Token(client types.RPCClient, overrides map[string]interface{}) 
 		SetIdentifier(payload["identifier"].(string)). // randomize the identifier to avoid conflicts
 		SetChainID(payload["chainID"].(int64)).
 		SetRPCEndpoint(payload["networkRPC"].(string)).
+		SetFee(decimal.NewFromFloat(0.1)).
 		SetIsTestnet(true).
 		Save(context.Background())
 	if err != nil {
@@ -90,6 +92,15 @@ func CreateERC20Token(client types.RPCClient, overrides map[string]interface{}) 
 		SetNetwork(network).
 		SetIsEnabled(payload["is_enabled"].(bool)).
 		Save(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	token, err = db.Client.Token.
+		Query().
+		Where(entToken.IDEQ(token.ID)).
+		WithNetwork().
+		Only(context.Background())
 
 	return token, err
 }

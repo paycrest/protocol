@@ -153,7 +153,7 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 		SetAmountPaid(decimal.NewFromInt(0)).
 		SetAmountReturned(decimal.NewFromInt(0)).
 		SetPercentSettled(decimal.NewFromInt(0)).
-		SetNetworkFee(svc.OrderConf.NetworkFee).
+		SetNetworkFee(token.Edges.Network.Fee).
 		SetProtocolFee(protocolFee).
 		SetSenderFee(senderFee).
 		SetToken(token).
@@ -208,7 +208,7 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 			ReceiveAddress: receiveAddress.Address,
 			ValidUntil:     receiveAddress.ValidUntil,
 			SenderFee:      senderFee,
-			TransactionFee: protocolFee.Add(svc.OrderConf.NetworkFee),
+			TransactionFee: protocolFee.Add(token.Edges.Network.Fee),
 		})
 }
 

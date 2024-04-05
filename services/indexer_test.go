@@ -83,7 +83,7 @@ func setup() error {
 		SetAmountPaid(decimal.NewFromInt(0)).
 		SetAmountReturned(decimal.NewFromInt(0)).
 		SetSenderFee(decimal.NewFromInt(0)).
-		SetNetworkFee(OrderConf.NetworkFee).
+		SetNetworkFee(token.Edges.Network.Fee).
 		SetProtocolFee(protocolFee). // 0.1% protocol fee
 		SetPercentSettled(decimal.NewFromInt(0)).
 		SetRate(decimal.NewFromInt(750)).

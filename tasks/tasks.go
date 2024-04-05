@@ -162,8 +162,7 @@ func RetryStaleUserOperations() error {
 
 	go func() {
 		for _, order := range orders {
-			orderAmountWithFees := order.Amount.Add(order.NetworkFee).Add(order.SenderFee).Add(order.ProtocolFee)
-			if !order.AmountPaid.Equal(orderAmountWithFees) && order.AmountReturned.Equal(decimal.Zero) && order.Edges.ReceiveAddress.Status == receiveaddress.StatusExpired {
+			if order.Edges.ReceiveAddress.Status == receiveaddress.StatusExpired || order.Edges.ReceiveAddress.Status == receiveaddress.StatusUsed {
 				err := orderService.RevertOrder(ctx, order)
 				if err != nil {
 					logger.Errorf("process task to revert orders => %v", err)
@@ -228,7 +227,7 @@ func HandleReceiveAddressValidity() error {
 	addresses, err := storage.Client.ReceiveAddress.
 		Query().
 		Where(
-			receiveaddress.ValidUntilLTE(time.Now().Add(-orderConf.ReceiveAddressValidity)),
+			receiveaddress.ValidUntilLTE(time.Now()),
 			receiveaddress.Or(
 				receiveaddress.StatusNEQ(receiveaddress.StatusUsed),
 				receiveaddress.And(
@@ -511,7 +510,7 @@ func StartCronJobs() {
 	}
 
 	// Retry stale user operations every 15 minutes
-	_, err = scheduler.Cron("*/15 * * * *").Do(RetryStaleUserOperations)
+	_, err = scheduler.Cron("*/1 * * * *").Do(RetryStaleUserOperations)
 	if err != nil {
 		logger.Errorf("StartCronJobs: %v", err)
 	}

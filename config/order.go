@@ -18,7 +18,6 @@ type OrderConfiguration struct {
 	EntryPointContractAddress        common.Address
 	BucketQueueRebuildInterval       int // in hours
 	RefundCancellationCount          int
-	NetworkFee                       decimal.Decimal
 	PercentDeviationFromExternalRate decimal.Decimal
 	PercentDeviationFromMarketRate   decimal.Decimal
 	BundlerUrlEthereum               string
@@ -58,7 +57,6 @@ func OrderConfig() *OrderConfiguration {
 		EntryPointContractAddress:        common.HexToAddress(viper.GetString("ENTRY_POINT_CONTRACT_ADDRESS")),
 		BucketQueueRebuildInterval:       viper.GetInt("BUCKET_QUEUE_REBUILD_INTERVAL"),
 		RefundCancellationCount:          viper.GetInt("REFUND_CANCELLATION_COUNT"),
-		NetworkFee:                       decimal.NewFromFloat(viper.GetFloat64("NETWORK_FEE")),
 		PercentDeviationFromExternalRate: decimal.NewFromFloat(viper.GetFloat64("PERCENT_DEVIATION_FROM_EXTERNAL_RATE")),
 		PercentDeviationFromMarketRate:   decimal.NewFromFloat(viper.GetFloat64("PERCENT_DEVIATION_FROM_MARKET_RATE")),
 	}

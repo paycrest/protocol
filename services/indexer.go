@@ -81,8 +81,11 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 
 	// Connect to RPC endpoint
 	if client == nil {
-		client, err = types.NewEthClient(token.Edges.Network.RPCEndpoint)
-		if err != nil {
+		retryErr := utils.Retry(3, 5*time.Second, func() error {
+			client, err = types.NewEthClient(token.Edges.Network.RPCEndpoint)
+			return err
+		})
+		if retryErr != nil {
 			logger.Errorf("IndexERC20Transfer.NewEthClient: %v", err)
 			return err
 		}
@@ -185,16 +188,21 @@ func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPC
 
 	// Connect to RPC endpoint
 	if client == nil {
-		client, err = types.NewEthClient(network.RPCEndpoint)
-		if err != nil {
-			return fmt.Errorf("IndexOrderCreated.NewEthClient: %w", err)
+		retryErr := utils.Retry(3, 5*time.Second, func() error {
+			client, err = types.NewEthClient(network.RPCEndpoint)
+			return err
+		})
+		if retryErr != nil {
+			logger.Errorf("IndexOrderCreated.NewEthClient: %v", err)
+			return err
 		}
 	}
 
 	// Initialize contract filterer
 	filterer, err := contracts.NewGatewayFilterer(OrderConf.GatewayContractAddress, client)
 	if err != nil {
-		return fmt.Errorf("IndexOrderCreated.NewGatewayFilterer: %w", err)
+		logger.Errorf("IndexOrderCreated.NewGatewayFilterer: %v", err)
+		return err
 	}
 
 	// Index missed blocks
@@ -232,7 +240,8 @@ func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPC
 			Start: nil,
 		}, logs, nil, nil, nil)
 		if err != nil {
-			return fmt.Errorf("IndexOrderCreated.WatchOrderCreated: %w", err)
+			logger.Errorf("IndexOrderCreated.WatchOrderCreated: %v", err)
+			return err
 		}
 
 		defer sub.Unsubscribe()
@@ -279,16 +288,21 @@ func (s *IndexerService) IndexOrderSettled(ctx context.Context, client types.RPC
 
 	// Connect to RPC endpoint
 	if client == nil {
-		client, err = types.NewEthClient(network.RPCEndpoint)
-		if err != nil {
-			return fmt.Errorf("IndexOrderSettled.NewEthClient: %w", err)
+		retryErr := utils.Retry(3, 5*time.Second, func() error {
+			client, err = types.NewEthClient(network.RPCEndpoint)
+			return err
+		})
+		if retryErr != nil {
+			logger.Errorf("IndexOrderSettled.NewEthClient: %v", err)
+			return err
 		}
 	}
 
 	// Initialize contract filterer
 	filterer, err := contracts.NewGatewayFilterer(OrderConf.GatewayContractAddress, client)
 	if err != nil {
-		return fmt.Errorf("IndexOrderSettled.NewGatewayFilterer: %w", err)
+		logger.Errorf("IndexOrderSettled.NewGatewayFilterer: %v", err)
+		return err
 	}
 
 	// Index missed blocks
@@ -327,7 +341,8 @@ func (s *IndexerService) IndexOrderSettled(ctx context.Context, client types.RPC
 			Start: nil,
 		}, logs, nil, nil)
 		if err != nil {
-			return fmt.Errorf("IndexOrderSettled.WatchOrderSettled: %w", err)
+			logger.Errorf("IndexOrderSettled.WatchOrderSettled: %v", err)
+			return err
 		}
 
 		defer sub.Unsubscribe()
@@ -373,16 +388,21 @@ func (s *IndexerService) IndexOrderRefunded(ctx context.Context, client types.RP
 
 	// Connect to RPC endpoint
 	if client == nil {
-		client, err = types.NewEthClient(network.RPCEndpoint)
-		if err != nil {
-			return fmt.Errorf("IndexOrderRefunded.NewEthClient: %w", err)
+		retryErr := utils.Retry(3, 5*time.Second, func() error {
+			client, err = types.NewEthClient(network.RPCEndpoint)
+			return err
+		})
+		if retryErr != nil {
+			logger.Errorf("IndexOrderRefunded.NewEthClient: %v", err)
+			return err
 		}
 	}
 
 	// Initialize contract filterer
 	filterer, err := contracts.NewGatewayFilterer(OrderConf.GatewayContractAddress, client)
 	if err != nil {
-		return fmt.Errorf("IndexOrderRefunded.NewGatewayFilterer: %w", err)
+		logger.Errorf("IndexOrderRefunded.NewGatewayFilterer: %v", err)
+		return err
 	}
 
 	// Index missed blocks
@@ -421,7 +441,8 @@ func (s *IndexerService) IndexOrderRefunded(ctx context.Context, client types.RP
 			Start: nil,
 		}, logs, nil)
 		if err != nil {
-			return fmt.Errorf("IndexOrderRefunded.WatchOrderRefunded: %w", err)
+			logger.Errorf("IndexOrderRefunded.WatchOrderRefunded: %v", err)
+			return err
 		}
 
 		defer sub.Unsubscribe()

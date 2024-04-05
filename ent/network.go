@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/paycrest/protocol/ent/network"
+	"github.com/shopspring/decimal"
 )
 
 // Network is the model entity for the Network schema.
@@ -29,6 +30,8 @@ type Network struct {
 	RPCEndpoint string `json:"rpc_endpoint,omitempty"`
 	// IsTestnet holds the value of the "is_testnet" field.
 	IsTestnet bool `json:"is_testnet,omitempty"`
+	// Fee holds the value of the "fee" field.
+	Fee decimal.Decimal `json:"fee,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the NetworkQuery when eager-loading is set.
 	Edges        NetworkEdges `json:"edges"`
@@ -58,6 +61,8 @@ func (*Network) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case network.FieldFee:
+			values[i] = new(decimal.Decimal)
 		case network.FieldIsTestnet:
 			values[i] = new(sql.NullBool)
 		case network.FieldID, network.FieldChainID:
@@ -123,6 +128,12 @@ func (n *Network) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				n.IsTestnet = value.Bool
 			}
+		case network.FieldFee:
+			if value, ok := values[i].(*decimal.Decimal); !ok {
+				return fmt.Errorf("unexpected type %T for field fee", values[i])
+			} else if value != nil {
+				n.Fee = *value
+			}
 		default:
 			n.selectValues.Set(columns[i], values[i])
 		}
@@ -181,6 +192,9 @@ func (n *Network) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("is_testnet=")
 	builder.WriteString(fmt.Sprintf("%v", n.IsTestnet))
+	builder.WriteString(", ")
+	builder.WriteString("fee=")
+	builder.WriteString(fmt.Sprintf("%v", n.Fee))
 	builder.WriteByte(')')
 	return builder.String()
 }

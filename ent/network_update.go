@@ -14,6 +14,7 @@ import (
 	"github.com/paycrest/protocol/ent/network"
 	"github.com/paycrest/protocol/ent/predicate"
 	"github.com/paycrest/protocol/ent/token"
+	"github.com/shopspring/decimal"
 )
 
 // NetworkUpdate is the builder for updating Network entities.
@@ -63,6 +64,19 @@ func (nu *NetworkUpdate) SetRPCEndpoint(s string) *NetworkUpdate {
 // SetIsTestnet sets the "is_testnet" field.
 func (nu *NetworkUpdate) SetIsTestnet(b bool) *NetworkUpdate {
 	nu.mutation.SetIsTestnet(b)
+	return nu
+}
+
+// SetFee sets the "fee" field.
+func (nu *NetworkUpdate) SetFee(d decimal.Decimal) *NetworkUpdate {
+	nu.mutation.ResetFee()
+	nu.mutation.SetFee(d)
+	return nu
+}
+
+// AddFee adds d to the "fee" field.
+func (nu *NetworkUpdate) AddFee(d decimal.Decimal) *NetworkUpdate {
+	nu.mutation.AddFee(d)
 	return nu
 }
 
@@ -170,6 +184,12 @@ func (nu *NetworkUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if value, ok := nu.mutation.IsTestnet(); ok {
 		_spec.SetField(network.FieldIsTestnet, field.TypeBool, value)
 	}
+	if value, ok := nu.mutation.Fee(); ok {
+		_spec.SetField(network.FieldFee, field.TypeFloat64, value)
+	}
+	if value, ok := nu.mutation.AddedFee(); ok {
+		_spec.AddField(network.FieldFee, field.TypeFloat64, value)
+	}
 	if nu.mutation.TokensCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
@@ -269,6 +289,19 @@ func (nuo *NetworkUpdateOne) SetRPCEndpoint(s string) *NetworkUpdateOne {
 // SetIsTestnet sets the "is_testnet" field.
 func (nuo *NetworkUpdateOne) SetIsTestnet(b bool) *NetworkUpdateOne {
 	nuo.mutation.SetIsTestnet(b)
+	return nuo
+}
+
+// SetFee sets the "fee" field.
+func (nuo *NetworkUpdateOne) SetFee(d decimal.Decimal) *NetworkUpdateOne {
+	nuo.mutation.ResetFee()
+	nuo.mutation.SetFee(d)
+	return nuo
+}
+
+// AddFee adds d to the "fee" field.
+func (nuo *NetworkUpdateOne) AddFee(d decimal.Decimal) *NetworkUpdateOne {
+	nuo.mutation.AddFee(d)
 	return nuo
 }
 
@@ -405,6 +438,12 @@ func (nuo *NetworkUpdateOne) sqlSave(ctx context.Context) (_node *Network, err e
 	}
 	if value, ok := nuo.mutation.IsTestnet(); ok {
 		_spec.SetField(network.FieldIsTestnet, field.TypeBool, value)
+	}
+	if value, ok := nuo.mutation.Fee(); ok {
+		_spec.SetField(network.FieldFee, field.TypeFloat64, value)
+	}
+	if value, ok := nuo.mutation.AddedFee(); ok {
+		_spec.AddField(network.FieldFee, field.TypeFloat64, value)
 	}
 	if nuo.mutation.TokensCleared() {
 		edge := &sqlgraph.EdgeSpec{
