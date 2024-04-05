@@ -8,6 +8,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/paycrest/protocol/ent/predicate"
+	"github.com/shopspring/decimal"
 )
 
 // ID filters vertices based on their ID field.
@@ -83,6 +84,11 @@ func RPCEndpoint(v string) predicate.Network {
 // IsTestnet applies equality check predicate on the "is_testnet" field. It's identical to IsTestnetEQ.
 func IsTestnet(v bool) predicate.Network {
 	return predicate.Network(sql.FieldEQ(FieldIsTestnet, v))
+}
+
+// Fee applies equality check predicate on the "fee" field. It's identical to FeeEQ.
+func Fee(v decimal.Decimal) predicate.Network {
+	return predicate.Network(sql.FieldEQ(FieldFee, v))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
@@ -343,6 +349,46 @@ func IsTestnetEQ(v bool) predicate.Network {
 // IsTestnetNEQ applies the NEQ predicate on the "is_testnet" field.
 func IsTestnetNEQ(v bool) predicate.Network {
 	return predicate.Network(sql.FieldNEQ(FieldIsTestnet, v))
+}
+
+// FeeEQ applies the EQ predicate on the "fee" field.
+func FeeEQ(v decimal.Decimal) predicate.Network {
+	return predicate.Network(sql.FieldEQ(FieldFee, v))
+}
+
+// FeeNEQ applies the NEQ predicate on the "fee" field.
+func FeeNEQ(v decimal.Decimal) predicate.Network {
+	return predicate.Network(sql.FieldNEQ(FieldFee, v))
+}
+
+// FeeIn applies the In predicate on the "fee" field.
+func FeeIn(vs ...decimal.Decimal) predicate.Network {
+	return predicate.Network(sql.FieldIn(FieldFee, vs...))
+}
+
+// FeeNotIn applies the NotIn predicate on the "fee" field.
+func FeeNotIn(vs ...decimal.Decimal) predicate.Network {
+	return predicate.Network(sql.FieldNotIn(FieldFee, vs...))
+}
+
+// FeeGT applies the GT predicate on the "fee" field.
+func FeeGT(v decimal.Decimal) predicate.Network {
+	return predicate.Network(sql.FieldGT(FieldFee, v))
+}
+
+// FeeGTE applies the GTE predicate on the "fee" field.
+func FeeGTE(v decimal.Decimal) predicate.Network {
+	return predicate.Network(sql.FieldGTE(FieldFee, v))
+}
+
+// FeeLT applies the LT predicate on the "fee" field.
+func FeeLT(v decimal.Decimal) predicate.Network {
+	return predicate.Network(sql.FieldLT(FieldFee, v))
+}
+
+// FeeLTE applies the LTE predicate on the "fee" field.
+func FeeLTE(v decimal.Decimal) predicate.Network {
+	return predicate.Network(sql.FieldLTE(FieldFee, v))
 }
 
 // HasTokens applies the HasEdge predicate on the "tokens" edge.

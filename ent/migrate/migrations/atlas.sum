@@ -1,4 +1,4 @@
-h1:uHD0DCi20Sg1Y+cV516Qtvvo55Z1NS5lGi7qsXcWWuc=
+h1:/LjFtU848u5N0/ZIj2NOrsZgHy/7cvV0bUQjk9EaluQ=
 20240118234246_initial.sql h1:dYuYBqns33WT+3p8VQvbKUP62k3k6w6h8S+FqNqgSvU=
 20240130122324_order_from_address.sql h1:mMVI2iBUd1roIYLUqu0d2jZ7+B6exppRN8qqn+aIHx4=
 20240202010744_fees_on_order.sql h1:P7ngxZKqDKefBM5vk6M3kbWeMPVwbZ4MZVcLBjEfS34=
@@ -8,3 +8,4 @@ h1:uHD0DCi20Sg1Y+cV516Qtvvo55Z1NS5lGi7qsXcWWuc=
 20240220003618_add_is_kyb_verified.sql h1:0FzpA2wX/IAxZ/gyof3ltt94Oo9DeENObqgY/tWMdZU=
 20240326145227_has_early_access.sql h1:7DYQAuJJeHMw0FjA9G5Sv5CTmwyOZxaPdfJHZmq2EAs=
 20240404065157_add_gateway_id.sql h1:9STQPRr3OXQ+1zYd/3+IOJlgSaFRdqV+Rh/6Ti9McmA=
+20240404231425_add_fee_to_network.sql h1:b5UDSWa1yMwD+/A3tynRJ8N8QJFsgNByRG0yHKlsHLM=

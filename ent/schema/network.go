@@ -5,6 +5,7 @@ import (
 	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
+	"github.com/shopspring/decimal"
 )
 
 // Network holds the schema definition for the Network entity.
@@ -28,6 +29,8 @@ func (Network) Fields() []ent.Field {
 			Unique(),
 		field.String("rpc_endpoint"),
 		field.Bool("is_testnet"),
+		field.Float("fee").
+			GoType(decimal.Decimal{}),
 	}
 }
 

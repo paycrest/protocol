@@ -24,6 +24,7 @@ import (
 	"github.com/paycrest/protocol/ent/paymentorder"
 	"github.com/paycrest/protocol/ent/providerordertoken"
 	"github.com/paycrest/protocol/ent/providerprofile"
+	"github.com/paycrest/protocol/ent/receiveaddress"
 	"github.com/paycrest/protocol/types"
 	"github.com/paycrest/protocol/utils"
 	cryptoUtils "github.com/paycrest/protocol/utils/crypto"
@@ -232,7 +233,9 @@ func (s *OrderService) RevertOrder(ctx context.Context, order *ent.PaymentOrder)
 
 	var amountToRevert decimal.Decimal
 
-	if order.AmountPaid.LessThan(orderAmountWithFees) {
+	if order.Status == paymentorder.StatusInitiated && order.Edges.ReceiveAddress.Status == receiveaddress.StatusUsed && order.UpdatedAt.Before(time.Now().Add(-5*time.Minute)) {
+		amountToRevert = order.AmountPaid
+	} else if order.AmountPaid.LessThan(orderAmountWithFees) {
 		amountToRevert = order.AmountPaid
 	} else if order.AmountPaid.GreaterThan(orderAmountWithFees) {
 		amountToRevert = order.AmountPaid.Sub(orderAmountWithFees)
@@ -245,7 +248,7 @@ func (s *OrderService) RevertOrder(ctx context.Context, order *ent.PaymentOrder)
 	}
 
 	// Subtract the network fee from the amount
-	amountMinusFee := amountToRevert.Sub(OrderConf.NetworkFee)
+	amountMinusFee := amountToRevert.Sub(order.NetworkFee)
 
 	// If amount minus fee is less than zero, return
 	if amountMinusFee.LessThan(decimal.Zero) {
@@ -636,7 +639,7 @@ func (s *OrderService) executeBatchRefundCallData(order *ent.LockPaymentOrder) (
 	}
 
 	// Create refund data
-	fee := utils.ToSubunit(OrderConf.NetworkFee, order.Edges.Token.Decimals)
+	fee := utils.ToSubunit(order.Edges.Token.Edges.Network.Fee, order.Edges.Token.Decimals)
 	refundData, err := s.refundCallData(fee, order.GatewayID)
 	if err != nil {
 		return nil, fmt.Errorf("executeBatchRefundCallData.refundData: %w", err)

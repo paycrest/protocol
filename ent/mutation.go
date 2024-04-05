@@ -3820,6 +3820,8 @@ type NetworkMutation struct {
 	identifier    *string
 	rpc_endpoint  *string
 	is_testnet    *bool
+	fee           *decimal.Decimal
+	addfee        *decimal.Decimal
 	clearedFields map[string]struct{}
 	tokens        map[int]struct{}
 	removedtokens map[int]struct{}
@@ -4163,6 +4165,62 @@ func (m *NetworkMutation) ResetIsTestnet() {
 	m.is_testnet = nil
 }
 
+// SetFee sets the "fee" field.
+func (m *NetworkMutation) SetFee(d decimal.Decimal) {
+	m.fee = &d
+	m.addfee = nil
+}
+
+// Fee returns the value of the "fee" field in the mutation.
+func (m *NetworkMutation) Fee() (r decimal.Decimal, exists bool) {
+	v := m.fee
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFee returns the old "fee" field's value of the Network entity.
+// If the Network object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *NetworkMutation) OldFee(ctx context.Context) (v decimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFee is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFee requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFee: %w", err)
+	}
+	return oldValue.Fee, nil
+}
+
+// AddFee adds d to the "fee" field.
+func (m *NetworkMutation) AddFee(d decimal.Decimal) {
+	if m.addfee != nil {
+		*m.addfee = m.addfee.Add(d)
+	} else {
+		m.addfee = &d
+	}
+}
+
+// AddedFee returns the value that was added to the "fee" field in this mutation.
+func (m *NetworkMutation) AddedFee() (r decimal.Decimal, exists bool) {
+	v := m.addfee
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetFee resets all changes to the "fee" field.
+func (m *NetworkMutation) ResetFee() {
+	m.fee = nil
+	m.addfee = nil
+}
+
 // AddTokenIDs adds the "tokens" edge to the Token entity by ids.
 func (m *NetworkMutation) AddTokenIDs(ids ...int) {
 	if m.tokens == nil {
@@ -4251,7 +4309,7 @@ func (m *NetworkMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *NetworkMutation) Fields() []string {
-	fields := make([]string, 0, 6)
+	fields := make([]string, 0, 7)
 	if m.created_at != nil {
 		fields = append(fields, network.FieldCreatedAt)
 	}
@@ -4269,6 +4327,9 @@ func (m *NetworkMutation) Fields() []string {
 	}
 	if m.is_testnet != nil {
 		fields = append(fields, network.FieldIsTestnet)
+	}
+	if m.fee != nil {
+		fields = append(fields, network.FieldFee)
 	}
 	return fields
 }
@@ -4290,6 +4351,8 @@ func (m *NetworkMutation) Field(name string) (ent.Value, bool) {
 		return m.RPCEndpoint()
 	case network.FieldIsTestnet:
 		return m.IsTestnet()
+	case network.FieldFee:
+		return m.Fee()
 	}
 	return nil, false
 }
@@ -4311,6 +4374,8 @@ func (m *NetworkMutation) OldField(ctx context.Context, name string) (ent.Value,
 		return m.OldRPCEndpoint(ctx)
 	case network.FieldIsTestnet:
 		return m.OldIsTestnet(ctx)
+	case network.FieldFee:
+		return m.OldFee(ctx)
 	}
 	return nil, fmt.Errorf("unknown Network field %s", name)
 }
@@ -4362,6 +4427,13 @@ func (m *NetworkMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetIsTestnet(v)
 		return nil
+	case network.FieldFee:
+		v, ok := value.(decimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFee(v)
+		return nil
 	}
 	return fmt.Errorf("unknown Network field %s", name)
 }
@@ -4373,6 +4445,9 @@ func (m *NetworkMutation) AddedFields() []string {
 	if m.addchain_id != nil {
 		fields = append(fields, network.FieldChainID)
 	}
+	if m.addfee != nil {
+		fields = append(fields, network.FieldFee)
+	}
 	return fields
 }
 
@@ -4383,6 +4458,8 @@ func (m *NetworkMutation) AddedField(name string) (ent.Value, bool) {
 	switch name {
 	case network.FieldChainID:
 		return m.AddedChainID()
+	case network.FieldFee:
+		return m.AddedFee()
 	}
 	return nil, false
 }
@@ -4398,6 +4475,13 @@ func (m *NetworkMutation) AddField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.AddChainID(v)
+		return nil
+	case network.FieldFee:
+		v, ok := value.(decimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddFee(v)
 		return nil
 	}
 	return fmt.Errorf("unknown Network numeric field %s", name)
@@ -4443,6 +4527,9 @@ func (m *NetworkMutation) ResetField(name string) error {
 		return nil
 	case network.FieldIsTestnet:
 		m.ResetIsTestnet()
+		return nil
+	case network.FieldFee:
+		m.ResetFee()
 		return nil
 	}
 	return fmt.Errorf("unknown Network field %s", name)

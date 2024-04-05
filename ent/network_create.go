@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/paycrest/protocol/ent/network"
 	"github.com/paycrest/protocol/ent/token"
+	"github.com/shopspring/decimal"
 )
 
 // NetworkCreate is the builder for creating a Network entity.
@@ -70,6 +71,12 @@ func (nc *NetworkCreate) SetRPCEndpoint(s string) *NetworkCreate {
 // SetIsTestnet sets the "is_testnet" field.
 func (nc *NetworkCreate) SetIsTestnet(b bool) *NetworkCreate {
 	nc.mutation.SetIsTestnet(b)
+	return nc
+}
+
+// SetFee sets the "fee" field.
+func (nc *NetworkCreate) SetFee(d decimal.Decimal) *NetworkCreate {
+	nc.mutation.SetFee(d)
 	return nc
 }
 
@@ -153,6 +160,9 @@ func (nc *NetworkCreate) check() error {
 	if _, ok := nc.mutation.IsTestnet(); !ok {
 		return &ValidationError{Name: "is_testnet", err: errors.New(`ent: missing required field "Network.is_testnet"`)}
 	}
+	if _, ok := nc.mutation.Fee(); !ok {
+		return &ValidationError{Name: "fee", err: errors.New(`ent: missing required field "Network.fee"`)}
+	}
 	return nil
 }
 
@@ -202,6 +212,10 @@ func (nc *NetworkCreate) createSpec() (*Network, *sqlgraph.CreateSpec) {
 	if value, ok := nc.mutation.IsTestnet(); ok {
 		_spec.SetField(network.FieldIsTestnet, field.TypeBool, value)
 		_node.IsTestnet = value
+	}
+	if value, ok := nc.mutation.Fee(); ok {
+		_spec.SetField(network.FieldFee, field.TypeFloat64, value)
+		_node.Fee = value
 	}
 	if nodes := nc.mutation.TokensIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

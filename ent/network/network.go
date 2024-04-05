@@ -26,6 +26,8 @@ const (
 	FieldRPCEndpoint = "rpc_endpoint"
 	// FieldIsTestnet holds the string denoting the is_testnet field in the database.
 	FieldIsTestnet = "is_testnet"
+	// FieldFee holds the string denoting the fee field in the database.
+	FieldFee = "fee"
 	// EdgeTokens holds the string denoting the tokens edge name in mutations.
 	EdgeTokens = "tokens"
 	// Table holds the table name of the network in the database.
@@ -48,6 +50,7 @@ var Columns = []string{
 	FieldIdentifier,
 	FieldRPCEndpoint,
 	FieldIsTestnet,
+	FieldFee,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -105,6 +108,11 @@ func ByRPCEndpoint(opts ...sql.OrderTermOption) OrderOption {
 // ByIsTestnet orders the results by the is_testnet field.
 func ByIsTestnet(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldIsTestnet, opts...).ToFunc()
+}
+
+// ByFee orders the results by the fee field.
+func ByFee(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFee, opts...).ToFunc()
 }
 
 // ByTokensCount orders the results by tokens count.
