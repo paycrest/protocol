@@ -147,14 +147,10 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 		for {
 			select {
 			case log := <-logs:
-				ok, err := s.updateReceiveAddressStatus(ctx, receiveAddress, paymentOrder, log)
+				_, err := s.updateReceiveAddressStatus(ctx, receiveAddress, paymentOrder, log)
 				if err != nil {
 					logger.Errorf("IndexERC20Transfer.updateReceiveAddressStatus: %v", err)
 					continue
-				}
-				if ok {
-					close(logs)
-					return nil
 				}
 			case err := <-sub.Err():
 				if err == nil {
@@ -716,11 +712,17 @@ func (s *IndexerService) createLockPaymentOrder(ctx context.Context, client type
 	start := time.Now()
 	timeout := time.Minute
 	for {
-		_, err = db.Client.PaymentOrder.
-			Update().
+		paymentOrder, err := db.Client.PaymentOrder.
+			Query().
 			Where(
 				paymentorder.TxHashEQ(deposit.Raw.TxHash.Hex()),
 			).
+			Only(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to fetch payment order: %w", err)
+		}
+		_, err = paymentOrder.
+			Update().
 			SetGatewayID(gatewayId).
 			Save(ctx)
 		if err != nil {
@@ -1173,7 +1175,6 @@ func (s *IndexerService) splitLockPaymentOrder(ctx context.Context, lockPaymentO
 func (s *IndexerService) getMissedOrderBlocksOpts(
 	ctx context.Context, client types.RPCClient, network *ent.Network, status lockpaymentorder.Status,
 ) *bind.FilterOpts {
-
 	// Get the last lock payment order from db
 	result, err := db.Client.LockPaymentOrder.
 		Query().
@@ -1219,7 +1220,6 @@ func (s *IndexerService) getMissedOrderBlocksOpts(
 
 // getMissedERC20BlocksOpts returns the filter options for fetching missed blocks based on receive address status
 func (s *IndexerService) getMissedERC20BlocksOpts(ctx context.Context, client types.RPCClient, network *ent.Network) *bind.FilterOpts {
-
 	// Get receive address with most recent indexed block from db
 	result, err := db.Client.ReceiveAddress.
 		Query().

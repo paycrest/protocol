@@ -2,6 +2,7 @@ package logger
 
 import (
 	"bytes"
+	"os"
 	"strings"
 	"time"
 
@@ -35,6 +36,14 @@ func init() {
 			logrus.ErrorLevel,
 		})
 		logger.Hooks.Add(hook)
+	} else {
+		// File hook for local environment
+		file, err := os.OpenFile("logs.txt", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+		if err == nil {
+			logger.Out = file
+		} else {
+			logger.Errorf("Failed to open logs.txt: %v", err)
+		}
 	}
 	logger.SetReportCaller(true)
 }

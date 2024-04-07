@@ -18,6 +18,7 @@
 vendor/
 .vscode/
 tmp/
+logs.txt
 
 # Go workspace file
 go.work
