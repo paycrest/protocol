@@ -22,6 +22,7 @@ import (
 	"github.com/paycrest/protocol/ent/webhookretryattempt"
 	"github.com/paycrest/protocol/services"
 	"github.com/paycrest/protocol/storage"
+	"github.com/paycrest/protocol/types"
 	"github.com/paycrest/protocol/utils"
 	"github.com/paycrest/protocol/utils/logger"
 	"github.com/shopspring/decimal"
@@ -119,7 +120,7 @@ func RetryStaleUserOperations() error {
 				Where(sql.And(
 					sql.EQ(s.C(paymentorder.FieldStatus), paymentorder.StatusInitiated),
 					sql.EQ(ra.C(receiveaddress.FieldStatus), receiveaddress.StatusUsed),
-					// Exclude orders with matching labels in lockpaymentorder table i.e fetch only orders without corresponding lock payment orders
+					// Exclude orders with matching Gateway IDs in lockpaymentorder table i.e fetch only orders without corresponding lock payment orders
 					sql.NotExists(
 						sql.Select().
 							From(lpo).
@@ -213,6 +214,60 @@ func RetryStaleUserOperations() error {
 			err := orderService.RefundOrder(ctx, order.GatewayID)
 			if err != nil {
 				logger.Errorf("process order refunds task => %v", err)
+			}
+		}
+	}()
+
+	return nil
+}
+
+// IndexMissedBlocks indexes missed blocks
+func IndexMissedBlocks() error {
+	ctx := context.Background()
+	orderService := services.NewOrderService()
+	indexerService := services.NewIndexerService(orderService)
+
+	networks, err := storage.Client.Network.Query().All(ctx)
+	if err != nil {
+		return fmt.Errorf("IndexMissedBlocks: %w", err)
+	}
+
+	var client types.RPCClient
+
+	go func() {
+		for _, network := range networks {
+			// Index missed OrderCreated events
+			orders, err := storage.GetClient().PaymentOrder.
+				Query().
+				Where(func(s *sql.Selector) {
+					lpo := sql.Table(lockpaymentorder.Table)
+					s.Where(sql.And(
+						sql.EQ(s.C(paymentorder.FieldStatus), paymentorder.StatusPending),
+						// Exclude orders with matching Gateway IDs in lockpaymentorder table i.e fetch only orders without corresponding lock payment orders
+						sql.NotExists(
+							sql.Select().
+								From(lpo).
+								Where(sql.ColumnsEQ(s.C(paymentorder.FieldGatewayID), lpo.C(lockpaymentorder.FieldGatewayID))),
+						),
+					))
+				}).
+				All(ctx)
+			if err != nil {
+				logger.Errorf("IndexMissedBlocks: %v", err)
+				continue
+			}
+
+			if len(orders) > 0 {
+				retryErr := utils.Retry(3, 5*time.Second, func() error {
+					client, err = types.NewEthClient(network.RPCEndpoint)
+					return err
+				})
+				if retryErr != nil {
+					logger.Errorf("IndexMissedBlocks: %v", err)
+					continue
+				}
+
+				indexerService.GetMissedOrderBlocksOpts(ctx, client, network, lockpaymentorder.StatusPending)
 			}
 		}
 	}()
@@ -482,8 +537,14 @@ func StartCronJobs() {
 		logger.Errorf("StartCronJobs: %v", err)
 	}
 
-	// Retry stale user operations every 2 minutes
-	_, err = scheduler.Cron("*/2 * * * *").Do(RetryStaleUserOperations)
+	// Retry stale user operations every 5 minutes
+	_, err = scheduler.Cron("*/5 * * * *").Do(RetryStaleUserOperations)
+	if err != nil {
+		logger.Errorf("StartCronJobs: %v", err)
+	}
+
+	// Index missed blocks every 5 minutes
+	_, err = scheduler.Cron("*/5 * * * *").Do(IndexMissedBlocks)
 	if err != nil {
 		logger.Errorf("StartCronJobs: %v", err)
 	}

@@ -37,6 +37,8 @@ type Indexer interface {
 	IndexOrderCreated(ctx context.Context, client types.RPCClient, network *ent.Network) error
 	IndexOrderSettled(ctx context.Context, client types.RPCClient, network *ent.Network) error
 	IndexOrderRefunded(ctx context.Context, client types.RPCClient, network *ent.Network) error
+	GetMissedOrderBlocksOpts(ctx context.Context, client types.RPCClient, network *ent.Network, status lockpaymentorder.Status) *bind.FilterOpts
+	GetMissedERC20BlocksOpts(ctx context.Context, client types.RPCClient, network *ent.Network) *bind.FilterOpts
 	HandleReceiveAddressValidity(ctx context.Context, receiveAddress *ent.ReceiveAddress, paymentOrder *ent.PaymentOrder) error
 }
 
@@ -101,7 +103,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 	// Index missed blocks
 	go func() {
 		// Filter logs from the last lock payment order block number
-		opts := s.getMissedERC20BlocksOpts(ctx, client, token.Edges.Network)
+		opts := s.GetMissedERC20BlocksOpts(ctx, client, token.Edges.Network)
 
 		// Fetch logs
 		var iter *contracts.ERC20TokenTransferIterator
@@ -204,7 +206,7 @@ func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPC
 	// Index missed blocks
 	go func() {
 		// Filter logs from the last lock payment order block number
-		opts := s.getMissedOrderBlocksOpts(ctx, client, network, lockpaymentorder.StatusPending)
+		opts := s.GetMissedOrderBlocksOpts(ctx, client, network, lockpaymentorder.StatusPending)
 
 		// Fetch logs
 		var iter *contracts.GatewayOrderCreatedIterator
@@ -304,7 +306,7 @@ func (s *IndexerService) IndexOrderSettled(ctx context.Context, client types.RPC
 	// Index missed blocks
 	go func() {
 		// Filter logs from the last lock payment order block number
-		opts := s.getMissedOrderBlocksOpts(ctx, client, network, lockpaymentorder.StatusSettled)
+		opts := s.GetMissedOrderBlocksOpts(ctx, client, network, lockpaymentorder.StatusSettled)
 
 		// Fetch logs
 		var iter *contracts.GatewayOrderSettledIterator
@@ -404,7 +406,7 @@ func (s *IndexerService) IndexOrderRefunded(ctx context.Context, client types.RP
 	// Index missed blocks
 	go func() {
 		// Filter logs from the last lock payment order block number
-		opts := s.getMissedOrderBlocksOpts(ctx, client, network, lockpaymentorder.StatusRefunded)
+		opts := s.GetMissedOrderBlocksOpts(ctx, client, network, lockpaymentorder.StatusRefunded)
 
 		// Fetch logs
 		var iter *contracts.GatewayOrderRefundedIterator
@@ -477,6 +479,99 @@ func (s *IndexerService) IndexOrderRefunded(ctx context.Context, client types.RP
 	}
 
 	return nil
+}
+
+// GetMissedOrderBlocksOpts returns the filter options for fetching missed blocks based on lock payment order status
+func (s *IndexerService) GetMissedOrderBlocksOpts(
+	ctx context.Context, client types.RPCClient, network *ent.Network, status lockpaymentorder.Status,
+) *bind.FilterOpts {
+	// Get the last lock payment order from db
+	result, err := db.Client.LockPaymentOrder.
+		Query().
+		Where(
+			lockpaymentorder.HasTokenWith(
+				token.HasNetworkWith(
+					networkent.IDEQ(network.ID),
+				),
+			),
+			lockpaymentorder.StatusEQ(status),
+			lockpaymentorder.BlockNumberNEQ(0),
+		).
+		Order(ent.Desc(lockpaymentorder.FieldBlockNumber)).
+		Limit(1).
+		All(ctx)
+	if err != nil {
+		logger.Errorf("failed to fetch lock payment order: %v", err)
+	}
+
+	// Fetch current block header
+	header, err := client.HeaderByNumber(ctx, nil)
+	if err != nil {
+		logger.Errorf("failed to fetch current block number: %v", err)
+	}
+
+	var startBlockNumber int64
+	toBlock := header.Number.Uint64()
+
+	if len(result) > 0 {
+		startBlockNumber = int64(result[0].BlockNumber) + 1
+	} else {
+		startBlockNumber = int64(toBlock) - 500
+	}
+
+	// Filter logs from the last lock payment order block number
+	opts := &bind.FilterOpts{
+		Start: uint64(startBlockNumber),
+		End:   &toBlock,
+	}
+
+	return opts
+}
+
+// GetMissedERC20BlocksOpts returns the filter options for fetching missed blocks based on receive address status
+func (s *IndexerService) GetMissedERC20BlocksOpts(ctx context.Context, client types.RPCClient, network *ent.Network) *bind.FilterOpts {
+	// Get receive address with most recent indexed block from db
+	result, err := db.Client.ReceiveAddress.
+		Query().
+		Where(
+			receiveaddress.HasPaymentOrderWith(
+				paymentorder.HasTokenWith(
+					token.HasNetworkWith(
+						networkent.IDEQ(network.ID),
+					),
+				),
+			),
+			receiveaddress.LastIndexedBlockNEQ(0),
+		).
+		Order(ent.Desc(receiveaddress.FieldLastIndexedBlock)).
+		Limit(1).
+		All(ctx)
+	if err != nil {
+		logger.Errorf("GetMissedERC20BlocksOpts.db: %v", err)
+	}
+
+	// Fetch current block header
+	header, err := client.HeaderByNumber(ctx, nil)
+	if err != nil {
+		logger.Errorf("GetMissedERC20BlocksOpts.HeaderByNumber: %v", err)
+	}
+
+	var startBlockNumber int64
+	toBlock := header.Number.Uint64()
+
+	if len(result) > 0 {
+		startBlockNumber = int64(result[0].LastIndexedBlock)
+	} else {
+		startBlockNumber = int64(toBlock) - 500
+	}
+
+	// Filter logs from the last indexed block number
+	opts := &bind.FilterOpts{
+		Start: uint64(startBlockNumber),
+		End:   &toBlock,
+	}
+
+	return opts
 }
 
 // HandleReceiveAddressValidity checks the validity of a receive address
@@ -1169,97 +1264,4 @@ func (s *IndexerService) splitLockPaymentOrder(ctx context.Context, lockPaymentO
 	}
 
 	return nil
-}
-
-// getMissedOrderBlocksOpts returns the filter options for fetching missed blocks based on lock payment order status
-func (s *IndexerService) getMissedOrderBlocksOpts(
-	ctx context.Context, client types.RPCClient, network *ent.Network, status lockpaymentorder.Status,
-) *bind.FilterOpts {
-	// Get the last lock payment order from db
-	result, err := db.Client.LockPaymentOrder.
-		Query().
-		Where(
-			lockpaymentorder.HasTokenWith(
-				token.HasNetworkWith(
-					networkent.IDEQ(network.ID),
-				),
-			),
-			lockpaymentorder.StatusEQ(status),
-			lockpaymentorder.BlockNumberNEQ(0),
-		).
-		Order(ent.Desc(lockpaymentorder.FieldBlockNumber)).
-		Limit(1).
-		All(ctx)
-	if err != nil {
-		logger.Errorf("failed to fetch lock payment order: %v", err)
-	}
-
-	// Fetch current block header
-	header, err := client.HeaderByNumber(ctx, nil)
-	if err != nil {
-		logger.Errorf("failed to fetch current block number: %v", err)
-	}
-
-	var startBlockNumber int64
-	toBlock := header.Number.Uint64()
-
-	if len(result) > 0 {
-		startBlockNumber = int64(result[0].BlockNumber) + 1
-	} else {
-		startBlockNumber = int64(toBlock) - 500
-	}
-
-	// Filter logs from the last lock payment order block number
-	opts := &bind.FilterOpts{
-		Start: uint64(startBlockNumber),
-		End:   &toBlock,
-	}
-
-	return opts
-}
-
-// getMissedERC20BlocksOpts returns the filter options for fetching missed blocks based on receive address status
-func (s *IndexerService) getMissedERC20BlocksOpts(ctx context.Context, client types.RPCClient, network *ent.Network) *bind.FilterOpts {
-	// Get receive address with most recent indexed block from db
-	result, err := db.Client.ReceiveAddress.
-		Query().
-		Where(
-			receiveaddress.HasPaymentOrderWith(
-				paymentorder.HasTokenWith(
-					token.HasNetworkWith(
-						networkent.IDEQ(network.ID),
-					),
-				),
-			),
-			receiveaddress.LastIndexedBlockNEQ(0),
-		).
-		Order(ent.Desc(receiveaddress.FieldLastIndexedBlock)).
-		Limit(1).
-		All(ctx)
-	if err != nil {
-		logger.Errorf("getMissedERC20BlocksOpts.db: %v", err)
-	}
-
-	// Fetch current block header
-	header, err := client.HeaderByNumber(ctx, nil)
-	if err != nil {
-		logger.Errorf("getMissedERC20BlocksOpts.HeaderByNumber: %v", err)
-	}
-
-	var startBlockNumber int64
-	toBlock := header.Number.Uint64()
-
-	if len(result) > 0 {
-		startBlockNumber = int64(result[0].LastIndexedBlock)
-	} else {
-		startBlockNumber = int64(toBlock) - 500
-	}
-
-	// Filter logs from the last indexed block number
-	opts := &bind.FilterOpts{
-		Start: uint64(startBlockNumber),
-		End:   &toBlock,
-	}
-
-	return opts
 }
