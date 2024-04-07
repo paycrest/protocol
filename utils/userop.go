@@ -232,7 +232,7 @@ func GetUserOperationByHash(userOpHash string, chainId int64) (map[string]interf
 	}
 
 	start := time.Now()
-	timeout := time.Minute
+	timeout := 5 * time.Minute
 
 	var response map[string]interface{}
 	for {
