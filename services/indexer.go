@@ -710,7 +710,7 @@ func (s *IndexerService) createLockPaymentOrder(ctx context.Context, client type
 
 	// Update payment order with the gateway ID
 	start := time.Now()
-	timeout := time.Minute
+	timeout := 5 * time.Minute
 	for {
 		paymentOrder, err := db.Client.PaymentOrder.
 			Query().
