@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"strings"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
@@ -200,7 +201,7 @@ func RetryStaleUserOperations() error {
 		Query().
 		Where(
 			lockpaymentorder.StatusEQ(lockpaymentorder.StatusPending),
-			lockpaymentorder.CreatedAtLTE(time.Now().Add(-1*time.Hour)),
+			lockpaymentorder.CreatedAtLTE(time.Now().Add(-30*time.Minute)),
 		).
 		All(ctx)
 	if err != nil {
@@ -274,51 +275,24 @@ func SubscribeToRedisKeyspaceEvents() {
 
 // fetchExternalRate fetches the external rate for a fiat currency
 func fetchExternalRate(ctx context.Context, currency string) (decimal.Decimal, error) {
-	// Fetch stable coin rate from third-party API Binance (USDT)
+	// Fetch stable coin rate from third-party API Quidax (USDT)
 	resp, err := utils.MakeJSONRequest(
 		ctx,
-		"POST",
-		"https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search",
-		map[string]interface{}{
-			"asset":     "USDT",
-			"fiat":      currency,
-			"tradeType": "SELL",
-			"page":      1,
-			"rows":      20,
-		},
+		"GET",
+		fmt.Sprintf("https://www.quidax.com/api/v1/markets/tickers/usdt%s", strings.ToLower(currency)),
+		nil,
 		nil,
 	)
 	if err != nil {
-		logger.Errorf("ComputeMarketRate: %v", err)
-		return decimal.Zero, err
+		return decimal.Zero, fmt.Errorf("ComputeMarketRate: %w", err)
 	}
 
-	// Access the data array
-	data, ok := resp["data"].([]interface{})
-	if !ok || len(data) == 0 {
-		return decimal.Zero, fmt.Errorf("ComputeMarketRate: No data in the response")
+	price, err := decimal.NewFromString(resp["data"].(map[string]interface{})["ticker"].(map[string]interface{})["buy"].(string))
+	if err != nil {
+		return decimal.Zero, fmt.Errorf("ComputeMarketRate: %w", err)
 	}
 
-	// Loop through the data array and extract prices
-	var prices []decimal.Decimal
-	for _, item := range data {
-		adv, ok := item.(map[string]interface{})["adv"].(map[string]interface{})
-		if !ok {
-			logger.Errorf("ComputeMarketRate: adv not found or not a map.")
-			continue
-		}
-
-		price, err := decimal.NewFromString(adv["price"].(string))
-		if err != nil {
-			logger.Errorf("ComputeMarketRate: %v", err)
-			continue
-		}
-
-		prices = append(prices, price)
-	}
-
-	// Calculate and return the median
-	return utils.Median(prices), nil
+	return price, nil
 }
 
 // ComputeMarketRate computes the market price for fiat currencies
@@ -331,27 +305,30 @@ func ComputeMarketRate() error {
 		Where(fiatcurrency.IsEnabledEQ(true)).
 		All(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("ComputeMarketRate: %w", err)
 	}
 
 	for _, currency := range currencies {
 		// Fetch external rate
 		externalRate, err := fetchExternalRate(ctx, currency.Code)
 		if err != nil {
-			logger.Errorf("ComputeMarketRate: %v", err)
-			return err
+			return fmt.Errorf("ComputeMarketRate: %w", err)
 		}
 
 		// Fetch rates from token configs with fixed conversion rate
+		token := "USDT"
+		if config.ServerConfig().Environment != "production" {
+			token = "6TEST"
+		}
 		tokenConfigs, err := storage.Client.ProviderOrderToken.
 			Query().
 			Where(
-				providerordertoken.SymbolEQ("USDT"),
+				providerordertoken.SymbolEQ(token),
 				providerordertoken.ConversionRateTypeEQ(providerordertoken.ConversionRateTypeFixed),
 			).
 			All(ctx)
 		if err != nil {
-			logger.Errorf("ComputeMarketRate: %v", err)
+			return fmt.Errorf("ComputeMarketRate: %w", err)
 		}
 
 		var rates []decimal.Decimal
@@ -374,11 +351,8 @@ func ComputeMarketRate() error {
 			SetMarketRate(median).
 			Save(ctx)
 		if err != nil {
-			logger.Errorf("ComputeMarketRate: %v", err)
-			return err
+			return fmt.Errorf("ComputeMarketRate: %w", err)
 		}
-
-		logger.Infof("Computed market rate for %s: %s\n", currency.Code, median.String())
 	}
 
 	return nil
@@ -397,8 +371,7 @@ func RetryFailedWebhookNotifications() error {
 		).
 		All(ctx)
 	if err != nil {
-		logger.Errorf("RetryFailedWebhookNotifications: %v", err)
-		return err
+		return fmt.Errorf("RetryFailedWebhookNotifications: %w", err)
 	}
 
 	baseDelay := 2 * time.Minute
@@ -436,7 +409,7 @@ func RetryFailedWebhookNotifications() error {
 
 			_, err := attemptUpdate.Save(ctx)
 			if err != nil {
-				logger.Errorf("RetryFailedWebhookNotifications: %v", err)
+				return fmt.Errorf("RetryFailedWebhookNotifications: %w", err)
 			}
 
 			continue
@@ -447,7 +420,7 @@ func RetryFailedWebhookNotifications() error {
 			SetStatus(webhookretryattempt.StatusSuccess).
 			Save(ctx)
 		if err != nil {
-			logger.Errorf("RetryFailedWebhookNotifications: %v", err)
+			return fmt.Errorf("RetryFailedWebhookNotifications: %w", err)
 		}
 	}
 
@@ -461,25 +434,25 @@ func StartCronJobs() {
 	priorityQueue := services.NewPriorityQueueService()
 
 	if serverConf.Environment != "production" {
-		// err := ComputeMarketRate()
-		// if err != nil {
-		// 	logger.Errorf("failed to compute market rate => %v", err)
-		// }
-
-		err := priorityQueue.ProcessBucketQueues()
+		err := ComputeMarketRate()
 		if err != nil {
-			logger.Errorf("failed to process bucket queues => %v", err)
+			logger.Errorf("StartCronJobs: %v", err)
+		}
+
+		err = priorityQueue.ProcessBucketQueues()
+		if err != nil {
+			logger.Errorf("StartCronJobs: %v", err)
 		}
 	}
 
-	// Compute market rate every 10 minutes
-	// _, err := scheduler.Cron("*/10 * * * *").Do(ComputeMarketRate)
-	// if err != nil {
-	// 	logger.Errorf("failed to schedule compute market rate task => %v", err)
-	// }
+	// Compute market rate every 5 minutes
+	_, err := scheduler.Cron("*/5 * * * *").Do(ComputeMarketRate)
+	if err != nil {
+		logger.Errorf("StartCronJobs: %v", err)
+	}
 
 	// Refresh provision bucket priority queues every X minutes
-	_, err := scheduler.Cron(fmt.Sprintf("*/%d * * * *", orderConf.BucketQueueRebuildInterval)).
+	_, err = scheduler.Cron(fmt.Sprintf("*/%d * * * *", orderConf.BucketQueueRebuildInterval)).
 		Do(priorityQueue.ProcessBucketQueues)
 	if err != nil {
 		logger.Errorf("StartCronJobs: %v", err)
@@ -509,8 +482,8 @@ func StartCronJobs() {
 		logger.Errorf("StartCronJobs: %v", err)
 	}
 
-	// Retry stale user operations every 15 minutes
-	_, err = scheduler.Cron("*/1 * * * *").Do(RetryStaleUserOperations)
+	// Retry stale user operations every 2 minutes
+	_, err = scheduler.Cron("*/2 * * * *").Do(RetryStaleUserOperations)
 	if err != nil {
 		logger.Errorf("StartCronJobs: %v", err)
 	}
