@@ -115,17 +115,11 @@ func RetryStaleUserOperations() error {
 		Query().
 		Where(func(s *sql.Selector) {
 			ra := sql.Table(receiveaddress.Table)
-			lpo := sql.Table(lockpaymentorder.Table)
 			s.LeftJoin(ra).On(s.C(paymentorder.FieldReceiveAddressText), ra.C(receiveaddress.FieldAddress)).
 				Where(sql.And(
 					sql.EQ(s.C(paymentorder.FieldStatus), paymentorder.StatusInitiated),
 					sql.EQ(ra.C(receiveaddress.FieldStatus), receiveaddress.StatusUsed),
-					// Exclude orders with matching Gateway IDs in lockpaymentorder table i.e fetch only orders without corresponding lock payment orders
-					sql.NotExists(
-						sql.Select().
-							From(lpo).
-							Where(sql.ColumnsEQ(s.C(paymentorder.FieldGatewayID), lpo.C(lockpaymentorder.FieldGatewayID))),
-					),
+					sql.IsNull(s.C(paymentorder.FieldGatewayID)),
 				))
 		}).
 		All(ctx)
@@ -239,18 +233,11 @@ func IndexMissedBlocks() error {
 			// Index missed OrderCreated events
 			orders, err := storage.GetClient().PaymentOrder.
 				Query().
-				Where(func(s *sql.Selector) {
-					lpo := sql.Table(lockpaymentorder.Table)
-					s.Where(sql.And(
-						sql.EQ(s.C(paymentorder.FieldStatus), paymentorder.StatusPending),
-						// Exclude orders with matching Gateway IDs in lockpaymentorder table i.e fetch only orders without corresponding lock payment orders
-						sql.NotExists(
-							sql.Select().
-								From(lpo).
-								Where(sql.ColumnsEQ(s.C(paymentorder.FieldGatewayID), lpo.C(lockpaymentorder.FieldGatewayID))),
-						),
-					))
-				}).
+				Where(
+					paymentorder.StatusEQ(paymentorder.StatusPending),
+					paymentorder.GatewayIDIsNil(),
+					paymentorder.UpdatedAtLT(time.Now().Add(-5*time.Minute)),
+				).
 				All(ctx)
 			if err != nil {
 				logger.Errorf("IndexMissedBlocks: %v", err)
