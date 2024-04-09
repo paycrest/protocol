@@ -233,11 +233,13 @@ func IndexMissedBlocks() error {
 			// Index missed OrderCreated events
 			orders, err := storage.GetClient().PaymentOrder.
 				Query().
-				Where(
-					paymentorder.StatusEQ(paymentorder.StatusPending),
-					paymentorder.GatewayIDIsNil(),
-					paymentorder.UpdatedAtLT(time.Now().Add(-5*time.Minute)),
-				).
+				Where(func(s *sql.Selector) {
+					s.Where(sql.And(
+						sql.EQ(s.C(paymentorder.FieldStatus), paymentorder.StatusPending),
+						sql.IsNull(s.C(paymentorder.FieldGatewayID)),
+						sql.LT(s.C(paymentorder.FieldUpdatedAt), time.Now().Add(-5*time.Minute))),
+					)
+				}).
 				All(ctx)
 			if err != nil {
 				logger.Errorf("IndexMissedBlocks: %v", err)
