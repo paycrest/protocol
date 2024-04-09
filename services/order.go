@@ -102,7 +102,11 @@ func (s *OrderService) CreateOrder(ctx context.Context, orderID uuid.UUID) error
 
 	// Sponsor user operation.
 	// This will populate the following fields in userOperation: PaymasterAndData, PreVerificationGas, VerificationGasLimit, CallGasLimit
-	err = utils.SponsorUserOperation(userOperation, "erc20token", order.Edges.Token.ContractAddress, order.Edges.Token.Edges.Network.ChainID)
+	if ServerConf.Environment != "production" {
+		err = utils.SponsorUserOperation(userOperation, "erc20token", order.Edges.Token.ContractAddress, order.Edges.Token.Edges.Network.ChainID)
+	} else {
+		err = utils.SponsorUserOperation(userOperation, "payg", "", order.Edges.Token.Edges.Network.ChainID)
+	}
 	if err != nil {
 		return fmt.Errorf("failed to sponsor user operation: %w", err)
 	}
@@ -281,7 +285,11 @@ func (s *OrderService) RevertOrder(ctx context.Context, order *ent.PaymentOrder)
 
 	// Sponsor user operation.
 	// This will populate the following fields in userOperation: PaymasterAndData, PreVerificationGas, VerificationGasLimit, CallGasLimit
-	err = utils.SponsorUserOperation(userOperation, "erc20token", order.Edges.Token.ContractAddress, order.Edges.Token.Edges.Network.ChainID)
+	if ServerConf.Environment != "production" {
+		err = utils.SponsorUserOperation(userOperation, "erc20token", order.Edges.Token.ContractAddress, order.Edges.Token.Edges.Network.ChainID)
+	} else {
+		err = utils.SponsorUserOperation(userOperation, "payg", "", order.Edges.Token.Edges.Network.ChainID)
+	}
 	if err != nil {
 		return fmt.Errorf("RevertOrder.sponsorUserOperation: %w", err)
 	}
