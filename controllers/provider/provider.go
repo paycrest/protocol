@@ -122,6 +122,7 @@ func (ctrl *ProviderController) GetLockPaymentOrders(ctx *gin.Context) {
 			AccountName:       order.AccountName,
 			TxHash:            order.TxHash,
 			Status:            order.Status.String(),
+			Memo:              order.Memo,
 			Network:           order.Edges.Token.Edges.Network.Identifier,
 			UpdatedAt:         order.UpdatedAt,
 			CreatedAt:         order.CreatedAt,
