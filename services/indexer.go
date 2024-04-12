@@ -519,6 +519,10 @@ func (s *IndexerService) GetMissedOrderBlocksOpts(
 		startBlockNumber = int64(toBlock) - 500
 	}
 
+	if startBlockNumber < 0 {
+		startBlockNumber = 0
+	}
+
 	// Filter logs from the last lock payment order block number
 	opts := &bind.FilterOpts{
 		Start: uint64(startBlockNumber),
@@ -563,6 +567,10 @@ func (s *IndexerService) GetMissedERC20BlocksOpts(ctx context.Context, client ty
 		startBlockNumber = int64(result[0].LastIndexedBlock)
 	} else {
 		startBlockNumber = int64(toBlock) - 500
+	}
+
+	if startBlockNumber < 0 {
+		startBlockNumber = 0
 	}
 
 	// Filter logs from the last indexed block number

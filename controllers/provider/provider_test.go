@@ -57,7 +57,7 @@ func setup() error {
 
 	for i := 0; i < 10; i++ {
 		_, err := test.CreateTestLockPaymentOrder(map[string]interface{}{
-			"order_id": uuid.New().String(),
+			"gateway_id": uuid.New().String(),
 			"provider": providerProfile,
 		})
 		if err != nil {
