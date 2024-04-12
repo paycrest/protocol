@@ -113,7 +113,6 @@ func CreateTestLockPaymentOrder(overrides map[string]interface{}) (*ent.LockPaym
 		"gateway_id":         "order-123",
 		"amount":             100.50,
 		"rate":               750.0,
-		"label":              "thisisatestlabel",
 		"status":             "pending",
 		"block_number":       12345,
 		"institution":        "Test Bank",
