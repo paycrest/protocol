@@ -372,11 +372,14 @@ func getEndpoints(chainId int64) (bundlerUrl, paymasterUrl string, err error) {
 		bundlerUrl = OrderConf.BundlerUrlPolygon
 		paymasterUrl = OrderConf.PaymasterUrlPolygon
 	case 56:
-		bundlerUrl = OrderConf.BundlerUrlBsc
-		paymasterUrl = OrderConf.PaymasterUrlBsc
+		bundlerUrl = OrderConf.BundlerUrlBSC
+		paymasterUrl = OrderConf.PaymasterUrlBSC
 	case 8453:
 		bundlerUrl = OrderConf.BundlerUrlBase
 		paymasterUrl = OrderConf.PaymasterUrlBase
+	case 42161:
+		bundlerUrl = OrderConf.BundlerUrlArbitrum
+		paymasterUrl = OrderConf.PaymasterUrlArbitrum
 	default:
 		return "", "", fmt.Errorf("unsupported chain ID")
 	}

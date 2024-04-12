@@ -228,38 +228,36 @@ func IndexMissedBlocks() error {
 
 	var client types.RPCClient
 
-	go func() {
-		for _, network := range networks {
-			// Index missed OrderCreated events
-			orders, err := storage.GetClient().PaymentOrder.
-				Query().
-				Where(func(s *sql.Selector) {
-					s.Where(sql.And(
-						sql.EQ(s.C(paymentorder.FieldStatus), paymentorder.StatusPending),
-						sql.IsNull(s.C(paymentorder.FieldGatewayID)),
-						sql.LT(s.C(paymentorder.FieldUpdatedAt), time.Now().Add(-5*time.Minute))),
-					)
-				}).
-				All(ctx)
-			if err != nil {
+	for _, network := range networks {
+		// Index missed OrderCreated events
+		orders, err := storage.GetClient().PaymentOrder.
+			Query().
+			Where(func(s *sql.Selector) {
+				s.Where(sql.And(
+					sql.EQ(s.C(paymentorder.FieldStatus), paymentorder.StatusPending),
+					sql.IsNull(s.C(paymentorder.FieldGatewayID)),
+					sql.LT(s.C(paymentorder.FieldUpdatedAt), time.Now().Add(-5*time.Minute))),
+				)
+			}).
+			All(ctx)
+		if err != nil {
+			logger.Errorf("IndexMissedBlocks: %v", err)
+			continue
+		}
+
+		if len(orders) > 0 {
+			retryErr := utils.Retry(3, 5*time.Second, func() error {
+				client, err = types.NewEthClient(network.RPCEndpoint)
+				return err
+			})
+			if retryErr != nil {
 				logger.Errorf("IndexMissedBlocks: %v", err)
 				continue
 			}
 
-			if len(orders) > 0 {
-				retryErr := utils.Retry(3, 5*time.Second, func() error {
-					client, err = types.NewEthClient(network.RPCEndpoint)
-					return err
-				})
-				if retryErr != nil {
-					logger.Errorf("IndexMissedBlocks: %v", err)
-					continue
-				}
-
-				indexerService.GetMissedOrderBlocksOpts(ctx, client, network, lockpaymentorder.StatusPending)
-			}
+			indexerService.GetMissedOrderBlocksOpts(ctx, client, network, lockpaymentorder.StatusPending)
 		}
-	}()
+	}
 
 	return nil
 }

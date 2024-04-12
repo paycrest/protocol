@@ -26,8 +26,10 @@ type OrderConfiguration struct {
 	PaymasterUrlPolygon              string
 	BundlerUrlBase                   string
 	PaymasterUrlBase                 string
-	BundlerUrlBsc                    string
-	PaymasterUrlBsc                  string
+	BundlerUrlBSC                    string
+	PaymasterUrlBSC                  string
+	BundlerUrlArbitrum               string
+	PaymasterUrlArbitrum             string
 }
 
 // OrderConfig sets the order configuration
@@ -52,8 +54,10 @@ func OrderConfig() *OrderConfiguration {
 		PaymasterUrlPolygon:              viper.GetString("PAYMASTER_URL_POLYGON"),
 		BundlerUrlBase:                   viper.GetString("BUNDLER_URL_BASE"),
 		PaymasterUrlBase:                 viper.GetString("PAYMASTER_URL_BASE"),
-		BundlerUrlBsc:                    viper.GetString("BUNDLER_URL_BSC"),
-		PaymasterUrlBsc:                  viper.GetString("PAYMASTER_URL_BSC"),
+		BundlerUrlBSC:                    viper.GetString("BUNDLER_URL_BSC"),
+		PaymasterUrlBSC:                  viper.GetString("PAYMASTER_URL_BSC"),
+		BundlerUrlArbitrum:               viper.GetString("BUNDLER_URL_ARBITRUM"),
+		PaymasterUrlArbitrum:             viper.GetString("PAYMASTER_URL_ARBITRUM"),
 		EntryPointContractAddress:        common.HexToAddress(viper.GetString("ENTRY_POINT_CONTRACT_ADDRESS")),
 		BucketQueueRebuildInterval:       viper.GetInt("BUCKET_QUEUE_REBUILD_INTERVAL"),
 		RefundCancellationCount:          viper.GetInt("REFUND_CANCELLATION_COUNT"),
