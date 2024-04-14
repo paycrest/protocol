@@ -10,6 +10,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/google/uuid"
 	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/fiatcurrency"
@@ -40,6 +41,8 @@ type Indexer interface {
 	GetMissedERC20BlocksOpts(ctx context.Context, client types.RPCClient, network *ent.Network) *bind.FilterOpts
 	HandleReceiveAddressValidity(ctx context.Context, receiveAddress *ent.ReceiveAddress, paymentOrder *ent.PaymentOrder) error
 	CreateLockPaymentOrder(ctx context.Context, client types.RPCClient, network *ent.Network, deposit *contracts.GatewayOrderCreated) error
+	UpdateOrderStatusSettled(ctx context.Context, log *contracts.GatewayOrderSettled) error
+	UpdateOrderStatusRefunded(ctx context.Context, log *contracts.GatewayOrderRefunded) error
 }
 
 // IndexerService performs blockchain to database extract, transform, load (ETL) operations.
@@ -323,7 +326,7 @@ func (s *IndexerService) IndexOrderSettled(ctx context.Context, client types.RPC
 		// Iterate over logs
 		for iter.Next() {
 			log := iter.Event
-			err := s.updateOrderStatusSettled(ctx, log)
+			err := s.UpdateOrderStatusSettled(ctx, log)
 			if err != nil {
 				logger.Errorf("IndexOrderSettled.update: %v", err)
 				continue
@@ -350,7 +353,7 @@ func (s *IndexerService) IndexOrderSettled(ctx context.Context, client types.RPC
 		for {
 			select {
 			case log := <-logs:
-				err := s.updateOrderStatusSettled(ctx, log)
+				err := s.UpdateOrderStatusSettled(ctx, log)
 				if err != nil {
 					logger.Errorf("IndexOrderSettled.update: %v", err)
 					continue
@@ -423,7 +426,7 @@ func (s *IndexerService) IndexOrderRefunded(ctx context.Context, client types.RP
 		// Iterate over logs
 		for iter.Next() {
 			log := iter.Event
-			err := s.updateOrderStatusRefunded(ctx, log)
+			err := s.UpdateOrderStatusRefunded(ctx, log)
 			if err != nil {
 				logger.Errorf("IndexOrderRefunded.update: %v", err)
 				continue
@@ -450,7 +453,7 @@ func (s *IndexerService) IndexOrderRefunded(ctx context.Context, client types.RP
 		for {
 			select {
 			case log := <-logs:
-				err := s.updateOrderStatusRefunded(ctx, log)
+				err := s.UpdateOrderStatusRefunded(ctx, log)
 				if err != nil {
 					logger.Errorf("IndexOrderRefunded.update: %v", err)
 					continue
@@ -798,6 +801,135 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 	return nil
 }
 
+// UpdateOrderStatusRefunded updates the status of a payment order to refunded
+func (s *IndexerService) UpdateOrderStatusRefunded(ctx context.Context, log *contracts.GatewayOrderRefunded) error {
+	gatewayId := fmt.Sprintf("0x%v", hex.EncodeToString(log.OrderId[:]))
+
+	// Aggregator side status update
+	_, err := db.Client.LockPaymentOrder.
+		Update().
+		Where(
+			lockpaymentorder.GatewayIDEQ(gatewayId),
+		).
+		SetBlockNumber(int64(log.Raw.BlockNumber)).
+		SetTxHash(log.Raw.TxHash.Hex()).
+		SetStatus(lockpaymentorder.StatusRefunded).
+		Save(ctx)
+	if err != nil {
+		return fmt.Errorf("UpdateOrderStatusRefunded.aggregator: %v", err)
+	}
+
+	// Sender side status update
+	_, err = db.Client.PaymentOrder.
+		Update().
+		Where(
+			paymentorder.GatewayIDEQ(gatewayId),
+		).
+		SetTxHash(log.Raw.TxHash.Hex()).
+		SetStatus(paymentorder.StatusRefunded).
+		Save(ctx)
+	if err != nil {
+		return fmt.Errorf("UpdateOrderStatusRefunded.sender: %v", err)
+	}
+
+	// Fetch payment order
+	paymentOrder, err := db.Client.PaymentOrder.
+		Query().
+		Where(
+			paymentorder.GatewayIDEQ(gatewayId),
+		).
+		WithSenderProfile().
+		Only(ctx)
+	if err != nil {
+		return fmt.Errorf("UpdateOrderStatusRefunded.fetchOrder: %v", err)
+	}
+
+	// Send webhook notifcation to sender
+	err = utils.SendPaymentOrderWebhook(ctx, paymentOrder)
+	if err != nil {
+		return fmt.Errorf("UpdateOrderStatusRefunded.webhook: %v", err)
+	}
+
+	return nil
+}
+
+// UpdateOrderStatusSettled updates the status of a payment order to settled
+func (s *IndexerService) UpdateOrderStatusSettled(ctx context.Context, event *contracts.GatewayOrderSettled) error {
+	gatewayId := fmt.Sprintf("0x%v", hex.EncodeToString(event.OrderId[:]))
+
+	// Check for existing lock order with txHash
+	orderCount, err := db.Client.LockPaymentOrder.
+		Query().
+		Where(lockpaymentorder.TxHashEQ(event.Raw.TxHash.Hex())).
+		Count(ctx)
+	if err != nil {
+		return fmt.Errorf("UpdateOrderStatusSettled.db: %v", err)
+	}
+
+	if orderCount > 0 {
+		// This log has already been indexed
+		return nil
+	}
+
+	// Aggregator side status update
+	splitOrderId, _ := uuid.Parse(utils.Byte32ToString(event.SplitOrderId))
+	_, err = db.Client.LockPaymentOrder.
+		Update().
+		Where(
+			lockpaymentorder.IDEQ(splitOrderId),
+		).
+		SetBlockNumber(int64(event.Raw.BlockNumber)).
+		SetTxHash(event.Raw.TxHash.Hex()).
+		SetStatus(lockpaymentorder.StatusSettled).
+		Save(ctx)
+	if err != nil {
+		return fmt.Errorf("UpdateOrderStatusSettled.aggregator: %v", err)
+	}
+
+	// Sender side status update
+	paymentOrderUpdate := db.Client.PaymentOrder.
+		Update().
+		Where(
+			paymentorder.GatewayIDEQ(gatewayId),
+		)
+
+	// Convert settled percent to BPS
+	settledPercent := decimal.NewFromBigInt(event.SettlePercent, 0).Div(decimal.NewFromInt(1000))
+
+	// If settled percent is 100%, mark order as settled
+	if settledPercent.Equal(decimal.NewFromInt(100)) {
+		paymentOrderUpdate = paymentOrderUpdate.SetStatus(paymentorder.StatusSettled)
+	}
+
+	_, err = paymentOrderUpdate.
+		SetTxHash(event.Raw.TxHash.Hex()).
+		SetPercentSettled(settledPercent).
+		Save(ctx)
+	if err != nil {
+		return fmt.Errorf("UpdateOrderStatusSettled.sender: %v", err)
+	}
+
+	// Fetch payment order
+	paymentOrder, err := db.Client.PaymentOrder.
+		Query().
+		Where(
+			paymentorder.GatewayIDEQ(gatewayId),
+		).
+		WithSenderProfile().
+		Only(ctx)
+	if err != nil {
+		return fmt.Errorf("UpdateOrderStatusSettled.fetchOrder: %v", err)
+	}
+
+	// Send webhook notifcation to sender
+	err = utils.SendPaymentOrderWebhook(ctx, paymentOrder)
+	if err != nil {
+		return fmt.Errorf("UpdateOrderStatusSettled.webhook: %v", err)
+	}
+
+	return nil
+}
+
 // getOrderRecipientFromMessageHash decrypts the message hash and returns the order recipient
 func (s *IndexerService) getOrderRecipientFromMessageHash(messageHash string) (*types.PaymentOrderRecipient, error) {
 	messageCipher, err := base64.StdEncoding.DecodeString(messageHash)
@@ -822,137 +954,6 @@ func (s *IndexerService) getOrderRecipientFromMessageHash(messageHash string) (*
 	}
 
 	return recipient, nil
-}
-
-// updateOrderStatusRefunded updates the status of a payment order to refunded
-func (s *IndexerService) updateOrderStatusRefunded(ctx context.Context, log *contracts.GatewayOrderRefunded) error {
-	gatewayId := fmt.Sprintf("0x%v", hex.EncodeToString(log.OrderId[:]))
-
-	// Aggregator side status update
-	// TODO: uncomment during sender API split
-	// _, err := db.Client.LockPaymentOrder.
-	// 	Update().
-	// 	Where(
-	// 		lockpaymentorder.GatewayIDEQ(gatewayId),
-	// 	).
-	// 	SetBlockNumber(int64(log.Raw.BlockNumber)).
-	// 	SetTxHash(log.Raw.TxHash.Hex()).
-	// 	SetStatus(lockpaymentorder.StatusRefunded).
-	// 	Save(ctx)
-	// if err != nil {
-	// 	return fmt.Errorf("updateOrderStatusRefunded.aggregator: %v", err)
-	// }
-
-	// Sender side status update
-	_, err := db.Client.PaymentOrder.
-		Update().
-		Where(
-			paymentorder.GatewayIDEQ(gatewayId),
-		).
-		SetTxHash(log.Raw.TxHash.Hex()).
-		SetStatus(paymentorder.StatusRefunded).
-		Save(ctx)
-	if err != nil {
-		return fmt.Errorf("updateOrderStatusRefunded.sender: %v", err)
-	}
-
-	// Fetch payment order
-	paymentOrder, err := db.Client.PaymentOrder.
-		Query().
-		Where(
-			paymentorder.GatewayIDEQ(gatewayId),
-		).
-		WithSenderProfile().
-		Only(ctx)
-	if err != nil {
-		return fmt.Errorf("updateOrderStatusRefunded.fetchOrder: %v", err)
-	}
-
-	// Send webhook notifcation to sender
-	err = utils.SendPaymentOrderWebhook(ctx, paymentOrder)
-	if err != nil {
-		return fmt.Errorf("updateOrderStatusRefunded.webhook: %v", err)
-	}
-
-	return nil
-}
-
-// updateOrderStatusSettled updates the status of a payment order to settled
-func (s *IndexerService) updateOrderStatusSettled(ctx context.Context, event *contracts.GatewayOrderSettled) error {
-	gatewayId := fmt.Sprintf("0x%v", hex.EncodeToString(event.OrderId[:]))
-
-	// Check for existing lock order with txHash
-	orderCount, err := db.Client.LockPaymentOrder.
-		Query().
-		Where(lockpaymentorder.TxHashEQ(event.Raw.TxHash.Hex())).
-		Count(ctx)
-	if err != nil {
-		return fmt.Errorf("updateOrderStatusSettled.db: %v", err)
-	}
-
-	if orderCount > 0 {
-		// This log has already been indexed
-		return nil
-	}
-
-	// Aggregator side status update
-	// TODO: uncomment during sender API split
-	// splitOrderId, _ := uuid.Parse(utils.Byte32ToString(event.SplitOrderId))
-	// _, err = db.Client.LockPaymentOrder.
-	// 	Update().
-	// 	Where(
-	// 		lockpaymentorder.IDEQ(splitOrderId),
-	// 	).
-	// 	SetBlockNumber(int64(event.Raw.BlockNumber)).
-	// 	SetTxHash(event.Raw.TxHash.Hex()).
-	// 	SetStatus(lockpaymentorder.StatusSettled).
-	// 	Save(ctx)
-	// if err != nil {
-	// 	return fmt.Errorf("updateOrderStatusSettled.aggregator: %v", err)
-	// }
-
-	// Sender side status update
-	paymentOrderUpdate := db.Client.PaymentOrder.
-		Update().
-		Where(
-			paymentorder.GatewayIDEQ(gatewayId),
-		)
-
-	// Convert settled percent to BPS
-	settledPercent := decimal.NewFromBigInt(event.SettlePercent, 0).Div(decimal.NewFromInt(1000))
-
-	// If settled percent is 100%, mark order as settled
-	if settledPercent.Equal(decimal.NewFromInt(100)) {
-		paymentOrderUpdate = paymentOrderUpdate.SetStatus(paymentorder.StatusSettled)
-	}
-
-	_, err = paymentOrderUpdate.
-		SetTxHash(event.Raw.TxHash.Hex()).
-		SetPercentSettled(settledPercent).
-		Save(ctx)
-	if err != nil {
-		return fmt.Errorf("updateOrderStatusSettled.sender: %v", err)
-	}
-
-	// Fetch payment order
-	paymentOrder, err := db.Client.PaymentOrder.
-		Query().
-		Where(
-			paymentorder.GatewayIDEQ(gatewayId),
-		).
-		WithSenderProfile().
-		Only(ctx)
-	if err != nil {
-		return fmt.Errorf("updateOrderStatusSettled.fetchOrder: %v", err)
-	}
-
-	// Send webhook notifcation to sender
-	err = utils.SendPaymentOrderWebhook(ctx, paymentOrder)
-	if err != nil {
-		return fmt.Errorf("updateOrderStatusSettled.webhook: %v", err)
-	}
-
-	return nil
 }
 
 // updateReceiveAddressStatus updates the status of a receive address. if `done` is true, the indexing process is complete for the given receive address

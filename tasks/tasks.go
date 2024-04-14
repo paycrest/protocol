@@ -238,6 +238,7 @@ func IndexMissedBlocks() error {
 				s.Where(sql.And(
 					sql.EQ(s.C(paymentorder.FieldStatus), paymentorder.StatusPending),
 					sql.IsNull(s.C(paymentorder.FieldGatewayID)),
+					sql.GT(s.C(paymentorder.FieldBlockNumber), 0),
 					sql.LT(s.C(paymentorder.FieldUpdatedAt), time.Now().Add(-5*time.Minute))),
 				)
 			}).
@@ -288,6 +289,138 @@ func IndexMissedBlocks() error {
 				err := indexerService.CreateLockPaymentOrder(ctx, client, network, iter.Event)
 				if err != nil {
 					logger.Errorf("IndexMissedBlocks.createOrder: %v", err)
+					continue
+				}
+			}
+		}
+
+		// Index missed OrderSettled events
+		lockOrders, err := storage.GetClient().LockPaymentOrder.
+			Query().
+			Where(func(s *sql.Selector) {
+				s.Where(sql.And(
+					sql.EQ(s.C(lockpaymentorder.FieldStatus), lockpaymentorder.StatusValidated),
+					sql.LT(s.C(lockpaymentorder.FieldUpdatedAt), time.Now().Add(-5*time.Minute))),
+				)
+			}).
+			Order(ent.Asc(lockpaymentorder.FieldBlockNumber)).
+			All(ctx)
+		if err != nil {
+			logger.Errorf("IndexMissedBlocks: %v", err)
+			continue
+		}
+
+		if len(lockOrders) > 0 {
+			retryErr := utils.Retry(3, 5*time.Second, func() error {
+				client, err = types.NewEthClient(network.RPCEndpoint)
+				return err
+			})
+			if retryErr != nil {
+				logger.Errorf("IndexMissedBlocks: %v", err)
+				continue
+			}
+
+			// Initialize contract filterer
+			filterer, err := contracts.NewGatewayFilterer(orderConf.GatewayContractAddress, client)
+			if err != nil {
+				logger.Errorf("IndexMissedBlocks.NewGatewayFilterer: %v", err)
+				continue
+			}
+
+			// Filter logs from the oldest indexed to the latest
+			header, err := client.HeaderByNumber(ctx, nil)
+			if err != nil {
+				logger.Errorf("IndexMissedBlocks.HeaderByNumber: %v", err)
+			}
+
+			toBlock := header.Number.Uint64()
+
+			// Fetch logs
+			var iter *contracts.GatewayOrderSettledIterator
+			retryErr = utils.Retry(3, 5*time.Second, func() error {
+				var err error
+				iter, err = filterer.FilterOrderSettled(&bind.FilterOpts{
+					Start: uint64(orders[0].BlockNumber),
+					End:   &toBlock,
+				}, nil, nil)
+				return err
+			})
+			if retryErr != nil {
+				logger.Errorf("IndexMissedBlocks.FilterOrderSettled: %v", retryErr)
+				continue
+			}
+
+			// Iterate over logs
+			for iter.Next() {
+				err := indexerService.UpdateOrderStatusSettled(ctx, iter.Event)
+				if err != nil {
+					logger.Errorf("IndexMissedBlocks.UpdateOrderStatusSettled: %v", err)
+					continue
+				}
+			}
+		}
+
+		// Index missed OrderRefunded events
+		lockOrders, err = storage.GetClient().LockPaymentOrder.
+			Query().
+			Where(func(s *sql.Selector) {
+				s.Where(sql.And(
+					sql.EQ(s.C(lockpaymentorder.FieldStatus), lockpaymentorder.StatusPending),
+					sql.LT(s.C(lockpaymentorder.FieldCreatedAt), time.Now().Add(-35*time.Minute))),
+				)
+			}).
+			Order(ent.Asc(lockpaymentorder.FieldBlockNumber)).
+			All(ctx)
+		if err != nil {
+			logger.Errorf("IndexMissedBlocks: %v", err)
+			continue
+		}
+
+		if len(lockOrders) > 0 {
+			retryErr := utils.Retry(3, 5*time.Second, func() error {
+				client, err = types.NewEthClient(network.RPCEndpoint)
+				return err
+			})
+			if retryErr != nil {
+				logger.Errorf("IndexMissedBlocks: %v", err)
+				continue
+			}
+
+			// Initialize contract filterer
+			filterer, err := contracts.NewGatewayFilterer(orderConf.GatewayContractAddress, client)
+			if err != nil {
+				logger.Errorf("IndexMissedBlocks.NewGatewayFilterer: %v", err)
+				continue
+			}
+
+			// Filter logs from the oldest indexed to the latest
+			header, err := client.HeaderByNumber(ctx, nil)
+			if err != nil {
+				logger.Errorf("IndexMissedBlocks.HeaderByNumber: %v", err)
+			}
+
+			toBlock := header.Number.Uint64()
+
+			// Fetch logs
+			var iter *contracts.GatewayOrderRefundedIterator
+			retryErr = utils.Retry(3, 5*time.Second, func() error {
+				var err error
+				iter, err = filterer.FilterOrderRefunded(&bind.FilterOpts{
+					Start: uint64(orders[0].BlockNumber),
+					End:   &toBlock,
+				}, nil)
+				return err
+			})
+			if retryErr != nil {
+				logger.Errorf("IndexMissedBlocks.FilterOrderSettled: %v", retryErr)
+				continue
+			}
+
+			// Iterate over logs
+			for iter.Next() {
+				err := indexerService.UpdateOrderStatusRefunded(ctx, iter.Event)
+				if err != nil {
+					logger.Errorf("IndexMissedBlocks.UpdateOrderStatusSettled: %v", err)
 					continue
 				}
 			}

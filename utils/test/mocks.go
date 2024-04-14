@@ -57,6 +57,16 @@ func (m *MockIndexerService) CreateLockPaymentOrder(ctx context.Context, client 
 	return nil
 }
 
+// UpdateOrderStatusSettled mocks the UpdateOrderStatusSettled method
+func (m *MockIndexerService) UpdateOrderStatusSettled(ctx context.Context, log *contracts.GatewayOrderSettled) error {
+	return nil
+}
+
+// UpdateOrderStatusRefunded mocks the UpdateOrderStatusRefunded method
+func (m *MockIndexerService) UpdateOrderStatusRefunded(ctx context.Context, log *contracts.GatewayOrderRefunded) error {
+	return nil
+}
+
 // Mock order service
 type MockOrderService struct {
 	mock.Mock
