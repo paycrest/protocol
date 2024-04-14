@@ -17,6 +17,7 @@ import (
 	"github.com/paycrest/protocol/services/contracts"
 	"github.com/paycrest/protocol/types"
 	cryptoUtils "github.com/paycrest/protocol/utils/crypto"
+	"github.com/paycrest/protocol/utils/logger"
 	"github.com/stackup-wallet/stackup-bundler/pkg/userop"
 )
 
@@ -215,6 +216,8 @@ func SendUserOperation(userOp *userop.UserOperation, chainId int64) (string, int
 	if !ok {
 		return "", 0, fmt.Errorf("failed to get transaction hash")
 	}
+
+	logger.Infof(fmt.Sprintf("%s", response))
 
 	blockNumber, ok := response["blockNumber"].(int64)
 	if !ok {

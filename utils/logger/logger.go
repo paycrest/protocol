@@ -3,6 +3,7 @@ package logger
 import (
 	"bytes"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -38,7 +39,21 @@ func init() {
 		logger.Hooks.Add(hook)
 	} else {
 		// File hook for local environment
-		file, err := os.OpenFile("logs.txt", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+
+		// Get the directory of the executable
+		ex, err := os.Executable()
+		if err != nil {
+			logger.Errorf("Failed to get the executable path: %v", err)
+			return
+		}
+
+		// Get the directory of the executable
+		exDir := filepath.Dir(ex)
+
+		// Construct the file path in the same directory as the executable
+		filePath := filepath.Join(exDir, "logs.txt")
+
+		file, err := os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 		if err == nil {
 			logger.Out = file
 		} else {
