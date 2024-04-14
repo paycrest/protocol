@@ -118,7 +118,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, orderID uuid.UUID) error
 	}
 
 	// Send user operation
-	txHash, err := utils.SendUserOperation(userOperation, order.Edges.Token.Edges.Network.ChainID)
+	txHash, blockNumber, err := utils.SendUserOperation(userOperation, order.Edges.Token.Edges.Network.ChainID)
 	if err != nil {
 		return fmt.Errorf("failed to send user operation: %w", err)
 	}
@@ -126,6 +126,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, orderID uuid.UUID) error
 	// Update payment order with userOpHash
 	_, err = order.Update().
 		SetTxHash(txHash).
+		SetBlockNumber(blockNumber).
 		SetStatus(paymentorder.StatusPending).
 		Save(ctx)
 	if err != nil {
@@ -194,7 +195,7 @@ func (s *OrderService) RefundOrder(ctx context.Context, orderID string) error {
 	_ = utils.SignUserOperation(userOperation, lockOrder.Edges.Token.Edges.Network.ChainID)
 
 	// Send user operation
-	txHash, err := utils.SendUserOperation(userOperation, lockOrder.Edges.Token.Edges.Network.ChainID)
+	txHash, blockNumber, err := utils.SendUserOperation(userOperation, lockOrder.Edges.Token.Edges.Network.ChainID)
 	if err != nil {
 		return fmt.Errorf("RefundOrder.sendUserOperation: %w", err)
 	}
@@ -204,6 +205,7 @@ func (s *OrderService) RefundOrder(ctx context.Context, orderID string) error {
 		Update().
 		Where(lockpaymentorder.GatewayIDEQ(lockOrder.GatewayID)).
 		SetTxHash(txHash).
+		SetBlockNumber(blockNumber).
 		SetStatus(lockpaymentorder.StatusRefunded).
 		Save(ctx)
 	if err != nil {
@@ -298,19 +300,27 @@ func (s *OrderService) RevertOrder(ctx context.Context, order *ent.PaymentOrder)
 	_ = utils.SignUserOperation(userOperation, order.Edges.Token.Edges.Network.ChainID)
 
 	// Send user operation
-	txHash, err := utils.SendUserOperation(userOperation, order.Edges.Token.Edges.Network.ChainID)
+	txHash, blockNumber, err := utils.SendUserOperation(userOperation, order.Edges.Token.Edges.Network.ChainID)
 	if err != nil {
 		return fmt.Errorf("RevertOrder.sendUserOperation: %w", err)
 	}
 
-	// Update payment order with userOpHash
+	// Update payment order
 	_, err = order.Update().
 		SetTxHash(txHash).
+		SetBlockNumber(blockNumber).
 		SetAmountReturned(amountMinusFee).
 		SetStatus(paymentorder.StatusReverted).
 		Save(ctx)
 	if err != nil {
 		return fmt.Errorf("RevertOrder.updateTxHash(%v): %w", txHash, err)
+	}
+
+	// Send webhook notifcation to sender
+	order.Status = paymentorder.StatusReverted
+	err = utils.SendPaymentOrderWebhook(ctx, order)
+	if err != nil {
+		return fmt.Errorf("RevertOrder.webhook: %v", err)
 	}
 
 	return nil
@@ -369,7 +379,7 @@ func (s *OrderService) SettleOrder(ctx context.Context, orderID uuid.UUID) error
 	_ = utils.SignUserOperation(userOperation, order.Edges.Token.Edges.Network.ChainID)
 
 	// Send user operation
-	txHash, err := utils.SendUserOperation(userOperation, order.Edges.Token.Edges.Network.ChainID)
+	txHash, blockNumber, err := utils.SendUserOperation(userOperation, order.Edges.Token.Edges.Network.ChainID)
 	if err != nil {
 		return fmt.Errorf("SettleOrder.sendUserOperation: %w", err)
 	}
@@ -377,6 +387,7 @@ func (s *OrderService) SettleOrder(ctx context.Context, orderID uuid.UUID) error
 	// Update status of lock order
 	_, err = order.Update().
 		SetTxHash(txHash).
+		SetBlockNumber(blockNumber).
 		SetStatus(lockpaymentorder.StatusSettled).
 		Save(ctx)
 	if err != nil {

@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
+	"github.com/paycrest/protocol/services/contracts"
 	"github.com/paycrest/protocol/types"
 	"github.com/stretchr/testify/mock"
 )
@@ -48,6 +49,11 @@ func (m *MockIndexerService) GetMissedOrderBlocksOpts(ctx context.Context, clien
 
 // GetMissedERC20BlocksOpts mocks the GetMissedERC20BlocksOpts method
 func (m *MockIndexerService) GetMissedERC20BlocksOpts(ctx context.Context, client types.RPCClient, network *ent.Network) *bind.FilterOpts {
+	return nil
+}
+
+// CreateLockPaymentOrder mocks the CreateLockPaymentOrder method
+func (m *MockIndexerService) CreateLockPaymentOrder(ctx context.Context, client types.RPCClient, network *ent.Network, deposit *contracts.GatewayOrderCreated) error {
 	return nil
 }
 

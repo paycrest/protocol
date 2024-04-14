@@ -164,6 +164,27 @@ func (pou *PaymentOrderUpdate) ClearTxHash() *PaymentOrderUpdate {
 	return pou
 }
 
+// SetBlockNumber sets the "block_number" field.
+func (pou *PaymentOrderUpdate) SetBlockNumber(i int64) *PaymentOrderUpdate {
+	pou.mutation.ResetBlockNumber()
+	pou.mutation.SetBlockNumber(i)
+	return pou
+}
+
+// SetNillableBlockNumber sets the "block_number" field if the given value is not nil.
+func (pou *PaymentOrderUpdate) SetNillableBlockNumber(i *int64) *PaymentOrderUpdate {
+	if i != nil {
+		pou.SetBlockNumber(*i)
+	}
+	return pou
+}
+
+// AddBlockNumber adds i to the "block_number" field.
+func (pou *PaymentOrderUpdate) AddBlockNumber(i int64) *PaymentOrderUpdate {
+	pou.mutation.AddBlockNumber(i)
+	return pou
+}
+
 // SetFromAddress sets the "from_address" field.
 func (pou *PaymentOrderUpdate) SetFromAddress(s string) *PaymentOrderUpdate {
 	pou.mutation.SetFromAddress(s)
@@ -482,6 +503,12 @@ func (pou *PaymentOrderUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if pou.mutation.TxHashCleared() {
 		_spec.ClearField(paymentorder.FieldTxHash, field.TypeString)
 	}
+	if value, ok := pou.mutation.BlockNumber(); ok {
+		_spec.SetField(paymentorder.FieldBlockNumber, field.TypeInt64, value)
+	}
+	if value, ok := pou.mutation.AddedBlockNumber(); ok {
+		_spec.AddField(paymentorder.FieldBlockNumber, field.TypeInt64, value)
+	}
 	if value, ok := pou.mutation.FromAddress(); ok {
 		_spec.SetField(paymentorder.FieldFromAddress, field.TypeString, value)
 	}
@@ -775,6 +802,27 @@ func (pouo *PaymentOrderUpdateOne) SetNillableTxHash(s *string) *PaymentOrderUpd
 // ClearTxHash clears the value of the "tx_hash" field.
 func (pouo *PaymentOrderUpdateOne) ClearTxHash() *PaymentOrderUpdateOne {
 	pouo.mutation.ClearTxHash()
+	return pouo
+}
+
+// SetBlockNumber sets the "block_number" field.
+func (pouo *PaymentOrderUpdateOne) SetBlockNumber(i int64) *PaymentOrderUpdateOne {
+	pouo.mutation.ResetBlockNumber()
+	pouo.mutation.SetBlockNumber(i)
+	return pouo
+}
+
+// SetNillableBlockNumber sets the "block_number" field if the given value is not nil.
+func (pouo *PaymentOrderUpdateOne) SetNillableBlockNumber(i *int64) *PaymentOrderUpdateOne {
+	if i != nil {
+		pouo.SetBlockNumber(*i)
+	}
+	return pouo
+}
+
+// AddBlockNumber adds i to the "block_number" field.
+func (pouo *PaymentOrderUpdateOne) AddBlockNumber(i int64) *PaymentOrderUpdateOne {
+	pouo.mutation.AddBlockNumber(i)
 	return pouo
 }
 
@@ -1125,6 +1173,12 @@ func (pouo *PaymentOrderUpdateOne) sqlSave(ctx context.Context) (_node *PaymentO
 	}
 	if pouo.mutation.TxHashCleared() {
 		_spec.ClearField(paymentorder.FieldTxHash, field.TypeString)
+	}
+	if value, ok := pouo.mutation.BlockNumber(); ok {
+		_spec.SetField(paymentorder.FieldBlockNumber, field.TypeInt64, value)
+	}
+	if value, ok := pouo.mutation.AddedBlockNumber(); ok {
+		_spec.AddField(paymentorder.FieldBlockNumber, field.TypeInt64, value)
 	}
 	if value, ok := pouo.mutation.FromAddress(); ok {
 		_spec.SetField(paymentorder.FieldFromAddress, field.TypeString, value)

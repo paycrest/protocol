@@ -175,15 +175,15 @@ func SignUserOperation(userOperation *userop.UserOperation, chainId int64) error
 }
 
 // SendUserOperation sends the user operation
-func SendUserOperation(userOp *userop.UserOperation, chainId int64) (string, error) {
+func SendUserOperation(userOp *userop.UserOperation, chainId int64) (string, int64, error) {
 	bundlerUrl, _, err := getEndpoints(chainId)
 	if err != nil {
-		return "", fmt.Errorf("failed to get endpoints: %w", err)
+		return "", 0, fmt.Errorf("failed to get endpoints: %w", err)
 	}
 
 	client, err := rpc.Dial(bundlerUrl)
 	if err != nil {
-		return "", fmt.Errorf("failed to connect to RPC client: %w", err)
+		return "", 0, fmt.Errorf("failed to connect to RPC client: %w", err)
 	}
 
 	requestParams := []interface{}{
@@ -197,26 +197,31 @@ func SendUserOperation(userOp *userop.UserOperation, chainId int64) (string, err
 	var result json.RawMessage
 	err = client.Call(&result, "eth_sendUserOperation", requestParams...)
 	if err != nil {
-		return "", fmt.Errorf("RPC error: %w", err)
+		return "", 0, fmt.Errorf("RPC error: %w", err)
 	}
 
 	var userOpHash string
 	err = json.Unmarshal(result, &userOpHash)
 	if err != nil {
-		return "", fmt.Errorf("failed to unmarshal response: %w", err)
+		return "", 0, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
 	response, err := GetUserOperationByHash(userOpHash, chainId)
 	if err != nil {
-		return "", fmt.Errorf("failed to get user operation: %w", err)
+		return "", 0, fmt.Errorf("failed to get user operation: %w", err)
 	}
 
 	transactionHash, ok := response["transactionHash"].(string)
 	if !ok {
-		return "", fmt.Errorf("failed to get transaction hash")
+		return "", 0, fmt.Errorf("failed to get transaction hash")
 	}
 
-	return transactionHash, nil
+	blockNumber, ok := response["blockNumber"].(int64)
+	if !ok {
+		return "", 0, fmt.Errorf("failed to get block number")
+	}
+
+	return transactionHash, blockNumber, nil
 }
 
 // GetUserOperationByHash fetches the user operation by hash

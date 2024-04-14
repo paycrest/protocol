@@ -116,6 +116,20 @@ func (poc *PaymentOrderCreate) SetNillableTxHash(s *string) *PaymentOrderCreate 
 	return poc
 }
 
+// SetBlockNumber sets the "block_number" field.
+func (poc *PaymentOrderCreate) SetBlockNumber(i int64) *PaymentOrderCreate {
+	poc.mutation.SetBlockNumber(i)
+	return poc
+}
+
+// SetNillableBlockNumber sets the "block_number" field if the given value is not nil.
+func (poc *PaymentOrderCreate) SetNillableBlockNumber(i *int64) *PaymentOrderCreate {
+	if i != nil {
+		poc.SetBlockNumber(*i)
+	}
+	return poc
+}
+
 // SetFromAddress sets the "from_address" field.
 func (poc *PaymentOrderCreate) SetFromAddress(s string) *PaymentOrderCreate {
 	poc.mutation.SetFromAddress(s)
@@ -301,6 +315,10 @@ func (poc *PaymentOrderCreate) defaults() {
 		v := paymentorder.DefaultUpdatedAt()
 		poc.mutation.SetUpdatedAt(v)
 	}
+	if _, ok := poc.mutation.BlockNumber(); !ok {
+		v := paymentorder.DefaultBlockNumber
+		poc.mutation.SetBlockNumber(v)
+	}
 	if _, ok := poc.mutation.Status(); !ok {
 		v := paymentorder.DefaultStatus
 		poc.mutation.SetStatus(v)
@@ -347,6 +365,9 @@ func (poc *PaymentOrderCreate) check() error {
 		if err := paymentorder.TxHashValidator(v); err != nil {
 			return &ValidationError{Name: "tx_hash", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.tx_hash": %w`, err)}
 		}
+	}
+	if _, ok := poc.mutation.BlockNumber(); !ok {
+		return &ValidationError{Name: "block_number", err: errors.New(`ent: missing required field "PaymentOrder.block_number"`)}
 	}
 	if v, ok := poc.mutation.FromAddress(); ok {
 		if err := paymentorder.FromAddressValidator(v); err != nil {
@@ -456,6 +477,10 @@ func (poc *PaymentOrderCreate) createSpec() (*PaymentOrder, *sqlgraph.CreateSpec
 	if value, ok := poc.mutation.TxHash(); ok {
 		_spec.SetField(paymentorder.FieldTxHash, field.TypeString, value)
 		_node.TxHash = value
+	}
+	if value, ok := poc.mutation.BlockNumber(); ok {
+		_spec.SetField(paymentorder.FieldBlockNumber, field.TypeInt64, value)
+		_node.BlockNumber = value
 	}
 	if value, ok := poc.mutation.FromAddress(); ok {
 		_spec.SetField(paymentorder.FieldFromAddress, field.TypeString, value)

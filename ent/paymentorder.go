@@ -45,6 +45,8 @@ type PaymentOrder struct {
 	Rate decimal.Decimal `json:"rate,omitempty"`
 	// TxHash holds the value of the "tx_hash" field.
 	TxHash string `json:"tx_hash,omitempty"`
+	// BlockNumber holds the value of the "block_number" field.
+	BlockNumber int64 `json:"block_number,omitempty"`
 	// FromAddress holds the value of the "from_address" field.
 	FromAddress string `json:"from_address,omitempty"`
 	// ReceiveAddressText holds the value of the "receive_address_text" field.
@@ -140,6 +142,8 @@ func (*PaymentOrder) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case paymentorder.FieldAmount, paymentorder.FieldAmountPaid, paymentorder.FieldAmountReturned, paymentorder.FieldPercentSettled, paymentorder.FieldSenderFee, paymentorder.FieldNetworkFee, paymentorder.FieldProtocolFee, paymentorder.FieldRate, paymentorder.FieldFeePerTokenUnit:
 			values[i] = new(decimal.Decimal)
+		case paymentorder.FieldBlockNumber:
+			values[i] = new(sql.NullInt64)
 		case paymentorder.FieldTxHash, paymentorder.FieldFromAddress, paymentorder.FieldReceiveAddressText, paymentorder.FieldFeeAddress, paymentorder.FieldGatewayID, paymentorder.FieldStatus:
 			values[i] = new(sql.NullString)
 		case paymentorder.FieldCreatedAt, paymentorder.FieldUpdatedAt:
@@ -238,6 +242,12 @@ func (po *PaymentOrder) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field tx_hash", values[i])
 			} else if value.Valid {
 				po.TxHash = value.String
+			}
+		case paymentorder.FieldBlockNumber:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field block_number", values[i])
+			} else if value.Valid {
+				po.BlockNumber = value.Int64
 			}
 		case paymentorder.FieldFromAddress:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -384,6 +394,9 @@ func (po *PaymentOrder) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("tx_hash=")
 	builder.WriteString(po.TxHash)
+	builder.WriteString(", ")
+	builder.WriteString("block_number=")
+	builder.WriteString(fmt.Sprintf("%v", po.BlockNumber))
 	builder.WriteString(", ")
 	builder.WriteString("from_address=")
 	builder.WriteString(po.FromAddress)

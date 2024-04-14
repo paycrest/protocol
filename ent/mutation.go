@@ -4644,6 +4644,8 @@ type PaymentOrderMutation struct {
 	rate                   *decimal.Decimal
 	addrate                *decimal.Decimal
 	tx_hash                *string
+	block_number           *int64
+	addblock_number        *int64
 	from_address           *string
 	receive_address_text   *string
 	fee_per_token_unit     *decimal.Decimal
@@ -5338,6 +5340,62 @@ func (m *PaymentOrderMutation) ResetTxHash() {
 	delete(m.clearedFields, paymentorder.FieldTxHash)
 }
 
+// SetBlockNumber sets the "block_number" field.
+func (m *PaymentOrderMutation) SetBlockNumber(i int64) {
+	m.block_number = &i
+	m.addblock_number = nil
+}
+
+// BlockNumber returns the value of the "block_number" field in the mutation.
+func (m *PaymentOrderMutation) BlockNumber() (r int64, exists bool) {
+	v := m.block_number
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBlockNumber returns the old "block_number" field's value of the PaymentOrder entity.
+// If the PaymentOrder object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PaymentOrderMutation) OldBlockNumber(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBlockNumber is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBlockNumber requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBlockNumber: %w", err)
+	}
+	return oldValue.BlockNumber, nil
+}
+
+// AddBlockNumber adds i to the "block_number" field.
+func (m *PaymentOrderMutation) AddBlockNumber(i int64) {
+	if m.addblock_number != nil {
+		*m.addblock_number += i
+	} else {
+		m.addblock_number = &i
+	}
+}
+
+// AddedBlockNumber returns the value that was added to the "block_number" field in this mutation.
+func (m *PaymentOrderMutation) AddedBlockNumber() (r int64, exists bool) {
+	v := m.addblock_number
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetBlockNumber resets all changes to the "block_number" field.
+func (m *PaymentOrderMutation) ResetBlockNumber() {
+	m.block_number = nil
+	m.addblock_number = nil
+}
+
 // SetFromAddress sets the "from_address" field.
 func (m *PaymentOrderMutation) SetFromAddress(s string) {
 	m.from_address = &s
@@ -5803,7 +5861,7 @@ func (m *PaymentOrderMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *PaymentOrderMutation) Fields() []string {
-	fields := make([]string, 0, 17)
+	fields := make([]string, 0, 18)
 	if m.created_at != nil {
 		fields = append(fields, paymentorder.FieldCreatedAt)
 	}
@@ -5836,6 +5894,9 @@ func (m *PaymentOrderMutation) Fields() []string {
 	}
 	if m.tx_hash != nil {
 		fields = append(fields, paymentorder.FieldTxHash)
+	}
+	if m.block_number != nil {
+		fields = append(fields, paymentorder.FieldBlockNumber)
 	}
 	if m.from_address != nil {
 		fields = append(fields, paymentorder.FieldFromAddress)
@@ -5885,6 +5946,8 @@ func (m *PaymentOrderMutation) Field(name string) (ent.Value, bool) {
 		return m.Rate()
 	case paymentorder.FieldTxHash:
 		return m.TxHash()
+	case paymentorder.FieldBlockNumber:
+		return m.BlockNumber()
 	case paymentorder.FieldFromAddress:
 		return m.FromAddress()
 	case paymentorder.FieldReceiveAddressText:
@@ -5928,6 +5991,8 @@ func (m *PaymentOrderMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldRate(ctx)
 	case paymentorder.FieldTxHash:
 		return m.OldTxHash(ctx)
+	case paymentorder.FieldBlockNumber:
+		return m.OldBlockNumber(ctx)
 	case paymentorder.FieldFromAddress:
 		return m.OldFromAddress(ctx)
 	case paymentorder.FieldReceiveAddressText:
@@ -6026,6 +6091,13 @@ func (m *PaymentOrderMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetTxHash(v)
 		return nil
+	case paymentorder.FieldBlockNumber:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBlockNumber(v)
+		return nil
 	case paymentorder.FieldFromAddress:
 		v, ok := value.(string)
 		if !ok {
@@ -6100,6 +6172,9 @@ func (m *PaymentOrderMutation) AddedFields() []string {
 	if m.addrate != nil {
 		fields = append(fields, paymentorder.FieldRate)
 	}
+	if m.addblock_number != nil {
+		fields = append(fields, paymentorder.FieldBlockNumber)
+	}
 	if m.addfee_per_token_unit != nil {
 		fields = append(fields, paymentorder.FieldFeePerTokenUnit)
 	}
@@ -6127,6 +6202,8 @@ func (m *PaymentOrderMutation) AddedField(name string) (ent.Value, bool) {
 		return m.AddedProtocolFee()
 	case paymentorder.FieldRate:
 		return m.AddedRate()
+	case paymentorder.FieldBlockNumber:
+		return m.AddedBlockNumber()
 	case paymentorder.FieldFeePerTokenUnit:
 		return m.AddedFeePerTokenUnit()
 	}
@@ -6193,6 +6270,13 @@ func (m *PaymentOrderMutation) AddField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.AddRate(v)
+		return nil
+	case paymentorder.FieldBlockNumber:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddBlockNumber(v)
 		return nil
 	case paymentorder.FieldFeePerTokenUnit:
 		v, ok := value.(decimal.Decimal)
@@ -6287,6 +6371,9 @@ func (m *PaymentOrderMutation) ResetField(name string) error {
 		return nil
 	case paymentorder.FieldTxHash:
 		m.ResetTxHash()
+		return nil
+	case paymentorder.FieldBlockNumber:
+		m.ResetBlockNumber()
 		return nil
 	case paymentorder.FieldFromAddress:
 		m.ResetFromAddress()

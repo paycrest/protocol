@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/go-co-op/gocron"
 	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/ent"
@@ -21,6 +22,7 @@ import (
 	"github.com/paycrest/protocol/ent/token"
 	"github.com/paycrest/protocol/ent/webhookretryattempt"
 	"github.com/paycrest/protocol/services"
+	"github.com/paycrest/protocol/services/contracts"
 	"github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
 	"github.com/paycrest/protocol/utils"
@@ -239,6 +241,7 @@ func IndexMissedBlocks() error {
 					sql.LT(s.C(paymentorder.FieldUpdatedAt), time.Now().Add(-5*time.Minute))),
 				)
 			}).
+			Order(ent.Asc(paymentorder.FieldBlockNumber)).
 			All(ctx)
 		if err != nil {
 			logger.Errorf("IndexMissedBlocks: %v", err)
@@ -255,7 +258,39 @@ func IndexMissedBlocks() error {
 				continue
 			}
 
-			indexerService.GetMissedOrderBlocksOpts(ctx, client, network, lockpaymentorder.StatusPending)
+			// Initialize contract filterer
+			filterer, err := contracts.NewGatewayFilterer(orderConf.GatewayContractAddress, client)
+			if err != nil {
+				logger.Errorf("IndexMissedBlocks.NewGatewayFilterer: %v", err)
+				return err
+			}
+
+			// Filter logs from the oldest indexed to the latest in the database
+			toBlock := uint64(orders[len(orders)-1].BlockNumber)
+
+			// Fetch logs
+			var iter *contracts.GatewayOrderCreatedIterator
+			retryErr = utils.Retry(3, 5*time.Second, func() error {
+				var err error
+				iter, err = filterer.FilterOrderCreated(&bind.FilterOpts{
+					Start: uint64(orders[0].BlockNumber),
+					End:   &toBlock,
+				}, nil, nil, nil)
+				return err
+			})
+			if retryErr != nil {
+				logger.Errorf("IndexMissedBlocks.FilterOrderCreated: %v", retryErr)
+				continue
+			}
+
+			// Iterate over logs
+			for iter.Next() {
+				err := indexerService.CreateLockPaymentOrder(ctx, client, network, iter.Event)
+				if err != nil {
+					logger.Errorf("IndexMissedBlocks.createOrder: %v", err)
+					continue
+				}
+			}
 		}
 	}
 
@@ -487,8 +522,8 @@ func StartCronJobs() {
 		}
 	}
 
-	// Compute market rate every 5 minutes
-	_, err := scheduler.Cron("*/5 * * * *").Do(ComputeMarketRate)
+	// Compute market rate every 4 minutes
+	_, err := scheduler.Cron("*/4 * * * *").Do(ComputeMarketRate)
 	if err != nil {
 		logger.Errorf("StartCronJobs: %v", err)
 	}
@@ -506,20 +541,20 @@ func StartCronJobs() {
 		logger.Errorf("StartCronJobs: %v", err)
 	}
 
-	// Reassign pending order requests every 15 minutes
-	_, err = scheduler.Cron("*/15 * * * *").Do(priorityQueue.ReassignPendingOrders)
+	// Reassign pending order requests every 13 minutes
+	_, err = scheduler.Cron("*/13 * * * *").Do(priorityQueue.ReassignPendingOrders)
 	if err != nil {
 		logger.Errorf("StartCronJobs: %v", err)
 	}
 
-	// Reassign unvalidated order requests every 20 minutes
-	_, err = scheduler.Cron("*/20 * * * *").Do(priorityQueue.ReassignUnvalidatedLockOrders)
+	// Reassign unvalidated order requests every 21 minutes
+	_, err = scheduler.Cron("*/21 * * * *").Do(priorityQueue.ReassignUnvalidatedLockOrders)
 	if err != nil {
 		logger.Errorf("StartCronJobs: %v", err)
 	}
 
-	// Handle receive address validity every 30 minutes
-	_, err = scheduler.Cron("*/30 * * * *").Do(HandleReceiveAddressValidity)
+	// Handle receive address validity every 31 minutes
+	_, err = scheduler.Cron("*/31 * * * *").Do(HandleReceiveAddressValidity)
 	if err != nil {
 		logger.Errorf("StartCronJobs: %v", err)
 	}
@@ -530,8 +565,8 @@ func StartCronJobs() {
 		logger.Errorf("StartCronJobs: %v", err)
 	}
 
-	// Index missed blocks every 5 minutes
-	_, err = scheduler.Cron("*/5 * * * *").Do(IndexMissedBlocks)
+	// Index missed blocks every 7 minutes
+	_, err = scheduler.Cron("*/7 * * * *").Do(IndexMissedBlocks)
 	if err != nil {
 		logger.Errorf("StartCronJobs: %v", err)
 	}

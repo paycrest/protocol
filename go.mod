@@ -3,6 +3,7 @@ module github.com/paycrest/protocol
 go 1.22.0
 
 require (
+	github.com/btcsuite/btcd/btcec/v2 v2.3.2
 	github.com/chadsr/logrus-sentry v0.4.1
 	github.com/getsentry/sentry-go v0.13.0
 	github.com/gin-gonic/gin v1.9.1
@@ -24,7 +25,6 @@ require (
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/bits-and-blooms/bitset v1.7.0 // indirect
 	github.com/btcsuite/btcd v0.22.1 // indirect
-	github.com/btcsuite/btcd/btcec/v2 v2.3.2 // indirect
 	github.com/btcsuite/btcd/chaincfg/chainhash v1.0.2 // indirect
 	github.com/btcsuite/btcutil v1.0.3-0.20201208143702-a53e38424cce // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
