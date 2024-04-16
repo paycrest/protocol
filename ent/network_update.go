@@ -49,6 +49,26 @@ func (nu *NetworkUpdate) AddChainID(i int64) *NetworkUpdate {
 	return nu
 }
 
+// SetChainIDHex sets the "chain_id_hex" field.
+func (nu *NetworkUpdate) SetChainIDHex(s string) *NetworkUpdate {
+	nu.mutation.SetChainIDHex(s)
+	return nu
+}
+
+// SetNillableChainIDHex sets the "chain_id_hex" field if the given value is not nil.
+func (nu *NetworkUpdate) SetNillableChainIDHex(s *string) *NetworkUpdate {
+	if s != nil {
+		nu.SetChainIDHex(*s)
+	}
+	return nu
+}
+
+// ClearChainIDHex clears the value of the "chain_id_hex" field.
+func (nu *NetworkUpdate) ClearChainIDHex() *NetworkUpdate {
+	nu.mutation.ClearChainIDHex()
+	return nu
+}
+
 // SetIdentifier sets the "identifier" field.
 func (nu *NetworkUpdate) SetIdentifier(s string) *NetworkUpdate {
 	nu.mutation.SetIdentifier(s)
@@ -175,6 +195,12 @@ func (nu *NetworkUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if value, ok := nu.mutation.AddedChainID(); ok {
 		_spec.AddField(network.FieldChainID, field.TypeInt64, value)
 	}
+	if value, ok := nu.mutation.ChainIDHex(); ok {
+		_spec.SetField(network.FieldChainIDHex, field.TypeString, value)
+	}
+	if nu.mutation.ChainIDHexCleared() {
+		_spec.ClearField(network.FieldChainIDHex, field.TypeString)
+	}
 	if value, ok := nu.mutation.Identifier(); ok {
 		_spec.SetField(network.FieldIdentifier, field.TypeString, value)
 	}
@@ -271,6 +297,26 @@ func (nuo *NetworkUpdateOne) SetChainID(i int64) *NetworkUpdateOne {
 // AddChainID adds i to the "chain_id" field.
 func (nuo *NetworkUpdateOne) AddChainID(i int64) *NetworkUpdateOne {
 	nuo.mutation.AddChainID(i)
+	return nuo
+}
+
+// SetChainIDHex sets the "chain_id_hex" field.
+func (nuo *NetworkUpdateOne) SetChainIDHex(s string) *NetworkUpdateOne {
+	nuo.mutation.SetChainIDHex(s)
+	return nuo
+}
+
+// SetNillableChainIDHex sets the "chain_id_hex" field if the given value is not nil.
+func (nuo *NetworkUpdateOne) SetNillableChainIDHex(s *string) *NetworkUpdateOne {
+	if s != nil {
+		nuo.SetChainIDHex(*s)
+	}
+	return nuo
+}
+
+// ClearChainIDHex clears the value of the "chain_id_hex" field.
+func (nuo *NetworkUpdateOne) ClearChainIDHex() *NetworkUpdateOne {
+	nuo.mutation.ClearChainIDHex()
 	return nuo
 }
 
@@ -429,6 +475,12 @@ func (nuo *NetworkUpdateOne) sqlSave(ctx context.Context) (_node *Network, err e
 	}
 	if value, ok := nuo.mutation.AddedChainID(); ok {
 		_spec.AddField(network.FieldChainID, field.TypeInt64, value)
+	}
+	if value, ok := nuo.mutation.ChainIDHex(); ok {
+		_spec.SetField(network.FieldChainIDHex, field.TypeString, value)
+	}
+	if nuo.mutation.ChainIDHexCleared() {
+		_spec.ClearField(network.FieldChainIDHex, field.TypeString)
 	}
 	if value, ok := nuo.mutation.Identifier(); ok {
 		_spec.SetField(network.FieldIdentifier, field.TypeString, value)

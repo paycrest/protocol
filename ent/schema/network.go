@@ -24,6 +24,7 @@ func (Network) Mixin() []ent.Mixin {
 func (Network) Fields() []ent.Field {
 	return []ent.Field{
 		field.Int64("chain_id"),
+		field.String("chain_id_hex").Optional(),
 		// e.g "bnb-smart-chain", "base", "arbitrum-one", "polygon", "ethereum", "ethereum-sepolia"
 		field.String("identifier").
 			Unique(),

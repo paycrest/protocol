@@ -56,6 +56,20 @@ func (nc *NetworkCreate) SetChainID(i int64) *NetworkCreate {
 	return nc
 }
 
+// SetChainIDHex sets the "chain_id_hex" field.
+func (nc *NetworkCreate) SetChainIDHex(s string) *NetworkCreate {
+	nc.mutation.SetChainIDHex(s)
+	return nc
+}
+
+// SetNillableChainIDHex sets the "chain_id_hex" field if the given value is not nil.
+func (nc *NetworkCreate) SetNillableChainIDHex(s *string) *NetworkCreate {
+	if s != nil {
+		nc.SetChainIDHex(*s)
+	}
+	return nc
+}
+
 // SetIdentifier sets the "identifier" field.
 func (nc *NetworkCreate) SetIdentifier(s string) *NetworkCreate {
 	nc.mutation.SetIdentifier(s)
@@ -200,6 +214,10 @@ func (nc *NetworkCreate) createSpec() (*Network, *sqlgraph.CreateSpec) {
 	if value, ok := nc.mutation.ChainID(); ok {
 		_spec.SetField(network.FieldChainID, field.TypeInt64, value)
 		_node.ChainID = value
+	}
+	if value, ok := nc.mutation.ChainIDHex(); ok {
+		_spec.SetField(network.FieldChainIDHex, field.TypeString, value)
+		_node.ChainIDHex = value
 	}
 	if value, ok := nc.mutation.Identifier(); ok {
 		_spec.SetField(network.FieldIdentifier, field.TypeString, value)

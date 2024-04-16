@@ -3817,6 +3817,7 @@ type NetworkMutation struct {
 	updated_at    *time.Time
 	chain_id      *int64
 	addchain_id   *int64
+	chain_id_hex  *string
 	identifier    *string
 	rpc_endpoint  *string
 	is_testnet    *bool
@@ -4055,6 +4056,55 @@ func (m *NetworkMutation) AddedChainID() (r int64, exists bool) {
 func (m *NetworkMutation) ResetChainID() {
 	m.chain_id = nil
 	m.addchain_id = nil
+}
+
+// SetChainIDHex sets the "chain_id_hex" field.
+func (m *NetworkMutation) SetChainIDHex(s string) {
+	m.chain_id_hex = &s
+}
+
+// ChainIDHex returns the value of the "chain_id_hex" field in the mutation.
+func (m *NetworkMutation) ChainIDHex() (r string, exists bool) {
+	v := m.chain_id_hex
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldChainIDHex returns the old "chain_id_hex" field's value of the Network entity.
+// If the Network object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *NetworkMutation) OldChainIDHex(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldChainIDHex is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldChainIDHex requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldChainIDHex: %w", err)
+	}
+	return oldValue.ChainIDHex, nil
+}
+
+// ClearChainIDHex clears the value of the "chain_id_hex" field.
+func (m *NetworkMutation) ClearChainIDHex() {
+	m.chain_id_hex = nil
+	m.clearedFields[network.FieldChainIDHex] = struct{}{}
+}
+
+// ChainIDHexCleared returns if the "chain_id_hex" field was cleared in this mutation.
+func (m *NetworkMutation) ChainIDHexCleared() bool {
+	_, ok := m.clearedFields[network.FieldChainIDHex]
+	return ok
+}
+
+// ResetChainIDHex resets all changes to the "chain_id_hex" field.
+func (m *NetworkMutation) ResetChainIDHex() {
+	m.chain_id_hex = nil
+	delete(m.clearedFields, network.FieldChainIDHex)
 }
 
 // SetIdentifier sets the "identifier" field.
@@ -4309,7 +4359,7 @@ func (m *NetworkMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *NetworkMutation) Fields() []string {
-	fields := make([]string, 0, 7)
+	fields := make([]string, 0, 8)
 	if m.created_at != nil {
 		fields = append(fields, network.FieldCreatedAt)
 	}
@@ -4318,6 +4368,9 @@ func (m *NetworkMutation) Fields() []string {
 	}
 	if m.chain_id != nil {
 		fields = append(fields, network.FieldChainID)
+	}
+	if m.chain_id_hex != nil {
+		fields = append(fields, network.FieldChainIDHex)
 	}
 	if m.identifier != nil {
 		fields = append(fields, network.FieldIdentifier)
@@ -4345,6 +4398,8 @@ func (m *NetworkMutation) Field(name string) (ent.Value, bool) {
 		return m.UpdatedAt()
 	case network.FieldChainID:
 		return m.ChainID()
+	case network.FieldChainIDHex:
+		return m.ChainIDHex()
 	case network.FieldIdentifier:
 		return m.Identifier()
 	case network.FieldRPCEndpoint:
@@ -4368,6 +4423,8 @@ func (m *NetworkMutation) OldField(ctx context.Context, name string) (ent.Value,
 		return m.OldUpdatedAt(ctx)
 	case network.FieldChainID:
 		return m.OldChainID(ctx)
+	case network.FieldChainIDHex:
+		return m.OldChainIDHex(ctx)
 	case network.FieldIdentifier:
 		return m.OldIdentifier(ctx)
 	case network.FieldRPCEndpoint:
@@ -4405,6 +4462,13 @@ func (m *NetworkMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetChainID(v)
+		return nil
+	case network.FieldChainIDHex:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetChainIDHex(v)
 		return nil
 	case network.FieldIdentifier:
 		v, ok := value.(string)
@@ -4490,7 +4554,11 @@ func (m *NetworkMutation) AddField(name string, value ent.Value) error {
 // ClearedFields returns all nullable fields that were cleared during this
 // mutation.
 func (m *NetworkMutation) ClearedFields() []string {
-	return nil
+	var fields []string
+	if m.FieldCleared(network.FieldChainIDHex) {
+		fields = append(fields, network.FieldChainIDHex)
+	}
+	return fields
 }
 
 // FieldCleared returns a boolean indicating if a field with the given name was
@@ -4503,6 +4571,11 @@ func (m *NetworkMutation) FieldCleared(name string) bool {
 // ClearField clears the value of the field with the given name. It returns an
 // error if the field is not defined in the schema.
 func (m *NetworkMutation) ClearField(name string) error {
+	switch name {
+	case network.FieldChainIDHex:
+		m.ClearChainIDHex()
+		return nil
+	}
 	return fmt.Errorf("unknown Network nullable field %s", name)
 }
 
@@ -4518,6 +4591,9 @@ func (m *NetworkMutation) ResetField(name string) error {
 		return nil
 	case network.FieldChainID:
 		m.ResetChainID()
+		return nil
+	case network.FieldChainIDHex:
+		m.ResetChainIDHex()
 		return nil
 	case network.FieldIdentifier:
 		m.ResetIdentifier()

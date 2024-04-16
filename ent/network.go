@@ -24,6 +24,8 @@ type Network struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// ChainID holds the value of the "chain_id" field.
 	ChainID int64 `json:"chain_id,omitempty"`
+	// ChainIDHex holds the value of the "chain_id_hex" field.
+	ChainIDHex string `json:"chain_id_hex,omitempty"`
 	// Identifier holds the value of the "identifier" field.
 	Identifier string `json:"identifier,omitempty"`
 	// RPCEndpoint holds the value of the "rpc_endpoint" field.
@@ -67,7 +69,7 @@ func (*Network) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullBool)
 		case network.FieldID, network.FieldChainID:
 			values[i] = new(sql.NullInt64)
-		case network.FieldIdentifier, network.FieldRPCEndpoint:
+		case network.FieldChainIDHex, network.FieldIdentifier, network.FieldRPCEndpoint:
 			values[i] = new(sql.NullString)
 		case network.FieldCreatedAt, network.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -109,6 +111,12 @@ func (n *Network) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field chain_id", values[i])
 			} else if value.Valid {
 				n.ChainID = value.Int64
+			}
+		case network.FieldChainIDHex:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field chain_id_hex", values[i])
+			} else if value.Valid {
+				n.ChainIDHex = value.String
 			}
 		case network.FieldIdentifier:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -183,6 +191,9 @@ func (n *Network) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("chain_id=")
 	builder.WriteString(fmt.Sprintf("%v", n.ChainID))
+	builder.WriteString(", ")
+	builder.WriteString("chain_id_hex=")
+	builder.WriteString(n.ChainIDHex)
 	builder.WriteString(", ")
 	builder.WriteString("identifier=")
 	builder.WriteString(n.Identifier)

@@ -20,6 +20,8 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// FieldChainID holds the string denoting the chain_id field in the database.
 	FieldChainID = "chain_id"
+	// FieldChainIDHex holds the string denoting the chain_id_hex field in the database.
+	FieldChainIDHex = "chain_id_hex"
 	// FieldIdentifier holds the string denoting the identifier field in the database.
 	FieldIdentifier = "identifier"
 	// FieldRPCEndpoint holds the string denoting the rpc_endpoint field in the database.
@@ -47,6 +49,7 @@ var Columns = []string{
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldChainID,
+	FieldChainIDHex,
 	FieldIdentifier,
 	FieldRPCEndpoint,
 	FieldIsTestnet,
@@ -93,6 +96,11 @@ func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByChainID orders the results by the chain_id field.
 func ByChainID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldChainID, opts...).ToFunc()
+}
+
+// ByChainIDHex orders the results by the chain_id_hex field.
+func ByChainIDHex(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldChainIDHex, opts...).ToFunc()
 }
 
 // ByIdentifier orders the results by the identifier field.

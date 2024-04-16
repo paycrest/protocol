@@ -28,6 +28,7 @@ import (
 	"github.com/paycrest/protocol/types"
 	"github.com/paycrest/protocol/utils"
 	cryptoUtils "github.com/paycrest/protocol/utils/crypto"
+	"github.com/paycrest/protocol/utils/logger"
 )
 
 type CreateOrderParams struct {
@@ -221,6 +222,8 @@ func (s *OrderService) RevertOrder(ctx context.Context, order *ent.PaymentOrder)
 		return nil
 	}
 
+	orderIDPrefix := strings.Split(order.ID.String(), "-")[0]
+
 	// Fetch payment order from db
 	order, err := db.Client.PaymentOrder.
 		Query().
@@ -231,7 +234,7 @@ func (s *OrderService) RevertOrder(ctx context.Context, order *ent.PaymentOrder)
 		WithReceiveAddress().
 		Only(ctx)
 	if err != nil {
-		return fmt.Errorf("RevertOrder.fetchOrder: %w", err)
+		return fmt.Errorf("%s - RevertOrder.fetchOrder: %w", orderIDPrefix, err)
 	}
 
 	fees := order.NetworkFee.Add(order.SenderFee).Add(order.ProtocolFee)
@@ -239,12 +242,12 @@ func (s *OrderService) RevertOrder(ctx context.Context, order *ent.PaymentOrder)
 
 	var amountToRevert decimal.Decimal
 
-	if order.Status == paymentorder.StatusInitiated && order.Edges.ReceiveAddress.Status == receiveaddress.StatusUsed && order.UpdatedAt.Before(time.Now().Add(-5*time.Minute)) {
-		amountToRevert = order.AmountPaid
-	} else if order.AmountPaid.LessThan(orderAmountWithFees) {
+	if order.AmountPaid.LessThan(orderAmountWithFees) {
 		amountToRevert = order.AmountPaid
 	} else if order.AmountPaid.GreaterThan(orderAmountWithFees) {
 		amountToRevert = order.AmountPaid.Sub(orderAmountWithFees)
+	} else if order.Status == paymentorder.StatusInitiated && order.Edges.ReceiveAddress.Status == receiveaddress.StatusUsed && order.UpdatedAt.Before(time.Now().Add(-5*time.Minute)) {
+		amountToRevert = order.AmountPaid
 	} else {
 		return nil
 	}
@@ -261,13 +264,15 @@ func (s *OrderService) RevertOrder(ctx context.Context, order *ent.PaymentOrder)
 		return nil
 	}
 
+	logger.Infof(orderIDPrefix, amountMinusFee.String())
+
 	// Convert amountMinusFee to big.Int
 	amountMinusFeeBigInt := utils.ToSubunit(amountMinusFee, order.Edges.Token.Decimals)
 
 	// Decrypt salt
 	saltDecrypted, err := cryptoUtils.DecryptPlain(order.Edges.ReceiveAddress.Salt)
 	if err != nil {
-		return fmt.Errorf("failed to decrypt salt: %w", err)
+		return fmt.Errorf("%s - RevertOrder.DecryptPlain: %w", orderIDPrefix, err)
 	}
 
 	// Get default userOperation
@@ -275,7 +280,7 @@ func (s *OrderService) RevertOrder(ctx context.Context, order *ent.PaymentOrder)
 		ctx, nil, order.Edges.Token.Edges.Network.RPCEndpoint, order.Edges.ReceiveAddress.Address, string(saltDecrypted),
 	)
 	if err != nil {
-		return fmt.Errorf("RevertOrder.initializeUserOperation: %w", err)
+		return fmt.Errorf("%s - RevertOrder.initializeUserOperation: %w", orderIDPrefix, err)
 	}
 
 	// Create calldata
@@ -293,7 +298,7 @@ func (s *OrderService) RevertOrder(ctx context.Context, order *ent.PaymentOrder)
 		err = utils.SponsorUserOperation(userOperation, "payg", "", order.Edges.Token.Edges.Network.ChainID)
 	}
 	if err != nil {
-		return fmt.Errorf("RevertOrder.sponsorUserOperation: %w", err)
+		return fmt.Errorf("%s - RevertOrder.sponsorUserOperation: %w", orderIDPrefix, err)
 	}
 
 	// Sign user operation
@@ -302,7 +307,7 @@ func (s *OrderService) RevertOrder(ctx context.Context, order *ent.PaymentOrder)
 	// Send user operation
 	txHash, blockNumber, err := utils.SendUserOperation(userOperation, order.Edges.Token.Edges.Network.ChainID)
 	if err != nil {
-		return fmt.Errorf("RevertOrder.sendUserOperation: %w", err)
+		return fmt.Errorf("%s - RevertOrder.sendUserOperation: %w", orderIDPrefix, err)
 	}
 
 	// Update payment order
@@ -330,6 +335,8 @@ func (s *OrderService) RevertOrder(ctx context.Context, order *ent.PaymentOrder)
 func (s *OrderService) SettleOrder(ctx context.Context, orderID uuid.UUID) error {
 	var err error
 
+	orderIDPrefix := strings.Split(orderID.String(), "-")[0]
+
 	// Fetch payment order from db
 	order, err := db.Client.LockPaymentOrder.
 		Query().
@@ -346,7 +353,7 @@ func (s *OrderService) SettleOrder(ctx context.Context, orderID uuid.UUID) error
 		WithProvider().
 		Only(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to fetch lock order: %w", err)
+		return fmt.Errorf("%s - SettleOrder.fetchOrder: %w", orderIDPrefix, err)
 	}
 
 	// Get default userOperation
@@ -354,13 +361,13 @@ func (s *OrderService) SettleOrder(ctx context.Context, orderID uuid.UUID) error
 		ctx, nil, order.Edges.Token.Edges.Network.RPCEndpoint, CryptoConf.AggregatorSmartAccount, CryptoConf.AggregatorSmartAccountSalt,
 	)
 	if err != nil {
-		return fmt.Errorf("SettleOrder.initializeUserOperation: %w", err)
+		return fmt.Errorf("%s - SettleOrder.initializeUserOperation: %w", orderIDPrefix, err)
 	}
 
 	// Create calldata
 	calldata, err := s.executeBatchSettleCallData(ctx, order)
 	if err != nil {
-		return fmt.Errorf("SettleOrder.executeBatchSettleCallData: %w", err)
+		return fmt.Errorf("%s - SettleOrder.executeBatchSettleCallData: %w", orderIDPrefix, err)
 	}
 	userOperation.CallData = calldata
 
@@ -372,7 +379,7 @@ func (s *OrderService) SettleOrder(ctx context.Context, orderID uuid.UUID) error
 		err = utils.SponsorUserOperation(userOperation, "payg", "", order.Edges.Token.Edges.Network.ChainID)
 	}
 	if err != nil {
-		return fmt.Errorf("SettleOrder.sponsorUserOperation: %w", err)
+		return fmt.Errorf("%s - SettleOrder.sponsorUserOperation: %w", orderIDPrefix, err)
 	}
 
 	// Sign user operation
@@ -381,7 +388,7 @@ func (s *OrderService) SettleOrder(ctx context.Context, orderID uuid.UUID) error
 	// Send user operation
 	txHash, blockNumber, err := utils.SendUserOperation(userOperation, order.Edges.Token.Edges.Network.ChainID)
 	if err != nil {
-		return fmt.Errorf("SettleOrder.sendUserOperation: %w", err)
+		return fmt.Errorf("%s - SettleOrder.sendUserOperation: %w", orderIDPrefix, err)
 	}
 
 	// Update status of lock order
@@ -391,7 +398,7 @@ func (s *OrderService) SettleOrder(ctx context.Context, orderID uuid.UUID) error
 		SetStatus(lockpaymentorder.StatusSettled).
 		Save(ctx)
 	if err != nil {
-		return fmt.Errorf("SettleOrder.updateTxHash: %w", err)
+		return fmt.Errorf("%s - SettleOrder.updateTxHash: %w", orderIDPrefix, err)
 	}
 
 	return nil
@@ -444,7 +451,7 @@ func (s *OrderService) executeBatchTransferCallData(order *ent.PaymentOrder, to 
 	}
 
 	if ServerConf.Environment != "staging" && ServerConf.Environment != "production" {
-		time.Sleep(5 * time.Second) // TODO: remove in production
+		time.Sleep(5 * time.Second)
 	}
 
 	// Create approve data for paymaster contract

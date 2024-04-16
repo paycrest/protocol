@@ -177,6 +177,7 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 			Only(ctx)
 
 		if err == nil {
+			// TODO: check for provider's minimum and maximum rate for negotiation
 			order.Rate, err = s.GetProviderRate(ctx, provider)
 			if err == nil {
 				err = s.sendOrderRequest(ctx, order)

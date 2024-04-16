@@ -132,6 +132,7 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "chain_id", Type: field.TypeInt64},
+		{Name: "chain_id_hex", Type: field.TypeString, Nullable: true},
 		{Name: "identifier", Type: field.TypeString, Unique: true},
 		{Name: "rpc_endpoint", Type: field.TypeString},
 		{Name: "is_testnet", Type: field.TypeBool},

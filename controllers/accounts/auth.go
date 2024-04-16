@@ -130,6 +130,7 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 		provider, err := tx.ProviderProfile.
 			Create().
 			SetCurrency(currency).
+			SetVisibilityMode(providerprofile.VisibilityModePrivate).
 			SetUser(user).
 			SetProvisionMode(providerprofile.ProvisionModeAuto).
 			Save(ctx)

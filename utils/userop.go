@@ -209,7 +209,7 @@ func SendUserOperation(userOp *userop.UserOperation, chainId int64) (string, int
 
 	response, err := GetUserOperationByHash(userOpHash, chainId)
 	if err != nil {
-		return "", 0, fmt.Errorf("failed to get user operation: %w", err)
+		return "", 0, fmt.Errorf("failed to get user operation by hash: %w", err)
 	}
 
 	transactionHash, ok := response["transactionHash"].(string)

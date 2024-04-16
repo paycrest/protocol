@@ -153,6 +153,12 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 		update.SetHostIdentifier(payload.HostIdentifier)
 	}
 
+	if payload.IsAvailable {
+		update.SetIsAvailable(true)
+	} else {
+		update.SetIsAvailable(false)
+	}
+
 	if payload.Currency != "" {
 		currency, err := storage.Client.FiatCurrency.
 			Query().
