@@ -457,12 +457,17 @@ func (ctrl *ProviderController) CancelOrder(ctx *gin.Context) {
 // GetMarketRate controller fetches the median rate of the cryptocurrency token against the fiat currency
 func (ctrl *ProviderController) GetMarketRate(ctx *gin.Context) {
 	// Parse path parameters
-	_, err := storage.Client.Token.
+	tokenExists, err := storage.Client.Token.
 		Query().
 		Where(token.Symbol(strings.ToUpper(ctx.Param("token")))).
-		Only(ctx)
+		Exist(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to get market rate", nil)
+		return
+	}
+
+	if !tokenExists {
 		u.APIResponse(ctx, http.StatusBadRequest, "error", "Token is not supported", nil)
 		return
 	}
