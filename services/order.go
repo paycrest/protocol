@@ -65,6 +65,7 @@ func NewOrderService() Order {
 // CreateOrder creates a new payment order on-chain.
 func (s *OrderService) CreateOrder(ctx context.Context, orderID uuid.UUID) error {
 	var err error
+	orderIDPrefix := strings.Split(orderID.String(), "-")[0]
 
 	// Fetch payment order from db
 	order, err := db.Client.PaymentOrder.
@@ -78,12 +79,12 @@ func (s *OrderService) CreateOrder(ctx context.Context, orderID uuid.UUID) error
 		WithReceiveAddress().
 		Only(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to fetch payment order: %w", err)
+		return fmt.Errorf("%s - CreateOrder.fetchOrder: %w", orderIDPrefix, err)
 	}
 
 	saltDecrypted, err := cryptoUtils.DecryptPlain(order.Edges.ReceiveAddress.Salt)
 	if err != nil {
-		return fmt.Errorf("failed to decrypt salt: %w", err)
+		return fmt.Errorf("%s - CreateOrder.DecryptPlain: %w", orderIDPrefix, err)
 	}
 
 	// Initialize user operation with defaults
@@ -91,13 +92,13 @@ func (s *OrderService) CreateOrder(ctx context.Context, orderID uuid.UUID) error
 		ctx, nil, order.Edges.Token.Edges.Network.RPCEndpoint, order.Edges.ReceiveAddress.Address, string(saltDecrypted),
 	)
 	if err != nil {
-		return fmt.Errorf("failed to initialize user operation: %w", err)
+		return fmt.Errorf("%s - CreateOrder.InitializeUserOperation: %w", orderIDPrefix, err)
 	}
 
 	// Create calldata
 	calldata, err := s.executeBatchCreateOrderCallData(order)
 	if err != nil {
-		return fmt.Errorf("failed to create calldata: %w", err)
+		return fmt.Errorf("%s - CreateOrder.executeBatchCreateOrderCallData: %w", orderIDPrefix, err)
 	}
 	userOperation.CallData = calldata
 
@@ -109,19 +110,19 @@ func (s *OrderService) CreateOrder(ctx context.Context, orderID uuid.UUID) error
 		err = utils.SponsorUserOperation(userOperation, "payg", "", order.Edges.Token.Edges.Network.ChainID)
 	}
 	if err != nil {
-		return fmt.Errorf("failed to sponsor user operation: %w", err)
+		return fmt.Errorf("%s - CreateOrder.SponsorUserOperation: %w", orderIDPrefix, err)
 	}
 
 	// Sign user operation
 	err = utils.SignUserOperation(userOperation, order.Edges.Token.Edges.Network.ChainID)
 	if err != nil {
-		return fmt.Errorf("failed to sign user operation: %w", err)
+		return fmt.Errorf("%s - CreateOrder.SignUserOperation: %w", orderIDPrefix, err)
 	}
 
 	// Send user operation
 	txHash, blockNumber, err := utils.SendUserOperation(userOperation, order.Edges.Token.Edges.Network.ChainID)
 	if err != nil {
-		return fmt.Errorf("failed to send user operation: %w", err)
+		return fmt.Errorf("%s - CreateOrder.SendUserOperation: %w", orderIDPrefix, err)
 	}
 
 	// Update payment order with userOpHash
@@ -131,7 +132,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, orderID uuid.UUID) error
 		SetStatus(paymentorder.StatusPending).
 		Save(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to update payment order: %w", err)
+		return fmt.Errorf("%s - CreateOrder.updateTxHash: %w", orderIDPrefix, err)
 	}
 
 	paymentOrder, err := db.Client.PaymentOrder.
@@ -140,13 +141,13 @@ func (s *OrderService) CreateOrder(ctx context.Context, orderID uuid.UUID) error
 		WithSenderProfile().
 		Only(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to fetch payment order: %w", err)
+		return fmt.Errorf("%s - CreateOrder.refetchOrder: %w", orderIDPrefix, err)
 	}
 
 	// Send webhook notifcation to sender
 	err = utils.SendPaymentOrderWebhook(ctx, paymentOrder)
 	if err != nil {
-		return fmt.Errorf("CreateOrder.webhook: %w", err)
+		return fmt.Errorf("%s - CreateOrder.webhook: %w", orderIDPrefix, err)
 	}
 
 	return nil
@@ -280,7 +281,7 @@ func (s *OrderService) RevertOrder(ctx context.Context, order *ent.PaymentOrder)
 		ctx, nil, order.Edges.Token.Edges.Network.RPCEndpoint, order.Edges.ReceiveAddress.Address, string(saltDecrypted),
 	)
 	if err != nil {
-		return fmt.Errorf("%s - RevertOrder.initializeUserOperation: %w", orderIDPrefix, err)
+		return fmt.Errorf("%s - RevertOrder.InitializeUserOperation: %w", orderIDPrefix, err)
 	}
 
 	// Create calldata
@@ -298,11 +299,14 @@ func (s *OrderService) RevertOrder(ctx context.Context, order *ent.PaymentOrder)
 		err = utils.SponsorUserOperation(userOperation, "payg", "", order.Edges.Token.Edges.Network.ChainID)
 	}
 	if err != nil {
-		return fmt.Errorf("%s - RevertOrder.sponsorUserOperation: %w", orderIDPrefix, err)
+		return fmt.Errorf("%s - RevertOrder.SponsorUserOperation: %w", orderIDPrefix, err)
 	}
 
 	// Sign user operation
-	_ = utils.SignUserOperation(userOperation, order.Edges.Token.Edges.Network.ChainID)
+	err = utils.SignUserOperation(userOperation, order.Edges.Token.Edges.Network.ChainID)
+	if err != nil {
+		return fmt.Errorf("%s - RevertOrder.SignUserOperation: %w", orderIDPrefix, err)
+	}
 
 	// Send user operation
 	txHash, blockNumber, err := utils.SendUserOperation(userOperation, order.Edges.Token.Edges.Network.ChainID)
@@ -318,7 +322,7 @@ func (s *OrderService) RevertOrder(ctx context.Context, order *ent.PaymentOrder)
 		SetStatus(paymentorder.StatusReverted).
 		Save(ctx)
 	if err != nil {
-		return fmt.Errorf("RevertOrder.updateTxHash(%v): %w", txHash, err)
+		return fmt.Errorf("%s - RevertOrder.updateTxHash: %w", orderIDPrefix, err)
 	}
 
 	// Send webhook notifcation to sender
