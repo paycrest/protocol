@@ -32,8 +32,11 @@ func InitializeUserOperation(ctx context.Context, client types.RPCClient, rpcUrl
 
 	// Connect to RPC endpoint
 	if client == nil {
-		client, err = types.NewEthClient(rpcUrl)
-		if err != nil {
+		retryErr := Retry(3, 5*time.Second, func() error {
+			client, err = types.NewEthClient(rpcUrl)
+			return err
+		})
+		if retryErr != nil {
 			return nil, fmt.Errorf("failed to connect to RPC client: %w", err)
 		}
 	}

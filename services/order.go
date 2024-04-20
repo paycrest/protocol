@@ -413,8 +413,7 @@ func (s *OrderService) GetSupportedInstitutions(ctx context.Context, client type
 	// Connect to RPC endpoint
 	var err error
 	if client == nil {
-		// NOTE: RPCEndpoint defaults to polygon-mumbai until contract is deployed to polygon mainnet.
-		client, err = types.NewEthClient("https://polygon-mumbai.g.alchemy.com/v2/zfXjaatj2o5xKkqe0iSvnU9JkKZoiS54")
+		client, err = types.NewEthClient("https://polygon-mainnet.g.alchemy.com/v2/zfXjaatj2o5xKkqe0iSvnU9JkKZoiS54")
 		if err != nil {
 			return nil, fmt.Errorf("GetSupportedInstitutions.NewEthClient: %w", err)
 		}

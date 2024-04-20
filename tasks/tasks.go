@@ -121,6 +121,7 @@ func RetryStaleUserOperations() error {
 				Where(sql.And(
 					sql.EQ(s.C(paymentorder.FieldStatus), paymentorder.StatusInitiated),
 					sql.EQ(ra.C(receiveaddress.FieldStatus), receiveaddress.StatusUsed),
+					sql.GTE(s.C(paymentorder.FieldUpdatedAt), time.Now().Add(-10*time.Minute)),
 					sql.IsNull(s.C(paymentorder.FieldGatewayID)),
 				))
 		}).
@@ -150,7 +151,7 @@ func RetryStaleUserOperations() error {
 				paymentorder.StatusEQ(paymentorder.StatusExpired),
 			),
 			paymentorder.AmountPaidGT(decimal.Zero),
-			paymentorder.UpdatedAtLT(time.Now().Add(-5*time.Minute)),
+			paymentorder.UpdatedAtLT(time.Now().Add(-10*time.Minute)),
 		).
 		WithReceiveAddress().
 		All(ctx)
