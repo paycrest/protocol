@@ -128,8 +128,8 @@ func SponsorUserOperation(userOp *userop.UserOperation, mode string, token strin
 		payload,
 	}
 
-	// op, _ := userOp.MarshalJSON()
-	// logger.Errorf(string(op))
+	op, _ := userOp.MarshalJSON()
+	logger.Errorf(string(op))
 
 	var result json.RawMessage
 	err = client.Call(&result, "pm_sponsorUserOperation", requestParams...)
