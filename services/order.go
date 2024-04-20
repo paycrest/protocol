@@ -493,7 +493,7 @@ func (s *OrderService) executeBatchCreateOrderCallData(order *ent.PaymentOrder) 
 	// Create approve data for gateway contract
 	approveGatewayData, err := s.approveCallData(
 		OrderConf.GatewayContractAddress,
-		utils.ToSubunit(orderAmountWithFees, order.Edges.Token.Decimals),
+		utils.ToSubunit(orderAmountWithFees.Mul(decimal.NewFromInt(2)), order.Edges.Token.Decimals),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create gateway approve calldata: %w", err)
@@ -658,7 +658,7 @@ func (s *OrderService) executeBatchRefundCallData(order *ent.LockPaymentOrder) (
 	// Create approve data for gateway contract
 	approveGatewayData, err := s.approveCallData(
 		OrderConf.GatewayContractAddress,
-		utils.ToSubunit(order.Amount, order.Edges.Token.Decimals),
+		utils.ToSubunit(order.Amount.Mul(decimal.NewFromInt(2)), order.Edges.Token.Decimals),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("executeBatchRefundCallData.approveOrderContract: %w", err)
@@ -752,7 +752,7 @@ func (s *OrderService) executeBatchSettleCallData(ctx context.Context, order *en
 	// Create approve data for gateway contract
 	approveGatewayData, err := s.approveCallData(
 		OrderConf.GatewayContractAddress,
-		utils.ToSubunit(order.Amount, order.Edges.Token.Decimals),
+		utils.ToSubunit(order.Amount.Mul(decimal.NewFromInt(2)), order.Edges.Token.Decimals),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("approveOrderContract: %w", err)

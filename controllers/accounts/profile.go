@@ -1,6 +1,7 @@
 package accounts
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/paycrest/protocol/config"
@@ -236,7 +237,7 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 	// Update tokens
 	for _, tokenPayload := range payload.Tokens {
 		if len(tokenPayload.Addresses) == 0 {
-			u.APIResponse(ctx, http.StatusBadRequest, "error", "No addresses provided", nil)
+			u.APIResponse(ctx, http.StatusBadRequest, "error", fmt.Sprintf("No wallet address provided for %s settlements", tokenPayload.Symbol), nil)
 			return
 		}
 
