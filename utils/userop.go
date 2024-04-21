@@ -220,14 +220,12 @@ func SendUserOperation(userOp *userop.UserOperation, chainId int64) (string, int
 		return "", 0, fmt.Errorf("failed to get transaction hash")
 	}
 
-	logger.Errorf(fmt.Sprintf("%s", response))
-
-	blockNumber, ok := response["blockNumber"].(int64)
+	blockNumber, ok := response["blockNumber"].(float64)
 	if !ok {
 		return "", 0, fmt.Errorf("failed to get block number")
 	}
 
-	return transactionHash, blockNumber, nil
+	return transactionHash, int64(blockNumber), nil
 }
 
 // GetUserOperationByHash fetches the user operation by hash
