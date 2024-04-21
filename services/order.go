@@ -28,7 +28,6 @@ import (
 	"github.com/paycrest/protocol/types"
 	"github.com/paycrest/protocol/utils"
 	cryptoUtils "github.com/paycrest/protocol/utils/crypto"
-	"github.com/paycrest/protocol/utils/logger"
 )
 
 type CreateOrderParams struct {
@@ -264,8 +263,6 @@ func (s *OrderService) RevertOrder(ctx context.Context, order *ent.PaymentOrder)
 	if amountMinusFee.LessThan(decimal.Zero) {
 		return nil
 	}
-
-	logger.Infof(orderIDPrefix, amountMinusFee.String())
 
 	// Convert amountMinusFee to big.Int
 	amountMinusFeeBigInt := utils.ToSubunit(amountMinusFee, order.Edges.Token.Decimals)

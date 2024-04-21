@@ -362,12 +362,9 @@ func eip1559GasPrice(ctx context.Context, client types.RPCClient) (maxFeePerGas,
 		maxFeePerGas = new(big.Int).
 			Mul(latestHeader.BaseFee, big.NewInt(2)).
 			Add(latestHeader.BaseFee, maxPriorityFeePerGas)
-		fmt.Println(maxFeePerGas)
 	} else {
 		maxFeePerGas = maxPriorityFeePerGas
 	}
-
-	fmt.Println(maxFeePerGas)
 
 	return maxFeePerGas, maxPriorityFeePerGas
 }

@@ -341,7 +341,7 @@ func IndexMissedBlocks() error {
 			retryErr = utils.Retry(3, 5*time.Second, func() error {
 				var err error
 				iter, err = filterer.FilterOrderSettled(&bind.FilterOpts{
-					Start: uint64(orders[0].BlockNumber),
+					Start: uint64(lockOrders[0].BlockNumber),
 					End:   &toBlock,
 				}, nil, nil)
 				return err
@@ -407,7 +407,7 @@ func IndexMissedBlocks() error {
 			retryErr = utils.Retry(3, 5*time.Second, func() error {
 				var err error
 				iter, err = filterer.FilterOrderRefunded(&bind.FilterOpts{
-					Start: uint64(orders[0].BlockNumber),
+					Start: uint64(lockOrders[0].BlockNumber),
 					End:   &toBlock,
 				}, nil)
 				return err
