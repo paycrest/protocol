@@ -205,6 +205,26 @@ func (pou *PaymentOrderUpdate) ClearFromAddress() *PaymentOrderUpdate {
 	return pou
 }
 
+// SetReturnAddress sets the "return_address" field.
+func (pou *PaymentOrderUpdate) SetReturnAddress(s string) *PaymentOrderUpdate {
+	pou.mutation.SetReturnAddress(s)
+	return pou
+}
+
+// SetNillableReturnAddress sets the "return_address" field if the given value is not nil.
+func (pou *PaymentOrderUpdate) SetNillableReturnAddress(s *string) *PaymentOrderUpdate {
+	if s != nil {
+		pou.SetReturnAddress(*s)
+	}
+	return pou
+}
+
+// ClearReturnAddress clears the value of the "return_address" field.
+func (pou *PaymentOrderUpdate) ClearReturnAddress() *PaymentOrderUpdate {
+	pou.mutation.ClearReturnAddress()
+	return pou
+}
+
 // SetReceiveAddressText sets the "receive_address_text" field.
 func (pou *PaymentOrderUpdate) SetReceiveAddressText(s string) *PaymentOrderUpdate {
 	pou.mutation.SetReceiveAddressText(s)
@@ -415,6 +435,11 @@ func (pou *PaymentOrderUpdate) check() error {
 			return &ValidationError{Name: "from_address", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.from_address": %w`, err)}
 		}
 	}
+	if v, ok := pou.mutation.ReturnAddress(); ok {
+		if err := paymentorder.ReturnAddressValidator(v); err != nil {
+			return &ValidationError{Name: "return_address", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.return_address": %w`, err)}
+		}
+	}
 	if v, ok := pou.mutation.ReceiveAddressText(); ok {
 		if err := paymentorder.ReceiveAddressTextValidator(v); err != nil {
 			return &ValidationError{Name: "receive_address_text", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.receive_address_text": %w`, err)}
@@ -514,6 +539,12 @@ func (pou *PaymentOrderUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if pou.mutation.FromAddressCleared() {
 		_spec.ClearField(paymentorder.FieldFromAddress, field.TypeString)
+	}
+	if value, ok := pou.mutation.ReturnAddress(); ok {
+		_spec.SetField(paymentorder.FieldReturnAddress, field.TypeString, value)
+	}
+	if pou.mutation.ReturnAddressCleared() {
+		_spec.ClearField(paymentorder.FieldReturnAddress, field.TypeString)
 	}
 	if value, ok := pou.mutation.ReceiveAddressText(); ok {
 		_spec.SetField(paymentorder.FieldReceiveAddressText, field.TypeString, value)
@@ -846,6 +877,26 @@ func (pouo *PaymentOrderUpdateOne) ClearFromAddress() *PaymentOrderUpdateOne {
 	return pouo
 }
 
+// SetReturnAddress sets the "return_address" field.
+func (pouo *PaymentOrderUpdateOne) SetReturnAddress(s string) *PaymentOrderUpdateOne {
+	pouo.mutation.SetReturnAddress(s)
+	return pouo
+}
+
+// SetNillableReturnAddress sets the "return_address" field if the given value is not nil.
+func (pouo *PaymentOrderUpdateOne) SetNillableReturnAddress(s *string) *PaymentOrderUpdateOne {
+	if s != nil {
+		pouo.SetReturnAddress(*s)
+	}
+	return pouo
+}
+
+// ClearReturnAddress clears the value of the "return_address" field.
+func (pouo *PaymentOrderUpdateOne) ClearReturnAddress() *PaymentOrderUpdateOne {
+	pouo.mutation.ClearReturnAddress()
+	return pouo
+}
+
 // SetReceiveAddressText sets the "receive_address_text" field.
 func (pouo *PaymentOrderUpdateOne) SetReceiveAddressText(s string) *PaymentOrderUpdateOne {
 	pouo.mutation.SetReceiveAddressText(s)
@@ -1069,6 +1120,11 @@ func (pouo *PaymentOrderUpdateOne) check() error {
 			return &ValidationError{Name: "from_address", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.from_address": %w`, err)}
 		}
 	}
+	if v, ok := pouo.mutation.ReturnAddress(); ok {
+		if err := paymentorder.ReturnAddressValidator(v); err != nil {
+			return &ValidationError{Name: "return_address", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.return_address": %w`, err)}
+		}
+	}
 	if v, ok := pouo.mutation.ReceiveAddressText(); ok {
 		if err := paymentorder.ReceiveAddressTextValidator(v); err != nil {
 			return &ValidationError{Name: "receive_address_text", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.receive_address_text": %w`, err)}
@@ -1185,6 +1241,12 @@ func (pouo *PaymentOrderUpdateOne) sqlSave(ctx context.Context) (_node *PaymentO
 	}
 	if pouo.mutation.FromAddressCleared() {
 		_spec.ClearField(paymentorder.FieldFromAddress, field.TypeString)
+	}
+	if value, ok := pouo.mutation.ReturnAddress(); ok {
+		_spec.SetField(paymentorder.FieldReturnAddress, field.TypeString, value)
+	}
+	if pouo.mutation.ReturnAddressCleared() {
+		_spec.ClearField(paymentorder.FieldReturnAddress, field.TypeString)
 	}
 	if value, ok := pouo.mutation.ReceiveAddressText(); ok {
 		_spec.SetField(paymentorder.FieldReceiveAddressText, field.TypeString, value)

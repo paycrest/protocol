@@ -988,8 +988,12 @@ func (s *IndexerService) updateReceiveAddressStatus(
 		orderAmountWithFeesInSubunit := utils.ToSubunit(orderAmountWithFees, paymentOrder.Edges.Token.Decimals)
 		comparisonResult := event.Value.Cmp(orderAmountWithFeesInSubunit)
 
-		paymentOrder, err = paymentOrder.
-			Update().
+		paymentOrderUpdate := paymentOrder.Update()
+		if paymentOrder.ReturnAddress == "" {
+			paymentOrderUpdate = paymentOrderUpdate.SetReturnAddress(event.From.Hex())
+		}
+
+		paymentOrder, err = paymentOrderUpdate.
 			SetFromAddress(event.From.Hex()).
 			SetTxHash(event.Raw.TxHash.Hex()).
 			AddAmountPaid(utils.FromSubunit(event.Value, paymentOrder.Edges.Token.Decimals)).

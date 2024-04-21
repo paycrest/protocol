@@ -144,6 +144,20 @@ func (poc *PaymentOrderCreate) SetNillableFromAddress(s *string) *PaymentOrderCr
 	return poc
 }
 
+// SetReturnAddress sets the "return_address" field.
+func (poc *PaymentOrderCreate) SetReturnAddress(s string) *PaymentOrderCreate {
+	poc.mutation.SetReturnAddress(s)
+	return poc
+}
+
+// SetNillableReturnAddress sets the "return_address" field if the given value is not nil.
+func (poc *PaymentOrderCreate) SetNillableReturnAddress(s *string) *PaymentOrderCreate {
+	if s != nil {
+		poc.SetReturnAddress(*s)
+	}
+	return poc
+}
+
 // SetReceiveAddressText sets the "receive_address_text" field.
 func (poc *PaymentOrderCreate) SetReceiveAddressText(s string) *PaymentOrderCreate {
 	poc.mutation.SetReceiveAddressText(s)
@@ -374,6 +388,11 @@ func (poc *PaymentOrderCreate) check() error {
 			return &ValidationError{Name: "from_address", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.from_address": %w`, err)}
 		}
 	}
+	if v, ok := poc.mutation.ReturnAddress(); ok {
+		if err := paymentorder.ReturnAddressValidator(v); err != nil {
+			return &ValidationError{Name: "return_address", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.return_address": %w`, err)}
+		}
+	}
 	if _, ok := poc.mutation.ReceiveAddressText(); !ok {
 		return &ValidationError{Name: "receive_address_text", err: errors.New(`ent: missing required field "PaymentOrder.receive_address_text"`)}
 	}
@@ -485,6 +504,10 @@ func (poc *PaymentOrderCreate) createSpec() (*PaymentOrder, *sqlgraph.CreateSpec
 	if value, ok := poc.mutation.FromAddress(); ok {
 		_spec.SetField(paymentorder.FieldFromAddress, field.TypeString, value)
 		_node.FromAddress = value
+	}
+	if value, ok := poc.mutation.ReturnAddress(); ok {
+		_spec.SetField(paymentorder.FieldReturnAddress, field.TypeString, value)
+		_node.ReturnAddress = value
 	}
 	if value, ok := poc.mutation.ReceiveAddressText(); ok {
 		_spec.SetField(paymentorder.FieldReceiveAddressText, field.TypeString, value)

@@ -42,6 +42,8 @@ const (
 	FieldBlockNumber = "block_number"
 	// FieldFromAddress holds the string denoting the from_address field in the database.
 	FieldFromAddress = "from_address"
+	// FieldReturnAddress holds the string denoting the return_address field in the database.
+	FieldReturnAddress = "return_address"
 	// FieldReceiveAddressText holds the string denoting the receive_address_text field in the database.
 	FieldReceiveAddressText = "receive_address_text"
 	// FieldFeePerTokenUnit holds the string denoting the fee_per_token_unit field in the database.
@@ -108,6 +110,7 @@ var Columns = []string{
 	FieldTxHash,
 	FieldBlockNumber,
 	FieldFromAddress,
+	FieldReturnAddress,
 	FieldReceiveAddressText,
 	FieldFeePerTokenUnit,
 	FieldFeeAddress,
@@ -151,6 +154,8 @@ var (
 	DefaultBlockNumber int64
 	// FromAddressValidator is a validator for the "from_address" field. It is called by the builders before save.
 	FromAddressValidator func(string) error
+	// ReturnAddressValidator is a validator for the "return_address" field. It is called by the builders before save.
+	ReturnAddressValidator func(string) error
 	// ReceiveAddressTextValidator is a validator for the "receive_address_text" field. It is called by the builders before save.
 	ReceiveAddressTextValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
@@ -258,6 +263,11 @@ func ByBlockNumber(opts ...sql.OrderTermOption) OrderOption {
 // ByFromAddress orders the results by the from_address field.
 func ByFromAddress(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldFromAddress, opts...).ToFunc()
+}
+
+// ByReturnAddress orders the results by the return_address field.
+func ByReturnAddress(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldReturnAddress, opts...).ToFunc()
 }
 
 // ByReceiveAddressText orders the results by the receive_address_text field.

@@ -142,6 +142,16 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 		feeAddress = payload.FeeAddress
 	}
 
+	if payload.ReturnAddress != "" {
+		if !u.IsValidEthereumAddress(payload.ReturnAddress) {
+			u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
+				Field:   "ReturnAddress",
+				Message: "Invalid Ethereum address",
+			})
+			return
+		}
+	}
+
 	senderFee := feePerTokenUnit.Mul(payload.Amount).Div(payload.Rate).Round(int32(token.Decimals))
 	protocolFee := payload.Amount.Mul(decimal.NewFromFloat(0.001)) // TODO: get protocol fee from contract -- currently 0.1%
 
@@ -162,6 +172,7 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 		SetReceiveAddressText(receiveAddress.Address).
 		SetFeePerTokenUnit(feePerTokenUnit).
 		SetFeeAddress(feeAddress).
+		SetReturnAddress(payload.ReturnAddress).
 		Save(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)

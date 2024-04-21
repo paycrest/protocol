@@ -282,7 +282,7 @@ func (s *OrderService) RevertOrder(ctx context.Context, order *ent.PaymentOrder)
 	}
 
 	// Create calldata
-	calldata, err := s.executeBatchTransferCallData(order, common.HexToAddress(order.FromAddress), amountMinusFeeBigInt)
+	calldata, err := s.executeBatchTransferCallData(order, common.HexToAddress(order.ReturnAddress), amountMinusFeeBigInt)
 	if err != nil {
 		return fmt.Errorf("RevertOrder.executeBatchTransferCallData: %w", err)
 	}
@@ -609,7 +609,7 @@ func (s *OrderService) createOrderCallData(order *ent.PaymentOrder) ([]byte, err
 
 	var refundAddress common.Address
 	if order.Edges.SenderProfile.RefundAddress == "" {
-		refundAddress = common.HexToAddress(order.FromAddress)
+		refundAddress = common.HexToAddress(order.ReturnAddress)
 	} else {
 		refundAddress = common.HexToAddress(order.Edges.SenderProfile.RefundAddress)
 	}

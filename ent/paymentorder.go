@@ -49,6 +49,8 @@ type PaymentOrder struct {
 	BlockNumber int64 `json:"block_number,omitempty"`
 	// FromAddress holds the value of the "from_address" field.
 	FromAddress string `json:"from_address,omitempty"`
+	// ReturnAddress holds the value of the "return_address" field.
+	ReturnAddress string `json:"return_address,omitempty"`
 	// ReceiveAddressText holds the value of the "receive_address_text" field.
 	ReceiveAddressText string `json:"receive_address_text,omitempty"`
 	// FeePerTokenUnit holds the value of the "fee_per_token_unit" field.
@@ -144,7 +146,7 @@ func (*PaymentOrder) scanValues(columns []string) ([]any, error) {
 			values[i] = new(decimal.Decimal)
 		case paymentorder.FieldBlockNumber:
 			values[i] = new(sql.NullInt64)
-		case paymentorder.FieldTxHash, paymentorder.FieldFromAddress, paymentorder.FieldReceiveAddressText, paymentorder.FieldFeeAddress, paymentorder.FieldGatewayID, paymentorder.FieldStatus:
+		case paymentorder.FieldTxHash, paymentorder.FieldFromAddress, paymentorder.FieldReturnAddress, paymentorder.FieldReceiveAddressText, paymentorder.FieldFeeAddress, paymentorder.FieldGatewayID, paymentorder.FieldStatus:
 			values[i] = new(sql.NullString)
 		case paymentorder.FieldCreatedAt, paymentorder.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -254,6 +256,12 @@ func (po *PaymentOrder) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field from_address", values[i])
 			} else if value.Valid {
 				po.FromAddress = value.String
+			}
+		case paymentorder.FieldReturnAddress:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field return_address", values[i])
+			} else if value.Valid {
+				po.ReturnAddress = value.String
 			}
 		case paymentorder.FieldReceiveAddressText:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -400,6 +408,9 @@ func (po *PaymentOrder) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("from_address=")
 	builder.WriteString(po.FromAddress)
+	builder.WriteString(", ")
+	builder.WriteString("return_address=")
+	builder.WriteString(po.ReturnAddress)
 	builder.WriteString(", ")
 	builder.WriteString("receive_address_text=")
 	builder.WriteString(po.ReceiveAddressText)

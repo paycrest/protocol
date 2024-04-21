@@ -258,11 +258,12 @@ func SendPaymentOrderWebhook(ctx context.Context, paymentOrder *ent.PaymentOrder
 				ProviderID:        recipient.ProviderID,
 				Memo:              recipient.Memo,
 			},
-			FromAddress: paymentOrder.FromAddress,
-			UpdatedAt:   paymentOrder.UpdatedAt,
-			CreatedAt:   paymentOrder.CreatedAt,
-			TxHash:      paymentOrder.TxHash,
-			Status:      paymentOrder.Status,
+			FromAddress:   paymentOrder.FromAddress,
+			ReturnAddress: paymentOrder.ReturnAddress,
+			UpdatedAt:     paymentOrder.UpdatedAt,
+			CreatedAt:     paymentOrder.CreatedAt,
+			TxHash:        paymentOrder.TxHash,
+			Status:        paymentOrder.Status,
 		},
 	}
 
