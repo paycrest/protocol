@@ -670,7 +670,12 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 			).
 			Only(ctx)
 		if err != nil {
-			return fmt.Errorf("failed to fetch payment order: %w", err)
+			elapsed := time.Since(start)
+			if elapsed >= timeout {
+				return fmt.Errorf("CreateLockPaymentOrder.db: timeout reached, giving up after %v", elapsed)
+			}
+			time.Sleep(5 * time.Second)
+			continue
 		}
 		_, err = paymentOrder.
 			Update().

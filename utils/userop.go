@@ -17,7 +17,6 @@ import (
 	"github.com/paycrest/protocol/services/contracts"
 	"github.com/paycrest/protocol/types"
 	cryptoUtils "github.com/paycrest/protocol/utils/crypto"
-	"github.com/paycrest/protocol/utils/logger"
 	"github.com/stackup-wallet/stackup-bundler/pkg/userop"
 )
 
@@ -131,8 +130,8 @@ func SponsorUserOperation(userOp *userop.UserOperation, mode string, token strin
 		payload,
 	}
 
-	op, _ := userOp.MarshalJSON()
-	logger.Errorf(string(op))
+	// op, _ := userOp.MarshalJSON()
+	// logger.Errorf(string(op))
 
 	var result json.RawMessage
 	err = client.Call(&result, "pm_sponsorUserOperation", requestParams...)
@@ -363,9 +362,12 @@ func eip1559GasPrice(ctx context.Context, client types.RPCClient) (maxFeePerGas,
 		maxFeePerGas = new(big.Int).
 			Mul(latestHeader.BaseFee, big.NewInt(2)).
 			Add(latestHeader.BaseFee, maxPriorityFeePerGas)
+		fmt.Println(maxFeePerGas)
 	} else {
 		maxFeePerGas = maxPriorityFeePerGas
 	}
+
+	fmt.Println(maxFeePerGas)
 
 	return maxFeePerGas, maxPriorityFeePerGas
 }
