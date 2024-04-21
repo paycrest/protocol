@@ -220,7 +220,7 @@ func SendUserOperation(userOp *userop.UserOperation, chainId int64) (string, int
 		return "", 0, fmt.Errorf("failed to get transaction hash")
 	}
 
-	logger.Infof(fmt.Sprintf("%s", response))
+	logger.Errorf(fmt.Sprintf("%s", response))
 
 	blockNumber, ok := response["blockNumber"].(int64)
 	if !ok {
