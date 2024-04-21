@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
+	fastshot "github.com/opus-domini/fast-shot"
 	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/fiatcurrency"
@@ -17,6 +19,7 @@ import (
 	"github.com/paycrest/protocol/services"
 	"github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
+	"github.com/paycrest/protocol/utils"
 	u "github.com/paycrest/protocol/utils"
 	cryptoUtils "github.com/paycrest/protocol/utils/crypto"
 	"github.com/paycrest/protocol/utils/logger"
@@ -582,27 +585,31 @@ func (ctrl *ProviderController) NodeInfo(ctx *gin.Context) {
 	}
 	signature := tokenUtils.GenerateHMACSignature(map[string]interface{}{}, string(decryptedSecret))
 
-	resp, err := u.MakeJSONRequest(
-		ctx,
-		"GET",
-		fmt.Sprintf("%s/health", provider.HostIdentifier),
-		nil,
-		map[string]string{
-			"X-Request-Signature": signature,
-		},
-	)
+	res, err := fastshot.NewClient(provider.HostIdentifier).
+		Config().SetTimeout(30*time.Second).
+		Header().Add("X-Request-Signature", signature).
+		Build().GET("/health").
+		Retry().Set(3, 5*time.Second).
+		Send()
 	if err != nil {
 		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusServiceUnavailable, "error", "Failed to fetch node info", nil)
 		return
 	}
 
-	currency := resp["data"].(map[string]interface{})["currency"].(string)
+	data, err := utils.ParseJSONResponse(res.RawResponse)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusServiceUnavailable, "error", "Failed to fetch node info", nil)
+		return
+	}
+
+	currency := data["data"].(map[string]interface{})["currency"].(string)
 	if currency != provider.Edges.Currency.Code {
 		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusServiceUnavailable, "error", "Failed to fetch node info", nil)
 		return
 	}
 
-	u.APIResponse(ctx, http.StatusOK, "success", "Node info fetched successfully", resp)
+	u.APIResponse(ctx, http.StatusOK, "success", "Node info fetched successfully", data)
 }

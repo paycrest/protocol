@@ -1,17 +1,13 @@
 package utils
 
 import (
-	"bytes"
-	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -67,50 +63,8 @@ func GetErrorData(err error) []types.ErrorData {
 	return errorData
 }
 
-// MakeJSONRequest makes a JSON request
-func MakeJSONRequest(ctx context.Context, method, url string, payload map[string]interface{}, headers map[string]string) (responseData map[string]interface{}, err error) {
-	if !ContainsString([]string{"GET", "POST", "PUT", "PATCH", "DELETE"}, method) {
-		return nil, errors.New("invalid method")
-	}
-
-	// Create a new request
-	requestBody, err := json.Marshal(payload)
-	if err != nil {
-		return nil, err
-	}
-	req, err := http.NewRequest(method, url, bytes.NewReader(requestBody))
-	if err != nil {
-		return nil, err
-	}
-
-	// Set headers
-	for key, value := range headers {
-		req.Header.Set(key, value)
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	// Create a new context and add the request to it
-	client := &http.Client{
-		Timeout: 10 * time.Second,
-	}
-
-	// Make the request
-	var res *http.Response
-	for i := 0; i < HTTP_RETRY_ATTEMPTS; i++ { // On failure, retry up to 3 times
-		res, err = client.Do(req)
-		if err == nil && res.StatusCode < 500 && res.StatusCode != 429 {
-			break
-		}
-		if i < HTTP_RETRY_ATTEMPTS-1 { // Avoid sleep after the last attempt
-			time.Sleep(HTTP_RETRY_INTERVAL * time.Second) // Wait for 5 seconds before retrying
-		}
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	defer res.Body.Close()
-
+// ParseJSONResponse parses a JSON response
+func ParseJSONResponse(res *http.Response) (map[string]interface{}, error) {
 	// Decode the response body into a map
 	responseBody, err := io.ReadAll(res.Body)
 	if err != nil {
@@ -124,7 +78,6 @@ func MakeJSONRequest(ctx context.Context, method, url string, payload map[string
 		if strings.Contains(err.Error(), "invalid character") {
 			return nil, fmt.Errorf("received non-JSON response: %s", string(responseBody))
 		}
-		return nil, err
 	}
 
 	if res.StatusCode >= 500 { // Return on server errors

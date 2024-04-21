@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/crypto"
+	fastshot "github.com/opus-domini/fast-shot"
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/paymentorder"
 	"github.com/paycrest/protocol/storage"
@@ -286,15 +287,12 @@ func SendPaymentOrderWebhook(ctx context.Context, paymentOrder *ent.PaymentOrder
 	signature := tokenUtils.GenerateHMACSignature(payload, string(decryptedSecret))
 
 	// Send the webhook
-	_, err = MakeJSONRequest(
-		ctx,
-		"POST",
-		profile.WebhookURL,
-		payload,
-		map[string]string{
-			"X-Paycrest-Signature": signature,
-		},
-	)
+	_, err = fastshot.NewClient(profile.WebhookURL).
+		Config().SetTimeout(30*time.Second).
+		Header().Add("X-Paycrest-Signature", signature).
+		Build().POST("").
+		Body().AsJSON(payload).
+		Send()
 	if err != nil {
 		// Log retry attempt
 		_, err := storage.Client.WebhookRetryAttempt.

@@ -12,6 +12,7 @@ require (
 	github.com/jarcoal/httpmock v1.3.1
 	github.com/mailgun/mailgun-go/v3 v3.6.4
 	github.com/mattn/go-sqlite3 v1.14.16
+	github.com/opus-domini/fast-shot v0.10.0
 	github.com/redis/go-redis/v9 v9.1.0
 	github.com/sendgrid/sendgrid-go v3.14.0+incompatible
 	github.com/sirupsen/logrus v1.9.3

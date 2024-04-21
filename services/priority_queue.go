@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	fastshot "github.com/opus-domini/fast-shot"
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
@@ -351,15 +352,12 @@ func (s *PriorityQueueService) notifyProvider(ctx context.Context, orderRequestD
 	signature := tokenUtils.GenerateHMACSignature(orderRequestData, string(decryptedSecret))
 
 	// Send POST request to the provider's node
-	_, err = utils.MakeJSONRequest(
-		ctx,
-		"POST",
-		fmt.Sprintf("%s/new_order", provider.HostIdentifier),
-		orderRequestData,
-		map[string]string{
-			"X-Request-Signature": signature,
-		},
-	)
+	_, err = fastshot.NewClient(provider.HostIdentifier).
+		Config().SetTimeout(10*time.Second).
+		Header().Add("X-Request-Signature", signature).
+		Build().POST("/new_order").
+		Body().AsJSON(orderRequestData).
+		Send()
 	if err != nil {
 		return err
 	}

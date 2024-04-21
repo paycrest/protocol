@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/go-co-op/gocron"
+	fastshot "github.com/opus-domini/fast-shot"
 	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/fiatcurrency"
@@ -485,20 +486,22 @@ func SubscribeToRedisKeyspaceEvents() {
 }
 
 // fetchExternalRate fetches the external rate for a fiat currency
-func fetchExternalRate(ctx context.Context, currency string) (decimal.Decimal, error) {
+func fetchExternalRate(currency string) (decimal.Decimal, error) {
 	// Fetch stable coin rate from third-party API Quidax (USDT)
-	resp, err := utils.MakeJSONRequest(
-		ctx,
-		"GET",
-		fmt.Sprintf("https://www.quidax.com/api/v1/markets/tickers/usdt%s", strings.ToLower(currency)),
-		nil,
-		nil,
-	)
+	res, err := fastshot.NewClient("https://www.quidax.com").
+		Config().SetTimeout(30 * time.Second).
+		Build().GET(fmt.Sprintf("/api/v1/markets/tickers/usdt%s", strings.ToLower(currency))).
+		Send()
 	if err != nil {
 		return decimal.Zero, fmt.Errorf("ComputeMarketRate: %w", err)
 	}
 
-	price, err := decimal.NewFromString(resp["data"].(map[string]interface{})["ticker"].(map[string]interface{})["buy"].(string))
+	data, err := utils.ParseJSONResponse(res.RawResponse)
+	if err != nil {
+		return decimal.Zero, fmt.Errorf("ComputeMarketRate: %w", err)
+	}
+
+	price, err := decimal.NewFromString(data["data"].(map[string]interface{})["ticker"].(map[string]interface{})["buy"].(string))
 	if err != nil {
 		return decimal.Zero, fmt.Errorf("ComputeMarketRate: %w", err)
 	}
@@ -521,7 +524,7 @@ func ComputeMarketRate() error {
 
 	for _, currency := range currencies {
 		// Fetch external rate
-		externalRate, err := fetchExternalRate(ctx, currency.Code)
+		externalRate, err := fetchExternalRate(currency.Code)
 		if err != nil {
 			return fmt.Errorf("ComputeMarketRate: %w", err)
 		}
@@ -590,15 +593,12 @@ func RetryFailedWebhookNotifications() error {
 
 	for _, attempt := range attempts {
 		// Send the webhook notification
-		_, err = utils.MakeJSONRequest(
-			ctx,
-			"POST",
-			attempt.WebhookURL,
-			attempt.Payload,
-			map[string]string{
-				"X-Paycrest-Signature": attempt.Signature,
-			},
-		)
+		_, err = fastshot.NewClient(attempt.WebhookURL).
+			Config().SetTimeout(30*time.Second).
+			Header().Add("X-Paycrest-Signature", attempt.Signature).
+			Build().POST("").
+			Body().AsJSON(attempt.Payload).
+			Send()
 		if err != nil {
 			// Webhook notification failed
 			// Update attempt with next retry time
