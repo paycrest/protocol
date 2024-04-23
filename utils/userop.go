@@ -240,11 +240,11 @@ func GetUserOperationByHash(userOpHash string, chainId int64) (map[string]interf
 	}
 
 	start := time.Now()
-	timeout := 5 * time.Minute
+	timeout := 10 * time.Minute
 
 	var response map[string]interface{}
 	for {
-		time.Sleep(5 * time.Second)
+		time.Sleep(10 * time.Second)
 		var result json.RawMessage
 		err = client.Call(&result, "eth_getUserOperationByHash", []interface{}{userOpHash}...)
 		if err != nil {

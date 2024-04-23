@@ -661,7 +661,7 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 
 	// Update payment order with the gateway ID
 	start := time.Now()
-	timeout := 5 * time.Minute
+	timeout := 10 * time.Minute
 	for {
 		paymentOrder, err := db.Client.PaymentOrder.
 			Query().
@@ -674,7 +674,7 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 			if elapsed >= timeout {
 				return fmt.Errorf("CreateLockPaymentOrder.db: timeout reached, giving up after %v", elapsed)
 			}
-			time.Sleep(5 * time.Second)
+			time.Sleep(10 * time.Second)
 			continue
 		}
 		_, err = paymentOrder.
@@ -686,7 +686,7 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 			if elapsed >= timeout {
 				return fmt.Errorf("CreateLockPaymentOrder.db: timeout reached, giving up after %v", elapsed)
 			}
-			time.Sleep(5 * time.Second)
+			time.Sleep(10 * time.Second)
 			continue
 		}
 		break
