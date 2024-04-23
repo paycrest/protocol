@@ -237,12 +237,20 @@ func IndexMissedBlocks() error {
 		orders, err := storage.GetClient().PaymentOrder.
 			Query().
 			Where(func(s *sql.Selector) {
+				lpo := sql.Table(lockpaymentorder.Table)
 				s.Where(sql.And(
 					sql.EQ(s.C(paymentorder.FieldStatus), paymentorder.StatusPending),
-					sql.IsNull(s.C(paymentorder.FieldGatewayID)),
+					sql.Or(
+						sql.NotExists(
+							sql.Select().
+								From(lpo).
+								Where(sql.ColumnsEQ(s.C(paymentorder.FieldGatewayID), lpo.C(lockpaymentorder.FieldGatewayID))),
+						),
+						sql.IsNull(s.C(paymentorder.FieldGatewayID)),
+					),
 					sql.GT(s.C(paymentorder.FieldBlockNumber), 0),
-					sql.LT(s.C(paymentorder.FieldUpdatedAt), time.Now().Add(-5*time.Minute))),
-				)
+					sql.LT(s.C(paymentorder.FieldUpdatedAt), time.Now().Add(-5*time.Minute)),
+				))
 			}).
 			Order(ent.Asc(paymentorder.FieldBlockNumber)).
 			All(ctx)
