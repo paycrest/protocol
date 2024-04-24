@@ -84,7 +84,10 @@ func InitializeUserOperation(ctx context.Context, client types.RPCClient, rpcUrl
 	}
 
 	// Set gas fees
-	maxFeePerGas, maxPriorityFeePerGas := eip1559GasPrice(ctx, client)
+	maxFeePerGas, maxPriorityFeePerGas, err := eip1559GasPrice(ctx, client)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get gas price: %w", err)
+	}
 	userOperation.MaxFeePerGas = maxFeePerGas
 	userOperation.MaxPriorityFeePerGas = maxPriorityFeePerGas
 
@@ -351,22 +354,29 @@ func createAccountCallData(owner common.Address, salt *big.Int) ([]byte, error) 
 }
 
 // eip1559GasPrice computes the EIP1559 gas price
-func eip1559GasPrice(ctx context.Context, client types.RPCClient) (maxFeePerGas, maxPriorityFeePerGas *big.Int) {
-	tip, _ := client.SuggestGasTipCap(ctx)
-	latestHeader, _ := client.HeaderByNumber(ctx, nil)
-
-	buffer := new(big.Int).Mul(tip, big.NewInt(13)).Div(tip, big.NewInt(100))
-	maxPriorityFeePerGas = new(big.Int).Add(tip, buffer)
-
-	if latestHeader.BaseFee != nil {
-		maxFeePerGas = new(big.Int).
-			Mul(latestHeader.BaseFee, big.NewInt(2)).
-			Add(latestHeader.BaseFee, maxPriorityFeePerGas)
-	} else {
-		maxFeePerGas = maxPriorityFeePerGas
+func eip1559GasPrice(ctx context.Context, client types.RPCClient) (maxFeePerGas, maxPriorityFeePerGas *big.Int, err error) {
+	latestHeader, err := client.HeaderByNumber(ctx, nil)
+	if err != nil {
+		return nil, nil, err
 	}
 
-	return maxFeePerGas, maxPriorityFeePerGas
+	tip, err := client.SuggestGasTipCap(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	buffer := new(big.Int).Mul(tip, new(big.Int).Div(big.NewInt(13), big.NewInt(100)))
+	maxPriorityFeePerGas = big.NewInt(0).Add(tip, buffer)
+
+	if latestHeader.BaseFee != nil {
+		maxFeePerGas = big.NewInt(0).Add(maxPriorityFeePerGas, new(big.Int).Mul(latestHeader.BaseFee, common.Big2))
+	} else {
+		maxFeePerGas, err = client.SuggestGasPrice(ctx)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	return maxFeePerGas, maxPriorityFeePerGas, nil
 }
 
 // getEndpoints returns the bundler and paymaster URLs for the given chain ID

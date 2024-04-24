@@ -516,7 +516,7 @@ func (s *IndexerService) GetMissedOrderBlocksOpts(
 	var startBlockNumber int64
 	toBlock := header.Number.Uint64()
 
-	if len(result) > 0 {
+	if len(result) > 0 && (int64(toBlock)-int64(result[0].BlockNumber)) < 500 {
 		startBlockNumber = int64(result[0].BlockNumber) + 1
 	} else {
 		startBlockNumber = int64(toBlock) - 500
@@ -566,7 +566,7 @@ func (s *IndexerService) GetMissedERC20BlocksOpts(ctx context.Context, client ty
 	var startBlockNumber int64
 	toBlock := header.Number.Uint64()
 
-	if len(result) > 0 {
+	if len(result) > 0 && (int64(toBlock)-int64(result[0].LastIndexedBlock)) < 500 {
 		startBlockNumber = int64(result[0].LastIndexedBlock)
 	} else {
 		startBlockNumber = int64(toBlock) - 500
