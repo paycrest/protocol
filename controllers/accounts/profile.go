@@ -446,6 +446,34 @@ func (ctrl *ProfileController) GetProviderProfile(ctx *gin.Context) {
 		return
 	}
 
+	tokensPayload := make([]types.ProviderOrderTokenPayload, len(tokens))
+	for i, token := range tokens {
+		payload := types.ProviderOrderTokenPayload{
+			Symbol:                 token.Symbol,
+			ConversionRateType:     token.ConversionRateType,
+			FixedConversionRate:    token.FixedConversionRate,
+			FloatingConversionRate: token.FloatingConversionRate,
+			MaxOrderAmount:         token.MaxOrderAmount,
+			MinOrderAmount:         token.MinOrderAmount,
+			Addresses: make([]struct {
+				Address string `json:"address"`
+				Network string `json:"network"`
+			}, len(token.Addresses)),
+		}
+
+		for j, address := range token.Addresses {
+			payload.Addresses[j] = struct {
+				Address string `json:"address"`
+				Network string `json:"network"`
+			}{
+				Address: address.Address,
+				Network: address.Network,
+			}
+		}
+
+		tokensPayload[i] = payload
+	}
+
 	// Get API key
 	apiKey, err := ctrl.apiKeyService.GetAPIKey(ctx, nil, provider)
 	if err != nil {
@@ -475,7 +503,7 @@ func (ctrl *ProfileController) GetProviderProfile(ctx *gin.Context) {
 		HostIdentifier:       provider.HostIdentifier,
 		IsPartner:            provider.IsPartner,
 		IsAvailable:          provider.IsAvailable,
-		Tokens:               tokens,
+		Tokens:               tokensPayload,
 		APIKey:               *apiKey,
 		IsActive:             provider.IsActive,
 		Address:              provider.Address,

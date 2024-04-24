@@ -185,7 +185,7 @@ type ProviderProfileResponse struct {
 	HostIdentifier       string                               `json:"hostIdentifier"`
 	IsPartner            bool                                 `json:"isPartner"`
 	IsAvailable          bool                                 `json:"isAvailable"`
-	Tokens               []*ent.ProviderOrderToken            `json:"tokens"`
+	Tokens               []ProviderOrderTokenPayload          `json:"tokens"`
 	APIKey               APIKeyResponse                       `json:"apiKey"`
 	IsActive             bool                                 `json:"isActive"`
 	Address              string                               `json:"address"`
