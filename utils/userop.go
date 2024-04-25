@@ -17,7 +17,6 @@ import (
 	"github.com/paycrest/protocol/services/contracts"
 	"github.com/paycrest/protocol/types"
 	cryptoUtils "github.com/paycrest/protocol/utils/crypto"
-	"github.com/paycrest/protocol/utils/logger"
 	"github.com/stackup-wallet/stackup-bundler/pkg/userop"
 )
 
