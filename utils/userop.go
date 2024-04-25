@@ -360,20 +360,19 @@ func eip1559GasPrice(ctx context.Context, client types.RPCClient) (maxFeePerGas,
 		return nil, nil, err
 	}
 
-	tip, err := client.SuggestGasTipCap(ctx)
-	if err != nil {
-		return nil, nil, err
-	}
-	buffer := new(big.Int).Mul(tip, new(big.Int).Div(big.NewInt(13), big.NewInt(100)))
-	maxPriorityFeePerGas = big.NewInt(0).Add(tip, buffer)
-
 	if latestHeader.BaseFee != nil {
-		maxFeePerGas = big.NewInt(0).Add(maxPriorityFeePerGas, new(big.Int).Mul(latestHeader.BaseFee, common.Big2))
-	} else {
-		maxFeePerGas, err = client.SuggestGasPrice(ctx)
+		tip, err := client.SuggestGasTipCap(ctx)
 		if err != nil {
 			return nil, nil, err
 		}
+		maxFeePerGas = big.NewInt(0).Add(tip, new(big.Int).Mul(latestHeader.BaseFee, common.Big2))
+	} else {
+		sgp, err := client.SuggestGasPrice(ctx)
+		if err != nil {
+			return nil, nil, err
+		}
+		maxFeePerGas = sgp
+		maxPriorityFeePerGas = sgp
 	}
 
 	return maxFeePerGas, maxPriorityFeePerGas, nil
