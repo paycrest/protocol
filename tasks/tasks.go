@@ -539,14 +539,20 @@ func IndexMissedBlocks() error {
 			lpo := sql.Table(lockpaymentorder.Table)
 			s.Where(sql.And(
 				sql.EQ(s.C(paymentorder.FieldStatus), paymentorder.StatusPending),
-				sql.ColumnsEQ(s.C(paymentorder.FieldGatewayID), lpo.C(lockpaymentorder.FieldGatewayID)),
-				sql.EQ(s.C(lockpaymentorder.FieldStatus), lockpaymentorder.StatusSettled),
+				sql.Exists(
+					sql.Select().From(lpo).Where(
+						sql.And(
+							sql.EQ(s.C(lockpaymentorder.FieldStatus), lockpaymentorder.StatusSettled),
+							sql.ColumnsEQ(s.C(paymentorder.FieldGatewayID), lpo.C(lockpaymentorder.FieldGatewayID)),
+						),
+					),
+				),
 			))
 		}).
 		SetStatus(paymentorder.StatusSettled).
 		Save(ctx)
 	if err != nil {
-		logger.Errorf("IndexMissedBlocks: %v", err)
+		logger.Errorf("IndexMissedBlocks.syncSettledOrder: %v", err)
 	}
 
 	return nil
