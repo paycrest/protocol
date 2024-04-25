@@ -192,8 +192,6 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 		} else {
 			logger.Errorf("%s - failed to get provider: %v", orderIDPrefix, err)
 		}
-
-		return nil
 	}
 
 	// Get the first provider from the circular queue

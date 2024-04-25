@@ -114,7 +114,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 		var iter *contracts.ERC20TokenTransferIterator
 		retryErr := utils.Retry(3, 5*time.Second, func() error {
 			var err error
-			iter, err = filterer.FilterTransfer(opts, nil, nil)
+			iter, err = filterer.FilterTransfer(opts, nil, []common.Address{common.HexToAddress(receiveAddress.Address)})
 			return err
 		})
 		if retryErr != nil {
@@ -980,45 +980,66 @@ func (s *IndexerService) getOrderRecipientFromMessageHash(messageHash string) (*
 func (s *IndexerService) UpdateReceiveAddressStatus(
 	ctx context.Context, receiveAddress *ent.ReceiveAddress, paymentOrder *ent.PaymentOrder, event *contracts.ERC20TokenTransfer,
 ) (done bool, err error) {
+	// Check for existing address with txHash
+	count, err := db.Client.ReceiveAddress.
+		Query().
+		Where(receiveaddress.TxHashEQ(event.Raw.TxHash.Hex())).
+		Count(ctx)
+	if err != nil {
+		return true, fmt.Errorf("UpdateReceiveAddressStatus.db: %v", err)
+	}
 
-	if event.To.Hex() == receiveAddress.Address {
-		// Check for existing address with txHash
-		count, err := db.Client.ReceiveAddress.
-			Query().
-			Where(receiveaddress.TxHashEQ(event.Raw.TxHash.Hex())).
-			Count(ctx)
-		if err != nil {
-			return true, fmt.Errorf("UpdateReceiveAddressStatus.db: %v", err)
-		}
+	if count > 0 && receiveAddress.Status != receiveaddress.StatusUnused {
+		// This transfer has already been indexed
+		return false, nil
+	}
 
-		if count > 0 && receiveAddress.Status != receiveaddress.StatusUnused {
-			// This transfer has already been indexed
-			return false, nil
-		}
+	// This is a transfer to the receive address to create an order on-chain
+	// Compare the transferred value with the expected order amount + fees
+	fees := paymentOrder.NetworkFee.Add(paymentOrder.SenderFee).Add(paymentOrder.ProtocolFee)
+	orderAmountWithFees := paymentOrder.Amount.Add(fees).Round(int32(paymentOrder.Edges.Token.Decimals))
+	orderAmountWithFeesInSubunit := utils.ToSubunit(orderAmountWithFees, paymentOrder.Edges.Token.Decimals)
+	comparisonResult := event.Value.Cmp(orderAmountWithFeesInSubunit)
 
-		// This is a transfer to the receive address to create an order on-chain
-		// Compare the transferred value with the expected order amount + fees
-		fees := paymentOrder.NetworkFee.Add(paymentOrder.SenderFee).Add(paymentOrder.ProtocolFee)
-		orderAmountWithFees := paymentOrder.Amount.Add(fees).Round(int32(paymentOrder.Edges.Token.Decimals))
-		orderAmountWithFeesInSubunit := utils.ToSubunit(orderAmountWithFees, paymentOrder.Edges.Token.Decimals)
-		comparisonResult := event.Value.Cmp(orderAmountWithFeesInSubunit)
+	paymentOrderUpdate := paymentOrder.Update()
+	if paymentOrder.ReturnAddress == "" {
+		paymentOrderUpdate = paymentOrderUpdate.SetReturnAddress(event.From.Hex())
+	}
 
-		paymentOrderUpdate := paymentOrder.Update()
-		if paymentOrder.ReturnAddress == "" {
-			paymentOrderUpdate = paymentOrderUpdate.SetReturnAddress(event.From.Hex())
-		}
+	paymentOrder, err = paymentOrderUpdate.
+		SetFromAddress(event.From.Hex()).
+		SetTxHash(event.Raw.TxHash.Hex()).
+		AddAmountPaid(utils.FromSubunit(event.Value, paymentOrder.Edges.Token.Decimals)).
+		Save(ctx)
+	if err != nil {
+		return true, fmt.Errorf("UpdateReceiveAddressStatus.db: %v", err)
+	}
 
-		paymentOrder, err = paymentOrderUpdate.
-			SetFromAddress(event.From.Hex()).
+	if comparisonResult == 0 {
+		// Transfer value equals order amount with fees
+		_, err = receiveAddress.
+			Update().
+			SetStatus(receiveaddress.StatusUsed).
+			SetLastUsed(time.Now()).
 			SetTxHash(event.Raw.TxHash.Hex()).
-			AddAmountPaid(utils.FromSubunit(event.Value, paymentOrder.Edges.Token.Decimals)).
+			SetLastIndexedBlock(int64(event.Raw.BlockNumber)).
 			Save(ctx)
 		if err != nil {
 			return true, fmt.Errorf("UpdateReceiveAddressStatus.db: %v", err)
 		}
 
-		if comparisonResult == 0 {
-			// Transfer value equals order amount with fees
+		err = s.order.CreateOrder(ctx, paymentOrder.ID)
+		if err != nil {
+			return true, fmt.Errorf("UpdateReceiveAddressStatus.CreateOrder: %v", err)
+		}
+
+		return true, nil
+
+	} else if comparisonResult < 0 {
+		// Transfer value is less than order amount with fees
+
+		// If amount paid meets or exceeds the order amount with fees, mark receive address as used
+		if paymentOrder.AmountPaid.GreaterThanOrEqual(orderAmountWithFees) {
 			_, err = receiveAddress.
 				Update().
 				SetStatus(receiveaddress.StatusUsed).
@@ -1029,47 +1050,11 @@ func (s *IndexerService) UpdateReceiveAddressStatus(
 			if err != nil {
 				return true, fmt.Errorf("UpdateReceiveAddressStatus.db: %v", err)
 			}
-
-			err = s.order.CreateOrder(ctx, paymentOrder.ID)
-			if err != nil {
-				return true, fmt.Errorf("UpdateReceiveAddressStatus.CreateOrder: %v", err)
-			}
-
-			return true, nil
-
-		} else if comparisonResult < 0 {
-			// Transfer value is less than order amount with fees
-
-			// If amount paid meets or exceeds the order amount with fees, mark receive address as used
-			if paymentOrder.AmountPaid.GreaterThanOrEqual(orderAmountWithFees) {
-				_, err = receiveAddress.
-					Update().
-					SetStatus(receiveaddress.StatusUsed).
-					SetLastUsed(time.Now()).
-					SetTxHash(event.Raw.TxHash.Hex()).
-					SetLastIndexedBlock(int64(event.Raw.BlockNumber)).
-					Save(ctx)
-				if err != nil {
-					return true, fmt.Errorf("UpdateReceiveAddressStatus.db: %v", err)
-				}
-			} else {
-				_, err = receiveAddress.
-					Update().
-					SetStatus(receiveaddress.StatusPartial).
-					SetTxHash(event.Raw.TxHash.Hex()).
-					SetLastIndexedBlock(int64(event.Raw.BlockNumber)).
-					Save(ctx)
-				if err != nil {
-					return true, fmt.Errorf("UpdateReceiveAddressStatus.db: %v", err)
-				}
-			}
-
-		} else if comparisonResult > 0 {
-			// Transfer value is greater than order amount with fees
+		} else {
 			_, err = receiveAddress.
 				Update().
-				SetStatus(receiveaddress.StatusUsed).
-				SetLastUsed(time.Now()).
+				SetStatus(receiveaddress.StatusPartial).
+				SetTxHash(event.Raw.TxHash.Hex()).
 				SetLastIndexedBlock(int64(event.Raw.BlockNumber)).
 				Save(ctx)
 			if err != nil {
@@ -1077,10 +1062,22 @@ func (s *IndexerService) UpdateReceiveAddressStatus(
 			}
 		}
 
-		err = s.HandleReceiveAddressValidity(ctx, receiveAddress, paymentOrder)
+	} else if comparisonResult > 0 {
+		// Transfer value is greater than order amount with fees
+		_, err = receiveAddress.
+			Update().
+			SetStatus(receiveaddress.StatusUsed).
+			SetLastUsed(time.Now()).
+			SetLastIndexedBlock(int64(event.Raw.BlockNumber)).
+			Save(ctx)
 		if err != nil {
-			return true, fmt.Errorf("UpdateReceiveAddressStatus.HandleReceiveAddressValidity: %v", err)
+			return true, fmt.Errorf("UpdateReceiveAddressStatus.db: %v", err)
 		}
+	}
+
+	err = s.HandleReceiveAddressValidity(ctx, receiveAddress, paymentOrder)
+	if err != nil {
+		return true, fmt.Errorf("UpdateReceiveAddressStatus.HandleReceiveAddressValidity: %v", err)
 	}
 
 	return false, nil

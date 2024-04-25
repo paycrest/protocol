@@ -67,6 +67,11 @@ func (m *MockIndexerService) UpdateOrderStatusRefunded(ctx context.Context, log 
 	return nil
 }
 
+// UpdateReceiveAddressStatus mocks the UpdateReceiveAddressStatus method
+func (m *MockIndexerService) UpdateReceiveAddressStatus(ctx context.Context, receiveAddress *ent.ReceiveAddress, paymentOrder *ent.PaymentOrder, log *contracts.ERC20TokenTransfer) (bool, error) {
+	return true, nil
+}
+
 // Mock order service
 type MockOrderService struct {
 	mock.Mock
