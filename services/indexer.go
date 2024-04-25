@@ -17,6 +17,7 @@ import (
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	networkent "github.com/paycrest/protocol/ent/network"
 	"github.com/paycrest/protocol/ent/paymentorder"
+	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/provisionbucket"
 	"github.com/paycrest/protocol/ent/receiveaddress"
 	"github.com/paycrest/protocol/ent/token"
@@ -41,6 +42,7 @@ type Indexer interface {
 	GetMissedERC20BlocksOpts(ctx context.Context, client types.RPCClient, network *ent.Network) *bind.FilterOpts
 	HandleReceiveAddressValidity(ctx context.Context, receiveAddress *ent.ReceiveAddress, paymentOrder *ent.PaymentOrder) error
 	CreateLockPaymentOrder(ctx context.Context, client types.RPCClient, network *ent.Network, deposit *contracts.GatewayOrderCreated) error
+	UpdateReceiveAddressStatus(ctx context.Context, receiveAddress *ent.ReceiveAddress, paymentOrder *ent.PaymentOrder, log *contracts.ERC20TokenTransfer) (bool, error)
 	UpdateOrderStatusSettled(ctx context.Context, log *contracts.GatewayOrderSettled) error
 	UpdateOrderStatusRefunded(ctx context.Context, log *contracts.GatewayOrderRefunded) error
 }
@@ -122,9 +124,9 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 
 		// Iterate over logs
 		for iter.Next() {
-			ok, err := s.updateReceiveAddressStatus(ctx, receiveAddress, paymentOrder, iter.Event)
+			ok, err := s.UpdateReceiveAddressStatus(ctx, receiveAddress, paymentOrder, iter.Event)
 			if err != nil {
-				logger.Errorf("IndexERC20Transfer.updateReceiveAddressStatus: %v", err)
+				logger.Errorf("IndexERC20Transfer.UpdateReceiveAddressStatus: %v", err)
 				continue
 			}
 			if ok {
@@ -152,29 +154,25 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 		for {
 			select {
 			case log := <-logs:
-				_, err := s.updateReceiveAddressStatus(ctx, receiveAddress, paymentOrder, log)
-				if err != nil {
-					logger.Errorf("IndexERC20Transfer.updateReceiveAddressStatus: %v", err)
-					continue
-				}
-			case err := <-sub.Err():
-				if err == nil {
-					sub.Unsubscribe()
-
-					// Retry the subscription
-					retryErr := utils.Retry(3, 5*time.Second, func() error {
-						sub, err = filterer.WatchTransfer(&bind.WatchOpts{
-							Start: nil,
-						}, logs, nil, nil)
-						return err
-					})
-					if retryErr != nil {
-						logger.Errorf("IndexERC20Transfer.WatchTransfer: %v", retryErr)
-						return retryErr
+				go func() {
+					_, err := s.UpdateReceiveAddressStatus(ctx, receiveAddress, paymentOrder, log)
+					if err != nil {
+						logger.Errorf("IndexERC20Transfer.UpdateReceiveAddressStatus: %v", err)
 					}
-				} else {
-					logger.Errorf("IndexERC20Transfer.logError: %v", err)
-					continue
+				}()
+			case err := <-sub.Err():
+				sub.Unsubscribe()
+
+				// Retry the subscription
+				retryErr := utils.Retry(3, 5*time.Second, func() error {
+					sub, err = filterer.WatchTransfer(&bind.WatchOpts{
+						Start: nil,
+					}, logs, nil, nil)
+					return err
+				})
+				if retryErr != nil {
+					logger.Errorf("IndexERC20Transfer.WatchTransfer: %v", retryErr)
+					return retryErr
 				}
 			}
 		}
@@ -252,29 +250,25 @@ func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPC
 		for {
 			select {
 			case log := <-logs:
-				err := s.CreateLockPaymentOrder(ctx, client, network, log)
-				if err != nil {
-					logger.Errorf("IndexOrderCreated.CreateLockPaymentOrder: %v", err)
-					continue
-				}
-			case err := <-sub.Err():
-				if err == nil {
-					sub.Unsubscribe()
-
-					// Retry the subscription
-					retryErr := utils.Retry(3, 5*time.Second, func() error {
-						sub, err = filterer.WatchOrderCreated(&bind.WatchOpts{
-							Start: nil,
-						}, logs, nil, nil, nil)
-						return err
-					})
-					if retryErr != nil {
-						logger.Errorf("IndexOrderCreated.WatchOrderCreated: %v", retryErr)
-						return retryErr
+				go func() {
+					err := s.CreateLockPaymentOrder(ctx, client, network, log)
+					if err != nil {
+						logger.Errorf("IndexOrderCreated.CreateLockPaymentOrder: %v", err)
 					}
-				} else {
-					logger.Errorf("IndexOrderCreated.logError: %v", err)
-					continue
+				}()
+			case err := <-sub.Err():
+				sub.Unsubscribe()
+
+				// Retry the subscription
+				retryErr := utils.Retry(3, 5*time.Second, func() error {
+					sub, err = filterer.WatchOrderCreated(&bind.WatchOpts{
+						Start: nil,
+					}, logs, nil, nil, nil)
+					return err
+				})
+				if retryErr != nil {
+					logger.Errorf("IndexOrderCreated.WatchOrderCreated: %v", retryErr)
+					return retryErr
 				}
 			}
 		}
@@ -353,29 +347,25 @@ func (s *IndexerService) IndexOrderSettled(ctx context.Context, client types.RPC
 		for {
 			select {
 			case log := <-logs:
-				err := s.UpdateOrderStatusSettled(ctx, log)
-				if err != nil {
-					logger.Errorf("IndexOrderSettled.update: %v", err)
-					continue
-				}
-			case err := <-sub.Err():
-				if err == nil {
-					sub.Unsubscribe()
-
-					// Retry the subscription
-					retryErr := utils.Retry(3, 5*time.Second, func() error {
-						sub, err = filterer.WatchOrderSettled(&bind.WatchOpts{
-							Start: nil,
-						}, logs, nil, nil)
-						return err
-					})
-					if retryErr != nil {
-						logger.Errorf("IndexOrderSettled.WatchOrderSettled: %v", retryErr)
-						return retryErr
+				go func() {
+					err := s.UpdateOrderStatusSettled(ctx, log)
+					if err != nil {
+						logger.Errorf("IndexOrderSettled.update: %v", err)
 					}
-				} else {
-					logger.Errorf("IndexOrderSettled.logError: %v", err)
-					continue
+				}()
+			case err := <-sub.Err():
+				sub.Unsubscribe()
+
+				// Retry the subscription
+				retryErr := utils.Retry(3, 5*time.Second, func() error {
+					sub, err = filterer.WatchOrderSettled(&bind.WatchOpts{
+						Start: nil,
+					}, logs, nil, nil)
+					return err
+				})
+				if retryErr != nil {
+					logger.Errorf("IndexOrderSettled.WatchOrderSettled: %v", retryErr)
+					return retryErr
 				}
 			}
 		}
@@ -453,29 +443,25 @@ func (s *IndexerService) IndexOrderRefunded(ctx context.Context, client types.RP
 		for {
 			select {
 			case log := <-logs:
-				err := s.UpdateOrderStatusRefunded(ctx, log)
-				if err != nil {
-					logger.Errorf("IndexOrderRefunded.update: %v", err)
-					continue
-				}
-			case err := <-sub.Err():
-				if err == nil {
-					sub.Unsubscribe()
-
-					// Retry the subscription
-					retryErr := utils.Retry(3, 5*time.Second, func() error {
-						sub, err = filterer.WatchOrderRefunded(&bind.WatchOpts{
-							Start: nil,
-						}, logs, nil)
-						return err
-					})
-					if retryErr != nil {
-						logger.Errorf("IndexOrderRefunded.WatchOrderRefunded: %v", retryErr)
-						return retryErr
+				go func() {
+					err := s.UpdateOrderStatusRefunded(ctx, log)
+					if err != nil {
+						logger.Errorf("IndexOrderRefunded.update: %v", err)
 					}
-				} else {
-					logger.Errorf("IndexOrderRefunded.logError: %v", err)
-					continue
+				}()
+			case err := <-sub.Err():
+				sub.Unsubscribe()
+
+				// Retry the subscription
+				retryErr := utils.Retry(3, 5*time.Second, func() error {
+					sub, err = filterer.WatchOrderRefunded(&bind.WatchOpts{
+						Start: nil,
+					}, logs, nil)
+					return err
+				})
+				if retryErr != nil {
+					logger.Errorf("IndexOrderRefunded.WatchOrderRefunded: %v", retryErr)
+					return retryErr
 				}
 			}
 		}
@@ -753,7 +739,28 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 		ProvisionBucket:   provisionBucket,
 	}
 
-	if provisionBucket == nil {
+	// Check if order is private
+	isPrivate := false
+	maxOrderAmount := decimal.NewFromInt(0)
+	if lockPaymentOrder.ProviderID != "" {
+		providerProfile, err := db.Client.ProviderProfile.
+			Query().
+			Where(
+				providerprofile.IDEQ(recipient.ProviderID),
+			).
+			WithOrderTokens().
+			Only(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to fetch provider: %w", err)
+		}
+		maxOrderAmount = providerProfile.Edges.OrderTokens[0].MaxOrderAmount
+
+		if providerProfile.VisibilityMode == providerprofile.VisibilityModePrivate {
+			isPrivate = true
+		}
+	}
+
+	if provisionBucket == nil && !isPrivate {
 		currency, err := db.Client.FiatCurrency.
 			Query().
 			Where(
@@ -799,8 +806,16 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 		}
 
 		// Assign the lock payment order to a provider
-		lockPaymentOrder.ID = orderCreated.ID
-		_ = s.priorityQueue.AssignLockPaymentOrder(ctx, lockPaymentOrder)
+		if isPrivate && lockPaymentOrder.Amount.GreaterThan(maxOrderAmount) {
+			err := s.order.RefundOrder(ctx, lockPaymentOrder.GatewayID)
+			if err != nil {
+				return fmt.Errorf("failed to refund order: %w", err)
+			}
+			return nil
+		} else {
+			lockPaymentOrder.ID = orderCreated.ID
+			_ = s.priorityQueue.AssignLockPaymentOrder(ctx, lockPaymentOrder)
+		}
 	}
 
 	return nil
@@ -961,8 +976,8 @@ func (s *IndexerService) getOrderRecipientFromMessageHash(messageHash string) (*
 	return recipient, nil
 }
 
-// updateReceiveAddressStatus updates the status of a receive address. if `done` is true, the indexing process is complete for the given receive address
-func (s *IndexerService) updateReceiveAddressStatus(
+// UpdateReceiveAddressStatus updates the status of a receive address. if `done` is true, the indexing process is complete for the given receive address
+func (s *IndexerService) UpdateReceiveAddressStatus(
 	ctx context.Context, receiveAddress *ent.ReceiveAddress, paymentOrder *ent.PaymentOrder, event *contracts.ERC20TokenTransfer,
 ) (done bool, err error) {
 
@@ -973,7 +988,7 @@ func (s *IndexerService) updateReceiveAddressStatus(
 			Where(receiveaddress.TxHashEQ(event.Raw.TxHash.Hex())).
 			Count(ctx)
 		if err != nil {
-			return true, fmt.Errorf("updateReceiveAddressStatus.db: %v", err)
+			return true, fmt.Errorf("UpdateReceiveAddressStatus.db: %v", err)
 		}
 
 		if count > 0 && receiveAddress.Status != receiveaddress.StatusUnused {
@@ -999,7 +1014,7 @@ func (s *IndexerService) updateReceiveAddressStatus(
 			AddAmountPaid(utils.FromSubunit(event.Value, paymentOrder.Edges.Token.Decimals)).
 			Save(ctx)
 		if err != nil {
-			return true, fmt.Errorf("updateReceiveAddressStatus.db: %v", err)
+			return true, fmt.Errorf("UpdateReceiveAddressStatus.db: %v", err)
 		}
 
 		if comparisonResult == 0 {
@@ -1012,12 +1027,12 @@ func (s *IndexerService) updateReceiveAddressStatus(
 				SetLastIndexedBlock(int64(event.Raw.BlockNumber)).
 				Save(ctx)
 			if err != nil {
-				return true, fmt.Errorf("updateReceiveAddressStatus.db: %v", err)
+				return true, fmt.Errorf("UpdateReceiveAddressStatus.db: %v", err)
 			}
 
 			err = s.order.CreateOrder(ctx, paymentOrder.ID)
 			if err != nil {
-				return true, fmt.Errorf("updateReceiveAddressStatus.CreateOrder: %v", err)
+				return true, fmt.Errorf("UpdateReceiveAddressStatus.CreateOrder: %v", err)
 			}
 
 			return true, nil
@@ -1035,7 +1050,7 @@ func (s *IndexerService) updateReceiveAddressStatus(
 					SetLastIndexedBlock(int64(event.Raw.BlockNumber)).
 					Save(ctx)
 				if err != nil {
-					return true, fmt.Errorf("updateReceiveAddressStatus.db: %v", err)
+					return true, fmt.Errorf("UpdateReceiveAddressStatus.db: %v", err)
 				}
 			} else {
 				_, err = receiveAddress.
@@ -1045,7 +1060,7 @@ func (s *IndexerService) updateReceiveAddressStatus(
 					SetLastIndexedBlock(int64(event.Raw.BlockNumber)).
 					Save(ctx)
 				if err != nil {
-					return true, fmt.Errorf("updateReceiveAddressStatus.db: %v", err)
+					return true, fmt.Errorf("UpdateReceiveAddressStatus.db: %v", err)
 				}
 			}
 
@@ -1058,13 +1073,13 @@ func (s *IndexerService) updateReceiveAddressStatus(
 				SetLastIndexedBlock(int64(event.Raw.BlockNumber)).
 				Save(ctx)
 			if err != nil {
-				return true, fmt.Errorf("updateReceiveAddressStatus.db: %v", err)
+				return true, fmt.Errorf("UpdateReceiveAddressStatus.db: %v", err)
 			}
 		}
 
 		err = s.HandleReceiveAddressValidity(ctx, receiveAddress, paymentOrder)
 		if err != nil {
-			return true, fmt.Errorf("updateReceiveAddressStatus.HandleReceiveAddressValidity: %v", err)
+			return true, fmt.Errorf("UpdateReceiveAddressStatus.HandleReceiveAddressValidity: %v", err)
 		}
 	}
 
