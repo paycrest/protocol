@@ -90,7 +90,6 @@ func InitializeUserOperation(ctx context.Context, client types.RPCClient, rpcUrl
 		return nil, fmt.Errorf("failed to get gas price: %w", err)
 	}
 
-	logger.Infof("MaxFeePerGas: %v, MaxPriorityFeePerGas: %v", maxFeePerGas, maxPriorityFeePerGas)
 	userOperation.MaxFeePerGas = maxFeePerGas
 	userOperation.MaxPriorityFeePerGas = maxPriorityFeePerGas
 
@@ -136,16 +135,14 @@ func SponsorUserOperation(userOp *userop.UserOperation, mode string, token strin
 		payload,
 	}
 
-	op, _ := userOp.MarshalJSON()
-	logger.Errorf(string(op))
+	// op, _ := userOp.MarshalJSON()
+	// logger.Errorf(string(op))
 
 	var result json.RawMessage
 	err = client.Call(&result, "pm_sponsorUserOperation", requestParams...)
 	if err != nil {
 		return fmt.Errorf("RPC error: %w", err)
 	}
-
-	logger.Errorf(string(result))
 
 	type Response struct {
 		PaymasterAndData     string `json:"paymasterAndData"     mapstructure:"paymasterAndData"`
@@ -371,6 +368,7 @@ func eip1559GasPrice(ctx context.Context, client types.RPCClient) (maxFeePerGas,
 			return nil, nil, err
 		}
 		maxFeePerGas = big.NewInt(0).Add(tip, new(big.Int).Mul(latestHeader.BaseFee, common.Big2))
+		maxPriorityFeePerGas = tip
 	} else {
 		sgp, err := client.SuggestGasPrice(ctx)
 		if err != nil {
