@@ -401,6 +401,7 @@ func IndexMissedBlocks() error {
 						sql.LT(s.C(lockpaymentorder.FieldUpdatedAt), time.Now().Add(-5*time.Minute))),
 					)
 				}).
+				Where(lockpaymentorder.HasTokenWith(token.HasNetworkWith(networkent.IDEQ(network.ID)))).
 				Order(ent.Asc(lockpaymentorder.FieldBlockNumber)).
 				All(ctx)
 			if err != nil {
@@ -471,6 +472,7 @@ func IndexMissedBlocks() error {
 						sql.LT(s.C(lockpaymentorder.FieldCreatedAt), time.Now().Add(-35*time.Minute))),
 					)
 				}).
+				Where(lockpaymentorder.HasTokenWith(token.HasNetworkWith(networkent.IDEQ(network.ID)))).
 				Order(ent.Asc(lockpaymentorder.FieldBlockNumber)).
 				All(ctx)
 			if err != nil {
@@ -529,6 +531,23 @@ func IndexMissedBlocks() error {
 			}
 		}
 	}()
+
+	// Settle payment orders with already settled lock orders
+	_, err = storage.Client.PaymentOrder.
+		Update().
+		Where(func(s *sql.Selector) {
+			lpo := sql.Table(lockpaymentorder.Table)
+			s.Where(sql.And(
+				sql.EQ(s.C(paymentorder.FieldStatus), paymentorder.StatusPending),
+				sql.ColumnsEQ(s.C(paymentorder.FieldGatewayID), lpo.C(lockpaymentorder.FieldGatewayID)),
+				sql.EQ(s.C(lockpaymentorder.FieldStatus), lockpaymentorder.StatusSettled),
+			))
+		}).
+		SetStatus(paymentorder.StatusSettled).
+		Save(ctx)
+	if err != nil {
+		logger.Errorf("IndexMissedBlocks: %v", err)
+	}
 
 	return nil
 }
