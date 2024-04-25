@@ -40,7 +40,7 @@ func ContinueIndexing() error {
 	orderService := services.NewOrderService()
 	indexerService := services.NewIndexerService(orderService)
 
-	networks, err := storage.GetClient().Network.
+	networks, err := storage.Client.Network.
 		Query().
 		Where(
 			networkent.IsTestnetEQ(config.ServerConfig().Environment != "production"),
@@ -115,7 +115,7 @@ func RetryStaleUserOperations() error {
 	orderService := services.NewOrderService()
 
 	// Process initiated orders
-	orders, err := storage.GetClient().PaymentOrder.
+	orders, err := storage.Client.PaymentOrder.
 		Query().
 		Where(func(s *sql.Selector) {
 			ra := sql.Table(receiveaddress.Table)
@@ -145,7 +145,7 @@ func RetryStaleUserOperations() error {
 	}()
 
 	// Revert order process
-	orders, err = storage.GetClient().PaymentOrder.
+	orders, err = storage.Client.PaymentOrder.
 		Query().
 		Where(
 			paymentorder.Or(
@@ -173,7 +173,7 @@ func RetryStaleUserOperations() error {
 	}()
 
 	// Settle order process
-	lockOrders, err := storage.GetClient().LockPaymentOrder.
+	lockOrders, err := storage.Client.LockPaymentOrder.
 		Query().
 		Where(
 			lockpaymentorder.StatusEQ(lockpaymentorder.StatusValidated),
@@ -197,7 +197,7 @@ func RetryStaleUserOperations() error {
 	}()
 
 	// Refund order process
-	lockOrders, err = storage.GetClient().LockPaymentOrder.
+	lockOrders, err = storage.Client.LockPaymentOrder.
 		Query().
 		Where(
 			lockpaymentorder.StatusEQ(lockpaymentorder.StatusPending),
