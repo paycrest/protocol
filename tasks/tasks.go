@@ -290,7 +290,7 @@ func IndexMissedBlocks() error {
 						iter, err = filterer.FilterTransfer(&bind.FilterOpts{
 							Start: uint64(int64(toBlock) - 500),
 							End:   &toBlock,
-						}, nil, []common.Address{common.HexToAddress(order.Edges.ReceiveAddress.Address)})
+						}, nil, nil)
 						return err
 					})
 					if retryErr != nil {

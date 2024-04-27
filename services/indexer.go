@@ -114,7 +114,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 		var iter *contracts.ERC20TokenTransferIterator
 		retryErr := utils.Retry(3, 5*time.Second, func() error {
 			var err error
-			iter, err = filterer.FilterTransfer(opts, nil, []common.Address{common.HexToAddress(receiveAddress.Address)})
+			iter, err = filterer.FilterTransfer(opts, nil, nil)
 			return err
 		})
 		if retryErr != nil {
