@@ -472,6 +472,78 @@ func IndexMissedBlocks() error {
 		}
 	}()
 
+	// Index missed OrderSettled events for payment orders with settled lock orders
+	go func() {
+		for _, network := range networks {
+			lockOrders, err := storage.Client.LockPaymentOrder.
+				Query().
+				Where(func(s *sql.Selector) {
+					po := sql.Table(paymentorder.Table)
+					s.Where(sql.And(
+						sql.EQ(s.C(lockpaymentorder.FieldStatus), lockpaymentorder.StatusSettled),
+						sql.NotExists(
+							sql.Select().
+								From(po).
+								Where(sql.ColumnsEQ(s.C(lockpaymentorder.FieldStatus), po.C(paymentorder.FieldStatus))),
+						),
+						sql.LT(s.C(lockpaymentorder.FieldUpdatedAt), time.Now().Add(-5*time.Minute))),
+					)
+				}).
+				Where(lockpaymentorder.HasTokenWith(token.HasNetworkWith(networkent.IDEQ(network.ID)))).
+				All(ctx)
+			if err != nil {
+				logger.Errorf("IndexMissedBlocks: %v", err)
+				continue
+			}
+
+			for _, order := range lockOrders {
+				retryErr := utils.Retry(3, 5*time.Second, func() error {
+					client, err = types.NewEthClient(network.RPCEndpoint)
+					return err
+				})
+				if retryErr != nil {
+					logger.Errorf("IndexMissedBlocks: %v", err)
+					continue
+				}
+
+				// Initialize contract filterer
+				filterer, err := contracts.NewGatewayFilterer(orderConf.GatewayContractAddress, client)
+				if err != nil {
+					logger.Errorf("IndexMissedBlocks.NewGatewayFilterer: %v", err)
+					continue
+				}
+
+				toBlock := uint64(order.BlockNumber + 1)
+
+				// Fetch logs
+				var iter *contracts.GatewayOrderSettledIterator
+				retryErr = utils.Retry(3, 5*time.Second, func() error {
+					var err error
+					iter, err = filterer.FilterOrderSettled(&bind.FilterOpts{
+						Start: uint64(order.BlockNumber - 1),
+						End:   &toBlock,
+					}, nil, nil)
+					return err
+				})
+				if retryErr != nil {
+					logger.Errorf("IndexMissedBlocks.FilterOrderSettled: %v", retryErr)
+					continue
+				}
+
+				// Iterate over logs
+				for iter.Next() {
+					err := indexerService.UpdateOrderStatusSettled(ctx, iter.Event)
+					if err != nil {
+						logger.Errorf("IndexMissedBlocks.UpdateOrderStatusSettled: %v", err)
+						continue
+					}
+				}
+
+				time.Sleep(2 * time.Second)
+			}
+		}
+	}()
+
 	// Index missed OrderRefunded events
 	go func() {
 		for _, network := range networks {
@@ -542,6 +614,29 @@ func IndexMissedBlocks() error {
 			}
 		}
 	}()
+
+	// // Settle payment orders with already settled lock orders
+	// _, err = storage.Client.PaymentOrder.
+	// 	Update().
+	// 	Where(func(s *sql.Selector) {
+	// 		lpo := sql.Table(lockpaymentorder.Table)
+	// 		s.Where(sql.And(
+	// 			sql.EQ(s.C(paymentorder.FieldStatus), paymentorder.StatusPending),
+	// 			sql.Exists(
+	// 				sql.Select().From(lpo).Where(
+	// 					sql.And(
+	// 						sql.EQ(s.C(lockpaymentorder.FieldStatus), lockpaymentorder.StatusSettled),
+	// 						sql.ColumnsEQ(s.C(paymentorder.FieldGatewayID), lpo.C(lockpaymentorder.FieldGatewayID)),
+	// 					),
+	// 				),
+	// 			),
+	// 		))
+	// 	}).
+	// 	SetStatus(paymentorder.StatusSettled).
+	// 	Save(ctx)
+	// if err != nil {
+	// 	logger.Errorf("IndexMissedBlocks.syncSettledOrder: %v", err)
+	// }
 
 	return nil
 }
@@ -814,7 +909,7 @@ func StartCronJobs() {
 	}
 
 	// Index missed blocks every 7 minutes
-	_, err = scheduler.Cron("*/7 * * * *").Do(IndexMissedBlocks)
+	_, err = scheduler.Cron("*/2 * * * *").Do(IndexMissedBlocks)
 	if err != nil {
 		logger.Errorf("StartCronJobs: %v", err)
 	}
