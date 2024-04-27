@@ -396,8 +396,19 @@ func IndexMissedBlocks() error {
 			lockOrders, err := storage.Client.LockPaymentOrder.
 				Query().
 				Where(func(s *sql.Selector) {
+					po := sql.Table(paymentorder.Table)
 					s.Where(sql.And(
-						sql.EQ(s.C(lockpaymentorder.FieldStatus), lockpaymentorder.StatusValidated),
+						sql.Or(
+							sql.EQ(s.C(lockpaymentorder.FieldStatus), lockpaymentorder.StatusValidated),
+							sql.And(
+								sql.EQ(s.C(lockpaymentorder.FieldStatus), lockpaymentorder.StatusSettled),
+								sql.NotExists(
+									sql.Select().
+										From(po).
+										Where(sql.ColumnsEQ(s.C(lockpaymentorder.FieldStatus), po.C(paymentorder.FieldStatus))),
+								),
+							),
+						),
 						sql.LT(s.C(lockpaymentorder.FieldUpdatedAt), time.Now().Add(-5*time.Minute))),
 					)
 				}).
@@ -531,29 +542,6 @@ func IndexMissedBlocks() error {
 			}
 		}
 	}()
-
-	// // Settle payment orders with already settled lock orders
-	// _, err = storage.Client.PaymentOrder.
-	// 	Update().
-	// 	Where(func(s *sql.Selector) {
-	// 		lpo := sql.Table(lockpaymentorder.Table)
-	// 		s.Where(sql.And(
-	// 			sql.EQ(s.C(paymentorder.FieldStatus), paymentorder.StatusPending),
-	// 			sql.Exists(
-	// 				sql.Select().From(lpo).Where(
-	// 					sql.And(
-	// 						sql.EQ(s.C(lockpaymentorder.FieldStatus), lockpaymentorder.StatusSettled),
-	// 						sql.ColumnsEQ(s.C(paymentorder.FieldGatewayID), lpo.C(lockpaymentorder.FieldGatewayID)),
-	// 					),
-	// 				),
-	// 			),
-	// 		))
-	// 	}).
-	// 	SetStatus(paymentorder.StatusSettled).
-	// 	Save(ctx)
-	// if err != nil {
-	// 	logger.Errorf("IndexMissedBlocks.syncSettledOrder: %v", err)
-	// }
 
 	return nil
 }
