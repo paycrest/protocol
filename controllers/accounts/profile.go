@@ -74,7 +74,7 @@ func (ctrl *ProfileController) UpdateSenderProfile(ctx *gin.Context) {
 
 	feeAddressIsValid := u.IsValidEthereumAddress(payload.FeeAddress)
 
-	if !payload.FeePerTokenUnit.IsZero() && payload.FeeAddress != "" {
+	if payload.FeeAddress != "" {
 		if !feeAddressIsValid {
 			u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
 				Field:   "FeeAddress",
@@ -87,13 +87,6 @@ func (ctrl *ProfileController) UpdateSenderProfile(ctx *gin.Context) {
 		if !payload.FeePerTokenUnit.IsZero() && payload.FeeAddress == "" {
 			u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
 				Field:   "FeeAddress",
-				Message: "This field is required",
-			})
-			return
-		}
-		if payload.FeePerTokenUnit.IsZero() && payload.FeeAddress != "" {
-			u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
-				Field:   "FeePerTokenUnit",
 				Message: "This field is required",
 			})
 			return
