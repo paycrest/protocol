@@ -397,6 +397,7 @@ func getEndpoints(chainId int64) (bundlerUrl, paymasterUrl string, err error) {
 		bundlerUrl = OrderConf.BundlerUrlBase
 		paymasterUrl = OrderConf.PaymasterUrlBase
 	case 42161:
+	case 421614:
 		bundlerUrl = OrderConf.BundlerUrlArbitrum
 		paymasterUrl = OrderConf.PaymasterUrlArbitrum
 	default:
