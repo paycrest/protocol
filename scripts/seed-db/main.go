@@ -32,23 +32,24 @@ func main() {
 	ctx := context.Background()
 
 	// Delete existing data
-	_ = client.Network.Delete().ExecX(ctx)
-	_ = client.Token.Delete().ExecX(ctx)
-	_ = client.FiatCurrency.Delete().ExecX(ctx)
-	_ = client.ProvisionBucket.Delete().ExecX(ctx)
-	_ = client.User.Delete().ExecX(ctx)
-	_ = client.ProviderProfile.Delete().ExecX(ctx)
-	_ = client.ProviderOrderToken.Delete().ExecX(ctx)
-	_ = client.SenderProfile.Delete().ExecX(ctx)
-	_ = client.ReceiveAddress.Delete().ExecX(ctx)
+	_, _ = client.Network.Delete().Exec(ctx)
+	_, _ = client.Token.Delete().Exec(ctx)
+	_, _ = client.FiatCurrency.Delete().Exec(ctx)
+	_, _ = client.ProvisionBucket.Delete().Exec(ctx)
+	_, _ = client.User.Delete().Exec(ctx)
+	_, _ = client.ProviderProfile.Delete().Exec(ctx)
+	_, _ = client.ProviderOrderToken.Delete().Exec(ctx)
+	_, _ = client.SenderProfile.Delete().Exec(ctx)
+	_, _ = client.ReceiveAddress.Delete().Exec(ctx)
 
 	// Seed Network
 	fmt.Println("seeding network...")
 	network, err := client.Network.
 		Create().
-		SetIdentifier("ethereum-sepolia").
+		SetIdentifier("arbitrum-sepolia").
 		SetChainID(11155111).
-		SetRPCEndpoint("wss://sepolia.infura.io/ws/v3/4458cf4d1689497b9a38b1d6bbf05e78").
+		SetFee(decimal.NewFromInt(0)).
+		SetRPCEndpoint("wss://arbitrum-sepolia.infura.io/ws/v3/4458cf4d1689497b9a38b1d6bbf05e78").
 		SetIsTestnet(true).
 		Save(ctx)
 	if err != nil {
@@ -253,7 +254,7 @@ func seedProvider(ctx context.Context, client *ent.Client, bucket *ent.Provision
 		Address string `json:"address"`
 		Network string `json:"network"`
 	}{
-		{Address: "0x409689E3008d43a9eb439e7B275749D4a71D8E2D", Network: "ethereum-sepolia"},
+		{Address: "0x409689E3008d43a9eb439e7B275749D4a71D8E2D", Network: "arbitrum-sepolia"},
 	}
 
 	_, err = client.ProviderOrderToken.

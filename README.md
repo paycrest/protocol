@@ -55,7 +55,9 @@ brew install redis
 brew services start redis
 ```
 
+
 Setup database
+
 
 ```bash
 createdb paycrest
@@ -67,6 +69,15 @@ psql paycrest
 # enable extended display
 \x
 
+```
+install Atlas ent
+```bash
+curl -sSf https://atlasgo.sh | sh
+```
+
+run migrations
+```bash
+atlas migrate apply   --dir "file:///<dir>/protocol/ent/migrate/migrations"  --url "postgresql://postgres:postgres@localhost:5432/test?search_path=public&sslmode=disable"
 ```
 
 Setup redis
