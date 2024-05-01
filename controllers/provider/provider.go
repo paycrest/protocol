@@ -199,7 +199,7 @@ func (ctrl *ProviderController) AcceptOrder(ctx *gin.Context) {
 
 	u.APIResponse(ctx, http.StatusCreated, "success", "Order request accepted successfully", &types.AcceptOrderResponse{
 		ID:                orderID,
-		Amount:            order.Amount.Mul(order.Rate),
+		Amount:            order.Amount.Mul(order.Rate).RoundBank(2),
 		Institution:       order.Institution,
 		AccountIdentifier: order.AccountIdentifier,
 		AccountName:       order.AccountName,
@@ -418,7 +418,7 @@ func (ctrl *ProviderController) CancelOrder(ctx *gin.Context) {
 	orderConf := config.OrderConfig()
 	orderUpdate := storage.Client.LockPaymentOrder.UpdateOneID(orderID)
 	CancellationCount := order.CancellationCount
-	if payload.Reason == "Invalid recipient bank details" {
+	if payload.Reason == "Invalid recipient bank details" || provider.VisibilityMode == providerprofile.VisibilityModePrivate {
 		CancellationCount += orderConf.RefundCancellationCount // Allows us refund immediately for invalid recipient
 		orderUpdate.AppendCancellationReasons([]string{payload.Reason})
 	} else if payload.Reason != "Insufficient funds" {

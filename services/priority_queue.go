@@ -192,6 +192,10 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 		} else {
 			logger.Errorf("%s - failed to get provider: %v", orderIDPrefix, err)
 		}
+
+		if provider.VisibilityMode == providerprofile.VisibilityModePrivate {
+			return nil
+		}
 	}
 
 	// Get the first provider from the circular queue
@@ -411,19 +415,16 @@ func (s *PriorityQueueService) ReassignStaleOrderRequest(ctx context.Context, or
 }
 
 // ReassignUnfulfilledLockOrders reassigns lockOrder unfulfilled within a time frame.
-func (s *PriorityQueueService) ReassignUnfulfilledLockOrders(ctx context.Context) {
+func (s *PriorityQueueService) ReassignUnfulfilledLockOrders() {
+	ctx := context.Background()
+
 	// Query unfulfilled lock orders.
 	lockOrders, err := storage.Client.LockPaymentOrder.
 		Query().
 		Where(
 			lockpaymentorder.Not(lockpaymentorder.HasFulfillment()),
-			lockpaymentorder.Or(
-				lockpaymentorder.And(
-					lockpaymentorder.StatusEQ(lockpaymentorder.StatusProcessing),
-					lockpaymentorder.UpdatedAtLTE(time.Now().Add(-OrderConf.OrderFulfillmentValidity*time.Minute)),
-				),
-				lockpaymentorder.StatusEQ(lockpaymentorder.StatusCancelled),
-			),
+			lockpaymentorder.StatusEQ(lockpaymentorder.StatusProcessing),
+			lockpaymentorder.UpdatedAtLTE(time.Now().Add(-OrderConf.OrderFulfillmentValidity*time.Minute)),
 		).
 		WithToken().
 		WithProvider().
