@@ -47,5 +47,4 @@ func main() {
 	if err := client.Schema.Create(ctx, opts...); err != nil {
 		log.Fatalf("failed generating migration file: %v", err)
 	}
-
 }

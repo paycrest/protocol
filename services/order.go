@@ -455,7 +455,10 @@ func (s *OrderService) executeBatchTransferCallData(order *ent.PaymentOrder, to 
 	}
 
 	// Create approve data for paymaster contract
-	approvePaymasterData, err := s.approveCallData(common.HexToAddress(paymasterAccount), amount)
+	approvePaymasterData, err := s.approveCallData(
+		common.HexToAddress(paymasterAccount),
+		big.NewInt(0).Add(amount, order.Edges.Token.Edges.Network.Fee.BigInt()),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create paymaster approve calldata : %w", err)
 	}
@@ -512,7 +515,7 @@ func (s *OrderService) executeBatchCreateOrderCallData(order *ent.PaymentOrder) 
 	// Create approve data for paymaster contract
 	approvePaymasterData, err := s.approveCallData(
 		common.HexToAddress(paymasterAccount),
-		utils.ToSubunit(orderAmountWithFees, order.Edges.Token.Decimals),
+		utils.ToSubunit(orderAmountWithFees.Add(order.Edges.Token.Edges.Network.Fee), order.Edges.Token.Decimals),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create paymaster approve calldata : %w", err)
@@ -655,17 +658,28 @@ func (s *OrderService) createOrderCallData(order *ent.PaymentOrder) ([]byte, err
 
 // executeBatchRefundCallData creates the refund calldata for the execute batch method in the smart account.
 func (s *OrderService) executeBatchRefundCallData(order *ent.LockPaymentOrder) ([]byte, error) {
+	sourceOrder, err := db.Client.PaymentOrder.
+		Query().
+		Where(paymentorder.GatewayIDEQ(order.GatewayID)).
+		WithToken(func(tq *ent.TokenQuery) {
+			tq.WithNetwork()
+		}).
+		Only(context.Background())
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch payment order: %w", err)
+	}
+
 	// Create approve data for gateway contract
 	approveGatewayData, err := s.approveCallData(
 		OrderConf.GatewayContractAddress,
-		utils.ToSubunit(order.Amount.Mul(decimal.NewFromInt(2)), order.Edges.Token.Decimals),
+		utils.ToSubunit(order.Amount.Add(sourceOrder.SenderFee).Add(sourceOrder.ProtocolFee), order.Edges.Token.Decimals),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("executeBatchRefundCallData.approveOrderContract: %w", err)
 	}
 
 	// Create refund data
-	fee := utils.ToSubunit(order.Edges.Token.Edges.Network.Fee, order.Edges.Token.Decimals)
+	fee := utils.ToSubunit(decimal.NewFromInt(0), order.Edges.Token.Decimals)
 	refundData, err := s.refundCallData(fee, order.GatewayID)
 	if err != nil {
 		return nil, fmt.Errorf("executeBatchRefundCallData.refundData: %w", err)
@@ -690,10 +704,12 @@ func (s *OrderService) executeBatchRefundCallData(order *ent.LockPaymentOrder) (
 		}
 		time.Sleep(5 * time.Second)
 
+		refundAmount := sourceOrder.Amount.Add(sourceOrder.SenderFee).Add(sourceOrder.ProtocolFee).Add(sourceOrder.Edges.Token.Edges.Network.Fee)
+
 		// Create approve data for paymaster contract
 		approvePaymasterData, err := s.approveCallData(
 			common.HexToAddress(paymasterAccount),
-			utils.ToSubunit(order.Amount, order.Edges.Token.Decimals),
+			utils.ToSubunit(refundAmount, order.Edges.Token.Decimals),
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create paymaster approve calldata : %w", err)
@@ -752,7 +768,7 @@ func (s *OrderService) executeBatchSettleCallData(ctx context.Context, order *en
 	// Create approve data for gateway contract
 	approveGatewayData, err := s.approveCallData(
 		OrderConf.GatewayContractAddress,
-		utils.ToSubunit(order.Amount.Mul(decimal.NewFromInt(2)), order.Edges.Token.Decimals),
+		utils.ToSubunit(order.Amount, order.Edges.Token.Decimals),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("approveOrderContract: %w", err)
@@ -775,7 +791,7 @@ func (s *OrderService) executeBatchSettleCallData(ctx context.Context, order *en
 		// Create approve data for paymaster contract
 		approvePaymasterData, err := s.approveCallData(
 			common.HexToAddress(paymasterAccount),
-			utils.ToSubunit(order.Amount, order.Edges.Token.Decimals),
+			utils.ToSubunit(order.Amount.Add(order.Edges.Token.Edges.Network.Fee), order.Edges.Token.Decimals),
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create paymaster approve calldata : %w", err)
