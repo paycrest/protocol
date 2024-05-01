@@ -199,10 +199,18 @@ func RetryStaleUserOperations() error {
 	// Refund order process
 	lockOrders, err = storage.Client.LockPaymentOrder.
 		Query().
-		Where(
-			lockpaymentorder.StatusEQ(lockpaymentorder.StatusPending),
-			lockpaymentorder.CreatedAtLTE(time.Now().Add(-30*time.Minute)),
-		).
+		Where(func(s *sql.Selector) {
+			po := sql.Table(paymentorder.Table)
+			s.LeftJoin(po).On(s.C(lockpaymentorder.FieldGatewayID), po.C(paymentorder.FieldGatewayID)).
+				Where(sql.And(
+					sql.EQ(po.C(paymentorder.FieldStatus), paymentorder.StatusPending),
+					sql.Or(
+						sql.EQ(s.C(lockpaymentorder.FieldStatus), lockpaymentorder.StatusPending),
+						sql.EQ(s.C(paymentorder.FieldStatus), lockpaymentorder.StatusCancelled),
+					),
+					sql.LTE(s.C(lockpaymentorder.FieldCreatedAt), time.Now().Add(-30*time.Minute)),
+				))
+		}).
 		All(ctx)
 	if err != nil {
 		return err
@@ -240,7 +248,6 @@ func IndexMissedBlocks() error {
 				Query().
 				Where(
 					paymentorder.StatusEQ(paymentorder.StatusInitiated),
-					paymentorder.BlockNumberGT(0),
 					paymentorder.HasReceiveAddressWith(
 						receiveaddress.Or(
 							receiveaddress.StatusEQ(receiveaddress.StatusUnused),
@@ -288,9 +295,9 @@ func IndexMissedBlocks() error {
 					retryErr = utils.Retry(3, 5*time.Second, func() error {
 						var err error
 						iter, err = filterer.FilterTransfer(&bind.FilterOpts{
-							Start: uint64(int64(toBlock) - 500),
+							Start: uint64(int64(toBlock) - 5000),
 							End:   &toBlock,
-						}, nil, nil)
+						}, nil, []common.Address{common.HexToAddress(order.Edges.ReceiveAddress.Address)})
 						return err
 					})
 					if retryErr != nil {
@@ -773,7 +780,7 @@ func StartCronJobs() {
 	}
 
 	// Retry failed webhook notifications every 1 minute
-	_, err = scheduler.Cron("*/1 * * * *").Do(RetryFailedWebhookNotifications)
+	_, err = scheduler.Cron("*/60 * * * *").Do(RetryFailedWebhookNotifications)
 	if err != nil {
 		logger.Errorf("StartCronJobs: %v", err)
 	}
@@ -786,6 +793,12 @@ func StartCronJobs() {
 
 	// Reassign unvalidated order requests every 21 minutes
 	_, err = scheduler.Cron("*/21 * * * *").Do(priorityQueue.ReassignUnvalidatedLockOrders)
+	if err != nil {
+		logger.Errorf("StartCronJobs: %v", err)
+	}
+
+	// Reassign unfulfilled order requests every 10 minutes
+	_, err = scheduler.Cron("*/10 * * * *").Do(priorityQueue.ReassignUnfulfilledLockOrders)
 	if err != nil {
 		logger.Errorf("StartCronJobs: %v", err)
 	}

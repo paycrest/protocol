@@ -3,10 +3,8 @@ package test
 import (
 	"context"
 
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/google/uuid"
 	"github.com/paycrest/protocol/ent"
-	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	"github.com/paycrest/protocol/services/contracts"
 	"github.com/paycrest/protocol/types"
 	"github.com/stretchr/testify/mock"
@@ -39,16 +37,6 @@ func (m *MockIndexerService) IndexOrderRefunded(ctx context.Context, client type
 
 // HandleReceiveAddressValidity mocks the HandleReceiveAddressValidity method
 func (m *MockIndexerService) HandleReceiveAddressValidity(ctx context.Context, receiveAddress *ent.ReceiveAddress, paymentOrder *ent.PaymentOrder) error {
-	return nil
-}
-
-// GetMissedOrderBlocksOpts mocks the GetMissedOrderBlocksOpts method
-func (m *MockIndexerService) GetMissedOrderBlocksOpts(ctx context.Context, client types.RPCClient, network *ent.Network, status lockpaymentorder.Status) *bind.FilterOpts {
-	return nil
-}
-
-// GetMissedERC20BlocksOpts mocks the GetMissedERC20BlocksOpts method
-func (m *MockIndexerService) GetMissedERC20BlocksOpts(ctx context.Context, client types.RPCClient, network *ent.Network) *bind.FilterOpts {
 	return nil
 }
 
