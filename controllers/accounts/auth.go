@@ -323,6 +323,12 @@ func (ctrl *AuthController) ConfirmEmail(ctx *gin.Context) {
 		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid verification token", vtErr.Error())
 		return
 	}
+	if time.Now().After(verificationToken.ExpiryAt) {
+		db.Client.VerificationToken.
+			DeleteOne(verificationToken).Exec(ctx)
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "token Expired", nil)
+		return
+	}
 
 	// Update User IsEmailVerified to true
 	_, setIfVerifiedErr := verificationToken.Edges.Owner.
@@ -333,6 +339,9 @@ func (ctrl *AuthController) ConfirmEmail(ctx *gin.Context) {
 		u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to verify user email", setIfVerifiedErr.Error())
 		return
 	}
+
+	db.Client.VerificationToken.
+		DeleteOne(verificationToken).Exec(ctx)
 
 	// Return a success response
 	u.APIResponse(ctx, http.StatusOK, "success", "User email verified successfully", nil)
@@ -396,6 +405,12 @@ func (ctrl *AuthController) ResetPassword(ctx *gin.Context) {
 		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid password reset token", nil)
 		return
 	}
+	if time.Now().After(token.ExpiryAt) {
+		db.Client.VerificationToken.
+			DeleteOne(token).Exec(ctx)
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "token Expired", nil)
+		return
+	}
 
 	_, err = db.Client.User.
 		UpdateOne(token.Edges.Owner).
@@ -406,6 +421,9 @@ func (ctrl *AuthController) ResetPassword(ctx *gin.Context) {
 		return
 	}
 
+	// Delete verification token
+	db.Client.VerificationToken.
+		DeleteOne(token).Exec(ctx)
 	// Return a success response
 	u.APIResponse(ctx, http.StatusOK, "success", "Password reset was successful", nil)
 }

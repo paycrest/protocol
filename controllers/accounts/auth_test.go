@@ -737,6 +737,10 @@ func TestAuth(t *testing.T) {
 
 		t.Run("ResetPasswordInDBForValidResetToken", func(t *testing.T) {
 
+			// get initial VerificationToken count
+			beforeTestCount, err := db.Client.VerificationToken.Query().Aggregate(ent.Count()).Int(context.Background())
+			assert.NoError(t, err)
+
 			resetToken, err := db.Client.VerificationToken.Create().SetExpiryAt(time.Now().
 				Add(5 * time.Minute)).SetOwner(userInstance).SetScope(verificationtoken.ScopeResetPassword).
 				Save(context.Background())
@@ -761,6 +765,11 @@ func TestAuth(t *testing.T) {
 
 			passwordCompareErr := bcrypt.CompareHashAndPassword([]byte(updatedUser.Password), []byte(resetPasswordPayload["password"]))
 			assert.NoError(t, passwordCompareErr, "Password reset did not update DB properly")
+
+			// get initial VerificationToken count
+			afterTestCount, err := db.Client.VerificationToken.Query().Aggregate(ent.Count()).Int(context.Background())
+			assert.NoError(t, err)
+			assert.Equal(t, beforeTestCount, afterTestCount)
 		})
 	})
 
