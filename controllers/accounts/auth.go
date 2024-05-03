@@ -231,7 +231,7 @@ func (ctrl *AuthController) Login(ctx *gin.Context) {
 
 	// Check if user has early access
 	environment := config.ServerConfig().Environment
-	if !user.HasEarlyAccess && (environment == "production" || environment == "staging") {
+	if !user.HasEarlyAccess && (environment == "production") {
 		u.APIResponse(ctx, http.StatusUnauthorized, "error",
 			"Your early access request is still pending", nil,
 		)
