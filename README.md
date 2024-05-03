@@ -113,7 +113,7 @@ That's it! The server will now be running at http://localhost:8000. You can use 
 **Seed database**
 ```bash
 # run seed-db script
-go run 
+go run scripts/seed/main.go
 ```
 
 ## Usage
