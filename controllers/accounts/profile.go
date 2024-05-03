@@ -277,9 +277,7 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 		var rate decimal.Decimal
 
 		if tokenPayload.ConversionRateType == providerordertoken.ConversionRateTypeFloating {
-			floatingRate := tokenPayload.FloatingConversionRate // in percentage
-			deviation := currency.MarketRate.Mul(floatingRate.Div(decimal.NewFromInt(100)))
-			rate = currency.MarketRate.Add(deviation)
+			rate = currency.MarketRate.Add(tokenPayload.FloatingConversionRate)
 
 			percentDeviation := u.AbsPercentageDeviation(currency.MarketRate, rate)
 			if percentDeviation.GreaterThan(orderConf.PercentDeviationFromMarketRate) {

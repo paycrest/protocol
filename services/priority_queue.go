@@ -108,8 +108,7 @@ func (s *PriorityQueueService) GetProviderRate(ctx context.Context, provider *en
 		floatingRate := tokenConfig.FloatingConversionRate // in percentage
 
 		// Calculate the floating rate based on the market rate
-		deviation := marketRate.Mul(floatingRate.Div(decimal.NewFromInt(100)))
-		rate = marketRate.Add(deviation).RoundBank(2)
+		rate = marketRate.Add(floatingRate).RoundBank(2)
 	}
 
 	return rate, nil
