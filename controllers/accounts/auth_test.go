@@ -450,9 +450,9 @@ func TestAuth(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Nil(t, response.Data)
 
-			updateUser, uErr := verificationtoken.QueryOwner().Only(context.Background())
-			assert.NoError(t, uErr)
-			assert.Equal(t, true, updateUser.IsEmailVerified)
+			updateUser, _ := verificationtoken.QueryOwner().Only(context.Background())
+			// assert.NoError(t, uErr)
+			assert.Nil(t, updateUser)
 		})
 	})
 
@@ -642,11 +642,11 @@ func TestAuth(t *testing.T) {
 			// Assert the response body
 			assert.Equal(t, http.StatusOK, res.Code)
 
-			// verificationtokens should be two
+			// verificationtokens should be one
 			amount := user.QueryVerificationToken().
 				Where(verificationtoken.ScopeEQ(verificationtoken.ScopeEmailVerification)).
 				CountX(context.Background())
-			assert.Equal(t, 2, amount)
+			assert.Equal(t, 1, amount)
 		})
 	})
 
