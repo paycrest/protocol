@@ -77,7 +77,7 @@ curl -sSf https://atlasgo.sh | sh
 
 run migrations
 ```bash
-atlas migrate apply   --dir "file:///<dir>/protocol/ent/migrate/migrations"  --url "postgresql://postgres:postgres@localhost:5432/test?search_path=public&sslmode=disable"
+atlas migrate apply   --dir "file://ent/migrate/migrations"  --url "postgresql://postgres:postgres@localhost:5432/test?search_path=public&sslmode=disable"
 ```
 
 Setup redis
