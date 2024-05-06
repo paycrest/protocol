@@ -450,9 +450,11 @@ func TestAuth(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Nil(t, response.Data)
 
-			updateUser, _ := verificationtoken.QueryOwner().Only(context.Background())
-			// assert.NoError(t, uErr)
-			assert.Nil(t, updateUser)
+			updateUser, uErr := client.User.Query().Where(
+				userEnt.EmailEQ(user.Email),
+			).Only(context.Background())
+			assert.NoError(t, uErr)
+			assert.True(t, updateUser.IsEmailVerified)
 		})
 	})
 
