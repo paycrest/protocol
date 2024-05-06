@@ -326,7 +326,9 @@ func (ctrl *AuthController) ConfirmEmail(ctx *gin.Context) {
 	if time.Now().After(verificationToken.ExpiryAt) {
 		err := db.Client.VerificationToken.
 			DeleteOneID(verificationToken.ID).Exec(ctx)
-		logger.Errorf("ConfirmEmailError.VerificationToken.Delete: %v", err)
+		if err != nil {
+			logger.Errorf("ConfirmEmailError.VerificationToken.Delete: %v", err)
+		}
 		u.APIResponse(ctx, http.StatusBadRequest, "error", "token Expired", nil)
 		return
 	}
@@ -347,7 +349,6 @@ func (ctrl *AuthController) ConfirmEmail(ctx *gin.Context) {
 	if err != nil {
 		logger.Errorf("ConfirmEmailError.VerificationToken.Delete: %v", err)
 	}
-
 	// Return a success response
 	u.APIResponse(ctx, http.StatusOK, "success", "User email verified successfully", nil)
 }
@@ -413,7 +414,9 @@ func (ctrl *AuthController) ResetPassword(ctx *gin.Context) {
 	if time.Now().After(token.ExpiryAt) {
 		err := db.Client.VerificationToken.
 			DeleteOneID(token.ID).Exec(ctx)
-		logger.Errorf("ResetPasswordError.VerificationToken.Delete: %v", err)
+		if err != nil {
+			logger.Errorf("ResetPasswordError.VerificationToken.Delete: %v", err)
+		}
 		u.APIResponse(ctx, http.StatusBadRequest, "error", "token Expired", nil)
 		return
 	}
@@ -430,7 +433,9 @@ func (ctrl *AuthController) ResetPassword(ctx *gin.Context) {
 	// Delete verification token
 	verificationErr := db.Client.VerificationToken.
 		DeleteOneID(token.ID).Exec(ctx)
-	logger.Errorf("ResetPasswordError.VerificationToken.Delete: %v", verificationErr)
+	if verificationErr != nil {
+		logger.Errorf("ResetPasswordError.VerificationToken.Delete: %v", verificationErr)
+	}
 	// Return a success response
 	u.APIResponse(ctx, http.StatusOK, "success", "Password reset was successful", nil)
 }

@@ -18,6 +18,7 @@ import (
 	svc "github.com/paycrest/protocol/services"
 	db "github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
+	"github.com/spf13/viper"
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/gin-gonic/gin"
@@ -455,6 +456,46 @@ func TestAuth(t *testing.T) {
 			).Only(context.Background())
 			assert.NoError(t, uErr)
 			assert.True(t, updateUser.IsEmailVerified)
+		})
+	})
+
+	t.Run("expiriedToken", func(t *testing.T) {
+		// fetch user
+		userUUID, err := uuid.Parse(userID)
+		assert.NoError(t, err)
+
+		user, fetchUserErr := db.Client.User.
+			Query().
+			Where(userEnt.IDEQ(userUUID)).
+			Only(context.Background())
+		assert.NoError(t, fetchUserErr, "failed to fetch user by userID")
+
+		// generate verificationToken
+		verificationtoken, vtErr := db.Client.VerificationToken.
+			Create().
+			SetOwner(user).
+			SetScope(verificationtoken.ScopeResetPassword).
+			SetExpiryAt(time.Now().Add(conf.PasswordResetLifespan)).
+			Save(context.Background())
+		assert.NoError(t, vtErr)
+		t.Run("try to use expired token", func(t *testing.T) {
+			time.Sleep(time.Duration(viper.GetInt("PASSWORD_RESET_LIFESPAN")) * time.Minute)
+			// Test user email confirmation-token
+			payload := types.ConfirmEmailPayload{
+				Token: verificationtoken.Token,
+				Email: user.Email,
+			}
+
+			res, err := test.PerformRequest(t, "POST", "/confirm-account", payload, nil, router)
+			assert.NoError(t, err)
+
+			// Assert the response body
+			assert.Equal(t, http.StatusBadRequest, res.Code)
+
+			var response types.Response
+			err = json.Unmarshal(res.Body.Bytes(), &response)
+			assert.NoError(t, err)
+			assert.Nil(t, response.Data)
 		})
 	})
 
