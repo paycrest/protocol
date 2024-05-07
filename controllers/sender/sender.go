@@ -109,10 +109,7 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 			WithOrderTokens().
 			Only(ctx)
 		if err != nil {
-			u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to fetch provider", types.ErrorData{
-				Field:   "Provider",
-				Message: "Provider Not Found",
-			})
+			u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to fetch provider",nil)
 			return
 		}
 		maxOrderAmount = providerProfile.Edges.OrderTokens[0].MaxOrderAmount
@@ -123,10 +120,7 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 	}
 
 	if isPrivate && payload.Amount.GreaterThan(maxOrderAmount) {
-		u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to request", types.ErrorData{
-			Field:   "Provider",
-			Message: fmt.Sprintf("The selected provider cant fulfil this request (max amount: %d )", maxOrderAmount),
-		})
+		u.APIResponse(ctx, http.StatusBadRequest, "error", fmt.Sprintf("The selected provider cant fulfil this request (max amount: %d )", maxOrderAmount), nil)
 		return
 	}
 	// Generate receive address
