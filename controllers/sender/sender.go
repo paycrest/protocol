@@ -1,6 +1,7 @@
 package sender
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/paycrest/protocol/ent/network"
 	"github.com/paycrest/protocol/ent/paymentorder"
+	providerprofile "github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/senderprofile"
 	"github.com/paycrest/protocol/ent/token"
 	svc "github.com/paycrest/protocol/services"
@@ -96,6 +98,37 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 		return
 	}
 
+	isPrivate := false
+	maxOrderAmount := decimal.NewFromInt(0)
+	if payload.Recipient.ProviderID != "" {
+		providerProfile, err := storage.Client.ProviderProfile.
+			Query().
+			Where(
+				providerprofile.IDEQ(payload.Recipient.ProviderID),
+			).
+			WithOrderTokens().
+			Only(ctx)
+		if err != nil {
+			u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to fetch provider", types.ErrorData{
+				Field:   "Provider",
+				Message: "Provider Not Found",
+			})
+			return
+		}
+		maxOrderAmount = providerProfile.Edges.OrderTokens[0].MaxOrderAmount
+
+		if providerProfile.VisibilityMode == providerprofile.VisibilityModePrivate {
+			isPrivate = true
+		}
+	}
+
+	if isPrivate && payload.Amount.GreaterThan(maxOrderAmount) {
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to request", types.ErrorData{
+			Field:   "Provider",
+			Message: fmt.Sprintf("The selected provider cant fulfil this request (max amount: %d )", maxOrderAmount),
+		})
+		return
+	}
 	// Generate receive address
 	receiveAddress, err := ctrl.receiveAddressService.CreateSmartAccount(ctx, nil, nil)
 	if err != nil {
