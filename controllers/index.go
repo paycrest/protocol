@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/fiatcurrency"
 	"github.com/paycrest/protocol/ent/providerprofile"
@@ -177,4 +178,11 @@ func (ctrl *Controller) GetTokenRate(ctx *gin.Context) {
 	}
 
 	u.APIResponse(ctx, http.StatusOK, "success", "Rate fetched successfully", rateResponse)
+}
+
+// expose Aggregator Public Key
+func (ctrl *Controller) GetAggregatorPublicKey(ctx *gin.Context) {
+	u.APIResponse(ctx, http.StatusOK, "success", "OK", map[string]interface{}{
+		"AGGREGATOR_PUBLIC_KEY": config.CryptoConfig().AggregatorPublicKey,
+	})
 }

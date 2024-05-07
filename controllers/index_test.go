@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/paycrest/protocol/config"
 	db "github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
 	"github.com/shopspring/decimal"
@@ -41,6 +42,7 @@ func TestIndex(t *testing.T) {
 	router := gin.New()
 
 	router.GET("currencies", ctrl.GetFiatCurrencies)
+	router.GET("aggregator-key", ctrl.GetAggregatorPublicKey)
 
 	t.Run("Currencies", func(t *testing.T) {
 		t.Run("fetch supported fiat currencies", func(t *testing.T) {
@@ -74,6 +76,31 @@ func TestIndex(t *testing.T) {
 			assert.Equal(t, nairaCurrency.Decimals, response.Data[0].Decimals)
 			assert.Equal(t, nairaCurrency.Symbol, response.Data[0].Symbol)
 			assert.True(t, response.Data[0].MarketRate.Equal(nairaCurrency.MarketRate))
+		})
+	})
+
+	t.Run("Get Aggregator Public key", func(t *testing.T) {
+		t.Run("fetch Aggregator Public key", func(t *testing.T) {
+			res, err := test.PerformRequest(t, "GET", "/aggregator-key", nil, nil, router)
+			assert.NoError(t, err)
+
+			// Assert the response code.
+			assert.Equal(t, http.StatusOK, res.Code)
+
+			var response struct {
+				Data    map[string]interface{}
+				Message string
+			}
+			err = json.Unmarshal(res.Body.Bytes(), &response)
+			assert.NoError(t, err)
+			assert.Equal(t, "OK", response.Message)
+
+			// Assert /currencies response with the seeded Naira currency.
+			body := map[string]interface{}{
+				"AGGREGATOR_PUBLIC_KEY": config.CryptoConfig().AggregatorPublicKey,
+			}
+
+			assert.Equal(t, body["AGGREGATOR_PUBLIC_KEY"], config.CryptoConfig().AggregatorPublicKey)
 		})
 	})
 }
