@@ -183,6 +183,6 @@ func (ctrl *Controller) GetTokenRate(ctx *gin.Context) {
 // expose Aggregator Public Key
 func (ctrl *Controller) GetAggregatorPublicKey(ctx *gin.Context) {
 	u.APIResponse(ctx, http.StatusOK, "success", "OK", map[string]interface{}{
-		"AGGREGATOR_PUBLIC_KEY": config.CryptoConfig().AggregatorPublicKey,
+		"aggregatorPublicKey": config.CryptoConfig().AggregatorPublicKey,
 	})
 }
