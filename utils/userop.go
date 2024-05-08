@@ -17,7 +17,6 @@ import (
 	"github.com/paycrest/protocol/services/contracts"
 	"github.com/paycrest/protocol/types"
 	cryptoUtils "github.com/paycrest/protocol/utils/crypto"
-	"github.com/paycrest/protocol/utils/logger"
 	"github.com/stackup-wallet/stackup-bundler/pkg/userop"
 )
 
@@ -283,8 +282,6 @@ func GetPaymasterAccount(chainId int64) (string, error) {
 		return "", fmt.Errorf("failed to get endpoints: %w", err)
 	}
 
-	logger.Errorf("paymaster url: %v | chain id %v", paymasterUrl, chainId)
-
 	client, err := rpc.Dial(paymasterUrl)
 	if err != nil {
 		return "", fmt.Errorf("failed to connect to RPC client: %w", err)
@@ -387,6 +384,8 @@ func eip1559GasPrice(ctx context.Context, client types.RPCClient) (maxFeePerGas,
 func getEndpoints(chainId int64) (bundlerUrl, paymasterUrl string, err error) {
 	switch chainId {
 	case 1:
+		bundlerUrl = OrderConf.BundlerUrlEthereum
+		paymasterUrl = OrderConf.PaymasterUrlEthereum
 	case 11155111:
 		bundlerUrl = OrderConf.BundlerUrlEthereum
 		paymasterUrl = OrderConf.PaymasterUrlEthereum
@@ -400,6 +399,8 @@ func getEndpoints(chainId int64) (bundlerUrl, paymasterUrl string, err error) {
 		bundlerUrl = OrderConf.BundlerUrlBase
 		paymasterUrl = OrderConf.PaymasterUrlBase
 	case 42161:
+		bundlerUrl = OrderConf.BundlerUrlArbitrum
+		paymasterUrl = OrderConf.PaymasterUrlArbitrum
 	case 421614:
 		bundlerUrl = OrderConf.BundlerUrlArbitrum
 		paymasterUrl = OrderConf.PaymasterUrlArbitrum
