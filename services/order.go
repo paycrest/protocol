@@ -28,6 +28,7 @@ import (
 	"github.com/paycrest/protocol/types"
 	"github.com/paycrest/protocol/utils"
 	cryptoUtils "github.com/paycrest/protocol/utils/crypto"
+	"github.com/paycrest/protocol/utils/logger"
 )
 
 type CreateOrderParams struct {
@@ -444,6 +445,7 @@ func (s *OrderService) GetSupportedInstitutions(ctx context.Context, client type
 
 // executeBatchTransferCallData creates the transfer calldata for the execute batch method in the smart account.
 func (s *OrderService) executeBatchTransferCallData(order *ent.PaymentOrder, to common.Address, amount *big.Int) ([]byte, error) {
+	logger.Errorf("order network chain id: %v | order id: %v", order.Edges.Token.Edges.Network.ChainID, order.ID)
 	// Fetch paymaster account
 	paymasterAccount, err := utils.GetPaymasterAccount(order.Edges.Token.Edges.Network.ChainID)
 	if err != nil {

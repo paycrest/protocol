@@ -283,7 +283,7 @@ func GetPaymasterAccount(chainId int64) (string, error) {
 		return "", fmt.Errorf("failed to get endpoints: %w", err)
 	}
 
-	logger.Errorf("paymaster url: %s", paymasterUrl)
+	logger.Errorf("paymaster url: %v | chain id %v", paymasterUrl, chainId)
 
 	client, err := rpc.Dial(paymasterUrl)
 	if err != nil {
