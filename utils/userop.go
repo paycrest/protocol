@@ -17,6 +17,7 @@ import (
 	"github.com/paycrest/protocol/services/contracts"
 	"github.com/paycrest/protocol/types"
 	cryptoUtils "github.com/paycrest/protocol/utils/crypto"
+	"github.com/paycrest/protocol/utils/logger"
 	"github.com/stackup-wallet/stackup-bundler/pkg/userop"
 )
 
@@ -281,6 +282,8 @@ func GetPaymasterAccount(chainId int64) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to get endpoints: %w", err)
 	}
+
+	logger.Errorf("paymaster url: %s", paymasterUrl)
 
 	client, err := rpc.Dial(paymasterUrl)
 	if err != nil {
