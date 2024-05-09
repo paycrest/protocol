@@ -339,8 +339,8 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 		buckets, err := storage.Client.ProvisionBucket.
 			Query().
 			Where(
-				provisionbucket.MinAmountLTE(tokenPayload.MinOrderAmount),
-				provisionbucket.MaxAmountGTE(tokenPayload.MaxOrderAmount),
+				provisionbucket.MinAmountLTE(tokenPayload.MinOrderAmount.Mul(currency.MarketRate)),
+				provisionbucket.MaxAmountGTE(tokenPayload.MaxOrderAmount.Mul(currency.MarketRate)),
 			).
 			All(ctx)
 		if err != nil {

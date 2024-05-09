@@ -504,7 +504,7 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 
 	provisionBucket, err := s.getProvisionBucket(ctx, amountInDecimals.Mul(rate), currency)
 	if err != nil {
-		return fmt.Errorf("failed to fetch provision bucket: %w", err)
+		logger.Errorf("failed to fetch provision bucket: %v", err)
 	}
 
 	// Create lock payment order fields
@@ -857,7 +857,6 @@ func (s *IndexerService) UpdateReceiveAddressStatus(
 
 // getProvisionBucket returns the provision bucket for a lock payment order
 func (s *IndexerService) getProvisionBucket(ctx context.Context, amount decimal.Decimal, currency *ent.FiatCurrency) (*ent.ProvisionBucket, error) {
-
 	provisionBucket, err := db.Client.ProvisionBucket.
 		Query().
 		Where(
@@ -870,8 +869,7 @@ func (s *IndexerService) getProvisionBucket(ctx context.Context, amount decimal.
 		WithCurrency().
 		Only(ctx)
 	if err != nil {
-		logger.Errorf("failed to fetch provision bucket: %v", err)
-		return nil, err
+		return nil, fmt.Errorf("failed to fetch provision bucket: %w", err)
 	}
 
 	return provisionBucket, nil
