@@ -1,7 +1,6 @@
 package sender
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -109,8 +108,13 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 			WithOrderTokens().
 			Only(ctx)
 		if err != nil {
-			u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to fetch provider",nil)
-			return
+			if ent.IsNotFound(err) {
+				u.APIResponse(ctx, http.StatusBadRequest, "error", "Provider not found", nil)
+				return
+			} else {
+				u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch provider profile", nil)
+				return
+			}
 		}
 		maxOrderAmount = providerProfile.Edges.OrderTokens[0].MaxOrderAmount
 
@@ -120,7 +124,7 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 	}
 
 	if isPrivate && payload.Amount.GreaterThan(maxOrderAmount) {
-		u.APIResponse(ctx, http.StatusBadRequest, "error", fmt.Sprintf("The selected provider cant fulfil this request (max amount: %d )", maxOrderAmount), nil)
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "The amount is beyond the maximum order amount for the specified provider", nil)
 		return
 	}
 	// Generate receive address
