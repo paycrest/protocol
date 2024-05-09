@@ -95,12 +95,7 @@ func TestIndex(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Equal(t, "OK", response.Message)
 
-			// Assert /currencies response with the seeded Naira currency.
-			body := map[string]interface{}{
-				"AGGREGATOR_PUBLIC_KEY": config.CryptoConfig().AggregatorPublicKey,
-			}
-
-			assert.Equal(t, body["AGGREGATOR_PUBLIC_KEY"], config.CryptoConfig().AggregatorPublicKey)
+			assert.Equal(t, response.Data["aggregatorPublicKey"], config.CryptoConfig().AggregatorPublicKey)
 		})
 	})
 }
