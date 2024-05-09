@@ -180,7 +180,7 @@ func (ctrl *Controller) GetTokenRate(ctx *gin.Context) {
 	u.APIResponse(ctx, http.StatusOK, "success", "Rate fetched successfully", rateResponse)
 }
 
-// expose Aggregator Public Key
+// GetAggregatorPublicKey controller expose Aggregator Public Key
 func (ctrl *Controller) GetAggregatorPublicKey(ctx *gin.Context) {
 	u.APIResponse(ctx, http.StatusOK, "success", "OK", map[string]interface{}{
 		"aggregatorPublicKey": config.CryptoConfig().AggregatorPublicKey,
