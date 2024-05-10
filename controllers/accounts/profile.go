@@ -346,6 +346,7 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 		if err != nil {
 			logger.Errorf("Failed to assign provider %s to buckets", provider.ID)
 		} else {
+			update.ClearProvisionBuckets()
 			update.AddProvisionBuckets(buckets...)
 		}
 	}
