@@ -295,7 +295,7 @@ func (s *PriorityQueueService) sendOrderRequest(ctx context.Context, order types
 	orderKey := fmt.Sprintf("order_request_%s", order.ID)
 
 	orderRequestData := map[string]interface{}{
-		"amount":      order.Amount.Mul(order.Rate).RoundBank(2).String(),
+		"amount":      order.Amount.Mul(order.Rate).RoundBank(0).String(),
 		"institution": order.Institution,
 		"providerId":  order.ProviderID,
 	}

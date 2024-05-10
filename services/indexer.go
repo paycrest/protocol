@@ -502,7 +502,7 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 
 	rate := decimal.NewFromBigInt(deposit.Rate, 0)
 
-	provisionBucket, err := s.getProvisionBucket(ctx, amountInDecimals.Mul(rate), currency)
+	provisionBucket, err := s.getProvisionBucket(ctx, amountInDecimals.Mul(rate).RoundBank(0), currency)
 	if err != nil {
 		logger.Errorf("failed to fetch provision bucket: %v", err)
 	}
@@ -905,7 +905,7 @@ func (s *IndexerService) splitLockPaymentOrder(ctx context.Context, lockPaymentO
 		return err
 	}
 
-	amountToSplit := lockPaymentOrder.Amount.Mul(lockPaymentOrder.Rate) // e.g 100,000
+	amountToSplit := lockPaymentOrder.Amount.Mul(lockPaymentOrder.Rate).RoundBank(0) // e.g 100,000
 
 	for _, bucket := range buckets {
 		// Get the number of providers in the bucket

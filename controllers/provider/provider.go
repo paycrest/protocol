@@ -112,7 +112,6 @@ func (ctrl *ProviderController) GetLockPaymentOrders(ctx *gin.Context) {
 	}
 
 	var orders []types.LockPaymentOrderResponse
-
 	for _, order := range lockPaymentOrders {
 		orders = append(orders, types.LockPaymentOrderResponse{
 			ID:                order.ID,
@@ -199,7 +198,7 @@ func (ctrl *ProviderController) AcceptOrder(ctx *gin.Context) {
 
 	u.APIResponse(ctx, http.StatusCreated, "success", "Order request accepted successfully", &types.AcceptOrderResponse{
 		ID:                orderID,
-		Amount:            order.Amount.Mul(order.Rate).RoundBank(2),
+		Amount:            order.Amount.Mul(order.Rate).RoundBank(0),
 		Institution:       order.Institution,
 		AccountIdentifier: order.AccountIdentifier,
 		AccountName:       order.AccountName,
@@ -539,7 +538,7 @@ func (ctrl *ProviderController) Stats(ctx *gin.Context) {
 	}
 
 	for _, order := range orders {
-		totalFiatVolume = totalFiatVolume.Add(order.Amount.Mul(order.Rate))
+		totalFiatVolume = totalFiatVolume.Add(order.Amount.Mul(order.Rate).RoundBank(0))
 	}
 
 	u.APIResponse(ctx, http.StatusOK, "success", "Provider stats fetched successfully", &types.ProviderStatsResponse{
