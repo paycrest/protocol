@@ -14,6 +14,7 @@ import (
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
+	"github.com/paycrest/protocol/ent/paymentorder"
 	"github.com/paycrest/protocol/ent/providerordertoken"
 	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/provisionbucket"
@@ -178,16 +179,26 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 
 		if err == nil {
 			// TODO: check for provider's minimum and maximum rate for negotiation
-			order.Rate, err = s.GetProviderRate(ctx, provider)
-			if err == nil {
-				err = s.sendOrderRequest(ctx, order)
-				if err == nil {
-					return nil
+			// Update the rate with the current rate if order is older than 30 mins
+			if order.UpdatedAt.Before(time.Now().Add(-10 * time.Minute)) {
+				order.Rate, err = s.GetProviderRate(ctx, provider)
+				if err != nil {
+					logger.Errorf("%s - failed to get rate for provider %s: %v", orderIDPrefix, order.ProviderID, err)
 				}
-				logger.Errorf("%s - failed to send order request to specific provider %s: %v", orderIDPrefix, order.ProviderID, err)
-			} else {
-				logger.Errorf("%s - failed to get rate for provider %s: %v", orderIDPrefix, order.ProviderID, err)
+				_, err = storage.Client.PaymentOrder.
+					Update().
+					Where(paymentorder.IDEQ(order.ID)).
+					SetRate(order.Rate).
+					Save(ctx)
+				if err != nil {
+					logger.Errorf("%s - failed to update rate for provider %s: %v", orderIDPrefix, order.ProviderID, err)
+				}
 			}
+			err = s.sendOrderRequest(ctx, order)
+			if err == nil {
+				return nil
+			}
+			logger.Errorf("%s - failed to send order request to specific provider %s: %v", orderIDPrefix, order.ProviderID, err)
 		} else {
 			logger.Errorf("%s - failed to get provider: %v", orderIDPrefix, err)
 		}
