@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -20,7 +21,9 @@ import (
 	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/provisionbucket"
 	"github.com/paycrest/protocol/ent/receiveaddress"
+	"github.com/paycrest/protocol/ent/senderprofile"
 	"github.com/paycrest/protocol/ent/token"
+	"github.com/paycrest/protocol/ent/user"
 	"github.com/paycrest/protocol/services/contracts"
 	db "github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
@@ -76,6 +79,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 		WithToken(func(tq *ent.TokenQuery) {
 			tq.WithNetwork()
 		}).
+		WithRecipient().
 		Only(ctx)
 	if err != nil {
 		logger.Errorf("IndexERC20Transfer.db: %v", err)
@@ -775,6 +779,47 @@ func (s *IndexerService) UpdateReceiveAddressStatus(
 		paymentOrderUpdate := paymentOrder.Update()
 		if paymentOrder.ReturnAddress == "" {
 			paymentOrderUpdate = paymentOrderUpdate.SetReturnAddress(event.From.Hex())
+		}
+
+		orderRecipient := paymentOrder.Edges.Recipient
+		if strings.HasPrefix(orderRecipient.Memo, "P#P") {
+			// This is a P2P order created from the provider dashboard. No reverts are allowed
+			// Hence, the order amount will be updated to whatever amount was sent to the receive address
+			memo, _ := strings.CutPrefix(orderRecipient.Memo, "P#P")
+			orderRecipient.Memo = memo
+
+			// order amount = (indexed amount) / (1 + protocol fee percent)
+			// TODO: get protocol fee from contract -- currently 0.1%
+			orderAmount := utils.FromSubunit(event.Value, paymentOrder.Edges.Token.Decimals).Div(decimal.NewFromFloat(1.001))
+			paymentOrderUpdate = paymentOrderUpdate.SetAmount(orderAmount)
+			paymentOrderUpdate.SetProtocolFee(orderAmount.Mul(decimal.NewFromFloat(0.001)))
+			paymentOrderUpdate.SetRecipient(orderRecipient)
+
+			// Update the rate with the current rate if order is older than 30 mins
+			if paymentOrder.CreatedAt.Before(time.Now().Add(-30 * time.Minute)) {
+				providerProfile, err := db.Client.ProviderProfile.
+					Query().
+					Where(
+						providerprofile.HasUserWith(
+							user.HasSenderProfileWith(
+								senderprofile.HasPaymentOrdersWith(
+									paymentorder.IDEQ(paymentOrder.ID),
+								),
+							),
+						),
+					).
+					Only(ctx)
+				if err != nil {
+					return true, fmt.Errorf("UpdateReceiveAddressStatus.db: %v", err)
+				}
+
+				rate, err := s.priorityQueue.GetProviderRate(ctx, providerProfile)
+				if err != nil {
+					return true, fmt.Errorf("UpdateReceiveAddressStatus.db: %v", err)
+				}
+				paymentOrderUpdate.SetRate(rate)
+			}
+			comparisonResult = 0
 		}
 
 		paymentOrder, err = paymentOrderUpdate.
