@@ -179,7 +179,7 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 
 		if err == nil {
 			// TODO: check for provider's minimum and maximum rate for negotiation
-			// Update the rate with the current rate if order is older than 30 mins
+			// Update the rate with the current rate if order was last updated more than 10 mins ago
 			if order.UpdatedAt.Before(time.Now().Add(-10 * time.Minute)) {
 				order.Rate, err = s.GetProviderRate(ctx, provider)
 				if err != nil {
