@@ -415,6 +415,21 @@ func (s *IndexerService) HandleReceiveAddressValidity(ctx context.Context, recei
 func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client types.RPCClient, network *ent.Network, deposit *contracts.GatewayOrderCreated) error {
 	gatewayId := fmt.Sprintf("0x%v", hex.EncodeToString(deposit.OrderId[:]))
 
+
+	if ServerConf.Environment == "production" {
+		ok, err := s.checkCompliance(network.RPCEndpoint, deposit.Raw.TxHash.Hex())
+		if err != nil {
+			logger.Errorf("CreateLockPaymentOrder.checkCompliance: %v", err)
+		}
+
+		if !ok {
+			err := s.order.RefundOrder(ctx, gatewayId)
+			if err != nil {
+				logger.Errorf("CreateLockPaymentOrder.RefundOrder: %v", err)
+			}
+		}
+	}
+
 	// Check for existing address with txHash
 	orderCount, err := db.Client.LockPaymentOrder.
 		Query().
