@@ -11,6 +11,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/google/uuid"
 	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/ent"
@@ -1061,4 +1062,44 @@ func (s *IndexerService) splitLockPaymentOrder(ctx context.Context, lockPaymentO
 	}
 
 	return nil
+}
+
+type Response struct {
+	Transaction Transaction `json:"transaction"`
+	Decision    string      `json:"decision"`
+}
+
+type Transaction struct {
+	Kind int         `json:"__kind"`
+	Data interface{} `json:"data"`
+}
+
+func (s *IndexerService) checkCompliance(network string, txHash string) (bool, error) {
+
+	// Make RPC call to shield here
+	client, err := rpc.Dial(network)
+	if err != nil {
+		logger.Errorf("indexer.checkCompliance: failed to connect to RPC client: %v", err)
+		return false, err
+	}
+
+	var result json.RawMessage
+	err = client.Call(&result, "eth_backfillTransaction", txHash)
+
+	if err != nil {
+		logger.Errorf("indexer.checkCompliance: RPC error: %v", err)
+		return false, err
+	}
+
+	var backfillTransaction Response
+	err = json.Unmarshal(result, &backfillTransaction)
+	if err != nil {
+		logger.Errorf("indexer.checkCompliance: failed to unmarshal response: %v", err)
+		return false, err
+	}
+	if backfillTransaction.Decision == "Allow" {
+		return true, nil
+	}
+
+	return false, nil
 }
