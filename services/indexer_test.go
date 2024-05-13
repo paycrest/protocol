@@ -145,4 +145,11 @@ func TestIndexer(t *testing.T) {
 
 	// Assert state changes after indexing
 	assert.Equal(t, receiveaddress.StatusUsed, receiveAddress.Status)
+
+}
+
+func TestCompliance(t *testing.T) {
+	ok, err := testCtx.indexer.checkCompliance("https://rpc.shield3.com/v3/sepolia/gpqwyjnJ9y86bL1AfLQk1ZLu0vBev1F4aYaucJk9/rpc", "0x352baede033033c359cbd2d404a6d980b29a6b993542fcae6536028b1823ac54")
+	assert.True(t, ok)
+	assert.NoError(t, err)
 }
