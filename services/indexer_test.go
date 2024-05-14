@@ -149,12 +149,12 @@ func TestIndexer(t *testing.T) {
 
 func TestCompliance(t *testing.T) {
 	// Test Blocked Transaction
-	ok, err := testCtx.indexer.checkCompliance("https://rpc.shield3.com/v3/sepolia/gpqwyjnJ9y86bL1AfLQk1ZLu0vBev1F4aYaucJk9/rpc", "0x352baede033033c359cbd2d404a6d980b29a6b993542fcae6536028b1823ac54")
-	assert.True(t, !ok)
+	ok, err := testCtx.indexer.checkAMLCompliance("wss://ws-rpc.shield3.com?apiKey=gpqwyjnJ9y86bL1AfLQk1ZLu0vBev1F4aYaucJk9&networkId=sepolia", "0x352baede033033c359cbd2d404a6d980b29a6b993542fcae6536028b1823ac54")
+	assert.False(t, ok)
 	assert.NoError(t, err)
 
 	// Test Allowed Transaction
-	ok_allow, err_allow := testCtx.indexer.checkCompliance("https://rpc.shield3.com/v3/sepolia/gpqwyjnJ9y86bL1AfLQk1ZLu0vBev1F4aYaucJk9/rpc", "0xad3f9245daaa4c814cc51b91bbcd32769064662ebf8063358806bbbc8bb9c124")
-	assert.True(t, ok_allow)
-	assert.NoError(t, err_allow)
+	ok, err = testCtx.indexer.checkAMLCompliance("wss://ws-rpc.shield3.com?apiKey=gpqwyjnJ9y86bL1AfLQk1ZLu0vBev1F4aYaucJk9&networkId=sepolia", "0xad3f9245daaa4c814cc51b91bbcd32769064662ebf8063358806bbbc8bb9c124")
+	assert.True(t, ok)
+	assert.NoError(t, err)
 }

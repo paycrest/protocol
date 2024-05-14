@@ -415,11 +415,10 @@ func (s *IndexerService) HandleReceiveAddressValidity(ctx context.Context, recei
 func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client types.RPCClient, network *ent.Network, deposit *contracts.GatewayOrderCreated) error {
 	gatewayId := fmt.Sprintf("0x%v", hex.EncodeToString(deposit.OrderId[:]))
 
-
 	if ServerConf.Environment == "production" {
-		ok, err := s.checkCompliance(network.RPCEndpoint, deposit.Raw.TxHash.Hex())
+		ok, err := s.checkAMLCompliance(network.RPCEndpoint, deposit.Raw.TxHash.Hex())
 		if err != nil {
-			logger.Errorf("CreateLockPaymentOrder.checkCompliance: %v", err)
+			logger.Errorf("CreateLockPaymentOrder.checkAMLCompliance: %v", err)
 		}
 
 		if !ok {
@@ -1079,39 +1078,36 @@ func (s *IndexerService) splitLockPaymentOrder(ctx context.Context, lockPaymentO
 	return nil
 }
 
-type Response struct {
-	Transaction Transaction `json:"transaction"`
-	Decision    string      `json:"decision"`
-}
+// checkAMLCompliance checks if a transaction is compliant with AML rules
+func (s *IndexerService) checkAMLCompliance(network string, txHash string) (bool, error) {
+	type Transaction struct {
+		Kind int         `json:"__kind"`
+		Data interface{} `json:"data"`
+	}
 
-type Transaction struct {
-	Kind int         `json:"__kind"`
-	Data interface{} `json:"data"`
-}
+	type Response struct {
+		Transaction Transaction `json:"transaction"`
+		Decision    string      `json:"decision"`
+	}
 
-func (s *IndexerService) checkCompliance(network string, txHash string) (bool, error) {
-
-	// Make RPC call to shield here
+	// Make RPC call to Shield3 here
 	client, err := rpc.Dial(network)
 	if err != nil {
-		logger.Errorf("indexer.checkCompliance: failed to connect to RPC client: %v", err)
-		return false, err
+		return false, fmt.Errorf("failed to connect to RPC client: %v", err)
 	}
 
 	var result json.RawMessage
 	err = client.Call(&result, "eth_backfillTransaction", txHash)
-
 	if err != nil {
-		logger.Errorf("indexer.checkCompliance: RPC error: %v", err)
-		return false, err
+		return false, fmt.Errorf("failed to backfill transaction: %v", err)
 	}
 
 	var backfillTransaction Response
 	err = json.Unmarshal(result, &backfillTransaction)
 	if err != nil {
-		logger.Errorf("indexer.checkCompliance: failed to unmarshal response: %v", err)
-		return false, err
+		return false, fmt.Errorf("failed to unmarshal response: %v", err)
 	}
+
 	if backfillTransaction.Decision == "Allow" {
 		return true, nil
 	}
