@@ -516,7 +516,7 @@ func (ctrl *ProviderController) Stats(ctx *gin.Context) {
 
 	query := storage.Client.LockPaymentOrder.
 		Query().
-		Where(lockpaymentorder.HasProviderWith(providerprofile.IDEQ(provider.ID)))
+		Where(lockpaymentorder.HasProviderWith(providerprofile.IDEQ(provider.ID)), lockpaymentorder.StatusEQ(lockpaymentorder.StatusSettled))
 
 	err := query.
 		Aggregate(
