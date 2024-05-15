@@ -19,6 +19,7 @@ import (
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	networkent "github.com/paycrest/protocol/ent/network"
 	"github.com/paycrest/protocol/ent/paymentorder"
+	"github.com/paycrest/protocol/ent/paymentorderrecipient"
 	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/provisionbucket"
 	"github.com/paycrest/protocol/ent/receiveaddress"
@@ -791,24 +792,32 @@ func (s *IndexerService) UpdateReceiveAddressStatus(
 		orderAmountWithFeesInSubunit := utils.ToSubunit(orderAmountWithFees, paymentOrder.Edges.Token.Decimals)
 		comparisonResult := event.Value.Cmp(orderAmountWithFeesInSubunit)
 
-		paymentOrderUpdate := paymentOrder.Update()
+		paymentOrderUpdate := db.Client.PaymentOrder.Update().Where(paymentorder.IDEQ(paymentOrder.ID))
 		if paymentOrder.ReturnAddress == "" {
 			paymentOrderUpdate = paymentOrderUpdate.SetReturnAddress(event.From.Hex())
 		}
 
 		orderRecipient := paymentOrder.Edges.Recipient
-		if strings.HasPrefix(orderRecipient.Memo, "P#P") {
+		if strings.HasPrefix(orderRecipient.Memo, "P#P") && orderRecipient.ProviderID != "" && comparisonResult != 0 {
 			// This is a P2P order created from the provider dashboard. No reverts are allowed
 			// Hence, the order amount will be updated to whatever amount was sent to the receive address
 			memo, _ := strings.CutPrefix(orderRecipient.Memo, "P#P")
-			orderRecipient.Memo = memo
+			_, err := db.Client.PaymentOrderRecipient.
+				Update().
+				Where(
+					paymentorderrecipient.IDEQ(orderRecipient.ID),
+				).
+				SetMemo(memo).
+				Save(ctx)
+			if err != nil {
+				return true, fmt.Errorf("UpdateReceiveAddressStatus.db: %v", err)
+			}
 
-			// order amount = (indexed amount) / (1 + protocol fee percent)
+			// updated order amount = (indexed amount) / (1 + protocol fee percent)
 			// TODO: get protocol fee from contract -- currently 0.1%
 			orderAmount := utils.FromSubunit(event.Value, paymentOrder.Edges.Token.Decimals).Div(decimal.NewFromFloat(1.001))
-			paymentOrderUpdate = paymentOrderUpdate.SetAmount(orderAmount)
-			paymentOrderUpdate.SetProtocolFee(orderAmount.Mul(decimal.NewFromFloat(0.001)))
-			paymentOrderUpdate.SetRecipient(orderRecipient)
+			paymentOrderUpdate.SetAmount(orderAmount.Round(int32(paymentOrder.Edges.Token.Decimals)))
+			paymentOrderUpdate.SetProtocolFee(orderAmount.Mul(decimal.NewFromFloat(0.001)).Round(int32(paymentOrder.Edges.Token.Decimals)))
 
 			// Update the rate with the current rate if order is older than 30 mins
 			if paymentOrder.CreatedAt.Before(time.Now().Add(-30 * time.Minute)) {
@@ -837,7 +846,7 @@ func (s *IndexerService) UpdateReceiveAddressStatus(
 			comparisonResult = 0
 		}
 
-		paymentOrder, err = paymentOrderUpdate.
+		_, err = paymentOrderUpdate.
 			SetFromAddress(event.From.Hex()).
 			SetTxHash(event.Raw.TxHash.Hex()).
 			AddAmountPaid(utils.FromSubunit(event.Value, paymentOrder.Edges.Token.Decimals)).

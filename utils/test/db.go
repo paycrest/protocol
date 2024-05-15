@@ -58,7 +58,7 @@ func CreateERC20Token(client types.RPCClient, overrides map[string]interface{}) 
 	payload := map[string]interface{}{
 		"symbol":           "TST",
 		"contract_address": deployedTokenAddress.Hex(),
-		"decimals":         18,
+		"decimals":         6,
 		"networkRPC":       "ws://localhost:8545",
 		"is_enabled":       true,
 		"identifier":       "localhost" + uuid.New().String(),
