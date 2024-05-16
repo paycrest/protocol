@@ -259,6 +259,7 @@ func IndexMissedBlocks() error {
 				).
 				WithToken().
 				WithReceiveAddress().
+				WithRecipient().
 				All(ctx)
 			if err != nil {
 				logger.Errorf("IndexMissedBlocks: %v", err)
