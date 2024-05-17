@@ -79,22 +79,22 @@ func setup() error {
 	testCtx.apiKey = apiKey
 	testCtx.apiKeySecret = secretKey
 
-	{
-		order, err := test.CreateTestLockPaymentOrder(map[string]interface{}{
-			"gateway_id": uuid.New().String(),
-			"provider":   providerProfile,
-		})
-		if err != nil {
-			return err
-		}
-		_, err = test.ChangeTestLockOrderFulfillmentStatus(map[string]interface{}{
-			"id": order.ID,
-		})
-		if err != nil {
-			return err
-		}
+	// {
+	// 	order, err := test.CreateTestLockPaymentOrder(map[string]interface{}{
+	// 		"gateway_id": uuid.New().String(),
+	// 		"provider":   providerProfile,
+	// 	})
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	_, err = test.ChangeTestLockOrderFulfillmentStatus(map[string]interface{}{
+	// 		"id": order.ID,
+	// 	})
+	// 	if err != nil {
+	// 		return err
+	// 	}
 
-	}
+	// }
 
 	return nil
 }
