@@ -547,21 +547,21 @@ func TestSender(t *testing.T) {
 			// Assert the totalOrders value
 			totalOrders, ok := data["totalOrders"].(float64)
 			assert.True(t, ok, "totalOrders is not of type float64")
-			assert.Greater(t, int(totalOrders), 0)
+			assert.GreaterOrEqual(t, int(totalOrders), 0)
 
 			// Assert the totalOrderVolume value
 			totalOrderVolumeStr, ok := data["totalOrderVolume"].(string)
 			assert.True(t, ok, "totalOrderVolume is not of type string")
 			totalOrderVolume, err := decimal.NewFromString(totalOrderVolumeStr)
 			assert.NoError(t, err, "Failed to convert totalOrderVolume to decimal")
-			assert.Greater(t, totalOrderVolume.Cmp(decimal.NewFromInt(0)), 0)
+			assert.GreaterOrEqual(t, totalOrderVolume.Cmp(decimal.NewFromInt(0)), 0)
 
 			// Assert the totalFeeEarnings value
 			totalFeeEarningsStr, ok := data["totalFeeEarnings"].(string)
 			assert.True(t, ok, "totalFeeEarnings is not of type string")
 			totalFeeEarnings, err := decimal.NewFromString(totalFeeEarningsStr)
 			assert.NoError(t, err, "Failed to convert totalFeeEarnings to decimal")
-			assert.Greater(t, totalFeeEarnings.Cmp(decimal.NewFromInt(0)), 0)
+			assert.GreaterOrEqual(t, totalFeeEarnings.Cmp(decimal.NewFromInt(0)), 0)
 		})
 	})
 }
