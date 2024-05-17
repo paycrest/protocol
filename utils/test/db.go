@@ -156,6 +156,23 @@ func CreateTestLockPaymentOrder(overrides map[string]interface{}) (*ent.LockPaym
 	return order, err
 }
 
+// ChangeTestLockOrderFulfillmentStatus marked an order with a designated status
+func ChangeTestLockOrderFulfillmentStatus(overrides map[string]interface{}) (*ent.LockPaymentOrder, error) {
+
+	// Default payload
+	payload := map[string]interface{}{
+		"id":     "order-123",
+		"status": lockpaymentorder.StatusSettled,
+	}
+
+	// Create LockPaymentOrder
+	order, err := db.Client.LockPaymentOrder.
+		UpdateOneID(payload["id"].(uuid.UUID)).
+		SetStatus(payload["status"].(lockpaymentorder.Status)).
+		Save(context.Background())
+	return order, err
+}
+
 // CreateTestLockOrderFulfillment creates a test LockOrderFulfillment with defaults or custom values
 func CreateTestLockOrderFulfillment(overrides map[string]interface{}) (*ent.LockOrderFulfillment, error) {
 

@@ -58,7 +58,7 @@ func setup() error {
 	for i := 0; i < 10; i++ {
 		_, err := test.CreateTestLockPaymentOrder(map[string]interface{}{
 			"gateway_id": uuid.New().String(),
-			"provider": providerProfile,
+			"provider":   providerProfile,
 		})
 		if err != nil {
 			return err
@@ -78,6 +78,23 @@ func setup() error {
 
 	testCtx.apiKey = apiKey
 	testCtx.apiKeySecret = secretKey
+
+	{
+		order, err := test.CreateTestLockPaymentOrder(map[string]interface{}{
+			"gateway_id": uuid.New().String(),
+			"provider":   providerProfile,
+		})
+		if err != nil {
+			return err
+		}
+		_, err = test.ChangeTestLockOrderFulfillmentStatus(map[string]interface{}{
+			"id": order.ID,
+		})
+		if err != nil {
+			return err
+		}
+
+	}
 
 	return nil
 }
