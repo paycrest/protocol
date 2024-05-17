@@ -3,10 +3,12 @@ package services
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	mailgunv3 "github.com/mailgun/mailgun-go/v3"
 	"github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
+	"golang.org/x/net/html"
 
 	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/types"
@@ -65,31 +67,44 @@ func (m *EmailService) SendEmail(ctx context.Context, payload types.SendEmailPay
 
 // SendVerificationEmail performs the actions for sending a verification token to the user email.
 func (m *EmailService) SendVerificationEmail(ctx context.Context, token, email string) (types.SendEmailResponse, error) {
-	// TODO: add custom HTML email verification template.
 	bodyTemplate := fmt.Sprintf("Verification Token: %s", token)
+
+	htmlStr := fmt.Sprintf("<div> %s </div>", bodyTemplate)
+	// custom HTML email verification template.
+	_, err := html.Parse(strings.NewReader(htmlStr))
+
+	if err != nil {
+		return types.SendEmailResponse{}, fmt.Errorf(`can't pass html string %v`, err)
+	}
 
 	payload := types.SendEmailPayload{
 		FromAddress: _DefaultFromAddress,
 		ToAddress:   email,
 		Subject:     _EmailVerificationSubject,
 		Body:        bodyTemplate,
-		HTMLBody:    fmt.Sprintf("<div> %s </div>", bodyTemplate),
+		HTMLBody:    htmlStr,
 	}
 	return m.SendEmail(ctx, payload)
 }
 
 // SendPasswordResetEmail performs the actions for sending a password reset token to the user email.
 func (m *EmailService) SendPasswordResetEmail(ctx context.Context, token, email string) (types.SendEmailResponse, error) {
-	// TODO: add custom HTML email verification template.
 	body := fmt.Sprintf("Please confirm your password reset request with this token: %s", token)
-	htmlBody := ""
+
+	htmlStr := fmt.Sprintf("<div> %s </div>", "")
+	// custom HTML email verification template.
+	_, err := html.Parse(strings.NewReader(htmlStr))
+
+	if err != nil {
+		return types.SendEmailResponse{}, fmt.Errorf(`can't pass html string %v`, err)
+	}
 
 	payload := types.SendEmailPayload{
 		FromAddress: _DefaultFromAddress,
 		ToAddress:   email,
 		Subject:     _PasswordResetEmailSubject,
 		Body:        body,
-		HTMLBody:    htmlBody,
+		HTMLBody:    htmlStr,
 	}
 	return m.SendEmail(ctx, payload)
 }
