@@ -129,7 +129,7 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 		}
 
 		if !isTokenNetworkPresent {
-			u.APIResponse(ctx, http.StatusBadRequest, "error", "The network selected is not supported by the specified provider", nil)
+			u.APIResponse(ctx, http.StatusBadRequest, "error", "The selected network is not supported by the specified provider", nil)
 			return
 		}
 
