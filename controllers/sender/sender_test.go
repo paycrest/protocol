@@ -191,10 +191,59 @@ func TestSender(t *testing.T) {
 	var paymentOrderUUID uuid.UUID
 
 	t.Run("InitiatePaymentOrder", func(t *testing.T) {
-		for i := 0; i < 10; i++ {
-			createPaymentOrder(t, router)
-		}
-		paymentOrderUUID = testCtx.paymentOrderUUID
+		t.Run("when InitiatePaymentOrder succeeds", func(t *testing.T) {
+			for i := 0; i < 10; i++ {
+				createPaymentOrder(t, router)
+			}
+			paymentOrderUUID = testCtx.paymentOrderUUID
+		})
+
+		t.Run("when token is disabled", func(t *testing.T) {
+
+			test.ChangeTestTokenStatus(testCtx.token.ID, false)
+			// Fetch network from db
+			network, err := db.Client.Network.
+				Query().
+				Where(network.IdentifierEQ(testCtx.networkIdentifier)).
+				Only(context.Background())
+			assert.NoError(t, err)
+
+			r := rand.New(rand.NewSource(int64(new(maphash.Hash).Sum64())))
+
+			payload := map[string]interface{}{
+				"amount":  "100",
+				"token":   testCtx.token.Symbol,
+				"rate":    "750",
+				"network": network.Identifier,
+				"recipient": map[string]interface{}{
+					"institution":       "ABNGNGLA",
+					"accountIdentifier": "1234567890",
+					"accountName":       "John Doe",
+					"memo":              "Shola Kehinde - rent for May 2021",
+				},
+				"label":     fmt.Sprintf("%d", r.Intn(100000)),
+				"timestamp": time.Now().Unix(),
+			}
+
+			signature := token.GenerateHMACSignature(payload, testCtx.apiKeySecret)
+
+			headers := map[string]string{
+				"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
+			}
+
+			res, err := test.PerformRequest(t, "POST", "/orders", payload, headers, router)
+			assert.NoError(t, err)
+
+			fmt.Println(res.Result().Body)
+			// Assert the response body
+			assert.Equal(t, http.StatusBadRequest, res.Code)
+
+			var response types.Response
+			err = json.Unmarshal(res.Body.Bytes(), &response)
+			assert.NoError(t, err)
+			assert.Equal(t, "The selected Token has been disabled", response.Message)
+			test.ChangeTestTokenStatus(testCtx.token.ID, true)
+		})
 	})
 
 	t.Run("GetPaymentOrderByID", func(t *testing.T) {
@@ -520,6 +569,51 @@ func TestSender(t *testing.T) {
 		})
 
 		t.Run("when orders have been initiated", func(t *testing.T) {
+			var payload = map[string]interface{}{
+				"timestamp": time.Now().Unix(),
+			}
+
+			signature := token.GenerateHMACSignature(payload, testCtx.apiKeySecret)
+
+			headers := map[string]string{
+				"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
+			}
+
+			res, err := test.PerformRequest(t, "GET", "/stats", payload, headers, router)
+			assert.NoError(t, err)
+
+			// Assert the response body
+			assert.Equal(t, http.StatusOK, res.Code)
+
+			var response types.Response
+			err = json.Unmarshal(res.Body.Bytes(), &response)
+			assert.NoError(t, err)
+			assert.Equal(t, "Sender stats retrieved successfully", response.Message)
+			data, ok := response.Data.(map[string]interface{})
+			assert.True(t, ok, "response.Data is of not type map[string]interface{}")
+			assert.NotNil(t, data, "response.Data is nil")
+
+			// Assert the totalOrders value
+			totalOrders, ok := data["totalOrders"].(float64)
+			assert.True(t, ok, "totalOrders is not of type float64")
+			assert.Greater(t, int(totalOrders), 0)
+
+			// Assert the totalOrderVolume value
+			totalOrderVolumeStr, ok := data["totalOrderVolume"].(string)
+			assert.True(t, ok, "totalOrderVolume is not of type string")
+			totalOrderVolume, err := decimal.NewFromString(totalOrderVolumeStr)
+			assert.NoError(t, err, "Failed to convert totalOrderVolume to decimal")
+			assert.Greater(t, totalOrderVolume.Cmp(decimal.NewFromInt(0)), 0)
+
+			// Assert the totalFeeEarnings value
+			totalFeeEarningsStr, ok := data["totalFeeEarnings"].(string)
+			assert.True(t, ok, "totalFeeEarnings is not of type string")
+			totalFeeEarnings, err := decimal.NewFromString(totalFeeEarningsStr)
+			assert.NoError(t, err, "Failed to convert totalFeeEarnings to decimal")
+			assert.Greater(t, totalFeeEarnings.Cmp(decimal.NewFromInt(0)), 0)
+		})
+
+		t.Run("when token is disabled", func(t *testing.T) {
 			var payload = map[string]interface{}{
 				"timestamp": time.Now().Unix(),
 			}

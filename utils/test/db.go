@@ -105,6 +105,11 @@ func CreateERC20Token(client types.RPCClient, overrides map[string]interface{}) 
 	return token, err
 }
 
+func ChangeTestTokenStatus(tokenID int, status bool) (*ent.Token, error) {
+	token, err := db.Client.Token.UpdateOneID(tokenID).SetIsEnabled(status).Save(context.Background())
+	return token, err
+}
+
 // CreateTestLockPaymentOrder creates a test LockPaymentOrder with default or custom values
 func CreateTestLockPaymentOrder(overrides map[string]interface{}) (*ent.LockPaymentOrder, error) {
 
