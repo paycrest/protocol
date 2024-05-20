@@ -85,16 +85,10 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 		Where(
 			token.SymbolEQ(payload.Token),
 			token.HasNetworkWith(network.IdentifierEQ(payload.Network)),
+			token.IsEnabledEQ(true),
 		).
 		WithNetwork().
 		Only(ctx)
-	if !token.IsEnabled {
-		u.APIResponse(ctx, http.StatusBadRequest, "error", "The selected Token has been disabled", types.ErrorData{
-			Field:   "Token",
-			Message: "Provided token is not supported",
-		})
-		return
-	}
 	if err != nil {
 		u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
 			Field:   "Token",
