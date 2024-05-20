@@ -508,19 +508,16 @@ func (ctrl *ProviderController) Stats(ctx *gin.Context) {
 	provider := providerCtx.(*ent.ProviderProfile)
 
 	// Fetch provider stats
-	var v []struct {
-		Count int
-		Sum   decimal.Decimal
-	}
-	var totalFiatVolume decimal.Decimal
-
 	query := storage.Client.LockPaymentOrder.
 		Query().
 		Where(lockpaymentorder.HasProviderWith(providerprofile.IDEQ(provider.ID)), lockpaymentorder.StatusEQ(lockpaymentorder.StatusSettled))
 
+	var v []struct {
+		Sum decimal.Decimal
+	}
+
 	err := query.
 		Aggregate(
-			ent.Count(),
 			ent.Sum(lockpaymentorder.FieldAmount),
 		).
 		Scan(ctx, &v)
@@ -530,19 +527,31 @@ func (ctrl *ProviderController) Stats(ctx *gin.Context) {
 		return
 	}
 
-	orders, err := query.All(ctx)
+	settledOrders, err := query.
+		All(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch provider stats", nil)
 		return
 	}
 
-	for _, order := range orders {
+	var totalFiatVolume decimal.Decimal
+	for _, order := range settledOrders {
 		totalFiatVolume = totalFiatVolume.Add(order.Amount.Mul(order.Rate).RoundBank(0))
 	}
 
+	count, err := storage.Client.LockPaymentOrder.
+		Query().
+		Where(lockpaymentorder.HasProviderWith(providerprofile.IDEQ(provider.ID))).
+		Count(ctx)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch provider stats", nil)
+		return
+	}
+
 	u.APIResponse(ctx, http.StatusOK, "success", "Provider stats fetched successfully", &types.ProviderStatsResponse{
-		TotalOrders:       v[0].Count,
+		TotalOrders:       count,
 		TotalFiatVolume:   totalFiatVolume,
 		TotalCryptoVolume: v[0].Sum,
 	})

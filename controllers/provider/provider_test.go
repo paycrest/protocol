@@ -27,10 +27,11 @@ import (
 )
 
 var testCtx = struct {
-	user         *ent.User
-	apiKey       *ent.APIKey
-	apiKeySecret string
-	lockOrder    *ent.LockPaymentOrder
+	user            *ent.User
+	providerProfile *ent.ProviderProfile
+	apiKey          *ent.APIKey
+	apiKeySecret    string
+	lockOrder       *ent.LockPaymentOrder
 }{}
 
 func setup() error {
@@ -54,6 +55,7 @@ func setup() error {
 	if err != nil {
 		return err
 	}
+	testCtx.providerProfile = providerProfile
 
 	for i := 0; i < 10; i++ {
 		_, err := test.CreateTestLockPaymentOrder(map[string]interface{}{
@@ -79,16 +81,16 @@ func setup() error {
 	testCtx.apiKey = apiKey
 	testCtx.apiKeySecret = secretKey
 
-	{
-		_, err := test.CreateTestLockPaymentOrder(map[string]interface{}{
-			"gateway_id": uuid.New().String(),
-			"provider":   providerProfile,
-			"status":     "settled",
-		})
-		if err != nil {
-			return err
-		}
-	}
+	// {
+	// 	_, err := test.CreateTestLockPaymentOrder(map[string]interface{}{
+	// 		"gateway_id": uuid.New().String(),
+	// 		"provider":   providerProfile,
+	// 		"status":     "settled",
+	// 	})
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// }
 
 	return nil
 }
@@ -362,8 +364,14 @@ func TestProvider(t *testing.T) {
 			assert.Equal(t, totalCryptoVolume, decimal.NewFromInt(0))
 		})
 
-		t.Run("when orders have been initiated", func(t *testing.T) {
-			// Test default params
+		t.Run("should only calculate volumes of settled orders", func(t *testing.T) {
+			// Create a settled order
+			_, err := test.CreateTestLockPaymentOrder(map[string]interface{}{
+				"gateway_id": uuid.New().String(),
+				"provider":   testCtx.providerProfile,
+				"status":     "settled",
+			})
+			assert.NoError(t, err)
 			var payload = map[string]interface{}{
 				"timestamp": time.Now().Unix(),
 			}
@@ -392,21 +400,27 @@ func TestProvider(t *testing.T) {
 			// Assert the totalOrders value
 			totalOrders, ok := data["totalOrders"].(float64)
 			assert.True(t, ok, "totalOrders is not of type float64")
-			assert.Greater(t, int(totalOrders), 0)
+			assert.Equal(t, 11, int(totalOrders))
 
 			// Assert the totalFiatVolume value
 			totalFiatVolumeStr, ok := data["totalFiatVolume"].(string)
 			assert.True(t, ok, "totalFiatVolume is not of type string")
 			totalFiatVolume, err := decimal.NewFromString(totalFiatVolumeStr)
 			assert.NoError(t, err, "Failed to convert totalFiatVolume to decimal")
-			assert.Greater(t, totalFiatVolume.Cmp(decimal.NewFromInt(0)), 0)
+
+			expectedTotalFiatVolume, err := decimal.NewFromString("75375")
+			assert.NoError(t, err, "Failed to convert expectedTotalFiatVolume to decimal")
+			assert.Equal(t, 0, totalFiatVolume.Cmp(expectedTotalFiatVolume))
 
 			// Assert the totalCryptoVolume value
 			totalCryptoVolumeStr, ok := data["totalCryptoVolume"].(string)
 			assert.True(t, ok, "totalCryptoVolume is not of type string")
 			totalCryptoVolume, err := decimal.NewFromString(totalCryptoVolumeStr)
 			assert.NoError(t, err, "Failed to convert totalCryptoVolume to decimal")
-			assert.Greater(t, totalCryptoVolume.Cmp(decimal.NewFromInt(0)), 0)
+
+			expectedTotalCryptoVolume, err := decimal.NewFromString("100.5")
+			assert.NoError(t, err, "Failed to convert expectedTotalCryptoVolume to decimal")
+			assert.Equal(t, 0, totalCryptoVolume.Cmp(expectedTotalCryptoVolume))
 		})
 	})
 

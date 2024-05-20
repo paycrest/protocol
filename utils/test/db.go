@@ -156,16 +156,6 @@ func CreateTestLockPaymentOrder(overrides map[string]interface{}) (*ent.LockPaym
 	return order, err
 }
 
-// ChangeTestLockOrderFulfillmentStatus marked an order with a designated status
-func ChangeTestLockOrderFulfillmentStatus(id uuid.UUID, status lockpaymentorder.Status) (*ent.LockPaymentOrder, error) {
-	// Create LockPaymentOrder
-	order, err := db.Client.LockPaymentOrder.
-		UpdateOneID(id).
-		SetStatus(status).
-		Save(context.Background())
-	return order, err
-}
-
 // CreateTestLockOrderFulfillment creates a test LockOrderFulfillment with defaults or custom values
 func CreateTestLockOrderFulfillment(overrides map[string]interface{}) (*ent.LockOrderFulfillment, error) {
 
