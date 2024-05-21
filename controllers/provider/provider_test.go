@@ -32,6 +32,7 @@ var testCtx = struct {
 	apiKey          *ent.APIKey
 	apiKeySecret    string
 	lockOrder       *ent.LockPaymentOrder
+	token           *ent.Token
 }{}
 
 func setup() error {
@@ -57,8 +58,15 @@ func setup() error {
 	}
 	testCtx.providerProfile = providerProfile
 
+	// Create test token
+	backend, _ := test.SetUpTestBlockchain()
+	token, err := test.CreateERC20Token(backend, nil)
+	if err != nil {
+		return err
+	}
+	testCtx.token = token
 	for i := 0; i < 10; i++ {
-		_, err := test.CreateTestLockPaymentOrder(map[string]interface{}{
+		_, err := test.CreateTestLockPaymentOrder(token, map[string]interface{}{
 			"gateway_id": uuid.New().String(),
 			"provider":   providerProfile,
 		})
@@ -355,7 +363,7 @@ func TestProvider(t *testing.T) {
 
 		t.Run("should only calculate volumes of settled orders", func(t *testing.T) {
 			// Create a settled order
-			_, err := test.CreateTestLockPaymentOrder(map[string]interface{}{
+			_, err := test.CreateTestLockPaymentOrder(testCtx.token, map[string]interface{}{
 				"gateway_id": uuid.New().String(),
 				"provider":   testCtx.providerProfile,
 				"status":     "settled",

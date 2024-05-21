@@ -47,6 +47,7 @@ func DeployERC20Contract(client types.RPCClient) (*common.Address, error) {
 	// Deploy the contract
 	address, tx, _, err := contracts.DeployERC20Token(auth, client.(bind.ContractBackend), initialSupply)
 	if err != nil {
+		log.Fatalf("Tx DeployERC20Token failed: %v", err)
 		return nil, err
 	}
 

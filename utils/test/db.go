@@ -108,7 +108,7 @@ func CreateERC20Token(client types.RPCClient, overrides map[string]interface{}) 
 }
 
 // CreateTestLockPaymentOrder creates a test LockPaymentOrder with default or custom values
-func CreateTestLockPaymentOrder(overrides map[string]interface{}) (*ent.LockPaymentOrder, error) {
+func CreateTestLockPaymentOrder(token *ent.Token,overrides map[string]interface{}) (*ent.LockPaymentOrder, error) {
 
 	// Default payload
 	payload := map[string]interface{}{
@@ -134,10 +134,6 @@ func CreateTestLockPaymentOrder(overrides map[string]interface{}) (*ent.LockPaym
 	for key, value := range overrides {
 		payload[key] = value
 	}
-
-	// Create test token
-	backend, _ := SetUpTestBlockchain()
-	token, _ := CreateERC20Token(backend, nil)
 
 	// Create LockPaymentOrder
 	order, err := db.Client.LockPaymentOrder.
@@ -224,31 +220,31 @@ func CreateTestPaymentOrder(client types.RPCClient, token *ent.Token, overrides 
 }
 
 // CreateTestLockOrderFulfillment creates a test LockOrderFulfillment with defaults or custom values
-func CreateTestLockOrderFulfillment(overrides map[string]interface{}) (*ent.LockOrderFulfillment, error) {
+// func CreateTestLockOrderFulfillment(overrides map[string]interface{}) (*ent.LockOrderFulfillment, error) {
 
-	// Default payload
-	payload := map[string]interface{}{
-		"tx_id":             "0x123...",
-		"validation_errors": []string{},
-	}
+// 	// Default payload
+// 	payload := map[string]interface{}{
+// 		"tx_id":             "0x123...",
+// 		"validation_errors": []string{},
+// 	}
 
-	// Apply overrides
-	for key, value := range overrides {
-		payload[key] = value
-	}
+// 	// Apply overrides
+// 	for key, value := range overrides {
+// 		payload[key] = value
+// 	}
 
-	// Create lock order
-	order, _ := CreateTestLockPaymentOrder(nil)
+// 	// Create lock order
+// 	order, _ := CreateTestLockPaymentOrder(nil)
 
-	// Create LockOrderFulfillment
-	fulfillment, err := db.Client.LockOrderFulfillment.
-		Create().
-		SetTxID(payload["tx_id"].(string)).
-		SetOrderID(order.ID).
-		Save(context.Background())
+// 	// Create LockOrderFulfillment
+// 	fulfillment, err := db.Client.LockOrderFulfillment.
+// 		Create().
+// 		SetTxID(payload["tx_id"].(string)).
+// 		SetOrderID(order.ID).
+// 		Save(context.Background())
 
-	return fulfillment, err
-}
+// 	return fulfillment, err
+// }
 
 // CreateTestSenderProfile creates a test SenderProfile with defaults or custom values
 func CreateTestSenderProfile(overrides map[string]interface{}) (*ent.SenderProfile, error) {
