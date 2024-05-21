@@ -518,6 +518,50 @@ func TestSender(t *testing.T) {
 			assert.Equal(t, totalFeeEarnings, decimal.NewFromInt(0))
 		})
 
+		t.Run("when orders have been initiated", func(t *testing.T) {
+			var payload = map[string]interface{}{
+				"timestamp": time.Now().Unix(),
+			}
+
+			signature := token.GenerateHMACSignature(payload, testCtx.apiKeySecret)
+
+			headers := map[string]string{
+				"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
+			}
+
+			res, err := test.PerformRequest(t, "GET", "/stats", payload, headers, router)
+			assert.NoError(t, err)
+
+			// Assert the response body
+			assert.Equal(t, http.StatusOK, res.Code)
+
+			var response types.Response
+			err = json.Unmarshal(res.Body.Bytes(), &response)
+			assert.NoError(t, err)
+			assert.Equal(t, "Sender stats retrieved successfully", response.Message)
+			data, ok := response.Data.(map[string]interface{})
+			assert.True(t, ok, "response.Data is of not type map[string]interface{}")
+			assert.NotNil(t, data, "response.Data is nil")
+
+			// Assert the totalOrders value
+			totalOrders, ok := data["totalOrders"].(float64)
+			assert.True(t, ok, "totalOrders is not of type float64")
+			assert.Equal(t, 10, int(totalOrders))
+
+			// Assert the totalOrderVolume value
+			totalOrderVolumeStr, ok := data["totalOrderVolume"].(string)
+			assert.True(t, ok, "totalOrderVolume is not of type string")
+			totalOrderVolume, err := decimal.NewFromString(totalOrderVolumeStr)
+			assert.NoError(t, err, "Failed to convert totalOrderVolume to decimal")
+			assert.Equal(t, totalOrderVolume.Cmp(decimal.NewFromInt(0)), 0)
+
+			// Assert the totalFeeEarnings value
+			totalFeeEarningsStr, ok := data["totalFeeEarnings"].(string)
+			assert.True(t, ok, "totalFeeEarnings is not of type string")
+			totalFeeEarnings, err := decimal.NewFromString(totalFeeEarningsStr)
+			assert.NoError(t, err, "Failed to convert totalFeeEarnings to decimal")
+			assert.Equal(t, totalFeeEarnings.Cmp(decimal.NewFromInt(0)), 0)
+		})
 		t.Run("should only calculate volumes of settled orders", func(t *testing.T) {
 
 			// create settled Order
@@ -571,7 +615,7 @@ func TestSender(t *testing.T) {
 			assert.True(t, ok, "totalFeeEarnings is not of type string")
 			totalFeeEarnings, err := decimal.NewFromString(totalFeeEarningsStr)
 			assert.NoError(t, err, "Failed to convert totalFeeEarnings to decimal")
-			assert.Equal(t, 0, totalFeeEarnings.Cmp(decimal.NewFromFloat(1.333334)))
+			assert.Equal(t, 0, totalFeeEarnings.Cmp(decimal.NewFromFloat(0.666667)))
 		})
 	})
 }
