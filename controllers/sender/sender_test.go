@@ -37,6 +37,7 @@ var testCtx = struct {
 	networkIdentifier string
 }{}
 
+
 func setup() error {
 	// Set up test data
 	user, err := test.CreateTestUser(nil)
@@ -46,7 +47,7 @@ func setup() error {
 
 	senderProfile, err := test.CreateTestSenderProfile(map[string]interface{}{
 		"user_id":            user.ID,
-		"fee_per_token_unit": 1.5,
+		"fee_per_token_unit": "5",
 	})
 	if err != nil {
 		return err
@@ -462,7 +463,7 @@ func TestSender(t *testing.T) {
 
 			senderProfile, err := test.CreateTestSenderProfile(map[string]interface{}{
 				"user_id":            user.ID,
-				"fee_per_token_unit": 1.5,
+				"fee_per_token_unit": "5",
 			})
 			if err != nil {
 				return

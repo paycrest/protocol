@@ -58,12 +58,14 @@ func authRoutes(route *gin.Engine) {
 
 	v1.GET(
 		"settings/provider",
+		middleware.OnlyWebMiddleware,
 		middleware.JWTMiddleware,
 		middleware.OnlyProviderMiddleware,
 		profileCtrl.GetProviderProfile,
 	)
 	v1.PATCH(
 		"settings/provider",
+		middleware.OnlyWebMiddleware,
 		middleware.JWTMiddleware,
 		middleware.OnlyProviderMiddleware,
 		profileCtrl.UpdateProviderProfile,
@@ -71,12 +73,14 @@ func authRoutes(route *gin.Engine) {
 
 	v1.GET(
 		"settings/sender",
+		middleware.OnlyWebMiddleware,
 		middleware.JWTMiddleware,
 		middleware.OnlySenderMiddleware,
 		profileCtrl.GetSenderProfile,
 	)
 	v1.PATCH(
 		"settings/sender",
+		middleware.OnlyWebMiddleware,
 		middleware.JWTMiddleware,
 		middleware.OnlySenderMiddleware,
 		profileCtrl.UpdateSenderProfile,

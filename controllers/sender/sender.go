@@ -98,6 +98,7 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 	}
 
 	isPrivate := false
+	isTokenNetworkPresent := false
 	maxOrderAmount := decimal.NewFromInt(0)
 	if payload.Recipient.ProviderID != "" {
 		providerProfile, err := storage.Client.ProviderProfile.
@@ -116,6 +117,22 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 				return
 			}
 		}
+
+	out:
+		for _, orderToken := range providerProfile.Edges.OrderTokens {
+			for _, address := range orderToken.Addresses {
+				if address.Network == token.Edges.Network.Identifier {
+					isTokenNetworkPresent = true
+					break out
+				}
+			}
+		}
+
+		if !isTokenNetworkPresent {
+			u.APIResponse(ctx, http.StatusBadRequest, "error", "The selected network is not supported by the specified provider", nil)
+			return
+		}
+
 		maxOrderAmount = providerProfile.Edges.OrderTokens[0].MaxOrderAmount
 
 		if providerProfile.VisibilityMode == providerprofile.VisibilityModePrivate {

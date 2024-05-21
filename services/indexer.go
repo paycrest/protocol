@@ -19,7 +19,6 @@ import (
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	networkent "github.com/paycrest/protocol/ent/network"
 	"github.com/paycrest/protocol/ent/paymentorder"
-	"github.com/paycrest/protocol/ent/paymentorderrecipient"
 	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/provisionbucket"
 	"github.com/paycrest/protocol/ent/receiveaddress"
@@ -801,18 +800,6 @@ func (s *IndexerService) UpdateReceiveAddressStatus(
 		if strings.HasPrefix(orderRecipient.Memo, "P#P") && orderRecipient.ProviderID != "" && comparisonResult != 0 {
 			// This is a P2P order created from the provider dashboard. No reverts are allowed
 			// Hence, the order amount will be updated to whatever amount was sent to the receive address
-			memo, _ := strings.CutPrefix(orderRecipient.Memo, "P#P")
-			_, err := db.Client.PaymentOrderRecipient.
-				Update().
-				Where(
-					paymentorderrecipient.IDEQ(orderRecipient.ID),
-				).
-				SetMemo(memo).
-				Save(ctx)
-			if err != nil {
-				return true, fmt.Errorf("UpdateReceiveAddressStatus.db: %v", err)
-			}
-
 			// updated order amount = (indexed amount) / (1 + protocol fee percent)
 			// TODO: get protocol fee from contract -- currently 0.1%
 			orderAmount := utils.FromSubunit(event.Value, paymentOrder.Edges.Token.Decimals).Div(decimal.NewFromFloat(1.001))
