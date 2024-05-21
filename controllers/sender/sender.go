@@ -100,11 +100,11 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 	isPrivate := false
 	isTokenNetworkPresent := false
 	maxOrderAmount := decimal.NewFromInt(0)
-	if payload.Recipient.ProviderID != "" {
+	if payload.Recipients[0].ProviderID != "" {
 		providerProfile, err := storage.Client.ProviderProfile.
 			Query().
 			Where(
-				providerprofile.IDEQ(payload.Recipient.ProviderID),
+				providerprofile.IDEQ(payload.Recipients[0].ProviderID),
 			).
 			WithOrderTokens().
 			Only(ctx)
@@ -230,15 +230,19 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 	}
 
 	// Create payment order recipient
-	_, err = tx.PaymentOrderRecipient.
-		Create().
-		SetInstitution(payload.Recipient.Institution).
-		SetAccountIdentifier(payload.Recipient.AccountIdentifier).
-		SetAccountName(payload.Recipient.AccountName).
-		SetProviderID(payload.Recipient.ProviderID).
-		SetMemo(payload.Recipient.Memo).
-		SetPaymentOrder(paymentOrder).
-		Save(ctx)
+	recipientsCreate := make([]*ent.PaymentOrderRecipientCreate, len(payload.Recipients))
+	for i, recipient := range payload.Recipients {
+		recipientsCreate[i] = tx.PaymentOrderRecipient.
+			Create().
+			SetInstitution(recipient.Institution).
+			SetAccountIdentifier(recipient.AccountIdentifier).
+			SetAccountName(recipient.AccountName).
+			SetProviderID(recipient.ProviderID).
+			SetMemo(recipient.Memo).
+			SetPaymentOrder(paymentOrder)
+	}
+
+	_, err = tx.PaymentOrderRecipient.CreateBulk(recipientsCreate...).Save(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to initiate payment order", nil)

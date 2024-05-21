@@ -17,7 +17,8 @@ func (PaymentOrderRecipient) Fields() []ent.Field {
 		field.String("institution"),
 		field.String("account_identifier"),
 		field.String("account_name"),
-		field.String("memo").
+		field.String("memo"),
+		field.String("amount").
 			Optional(),
 		field.String("provider_id").
 			Optional(),
@@ -28,7 +29,7 @@ func (PaymentOrderRecipient) Fields() []ent.Field {
 func (PaymentOrderRecipient) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("payment_order", PaymentOrder.Type).
-			Ref("recipient").
+			Ref("recipients").
 			Unique().
 			Required(),
 	}

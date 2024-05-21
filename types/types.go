@@ -281,23 +281,24 @@ type LockPaymentOrderResponse struct {
 
 // PaymentOrderRecipient describes a payment order recipient
 type PaymentOrderRecipient struct {
-	Institution       string `json:"institution" binding:"required"`
-	AccountIdentifier string `json:"accountIdentifier" binding:"required"`
-	AccountName       string `json:"accountName" binding:"required"`
-	ProviderID        string `json:"providerId"`
-	Memo              string `json:"memo" binding:"required"`
+	Institution       string          `json:"institution" binding:"required"`
+	AccountIdentifier string          `json:"accountIdentifier" binding:"required"`
+	AccountName       string          `json:"accountName" binding:"required"`
+	Memo              string          `json:"memo" binding:"required"`
+	Amount            decimal.Decimal `json:"amount"`
+	ProviderID        string          `json:"providerId"`
 }
 
 // NewPaymentOrderPayload is the payload for the create payment order endpoint
 type NewPaymentOrderPayload struct {
-	Amount          decimal.Decimal       `json:"amount" binding:"required"`
-	Token           string                `json:"token" binding:"required"`
-	Rate            decimal.Decimal       `json:"rate" binding:"required"`
-	Network         string                `json:"network" binding:"required"`
-	Recipient       PaymentOrderRecipient `json:"recipient" binding:"required"`
-	ReturnAddress   string                `json:"returnAddress"`
-	FeePerTokenUnit decimal.Decimal       `json:"feePerTokenUnit"`
-	FeeAddress      string                `json:"feeAddress"`
+	Amount          decimal.Decimal         `json:"amount" binding:"required"`
+	Token           string                  `json:"token" binding:"required"`
+	Rate            decimal.Decimal         `json:"rate" binding:"required"`
+	Network         string                  `json:"network" binding:"required"`
+	Recipients      []PaymentOrderRecipient `json:"recipient" binding:"required"`
+	ReturnAddress   string                  `json:"returnAddress"`
+	FeePerTokenUnit decimal.Decimal         `json:"feePerTokenUnit"`
+	FeeAddress      string                  `json:"feeAddress"`
 }
 
 // ReceiveAddressResponse is the response type for a receive address
