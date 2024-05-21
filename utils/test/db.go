@@ -2,7 +2,6 @@ package test
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"github.com/google/uuid"
@@ -10,6 +9,7 @@ import (
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	"github.com/paycrest/protocol/ent/paymentorder"
 	"github.com/paycrest/protocol/ent/providerprofile"
+	"github.com/paycrest/protocol/ent/senderprofile"
 	entToken "github.com/paycrest/protocol/ent/token"
 	db "github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
@@ -178,7 +178,6 @@ func CreateTestPaymentOrder(token *ent.Token, overrides map[string]interface{}) 
 		"providerId":         "",
 	}
 
-
 	// Apply overrides
 	for key, value := range overrides {
 		payload[key] = value
@@ -284,6 +283,16 @@ func CreateTestSenderProfile(overrides map[string]interface{}) (*ent.SenderProfi
 		SetRefundAddress(payload["refund_address"].(string)).
 		SetUserID(payload["user_id"].(uuid.UUID)).
 		Save(context.Background())
+
+	if err != nil {
+		return nil, err
+	}
+
+	profile, err = db.Client.SenderProfile.
+		Query().
+		Where(senderprofile.IDEQ(profile.ID)).
+		WithUser().
+		Only(context.Background())
 
 	return profile, err
 }

@@ -521,7 +521,7 @@ func (ctrl *SenderController) Stats(ctx *gin.Context) {
 	}
 	err = storage.Client.PaymentOrder.
 		Query().
-		Where(paymentorder.HasSenderProfileWith(senderprofile.IDEQ(sender.ID)), paymentorder.StatusEQ(paymentorder.StatusSettled)).
+		Where(paymentorder.HasSenderProfileWith(senderprofile.IDEQ(sender.ID))).
 		Aggregate(
 			ent.Count(),
 			ent.Sum(paymentorder.FieldSenderFee),
