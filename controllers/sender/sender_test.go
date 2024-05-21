@@ -34,6 +34,7 @@ var testCtx = struct {
 	token             *ent.Token
 	apiKey            *ent.APIKey
 	apiKeySecret      string
+	client            types.RPCClient
 	networkIdentifier string
 }{}
 
@@ -70,6 +71,7 @@ func setup() error {
 	if err != nil {
 		return err
 	}
+	testCtx.client = backend
 
 	// Create a test token
 	testCtx.networkIdentifier = "localhost" + uuid.New().String()
@@ -82,7 +84,7 @@ func setup() error {
 	testCtx.token = token
 
 	for i := 0; i < 9; i++ {
-		_, err = test.CreateTestPaymentOrder(token, map[string]interface{}{
+		_, err = test.CreateTestPaymentOrder(backend, token, map[string]interface{}{
 			"sender": senderProfile,
 		})
 		if err != nil {
@@ -565,7 +567,7 @@ func TestSender(t *testing.T) {
 		t.Run("should only calculate volumes of settled orders", func(t *testing.T) {
 
 			// create settled Order
-			_, err := test.CreateTestPaymentOrder(testCtx.token, map[string]interface{}{
+			_, err := test.CreateTestPaymentOrder(testCtx.client, testCtx.token, map[string]interface{}{
 				"sender":             testCtx.user,
 				"amount":             100.0,
 				"token":              testCtx.token.Symbol,

@@ -159,7 +159,7 @@ func CreateTestLockPaymentOrder(overrides map[string]interface{}) (*ent.LockPaym
 }
 
 // CreateTestPaymentOrder creates a test PaymentOrder with default or custom values for sender
-func CreateTestPaymentOrder(token *ent.Token, overrides map[string]interface{}) (*ent.PaymentOrder, error) {
+func CreateTestPaymentOrder(client types.RPCClient, token *ent.Token, overrides map[string]interface{}) (*ent.PaymentOrder, error) {
 
 	// Default payload
 	payload := map[string]interface{}{
@@ -169,8 +169,6 @@ func CreateTestPaymentOrder(token *ent.Token, overrides map[string]interface{}) 
 		"fee_per_token_unit": 0.0,
 		"fee_address":        "0x1234567890123456789012345678901234567890",
 		"return_address":     "0x0987654321098765432109876543210987654321",
-		"receive_address":    "0x0987654321098765432109876543210987654321",
-		"receive_text":       "0x00",
 		"institution":        "Test Bank",
 		"account_identifier": "1234567890",
 		"account_name":       "Test Account",
@@ -183,9 +181,8 @@ func CreateTestPaymentOrder(token *ent.Token, overrides map[string]interface{}) 
 		payload[key] = value
 	}
 
-	// Create smart waller
-	backend, _ := SetUpTestBlockchain()
-	receiveAddress, _ := CreateSmartAccount(context.Background(), backend)
+	// Create smart wallet
+	receiveAddress, _ := CreateSmartAccount(context.Background(), client)
 
 	// Create payment order
 	paymentOrder, err := db.Client.PaymentOrder.
@@ -201,7 +198,7 @@ func CreateTestPaymentOrder(token *ent.Token, overrides map[string]interface{}) 
 		SetToken(token).
 		SetRate(decimal.NewFromFloat(payload["rate"].(float64))).
 		SetReceiveAddress(receiveAddress).
-		SetReceiveAddressText(payload["return_address"].(string)).
+		SetReceiveAddressText(receiveAddress.Address).
 		SetFeePerTokenUnit(decimal.NewFromFloat(payload["fee_per_token_unit"].(float64))).
 		SetFeeAddress(payload["fee_address"].(string)).
 		SetReturnAddress(payload["return_address"].(string)).
