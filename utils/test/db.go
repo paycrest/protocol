@@ -183,8 +183,6 @@ func CreateTestPaymentOrder(token *ent.Token, overrides map[string]interface{}) 
 		payload[key] = value
 	}
 
-	// fmt.Println(payload)
-
 	// Create smart waller
 	backend, _ := SetUpTestBlockchain()
 	receiveAddress, _ := CreateSmartAccount(context.Background(), backend)

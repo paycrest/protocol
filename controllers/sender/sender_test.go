@@ -37,7 +37,6 @@ var testCtx = struct {
 	networkIdentifier string
 }{}
 
-
 func setup() error {
 	// Set up test data
 	user, err := test.CreateTestUser(nil)
@@ -193,7 +192,7 @@ func TestSender(t *testing.T) {
 		assert.Equal(t, paymentOrder.Edges.Recipient.Memo, payload["recipient"].(map[string]interface{})["memo"])
 		assert.Equal(t, paymentOrder.Edges.Recipient.AccountName, payload["recipient"].(map[string]interface{})["accountName"])
 		assert.Equal(t, paymentOrder.Edges.Recipient.Institution, payload["recipient"].(map[string]interface{})["institution"])
-		assert.Equal(t, data["senderFee"], "0.2")
+		assert.Equal(t, data["senderFee"], "0.666667")
 		assert.Equal(t, data["transactionFee"], network.Fee.Add(paymentOrder.Amount.Mul(decimal.NewFromFloat(0.001))).String()) // 0.1% protocol fee
 	})
 
@@ -519,7 +518,7 @@ func TestSender(t *testing.T) {
 			assert.Equal(t, totalFeeEarnings, decimal.NewFromInt(0))
 		})
 
-		t.Run("when orders have been initiated", func(t *testing.T) {
+		t.Run("should only calculate volumes of settled orders", func(t *testing.T) {
 
 			// create settled Order
 			_, err := test.CreateTestPaymentOrder(testCtx.token, map[string]interface{}{
@@ -528,7 +527,7 @@ func TestSender(t *testing.T) {
 				"token":              testCtx.token.Symbol,
 				"rate":               750.0,
 				"status":             "settled",
-				"fee_per_token_unit": 1.5,
+				"fee_per_token_unit": 5.0,
 			})
 			assert.NoError(t, err)
 			var payload = map[string]interface{}{
@@ -554,7 +553,6 @@ func TestSender(t *testing.T) {
 			data, ok := response.Data.(map[string]interface{})
 			assert.True(t, ok, "response.Data is of not type map[string]interface{}")
 			assert.NotNil(t, data, "response.Data is nil")
-			fmt.Println(data)
 
 			// Assert the totalOrders value
 			totalOrders, ok := data["totalOrders"].(float64)
@@ -573,7 +571,7 @@ func TestSender(t *testing.T) {
 			assert.True(t, ok, "totalFeeEarnings is not of type string")
 			totalFeeEarnings, err := decimal.NewFromString(totalFeeEarningsStr)
 			assert.NoError(t, err, "Failed to convert totalFeeEarnings to decimal")
-			assert.Equal(t, 0, totalFeeEarnings.Cmp(decimal.NewFromFloat(0.4)))
+			assert.Equal(t, 0, totalFeeEarnings.Cmp(decimal.NewFromFloat(1.333334)))
 		})
 	})
 }
