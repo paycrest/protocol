@@ -2,11 +2,13 @@ package test
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/google/uuid"
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
+	"github.com/paycrest/protocol/ent/paymentorder"
 	"github.com/paycrest/protocol/ent/providerprofile"
 	entToken "github.com/paycrest/protocol/ent/token"
 	db "github.com/paycrest/protocol/storage"
@@ -154,6 +156,77 @@ func CreateTestLockPaymentOrder(overrides map[string]interface{}) (*ent.LockPaym
 		Save(context.Background())
 
 	return order, err
+}
+
+// CreateTestPaymentOrder creates a test PaymentOrder with default or custom values for sender
+func CreateTestPaymentOrder(token *ent.Token, overrides map[string]interface{}) (*ent.PaymentOrder, error) {
+
+	// Default payload
+	payload := map[string]interface{}{
+		"amount":             100.50,
+		"rate":               750.0,
+		"status":             "pending",
+		"fee_per_token_unit": 0.0,
+		"fee_address":        "0x1234567890123456789012345678901234567890",
+		"return_address":     "0x0987654321098765432109876543210987654321",
+		"receive_address":    "0x0987654321098765432109876543210987654321",
+		"receive_text":       "0x00",
+		"institution":        "Test Bank",
+		"account_identifier": "1234567890",
+		"account_name":       "Test Account",
+		"memo":               "Shola Kehinde - rent for May 2021",
+		"providerId":         "",
+	}
+
+
+	// Apply overrides
+	for key, value := range overrides {
+		payload[key] = value
+	}
+
+	// fmt.Println(payload)
+
+	// Create smart waller
+	backend, _ := SetUpTestBlockchain()
+	receiveAddress, _ := CreateSmartAccount(context.Background(), backend)
+
+	// Create payment order
+	paymentOrder, err := db.Client.PaymentOrder.
+		Create().
+		SetSenderProfile(overrides["sender"].(*ent.SenderProfile)).
+		SetAmount(decimal.NewFromFloat(payload["amount"].(float64))).
+		SetAmountPaid(decimal.NewFromInt(0)).
+		SetAmountReturned(decimal.NewFromInt(0)).
+		SetPercentSettled(decimal.NewFromInt(0)).
+		SetNetworkFee(token.Edges.Network.Fee).
+		SetProtocolFee(decimal.NewFromFloat(payload["amount"].(float64)).Mul(decimal.NewFromFloat(0.001))).
+		SetSenderFee(decimal.NewFromFloat(payload["fee_per_token_unit"].(float64)).Mul(decimal.NewFromFloat(payload["amount"].(float64))).Div(decimal.NewFromFloat(payload["rate"].(float64))).Round(int32(token.Decimals))).
+		SetToken(token).
+		SetRate(decimal.NewFromFloat(payload["rate"].(float64))).
+		SetReceiveAddress(receiveAddress).
+		SetReceiveAddressText(payload["return_address"].(string)).
+		SetFeePerTokenUnit(decimal.NewFromFloat(payload["fee_per_token_unit"].(float64))).
+		SetFeeAddress(payload["fee_address"].(string)).
+		SetReturnAddress(payload["return_address"].(string)).
+		SetStatus(paymentorder.Status(payload["status"].(string))).
+		Save(context.Background())
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Create payment order recipient
+	_, err = db.Client.PaymentOrderRecipient.
+		Create().
+		SetInstitution(payload["institution"].(string)).
+		SetAccountIdentifier(payload["account_identifier"].(string)).
+		SetAccountName(payload["account_name"].(string)).
+		SetProviderID(payload["providerId"].(string)).
+		SetMemo(payload["memo"].(string)).
+		SetPaymentOrder(paymentOrder).
+		Save(context.Background())
+
+	return paymentOrder, err
 }
 
 // CreateTestLockOrderFulfillment creates a test LockOrderFulfillment with defaults or custom values

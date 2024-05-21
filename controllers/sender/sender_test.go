@@ -81,6 +81,14 @@ func setup() error {
 	}
 	testCtx.token = token
 
+	for i := 0; i < 9; i++ {
+		_, err = test.CreateTestPaymentOrder(token, map[string]interface{}{
+			"sender": senderProfile,
+		})
+		if err != nil {
+			return err
+		}
+	}
 	testCtx.apiKeySecret = secretKey
 
 	return nil

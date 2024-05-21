@@ -81,17 +81,6 @@ func setup() error {
 	testCtx.apiKey = apiKey
 	testCtx.apiKeySecret = secretKey
 
-	// {
-	// 	_, err := test.CreateTestLockPaymentOrder(map[string]interface{}{
-	// 		"gateway_id": uuid.New().String(),
-	// 		"provider":   providerProfile,
-	// 		"status":     "settled",
-	// 	})
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// }
-
 	return nil
 }
 
