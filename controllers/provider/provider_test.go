@@ -28,6 +28,7 @@ import (
 
 var testCtx = struct {
 	user         *ent.User
+	provider     *ent.ProviderProfile
 	apiKey       *ent.APIKey
 	apiKeySecret string
 	lockOrder    *ent.LockPaymentOrder
@@ -54,6 +55,7 @@ func setup() error {
 	if err != nil {
 		return err
 	}
+	testCtx.provider = providerProfile
 
 	for i := 0; i < 10; i++ {
 		_, err := test.CreateTestLockPaymentOrder(map[string]interface{}{
@@ -397,6 +399,62 @@ func TestProvider(t *testing.T) {
 			assert.NoError(t, err, "Failed to convert totalCryptoVolume to decimal")
 			assert.Equal(t, totalCryptoVolume.Cmp(decimal.NewFromInt(0)), 0)
 		})
+
+		t.Run("when orders have been settled", func(t *testing.T) {
+			amount:=200.5
+			_, err := test.CreateTestLockPaymentOrder(map[string]interface{}{
+				"amount":    amount,
+				"gateway_id": uuid.New().String(),
+				"provider":   testCtx.provider,
+				"status":     "settled",
+			})
+			assert.NoError(t, err)
+
+			// Test default params
+			var payload = map[string]interface{}{
+				"timestamp": time.Now().Unix(),
+			}
+
+			signature := token.GenerateHMACSignature(payload, testCtx.apiKeySecret)
+
+			headers := map[string]string{
+				"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
+				"Client-Type":   "backend",
+			}
+
+			res, err := test.PerformRequest(t, "GET", "/stats", payload, headers, router)
+			assert.NoError(t, err)
+
+			// Assert the response body
+			assert.Equal(t, http.StatusOK, res.Code)
+
+			var response types.Response
+			err = json.Unmarshal(res.Body.Bytes(), &response)
+			assert.NoError(t, err)
+			assert.Equal(t, "Provider stats fetched successfully", response.Message)
+			data, ok := response.Data.(map[string]interface{})
+			assert.True(t, ok, "response.Data is of not type *types.ProviderStatsResponse")
+			assert.NotNil(t, data, "response.Data is nil")
+
+			// Assert the totalOrders value
+			totalOrders, ok := data["totalOrders"].(float64)
+			assert.True(t, ok, "totalOrders is not of type float64")
+			assert.Equal(t, 11, int(totalOrders))
+
+			// Assert the totalFiatVolume value
+			totalFiatVolumeStr, ok := data["totalFiatVolume"].(string)
+			assert.True(t, ok, "totalFiatVolume is not of type string")
+			totalFiatVolume, err := decimal.NewFromString(totalFiatVolumeStr)
+			assert.NoError(t, err, "Failed to convert totalFiatVolume to decimal")
+			assert.Equal(t, totalFiatVolume.Cmp(decimal.NewFromInt(150375)), 0)
+
+			// Assert the totalCryptoVolume value
+			totalCryptoVolumeStr, ok := data["totalCryptoVolume"].(string)
+			assert.True(t, ok, "totalCryptoVolume is not of type string")
+			totalCryptoVolume, err := decimal.NewFromString(totalCryptoVolumeStr)
+			assert.NoError(t, err, "Failed to convert totalCryptoVolume to decimal")
+			assert.Equal(t, totalCryptoVolume.Cmp(decimal.NewFromFloat(amount)), 0)
+		})
 	})
 
 	t.Run("NodeInfo", func(t *testing.T) {
@@ -478,4 +536,3 @@ func TestProvider(t *testing.T) {
 		})
 	})
 }
-
