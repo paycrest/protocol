@@ -30,12 +30,12 @@ import (
 )
 
 var testCtx = struct {
-	user              *ent.User
+	user              *ent.SenderProfile
 	token             *ent.Token
 	apiKey            *ent.APIKey
 	apiKeySecret      string
+	client            types.RPCClient
 	networkIdentifier string
-	paymentOrderUUID  uuid.UUID
 }{}
 
 func createPaymentOrder(t *testing.T, router *gin.Engine) {
@@ -99,7 +99,6 @@ func createPaymentOrder(t *testing.T, router *gin.Engine) {
 		Only(context.Background())
 	assert.NoError(t, err)
 
-	testCtx.paymentOrderUUID = paymentOrderUUID
 	assert.NotNil(t, paymentOrder.Edges.Recipient)
 	assert.Equal(t, paymentOrder.Edges.Recipient.AccountIdentifier, payload["recipient"].(map[string]interface{})["accountIdentifier"])
 	assert.Equal(t, paymentOrder.Edges.Recipient.Memo, payload["recipient"].(map[string]interface{})["memo"])
@@ -115,8 +114,7 @@ func setup() error {
 	if err != nil {
 		return err
 	}
-	testCtx.user = user
-
+	
 	senderProfile, err := test.CreateTestSenderProfile(map[string]interface{}{
 		"user_id":            user.ID,
 		"fee_per_token_unit": "5",
@@ -124,6 +122,7 @@ func setup() error {
 	if err != nil {
 		return err
 	}
+	testCtx.user = senderProfile
 
 	apiKeyService := services.NewAPIKeyService()
 	apiKey, secretKey, err := apiKeyService.GenerateAPIKey(
@@ -152,6 +151,15 @@ func setup() error {
 		return err
 	}
 	testCtx.token = token
+
+	for i := 0; i < 9; i++ {
+		_, err = test.CreateTestPaymentOrder(backend, token, map[string]interface{}{
+			"sender": senderProfile,
+		})
+		if err != nil {
+			return err
+		}
+	}
 
 	testCtx.apiKeySecret = secretKey
 
@@ -191,10 +199,73 @@ func TestSender(t *testing.T) {
 	var paymentOrderUUID uuid.UUID
 
 	t.Run("InitiatePaymentOrder", func(t *testing.T) {
-		for i := 0; i < 10; i++ {
-			createPaymentOrder(t, router)
+		// Fetch network from db
+		network, err := db.Client.Network.
+			Query().
+			Where(network.IdentifierEQ(testCtx.networkIdentifier)).
+			Only(context.Background())
+		assert.NoError(t, err)
+
+		r := rand.New(rand.NewSource(int64(new(maphash.Hash).Sum64())))
+
+		payload := map[string]interface{}{
+			"amount":  "100",
+			"token":   testCtx.token.Symbol,
+			"rate":    "750",
+			"network": network.Identifier,
+			"recipient": map[string]interface{}{
+				"institution":       "ABNGNGLA",
+				"accountIdentifier": "1234567890",
+				"accountName":       "John Doe",
+				"memo":              "Shola Kehinde - rent for May 2021",
+			},
+			"label":     fmt.Sprintf("%d", r.Intn(100000)),
+			"timestamp": time.Now().Unix(),
 		}
-		paymentOrderUUID = testCtx.paymentOrderUUID
+
+		signature := token.GenerateHMACSignature(payload, testCtx.apiKeySecret)
+
+		headers := map[string]string{
+			"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
+		}
+
+		res, err := test.PerformRequest(t, "POST", "/orders", payload, headers, router)
+		assert.NoError(t, err)
+
+		// Assert the response body
+		assert.Equal(t, http.StatusCreated, res.Code)
+
+		var response types.Response
+		err = json.Unmarshal(res.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.Equal(t, "Payment order initiated successfully", response.Message)
+		data, ok := response.Data.(map[string]interface{})
+		assert.True(t, ok, "response.Data is not of type map[string]interface{}")
+		assert.NotNil(t, data, "response.Data is nil")
+
+		assert.Equal(t, data["amount"], payload["amount"])
+		assert.Equal(t, data["network"], payload["network"])
+		assert.NotEmpty(t, data["validUntil"])
+
+		// Parse the payment order ID string to uuid.UUID
+		paymentOrderUUID, err = uuid.Parse(data["id"].(string))
+		assert.NoError(t, err)
+
+		// Query the database for the payment order
+		paymentOrder, err := db.Client.PaymentOrder.
+			Query().
+			Where(paymentorder.IDEQ(paymentOrderUUID)).
+			WithRecipient().
+			Only(context.Background())
+		assert.NoError(t, err)
+
+		assert.NotNil(t, paymentOrder.Edges.Recipient)
+		assert.Equal(t, paymentOrder.Edges.Recipient.AccountIdentifier, payload["recipient"].(map[string]interface{})["accountIdentifier"])
+		assert.Equal(t, paymentOrder.Edges.Recipient.Memo, payload["recipient"].(map[string]interface{})["memo"])
+		assert.Equal(t, paymentOrder.Edges.Recipient.AccountName, payload["recipient"].(map[string]interface{})["accountName"])
+		assert.Equal(t, paymentOrder.Edges.Recipient.Institution, payload["recipient"].(map[string]interface{})["institution"])
+		assert.Equal(t, data["senderFee"], "0.666667")
+		assert.Equal(t, data["transactionFee"], network.Fee.Add(paymentOrder.Amount.Mul(decimal.NewFromFloat(0.001))).String()) // 0.1% protocol fee
 	})
 
 	t.Run("GetPaymentOrderByID", func(t *testing.T) {
