@@ -517,13 +517,15 @@ func (ctrl *SenderController) Stats(ctx *gin.Context) {
 	// Aggregate sender stats from db
 
 	var w []struct {
-		Sum decimal.Decimal
+		Sum               decimal.Decimal
+		SumFieldSenderFee decimal.Decimal
 	}
 	err := storage.Client.PaymentOrder.
 		Query().
-		Where(paymentorder.HasSenderProfileWith(senderprofile.IDEQ(sender.ID))).
+		Where(paymentorder.HasSenderProfileWith(senderprofile.IDEQ(sender.ID)), paymentorder.StatusEQ(paymentorder.StatusSettled)).
 		Aggregate(
 			ent.Sum(paymentorder.FieldAmount),
+			ent.As(ent.Sum(paymentorder.FieldSenderFee), "SumFieldSenderFee"),
 		).
 		Scan(ctx, &w)
 	if err != nil {
@@ -534,14 +536,12 @@ func (ctrl *SenderController) Stats(ctx *gin.Context) {
 
 	var v []struct {
 		Count int
-		Sum   decimal.Decimal
 	}
 	err = storage.Client.PaymentOrder.
 		Query().
 		Where(paymentorder.HasSenderProfileWith(senderprofile.IDEQ(sender.ID))).
 		Aggregate(
 			ent.Count(),
-			ent.Sum(paymentorder.FieldSenderFee),
 		).
 		Scan(ctx, &v)
 	if err != nil {
@@ -553,6 +553,6 @@ func (ctrl *SenderController) Stats(ctx *gin.Context) {
 	u.APIResponse(ctx, http.StatusOK, "success", "Sender stats retrieved successfully", types.SenderStatsResponse{
 		TotalOrders:      v[0].Count,
 		TotalOrderVolume: w[0].Sum,
-		TotalFeeEarnings: v[0].Sum,
+		TotalFeeEarnings: w[0].SumFieldSenderFee,
 	})
 }

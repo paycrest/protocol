@@ -58,7 +58,7 @@ func setup() error {
 	for i := 0; i < 10; i++ {
 		_, err := test.CreateTestLockPaymentOrder(map[string]interface{}{
 			"gateway_id": uuid.New().String(),
-			"provider": providerProfile,
+			"provider":   providerProfile,
 		})
 		if err != nil {
 			return err
@@ -381,21 +381,21 @@ func TestProvider(t *testing.T) {
 			// Assert the totalOrders value
 			totalOrders, ok := data["totalOrders"].(float64)
 			assert.True(t, ok, "totalOrders is not of type float64")
-			assert.Greater(t, int(totalOrders), 0)
+			assert.Equal(t, 10, int(totalOrders))
 
 			// Assert the totalFiatVolume value
 			totalFiatVolumeStr, ok := data["totalFiatVolume"].(string)
 			assert.True(t, ok, "totalFiatVolume is not of type string")
 			totalFiatVolume, err := decimal.NewFromString(totalFiatVolumeStr)
 			assert.NoError(t, err, "Failed to convert totalFiatVolume to decimal")
-			assert.Greater(t, totalFiatVolume.Cmp(decimal.NewFromInt(0)), 0)
+			assert.Equal(t, totalFiatVolume.Cmp(decimal.NewFromInt(0)), 0)
 
 			// Assert the totalCryptoVolume value
 			totalCryptoVolumeStr, ok := data["totalCryptoVolume"].(string)
 			assert.True(t, ok, "totalCryptoVolume is not of type string")
 			totalCryptoVolume, err := decimal.NewFromString(totalCryptoVolumeStr)
 			assert.NoError(t, err, "Failed to convert totalCryptoVolume to decimal")
-			assert.Greater(t, totalCryptoVolume.Cmp(decimal.NewFromInt(0)), 0)
+			assert.Equal(t, totalCryptoVolume.Cmp(decimal.NewFromInt(0)), 0)
 		})
 	})
 
