@@ -53,6 +53,15 @@ func NewEthClient(endpoint string) (RPCClient, error) {
 	return &ethRPC{ethClient}, nil
 }
 
+// TokenTransfer represents a token transfer event.
+type TokenTransfer struct {
+	BlockNumber     int64
+	TransactionHash string
+	From            string
+	To              string
+	Value           *big.Int
+}
+
 // RegisterPayload is the payload for the register endpoint
 type RegisterPayload struct {
 	FirstName   string   `json:"firstName" binding:"required"`

@@ -25,7 +25,7 @@ func (Network) Fields() []ent.Field {
 	return []ent.Field{
 		field.Int64("chain_id"),
 		field.String("chain_id_hex").Optional(),
-		// e.g "bnb-smart-chain", "base", "arbitrum-one", "polygon", "ethereum", "ethereum-sepolia"
+		// e.g "bnb-smart-chain", "base", "arbitrum-one", "polygon", "ethereum", "ethereum-sepolia", "tron-shasta", "tron"
 		field.String("identifier").
 			Unique(),
 		field.String("rpc_endpoint"),

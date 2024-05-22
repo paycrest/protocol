@@ -2,6 +2,7 @@ package sender
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/paycrest/protocol/config"
@@ -91,6 +92,8 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 	isPrivate := false
 	isTokenNetworkPresent := false
 	maxOrderAmount := decimal.NewFromInt(0)
+	minOrderAmount := decimal.NewFromInt(0)
+
 	if payload.Recipient.ProviderID != "" {
 		providerProfile, err := storage.Client.ProviderProfile.
 			Query().
@@ -125,22 +128,40 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 		}
 
 		maxOrderAmount = providerProfile.Edges.OrderTokens[0].MaxOrderAmount
+		minOrderAmount = providerProfile.Edges.OrderTokens[0].MinOrderAmount
 
 		if providerProfile.VisibilityMode == providerprofile.VisibilityModePrivate {
 			isPrivate = true
 		}
 	}
 
-	if isPrivate && payload.Amount.GreaterThan(maxOrderAmount) {
-		u.APIResponse(ctx, http.StatusBadRequest, "error", "The amount is beyond the maximum order amount for the specified provider", nil)
-		return
+	// Validate amount for private orders
+	if isPrivate {
+		if payload.Amount.LessThan(minOrderAmount) {
+			u.APIResponse(ctx, http.StatusBadRequest, "error", "The amount is below the minimum order amount for the specified provider", nil)
+			return
+		} else if payload.Amount.GreaterThan(maxOrderAmount) {
+			u.APIResponse(ctx, http.StatusBadRequest, "error", "The amount is beyond the maximum order amount for the specified provider", nil)
+			return
+		}
 	}
+
 	// Generate receive address
-	receiveAddress, err := ctrl.receiveAddressService.CreateSmartAccount(ctx, nil, nil)
-	if err != nil {
-		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to initiate payment order", nil)
-		return
+	var receiveAddress *ent.ReceiveAddress
+	if strings.HasPrefix(payload.Network, "tron") {
+		receiveAddress, err = ctrl.receiveAddressService.CreateTronAddress(ctx)
+		if err != nil {
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to initiate payment order", nil)
+			return
+		}
+	} else {
+		receiveAddress, err = ctrl.receiveAddressService.CreateSmartAddress(ctx, nil, nil)
+		if err != nil {
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to initiate payment order", nil)
+			return
+		}
 	}
 
 	// Create payment order and recipient in a transaction

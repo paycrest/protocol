@@ -45,7 +45,7 @@ func setup() error {
 		return err
 	}
 
-	receiveAddress, err := test.CreateSmartAccount(
+	receiveAddress, err := test.CreateSmartAddress(
 		context.Background(), client)
 	if err != nil {
 		return err
@@ -227,7 +227,14 @@ func IndexERC20Transfer(ctx context.Context, client types.RPCClient, receiveAddr
 
 	// Iterate over logs
 	for iter.Next() {
-		ok, err := testCtx.indexer.UpdateReceiveAddressStatus(ctx, receiveAddress, order, iter.Event)
+		transferEvent := &types.TokenTransfer{
+			BlockNumber:     int64(iter.Event.Raw.BlockNumber),
+			TransactionHash: iter.Event.Raw.TxHash.Hex(),
+			From:            iter.Event.From.Hex(),
+			To:              iter.Event.To.Hex(),
+			Value:           iter.Event.Value,
+		}
+		ok, err := testCtx.indexer.UpdateReceiveAddressStatus(ctx, receiveAddress, order, transferEvent)
 		if err != nil {
 			return fmt.Errorf("IndexERC20Transfer.UpdateReceiveAddressStatus: %w", err)
 		}

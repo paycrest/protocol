@@ -13,6 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/google/uuid"
+	fastshot "github.com/opus-domini/fast-shot"
 	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/fiatcurrency"
@@ -44,7 +45,7 @@ type Indexer interface {
 	IndexOrderRefunded(ctx context.Context, client types.RPCClient, network *ent.Network, gatewayId string) error
 	HandleReceiveAddressValidity(ctx context.Context, receiveAddress *ent.ReceiveAddress, paymentOrder *ent.PaymentOrder) error
 	CreateLockPaymentOrder(ctx context.Context, client types.RPCClient, network *ent.Network, deposit *contracts.GatewayOrderCreated) error
-	UpdateReceiveAddressStatus(ctx context.Context, receiveAddress *ent.ReceiveAddress, paymentOrder *ent.PaymentOrder, log *contracts.ERC20TokenTransfer) (bool, error)
+	UpdateReceiveAddressStatus(ctx context.Context, receiveAddress *ent.ReceiveAddress, paymentOrder *ent.PaymentOrder, log *types.TokenTransfer) (bool, error)
 	UpdateOrderStatusSettled(ctx context.Context, log *contracts.GatewayOrderSettled) error
 	UpdateOrderStatusRefunded(ctx context.Context, log *contracts.GatewayOrderRefunded) error
 }
@@ -110,7 +111,15 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 
 	// Iterate over logs
 	for iter.Next() {
-		ok, err := s.UpdateReceiveAddressStatus(ctx, order.Edges.ReceiveAddress, order, iter.Event)
+		transferEvent := &types.TokenTransfer{
+			BlockNumber:     int64(iter.Event.Raw.BlockNumber),
+			TransactionHash: iter.Event.Raw.TxHash.Hex(),
+			From:            iter.Event.From.Hex(),
+			To:              iter.Event.To.Hex(),
+			Value:           iter.Event.Value,
+		}
+
+		ok, err := s.UpdateReceiveAddressStatus(ctx, order.Edges.ReceiveAddress, order, transferEvent)
 		if err != nil {
 			logger.Errorf("IndexERC20Transfer.UpdateReceiveAddressStatus: %v", err)
 			continue
@@ -123,7 +132,100 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 	return nil
 }
 
-// IndexOrderCreated indexes deposits to the order contract for a specific network.
+// IndexTRC20Transfer indexes transfers to the receive address for Tron network.
+func (s *IndexerService) IndexTRC20Transfer(ctx context.Context, receiveAddress *ent.ReceiveAddress) error {
+	var err error
+
+	// Fetch payment order from db
+	paymentOrder, err := db.Client.PaymentOrder.
+		Query().
+		Where(
+			paymentorder.HasReceiveAddressWith(
+				receiveaddress.AddressEQ(receiveAddress.Address),
+			),
+		).
+		WithToken(func(tq *ent.TokenQuery) {
+			tq.WithNetwork()
+		}).
+		WithRecipient().
+		Only(ctx)
+	if err != nil {
+		logger.Errorf("IndexTRC20Transfer.db: %v", err)
+		return err
+	}
+
+	token := paymentOrder.Edges.Token
+
+	if !strings.HasPrefix(token.Edges.Network.Identifier, "tron") {
+		return fmt.Errorf("IndexTRC20Transfer: invalid network identifier: %s", token.Edges.Network.Identifier)
+	}
+
+	client := fastshot.NewClient(token.Edges.Network.RPCEndpoint).
+		Config().SetTimeout(30*time.Second).
+		Header().Add("TRON_PRO_API_KEY", OrderConf.TronProApiKey)
+
+	// TODO: should we include '?only_confirmed=true' in the URL?
+	res, err := client.Build().
+		GET(fmt.Sprintf("/v1/accounts/%s/transactions/trc20", receiveAddress.Address)).
+		Retry().Set(3, 5*time.Second).
+		Send()
+	if err != nil {
+		logger.Errorf("IndexTRC20Transfer.FetchTransfer: %v", err)
+		return err
+	}
+
+	data, err := utils.ParseJSONResponse(res.RawResponse)
+	if err != nil {
+		logger.Errorf("IndexTRC20Transfer.ParseJSONResponse: %v", err)
+		return err
+	}
+
+	if data["success"].(bool) {
+		for _, event := range data["data"].([]interface{}) {
+			eventData := event.(map[string]interface{})
+
+			res, err = client.Build().POST("/walletsolidity/gettransactioninfobyid").
+				Body().AsJSON(map[string]interface{}{"value": eventData["transaction_id"].(string)}).
+				Retry().Set(3, 5*time.Second).
+				Send()
+			if err != nil {
+				logger.Errorf("IndexTRC20Transfer.FetchBlockNumber: %v", err)
+				return err
+			}
+
+			data, err = utils.ParseJSONResponse(res.RawResponse)
+			if err != nil {
+				logger.Errorf("IndexTRC20Transfer.ParseJSONResponse: %v", err)
+				return err
+			}
+
+			value, err := decimal.NewFromString(event.(map[string]interface{})["value"].(string))
+			if err != nil {
+				logger.Errorf("IndexTRC20Transfer.NewFromString: %v", err)
+				return err
+			}
+
+			transferEvent := &types.TokenTransfer{
+				BlockNumber:     int64(data["blockNumber"].(float64)),
+				TransactionHash: eventData["transaction_id"].(string),
+				From:            eventData["from"].(string),
+				To:              eventData["to"].(string),
+				Value:           utils.ToSubunit(value, token.Decimals),
+			}
+
+			go func() {
+				_, err := s.UpdateReceiveAddressStatus(ctx, receiveAddress, paymentOrder, transferEvent)
+				if err != nil {
+					logger.Errorf("IndexTRC20Transfer.UpdateReceiveAddressStatus: %v", err)
+				}
+			}()
+		}
+	}
+
+	return nil
+}
+
+// IndexOrderCreated indexes deposits to the order contract for an EVM network.
 func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPCClient, network *ent.Network, sender string) error {
 	var err error
 
@@ -178,7 +280,7 @@ func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPC
 	return nil
 }
 
-// IndexOrderSettled indexes order settlements for a specific network.
+// IndexOrderSettled indexes order settlements for an EVM network.
 func (s *IndexerService) IndexOrderSettled(ctx context.Context, client types.RPCClient, network *ent.Network, gatewayId string) error {
 	var err error
 
@@ -239,7 +341,7 @@ func (s *IndexerService) IndexOrderSettled(ctx context.Context, client types.RPC
 	return nil
 }
 
-// IndexOrderRefunded indexes order refunds for a specific network.
+// IndexOrderRefunded indexes order refunds for an EVM network.
 func (s *IndexerService) IndexOrderRefunded(ctx context.Context, client types.RPCClient, network *ent.Network, gatewayId string) error {
 	var err error
 
@@ -694,13 +796,13 @@ func (s *IndexerService) getOrderRecipientFromMessageHash(messageHash string) (*
 
 // UpdateReceiveAddressStatus updates the status of a receive address. if `done` is true, the indexing process is complete for the given receive address
 func (s *IndexerService) UpdateReceiveAddressStatus(
-	ctx context.Context, receiveAddress *ent.ReceiveAddress, paymentOrder *ent.PaymentOrder, event *contracts.ERC20TokenTransfer,
+	ctx context.Context, receiveAddress *ent.ReceiveAddress, paymentOrder *ent.PaymentOrder, event *types.TokenTransfer,
 ) (done bool, err error) {
-	if event.To.Hex() == receiveAddress.Address {
+	if event.To == receiveAddress.Address {
 		// Check for existing address with txHash
 		count, err := db.Client.ReceiveAddress.
 			Query().
-			Where(receiveaddress.TxHashEQ(event.Raw.TxHash.Hex())).
+			Where(receiveaddress.TxHashEQ(event.TransactionHash)).
 			Count(ctx)
 		if err != nil {
 			return true, fmt.Errorf("UpdateReceiveAddressStatus.db: %v", err)
@@ -720,7 +822,7 @@ func (s *IndexerService) UpdateReceiveAddressStatus(
 
 		paymentOrderUpdate := db.Client.PaymentOrder.Update().Where(paymentorder.IDEQ(paymentOrder.ID))
 		if paymentOrder.ReturnAddress == "" {
-			paymentOrderUpdate = paymentOrderUpdate.SetReturnAddress(event.From.Hex())
+			paymentOrderUpdate = paymentOrderUpdate.SetReturnAddress(event.From)
 		}
 
 		orderRecipient := paymentOrder.Edges.Recipient
@@ -761,8 +863,8 @@ func (s *IndexerService) UpdateReceiveAddressStatus(
 		}
 
 		_, err = paymentOrderUpdate.
-			SetFromAddress(event.From.Hex()).
-			SetTxHash(event.Raw.TxHash.Hex()).
+			SetFromAddress(event.From).
+			SetTxHash(event.TransactionHash).
 			AddAmountPaid(utils.FromSubunit(event.Value, paymentOrder.Edges.Token.Decimals)).
 			Save(ctx)
 		if err != nil {
@@ -775,8 +877,8 @@ func (s *IndexerService) UpdateReceiveAddressStatus(
 				Update().
 				SetStatus(receiveaddress.StatusUsed).
 				SetLastUsed(time.Now()).
-				SetTxHash(event.Raw.TxHash.Hex()).
-				SetLastIndexedBlock(int64(event.Raw.BlockNumber)).
+				SetTxHash(event.TransactionHash).
+				SetLastIndexedBlock(int64(event.BlockNumber)).
 				Save(ctx)
 			if err != nil {
 				return true, fmt.Errorf("UpdateReceiveAddressStatus.db: %v", err)
@@ -798,8 +900,8 @@ func (s *IndexerService) UpdateReceiveAddressStatus(
 					Update().
 					SetStatus(receiveaddress.StatusUsed).
 					SetLastUsed(time.Now()).
-					SetTxHash(event.Raw.TxHash.Hex()).
-					SetLastIndexedBlock(int64(event.Raw.BlockNumber)).
+					SetTxHash(event.TransactionHash).
+					SetLastIndexedBlock(int64(event.BlockNumber)).
 					Save(ctx)
 				if err != nil {
 					return true, fmt.Errorf("UpdateReceiveAddressStatus.db: %v", err)
@@ -808,8 +910,8 @@ func (s *IndexerService) UpdateReceiveAddressStatus(
 				_, err = receiveAddress.
 					Update().
 					SetStatus(receiveaddress.StatusPartial).
-					SetTxHash(event.Raw.TxHash.Hex()).
-					SetLastIndexedBlock(int64(event.Raw.BlockNumber)).
+					SetTxHash(event.TransactionHash).
+					SetLastIndexedBlock(int64(event.BlockNumber)).
 					Save(ctx)
 				if err != nil {
 					return true, fmt.Errorf("UpdateReceiveAddressStatus.db: %v", err)
@@ -822,7 +924,7 @@ func (s *IndexerService) UpdateReceiveAddressStatus(
 				Update().
 				SetStatus(receiveaddress.StatusUsed).
 				SetLastUsed(time.Now()).
-				SetLastIndexedBlock(int64(event.Raw.BlockNumber)).
+				SetLastIndexedBlock(int64(event.BlockNumber)).
 				Save(ctx)
 			if err != nil {
 				return true, fmt.Errorf("UpdateReceiveAddressStatus.db: %v", err)

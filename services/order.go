@@ -124,7 +124,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, orderID uuid.UUID) error
 		return fmt.Errorf("%s - CreateOrder.SendUserOperation: %w", orderIDPrefix, err)
 	}
 
-	// Update payment order with userOpHash
+	// Update payment order
 	_, err = order.Update().
 		SetTxHash(txHash).
 		SetBlockNumber(blockNumber).

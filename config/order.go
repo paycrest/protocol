@@ -30,6 +30,7 @@ type OrderConfiguration struct {
 	PaymasterUrlBSC                  string
 	BundlerUrlArbitrum               string
 	PaymasterUrlArbitrum             string
+	TronProApiKey                    string
 }
 
 // OrderConfig sets the order configuration
@@ -59,6 +60,7 @@ func OrderConfig() *OrderConfiguration {
 		BundlerUrlArbitrum:               viper.GetString("BUNDLER_URL_ARBITRUM"),
 		PaymasterUrlArbitrum:             viper.GetString("PAYMASTER_URL_ARBITRUM"),
 		EntryPointContractAddress:        common.HexToAddress(viper.GetString("ENTRY_POINT_CONTRACT_ADDRESS")),
+		TronProApiKey:                    viper.GetString("TRON_PRO_API_KEY"),
 		BucketQueueRebuildInterval:       viper.GetInt("BUCKET_QUEUE_REBUILD_INTERVAL"),
 		RefundCancellationCount:          viper.GetInt("REFUND_CANCELLATION_COUNT"),
 		PercentDeviationFromExternalRate: decimal.NewFromFloat(viper.GetFloat64("PERCENT_DEVIATION_FROM_EXTERNAL_RATE")),

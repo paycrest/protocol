@@ -153,8 +153,8 @@ func prepareDeployment(client types.RPCClient) (*bind.TransactOpts, error) {
 	return auth, nil
 }
 
-// CreateSmartAccount function generates and saves a new EIP-4337 smart contract account address
-func CreateSmartAccount(ctx context.Context, client types.RPCClient) (*ent.ReceiveAddress, error) {
+// CreateSmartAddress function generates and saves a new EIP-4337 smart contract account address
+func CreateSmartAddress(ctx context.Context, client types.RPCClient) (*ent.ReceiveAddress, error) {
 
 	// Initialize contract factory
 	factory, err := DeployEIP4337FactoryContract(client)

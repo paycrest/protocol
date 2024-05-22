@@ -393,6 +393,7 @@ func fetchExternalRate(currency string) (decimal.Decimal, error) {
 	res, err := fastshot.NewClient("https://www.quidax.com").
 		Config().SetTimeout(30 * time.Second).
 		Build().GET(fmt.Sprintf("/api/v1/markets/tickers/usdt%s", strings.ToLower(currency))).
+		Retry().Set(3, 5*time.Second).
 		Send()
 	if err != nil {
 		return decimal.Zero, fmt.Errorf("ComputeMarketRate: %w", err)
