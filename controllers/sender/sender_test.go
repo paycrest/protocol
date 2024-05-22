@@ -155,6 +155,10 @@ func setup() error {
 
 	testCtx.apiKeySecret = secretKey
 
+	test.CreateTestPaymentOrder(backend, token, map[string]interface{}{
+		"sender": senderProfile,
+	})
+
 	return nil
 }
 
