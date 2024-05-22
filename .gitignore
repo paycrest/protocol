@@ -25,3 +25,4 @@ bin/
 go.work
 test.dSYM/Contents/Info.plist
 test.dSYM/Contents/Resources/DWARF/test
+__debug*
