@@ -156,14 +156,8 @@ func setup() error {
 	testCtx.apiKeySecret = secretKey
 
 	for i := 0; i < 9; i++ {
-		receiveAddress, err := test.CreateSmartAccount(
-			context.Background(), backend)
-		if err != nil {
-			return err
-		}
 		test.CreateTestPaymentOrder(backend, token, map[string]interface{}{
 			"sender":         senderProfile,
-			"receiveAddress": receiveAddress,
 		})
 		if err != nil {
 			return err
@@ -644,9 +638,6 @@ func TestSender(t *testing.T) {
 		})
 
 		t.Run("should only calculate volumes of settled orders", func(t *testing.T) {
-
-			receiveAddress, err := test.CreateSmartAccount(
-				context.Background(), testCtx.client)
 			assert.NoError(t, err)
 
 			// create settled Order
@@ -657,7 +648,6 @@ func TestSender(t *testing.T) {
 				"rate":               750.0,
 				"status":             "settled",
 				"fee_per_token_unit": 5.0,
-				"receiveAddress":     receiveAddress,
 			})
 			assert.NoError(t, err)
 			var payload = map[string]interface{}{
