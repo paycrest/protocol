@@ -432,7 +432,12 @@ func (s *PriorityQueueService) ReassignUnfulfilledLockOrders() {
 	lockOrders, err := storage.Client.LockPaymentOrder.
 		Query().
 		Where(
-			lockpaymentorder.Not(lockpaymentorder.HasFulfillment()),
+			lockpaymentorder.Or(
+				lockpaymentorder.Not(lockpaymentorder.HasFulfillment()),
+				lockpaymentorder.HasFulfillmentWith(
+					lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusFailed),
+				),
+			),
 			lockpaymentorder.StatusEQ(lockpaymentorder.StatusProcessing),
 			lockpaymentorder.UpdatedAtLTE(time.Now().Add(-OrderConf.OrderFulfillmentValidity*time.Minute)),
 		).
@@ -453,7 +458,12 @@ func (s *PriorityQueueService) ReassignUnfulfilledLockOrders() {
 		Where(
 			lockpaymentorder.StatusEQ(lockpaymentorder.StatusProcessing),
 			lockpaymentorder.UpdatedAtLTE(time.Now().Add(-OrderConf.OrderFulfillmentValidity*time.Minute)),
-			lockpaymentorder.Not(lockpaymentorder.HasFulfillment()),
+			lockpaymentorder.Or(
+				lockpaymentorder.Not(lockpaymentorder.HasFulfillment()),
+				lockpaymentorder.HasFulfillmentWith(
+					lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusFailed),
+				),
+			),
 		).
 		SetStatus(lockpaymentorder.StatusPending).
 		Save(ctx)
