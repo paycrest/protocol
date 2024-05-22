@@ -3,6 +3,7 @@ package test
 import (
 	"context"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/paycrest/protocol/ent"
@@ -182,6 +183,7 @@ func CreateTestPaymentOrder(client types.RPCClient, token *ent.Token, overrides 
 		payload[key] = value
 	}
 
+	time.Sleep(time.Second * 2)
 	// Create smart wallet
 	receiveAddress := overrides["receiveAddress"].(*ent.ReceiveAddress)
 
