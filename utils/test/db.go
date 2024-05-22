@@ -142,6 +142,8 @@ func CreateTestLockPaymentOrder(overrides map[string]interface{}) (*ent.LockPaym
 		return nil, err
 	}
 
+	time.Sleep(time.Second)
+
 	// Create LockPaymentOrder
 	order, err := db.Client.LockPaymentOrder.
 		Create().
@@ -183,9 +185,13 @@ func CreateTestPaymentOrder(client types.RPCClient, token *ent.Token, overrides 
 		payload[key] = value
 	}
 
-	time.Sleep(time.Second * 2)
 	// Create smart wallet
-	receiveAddress := overrides["receiveAddress"].(*ent.ReceiveAddress)
+	receiveAddress, err := CreateSmartAccount(
+		context.Background(), client)
+	if err != nil {
+		return nil, err
+	}
+	time.Sleep(time.Second)
 
 	// Create payment order
 	paymentOrder, err := db.Client.PaymentOrder.
