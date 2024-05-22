@@ -155,8 +155,15 @@ func setup() error {
 
 	testCtx.apiKeySecret = secretKey
 
+	receiveAddress, err := test.CreateSmartAccount(
+		context.Background(), backend)
+	if err != nil {
+		return err
+	}
+
 	test.CreateTestPaymentOrder(backend, token, map[string]interface{}{
-		"sender": senderProfile,
+		"sender":         senderProfile,
+		"receiveAddress": receiveAddress,
 	})
 
 	return nil
@@ -391,7 +398,7 @@ func TestSender(t *testing.T) {
 
 			assert.Equal(t, int(data["page"].(float64)), page)
 			assert.Equal(t, int(data["pageSize"].(float64)), pageSize)
-			assert.Equal(t, len(data["orders"].([]interface{})), 1)
+			assert.Equal(t, len(data["orders"].([]interface{})), 2)
 			assert.NotEmpty(t, data["total"])
 			assert.NotEmpty(t, data["orders"])
 		})
@@ -615,7 +622,7 @@ func TestSender(t *testing.T) {
 			// Assert the totalOrders value
 			totalOrders, ok := data["totalOrders"].(float64)
 			assert.True(t, ok, "totalOrders is not of type float64")
-			assert.Equal(t, 1, int(totalOrders))
+			assert.Equal(t, 2, int(totalOrders))
 
 			// Assert the totalOrderVolume value
 			totalOrderVolumeStr, ok := data["totalOrderVolume"].(string)
