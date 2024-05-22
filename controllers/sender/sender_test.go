@@ -155,7 +155,7 @@ func setup() error {
 
 	testCtx.apiKeySecret = secretKey
 
-	for i := 0; i < 9; i++ {
+	for i := 0; i < 5; i++ {
 		receiveAddress, err := test.CreateSmartAccount(
 			context.Background(), backend)
 		if err != nil {
@@ -402,7 +402,7 @@ func TestSender(t *testing.T) {
 
 			assert.Equal(t, int(data["page"].(float64)), page)
 			assert.Equal(t, int(data["pageSize"].(float64)), pageSize)
-			assert.Equal(t, len(data["orders"].([]interface{})), 10)
+			assert.Equal(t, 10, len(data["orders"].([]interface{})))
 			assert.NotEmpty(t, data["total"])
 			assert.NotEmpty(t, data["orders"])
 		})
