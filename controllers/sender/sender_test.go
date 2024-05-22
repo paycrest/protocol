@@ -155,7 +155,7 @@ func setup() error {
 
 	testCtx.apiKeySecret = secretKey
 
-	for i := 0; i < 5; i++ {
+	for i := 0; i < 9; i++ {
 		receiveAddress, err := test.CreateSmartAccount(
 			context.Background(), backend)
 		if err != nil {
