@@ -114,7 +114,7 @@ func setup() error {
 	if err != nil {
 		return err
 	}
-	
+
 	senderProfile, err := test.CreateTestSenderProfile(map[string]interface{}{
 		"user_id":            user.ID,
 		"fee_per_token_unit": "5",
@@ -151,15 +151,7 @@ func setup() error {
 		return err
 	}
 	testCtx.token = token
-
-	for i := 0; i < 9; i++ {
-		_, err = test.CreateTestPaymentOrder(backend, token, map[string]interface{}{
-			"sender": senderProfile,
-		})
-		if err != nil {
-			return err
-		}
-	}
+	testCtx.client = backend
 
 	testCtx.apiKeySecret = secretKey
 
@@ -199,6 +191,13 @@ func TestSender(t *testing.T) {
 	var paymentOrderUUID uuid.UUID
 
 	t.Run("InitiatePaymentOrder", func(t *testing.T) {
+
+		for i := 0; i < 9; i++ {
+			_, err := test.CreateTestPaymentOrder(testCtx.client, testCtx.token, map[string]interface{}{
+				"sender": testCtx.user,
+			})
+			assert.NoError(t, err)
+		}
 		// Fetch network from db
 		network, err := db.Client.Network.
 			Query().
