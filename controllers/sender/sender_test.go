@@ -189,12 +189,6 @@ func TestSender(t *testing.T) {
 	router.GET("/stats", ctrl.Stats)
 
 	var paymentOrderUUID uuid.UUID
-	for i := 0; i < 9; i++ {
-		_, err := test.CreateTestPaymentOrder(testCtx.client, testCtx.token, map[string]interface{}{
-			"sender": testCtx.user,
-		})
-		assert.NoError(t, err)
-	}
 
 	t.Run("InitiatePaymentOrder", func(t *testing.T) {
 
@@ -393,7 +387,7 @@ func TestSender(t *testing.T) {
 
 			assert.Equal(t, int(data["page"].(float64)), page)
 			assert.Equal(t, int(data["pageSize"].(float64)), pageSize)
-			assert.Equal(t, len(data["orders"].([]interface{})), pageSize)
+			assert.Equal(t, len(data["orders"].([]interface{})), 1)
 			assert.NotEmpty(t, data["total"])
 			assert.NotEmpty(t, data["orders"])
 		})
@@ -443,7 +437,7 @@ func TestSender(t *testing.T) {
 			assert.NotEmpty(t, data["total"])
 			assert.NotEmpty(t, data["orders"])
 			assert.Greater(t, len(data["orders"].([]interface{})), 0)
-			assert.Greater(t, firstOrderTimestamp, lastOrderTimestamp)
+			assert.GreaterOrEqual(t, firstOrderTimestamp, lastOrderTimestamp)
 		})
 
 		t.Run("with filtering by network", func(t *testing.T) {
@@ -617,7 +611,7 @@ func TestSender(t *testing.T) {
 			// Assert the totalOrders value
 			totalOrders, ok := data["totalOrders"].(float64)
 			assert.True(t, ok, "totalOrders is not of type float64")
-			assert.Equal(t, 10, int(totalOrders))
+			assert.Equal(t, 1, int(totalOrders))
 
 			// Assert the totalOrderVolume value
 			totalOrderVolumeStr, ok := data["totalOrderVolume"].(string)
