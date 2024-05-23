@@ -24,14 +24,12 @@ import (
 
 // SenderController is a controller type for sender endpoints
 type SenderController struct {
-	indexerService        svc.Indexer
 	receiveAddressService *svc.ReceiveAddressService
 	orderService          svc.Order
 }
 
 // NewSenderController creates a new instance of SenderController
-func NewSenderController(indexer svc.Indexer, order svc.Order) *SenderController {
-	var indexerService svc.Indexer
+func NewSenderController(order svc.Order) *SenderController {
 	var orderService svc.Order
 
 	if order == nil {
@@ -40,14 +38,7 @@ func NewSenderController(indexer svc.Indexer, order svc.Order) *SenderController
 		orderService = order
 	}
 
-	if indexer != nil {
-		indexerService = indexer
-	} else {
-		indexerService = svc.NewIndexerService(orderService)
-	}
-
 	return &SenderController{
-		indexerService:        indexerService,
 		receiveAddressService: svc.NewReceiveAddressService(),
 		orderService:          orderService,
 	}
@@ -252,11 +243,6 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to initiate payment order", nil)
 		return
 	}
-
-	// Start a background process to index token transfers through the lifecycle of the receive address
-	go func() {
-		_ = ctrl.indexerService.IndexERC20Transfer(ctx, nil, receiveAddress)
-	}()
 
 	u.APIResponse(ctx, http.StatusCreated, "success", "Payment order initiated successfully",
 		&types.ReceiveAddressResponse{
