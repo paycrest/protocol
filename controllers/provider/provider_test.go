@@ -390,27 +390,24 @@ func TestProvider(t *testing.T) {
 			assert.True(t, ok, "totalFiatVolume is not of type string")
 			totalFiatVolume, err := decimal.NewFromString(totalFiatVolumeStr)
 			assert.NoError(t, err, "Failed to convert totalFiatVolume to decimal")
-			assert.Equal(t, totalFiatVolume.Cmp(decimal.NewFromInt(0)), 0)
+			assert.Equal(t, 0, totalFiatVolume.Cmp(decimal.NewFromInt(0)))
 
 			// Assert the totalCryptoVolume value
 			totalCryptoVolumeStr, ok := data["totalCryptoVolume"].(string)
 			assert.True(t, ok, "totalCryptoVolume is not of type string")
 			totalCryptoVolume, err := decimal.NewFromString(totalCryptoVolumeStr)
 			assert.NoError(t, err, "Failed to convert totalCryptoVolume to decimal")
-			assert.Equal(t, totalCryptoVolume.Cmp(decimal.NewFromInt(0)), 0)
+			assert.Equal(t, 0, totalCryptoVolume.Cmp(decimal.NewFromInt(0)))
 		})
 
-		t.Run("when orders have been settled", func(t *testing.T) {
-			amount:=200.5
+		t.Run("should only calculate volumes of settled orders", func(t *testing.T) {
+			// Create a settled order
 			_, err := test.CreateTestLockPaymentOrder(map[string]interface{}{
-				"amount":    amount,
 				"gateway_id": uuid.New().String(),
 				"provider":   testCtx.provider,
 				"status":     "settled",
 			})
 			assert.NoError(t, err)
-
-			// Test default params
 			var payload = map[string]interface{}{
 				"timestamp": time.Now().Unix(),
 			}
@@ -446,14 +443,20 @@ func TestProvider(t *testing.T) {
 			assert.True(t, ok, "totalFiatVolume is not of type string")
 			totalFiatVolume, err := decimal.NewFromString(totalFiatVolumeStr)
 			assert.NoError(t, err, "Failed to convert totalFiatVolume to decimal")
-			assert.Equal(t, totalFiatVolume.Cmp(decimal.NewFromInt(150375)), 0)
+
+			expectedTotalFiatVolume, err := decimal.NewFromString("75375")
+			assert.NoError(t, err, "Failed to convert expectedTotalFiatVolume to decimal")
+			assert.Equal(t, 0, totalFiatVolume.Cmp(expectedTotalFiatVolume))
 
 			// Assert the totalCryptoVolume value
 			totalCryptoVolumeStr, ok := data["totalCryptoVolume"].(string)
 			assert.True(t, ok, "totalCryptoVolume is not of type string")
 			totalCryptoVolume, err := decimal.NewFromString(totalCryptoVolumeStr)
 			assert.NoError(t, err, "Failed to convert totalCryptoVolume to decimal")
-			assert.Equal(t, totalCryptoVolume.Cmp(decimal.NewFromFloat(amount)), 0)
+
+			expectedTotalCryptoVolume, err := decimal.NewFromString("100.5")
+			assert.NoError(t, err, "Failed to convert expectedTotalCryptoVolume to decimal")
+			assert.Equal(t, 0, totalCryptoVolume.Cmp(expectedTotalCryptoVolume))
 		})
 	})
 
