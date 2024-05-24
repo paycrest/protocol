@@ -39,9 +39,9 @@ var OrderConf = config.OrderConfig()
 // Indexer is an interface for indexing blockchain data to the database.
 type Indexer interface {
 	IndexERC20Transfer(ctx context.Context, client types.RPCClient, order *ent.PaymentOrder) error
-	IndexOrderCreated(ctx context.Context, client types.RPCClient, network *ent.Network, startBlock, toBlock uint64) error
-	IndexOrderSettled(ctx context.Context, client types.RPCClient, network *ent.Network, startBlock uint64) error
-	IndexOrderRefunded(ctx context.Context, client types.RPCClient, network *ent.Network, startBlock uint64) error
+	IndexOrderCreated(ctx context.Context, client types.RPCClient, network *ent.Network, sender string) error
+	IndexOrderSettled(ctx context.Context, client types.RPCClient, network *ent.Network, gatewayId string) error
+	IndexOrderRefunded(ctx context.Context, client types.RPCClient, network *ent.Network, gatewayId string) error
 	HandleReceiveAddressValidity(ctx context.Context, receiveAddress *ent.ReceiveAddress, paymentOrder *ent.PaymentOrder) error
 	CreateLockPaymentOrder(ctx context.Context, client types.RPCClient, network *ent.Network, deposit *contracts.GatewayOrderCreated) error
 	UpdateReceiveAddressStatus(ctx context.Context, receiveAddress *ent.ReceiveAddress, paymentOrder *ent.PaymentOrder, log *contracts.ERC20TokenTransfer) (bool, error)
@@ -70,7 +70,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 	var err error
 
 	// Connect to RPC endpoint
-	retryErr := utils.Retry(3, 5*time.Second, func() error {
+	retryErr := utils.Retry(3, 1*time.Second, func() error {
 		client, err = types.NewEthClient(order.Edges.Token.Edges.Network.RPCEndpoint)
 		return err
 	})
@@ -95,7 +95,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 
 	// Fetch logs
 	var iter *contracts.ERC20TokenTransferIterator
-	retryErr = utils.Retry(3, 5*time.Second, func() error {
+	retryErr = utils.Retry(3, 1*time.Second, func() error {
 		var err error
 		iter, err = filterer.FilterTransfer(&bind.FilterOpts{
 			Start: uint64(int64(toBlock) - 5000),
@@ -124,11 +124,11 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 }
 
 // IndexOrderCreated indexes deposits to the order contract for a specific network.
-func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPCClient, network *ent.Network, startBlock, toBlock uint64) error {
+func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPCClient, network *ent.Network, sender string) error {
 	var err error
 
 	// Connect to RPC endpoint
-	retryErr := utils.Retry(3, 5*time.Second, func() error {
+	retryErr := utils.Retry(3, 1*time.Second, func() error {
 		client, err = types.NewEthClient(network.RPCEndpoint)
 		return err
 	})
@@ -144,14 +144,21 @@ func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPC
 		return err
 	}
 
+	// Fetch current block header
+	header, err := client.HeaderByNumber(ctx, nil)
+	if err != nil {
+		logger.Errorf("IndexOrderCreated.HeaderByNumber: %v", err)
+	}
+	toBlock := header.Number.Uint64()
+
 	// Fetch logs
 	var iter *contracts.GatewayOrderCreatedIterator
-	retryErr = utils.Retry(3, 5*time.Second, func() error {
+	retryErr = utils.Retry(3, 1*time.Second, func() error {
 		var err error
 		iter, err = filterer.FilterOrderCreated(&bind.FilterOpts{
-			Start: startBlock,
+			Start: uint64(int64(toBlock) - 5000),
 			End:   &toBlock,
-		}, nil, nil, nil)
+		}, []common.Address{common.HexToAddress(sender)}, nil, nil)
 		return err
 	})
 	if retryErr != nil {
@@ -172,11 +179,11 @@ func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPC
 }
 
 // IndexOrderSettled indexes order settlements for a specific network.
-func (s *IndexerService) IndexOrderSettled(ctx context.Context, client types.RPCClient, network *ent.Network, startBlock uint64) error {
+func (s *IndexerService) IndexOrderSettled(ctx context.Context, client types.RPCClient, network *ent.Network, gatewayId string) error {
 	var err error
 
 	// Connect to RPC endpoint
-	retryErr := utils.Retry(3, 5*time.Second, func() error {
+	retryErr := utils.Retry(3, 1*time.Second, func() error {
 		client, err = types.NewEthClient(network.RPCEndpoint)
 		return err
 	})
@@ -197,17 +204,23 @@ func (s *IndexerService) IndexOrderSettled(ctx context.Context, client types.RPC
 	if err != nil {
 		logger.Errorf("IndexOrderSettled.HeaderByNumber: %v", err)
 	}
-
 	toBlock := header.Number.Uint64()
 
 	// Fetch logs
 	var iter *contracts.GatewayOrderSettledIterator
-	retryErr = utils.Retry(3, 5*time.Second, func() error {
+	retryErr = utils.Retry(3, 1*time.Second, func() error {
 		var err error
+
+		orderID, err := hex.DecodeString(gatewayId[2:])
+		if err != nil {
+			logger.Errorf("IndexOrderSettled.DecodeString: %v", err)
+			return err
+		}
+
 		iter, err = filterer.FilterOrderSettled(&bind.FilterOpts{
-			Start: startBlock,
+			Start: uint64(int64(toBlock) - 5000),
 			End:   &toBlock,
-		}, nil, nil)
+		}, [][32]byte{utils.StringToByte32(string(orderID))}, nil)
 		return err
 	})
 	if retryErr != nil {
@@ -227,11 +240,11 @@ func (s *IndexerService) IndexOrderSettled(ctx context.Context, client types.RPC
 }
 
 // IndexOrderRefunded indexes order refunds for a specific network.
-func (s *IndexerService) IndexOrderRefunded(ctx context.Context, client types.RPCClient, network *ent.Network, startBlock uint64) error {
+func (s *IndexerService) IndexOrderRefunded(ctx context.Context, client types.RPCClient, network *ent.Network, gatewayId string) error {
 	var err error
 
 	// Connect to RPC endpoint
-	retryErr := utils.Retry(3, 5*time.Second, func() error {
+	retryErr := utils.Retry(3, 1*time.Second, func() error {
 		client, err = types.NewEthClient(network.RPCEndpoint)
 		return err
 	})
@@ -252,17 +265,23 @@ func (s *IndexerService) IndexOrderRefunded(ctx context.Context, client types.RP
 	if err != nil {
 		logger.Errorf("IndexOrderRefunded.HeaderByNumber: %v", err)
 	}
-
 	toBlock := header.Number.Uint64()
 
 	// Fetch logs
 	var iter *contracts.GatewayOrderRefundedIterator
-	retryErr = utils.Retry(3, 5*time.Second, func() error {
+	retryErr = utils.Retry(3, 1*time.Second, func() error {
 		var err error
+
+		orderID, err := hex.DecodeString(gatewayId[2:])
+		if err != nil {
+			logger.Errorf("IndexOrderRefunded.DecodeString: %v", err)
+			return err
+		}
+
 		iter, err = filterer.FilterOrderRefunded(&bind.FilterOpts{
-			Start: startBlock,
+			Start: uint64(int64(toBlock) - 5000),
 			End:   &toBlock,
-		}, nil)
+		}, [][32]byte{utils.StringToByte32(string(orderID))})
 		return err
 	})
 	if retryErr != nil {
@@ -371,36 +390,22 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 	}
 
 	// Update payment order with the gateway ID
-	start := time.Now()
-	timeout := 10 * time.Minute
-	for {
-		paymentOrder, err := db.Client.PaymentOrder.
-			Query().
-			Where(
-				paymentorder.TxHashEQ(deposit.Raw.TxHash.Hex()),
-			).
-			Only(ctx)
-		if err != nil {
-			elapsed := time.Since(start)
-			if elapsed >= timeout {
-				return fmt.Errorf("CreateLockPaymentOrder.db: timeout reached, giving up after %v", elapsed)
-			}
-			time.Sleep(10 * time.Second)
-			continue
-		}
-		_, err = paymentOrder.
-			Update().
-			SetGatewayID(gatewayId).
-			Save(ctx)
-		if err != nil {
-			elapsed := time.Since(start)
-			if elapsed >= timeout {
-				return fmt.Errorf("CreateLockPaymentOrder.db: timeout reached, giving up after %v", elapsed)
-			}
-			time.Sleep(10 * time.Second)
-			continue
-		}
-		break
+	paymentOrder, err := db.Client.PaymentOrder.
+		Query().
+		Where(
+			paymentorder.TxHashEQ(deposit.Raw.TxHash.Hex()),
+		).
+		Only(ctx)
+	if err != nil {
+		return fmt.Errorf("CreateLockPaymentOrder.db: %v", err)
+	}
+
+	_, err = paymentOrder.
+		Update().
+		SetGatewayID(gatewayId).
+		Save(ctx)
+	if err != nil {
+		return fmt.Errorf("CreateLockPaymentOrder.db: %v", err)
 	}
 
 	// Get token from db

@@ -165,7 +165,7 @@ func IndexBlockchainEvents() error {
 
 	// Index ERC20 transfer events
 	go func() {
-		_ = utils.Retry(5, 10*time.Second, func() error {
+		_ = utils.Retry(5, 5*time.Second, func() error {
 			for _, network := range networks {
 				orders, err := storage.Client.PaymentOrder.
 					Query().
@@ -208,7 +208,7 @@ func IndexBlockchainEvents() error {
 
 	// Index OrderCreated events
 	go func() {
-		_ = utils.Retry(5, 10*time.Second, func() error {
+		_ = utils.Retry(5, 5*time.Second, func() error {
 			for _, network := range networks {
 				orders, err := storage.Client.PaymentOrder.
 					Query().
@@ -229,6 +229,7 @@ func IndexBlockchainEvents() error {
 						))
 					}).
 					Where(paymentorder.HasTokenWith(token.HasNetworkWith(networkent.IDEQ(network.ID)))).
+					WithReceiveAddress().
 					Order(ent.Asc(paymentorder.FieldBlockNumber)).
 					All(ctx)
 				if err != nil {
@@ -237,13 +238,11 @@ func IndexBlockchainEvents() error {
 				}
 
 				if len(orders) > 0 {
-					// Filter logs from the oldest indexed to the latest in the database
-					startBlock := uint64(orders[0].BlockNumber)
-					toBlock := uint64(orders[len(orders)-1].BlockNumber)
-
-					err := indexerService.IndexOrderCreated(ctx, nil, network, startBlock, toBlock)
-					if err != nil {
-						logger.Errorf("IndexBlockchainEvents: %v", err)
+					for _, order := range orders {
+						err := indexerService.IndexOrderCreated(ctx, nil, network, order.Edges.ReceiveAddress.Address)
+						if err != nil {
+							logger.Errorf("IndexBlockchainEvents: %v", err)
+						}
 					}
 				}
 			}
@@ -254,7 +253,7 @@ func IndexBlockchainEvents() error {
 
 	// Index OrderSettled events
 	go func() {
-		_ = utils.Retry(5, 10*time.Second, func() error {
+		_ = utils.Retry(5, 5*time.Second, func() error {
 			for _, network := range networks {
 				lockOrders, err := storage.Client.LockPaymentOrder.
 					Query().
@@ -281,10 +280,11 @@ func IndexBlockchainEvents() error {
 				}
 
 				if len(lockOrders) > 0 {
-					startBlock := uint64(lockOrders[0].BlockNumber)
-					err := indexerService.IndexOrderSettled(ctx, nil, network, startBlock)
-					if err != nil {
-						logger.Errorf("IndexBlockchainEvents: %v", err)
+					for _, order := range lockOrders {
+						err := indexerService.IndexOrderSettled(ctx, nil, network, order.GatewayID)
+						if err != nil {
+							logger.Errorf("IndexBlockchainEvents: %v", err)
+						}
 					}
 				}
 			}
@@ -295,7 +295,7 @@ func IndexBlockchainEvents() error {
 
 	// Index OrderRefunded events
 	go func() {
-		_ = utils.Retry(5, 10*time.Second, func() error {
+		_ = utils.Retry(5, 5*time.Second, func() error {
 			for _, network := range networks {
 				lockOrders, err := storage.Client.LockPaymentOrder.
 					Query().
@@ -323,10 +323,11 @@ func IndexBlockchainEvents() error {
 				}
 
 				if len(lockOrders) > 0 {
-					startBlock := uint64(lockOrders[0].BlockNumber)
-					err := indexerService.IndexOrderRefunded(ctx, nil, network, startBlock)
-					if err != nil {
-						logger.Errorf("IndexBlockchainEvents: %v", err)
+					for _, order := range lockOrders {
+						err := indexerService.IndexOrderRefunded(ctx, nil, network, order.GatewayID)
+						if err != nil {
+							logger.Errorf("IndexBlockchainEvents: %v", err)
+						}
 					}
 				}
 			}
@@ -605,8 +606,8 @@ func StartCronJobs() {
 		logger.Errorf("StartCronJobs: %v", err)
 	}
 
-	// Retry stale user operations every 5 minutes
-	_, err = scheduler.Cron("*/5 * * * *").Do(RetryStaleUserOperations)
+	// Retry stale user operations every 2 minutes
+	_, err = scheduler.Cron("*/2 * * * *").Do(RetryStaleUserOperations)
 	if err != nil {
 		logger.Errorf("StartCronJobs: %v", err)
 	}
