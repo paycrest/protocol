@@ -1,7 +1,10 @@
 package test
 
 import (
+	"bufio"
 	"context"
+	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -376,4 +379,27 @@ func CreateTestFiatCurrency(overrides map[string]interface{}) (*ent.FiatCurrency
 
 	return currency, err
 
+}
+
+// CreateEnvFile creates a new file with Key=Value format.
+func CreateEnvFile(filePath string, data map[string]string) (string, error) {
+	// Open the file for writing
+	file, err := os.Create(filePath)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	writer := bufio.NewWriter(file)
+	defer writer.Flush()
+
+	// Iterate over the map entries and write each key-value pair to the file
+	for key, value := range data {
+		_, err := writer.WriteString(fmt.Sprintf("%s='%s'\n", key, value))
+		if err != nil {
+			return "", err
+		}
+	}
+
+	return filePath, nil
 }
