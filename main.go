@@ -31,6 +31,11 @@ func main() {
 		logger.Fatalf("Redis initialization: %s", err)
 	}
 
+	// Start indexer
+	if err := tasks.ContinueIndexing(); err != nil {
+		logger.Fatalf("ContinueIndexing: %s", err)
+	}
+
 	// Subscribe to Redis keyspace events
 	tasks.SubscribeToRedisKeyspaceEvents()
 

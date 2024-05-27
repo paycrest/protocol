@@ -31,6 +31,51 @@ import (
 
 var orderConf = config.OrderConfig()
 
+// ContinueIndexing continues indexing
+func ContinueIndexing() error {
+	ctx := context.Background()
+	orderService := services.NewOrderService()
+	indexerService := services.NewIndexerService(orderService)
+
+	networks, err := storage.Client.Network.
+		Query().
+		Where(
+			networkent.IsTestnetEQ(config.ServerConfig().Environment != "production"),
+		).
+		All(ctx)
+	if err != nil {
+		return err
+	}
+
+	for _, network := range networks {
+		// Start listening for order creation events
+		go func(network *ent.Network) {
+			err := indexerService.IndexOrderCreated(ctx, nil, network, "", true)
+			if err != nil {
+				logger.Errorf("process order deposits task => %v", err)
+			}
+		}(network)
+
+		// Start listening for order settlement events
+		go func(network *ent.Network) {
+			err = indexerService.IndexOrderSettled(ctx, nil, network, "", true)
+			if err != nil {
+				logger.Errorf("process order settlements task => %v", err)
+			}
+		}(network)
+
+		// Start listening for order refund events
+		go func(network *ent.Network) {
+			err = indexerService.IndexOrderRefunded(ctx, nil, network, "", true)
+			if err != nil {
+				logger.Errorf("process order refunds task => %v", err)
+			}
+		}(network)
+	}
+
+	return nil
+}
+
 // RetryStaleUserOperations retries stale user operations
 func RetryStaleUserOperations() error {
 	ctx := context.Background()
@@ -193,10 +238,18 @@ func IndexBlockchainEvents() error {
 
 				if len(orders) > 0 {
 					for _, order := range orders {
-						err := indexerService.IndexERC20Transfer(ctx, client, order)
-						if err != nil {
-							logger.Errorf("IndexBlockchainEvents: %v", err)
-							continue
+						if strings.HasPrefix(network.Identifier, "tron") {
+							err := indexerService.IndexTRC20Transfer(ctx, order)
+							if err != nil {
+								logger.Errorf("IndexBlockchainEvents: %v", err)
+								continue
+							}
+						} else {
+							err := indexerService.IndexERC20Transfer(ctx, client, order)
+							if err != nil {
+								logger.Errorf("IndexBlockchainEvents: %v", err)
+								continue
+							}
 						}
 					}
 				}
@@ -238,7 +291,7 @@ func IndexBlockchainEvents() error {
 
 				if len(orders) > 0 {
 					for _, order := range orders {
-						err := indexerService.IndexOrderCreated(ctx, nil, network, order.Edges.ReceiveAddress.Address)
+						err := indexerService.IndexOrderCreated(ctx, nil, network, order.Edges.ReceiveAddress.Address, false)
 						if err != nil {
 							logger.Errorf("IndexBlockchainEvents: %v", err)
 						}
@@ -277,7 +330,7 @@ func IndexBlockchainEvents() error {
 
 				if len(lockOrders) > 0 {
 					for _, order := range lockOrders {
-						err := indexerService.IndexOrderSettled(ctx, nil, network, order.GatewayID)
+						err := indexerService.IndexOrderSettled(ctx, nil, network, order.GatewayID, false)
 						if err != nil {
 							logger.Errorf("IndexBlockchainEvents: %v", err)
 						}
@@ -319,7 +372,7 @@ func IndexBlockchainEvents() error {
 
 				if len(lockOrders) > 0 {
 					for _, order := range lockOrders {
-						err := indexerService.IndexOrderRefunded(ctx, nil, network, order.GatewayID)
+						err := indexerService.IndexOrderRefunded(ctx, nil, network, order.GatewayID, false)
 						if err != nil {
 							logger.Errorf("IndexBlockchainEvents: %v", err)
 						}
@@ -391,7 +444,7 @@ func SubscribeToRedisKeyspaceEvents() {
 func fetchExternalRate(currency string) (decimal.Decimal, error) {
 	// Fetch stable coin rate from third-party API Quidax (USDT)
 	res, err := fastshot.NewClient("https://www.quidax.com").
-		Config().SetTimeout(30 * time.Second).
+		Config().SetTimeout(30*time.Second).
 		Build().GET(fmt.Sprintf("/api/v1/markets/tickers/usdt%s", strings.ToLower(currency))).
 		Retry().Set(3, 5*time.Second).
 		Send()
