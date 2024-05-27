@@ -22,7 +22,6 @@ import (
 
 var (
 	fromAddress, privateKey, _ = cryptoUtils.GenerateAccountFromIndex(0)
-	OrderConf                  = config.OrderConfig()
 )
 
 // Initialize user operation with defaults
@@ -109,29 +108,49 @@ func SponsorUserOperation(userOp *userop.UserOperation, mode string, token strin
 	}
 
 	var payload map[string]interface{}
+	var requestParams []interface{}
 
-	switch mode {
-	case "payg":
+	if config.OrderConfig().ActiveAAService == "STACKUP" {
+		switch mode {
+		case "payg":
+			payload = map[string]interface{}{
+				"type": "payg",
+			}
+		case "erc20token":
+			if token == "" {
+				return fmt.Errorf("token address is required")
+			}
+
+			payload = map[string]interface{}{
+				"type":  "erc20token",
+				"token": token,
+			}
+		default:
+			return fmt.Errorf("invalid mode")
+		}
+
+		requestParams = []interface{}{
+			userOp,
+			config.OrderConfig().EntryPointContractAddress.Hex(),
+			payload,
+		}
+	} else if config.OrderConfig().ActiveAAService == "BICONOMY" {
 		payload = map[string]interface{}{
-			"type": "payg",
+			"mode": "SPONSORED",
+			"sponsorshipInfo": map[string]interface{}{
+				"webhookData": map[string]interface{}{},
+				"smartAccountInfo": map[string]interface{}{
+					"name":    "INFINITISM",
+					"version": "1.0.0",
+				},
+			},
+			"expiryDuration":     300,
+			"calculateGasLimits": true,
 		}
-	case "erc20token":
-		if token == "" {
-			return fmt.Errorf("token address is required")
+		requestParams = []interface{}{
+			userOp,
+			payload,
 		}
-
-		payload = map[string]interface{}{
-			"type":  "erc20token",
-			"token": token,
-		}
-	default:
-		return fmt.Errorf("invalid mode")
-	}
-
-	requestParams := []interface{}{
-		userOp,
-		OrderConf.EntryPointContractAddress.Hex(),
-		payload,
 	}
 
 	// op, _ := userOp.MarshalJSON()
@@ -168,7 +187,7 @@ func SponsorUserOperation(userOp *userop.UserOperation, mode string, token strin
 func SignUserOperation(userOperation *userop.UserOperation, chainId int64) error {
 	// Sign user operation
 	userOpHash := userOperation.GetUserOpHash(
-		OrderConf.EntryPointContractAddress,
+		config.OrderConfig().EntryPointContractAddress,
 		big.NewInt(chainId),
 	)
 
@@ -195,7 +214,7 @@ func SendUserOperation(userOp *userop.UserOperation, chainId int64) (string, int
 
 	requestParams := []interface{}{
 		userOp,
-		OrderConf.EntryPointContractAddress.Hex(),
+		config.OrderConfig().EntryPointContractAddress.Hex(),
 	}
 
 	// op, _ := userOp.MarshalJSON()
@@ -288,7 +307,7 @@ func GetPaymasterAccount(chainId int64) (string, error) {
 	}
 
 	requestParams := []interface{}{
-		OrderConf.EntryPointContractAddress.Hex(),
+		config.OrderConfig().EntryPointContractAddress.Hex(),
 	}
 
 	var result json.RawMessage
@@ -382,33 +401,33 @@ func eip1559GasPrice(ctx context.Context, client types.RPCClient) (maxFeePerGas,
 
 // getEndpoints returns the bundler and paymaster URLs for the given chain ID
 func getEndpoints(chainId int64) (bundlerUrl, paymasterUrl string, err error) {
-	if OrderConf.ActiveAAService == "BICONOMY" {
-		bundlerUrl := fmt.Sprintf("https://bundler.biconomy.io/api/v2/%d/%s", chainId, OrderConf.BiconomyBundlerKey)
-		paymasterUrl := fmt.Sprintf("https://paymaster.biconomy.io/api/v1/%d/%s", chainId, OrderConf.BiconomyPaymasterKey)
+	if config.OrderConfig().ActiveAAService == "BICONOMY" {
+		bundlerUrl := fmt.Sprintf("https://bundler.biconomy.io/api/v2/%d/%s", chainId, config.OrderConfig().BiconomyBundlerKey)
+		paymasterUrl := fmt.Sprintf("https://paymaster.biconomy.io/api/v1/%d/%s", chainId, config.OrderConfig().BiconomyPaymasterKey)
 		return bundlerUrl, paymasterUrl, nil
 	}
 	switch chainId {
 	case 1:
-		bundlerUrl = OrderConf.BundlerUrlEthereum
-		paymasterUrl = OrderConf.PaymasterUrlEthereum
+		bundlerUrl = config.OrderConfig().BundlerUrlEthereum
+		paymasterUrl = config.OrderConfig().PaymasterUrlEthereum
 	case 11155111:
-		bundlerUrl = OrderConf.BundlerUrlEthereum
-		paymasterUrl = OrderConf.PaymasterUrlEthereum
+		bundlerUrl = config.OrderConfig().BundlerUrlEthereum
+		paymasterUrl = config.OrderConfig().PaymasterUrlEthereum
 	case 137:
-		bundlerUrl = OrderConf.BundlerUrlPolygon
-		paymasterUrl = OrderConf.PaymasterUrlPolygon
+		bundlerUrl = config.OrderConfig().BundlerUrlPolygon
+		paymasterUrl = config.OrderConfig().PaymasterUrlPolygon
 	case 56:
-		bundlerUrl = OrderConf.BundlerUrlBSC
-		paymasterUrl = OrderConf.PaymasterUrlBSC
+		bundlerUrl = config.OrderConfig().BundlerUrlBSC
+		paymasterUrl = config.OrderConfig().PaymasterUrlBSC
 	case 8453:
-		bundlerUrl = OrderConf.BundlerUrlBase
-		paymasterUrl = OrderConf.PaymasterUrlBase
+		bundlerUrl = config.OrderConfig().BundlerUrlBase
+		paymasterUrl = config.OrderConfig().PaymasterUrlBase
 	case 42161:
-		bundlerUrl = OrderConf.BundlerUrlArbitrum
-		paymasterUrl = OrderConf.PaymasterUrlArbitrum
+		bundlerUrl = config.OrderConfig().BundlerUrlArbitrum
+		paymasterUrl = config.OrderConfig().PaymasterUrlArbitrum
 	case 421614:
-		bundlerUrl = OrderConf.BundlerUrlArbitrum
-		paymasterUrl = OrderConf.PaymasterUrlArbitrum
+		bundlerUrl = config.OrderConfig().BundlerUrlArbitrum
+		paymasterUrl = config.OrderConfig().PaymasterUrlArbitrum
 	default:
 		return "", "", fmt.Errorf("unsupported chain ID")
 	}
@@ -419,7 +438,7 @@ func getEndpoints(chainId int64) (bundlerUrl, paymasterUrl string, err error) {
 // getNonce returns the nonce for the given sender
 // https://docs.stackup.sh/docs/useroperation-nonce
 func getNonce(client types.RPCClient, sender common.Address) (nonce *big.Int, err error) {
-	entrypoint, err := contracts.NewEntryPoint(OrderConf.EntryPointContractAddress, client.(bind.ContractBackend))
+	entrypoint, err := contracts.NewEntryPoint(config.OrderConfig().EntryPointContractAddress, client.(bind.ContractBackend))
 	if err != nil {
 		return nil, err
 	}
