@@ -3,7 +3,6 @@ package utils
 import (
 	"fmt"
 	"os"
-	"strings"
 
 	"testing"
 	"time"
@@ -48,12 +47,4 @@ func TestUserop(t *testing.T) {
 		assert.Equal(t, "BICONOMY", config.OrderConfig().ActiveAAService)
 	})
 
-	t.Run("should get BICOMOMY paymaster and Bunder ID", func(t *testing.T) {
-		var chainId int64 = 1
-		bundleURL, paymaster, err := getEndpoints(chainId)
-		assert.NoError(t, err)
-		assert.True(t, strings.HasPrefix(bundleURL, fmt.Sprintf("https://bundler.biconomy.io/api/v2/%d", chainId)))
-		assert.True(t, strings.HasPrefix(paymaster, fmt.Sprintf("https://paymaster.biconomy.io/api/v1/%d", chainId)))
-
-	})
 }

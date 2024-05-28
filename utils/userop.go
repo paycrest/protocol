@@ -413,11 +413,6 @@ func eip1559GasPrice(ctx context.Context, client types.RPCClient) (maxFeePerGas,
 
 // getEndpoints returns the bundler and paymaster URLs for the given chain ID
 func getEndpoints(chainId int64) (bundlerUrl, paymasterUrl string, err error) {
-	if config.OrderConfig().ActiveAAService == "BICONOMY" {
-		bundlerUrl := fmt.Sprintf("https://bundler.biconomy.io/api/v2/%d/%s", chainId, config.OrderConfig().BiconomyBundlerKey)
-		paymasterUrl := fmt.Sprintf("https://paymaster.biconomy.io/api/v1/%d/%s", chainId, config.OrderConfig().BiconomyPaymasterKey)
-		return bundlerUrl, paymasterUrl, nil
-	}
 	switch chainId {
 	case 1:
 		bundlerUrl = config.OrderConfig().BundlerUrlEthereum
