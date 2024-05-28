@@ -212,9 +212,21 @@ func SendUserOperation(userOp *userop.UserOperation, chainId int64) (string, int
 		return "", 0, fmt.Errorf("failed to connect to RPC client: %w", err)
 	}
 
-	requestParams := []interface{}{
-		userOp,
-		config.OrderConfig().EntryPointContractAddress.Hex(),
+	var requestParams []interface{}
+
+	if config.OrderConfig().ActiveAAService == "STACKUP" {
+		requestParams = []interface{}{
+			userOp,
+			config.OrderConfig().EntryPointContractAddress.Hex(),
+		}
+	} else if config.OrderConfig().ActiveAAService == "BICONOMY" {
+		requestParams = []interface{}{
+			userOp,
+			config.OrderConfig().EntryPointContractAddress.Hex(),
+			map[string]string{
+				"simulation_type": "validation_and_execution",
+			},
+		}
 	}
 
 	// op, _ := userOp.MarshalJSON()
