@@ -16,7 +16,9 @@ import (
 func setup() (string, error) {
 	// Set up test data
 	file, err := test.CreateEnvFile(fmt.Sprintf("%d.env", time.Now().UnixNano()), map[string]string{
-		"ACTIVE_AA_SERVICE": "BICONOMY",
+		"ACTIVE_AA_SERVICE":      "BICONOMY",
+		"PAYMASTER_URL_ETHEREUM": "https://api.stackup.sh/v1/xxx",
+		"BUNDLER_URL_ETHEREUM":   "https://api.stackup.sh/v1/yyy",
 	})
 	if err != nil {
 		return "", err
@@ -47,4 +49,20 @@ func TestUserop(t *testing.T) {
 		assert.Equal(t, "BICONOMY", config.OrderConfig().ActiveAAService)
 	})
 
+	t.Run("test getEndpoints", func(t *testing.T) {
+		t.Run("when chainID is supported getEndpoints", func(t *testing.T) {
+			bundlerID, paymaster, err := getEndpoints(1)
+			assert.NoError(t, err)
+			assert.NotEmpty(t, bundlerID, "bundlerID should not be empty")
+			assert.NotEmpty(t, paymaster, "paymaster should not be empty")
+		})
+
+		t.Run("when chainID is not supported getEndpoints", func(t *testing.T) {
+			bundlerID, paymaster, err := getEndpoints(1000)
+			assert.Error(t, err)
+			assert.Empty(t, bundlerID, "bundlerID should be empty")
+			assert.Empty(t, paymaster, "paymaster should be empty")
+		})
+
+	})
 }
