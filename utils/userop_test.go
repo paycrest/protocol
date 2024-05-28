@@ -79,7 +79,7 @@ func TestUserop(t *testing.T) {
 
 	})
 
-	t.Run("re", func(t *testing.T) {
+	t.Run("test success SendUserOperation", func(t *testing.T) {
 		// activate httpmock
 		httpmock.Activate()
 		defer httpmock.Deactivate()
@@ -103,9 +103,8 @@ func TestUserop(t *testing.T) {
 			func(r *http.Request) (*http.Response, error) {
 				bytes, err := io.ReadAll(r.Body)
 				if err != nil {
-					log.Fatal( err)
+					log.Fatal(err)
 				}
-				fmt.Println(string(bytes))
 
 				if strings.Contains(string(bytes), "eth_sendUserOperation") {
 					resp, err := httpmock.NewJsonResponse(200, map[string]interface{}{
@@ -130,11 +129,58 @@ func TestUserop(t *testing.T) {
 
 			},
 		)
-
 		transactionHash, blockNumber, err := SendUserOperation(data, 1)
 		assert.NoError(t, err)
 		assert.NotEmpty(t, transactionHash, "transactionHash should not be empty")
 		assert.Equal(t, int64(120), blockNumber)
 
+	})
+
+	t.Run("test success SponsorUserOperation", func(t *testing.T) {
+		// activate httpmock
+		httpmock.Activate()
+		defer httpmock.Deactivate()
+
+		data := &userop.UserOperation{
+			Sender:               common.Address{}, // Assuming common.Address has a zero value
+			Nonce:                big.NewInt(12345),
+			InitCode:             []byte{0x01, 0x02, 0x03}, // Example byte slice
+			CallData:             []byte{0x04, 0x05, 0x06}, // Example byte slice
+			CallGasLimit:         big.NewInt(67890),
+			VerificationGasLimit: big.NewInt(111213),
+			PreVerificationGas:   big.NewInt(141516),
+			MaxFeePerGas:         big.NewInt(171819),
+			MaxPriorityFeePerGas: big.NewInt(192021),
+			PaymasterAndData:     []byte{0x22, 0x23, 0x24}, // Example byte slice
+			Signature:            []byte{0x25, 0x26, 0x27}, // Example byte slice
+		}
+
+		// register mock response
+		httpmock.RegisterResponder("POST", PAYMASTER_URL_ETHEREUM,
+			func(r *http.Request) (*http.Response, error) {
+				bytes, err := io.ReadAll(r.Body)
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				if strings.Contains(string(bytes), "pm_sponsorUserOperation") {
+					resp, err := httpmock.NewJsonResponse(200, map[string]interface{}{
+						"jsonrpc": "2.0",
+						"id":      1,
+						"result": map[string]interface{}{
+							"PaymasterAndData":     "0x123...",
+							"PreVerificationGas":   "1000000000000000000",
+							"VerificationGasLimit": "2000000000000000000",
+							"CallGasLimit":         "3000000000000000000",
+						},
+					})
+					return resp, err
+				}
+				return httpmock.NewBytesResponse(200, []byte(`{"jsonrpc": "2.0","id": 1,"result":[]}`)), nil
+
+			},
+		)
+		err := SponsorUserOperation(data, "", "", 1)
+		assert.NoError(t, err)
 	})
 }
