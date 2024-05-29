@@ -168,10 +168,10 @@ func TestUserop(t *testing.T) {
 						"jsonrpc": "2.0",
 						"id":      1,
 						"result": map[string]interface{}{
-							"PaymasterAndData":     "0x123...",
-							"PreVerificationGas":   "1000000000000000000",
-							"VerificationGasLimit": "2000000000000000000",
-							"CallGasLimit":         "3000000000000000000",
+							"paymasterAndData":     "0x123...",
+							"preVerificationGas":   "1000000000000000000",
+							"verificationGasLimit": "2000000000000000000",
+							"callGasLimit":         "3000000000000000000",
 						},
 					})
 					return resp, err
