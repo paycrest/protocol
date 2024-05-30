@@ -45,7 +45,7 @@ func OrderConfig() *OrderConfiguration {
 	viper.SetDefault("NETWORK_FEE", 0.05)
 	viper.SetDefault("PERCENT_DEVIATION_FROM_EXTERNAL_RATE", 0.01)
 	viper.SetDefault("PERCENT_DEVIATION_FROM_MARKET_RATE", 0.1)
-	viper.SetDefault("ACTIVE_AA_SERVICE", "STACKUP")
+	viper.SetDefault("ACTIVE_AA_SERVICE", "stackup")
 
 	return &OrderConfiguration{
 		OrderFulfillmentValidity:         time.Duration(viper.GetInt("ORDER_FULFILLMENT_VALIDITY")) * time.Minute,

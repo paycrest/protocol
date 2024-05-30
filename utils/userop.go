@@ -110,7 +110,7 @@ func SponsorUserOperation(userOp *userop.UserOperation, mode string, token strin
 	var payload map[string]interface{}
 	var requestParams []interface{}
 
-	if config.OrderConfig().ActiveAAService == "STACKUP" {
+	if config.OrderConfig().ActiveAAService == "stackup" {
 		switch mode {
 		case "payg":
 			payload = map[string]interface{}{
@@ -134,7 +134,7 @@ func SponsorUserOperation(userOp *userop.UserOperation, mode string, token strin
 			config.OrderConfig().EntryPointContractAddress.Hex(),
 			payload,
 		}
-	} else if config.OrderConfig().ActiveAAService == "BICONOMY" {
+	} else if config.OrderConfig().ActiveAAService == "biconomy" {
 		payload = map[string]interface{}{
 			"mode": "SPONSORED",
 			"sponsorshipInfo": map[string]interface{}{
@@ -214,12 +214,12 @@ func SendUserOperation(userOp *userop.UserOperation, chainId int64) (string, int
 
 	var requestParams []interface{}
 
-	if config.OrderConfig().ActiveAAService == "STACKUP" {
+	if config.OrderConfig().ActiveAAService == "stackup" {
 		requestParams = []interface{}{
 			userOp,
 			config.OrderConfig().EntryPointContractAddress.Hex(),
 		}
-	} else if config.OrderConfig().ActiveAAService == "BICONOMY" {
+	} else if config.OrderConfig().ActiveAAService == "biconomy" {
 		requestParams = []interface{}{
 			userOp,
 			config.OrderConfig().EntryPointContractAddress.Hex(),
