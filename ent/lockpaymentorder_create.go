@@ -16,6 +16,7 @@ import (
 	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/provisionbucket"
 	"github.com/paycrest/protocol/ent/token"
+	"github.com/paycrest/protocol/ent/transactionlog"
 	"github.com/shopspring/decimal"
 )
 
@@ -252,6 +253,21 @@ func (lpoc *LockPaymentOrderCreate) SetNillableFulfillmentID(id *uuid.UUID) *Loc
 // SetFulfillment sets the "fulfillment" edge to the LockOrderFulfillment entity.
 func (lpoc *LockPaymentOrderCreate) SetFulfillment(l *LockOrderFulfillment) *LockPaymentOrderCreate {
 	return lpoc.SetFulfillmentID(l.ID)
+}
+
+// AddTransactionIDs adds the "transactions" edge to the TransactionLog entity by IDs.
+func (lpoc *LockPaymentOrderCreate) AddTransactionIDs(ids ...uuid.UUID) *LockPaymentOrderCreate {
+	lpoc.mutation.AddTransactionIDs(ids...)
+	return lpoc
+}
+
+// AddTransactions adds the "transactions" edges to the TransactionLog entity.
+func (lpoc *LockPaymentOrderCreate) AddTransactions(t ...*TransactionLog) *LockPaymentOrderCreate {
+	ids := make([]uuid.UUID, len(t))
+	for i := range t {
+		ids[i] = t[i].ID
+	}
+	return lpoc.AddTransactionIDs(ids...)
 }
 
 // Mutation returns the LockPaymentOrderMutation object of the builder.
@@ -528,6 +544,22 @@ func (lpoc *LockPaymentOrderCreate) createSpec() (*LockPaymentOrder, *sqlgraph.C
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(lockorderfulfillment.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := lpoc.mutation.TransactionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   lockpaymentorder.TransactionsTable,
+			Columns: []string{lockpaymentorder.TransactionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(transactionlog.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

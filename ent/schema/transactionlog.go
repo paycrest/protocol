@@ -1,0 +1,35 @@
+package schema
+
+import (
+	"time"
+
+	"entgo.io/ent"
+	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
+)
+
+// TransactionLog holds the schema definition for the TransactionLog entity.
+type TransactionLog struct {
+	ent.Schema
+}
+
+// Fields of the TransactionLog.
+func (TransactionLog) Fields() []ent.Field {
+	return []ent.Field{
+		field.UUID("id", uuid.UUID{}).
+			Default(uuid.New).Immutable(),
+		field.String("sender_address").Optional(),
+		field.String("provider_address").Optional(),
+		field.String("gateway_id").Optional(),
+		field.String("status").Immutable(),
+		field.String("network").Optional(),
+		field.String("transaction_hash").Optional(),
+		field.JSON("metadata", map[string]interface{}{}),
+		field.Time("created_at").Default(time.Now).Immutable(),
+	}
+}
+
+// Edges of the TransactionLog.
+func (TransactionLog) Edges() []ent.Edge {
+	return nil
+}

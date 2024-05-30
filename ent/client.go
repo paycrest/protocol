@@ -29,6 +29,7 @@ import (
 	"github.com/paycrest/protocol/ent/receiveaddress"
 	"github.com/paycrest/protocol/ent/senderprofile"
 	"github.com/paycrest/protocol/ent/token"
+	"github.com/paycrest/protocol/ent/transactionlog"
 	"github.com/paycrest/protocol/ent/user"
 	"github.com/paycrest/protocol/ent/verificationtoken"
 	"github.com/paycrest/protocol/ent/webhookretryattempt"
@@ -67,6 +68,8 @@ type Client struct {
 	SenderProfile *SenderProfileClient
 	// Token is the client for interacting with the Token builders.
 	Token *TokenClient
+	// TransactionLog is the client for interacting with the TransactionLog builders.
+	TransactionLog *TransactionLogClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
 	// VerificationToken is the client for interacting with the VerificationToken builders.
@@ -100,6 +103,7 @@ func (c *Client) init() {
 	c.ReceiveAddress = NewReceiveAddressClient(c.config)
 	c.SenderProfile = NewSenderProfileClient(c.config)
 	c.Token = NewTokenClient(c.config)
+	c.TransactionLog = NewTransactionLogClient(c.config)
 	c.User = NewUserClient(c.config)
 	c.VerificationToken = NewVerificationTokenClient(c.config)
 	c.WebhookRetryAttempt = NewWebhookRetryAttemptClient(c.config)
@@ -199,6 +203,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		ReceiveAddress:        NewReceiveAddressClient(cfg),
 		SenderProfile:         NewSenderProfileClient(cfg),
 		Token:                 NewTokenClient(cfg),
+		TransactionLog:        NewTransactionLogClient(cfg),
 		User:                  NewUserClient(cfg),
 		VerificationToken:     NewVerificationTokenClient(cfg),
 		WebhookRetryAttempt:   NewWebhookRetryAttemptClient(cfg),
@@ -235,6 +240,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		ReceiveAddress:        NewReceiveAddressClient(cfg),
 		SenderProfile:         NewSenderProfileClient(cfg),
 		Token:                 NewTokenClient(cfg),
+		TransactionLog:        NewTransactionLogClient(cfg),
 		User:                  NewUserClient(cfg),
 		VerificationToken:     NewVerificationTokenClient(cfg),
 		WebhookRetryAttempt:   NewWebhookRetryAttemptClient(cfg),
@@ -270,7 +276,8 @@ func (c *Client) Use(hooks ...Hook) {
 		c.APIKey, c.FiatCurrency, c.LockOrderFulfillment, c.LockPaymentOrder, c.Network,
 		c.PaymentOrder, c.PaymentOrderRecipient, c.ProviderOrderToken,
 		c.ProviderProfile, c.ProviderRating, c.ProvisionBucket, c.ReceiveAddress,
-		c.SenderProfile, c.Token, c.User, c.VerificationToken, c.WebhookRetryAttempt,
+		c.SenderProfile, c.Token, c.TransactionLog, c.User, c.VerificationToken,
+		c.WebhookRetryAttempt,
 	} {
 		n.Use(hooks...)
 	}
@@ -283,7 +290,8 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.APIKey, c.FiatCurrency, c.LockOrderFulfillment, c.LockPaymentOrder, c.Network,
 		c.PaymentOrder, c.PaymentOrderRecipient, c.ProviderOrderToken,
 		c.ProviderProfile, c.ProviderRating, c.ProvisionBucket, c.ReceiveAddress,
-		c.SenderProfile, c.Token, c.User, c.VerificationToken, c.WebhookRetryAttempt,
+		c.SenderProfile, c.Token, c.TransactionLog, c.User, c.VerificationToken,
+		c.WebhookRetryAttempt,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -320,6 +328,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.SenderProfile.mutate(ctx, m)
 	case *TokenMutation:
 		return c.Token.mutate(ctx, m)
+	case *TransactionLogMutation:
+		return c.TransactionLog.mutate(ctx, m)
 	case *UserMutation:
 		return c.User.mutate(ctx, m)
 	case *VerificationTokenMutation:
@@ -938,6 +948,22 @@ func (c *LockPaymentOrderClient) QueryFulfillment(lpo *LockPaymentOrder) *LockOr
 	return query
 }
 
+// QueryTransactions queries the transactions edge of a LockPaymentOrder.
+func (c *LockPaymentOrderClient) QueryTransactions(lpo *LockPaymentOrder) *TransactionLogQuery {
+	query := (&TransactionLogClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := lpo.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(lockpaymentorder.Table, lockpaymentorder.FieldID, id),
+			sqlgraph.To(transactionlog.Table, transactionlog.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, lockpaymentorder.TransactionsTable, lockpaymentorder.TransactionsColumn),
+		)
+		fromV = sqlgraph.Neighbors(lpo.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *LockPaymentOrderClient) Hooks() []Hook {
 	return c.hooks.LockPaymentOrder
@@ -1247,6 +1273,22 @@ func (c *PaymentOrderClient) QueryRecipient(po *PaymentOrder) *PaymentOrderRecip
 			sqlgraph.From(paymentorder.Table, paymentorder.FieldID, id),
 			sqlgraph.To(paymentorderrecipient.Table, paymentorderrecipient.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, false, paymentorder.RecipientTable, paymentorder.RecipientColumn),
+		)
+		fromV = sqlgraph.Neighbors(po.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryTransactions queries the transactions edge of a PaymentOrder.
+func (c *PaymentOrderClient) QueryTransactions(po *PaymentOrder) *TransactionLogQuery {
+	query := (&TransactionLogClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := po.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(paymentorder.Table, paymentorder.FieldID, id),
+			sqlgraph.To(transactionlog.Table, transactionlog.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, paymentorder.TransactionsTable, paymentorder.TransactionsColumn),
 		)
 		fromV = sqlgraph.Neighbors(po.driver.Dialect(), step)
 		return fromV, nil
@@ -2543,6 +2585,124 @@ func (c *TokenClient) mutate(ctx context.Context, m *TokenMutation) (Value, erro
 	}
 }
 
+// TransactionLogClient is a client for the TransactionLog schema.
+type TransactionLogClient struct {
+	config
+}
+
+// NewTransactionLogClient returns a client for the TransactionLog from the given config.
+func NewTransactionLogClient(c config) *TransactionLogClient {
+	return &TransactionLogClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `transactionlog.Hooks(f(g(h())))`.
+func (c *TransactionLogClient) Use(hooks ...Hook) {
+	c.hooks.TransactionLog = append(c.hooks.TransactionLog, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `transactionlog.Intercept(f(g(h())))`.
+func (c *TransactionLogClient) Intercept(interceptors ...Interceptor) {
+	c.inters.TransactionLog = append(c.inters.TransactionLog, interceptors...)
+}
+
+// Create returns a builder for creating a TransactionLog entity.
+func (c *TransactionLogClient) Create() *TransactionLogCreate {
+	mutation := newTransactionLogMutation(c.config, OpCreate)
+	return &TransactionLogCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of TransactionLog entities.
+func (c *TransactionLogClient) CreateBulk(builders ...*TransactionLogCreate) *TransactionLogCreateBulk {
+	return &TransactionLogCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for TransactionLog.
+func (c *TransactionLogClient) Update() *TransactionLogUpdate {
+	mutation := newTransactionLogMutation(c.config, OpUpdate)
+	return &TransactionLogUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *TransactionLogClient) UpdateOne(tl *TransactionLog) *TransactionLogUpdateOne {
+	mutation := newTransactionLogMutation(c.config, OpUpdateOne, withTransactionLog(tl))
+	return &TransactionLogUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *TransactionLogClient) UpdateOneID(id uuid.UUID) *TransactionLogUpdateOne {
+	mutation := newTransactionLogMutation(c.config, OpUpdateOne, withTransactionLogID(id))
+	return &TransactionLogUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for TransactionLog.
+func (c *TransactionLogClient) Delete() *TransactionLogDelete {
+	mutation := newTransactionLogMutation(c.config, OpDelete)
+	return &TransactionLogDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *TransactionLogClient) DeleteOne(tl *TransactionLog) *TransactionLogDeleteOne {
+	return c.DeleteOneID(tl.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *TransactionLogClient) DeleteOneID(id uuid.UUID) *TransactionLogDeleteOne {
+	builder := c.Delete().Where(transactionlog.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &TransactionLogDeleteOne{builder}
+}
+
+// Query returns a query builder for TransactionLog.
+func (c *TransactionLogClient) Query() *TransactionLogQuery {
+	return &TransactionLogQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeTransactionLog},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a TransactionLog entity by its id.
+func (c *TransactionLogClient) Get(ctx context.Context, id uuid.UUID) (*TransactionLog, error) {
+	return c.Query().Where(transactionlog.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *TransactionLogClient) GetX(ctx context.Context, id uuid.UUID) *TransactionLog {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *TransactionLogClient) Hooks() []Hook {
+	return c.hooks.TransactionLog
+}
+
+// Interceptors returns the client interceptors.
+func (c *TransactionLogClient) Interceptors() []Interceptor {
+	return c.inters.TransactionLog
+}
+
+func (c *TransactionLogClient) mutate(ctx context.Context, m *TransactionLogMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&TransactionLogCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&TransactionLogUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&TransactionLogUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&TransactionLogDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown TransactionLog mutation op: %q", m.Op())
+	}
+}
+
 // UserClient is a client for the User schema.
 type UserClient struct {
 	config
@@ -2968,13 +3128,13 @@ type (
 	hooks struct {
 		APIKey, FiatCurrency, LockOrderFulfillment, LockPaymentOrder, Network,
 		PaymentOrder, PaymentOrderRecipient, ProviderOrderToken, ProviderProfile,
-		ProviderRating, ProvisionBucket, ReceiveAddress, SenderProfile, Token, User,
-		VerificationToken, WebhookRetryAttempt []ent.Hook
+		ProviderRating, ProvisionBucket, ReceiveAddress, SenderProfile, Token,
+		TransactionLog, User, VerificationToken, WebhookRetryAttempt []ent.Hook
 	}
 	inters struct {
 		APIKey, FiatCurrency, LockOrderFulfillment, LockPaymentOrder, Network,
 		PaymentOrder, PaymentOrderRecipient, ProviderOrderToken, ProviderProfile,
-		ProviderRating, ProvisionBucket, ReceiveAddress, SenderProfile, Token, User,
-		VerificationToken, WebhookRetryAttempt []ent.Interceptor
+		ProviderRating, ProvisionBucket, ReceiveAddress, SenderProfile, Token,
+		TransactionLog, User, VerificationToken, WebhookRetryAttempt []ent.Interceptor
 	}
 )

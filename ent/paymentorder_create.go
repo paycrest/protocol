@@ -16,6 +16,7 @@ import (
 	"github.com/paycrest/protocol/ent/receiveaddress"
 	"github.com/paycrest/protocol/ent/senderprofile"
 	"github.com/paycrest/protocol/ent/token"
+	"github.com/paycrest/protocol/ent/transactionlog"
 	"github.com/shopspring/decimal"
 )
 
@@ -284,6 +285,21 @@ func (poc *PaymentOrderCreate) SetNillableRecipientID(id *int) *PaymentOrderCrea
 // SetRecipient sets the "recipient" edge to the PaymentOrderRecipient entity.
 func (poc *PaymentOrderCreate) SetRecipient(p *PaymentOrderRecipient) *PaymentOrderCreate {
 	return poc.SetRecipientID(p.ID)
+}
+
+// AddTransactionIDs adds the "transactions" edge to the TransactionLog entity by IDs.
+func (poc *PaymentOrderCreate) AddTransactionIDs(ids ...uuid.UUID) *PaymentOrderCreate {
+	poc.mutation.AddTransactionIDs(ids...)
+	return poc
+}
+
+// AddTransactions adds the "transactions" edges to the TransactionLog entity.
+func (poc *PaymentOrderCreate) AddTransactions(t ...*TransactionLog) *PaymentOrderCreate {
+	ids := make([]uuid.UUID, len(t))
+	for i := range t {
+		ids[i] = t[i].ID
+	}
+	return poc.AddTransactionIDs(ids...)
 }
 
 // Mutation returns the PaymentOrderMutation object of the builder.
@@ -588,6 +604,22 @@ func (poc *PaymentOrderCreate) createSpec() (*PaymentOrder, *sqlgraph.CreateSpec
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(paymentorderrecipient.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := poc.mutation.TransactionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   paymentorder.TransactionsTable,
+			Columns: []string{paymentorder.TransactionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(transactionlog.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

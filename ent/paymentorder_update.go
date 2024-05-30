@@ -18,6 +18,7 @@ import (
 	"github.com/paycrest/protocol/ent/receiveaddress"
 	"github.com/paycrest/protocol/ent/senderprofile"
 	"github.com/paycrest/protocol/ent/token"
+	"github.com/paycrest/protocol/ent/transactionlog"
 	"github.com/shopspring/decimal"
 )
 
@@ -358,6 +359,21 @@ func (pou *PaymentOrderUpdate) SetRecipient(p *PaymentOrderRecipient) *PaymentOr
 	return pou.SetRecipientID(p.ID)
 }
 
+// AddTransactionIDs adds the "transactions" edge to the TransactionLog entity by IDs.
+func (pou *PaymentOrderUpdate) AddTransactionIDs(ids ...uuid.UUID) *PaymentOrderUpdate {
+	pou.mutation.AddTransactionIDs(ids...)
+	return pou
+}
+
+// AddTransactions adds the "transactions" edges to the TransactionLog entity.
+func (pou *PaymentOrderUpdate) AddTransactions(t ...*TransactionLog) *PaymentOrderUpdate {
+	ids := make([]uuid.UUID, len(t))
+	for i := range t {
+		ids[i] = t[i].ID
+	}
+	return pou.AddTransactionIDs(ids...)
+}
+
 // Mutation returns the PaymentOrderMutation object of the builder.
 func (pou *PaymentOrderUpdate) Mutation() *PaymentOrderMutation {
 	return pou.mutation
@@ -385,6 +401,27 @@ func (pou *PaymentOrderUpdate) ClearReceiveAddress() *PaymentOrderUpdate {
 func (pou *PaymentOrderUpdate) ClearRecipient() *PaymentOrderUpdate {
 	pou.mutation.ClearRecipient()
 	return pou
+}
+
+// ClearTransactions clears all "transactions" edges to the TransactionLog entity.
+func (pou *PaymentOrderUpdate) ClearTransactions() *PaymentOrderUpdate {
+	pou.mutation.ClearTransactions()
+	return pou
+}
+
+// RemoveTransactionIDs removes the "transactions" edge to TransactionLog entities by IDs.
+func (pou *PaymentOrderUpdate) RemoveTransactionIDs(ids ...uuid.UUID) *PaymentOrderUpdate {
+	pou.mutation.RemoveTransactionIDs(ids...)
+	return pou
+}
+
+// RemoveTransactions removes "transactions" edges to TransactionLog entities.
+func (pou *PaymentOrderUpdate) RemoveTransactions(t ...*TransactionLog) *PaymentOrderUpdate {
+	ids := make([]uuid.UUID, len(t))
+	for i := range t {
+		ids[i] = t[i].ID
+	}
+	return pou.RemoveTransactionIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -679,6 +716,51 @@ func (pou *PaymentOrderUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(paymentorderrecipient.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if pou.mutation.TransactionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   paymentorder.TransactionsTable,
+			Columns: []string{paymentorder.TransactionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(transactionlog.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := pou.mutation.RemovedTransactionsIDs(); len(nodes) > 0 && !pou.mutation.TransactionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   paymentorder.TransactionsTable,
+			Columns: []string{paymentorder.TransactionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(transactionlog.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := pou.mutation.TransactionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   paymentorder.TransactionsTable,
+			Columns: []string{paymentorder.TransactionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(transactionlog.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -1030,6 +1112,21 @@ func (pouo *PaymentOrderUpdateOne) SetRecipient(p *PaymentOrderRecipient) *Payme
 	return pouo.SetRecipientID(p.ID)
 }
 
+// AddTransactionIDs adds the "transactions" edge to the TransactionLog entity by IDs.
+func (pouo *PaymentOrderUpdateOne) AddTransactionIDs(ids ...uuid.UUID) *PaymentOrderUpdateOne {
+	pouo.mutation.AddTransactionIDs(ids...)
+	return pouo
+}
+
+// AddTransactions adds the "transactions" edges to the TransactionLog entity.
+func (pouo *PaymentOrderUpdateOne) AddTransactions(t ...*TransactionLog) *PaymentOrderUpdateOne {
+	ids := make([]uuid.UUID, len(t))
+	for i := range t {
+		ids[i] = t[i].ID
+	}
+	return pouo.AddTransactionIDs(ids...)
+}
+
 // Mutation returns the PaymentOrderMutation object of the builder.
 func (pouo *PaymentOrderUpdateOne) Mutation() *PaymentOrderMutation {
 	return pouo.mutation
@@ -1057,6 +1154,27 @@ func (pouo *PaymentOrderUpdateOne) ClearReceiveAddress() *PaymentOrderUpdateOne 
 func (pouo *PaymentOrderUpdateOne) ClearRecipient() *PaymentOrderUpdateOne {
 	pouo.mutation.ClearRecipient()
 	return pouo
+}
+
+// ClearTransactions clears all "transactions" edges to the TransactionLog entity.
+func (pouo *PaymentOrderUpdateOne) ClearTransactions() *PaymentOrderUpdateOne {
+	pouo.mutation.ClearTransactions()
+	return pouo
+}
+
+// RemoveTransactionIDs removes the "transactions" edge to TransactionLog entities by IDs.
+func (pouo *PaymentOrderUpdateOne) RemoveTransactionIDs(ids ...uuid.UUID) *PaymentOrderUpdateOne {
+	pouo.mutation.RemoveTransactionIDs(ids...)
+	return pouo
+}
+
+// RemoveTransactions removes "transactions" edges to TransactionLog entities.
+func (pouo *PaymentOrderUpdateOne) RemoveTransactions(t ...*TransactionLog) *PaymentOrderUpdateOne {
+	ids := make([]uuid.UUID, len(t))
+	for i := range t {
+		ids[i] = t[i].ID
+	}
+	return pouo.RemoveTransactionIDs(ids...)
 }
 
 // Where appends a list predicates to the PaymentOrderUpdate builder.
@@ -1381,6 +1499,51 @@ func (pouo *PaymentOrderUpdateOne) sqlSave(ctx context.Context) (_node *PaymentO
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(paymentorderrecipient.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if pouo.mutation.TransactionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   paymentorder.TransactionsTable,
+			Columns: []string{paymentorder.TransactionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(transactionlog.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := pouo.mutation.RemovedTransactionsIDs(); len(nodes) > 0 && !pouo.mutation.TransactionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   paymentorder.TransactionsTable,
+			Columns: []string{paymentorder.TransactionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(transactionlog.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := pouo.mutation.TransactionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   paymentorder.TransactionsTable,
+			Columns: []string{paymentorder.TransactionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(transactionlog.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
