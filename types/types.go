@@ -62,6 +62,27 @@ type TokenTransfer struct {
 	Value           *big.Int
 }
 
+// OrderService provides an interface for the OrderService
+type OrderService interface {
+	CreateOrder(ctx context.Context, orderID uuid.UUID) error
+	RefundOrder(ctx context.Context, orderID string) error
+	RevertOrder(ctx context.Context, order *ent.PaymentOrder) error
+	SettleOrder(ctx context.Context, orderID uuid.UUID) error
+	GetSupportedInstitutions(ctx context.Context, client RPCClient, currencyCode string) ([]Institution, error)
+}
+
+// CreateOrderParams is the parameters for the create order payload
+type CreateOrderParams struct {
+	Token              common.Address
+	Amount             *big.Int
+	InstitutionCode    [32]byte
+	Rate               *big.Int
+	SenderFeeRecipient common.Address
+	SenderFee          *big.Int
+	RefundAddress      common.Address
+	MessageHash        string
+}
+
 // RegisterPayload is the payload for the register endpoint
 type RegisterPayload struct {
 	FirstName   string   `json:"firstName" binding:"required"`

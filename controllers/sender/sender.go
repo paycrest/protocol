@@ -15,6 +15,7 @@ import (
 	"github.com/paycrest/protocol/ent/senderprofile"
 	"github.com/paycrest/protocol/ent/token"
 	svc "github.com/paycrest/protocol/services"
+	orderSvc "github.com/paycrest/protocol/services/order"
 	"github.com/paycrest/protocol/types"
 	u "github.com/paycrest/protocol/utils"
 	"github.com/paycrest/protocol/utils/logger"
@@ -26,15 +27,15 @@ import (
 // SenderController is a controller type for sender endpoints
 type SenderController struct {
 	receiveAddressService *svc.ReceiveAddressService
-	orderService          svc.Order
+	orderService          types.OrderService
 }
 
 // NewSenderController creates a new instance of SenderController
-func NewSenderController(order svc.Order) *SenderController {
-	var orderService svc.Order
+func NewSenderController(order types.OrderService) *SenderController {
+	var orderService types.OrderService
 
 	if order == nil {
-		orderService = svc.NewOrderService()
+		orderService = orderSvc.NewOrderEVM()
 	} else {
 		orderService = order
 	}

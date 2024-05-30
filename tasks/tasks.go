@@ -22,6 +22,7 @@ import (
 	"github.com/paycrest/protocol/ent/token"
 	"github.com/paycrest/protocol/ent/webhookretryattempt"
 	"github.com/paycrest/protocol/services"
+	orderService "github.com/paycrest/protocol/services/order"
 	"github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
 	"github.com/paycrest/protocol/utils"
@@ -34,7 +35,7 @@ var orderConf = config.OrderConfig()
 // ContinueIndexing continues indexing
 func ContinueIndexing() error {
 	ctx := context.Background()
-	orderService := services.NewOrderService()
+	orderService := orderService.NewOrderEVM()
 	indexerService := services.NewIndexerService(orderService)
 
 	networks, err := storage.Client.Network.
@@ -79,7 +80,7 @@ func ContinueIndexing() error {
 // RetryStaleUserOperations retries stale user operations
 func RetryStaleUserOperations() error {
 	ctx := context.Background()
-	orderService := services.NewOrderService()
+	orderService := orderService.NewOrderEVM()
 
 	// Process initiated orders
 	orders, err := storage.Client.PaymentOrder.
@@ -198,7 +199,7 @@ func RetryStaleUserOperations() error {
 // IndexBlockchainEvents indexes missed blocks
 func IndexBlockchainEvents() error {
 	ctx := context.Background()
-	orderService := services.NewOrderService()
+	orderService := orderService.NewOrderEVM()
 	indexerService := services.NewIndexerService(orderService)
 
 	networks, err := storage.Client.Network.Query().All(ctx)
@@ -412,7 +413,7 @@ func HandleReceiveAddressValidity() error {
 		return err
 	}
 
-	orderService := services.NewOrderService()
+	orderService := orderService.NewOrderEVM()
 	indexerService := services.NewIndexerService(orderService)
 
 	for _, address := range addresses {

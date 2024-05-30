@@ -487,8 +487,8 @@ github.com/onsi/gomega v1.4.3/go.mod h1:ex+gbHU/CVuBBDIJjb2X0qEXbFg53c61hWP/1Cpa
 github.com/onsi/gomega v1.7.1/go.mod h1:XdKZgCCFLUoM/7CFJVPcG8C1xQ1AJ0vpAezJrB7JYyY=
 github.com/opus-domini/fast-shot v0.10.0 h1:zWbPy6KJZvNs0pUa0erF9TyeDsLZHDVZf4oDHOd6JGY=
 github.com/opus-domini/fast-shot v0.10.0/go.mod h1:sg5+f0VviAIIdrv24WLHL6kV7kWs4PsVDbSkr2TPYWw=
-github.com/paycrest/tron-wallet v1.0.7 h1:C0JcuSh7/07cnTrwHOPgkWUNQUBWYm4E9r1Lsu7JBp4=
-github.com/paycrest/tron-wallet v1.0.7/go.mod h1:snusTNDVkSs6ENpZgOQp3ZTedoi/33eEkh5XosOGXHU=
+github.com/paycrest/tron-wallet v1.0.13 h1:TEkjovg6i2zBTZFMfYpBrwswwnYAy6Q/Vc6g12PZh54=
+github.com/paycrest/tron-wallet v1.0.13/go.mod h1:JPfh2DaXK9/AoP6jFG4YQ4BmrvFcu7I+T7E9feB3Hgg=
 github.com/pelletier/go-toml v1.2.0/go.mod h1:5z9KED0ma1S8pY6P1sdut58dfprrGBbd/94hg7ilaic=
 github.com/pelletier/go-toml/v2 v2.0.9 h1:uH2qQXheeefCCkuBBSLi7jCiSmj3VRh2+Goq2N7Xxu0=
 github.com/pelletier/go-toml/v2 v2.0.9/go.mod h1:tJU2Z3ZkXwnxa4DPO899bsyIoywizdUvyaeZurnPPDc=

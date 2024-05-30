@@ -15,6 +15,8 @@ type OrderConfiguration struct {
 	ReceiveAddressValidity           time.Duration
 	OrderRequestValidity             time.Duration
 	GatewayContractAddress           common.Address
+	GatewayContractAddressTron       string
+	TronProApiKey                    string
 	EntryPointContractAddress        common.Address
 	BucketQueueRebuildInterval       int // in hours
 	RefundCancellationCount          int
@@ -30,7 +32,6 @@ type OrderConfiguration struct {
 	PaymasterUrlBSC                  string
 	BundlerUrlArbitrum               string
 	PaymasterUrlArbitrum             string
-	TronProApiKey                    string
 }
 
 // OrderConfig sets the order configuration
@@ -49,6 +50,8 @@ func OrderConfig() *OrderConfiguration {
 		ReceiveAddressValidity:           time.Duration(viper.GetInt("RECEIVE_ADDRESS_VALIDITY")) * time.Minute,
 		OrderRequestValidity:             time.Duration(viper.GetInt("ORDER_REQUEST_VALIDITY")) * time.Second,
 		GatewayContractAddress:           common.HexToAddress(viper.GetString("GATEWAY_CONTRACT_ADDRESS")),
+		GatewayContractAddressTron:       viper.GetString("GATEWAY_CONTRACT_ADDRESS_TRON"),
+		TronProApiKey:                    viper.GetString("TRON_PRO_API_KEY"),
 		BundlerUrlEthereum:               viper.GetString("BUNDLER_URL_ETHEREUM"),
 		PaymasterUrlEthereum:             viper.GetString("PAYMASTER_URL_ETHEREUM"),
 		BundlerUrlPolygon:                viper.GetString("BUNDLER_URL_POLYGON"),
@@ -60,7 +63,6 @@ func OrderConfig() *OrderConfiguration {
 		BundlerUrlArbitrum:               viper.GetString("BUNDLER_URL_ARBITRUM"),
 		PaymasterUrlArbitrum:             viper.GetString("PAYMASTER_URL_ARBITRUM"),
 		EntryPointContractAddress:        common.HexToAddress(viper.GetString("ENTRY_POINT_CONTRACT_ADDRESS")),
-		TronProApiKey:                    viper.GetString("TRON_PRO_API_KEY"),
 		BucketQueueRebuildInterval:       viper.GetInt("BUCKET_QUEUE_REBUILD_INTERVAL"),
 		RefundCancellationCount:          viper.GetInt("REFUND_CANCELLATION_COUNT"),
 		PercentDeviationFromExternalRate: decimal.NewFromFloat(viper.GetFloat64("PERCENT_DEVIATION_FROM_EXTERNAL_RATE")),

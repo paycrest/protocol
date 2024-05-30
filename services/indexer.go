@@ -35,8 +35,6 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-var OrderConf = config.OrderConfig()
-
 // Indexer is an interface for indexing blockchain data to the database.
 type Indexer interface {
 	IndexERC20Transfer(ctx context.Context, client types.RPCClient, order *ent.PaymentOrder) error
@@ -54,11 +52,11 @@ type Indexer interface {
 // IndexerService performs blockchain to database extract, transform, load (ETL) operations.
 type IndexerService struct {
 	priorityQueue *PriorityQueueService
-	order         Order
+	order         types.OrderService
 }
 
 // NewIndexerService creates a new instance of IndexerService.
-func NewIndexerService(order Order) Indexer {
+func NewIndexerService(order types.OrderService) Indexer {
 	priorityQueue := NewPriorityQueueService()
 
 	return &IndexerService{
@@ -143,7 +141,7 @@ func (s *IndexerService) IndexTRC20Transfer(ctx context.Context, order *ent.Paym
 
 	client := fastshot.NewClient(order.Edges.Token.Edges.Network.RPCEndpoint).
 		Config().SetTimeout(30*time.Second).
-		Header().Add("TRON_PRO_API_KEY", OrderConf.TronProApiKey)
+		Header().Add("TRON_PRO_API_KEY", config.OrderConfig().TronProApiKey)
 
 	// TODO: should we include '?only_confirmed=true' in the URL?
 	res, err := client.Build().
@@ -223,13 +221,13 @@ func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPC
 	}
 
 	// Initialize contract filterer
-	filterer, err := contracts.NewGatewayFilterer(OrderConf.GatewayContractAddress, client)
+	filterer, err := contracts.NewGatewayFilterer(config.OrderConfig().GatewayContractAddress, client)
 	if err != nil {
 		logger.Errorf("IndexOrderCreated.NewGatewayFilterer: %v", err)
 		return err
 	}
 
-	if ServerConf.Environment != "test" && isLive {
+	if config.ServerConfig().Environment != "test" && isLive {
 		// Start listening for deposit events
 		logs := make(chan *contracts.GatewayOrderCreated)
 
@@ -324,13 +322,13 @@ func (s *IndexerService) IndexOrderSettled(ctx context.Context, client types.RPC
 	}
 
 	// Initialize contract filterer
-	filterer, err := contracts.NewGatewayFilterer(OrderConf.GatewayContractAddress, client)
+	filterer, err := contracts.NewGatewayFilterer(config.OrderConfig().GatewayContractAddress, client)
 	if err != nil {
 		logger.Errorf("IndexOrderSettled.NewGatewayFilterer: %v", err)
 		return err
 	}
 
-	if ServerConf.Environment != "test" && isLive {
+	if config.ServerConfig().Environment != "test" && isLive {
 		// Start listening for settlement events
 		logs := make(chan *contracts.GatewayOrderSettled)
 
@@ -431,13 +429,13 @@ func (s *IndexerService) IndexOrderRefunded(ctx context.Context, client types.RP
 	}
 
 	// Initialize contract filterer
-	filterer, err := contracts.NewGatewayFilterer(OrderConf.GatewayContractAddress, client)
+	filterer, err := contracts.NewGatewayFilterer(config.OrderConfig().GatewayContractAddress, client)
 	if err != nil {
 		logger.Errorf("IndexOrderRefunded.NewGatewayFilterer: %v", err)
 		return err
 	}
 
-	if ServerConf.Environment != "test" && isLive {
+	if config.ServerConfig().Environment != "test" && isLive {
 		// Start listening for refund events
 		logs := make(chan *contracts.GatewayOrderRefunded)
 		sub, err := filterer.WatchOrderRefunded(&bind.WatchOpts{
@@ -530,7 +528,7 @@ func (s *IndexerService) HandleReceiveAddressValidity(ctx context.Context, recei
 		if validUntilIsFarGone {
 			_, err := receiveAddress.
 				Update().
-				SetValidUntil(time.Now().Add(OrderConf.ReceiveAddressValidity)).
+				SetValidUntil(time.Now().Add(config.OrderConfig().ReceiveAddressValidity)).
 				Save(ctx)
 			if err != nil {
 				return fmt.Errorf("HandleReceiveAddressValidity.db: %v", err)
@@ -575,7 +573,7 @@ func (s *IndexerService) HandleReceiveAddressValidity(ctx context.Context, recei
 func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client types.RPCClient, network *ent.Network, deposit *contracts.GatewayOrderCreated) error {
 	gatewayId := fmt.Sprintf("0x%v", hex.EncodeToString(deposit.OrderId[:]))
 
-	if ServerConf.Environment == "production" {
+	if config.ServerConfig().Environment == "production" {
 		ok, err := s.checkAMLCompliance(network.RPCEndpoint, deposit.Raw.TxHash.Hex())
 		if err != nil {
 			logger.Errorf("CreateLockPaymentOrder.checkAMLCompliance: %v", err)
@@ -893,7 +891,7 @@ func (s *IndexerService) getOrderRecipientFromMessageHash(messageHash string) (*
 	}
 
 	// Decrypt with the private key of the aggregator
-	message, err := cryptoUtils.PublicKeyDecryptJSON(messageCipher, CryptoConf.AggregatorPrivateKey)
+	message, err := cryptoUtils.PublicKeyDecryptJSON(messageCipher, config.CryptoConfig().AggregatorPrivateKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decrypt message hash: %w", err)
 	}
@@ -1079,7 +1077,7 @@ func (s *IndexerService) getProvisionBucket(ctx context.Context, amount decimal.
 
 // getInstitutionByCode returns the institution for a given institution code
 func (s *IndexerService) getInstitutionByCode(client types.RPCClient, institutionCode [32]byte) (*contracts.SharedStructsInstitutionByCode, error) {
-	instance, err := contracts.NewGateway(OrderConf.GatewayContractAddress, client.(bind.ContractBackend))
+	instance, err := contracts.NewGateway(config.OrderConfig().GatewayContractAddress, client.(bind.ContractBackend))
 	if err != nil {
 		return nil, err
 	}

@@ -16,10 +16,9 @@ import (
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/token"
-	"github.com/paycrest/protocol/services"
+	orderService "github.com/paycrest/protocol/services/order"
 	"github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
-	"github.com/paycrest/protocol/utils"
 	u "github.com/paycrest/protocol/utils"
 	cryptoUtils "github.com/paycrest/protocol/utils/crypto"
 	"github.com/paycrest/protocol/utils/logger"
@@ -31,13 +30,13 @@ import (
 
 // ProviderController is a controller type for provider endpoints
 type ProviderController struct {
-	orderService services.Order
+	orderService types.OrderService
 }
 
 // NewProviderController creates a new instance of ProviderController with injected services
 func NewProviderController() *ProviderController {
 	return &ProviderController{
-		orderService: services.NewOrderService(),
+		orderService: orderService.NewOrderEVM(),
 	}
 }
 
@@ -605,7 +604,7 @@ func (ctrl *ProviderController) NodeInfo(ctx *gin.Context) {
 		return
 	}
 
-	data, err := utils.ParseJSONResponse(res.RawResponse)
+	data, err := u.ParseJSONResponse(res.RawResponse)
 	if err != nil {
 		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusServiceUnavailable, "error", "Failed to fetch node info", nil)

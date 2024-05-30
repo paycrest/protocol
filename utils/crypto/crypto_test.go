@@ -30,11 +30,11 @@ func TestCreateEOA(t *testing.T) {
 		expectedAddress := "TFR3TTx4YzWwNoqmcuVEi477PJoSyo9zwx"
 
 		// Call the GenerateTronAccountFromIndex Function
-		address, privateKey, err := GenerateTronAccountFromIndex(expectedAccountIndex)
+		wallet, err := GenerateTronAccountFromIndex(expectedAccountIndex)
 		assert.NoError(t, err, "unexpected error")
 
 		// Assert the generated address
-		assert.Equal(t, expectedAddress, address, "incorrect address")
-		assert.NotEmpty(t, privateKey, "private key should not be empty")
+		assert.Equal(t, expectedAddress, wallet.AddressBase58, "incorrect address")
+		assert.NotEmpty(t, wallet.PrivateKey, "private key should not be empty")
 	})
 }

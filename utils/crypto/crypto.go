@@ -16,8 +16,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	hdwallet "github.com/miguelmota/go-ethereum-hdwallet"
 	"github.com/paycrest/protocol/config"
-	tronWallet "github.com/ranjbar-dev/tron-wallet"
-	tronEnums "github.com/ranjbar-dev/tron-wallet/enums"
+	tronWallet "github.com/paycrest/tron-wallet"
+	tronEnums "github.com/paycrest/tron-wallet/enums"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -230,7 +230,7 @@ func GenerateAccountFromIndex(accountIndex int) (*common.Address, *ecdsa.Private
 }
 
 // GenerateTronAccountFromIndex generates a Tron wallet account from HD wallet mnemonic
-func GenerateTronAccountFromIndex(accountIndex int) (address string, privateKey string, err error) {
+func GenerateTronAccountFromIndex(accountIndex int) (wallet *tronWallet.TronWallet, err error) {
 	mnemonic := cryptoConf.HDWalletMnemonic
 
 	var nodeUrl tronEnums.Node
@@ -240,10 +240,10 @@ func GenerateTronAccountFromIndex(accountIndex int) (address string, privateKey 
 		nodeUrl = tronEnums.SHASTA_NODE
 	}
 
-	wallet, err := tronWallet.MnemonicToTronWallet(nodeUrl, mnemonic, fmt.Sprintf("m/44'/195'/3'/0/%d", accountIndex), "")
+	wallet, err = tronWallet.MnemonicToTronWallet(nodeUrl, mnemonic, fmt.Sprintf("m/44'/195'/3'/0/%d", accountIndex), "")
 	if err != nil {
-		return "", "", fmt.Errorf("failed to create wallet from mnemonic: %w", err)
+		return nil, fmt.Errorf("failed to create wallet from mnemonic: %w", err)
 	}
 
-	return wallet.AddressBase58, wallet.PrivateKey, nil
+	return wallet, nil
 }

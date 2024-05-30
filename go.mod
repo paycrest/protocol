@@ -13,13 +13,14 @@ require (
 	github.com/mailgun/mailgun-go/v3 v3.6.4
 	github.com/mattn/go-sqlite3 v1.14.16
 	github.com/opus-domini/fast-shot v0.10.0
-	github.com/ranjbar-dev/tron-wallet v1.0.6
+	github.com/paycrest/tron-wallet v1.0.13
 	github.com/redis/go-redis/v9 v9.1.0
 	github.com/sendgrid/sendgrid-go v3.14.0+incompatible
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/viper v1.16.0
 	github.com/stackup-wallet/stackup-bundler v0.6.30
 	github.com/stretchr/testify v1.8.4
+	google.golang.org/grpc v1.55.0
 )
 
 require (
@@ -84,7 +85,6 @@ require (
 	golang.org/x/sync v0.3.0 // indirect
 	golang.org/x/tools v0.13.0 // indirect
 	google.golang.org/genproto v0.0.0-20230410155749-daa745c078e1 // indirect
-	google.golang.org/grpc v1.55.0 // indirect
 	rsc.io/tmplfunc v0.0.3 // indirect
 )
 
@@ -135,7 +135,7 @@ require (
 	golang.org/x/net v0.17.0 // indirect
 	golang.org/x/sys v0.15.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
-	google.golang.org/protobuf v1.31.0 // indirect
+	google.golang.org/protobuf v1.31.0
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
