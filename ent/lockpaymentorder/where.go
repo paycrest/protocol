@@ -924,6 +924,29 @@ func HasFulfillmentWith(preds ...predicate.LockOrderFulfillment) predicate.LockP
 	})
 }
 
+// HasTransactions applies the HasEdge predicate on the "transactions" edge.
+func HasTransactions() predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, TransactionsTable, TransactionsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasTransactionsWith applies the HasEdge predicate on the "transactions" edge with a given conditions (other predicates).
+func HasTransactionsWith(preds ...predicate.TransactionLog) predicate.LockPaymentOrder {
+	return predicate.LockPaymentOrder(func(s *sql.Selector) {
+		step := newTransactionsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.LockPaymentOrder) predicate.LockPaymentOrder {
 	return predicate.LockPaymentOrder(func(s *sql.Selector) {

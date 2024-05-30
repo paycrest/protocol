@@ -19,6 +19,7 @@ import (
 	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/provisionbucket"
 	"github.com/paycrest/protocol/ent/token"
+	"github.com/paycrest/protocol/ent/transactionlog"
 	"github.com/shopspring/decimal"
 )
 
@@ -280,6 +281,21 @@ func (lpou *LockPaymentOrderUpdate) SetFulfillment(l *LockOrderFulfillment) *Loc
 	return lpou.SetFulfillmentID(l.ID)
 }
 
+// AddTransactionIDs adds the "transactions" edge to the TransactionLog entity by IDs.
+func (lpou *LockPaymentOrderUpdate) AddTransactionIDs(ids ...uuid.UUID) *LockPaymentOrderUpdate {
+	lpou.mutation.AddTransactionIDs(ids...)
+	return lpou
+}
+
+// AddTransactions adds the "transactions" edges to the TransactionLog entity.
+func (lpou *LockPaymentOrderUpdate) AddTransactions(t ...*TransactionLog) *LockPaymentOrderUpdate {
+	ids := make([]uuid.UUID, len(t))
+	for i := range t {
+		ids[i] = t[i].ID
+	}
+	return lpou.AddTransactionIDs(ids...)
+}
+
 // Mutation returns the LockPaymentOrderMutation object of the builder.
 func (lpou *LockPaymentOrderUpdate) Mutation() *LockPaymentOrderMutation {
 	return lpou.mutation
@@ -307,6 +323,27 @@ func (lpou *LockPaymentOrderUpdate) ClearProvider() *LockPaymentOrderUpdate {
 func (lpou *LockPaymentOrderUpdate) ClearFulfillment() *LockPaymentOrderUpdate {
 	lpou.mutation.ClearFulfillment()
 	return lpou
+}
+
+// ClearTransactions clears all "transactions" edges to the TransactionLog entity.
+func (lpou *LockPaymentOrderUpdate) ClearTransactions() *LockPaymentOrderUpdate {
+	lpou.mutation.ClearTransactions()
+	return lpou
+}
+
+// RemoveTransactionIDs removes the "transactions" edge to TransactionLog entities by IDs.
+func (lpou *LockPaymentOrderUpdate) RemoveTransactionIDs(ids ...uuid.UUID) *LockPaymentOrderUpdate {
+	lpou.mutation.RemoveTransactionIDs(ids...)
+	return lpou
+}
+
+// RemoveTransactions removes "transactions" edges to TransactionLog entities.
+func (lpou *LockPaymentOrderUpdate) RemoveTransactions(t ...*TransactionLog) *LockPaymentOrderUpdate {
+	ids := make([]uuid.UUID, len(t))
+	for i := range t {
+		ids[i] = t[i].ID
+	}
+	return lpou.RemoveTransactionIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -552,6 +589,51 @@ func (lpou *LockPaymentOrderUpdate) sqlSave(ctx context.Context) (n int, err err
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(lockorderfulfillment.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if lpou.mutation.TransactionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   lockpaymentorder.TransactionsTable,
+			Columns: []string{lockpaymentorder.TransactionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(transactionlog.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := lpou.mutation.RemovedTransactionsIDs(); len(nodes) > 0 && !lpou.mutation.TransactionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   lockpaymentorder.TransactionsTable,
+			Columns: []string{lockpaymentorder.TransactionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(transactionlog.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := lpou.mutation.TransactionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   lockpaymentorder.TransactionsTable,
+			Columns: []string{lockpaymentorder.TransactionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(transactionlog.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -824,6 +906,21 @@ func (lpouo *LockPaymentOrderUpdateOne) SetFulfillment(l *LockOrderFulfillment) 
 	return lpouo.SetFulfillmentID(l.ID)
 }
 
+// AddTransactionIDs adds the "transactions" edge to the TransactionLog entity by IDs.
+func (lpouo *LockPaymentOrderUpdateOne) AddTransactionIDs(ids ...uuid.UUID) *LockPaymentOrderUpdateOne {
+	lpouo.mutation.AddTransactionIDs(ids...)
+	return lpouo
+}
+
+// AddTransactions adds the "transactions" edges to the TransactionLog entity.
+func (lpouo *LockPaymentOrderUpdateOne) AddTransactions(t ...*TransactionLog) *LockPaymentOrderUpdateOne {
+	ids := make([]uuid.UUID, len(t))
+	for i := range t {
+		ids[i] = t[i].ID
+	}
+	return lpouo.AddTransactionIDs(ids...)
+}
+
 // Mutation returns the LockPaymentOrderMutation object of the builder.
 func (lpouo *LockPaymentOrderUpdateOne) Mutation() *LockPaymentOrderMutation {
 	return lpouo.mutation
@@ -851,6 +948,27 @@ func (lpouo *LockPaymentOrderUpdateOne) ClearProvider() *LockPaymentOrderUpdateO
 func (lpouo *LockPaymentOrderUpdateOne) ClearFulfillment() *LockPaymentOrderUpdateOne {
 	lpouo.mutation.ClearFulfillment()
 	return lpouo
+}
+
+// ClearTransactions clears all "transactions" edges to the TransactionLog entity.
+func (lpouo *LockPaymentOrderUpdateOne) ClearTransactions() *LockPaymentOrderUpdateOne {
+	lpouo.mutation.ClearTransactions()
+	return lpouo
+}
+
+// RemoveTransactionIDs removes the "transactions" edge to TransactionLog entities by IDs.
+func (lpouo *LockPaymentOrderUpdateOne) RemoveTransactionIDs(ids ...uuid.UUID) *LockPaymentOrderUpdateOne {
+	lpouo.mutation.RemoveTransactionIDs(ids...)
+	return lpouo
+}
+
+// RemoveTransactions removes "transactions" edges to TransactionLog entities.
+func (lpouo *LockPaymentOrderUpdateOne) RemoveTransactions(t ...*TransactionLog) *LockPaymentOrderUpdateOne {
+	ids := make([]uuid.UUID, len(t))
+	for i := range t {
+		ids[i] = t[i].ID
+	}
+	return lpouo.RemoveTransactionIDs(ids...)
 }
 
 // Where appends a list predicates to the LockPaymentOrderUpdate builder.
@@ -1126,6 +1244,51 @@ func (lpouo *LockPaymentOrderUpdateOne) sqlSave(ctx context.Context) (_node *Loc
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(lockorderfulfillment.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if lpouo.mutation.TransactionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   lockpaymentorder.TransactionsTable,
+			Columns: []string{lockpaymentorder.TransactionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(transactionlog.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := lpouo.mutation.RemovedTransactionsIDs(); len(nodes) > 0 && !lpouo.mutation.TransactionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   lockpaymentorder.TransactionsTable,
+			Columns: []string{lockpaymentorder.TransactionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(transactionlog.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := lpouo.mutation.TransactionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   lockpaymentorder.TransactionsTable,
+			Columns: []string{lockpaymentorder.TransactionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(transactionlog.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

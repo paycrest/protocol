@@ -48,6 +48,9 @@ type SenderProfile func(*sql.Selector)
 // Token is the predicate function for token builders.
 type Token func(*sql.Selector)
 
+// TransactionLog is the predicate function for transactionlog builders.
+type TransactionLog func(*sql.Selector)
+
 // User is the predicate function for user builders.
 type User func(*sql.Selector)
 

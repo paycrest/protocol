@@ -71,5 +71,6 @@ func (PaymentOrder) Edges() []ent.Edge {
 		edge.To("recipient", PaymentOrderRecipient.Type).
 			Unique().
 			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("transactions", TransactionLog.Type),
 	}
 }

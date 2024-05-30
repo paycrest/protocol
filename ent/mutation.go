@@ -27,6 +27,7 @@ import (
 	"github.com/paycrest/protocol/ent/receiveaddress"
 	"github.com/paycrest/protocol/ent/senderprofile"
 	"github.com/paycrest/protocol/ent/token"
+	"github.com/paycrest/protocol/ent/transactionlog"
 	"github.com/paycrest/protocol/ent/user"
 	"github.com/paycrest/protocol/ent/verificationtoken"
 	"github.com/paycrest/protocol/ent/webhookretryattempt"
@@ -56,6 +57,7 @@ const (
 	TypeReceiveAddress        = "ReceiveAddress"
 	TypeSenderProfile         = "SenderProfile"
 	TypeToken                 = "Token"
+	TypeTransactionLog        = "TransactionLog"
 	TypeUser                  = "User"
 	TypeVerificationToken     = "VerificationToken"
 	TypeWebhookRetryAttempt   = "WebhookRetryAttempt"
@@ -2286,6 +2288,9 @@ type LockPaymentOrderMutation struct {
 	clearedprovider            bool
 	fulfillment                *uuid.UUID
 	clearedfulfillment         bool
+	transactions               map[uuid.UUID]struct{}
+	removedtransactions        map[uuid.UUID]struct{}
+	clearedtransactions        bool
 	done                       bool
 	oldValue                   func(context.Context) (*LockPaymentOrder, error)
 	predicates                 []predicate.LockPaymentOrder
@@ -3232,6 +3237,60 @@ func (m *LockPaymentOrderMutation) ResetFulfillment() {
 	m.clearedfulfillment = false
 }
 
+// AddTransactionIDs adds the "transactions" edge to the TransactionLog entity by ids.
+func (m *LockPaymentOrderMutation) AddTransactionIDs(ids ...uuid.UUID) {
+	if m.transactions == nil {
+		m.transactions = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		m.transactions[ids[i]] = struct{}{}
+	}
+}
+
+// ClearTransactions clears the "transactions" edge to the TransactionLog entity.
+func (m *LockPaymentOrderMutation) ClearTransactions() {
+	m.clearedtransactions = true
+}
+
+// TransactionsCleared reports if the "transactions" edge to the TransactionLog entity was cleared.
+func (m *LockPaymentOrderMutation) TransactionsCleared() bool {
+	return m.clearedtransactions
+}
+
+// RemoveTransactionIDs removes the "transactions" edge to the TransactionLog entity by IDs.
+func (m *LockPaymentOrderMutation) RemoveTransactionIDs(ids ...uuid.UUID) {
+	if m.removedtransactions == nil {
+		m.removedtransactions = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		delete(m.transactions, ids[i])
+		m.removedtransactions[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedTransactions returns the removed IDs of the "transactions" edge to the TransactionLog entity.
+func (m *LockPaymentOrderMutation) RemovedTransactionsIDs() (ids []uuid.UUID) {
+	for id := range m.removedtransactions {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// TransactionsIDs returns the "transactions" edge IDs in the mutation.
+func (m *LockPaymentOrderMutation) TransactionsIDs() (ids []uuid.UUID) {
+	for id := range m.transactions {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetTransactions resets all changes to the "transactions" edge.
+func (m *LockPaymentOrderMutation) ResetTransactions() {
+	m.transactions = nil
+	m.clearedtransactions = false
+	m.removedtransactions = nil
+}
+
 // Where appends a list predicates to the LockPaymentOrderMutation builder.
 func (m *LockPaymentOrderMutation) Where(ps ...predicate.LockPaymentOrder) {
 	m.predicates = append(m.predicates, ps...)
@@ -3681,7 +3740,7 @@ func (m *LockPaymentOrderMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *LockPaymentOrderMutation) AddedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 5)
 	if m.token != nil {
 		edges = append(edges, lockpaymentorder.EdgeToken)
 	}
@@ -3693,6 +3752,9 @@ func (m *LockPaymentOrderMutation) AddedEdges() []string {
 	}
 	if m.fulfillment != nil {
 		edges = append(edges, lockpaymentorder.EdgeFulfillment)
+	}
+	if m.transactions != nil {
+		edges = append(edges, lockpaymentorder.EdgeTransactions)
 	}
 	return edges
 }
@@ -3717,25 +3779,42 @@ func (m *LockPaymentOrderMutation) AddedIDs(name string) []ent.Value {
 		if id := m.fulfillment; id != nil {
 			return []ent.Value{*id}
 		}
+	case lockpaymentorder.EdgeTransactions:
+		ids := make([]ent.Value, 0, len(m.transactions))
+		for id := range m.transactions {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *LockPaymentOrderMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 5)
+	if m.removedtransactions != nil {
+		edges = append(edges, lockpaymentorder.EdgeTransactions)
+	}
 	return edges
 }
 
 // RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
 // the given name in this mutation.
 func (m *LockPaymentOrderMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case lockpaymentorder.EdgeTransactions:
+		ids := make([]ent.Value, 0, len(m.removedtransactions))
+		for id := range m.removedtransactions {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *LockPaymentOrderMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 5)
 	if m.clearedtoken {
 		edges = append(edges, lockpaymentorder.EdgeToken)
 	}
@@ -3747,6 +3826,9 @@ func (m *LockPaymentOrderMutation) ClearedEdges() []string {
 	}
 	if m.clearedfulfillment {
 		edges = append(edges, lockpaymentorder.EdgeFulfillment)
+	}
+	if m.clearedtransactions {
+		edges = append(edges, lockpaymentorder.EdgeTransactions)
 	}
 	return edges
 }
@@ -3763,6 +3845,8 @@ func (m *LockPaymentOrderMutation) EdgeCleared(name string) bool {
 		return m.clearedprovider
 	case lockpaymentorder.EdgeFulfillment:
 		return m.clearedfulfillment
+	case lockpaymentorder.EdgeTransactions:
+		return m.clearedtransactions
 	}
 	return false
 }
@@ -3802,6 +3886,9 @@ func (m *LockPaymentOrderMutation) ResetEdge(name string) error {
 		return nil
 	case lockpaymentorder.EdgeFulfillment:
 		m.ResetFulfillment()
+		return nil
+	case lockpaymentorder.EdgeTransactions:
+		m.ResetTransactions()
 		return nil
 	}
 	return fmt.Errorf("unknown LockPaymentOrder edge %s", name)
@@ -4739,6 +4826,9 @@ type PaymentOrderMutation struct {
 	clearedreceive_address bool
 	recipient              *int
 	clearedrecipient       bool
+	transactions           map[uuid.UUID]struct{}
+	removedtransactions    map[uuid.UUID]struct{}
+	clearedtransactions    bool
 	done                   bool
 	oldValue               func(context.Context) (*PaymentOrder, error)
 	predicates             []predicate.PaymentOrder
@@ -5953,6 +6043,60 @@ func (m *PaymentOrderMutation) ResetRecipient() {
 	m.clearedrecipient = false
 }
 
+// AddTransactionIDs adds the "transactions" edge to the TransactionLog entity by ids.
+func (m *PaymentOrderMutation) AddTransactionIDs(ids ...uuid.UUID) {
+	if m.transactions == nil {
+		m.transactions = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		m.transactions[ids[i]] = struct{}{}
+	}
+}
+
+// ClearTransactions clears the "transactions" edge to the TransactionLog entity.
+func (m *PaymentOrderMutation) ClearTransactions() {
+	m.clearedtransactions = true
+}
+
+// TransactionsCleared reports if the "transactions" edge to the TransactionLog entity was cleared.
+func (m *PaymentOrderMutation) TransactionsCleared() bool {
+	return m.clearedtransactions
+}
+
+// RemoveTransactionIDs removes the "transactions" edge to the TransactionLog entity by IDs.
+func (m *PaymentOrderMutation) RemoveTransactionIDs(ids ...uuid.UUID) {
+	if m.removedtransactions == nil {
+		m.removedtransactions = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		delete(m.transactions, ids[i])
+		m.removedtransactions[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedTransactions returns the removed IDs of the "transactions" edge to the TransactionLog entity.
+func (m *PaymentOrderMutation) RemovedTransactionsIDs() (ids []uuid.UUID) {
+	for id := range m.removedtransactions {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// TransactionsIDs returns the "transactions" edge IDs in the mutation.
+func (m *PaymentOrderMutation) TransactionsIDs() (ids []uuid.UUID) {
+	for id := range m.transactions {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetTransactions resets all changes to the "transactions" edge.
+func (m *PaymentOrderMutation) ResetTransactions() {
+	m.transactions = nil
+	m.clearedtransactions = false
+	m.removedtransactions = nil
+}
+
 // Where appends a list predicates to the PaymentOrderMutation builder.
 func (m *PaymentOrderMutation) Where(ps ...predicate.PaymentOrder) {
 	m.predicates = append(m.predicates, ps...)
@@ -6548,7 +6692,7 @@ func (m *PaymentOrderMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *PaymentOrderMutation) AddedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 5)
 	if m.sender_profile != nil {
 		edges = append(edges, paymentorder.EdgeSenderProfile)
 	}
@@ -6560,6 +6704,9 @@ func (m *PaymentOrderMutation) AddedEdges() []string {
 	}
 	if m.recipient != nil {
 		edges = append(edges, paymentorder.EdgeRecipient)
+	}
+	if m.transactions != nil {
+		edges = append(edges, paymentorder.EdgeTransactions)
 	}
 	return edges
 }
@@ -6584,25 +6731,42 @@ func (m *PaymentOrderMutation) AddedIDs(name string) []ent.Value {
 		if id := m.recipient; id != nil {
 			return []ent.Value{*id}
 		}
+	case paymentorder.EdgeTransactions:
+		ids := make([]ent.Value, 0, len(m.transactions))
+		for id := range m.transactions {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *PaymentOrderMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 5)
+	if m.removedtransactions != nil {
+		edges = append(edges, paymentorder.EdgeTransactions)
+	}
 	return edges
 }
 
 // RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
 // the given name in this mutation.
 func (m *PaymentOrderMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case paymentorder.EdgeTransactions:
+		ids := make([]ent.Value, 0, len(m.removedtransactions))
+		for id := range m.removedtransactions {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *PaymentOrderMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 5)
 	if m.clearedsender_profile {
 		edges = append(edges, paymentorder.EdgeSenderProfile)
 	}
@@ -6614,6 +6778,9 @@ func (m *PaymentOrderMutation) ClearedEdges() []string {
 	}
 	if m.clearedrecipient {
 		edges = append(edges, paymentorder.EdgeRecipient)
+	}
+	if m.clearedtransactions {
+		edges = append(edges, paymentorder.EdgeTransactions)
 	}
 	return edges
 }
@@ -6630,6 +6797,8 @@ func (m *PaymentOrderMutation) EdgeCleared(name string) bool {
 		return m.clearedreceive_address
 	case paymentorder.EdgeRecipient:
 		return m.clearedrecipient
+	case paymentorder.EdgeTransactions:
+		return m.clearedtransactions
 	}
 	return false
 }
@@ -6669,6 +6838,9 @@ func (m *PaymentOrderMutation) ResetEdge(name string) error {
 		return nil
 	case paymentorder.EdgeRecipient:
 		m.ResetRecipient()
+		return nil
+	case paymentorder.EdgeTransactions:
+		m.ResetTransactions()
 		return nil
 	}
 	return fmt.Errorf("unknown PaymentOrder edge %s", name)
@@ -14249,6 +14421,814 @@ func (m *TokenMutation) ResetEdge(name string) error {
 		return nil
 	}
 	return fmt.Errorf("unknown Token edge %s", name)
+}
+
+// TransactionLogMutation represents an operation that mutates the TransactionLog nodes in the graph.
+type TransactionLogMutation struct {
+	config
+	op               Op
+	typ              string
+	id               *uuid.UUID
+	sender_address   *string
+	provider_address *string
+	gateway_id       *string
+	status           *string
+	network          *string
+	transaction_hash *string
+	metadata         *map[string]interface{}
+	created_at       *time.Time
+	clearedFields    map[string]struct{}
+	done             bool
+	oldValue         func(context.Context) (*TransactionLog, error)
+	predicates       []predicate.TransactionLog
+}
+
+var _ ent.Mutation = (*TransactionLogMutation)(nil)
+
+// transactionlogOption allows management of the mutation configuration using functional options.
+type transactionlogOption func(*TransactionLogMutation)
+
+// newTransactionLogMutation creates new mutation for the TransactionLog entity.
+func newTransactionLogMutation(c config, op Op, opts ...transactionlogOption) *TransactionLogMutation {
+	m := &TransactionLogMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeTransactionLog,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withTransactionLogID sets the ID field of the mutation.
+func withTransactionLogID(id uuid.UUID) transactionlogOption {
+	return func(m *TransactionLogMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *TransactionLog
+		)
+		m.oldValue = func(ctx context.Context) (*TransactionLog, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().TransactionLog.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withTransactionLog sets the old TransactionLog of the mutation.
+func withTransactionLog(node *TransactionLog) transactionlogOption {
+	return func(m *TransactionLogMutation) {
+		m.oldValue = func(context.Context) (*TransactionLog, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m TransactionLogMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m TransactionLogMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of TransactionLog entities.
+func (m *TransactionLogMutation) SetID(id uuid.UUID) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *TransactionLogMutation) ID() (id uuid.UUID, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *TransactionLogMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []uuid.UUID{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().TransactionLog.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetSenderAddress sets the "sender_address" field.
+func (m *TransactionLogMutation) SetSenderAddress(s string) {
+	m.sender_address = &s
+}
+
+// SenderAddress returns the value of the "sender_address" field in the mutation.
+func (m *TransactionLogMutation) SenderAddress() (r string, exists bool) {
+	v := m.sender_address
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSenderAddress returns the old "sender_address" field's value of the TransactionLog entity.
+// If the TransactionLog object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TransactionLogMutation) OldSenderAddress(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSenderAddress is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSenderAddress requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSenderAddress: %w", err)
+	}
+	return oldValue.SenderAddress, nil
+}
+
+// ClearSenderAddress clears the value of the "sender_address" field.
+func (m *TransactionLogMutation) ClearSenderAddress() {
+	m.sender_address = nil
+	m.clearedFields[transactionlog.FieldSenderAddress] = struct{}{}
+}
+
+// SenderAddressCleared returns if the "sender_address" field was cleared in this mutation.
+func (m *TransactionLogMutation) SenderAddressCleared() bool {
+	_, ok := m.clearedFields[transactionlog.FieldSenderAddress]
+	return ok
+}
+
+// ResetSenderAddress resets all changes to the "sender_address" field.
+func (m *TransactionLogMutation) ResetSenderAddress() {
+	m.sender_address = nil
+	delete(m.clearedFields, transactionlog.FieldSenderAddress)
+}
+
+// SetProviderAddress sets the "provider_address" field.
+func (m *TransactionLogMutation) SetProviderAddress(s string) {
+	m.provider_address = &s
+}
+
+// ProviderAddress returns the value of the "provider_address" field in the mutation.
+func (m *TransactionLogMutation) ProviderAddress() (r string, exists bool) {
+	v := m.provider_address
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldProviderAddress returns the old "provider_address" field's value of the TransactionLog entity.
+// If the TransactionLog object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TransactionLogMutation) OldProviderAddress(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldProviderAddress is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldProviderAddress requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldProviderAddress: %w", err)
+	}
+	return oldValue.ProviderAddress, nil
+}
+
+// ClearProviderAddress clears the value of the "provider_address" field.
+func (m *TransactionLogMutation) ClearProviderAddress() {
+	m.provider_address = nil
+	m.clearedFields[transactionlog.FieldProviderAddress] = struct{}{}
+}
+
+// ProviderAddressCleared returns if the "provider_address" field was cleared in this mutation.
+func (m *TransactionLogMutation) ProviderAddressCleared() bool {
+	_, ok := m.clearedFields[transactionlog.FieldProviderAddress]
+	return ok
+}
+
+// ResetProviderAddress resets all changes to the "provider_address" field.
+func (m *TransactionLogMutation) ResetProviderAddress() {
+	m.provider_address = nil
+	delete(m.clearedFields, transactionlog.FieldProviderAddress)
+}
+
+// SetGatewayID sets the "gateway_id" field.
+func (m *TransactionLogMutation) SetGatewayID(s string) {
+	m.gateway_id = &s
+}
+
+// GatewayID returns the value of the "gateway_id" field in the mutation.
+func (m *TransactionLogMutation) GatewayID() (r string, exists bool) {
+	v := m.gateway_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldGatewayID returns the old "gateway_id" field's value of the TransactionLog entity.
+// If the TransactionLog object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TransactionLogMutation) OldGatewayID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldGatewayID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldGatewayID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldGatewayID: %w", err)
+	}
+	return oldValue.GatewayID, nil
+}
+
+// ClearGatewayID clears the value of the "gateway_id" field.
+func (m *TransactionLogMutation) ClearGatewayID() {
+	m.gateway_id = nil
+	m.clearedFields[transactionlog.FieldGatewayID] = struct{}{}
+}
+
+// GatewayIDCleared returns if the "gateway_id" field was cleared in this mutation.
+func (m *TransactionLogMutation) GatewayIDCleared() bool {
+	_, ok := m.clearedFields[transactionlog.FieldGatewayID]
+	return ok
+}
+
+// ResetGatewayID resets all changes to the "gateway_id" field.
+func (m *TransactionLogMutation) ResetGatewayID() {
+	m.gateway_id = nil
+	delete(m.clearedFields, transactionlog.FieldGatewayID)
+}
+
+// SetStatus sets the "status" field.
+func (m *TransactionLogMutation) SetStatus(s string) {
+	m.status = &s
+}
+
+// Status returns the value of the "status" field in the mutation.
+func (m *TransactionLogMutation) Status() (r string, exists bool) {
+	v := m.status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatus returns the old "status" field's value of the TransactionLog entity.
+// If the TransactionLog object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TransactionLogMutation) OldStatus(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+	}
+	return oldValue.Status, nil
+}
+
+// ResetStatus resets all changes to the "status" field.
+func (m *TransactionLogMutation) ResetStatus() {
+	m.status = nil
+}
+
+// SetNetwork sets the "network" field.
+func (m *TransactionLogMutation) SetNetwork(s string) {
+	m.network = &s
+}
+
+// Network returns the value of the "network" field in the mutation.
+func (m *TransactionLogMutation) Network() (r string, exists bool) {
+	v := m.network
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNetwork returns the old "network" field's value of the TransactionLog entity.
+// If the TransactionLog object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TransactionLogMutation) OldNetwork(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNetwork is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNetwork requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNetwork: %w", err)
+	}
+	return oldValue.Network, nil
+}
+
+// ClearNetwork clears the value of the "network" field.
+func (m *TransactionLogMutation) ClearNetwork() {
+	m.network = nil
+	m.clearedFields[transactionlog.FieldNetwork] = struct{}{}
+}
+
+// NetworkCleared returns if the "network" field was cleared in this mutation.
+func (m *TransactionLogMutation) NetworkCleared() bool {
+	_, ok := m.clearedFields[transactionlog.FieldNetwork]
+	return ok
+}
+
+// ResetNetwork resets all changes to the "network" field.
+func (m *TransactionLogMutation) ResetNetwork() {
+	m.network = nil
+	delete(m.clearedFields, transactionlog.FieldNetwork)
+}
+
+// SetTransactionHash sets the "transaction_hash" field.
+func (m *TransactionLogMutation) SetTransactionHash(s string) {
+	m.transaction_hash = &s
+}
+
+// TransactionHash returns the value of the "transaction_hash" field in the mutation.
+func (m *TransactionLogMutation) TransactionHash() (r string, exists bool) {
+	v := m.transaction_hash
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTransactionHash returns the old "transaction_hash" field's value of the TransactionLog entity.
+// If the TransactionLog object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TransactionLogMutation) OldTransactionHash(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTransactionHash is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTransactionHash requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTransactionHash: %w", err)
+	}
+	return oldValue.TransactionHash, nil
+}
+
+// ClearTransactionHash clears the value of the "transaction_hash" field.
+func (m *TransactionLogMutation) ClearTransactionHash() {
+	m.transaction_hash = nil
+	m.clearedFields[transactionlog.FieldTransactionHash] = struct{}{}
+}
+
+// TransactionHashCleared returns if the "transaction_hash" field was cleared in this mutation.
+func (m *TransactionLogMutation) TransactionHashCleared() bool {
+	_, ok := m.clearedFields[transactionlog.FieldTransactionHash]
+	return ok
+}
+
+// ResetTransactionHash resets all changes to the "transaction_hash" field.
+func (m *TransactionLogMutation) ResetTransactionHash() {
+	m.transaction_hash = nil
+	delete(m.clearedFields, transactionlog.FieldTransactionHash)
+}
+
+// SetMetadata sets the "metadata" field.
+func (m *TransactionLogMutation) SetMetadata(value map[string]interface{}) {
+	m.metadata = &value
+}
+
+// Metadata returns the value of the "metadata" field in the mutation.
+func (m *TransactionLogMutation) Metadata() (r map[string]interface{}, exists bool) {
+	v := m.metadata
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMetadata returns the old "metadata" field's value of the TransactionLog entity.
+// If the TransactionLog object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TransactionLogMutation) OldMetadata(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMetadata is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMetadata requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMetadata: %w", err)
+	}
+	return oldValue.Metadata, nil
+}
+
+// ResetMetadata resets all changes to the "metadata" field.
+func (m *TransactionLogMutation) ResetMetadata() {
+	m.metadata = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *TransactionLogMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *TransactionLogMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the TransactionLog entity.
+// If the TransactionLog object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TransactionLogMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *TransactionLogMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// Where appends a list predicates to the TransactionLogMutation builder.
+func (m *TransactionLogMutation) Where(ps ...predicate.TransactionLog) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the TransactionLogMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *TransactionLogMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.TransactionLog, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *TransactionLogMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *TransactionLogMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (TransactionLog).
+func (m *TransactionLogMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *TransactionLogMutation) Fields() []string {
+	fields := make([]string, 0, 8)
+	if m.sender_address != nil {
+		fields = append(fields, transactionlog.FieldSenderAddress)
+	}
+	if m.provider_address != nil {
+		fields = append(fields, transactionlog.FieldProviderAddress)
+	}
+	if m.gateway_id != nil {
+		fields = append(fields, transactionlog.FieldGatewayID)
+	}
+	if m.status != nil {
+		fields = append(fields, transactionlog.FieldStatus)
+	}
+	if m.network != nil {
+		fields = append(fields, transactionlog.FieldNetwork)
+	}
+	if m.transaction_hash != nil {
+		fields = append(fields, transactionlog.FieldTransactionHash)
+	}
+	if m.metadata != nil {
+		fields = append(fields, transactionlog.FieldMetadata)
+	}
+	if m.created_at != nil {
+		fields = append(fields, transactionlog.FieldCreatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *TransactionLogMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case transactionlog.FieldSenderAddress:
+		return m.SenderAddress()
+	case transactionlog.FieldProviderAddress:
+		return m.ProviderAddress()
+	case transactionlog.FieldGatewayID:
+		return m.GatewayID()
+	case transactionlog.FieldStatus:
+		return m.Status()
+	case transactionlog.FieldNetwork:
+		return m.Network()
+	case transactionlog.FieldTransactionHash:
+		return m.TransactionHash()
+	case transactionlog.FieldMetadata:
+		return m.Metadata()
+	case transactionlog.FieldCreatedAt:
+		return m.CreatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *TransactionLogMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case transactionlog.FieldSenderAddress:
+		return m.OldSenderAddress(ctx)
+	case transactionlog.FieldProviderAddress:
+		return m.OldProviderAddress(ctx)
+	case transactionlog.FieldGatewayID:
+		return m.OldGatewayID(ctx)
+	case transactionlog.FieldStatus:
+		return m.OldStatus(ctx)
+	case transactionlog.FieldNetwork:
+		return m.OldNetwork(ctx)
+	case transactionlog.FieldTransactionHash:
+		return m.OldTransactionHash(ctx)
+	case transactionlog.FieldMetadata:
+		return m.OldMetadata(ctx)
+	case transactionlog.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown TransactionLog field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *TransactionLogMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case transactionlog.FieldSenderAddress:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSenderAddress(v)
+		return nil
+	case transactionlog.FieldProviderAddress:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetProviderAddress(v)
+		return nil
+	case transactionlog.FieldGatewayID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetGatewayID(v)
+		return nil
+	case transactionlog.FieldStatus:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatus(v)
+		return nil
+	case transactionlog.FieldNetwork:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNetwork(v)
+		return nil
+	case transactionlog.FieldTransactionHash:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTransactionHash(v)
+		return nil
+	case transactionlog.FieldMetadata:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMetadata(v)
+		return nil
+	case transactionlog.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown TransactionLog field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *TransactionLogMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *TransactionLogMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *TransactionLogMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown TransactionLog numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *TransactionLogMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(transactionlog.FieldSenderAddress) {
+		fields = append(fields, transactionlog.FieldSenderAddress)
+	}
+	if m.FieldCleared(transactionlog.FieldProviderAddress) {
+		fields = append(fields, transactionlog.FieldProviderAddress)
+	}
+	if m.FieldCleared(transactionlog.FieldGatewayID) {
+		fields = append(fields, transactionlog.FieldGatewayID)
+	}
+	if m.FieldCleared(transactionlog.FieldNetwork) {
+		fields = append(fields, transactionlog.FieldNetwork)
+	}
+	if m.FieldCleared(transactionlog.FieldTransactionHash) {
+		fields = append(fields, transactionlog.FieldTransactionHash)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *TransactionLogMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *TransactionLogMutation) ClearField(name string) error {
+	switch name {
+	case transactionlog.FieldSenderAddress:
+		m.ClearSenderAddress()
+		return nil
+	case transactionlog.FieldProviderAddress:
+		m.ClearProviderAddress()
+		return nil
+	case transactionlog.FieldGatewayID:
+		m.ClearGatewayID()
+		return nil
+	case transactionlog.FieldNetwork:
+		m.ClearNetwork()
+		return nil
+	case transactionlog.FieldTransactionHash:
+		m.ClearTransactionHash()
+		return nil
+	}
+	return fmt.Errorf("unknown TransactionLog nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *TransactionLogMutation) ResetField(name string) error {
+	switch name {
+	case transactionlog.FieldSenderAddress:
+		m.ResetSenderAddress()
+		return nil
+	case transactionlog.FieldProviderAddress:
+		m.ResetProviderAddress()
+		return nil
+	case transactionlog.FieldGatewayID:
+		m.ResetGatewayID()
+		return nil
+	case transactionlog.FieldStatus:
+		m.ResetStatus()
+		return nil
+	case transactionlog.FieldNetwork:
+		m.ResetNetwork()
+		return nil
+	case transactionlog.FieldTransactionHash:
+		m.ResetTransactionHash()
+		return nil
+	case transactionlog.FieldMetadata:
+		m.ResetMetadata()
+		return nil
+	case transactionlog.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown TransactionLog field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *TransactionLogMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *TransactionLogMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *TransactionLogMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *TransactionLogMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *TransactionLogMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *TransactionLogMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *TransactionLogMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown TransactionLog unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *TransactionLogMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown TransactionLog edge %s", name)
 }
 
 // UserMutation represents an operation that mutates the User nodes in the graph.

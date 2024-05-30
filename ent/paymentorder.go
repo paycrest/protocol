@@ -80,9 +80,11 @@ type PaymentOrderEdges struct {
 	ReceiveAddress *ReceiveAddress `json:"receive_address,omitempty"`
 	// Recipient holds the value of the recipient edge.
 	Recipient *PaymentOrderRecipient `json:"recipient,omitempty"`
+	// Transactions holds the value of the transactions edge.
+	Transactions []*TransactionLog `json:"transactions,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [4]bool
+	loadedTypes [5]bool
 }
 
 // SenderProfileOrErr returns the SenderProfile value or an error if the edge
@@ -135,6 +137,15 @@ func (e PaymentOrderEdges) RecipientOrErr() (*PaymentOrderRecipient, error) {
 		return e.Recipient, nil
 	}
 	return nil, &NotLoadedError{edge: "recipient"}
+}
+
+// TransactionsOrErr returns the Transactions value or an error if the edge
+// was not loaded in eager-loading.
+func (e PaymentOrderEdges) TransactionsOrErr() ([]*TransactionLog, error) {
+	if e.loadedTypes[4] {
+		return e.Transactions, nil
+	}
+	return nil, &NotLoadedError{edge: "transactions"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -345,6 +356,11 @@ func (po *PaymentOrder) QueryReceiveAddress() *ReceiveAddressQuery {
 // QueryRecipient queries the "recipient" edge of the PaymentOrder entity.
 func (po *PaymentOrder) QueryRecipient() *PaymentOrderRecipientQuery {
 	return NewPaymentOrderClient(po.config).QueryRecipient(po)
+}
+
+// QueryTransactions queries the "transactions" edge of the PaymentOrder entity.
+func (po *PaymentOrder) QueryTransactions() *TransactionLogQuery {
+	return NewPaymentOrderClient(po.config).QueryTransactions(po)
 }
 
 // Update returns a builder for updating this PaymentOrder.

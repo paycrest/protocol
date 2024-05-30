@@ -62,6 +62,8 @@ const (
 	EdgeReceiveAddress = "receive_address"
 	// EdgeRecipient holds the string denoting the recipient edge name in mutations.
 	EdgeRecipient = "recipient"
+	// EdgeTransactions holds the string denoting the transactions edge name in mutations.
+	EdgeTransactions = "transactions"
 	// Table holds the table name of the paymentorder in the database.
 	Table = "payment_orders"
 	// SenderProfileTable is the table that holds the sender_profile relation/edge.
@@ -92,6 +94,13 @@ const (
 	RecipientInverseTable = "payment_order_recipients"
 	// RecipientColumn is the table column denoting the recipient relation/edge.
 	RecipientColumn = "payment_order_recipient"
+	// TransactionsTable is the table that holds the transactions relation/edge.
+	TransactionsTable = "transaction_logs"
+	// TransactionsInverseTable is the table name for the TransactionLog entity.
+	// It exists in this package in order to avoid circular dependency with the "transactionlog" package.
+	TransactionsInverseTable = "transaction_logs"
+	// TransactionsColumn is the table column denoting the transactions relation/edge.
+	TransactionsColumn = "payment_order_transactions"
 )
 
 // Columns holds all SQL columns for paymentorder fields.
@@ -322,6 +331,20 @@ func ByRecipientField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newRecipientStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// ByTransactionsCount orders the results by transactions count.
+func ByTransactionsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newTransactionsStep(), opts...)
+	}
+}
+
+// ByTransactions orders the results by transactions terms.
+func ByTransactions(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newTransactionsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newSenderProfileStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -348,5 +371,12 @@ func newRecipientStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(RecipientInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2O, false, RecipientTable, RecipientColumn),
+	)
+}
+func newTransactionsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(TransactionsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, TransactionsTable, TransactionsColumn),
 	)
 }
