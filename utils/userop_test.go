@@ -29,7 +29,7 @@ var (
 func setup() (string, error) {
 	// Set up test data
 	file, err := test.CreateEnvFile(fmt.Sprintf("%d.env", time.Now().UnixNano()), map[string]string{
-		"ACTIVE_AA_SERVICE":      "BICONOMY",
+		"ACTIVE_AA_SERVICE":      "biconomy",
 		"PAYMASTER_URL_ETHEREUM": PAYMASTER_URL_ETHEREUM,
 		"BUNDLER_URL_ETHEREUM":   BUNDLER_URL_ETHEREUM,
 	})
@@ -58,8 +58,8 @@ func TestUserop(t *testing.T) {
 		os.Remove(file)
 	})
 	// TEST TODO
-	t.Run("ActiveAAService should change to BICONOMY", func(t *testing.T) {
-		assert.Equal(t, "BICONOMY", config.OrderConfig().ActiveAAService)
+	t.Run("ActiveAAService should change to 'biconomy'", func(t *testing.T) {
+		assert.Equal(t, "biconomy", config.OrderConfig().ActiveAAService)
 	})
 
 	t.Run("test getEndpoints", func(t *testing.T) {
@@ -107,6 +107,11 @@ func TestUserop(t *testing.T) {
 				}
 
 				if strings.Contains(string(bytes), "eth_sendUserOperation") {
+					if config.OrderConfig().ActiveAAService == "biconomy" {
+						assert.True(t, strings.Contains(string(bytes), "validation_and_execution"))
+					} else {
+						assert.False(t, strings.Contains(string(bytes), "validation_and_execution"))
+					}
 					resp, err := httpmock.NewJsonResponse(200, map[string]interface{}{
 						"jsonrpc": "2.0",
 						"id":      1,
@@ -164,6 +169,11 @@ func TestUserop(t *testing.T) {
 				}
 
 				if strings.Contains(string(bytes), "pm_sponsorUserOperation") {
+					if config.OrderConfig().ActiveAAService == "biconomy" {
+						assert.True(t, strings.Contains(string(bytes), "INFINITISM"))
+					} else {
+						assert.True(t, strings.Contains(string(bytes), "payg"))
+					}
 					resp, err := httpmock.NewJsonResponse(200, map[string]interface{}{
 						"jsonrpc": "2.0",
 						"id":      1,
@@ -180,7 +190,7 @@ func TestUserop(t *testing.T) {
 
 			},
 		)
-		err := SponsorUserOperation(data, "", "", 1)
+		err := SponsorUserOperation(data, "sponsored", "", 1)
 		assert.NoError(t, err)
 	})
 }
