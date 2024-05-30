@@ -225,7 +225,6 @@ func IndexBlockchainEvents() error {
 								sql.IsNull(s.C(paymentorder.FieldGatewayID)),
 							),
 							sql.GT(s.C(paymentorder.FieldBlockNumber), 0),
-							sql.LT(s.C(paymentorder.FieldUpdatedAt), time.Now().Add(-5*time.Minute)),
 						))
 					}).
 					Where(paymentorder.HasTokenWith(token.HasNetworkWith(networkent.IDEQ(network.ID)))).

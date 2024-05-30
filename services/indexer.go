@@ -156,7 +156,7 @@ func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPC
 	retryErr = utils.Retry(3, 1*time.Second, func() error {
 		var err error
 		iter, err = filterer.FilterOrderCreated(&bind.FilterOpts{
-			Start: uint64(int64(toBlock) - 5000),
+			Start: uint64(int64(toBlock) - 50000),
 			End:   &toBlock,
 		}, []common.Address{common.HexToAddress(sender)}, nil, nil)
 		return err
