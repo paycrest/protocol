@@ -98,7 +98,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 	retryErr = utils.Retry(3, 1*time.Second, func() error {
 		var err error
 		iter, err = filterer.FilterTransfer(&bind.FilterOpts{
-			Start: uint64(int64(toBlock) - 5000),
+			Start: uint64(int64(toBlock) - 50000),
 			End:   &toBlock,
 		}, nil, []common.Address{common.HexToAddress(order.Edges.ReceiveAddress.Address)})
 		return err
@@ -218,7 +218,7 @@ func (s *IndexerService) IndexOrderSettled(ctx context.Context, client types.RPC
 		}
 
 		iter, err = filterer.FilterOrderSettled(&bind.FilterOpts{
-			Start: uint64(int64(toBlock) - 5000),
+			Start: uint64(int64(toBlock) - 50000),
 			End:   &toBlock,
 		}, [][32]byte{utils.StringToByte32(string(orderID))}, nil)
 		return err
@@ -279,7 +279,7 @@ func (s *IndexerService) IndexOrderRefunded(ctx context.Context, client types.RP
 		}
 
 		iter, err = filterer.FilterOrderRefunded(&bind.FilterOpts{
-			Start: uint64(int64(toBlock) - 5000),
+			Start: uint64(int64(toBlock) - 50000),
 			End:   &toBlock,
 		}, [][32]byte{utils.StringToByte32(string(orderID))})
 		return err

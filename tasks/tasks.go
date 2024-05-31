@@ -259,15 +259,12 @@ func IndexBlockchainEvents() error {
 					Where(func(s *sql.Selector) {
 						po := sql.Table(paymentorder.Table)
 						s.LeftJoin(po).On(s.C(lockpaymentorder.FieldGatewayID), po.C(paymentorder.FieldGatewayID)).
-							Where(sql.And(
-								sql.Or(
-									sql.EQ(s.C(lockpaymentorder.FieldStatus), lockpaymentorder.StatusValidated),
-									sql.And(
-										sql.EQ(po.C(paymentorder.FieldStatus), paymentorder.StatusPending),
-										sql.EQ(s.C(lockpaymentorder.FieldStatus), lockpaymentorder.StatusSettled),
-									),
-								),
-								sql.LT(s.C(lockpaymentorder.FieldUpdatedAt), time.Now().Add(-5*time.Minute))),
+							Where(sql.Or(
+								sql.EQ(s.C(lockpaymentorder.FieldStatus), lockpaymentorder.StatusValidated),
+								sql.And(
+									sql.EQ(po.C(paymentorder.FieldStatus), paymentorder.StatusPending),
+									sql.EQ(s.C(lockpaymentorder.FieldStatus), lockpaymentorder.StatusSettled),
+								)),
 							)
 					}).
 					Where(lockpaymentorder.HasTokenWith(token.HasNetworkWith(networkent.IDEQ(network.ID)))).
@@ -309,7 +306,6 @@ func IndexBlockchainEvents() error {
 								sql.And(
 									sql.EQ(po.C(paymentorder.FieldStatus), paymentorder.StatusPending),
 									sql.EQ(s.C(lockpaymentorder.FieldStatus), lockpaymentorder.StatusRefunded),
-									sql.LT(s.C(lockpaymentorder.FieldUpdatedAt), time.Now().Add(-5*time.Minute)),
 								),
 							))
 					}).
