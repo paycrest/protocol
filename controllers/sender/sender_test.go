@@ -114,11 +114,8 @@ func TestSender(t *testing.T) {
 	router.Use(middleware.HMACVerificationMiddleware)
 	router.Use(middleware.OnlySenderMiddleware)
 
-	// Create a mock instance of the OrderService
-	mockOrderService := &test.MockOrderService{}
-
 	// Create a new instance of the SenderController with the mock service
-	ctrl := NewSenderController(mockOrderService)
+	ctrl := NewSenderController()
 	router.POST("/orders", ctrl.InitiatePaymentOrder)
 	router.GET("/orders/:id", ctrl.GetPaymentOrderByID)
 	router.GET("/orders/", ctrl.GetPaymentOrders)

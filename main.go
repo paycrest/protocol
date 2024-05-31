@@ -32,7 +32,7 @@ func main() {
 	}
 
 	// Start indexer
-	if err := tasks.ContinueIndexing(); err != nil {
+	if err := tasks.StartLiveIndexing(); err != nil {
 		logger.Fatalf("ContinueIndexing: %s", err)
 	}
 

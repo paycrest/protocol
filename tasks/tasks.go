@@ -32,8 +32,8 @@ import (
 
 var orderConf = config.OrderConfig()
 
-// ContinueIndexing continues indexing
-func ContinueIndexing() error {
+// StartLiveIndexing starts live indexing of EVM blockchain events
+func StartLiveIndexing() error {
 	ctx := context.Background()
 	orderService := orderService.NewOrderEVM()
 	indexerService := services.NewIndexerService(orderService)
@@ -199,8 +199,6 @@ func RetryStaleUserOperations() error {
 // IndexBlockchainEvents indexes missed blocks
 func IndexBlockchainEvents() error {
 	ctx := context.Background()
-	orderService := orderService.NewOrderEVM()
-	indexerService := services.NewIndexerService(orderService)
 
 	networks, err := storage.Client.Network.Query().All(ctx)
 	if err != nil {
@@ -240,12 +238,14 @@ func IndexBlockchainEvents() error {
 				if len(orders) > 0 {
 					for _, order := range orders {
 						if strings.HasPrefix(network.Identifier, "tron") {
+							indexerService := services.NewIndexerService(orderService.NewOrderTron())
 							err := indexerService.IndexTRC20Transfer(ctx, order)
 							if err != nil {
 								logger.Errorf("IndexBlockchainEvents: %v", err)
 								continue
 							}
 						} else {
+							indexerService := services.NewIndexerService(orderService.NewOrderEVM())
 							err := indexerService.IndexERC20Transfer(ctx, client, order)
 							if err != nil {
 								logger.Errorf("IndexBlockchainEvents: %v", err)
@@ -292,6 +292,7 @@ func IndexBlockchainEvents() error {
 
 				if len(orders) > 0 {
 					for _, order := range orders {
+						indexerService := services.NewIndexerService(orderService.NewOrderEVM())
 						err := indexerService.IndexOrderCreated(ctx, nil, network, order.Edges.ReceiveAddress.Address, false)
 						if err != nil {
 							logger.Errorf("IndexBlockchainEvents: %v", err)
@@ -331,6 +332,7 @@ func IndexBlockchainEvents() error {
 
 				if len(lockOrders) > 0 {
 					for _, order := range lockOrders {
+						indexerService := services.NewIndexerService(orderService.NewOrderEVM())
 						err := indexerService.IndexOrderSettled(ctx, nil, network, order.GatewayID, false)
 						if err != nil {
 							logger.Errorf("IndexBlockchainEvents: %v", err)
@@ -373,6 +375,7 @@ func IndexBlockchainEvents() error {
 
 				if len(lockOrders) > 0 {
 					for _, order := range lockOrders {
+						indexerService := services.NewIndexerService(orderService.NewOrderEVM())
 						err := indexerService.IndexOrderRefunded(ctx, nil, network, order.GatewayID, false)
 						if err != nil {
 							logger.Errorf("IndexBlockchainEvents: %v", err)
@@ -413,10 +416,14 @@ func HandleReceiveAddressValidity() error {
 		return err
 	}
 
-	orderService := orderService.NewOrderEVM()
-	indexerService := services.NewIndexerService(orderService)
-
+	var indexerService services.Indexer
 	for _, address := range addresses {
+		if strings.HasPrefix(address.Edges.PaymentOrder.Edges.Token.Edges.Network.Identifier, "tron") {
+			indexerService = services.NewIndexerService(orderService.NewOrderTron())
+		} else {
+			indexerService = services.NewIndexerService(orderService.NewOrderEVM())
+		}
+
 		err := indexerService.HandleReceiveAddressValidity(ctx, address, address.Edges.PaymentOrder)
 		if err != nil {
 			continue
