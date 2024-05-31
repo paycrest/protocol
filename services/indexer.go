@@ -98,7 +98,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 	retryErr = utils.Retry(3, 1*time.Second, func() error {
 		var err error
 		iter, err = filterer.FilterTransfer(&bind.FilterOpts{
-			Start: uint64(int64(toBlock) - 50000),
+			Start: uint64(int64(toBlock) - 5000),
 			End:   &toBlock,
 		}, nil, []common.Address{common.HexToAddress(order.Edges.ReceiveAddress.Address)})
 		return err
