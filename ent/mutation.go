@@ -14429,10 +14429,10 @@ type TransactionLogMutation struct {
 	op               Op
 	typ              string
 	id               *uuid.UUID
-	sender_address   *string
-	provider_address *string
+	sender_id        *string
+	provider_id      *string
 	gateway_id       *string
-	status           *string
+	status           *transactionlog.Status
 	network          *string
 	transaction_hash *string
 	metadata         *map[string]interface{}
@@ -14547,102 +14547,102 @@ func (m *TransactionLogMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
 	}
 }
 
-// SetSenderAddress sets the "sender_address" field.
-func (m *TransactionLogMutation) SetSenderAddress(s string) {
-	m.sender_address = &s
+// SetSenderID sets the "sender_id" field.
+func (m *TransactionLogMutation) SetSenderID(s string) {
+	m.sender_id = &s
 }
 
-// SenderAddress returns the value of the "sender_address" field in the mutation.
-func (m *TransactionLogMutation) SenderAddress() (r string, exists bool) {
-	v := m.sender_address
+// SenderID returns the value of the "sender_id" field in the mutation.
+func (m *TransactionLogMutation) SenderID() (r string, exists bool) {
+	v := m.sender_id
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldSenderAddress returns the old "sender_address" field's value of the TransactionLog entity.
+// OldSenderID returns the old "sender_id" field's value of the TransactionLog entity.
 // If the TransactionLog object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *TransactionLogMutation) OldSenderAddress(ctx context.Context) (v string, err error) {
+func (m *TransactionLogMutation) OldSenderID(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldSenderAddress is only allowed on UpdateOne operations")
+		return v, errors.New("OldSenderID is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldSenderAddress requires an ID field in the mutation")
+		return v, errors.New("OldSenderID requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldSenderAddress: %w", err)
+		return v, fmt.Errorf("querying old value for OldSenderID: %w", err)
 	}
-	return oldValue.SenderAddress, nil
+	return oldValue.SenderID, nil
 }
 
-// ClearSenderAddress clears the value of the "sender_address" field.
-func (m *TransactionLogMutation) ClearSenderAddress() {
-	m.sender_address = nil
-	m.clearedFields[transactionlog.FieldSenderAddress] = struct{}{}
+// ClearSenderID clears the value of the "sender_id" field.
+func (m *TransactionLogMutation) ClearSenderID() {
+	m.sender_id = nil
+	m.clearedFields[transactionlog.FieldSenderID] = struct{}{}
 }
 
-// SenderAddressCleared returns if the "sender_address" field was cleared in this mutation.
-func (m *TransactionLogMutation) SenderAddressCleared() bool {
-	_, ok := m.clearedFields[transactionlog.FieldSenderAddress]
+// SenderIDCleared returns if the "sender_id" field was cleared in this mutation.
+func (m *TransactionLogMutation) SenderIDCleared() bool {
+	_, ok := m.clearedFields[transactionlog.FieldSenderID]
 	return ok
 }
 
-// ResetSenderAddress resets all changes to the "sender_address" field.
-func (m *TransactionLogMutation) ResetSenderAddress() {
-	m.sender_address = nil
-	delete(m.clearedFields, transactionlog.FieldSenderAddress)
+// ResetSenderID resets all changes to the "sender_id" field.
+func (m *TransactionLogMutation) ResetSenderID() {
+	m.sender_id = nil
+	delete(m.clearedFields, transactionlog.FieldSenderID)
 }
 
-// SetProviderAddress sets the "provider_address" field.
-func (m *TransactionLogMutation) SetProviderAddress(s string) {
-	m.provider_address = &s
+// SetProviderID sets the "provider_id" field.
+func (m *TransactionLogMutation) SetProviderID(s string) {
+	m.provider_id = &s
 }
 
-// ProviderAddress returns the value of the "provider_address" field in the mutation.
-func (m *TransactionLogMutation) ProviderAddress() (r string, exists bool) {
-	v := m.provider_address
+// ProviderID returns the value of the "provider_id" field in the mutation.
+func (m *TransactionLogMutation) ProviderID() (r string, exists bool) {
+	v := m.provider_id
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldProviderAddress returns the old "provider_address" field's value of the TransactionLog entity.
+// OldProviderID returns the old "provider_id" field's value of the TransactionLog entity.
 // If the TransactionLog object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *TransactionLogMutation) OldProviderAddress(ctx context.Context) (v string, err error) {
+func (m *TransactionLogMutation) OldProviderID(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldProviderAddress is only allowed on UpdateOne operations")
+		return v, errors.New("OldProviderID is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldProviderAddress requires an ID field in the mutation")
+		return v, errors.New("OldProviderID requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldProviderAddress: %w", err)
+		return v, fmt.Errorf("querying old value for OldProviderID: %w", err)
 	}
-	return oldValue.ProviderAddress, nil
+	return oldValue.ProviderID, nil
 }
 
-// ClearProviderAddress clears the value of the "provider_address" field.
-func (m *TransactionLogMutation) ClearProviderAddress() {
-	m.provider_address = nil
-	m.clearedFields[transactionlog.FieldProviderAddress] = struct{}{}
+// ClearProviderID clears the value of the "provider_id" field.
+func (m *TransactionLogMutation) ClearProviderID() {
+	m.provider_id = nil
+	m.clearedFields[transactionlog.FieldProviderID] = struct{}{}
 }
 
-// ProviderAddressCleared returns if the "provider_address" field was cleared in this mutation.
-func (m *TransactionLogMutation) ProviderAddressCleared() bool {
-	_, ok := m.clearedFields[transactionlog.FieldProviderAddress]
+// ProviderIDCleared returns if the "provider_id" field was cleared in this mutation.
+func (m *TransactionLogMutation) ProviderIDCleared() bool {
+	_, ok := m.clearedFields[transactionlog.FieldProviderID]
 	return ok
 }
 
-// ResetProviderAddress resets all changes to the "provider_address" field.
-func (m *TransactionLogMutation) ResetProviderAddress() {
-	m.provider_address = nil
-	delete(m.clearedFields, transactionlog.FieldProviderAddress)
+// ResetProviderID resets all changes to the "provider_id" field.
+func (m *TransactionLogMutation) ResetProviderID() {
+	m.provider_id = nil
+	delete(m.clearedFields, transactionlog.FieldProviderID)
 }
 
 // SetGatewayID sets the "gateway_id" field.
@@ -14695,12 +14695,12 @@ func (m *TransactionLogMutation) ResetGatewayID() {
 }
 
 // SetStatus sets the "status" field.
-func (m *TransactionLogMutation) SetStatus(s string) {
-	m.status = &s
+func (m *TransactionLogMutation) SetStatus(t transactionlog.Status) {
+	m.status = &t
 }
 
 // Status returns the value of the "status" field in the mutation.
-func (m *TransactionLogMutation) Status() (r string, exists bool) {
+func (m *TransactionLogMutation) Status() (r transactionlog.Status, exists bool) {
 	v := m.status
 	if v == nil {
 		return
@@ -14711,7 +14711,7 @@ func (m *TransactionLogMutation) Status() (r string, exists bool) {
 // OldStatus returns the old "status" field's value of the TransactionLog entity.
 // If the TransactionLog object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *TransactionLogMutation) OldStatus(ctx context.Context) (v string, err error) {
+func (m *TransactionLogMutation) OldStatus(ctx context.Context) (v transactionlog.Status, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
 	}
@@ -14935,11 +14935,11 @@ func (m *TransactionLogMutation) Type() string {
 // AddedFields().
 func (m *TransactionLogMutation) Fields() []string {
 	fields := make([]string, 0, 8)
-	if m.sender_address != nil {
-		fields = append(fields, transactionlog.FieldSenderAddress)
+	if m.sender_id != nil {
+		fields = append(fields, transactionlog.FieldSenderID)
 	}
-	if m.provider_address != nil {
-		fields = append(fields, transactionlog.FieldProviderAddress)
+	if m.provider_id != nil {
+		fields = append(fields, transactionlog.FieldProviderID)
 	}
 	if m.gateway_id != nil {
 		fields = append(fields, transactionlog.FieldGatewayID)
@@ -14967,10 +14967,10 @@ func (m *TransactionLogMutation) Fields() []string {
 // schema.
 func (m *TransactionLogMutation) Field(name string) (ent.Value, bool) {
 	switch name {
-	case transactionlog.FieldSenderAddress:
-		return m.SenderAddress()
-	case transactionlog.FieldProviderAddress:
-		return m.ProviderAddress()
+	case transactionlog.FieldSenderID:
+		return m.SenderID()
+	case transactionlog.FieldProviderID:
+		return m.ProviderID()
 	case transactionlog.FieldGatewayID:
 		return m.GatewayID()
 	case transactionlog.FieldStatus:
@@ -14992,10 +14992,10 @@ func (m *TransactionLogMutation) Field(name string) (ent.Value, bool) {
 // database failed.
 func (m *TransactionLogMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
-	case transactionlog.FieldSenderAddress:
-		return m.OldSenderAddress(ctx)
-	case transactionlog.FieldProviderAddress:
-		return m.OldProviderAddress(ctx)
+	case transactionlog.FieldSenderID:
+		return m.OldSenderID(ctx)
+	case transactionlog.FieldProviderID:
+		return m.OldProviderID(ctx)
 	case transactionlog.FieldGatewayID:
 		return m.OldGatewayID(ctx)
 	case transactionlog.FieldStatus:
@@ -15017,19 +15017,19 @@ func (m *TransactionLogMutation) OldField(ctx context.Context, name string) (ent
 // type.
 func (m *TransactionLogMutation) SetField(name string, value ent.Value) error {
 	switch name {
-	case transactionlog.FieldSenderAddress:
+	case transactionlog.FieldSenderID:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetSenderAddress(v)
+		m.SetSenderID(v)
 		return nil
-	case transactionlog.FieldProviderAddress:
+	case transactionlog.FieldProviderID:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetProviderAddress(v)
+		m.SetProviderID(v)
 		return nil
 	case transactionlog.FieldGatewayID:
 		v, ok := value.(string)
@@ -15039,7 +15039,7 @@ func (m *TransactionLogMutation) SetField(name string, value ent.Value) error {
 		m.SetGatewayID(v)
 		return nil
 	case transactionlog.FieldStatus:
-		v, ok := value.(string)
+		v, ok := value.(transactionlog.Status)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -15103,11 +15103,11 @@ func (m *TransactionLogMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *TransactionLogMutation) ClearedFields() []string {
 	var fields []string
-	if m.FieldCleared(transactionlog.FieldSenderAddress) {
-		fields = append(fields, transactionlog.FieldSenderAddress)
+	if m.FieldCleared(transactionlog.FieldSenderID) {
+		fields = append(fields, transactionlog.FieldSenderID)
 	}
-	if m.FieldCleared(transactionlog.FieldProviderAddress) {
-		fields = append(fields, transactionlog.FieldProviderAddress)
+	if m.FieldCleared(transactionlog.FieldProviderID) {
+		fields = append(fields, transactionlog.FieldProviderID)
 	}
 	if m.FieldCleared(transactionlog.FieldGatewayID) {
 		fields = append(fields, transactionlog.FieldGatewayID)
@@ -15132,11 +15132,11 @@ func (m *TransactionLogMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *TransactionLogMutation) ClearField(name string) error {
 	switch name {
-	case transactionlog.FieldSenderAddress:
-		m.ClearSenderAddress()
+	case transactionlog.FieldSenderID:
+		m.ClearSenderID()
 		return nil
-	case transactionlog.FieldProviderAddress:
-		m.ClearProviderAddress()
+	case transactionlog.FieldProviderID:
+		m.ClearProviderID()
 		return nil
 	case transactionlog.FieldGatewayID:
 		m.ClearGatewayID()
@@ -15155,11 +15155,11 @@ func (m *TransactionLogMutation) ClearField(name string) error {
 // It returns an error if the field is not defined in the schema.
 func (m *TransactionLogMutation) ResetField(name string) error {
 	switch name {
-	case transactionlog.FieldSenderAddress:
-		m.ResetSenderAddress()
+	case transactionlog.FieldSenderID:
+		m.ResetSenderID()
 		return nil
-	case transactionlog.FieldProviderAddress:
-		m.ResetProviderAddress()
+	case transactionlog.FieldProviderID:
+		m.ResetProviderID()
 		return nil
 	case transactionlog.FieldGatewayID:
 		m.ResetGatewayID()

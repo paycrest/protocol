@@ -55,24 +55,19 @@ func IDLTE(id uuid.UUID) predicate.TransactionLog {
 	return predicate.TransactionLog(sql.FieldLTE(FieldID, id))
 }
 
-// SenderAddress applies equality check predicate on the "sender_address" field. It's identical to SenderAddressEQ.
-func SenderAddress(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldEQ(FieldSenderAddress, v))
+// SenderID applies equality check predicate on the "sender_id" field. It's identical to SenderIDEQ.
+func SenderID(v string) predicate.TransactionLog {
+	return predicate.TransactionLog(sql.FieldEQ(FieldSenderID, v))
 }
 
-// ProviderAddress applies equality check predicate on the "provider_address" field. It's identical to ProviderAddressEQ.
-func ProviderAddress(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldEQ(FieldProviderAddress, v))
+// ProviderID applies equality check predicate on the "provider_id" field. It's identical to ProviderIDEQ.
+func ProviderID(v string) predicate.TransactionLog {
+	return predicate.TransactionLog(sql.FieldEQ(FieldProviderID, v))
 }
 
 // GatewayID applies equality check predicate on the "gateway_id" field. It's identical to GatewayIDEQ.
 func GatewayID(v string) predicate.TransactionLog {
 	return predicate.TransactionLog(sql.FieldEQ(FieldGatewayID, v))
-}
-
-// Status applies equality check predicate on the "status" field. It's identical to StatusEQ.
-func Status(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldEQ(FieldStatus, v))
 }
 
 // Network applies equality check predicate on the "network" field. It's identical to NetworkEQ.
@@ -90,154 +85,154 @@ func CreatedAt(v time.Time) predicate.TransactionLog {
 	return predicate.TransactionLog(sql.FieldEQ(FieldCreatedAt, v))
 }
 
-// SenderAddressEQ applies the EQ predicate on the "sender_address" field.
-func SenderAddressEQ(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldEQ(FieldSenderAddress, v))
+// SenderIDEQ applies the EQ predicate on the "sender_id" field.
+func SenderIDEQ(v string) predicate.TransactionLog {
+	return predicate.TransactionLog(sql.FieldEQ(FieldSenderID, v))
 }
 
-// SenderAddressNEQ applies the NEQ predicate on the "sender_address" field.
-func SenderAddressNEQ(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldNEQ(FieldSenderAddress, v))
+// SenderIDNEQ applies the NEQ predicate on the "sender_id" field.
+func SenderIDNEQ(v string) predicate.TransactionLog {
+	return predicate.TransactionLog(sql.FieldNEQ(FieldSenderID, v))
 }
 
-// SenderAddressIn applies the In predicate on the "sender_address" field.
-func SenderAddressIn(vs ...string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldIn(FieldSenderAddress, vs...))
+// SenderIDIn applies the In predicate on the "sender_id" field.
+func SenderIDIn(vs ...string) predicate.TransactionLog {
+	return predicate.TransactionLog(sql.FieldIn(FieldSenderID, vs...))
 }
 
-// SenderAddressNotIn applies the NotIn predicate on the "sender_address" field.
-func SenderAddressNotIn(vs ...string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldNotIn(FieldSenderAddress, vs...))
+// SenderIDNotIn applies the NotIn predicate on the "sender_id" field.
+func SenderIDNotIn(vs ...string) predicate.TransactionLog {
+	return predicate.TransactionLog(sql.FieldNotIn(FieldSenderID, vs...))
 }
 
-// SenderAddressGT applies the GT predicate on the "sender_address" field.
-func SenderAddressGT(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldGT(FieldSenderAddress, v))
+// SenderIDGT applies the GT predicate on the "sender_id" field.
+func SenderIDGT(v string) predicate.TransactionLog {
+	return predicate.TransactionLog(sql.FieldGT(FieldSenderID, v))
 }
 
-// SenderAddressGTE applies the GTE predicate on the "sender_address" field.
-func SenderAddressGTE(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldGTE(FieldSenderAddress, v))
+// SenderIDGTE applies the GTE predicate on the "sender_id" field.
+func SenderIDGTE(v string) predicate.TransactionLog {
+	return predicate.TransactionLog(sql.FieldGTE(FieldSenderID, v))
 }
 
-// SenderAddressLT applies the LT predicate on the "sender_address" field.
-func SenderAddressLT(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldLT(FieldSenderAddress, v))
+// SenderIDLT applies the LT predicate on the "sender_id" field.
+func SenderIDLT(v string) predicate.TransactionLog {
+	return predicate.TransactionLog(sql.FieldLT(FieldSenderID, v))
 }
 
-// SenderAddressLTE applies the LTE predicate on the "sender_address" field.
-func SenderAddressLTE(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldLTE(FieldSenderAddress, v))
+// SenderIDLTE applies the LTE predicate on the "sender_id" field.
+func SenderIDLTE(v string) predicate.TransactionLog {
+	return predicate.TransactionLog(sql.FieldLTE(FieldSenderID, v))
 }
 
-// SenderAddressContains applies the Contains predicate on the "sender_address" field.
-func SenderAddressContains(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldContains(FieldSenderAddress, v))
+// SenderIDContains applies the Contains predicate on the "sender_id" field.
+func SenderIDContains(v string) predicate.TransactionLog {
+	return predicate.TransactionLog(sql.FieldContains(FieldSenderID, v))
 }
 
-// SenderAddressHasPrefix applies the HasPrefix predicate on the "sender_address" field.
-func SenderAddressHasPrefix(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldHasPrefix(FieldSenderAddress, v))
+// SenderIDHasPrefix applies the HasPrefix predicate on the "sender_id" field.
+func SenderIDHasPrefix(v string) predicate.TransactionLog {
+	return predicate.TransactionLog(sql.FieldHasPrefix(FieldSenderID, v))
 }
 
-// SenderAddressHasSuffix applies the HasSuffix predicate on the "sender_address" field.
-func SenderAddressHasSuffix(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldHasSuffix(FieldSenderAddress, v))
+// SenderIDHasSuffix applies the HasSuffix predicate on the "sender_id" field.
+func SenderIDHasSuffix(v string) predicate.TransactionLog {
+	return predicate.TransactionLog(sql.FieldHasSuffix(FieldSenderID, v))
 }
 
-// SenderAddressIsNil applies the IsNil predicate on the "sender_address" field.
-func SenderAddressIsNil() predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldIsNull(FieldSenderAddress))
+// SenderIDIsNil applies the IsNil predicate on the "sender_id" field.
+func SenderIDIsNil() predicate.TransactionLog {
+	return predicate.TransactionLog(sql.FieldIsNull(FieldSenderID))
 }
 
-// SenderAddressNotNil applies the NotNil predicate on the "sender_address" field.
-func SenderAddressNotNil() predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldNotNull(FieldSenderAddress))
+// SenderIDNotNil applies the NotNil predicate on the "sender_id" field.
+func SenderIDNotNil() predicate.TransactionLog {
+	return predicate.TransactionLog(sql.FieldNotNull(FieldSenderID))
 }
 
-// SenderAddressEqualFold applies the EqualFold predicate on the "sender_address" field.
-func SenderAddressEqualFold(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldEqualFold(FieldSenderAddress, v))
+// SenderIDEqualFold applies the EqualFold predicate on the "sender_id" field.
+func SenderIDEqualFold(v string) predicate.TransactionLog {
+	return predicate.TransactionLog(sql.FieldEqualFold(FieldSenderID, v))
 }
 
-// SenderAddressContainsFold applies the ContainsFold predicate on the "sender_address" field.
-func SenderAddressContainsFold(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldContainsFold(FieldSenderAddress, v))
+// SenderIDContainsFold applies the ContainsFold predicate on the "sender_id" field.
+func SenderIDContainsFold(v string) predicate.TransactionLog {
+	return predicate.TransactionLog(sql.FieldContainsFold(FieldSenderID, v))
 }
 
-// ProviderAddressEQ applies the EQ predicate on the "provider_address" field.
-func ProviderAddressEQ(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldEQ(FieldProviderAddress, v))
+// ProviderIDEQ applies the EQ predicate on the "provider_id" field.
+func ProviderIDEQ(v string) predicate.TransactionLog {
+	return predicate.TransactionLog(sql.FieldEQ(FieldProviderID, v))
 }
 
-// ProviderAddressNEQ applies the NEQ predicate on the "provider_address" field.
-func ProviderAddressNEQ(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldNEQ(FieldProviderAddress, v))
+// ProviderIDNEQ applies the NEQ predicate on the "provider_id" field.
+func ProviderIDNEQ(v string) predicate.TransactionLog {
+	return predicate.TransactionLog(sql.FieldNEQ(FieldProviderID, v))
 }
 
-// ProviderAddressIn applies the In predicate on the "provider_address" field.
-func ProviderAddressIn(vs ...string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldIn(FieldProviderAddress, vs...))
+// ProviderIDIn applies the In predicate on the "provider_id" field.
+func ProviderIDIn(vs ...string) predicate.TransactionLog {
+	return predicate.TransactionLog(sql.FieldIn(FieldProviderID, vs...))
 }
 
-// ProviderAddressNotIn applies the NotIn predicate on the "provider_address" field.
-func ProviderAddressNotIn(vs ...string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldNotIn(FieldProviderAddress, vs...))
+// ProviderIDNotIn applies the NotIn predicate on the "provider_id" field.
+func ProviderIDNotIn(vs ...string) predicate.TransactionLog {
+	return predicate.TransactionLog(sql.FieldNotIn(FieldProviderID, vs...))
 }
 
-// ProviderAddressGT applies the GT predicate on the "provider_address" field.
-func ProviderAddressGT(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldGT(FieldProviderAddress, v))
+// ProviderIDGT applies the GT predicate on the "provider_id" field.
+func ProviderIDGT(v string) predicate.TransactionLog {
+	return predicate.TransactionLog(sql.FieldGT(FieldProviderID, v))
 }
 
-// ProviderAddressGTE applies the GTE predicate on the "provider_address" field.
-func ProviderAddressGTE(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldGTE(FieldProviderAddress, v))
+// ProviderIDGTE applies the GTE predicate on the "provider_id" field.
+func ProviderIDGTE(v string) predicate.TransactionLog {
+	return predicate.TransactionLog(sql.FieldGTE(FieldProviderID, v))
 }
 
-// ProviderAddressLT applies the LT predicate on the "provider_address" field.
-func ProviderAddressLT(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldLT(FieldProviderAddress, v))
+// ProviderIDLT applies the LT predicate on the "provider_id" field.
+func ProviderIDLT(v string) predicate.TransactionLog {
+	return predicate.TransactionLog(sql.FieldLT(FieldProviderID, v))
 }
 
-// ProviderAddressLTE applies the LTE predicate on the "provider_address" field.
-func ProviderAddressLTE(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldLTE(FieldProviderAddress, v))
+// ProviderIDLTE applies the LTE predicate on the "provider_id" field.
+func ProviderIDLTE(v string) predicate.TransactionLog {
+	return predicate.TransactionLog(sql.FieldLTE(FieldProviderID, v))
 }
 
-// ProviderAddressContains applies the Contains predicate on the "provider_address" field.
-func ProviderAddressContains(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldContains(FieldProviderAddress, v))
+// ProviderIDContains applies the Contains predicate on the "provider_id" field.
+func ProviderIDContains(v string) predicate.TransactionLog {
+	return predicate.TransactionLog(sql.FieldContains(FieldProviderID, v))
 }
 
-// ProviderAddressHasPrefix applies the HasPrefix predicate on the "provider_address" field.
-func ProviderAddressHasPrefix(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldHasPrefix(FieldProviderAddress, v))
+// ProviderIDHasPrefix applies the HasPrefix predicate on the "provider_id" field.
+func ProviderIDHasPrefix(v string) predicate.TransactionLog {
+	return predicate.TransactionLog(sql.FieldHasPrefix(FieldProviderID, v))
 }
 
-// ProviderAddressHasSuffix applies the HasSuffix predicate on the "provider_address" field.
-func ProviderAddressHasSuffix(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldHasSuffix(FieldProviderAddress, v))
+// ProviderIDHasSuffix applies the HasSuffix predicate on the "provider_id" field.
+func ProviderIDHasSuffix(v string) predicate.TransactionLog {
+	return predicate.TransactionLog(sql.FieldHasSuffix(FieldProviderID, v))
 }
 
-// ProviderAddressIsNil applies the IsNil predicate on the "provider_address" field.
-func ProviderAddressIsNil() predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldIsNull(FieldProviderAddress))
+// ProviderIDIsNil applies the IsNil predicate on the "provider_id" field.
+func ProviderIDIsNil() predicate.TransactionLog {
+	return predicate.TransactionLog(sql.FieldIsNull(FieldProviderID))
 }
 
-// ProviderAddressNotNil applies the NotNil predicate on the "provider_address" field.
-func ProviderAddressNotNil() predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldNotNull(FieldProviderAddress))
+// ProviderIDNotNil applies the NotNil predicate on the "provider_id" field.
+func ProviderIDNotNil() predicate.TransactionLog {
+	return predicate.TransactionLog(sql.FieldNotNull(FieldProviderID))
 }
 
-// ProviderAddressEqualFold applies the EqualFold predicate on the "provider_address" field.
-func ProviderAddressEqualFold(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldEqualFold(FieldProviderAddress, v))
+// ProviderIDEqualFold applies the EqualFold predicate on the "provider_id" field.
+func ProviderIDEqualFold(v string) predicate.TransactionLog {
+	return predicate.TransactionLog(sql.FieldEqualFold(FieldProviderID, v))
 }
 
-// ProviderAddressContainsFold applies the ContainsFold predicate on the "provider_address" field.
-func ProviderAddressContainsFold(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldContainsFold(FieldProviderAddress, v))
+// ProviderIDContainsFold applies the ContainsFold predicate on the "provider_id" field.
+func ProviderIDContainsFold(v string) predicate.TransactionLog {
+	return predicate.TransactionLog(sql.FieldContainsFold(FieldProviderID, v))
 }
 
 // GatewayIDEQ applies the EQ predicate on the "gateway_id" field.
@@ -316,68 +311,23 @@ func GatewayIDContainsFold(v string) predicate.TransactionLog {
 }
 
 // StatusEQ applies the EQ predicate on the "status" field.
-func StatusEQ(v string) predicate.TransactionLog {
+func StatusEQ(v Status) predicate.TransactionLog {
 	return predicate.TransactionLog(sql.FieldEQ(FieldStatus, v))
 }
 
 // StatusNEQ applies the NEQ predicate on the "status" field.
-func StatusNEQ(v string) predicate.TransactionLog {
+func StatusNEQ(v Status) predicate.TransactionLog {
 	return predicate.TransactionLog(sql.FieldNEQ(FieldStatus, v))
 }
 
 // StatusIn applies the In predicate on the "status" field.
-func StatusIn(vs ...string) predicate.TransactionLog {
+func StatusIn(vs ...Status) predicate.TransactionLog {
 	return predicate.TransactionLog(sql.FieldIn(FieldStatus, vs...))
 }
 
 // StatusNotIn applies the NotIn predicate on the "status" field.
-func StatusNotIn(vs ...string) predicate.TransactionLog {
+func StatusNotIn(vs ...Status) predicate.TransactionLog {
 	return predicate.TransactionLog(sql.FieldNotIn(FieldStatus, vs...))
-}
-
-// StatusGT applies the GT predicate on the "status" field.
-func StatusGT(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldGT(FieldStatus, v))
-}
-
-// StatusGTE applies the GTE predicate on the "status" field.
-func StatusGTE(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldGTE(FieldStatus, v))
-}
-
-// StatusLT applies the LT predicate on the "status" field.
-func StatusLT(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldLT(FieldStatus, v))
-}
-
-// StatusLTE applies the LTE predicate on the "status" field.
-func StatusLTE(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldLTE(FieldStatus, v))
-}
-
-// StatusContains applies the Contains predicate on the "status" field.
-func StatusContains(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldContains(FieldStatus, v))
-}
-
-// StatusHasPrefix applies the HasPrefix predicate on the "status" field.
-func StatusHasPrefix(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldHasPrefix(FieldStatus, v))
-}
-
-// StatusHasSuffix applies the HasSuffix predicate on the "status" field.
-func StatusHasSuffix(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldHasSuffix(FieldStatus, v))
-}
-
-// StatusEqualFold applies the EqualFold predicate on the "status" field.
-func StatusEqualFold(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldEqualFold(FieldStatus, v))
-}
-
-// StatusContainsFold applies the ContainsFold predicate on the "status" field.
-func StatusContainsFold(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldContainsFold(FieldStatus, v))
 }
 
 // NetworkEQ applies the EQ predicate on the "network" field.

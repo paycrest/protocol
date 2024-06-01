@@ -18,10 +18,12 @@ func (TransactionLog) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
 			Default(uuid.New).Immutable(),
-		field.String("sender_address").Optional(),
-		field.String("provider_address").Optional(),
+		field.String("sender_id").Optional(),
+		field.String("provider_id").Optional(),
 		field.String("gateway_id").Optional(),
-		field.String("status").Immutable(),
+		field.Enum("status").
+			Values("unset", "crypto_deposited", "order_created", "order_settled", "order_refunded", "order_reverted", "gas_prefunded", "gateway_approved").
+			Default("unset").Immutable(),
 		field.String("network").Optional(),
 		field.String("transaction_hash").Optional(),
 		field.JSON("metadata", map[string]interface{}{}),
