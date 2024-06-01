@@ -21,30 +21,30 @@ type TransactionLogCreate struct {
 	hooks    []Hook
 }
 
-// SetSenderAddress sets the "sender_address" field.
-func (tlc *TransactionLogCreate) SetSenderAddress(s string) *TransactionLogCreate {
-	tlc.mutation.SetSenderAddress(s)
+// SetSenderID sets the "sender_id" field.
+func (tlc *TransactionLogCreate) SetSenderID(s string) *TransactionLogCreate {
+	tlc.mutation.SetSenderID(s)
 	return tlc
 }
 
-// SetNillableSenderAddress sets the "sender_address" field if the given value is not nil.
-func (tlc *TransactionLogCreate) SetNillableSenderAddress(s *string) *TransactionLogCreate {
+// SetNillableSenderID sets the "sender_id" field if the given value is not nil.
+func (tlc *TransactionLogCreate) SetNillableSenderID(s *string) *TransactionLogCreate {
 	if s != nil {
-		tlc.SetSenderAddress(*s)
+		tlc.SetSenderID(*s)
 	}
 	return tlc
 }
 
-// SetProviderAddress sets the "provider_address" field.
-func (tlc *TransactionLogCreate) SetProviderAddress(s string) *TransactionLogCreate {
-	tlc.mutation.SetProviderAddress(s)
+// SetProviderID sets the "provider_id" field.
+func (tlc *TransactionLogCreate) SetProviderID(s string) *TransactionLogCreate {
+	tlc.mutation.SetProviderID(s)
 	return tlc
 }
 
-// SetNillableProviderAddress sets the "provider_address" field if the given value is not nil.
-func (tlc *TransactionLogCreate) SetNillableProviderAddress(s *string) *TransactionLogCreate {
+// SetNillableProviderID sets the "provider_id" field if the given value is not nil.
+func (tlc *TransactionLogCreate) SetNillableProviderID(s *string) *TransactionLogCreate {
 	if s != nil {
-		tlc.SetProviderAddress(*s)
+		tlc.SetProviderID(*s)
 	}
 	return tlc
 }
@@ -64,8 +64,16 @@ func (tlc *TransactionLogCreate) SetNillableGatewayID(s *string) *TransactionLog
 }
 
 // SetStatus sets the "status" field.
-func (tlc *TransactionLogCreate) SetStatus(s string) *TransactionLogCreate {
-	tlc.mutation.SetStatus(s)
+func (tlc *TransactionLogCreate) SetStatus(t transactionlog.Status) *TransactionLogCreate {
+	tlc.mutation.SetStatus(t)
+	return tlc
+}
+
+// SetNillableStatus sets the "status" field if the given value is not nil.
+func (tlc *TransactionLogCreate) SetNillableStatus(t *transactionlog.Status) *TransactionLogCreate {
+	if t != nil {
+		tlc.SetStatus(*t)
+	}
 	return tlc
 }
 
@@ -166,6 +174,10 @@ func (tlc *TransactionLogCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (tlc *TransactionLogCreate) defaults() {
+	if _, ok := tlc.mutation.Status(); !ok {
+		v := transactionlog.DefaultStatus
+		tlc.mutation.SetStatus(v)
+	}
 	if _, ok := tlc.mutation.CreatedAt(); !ok {
 		v := transactionlog.DefaultCreatedAt()
 		tlc.mutation.SetCreatedAt(v)
@@ -180,6 +192,11 @@ func (tlc *TransactionLogCreate) defaults() {
 func (tlc *TransactionLogCreate) check() error {
 	if _, ok := tlc.mutation.Status(); !ok {
 		return &ValidationError{Name: "status", err: errors.New(`ent: missing required field "TransactionLog.status"`)}
+	}
+	if v, ok := tlc.mutation.Status(); ok {
+		if err := transactionlog.StatusValidator(v); err != nil {
+			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "TransactionLog.status": %w`, err)}
+		}
 	}
 	if _, ok := tlc.mutation.Metadata(); !ok {
 		return &ValidationError{Name: "metadata", err: errors.New(`ent: missing required field "TransactionLog.metadata"`)}
@@ -222,20 +239,20 @@ func (tlc *TransactionLogCreate) createSpec() (*TransactionLog, *sqlgraph.Create
 		_node.ID = id
 		_spec.ID.Value = &id
 	}
-	if value, ok := tlc.mutation.SenderAddress(); ok {
-		_spec.SetField(transactionlog.FieldSenderAddress, field.TypeString, value)
-		_node.SenderAddress = value
+	if value, ok := tlc.mutation.SenderID(); ok {
+		_spec.SetField(transactionlog.FieldSenderID, field.TypeString, value)
+		_node.SenderID = value
 	}
-	if value, ok := tlc.mutation.ProviderAddress(); ok {
-		_spec.SetField(transactionlog.FieldProviderAddress, field.TypeString, value)
-		_node.ProviderAddress = value
+	if value, ok := tlc.mutation.ProviderID(); ok {
+		_spec.SetField(transactionlog.FieldProviderID, field.TypeString, value)
+		_node.ProviderID = value
 	}
 	if value, ok := tlc.mutation.GatewayID(); ok {
 		_spec.SetField(transactionlog.FieldGatewayID, field.TypeString, value)
 		_node.GatewayID = value
 	}
 	if value, ok := tlc.mutation.Status(); ok {
-		_spec.SetField(transactionlog.FieldStatus, field.TypeString, value)
+		_spec.SetField(transactionlog.FieldStatus, field.TypeEnum, value)
 		_node.Status = value
 	}
 	if value, ok := tlc.mutation.Network(); ok {

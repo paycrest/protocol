@@ -14,6 +14,7 @@ import (
 	providerprofile "github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/senderprofile"
 	"github.com/paycrest/protocol/ent/token"
+	"github.com/paycrest/protocol/ent/transactionlog"
 	svc "github.com/paycrest/protocol/services"
 	"github.com/paycrest/protocol/types"
 	u "github.com/paycrest/protocol/utils"
@@ -263,6 +264,24 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 		SetProviderID(payload.Recipient.ProviderID).
 		SetMemo(payload.Recipient.Memo).
 		SetPaymentOrder(paymentOrder).
+		Save(ctx)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to initiate payment order", nil)
+		_ = tx.Rollback()
+		return
+	}
+
+	// Create transaction Log
+	_, err = tx.TransactionLog.
+		Create().
+		SetStatus(transactionlog.StatusOrderCreated).
+		SetSenderID(sender.ID.String()).
+		SetProviderID(payload.Recipient.ProviderID).SetMetadata(
+		map[string]interface{}{
+			"ReceiveAddress": receiveAddress.Address,
+		},
+	).SetNetwork(token.Edges.Network.Identifier).
 		Save(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)

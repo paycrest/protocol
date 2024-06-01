@@ -417,10 +417,10 @@ var (
 	// TransactionLogsColumns holds the columns for the "transaction_logs" table.
 	TransactionLogsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
-		{Name: "sender_address", Type: field.TypeString, Nullable: true},
-		{Name: "provider_address", Type: field.TypeString, Nullable: true},
+		{Name: "sender_id", Type: field.TypeString, Nullable: true},
+		{Name: "provider_id", Type: field.TypeString, Nullable: true},
 		{Name: "gateway_id", Type: field.TypeString, Nullable: true},
-		{Name: "status", Type: field.TypeString},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"unset", "crypto_deposited", "order_created", "order_settled", "order_refunded", "order_reverted", "gas_prefunded", "gateway_approved"}, Default: "unset"},
 		{Name: "network", Type: field.TypeString, Nullable: true},
 		{Name: "transaction_hash", Type: field.TypeString, Nullable: true},
 		{Name: "metadata", Type: field.TypeJSON},

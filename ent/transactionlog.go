@@ -19,14 +19,14 @@ type TransactionLog struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID uuid.UUID `json:"id,omitempty"`
-	// SenderAddress holds the value of the "sender_address" field.
-	SenderAddress string `json:"sender_address,omitempty"`
-	// ProviderAddress holds the value of the "provider_address" field.
-	ProviderAddress string `json:"provider_address,omitempty"`
+	// SenderID holds the value of the "sender_id" field.
+	SenderID string `json:"sender_id,omitempty"`
+	// ProviderID holds the value of the "provider_id" field.
+	ProviderID string `json:"provider_id,omitempty"`
 	// GatewayID holds the value of the "gateway_id" field.
 	GatewayID string `json:"gateway_id,omitempty"`
 	// Status holds the value of the "status" field.
-	Status string `json:"status,omitempty"`
+	Status transactionlog.Status `json:"status,omitempty"`
 	// Network holds the value of the "network" field.
 	Network string `json:"network,omitempty"`
 	// TransactionHash holds the value of the "transaction_hash" field.
@@ -47,7 +47,7 @@ func (*TransactionLog) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case transactionlog.FieldMetadata:
 			values[i] = new([]byte)
-		case transactionlog.FieldSenderAddress, transactionlog.FieldProviderAddress, transactionlog.FieldGatewayID, transactionlog.FieldStatus, transactionlog.FieldNetwork, transactionlog.FieldTransactionHash:
+		case transactionlog.FieldSenderID, transactionlog.FieldProviderID, transactionlog.FieldGatewayID, transactionlog.FieldStatus, transactionlog.FieldNetwork, transactionlog.FieldTransactionHash:
 			values[i] = new(sql.NullString)
 		case transactionlog.FieldCreatedAt:
 			values[i] = new(sql.NullTime)
@@ -78,17 +78,17 @@ func (tl *TransactionLog) assignValues(columns []string, values []any) error {
 			} else if value != nil {
 				tl.ID = *value
 			}
-		case transactionlog.FieldSenderAddress:
+		case transactionlog.FieldSenderID:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field sender_address", values[i])
+				return fmt.Errorf("unexpected type %T for field sender_id", values[i])
 			} else if value.Valid {
-				tl.SenderAddress = value.String
+				tl.SenderID = value.String
 			}
-		case transactionlog.FieldProviderAddress:
+		case transactionlog.FieldProviderID:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field provider_address", values[i])
+				return fmt.Errorf("unexpected type %T for field provider_id", values[i])
 			} else if value.Valid {
-				tl.ProviderAddress = value.String
+				tl.ProviderID = value.String
 			}
 		case transactionlog.FieldGatewayID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -100,7 +100,7 @@ func (tl *TransactionLog) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field status", values[i])
 			} else if value.Valid {
-				tl.Status = value.String
+				tl.Status = transactionlog.Status(value.String)
 			}
 		case transactionlog.FieldNetwork:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -178,17 +178,17 @@ func (tl *TransactionLog) String() string {
 	var builder strings.Builder
 	builder.WriteString("TransactionLog(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", tl.ID))
-	builder.WriteString("sender_address=")
-	builder.WriteString(tl.SenderAddress)
+	builder.WriteString("sender_id=")
+	builder.WriteString(tl.SenderID)
 	builder.WriteString(", ")
-	builder.WriteString("provider_address=")
-	builder.WriteString(tl.ProviderAddress)
+	builder.WriteString("provider_id=")
+	builder.WriteString(tl.ProviderID)
 	builder.WriteString(", ")
 	builder.WriteString("gateway_id=")
 	builder.WriteString(tl.GatewayID)
 	builder.WriteString(", ")
 	builder.WriteString("status=")
-	builder.WriteString(tl.Status)
+	builder.WriteString(fmt.Sprintf("%v", tl.Status))
 	builder.WriteString(", ")
 	builder.WriteString("network=")
 	builder.WriteString(tl.Network)

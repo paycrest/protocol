@@ -3,6 +3,7 @@
 package transactionlog
 
 import (
+	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
@@ -14,10 +15,10 @@ const (
 	Label = "transaction_log"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
-	// FieldSenderAddress holds the string denoting the sender_address field in the database.
-	FieldSenderAddress = "sender_address"
-	// FieldProviderAddress holds the string denoting the provider_address field in the database.
-	FieldProviderAddress = "provider_address"
+	// FieldSenderID holds the string denoting the sender_id field in the database.
+	FieldSenderID = "sender_id"
+	// FieldProviderID holds the string denoting the provider_id field in the database.
+	FieldProviderID = "provider_id"
 	// FieldGatewayID holds the string denoting the gateway_id field in the database.
 	FieldGatewayID = "gateway_id"
 	// FieldStatus holds the string denoting the status field in the database.
@@ -37,8 +38,8 @@ const (
 // Columns holds all SQL columns for transactionlog fields.
 var Columns = []string{
 	FieldID,
-	FieldSenderAddress,
-	FieldProviderAddress,
+	FieldSenderID,
+	FieldProviderID,
 	FieldGatewayID,
 	FieldStatus,
 	FieldNetwork,
@@ -76,6 +77,38 @@ var (
 	DefaultID func() uuid.UUID
 )
 
+// Status defines the type for the "status" enum field.
+type Status string
+
+// StatusUnset is the default value of the Status enum.
+const DefaultStatus = StatusUnset
+
+// Status values.
+const (
+	StatusUnset           Status = "unset"
+	StatusCryptoDeposited Status = "crypto_deposited"
+	StatusOrderCreated    Status = "order_created"
+	StatusOrderSettled    Status = "order_settled"
+	StatusOrderRefunded   Status = "order_refunded"
+	StatusOrderReverted   Status = "order_reverted"
+	StatusGasPrefunded    Status = "gas_prefunded"
+	StatusGatewayApproved Status = "gateway_approved"
+)
+
+func (s Status) String() string {
+	return string(s)
+}
+
+// StatusValidator is a validator for the "status" field enum values. It is called by the builders before save.
+func StatusValidator(s Status) error {
+	switch s {
+	case StatusUnset, StatusCryptoDeposited, StatusOrderCreated, StatusOrderSettled, StatusOrderRefunded, StatusOrderReverted, StatusGasPrefunded, StatusGatewayApproved:
+		return nil
+	default:
+		return fmt.Errorf("transactionlog: invalid enum value for status field: %q", s)
+	}
+}
+
 // OrderOption defines the ordering options for the TransactionLog queries.
 type OrderOption func(*sql.Selector)
 
@@ -84,14 +117,14 @@ func ByID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldID, opts...).ToFunc()
 }
 
-// BySenderAddress orders the results by the sender_address field.
-func BySenderAddress(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldSenderAddress, opts...).ToFunc()
+// BySenderID orders the results by the sender_id field.
+func BySenderID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSenderID, opts...).ToFunc()
 }
 
-// ByProviderAddress orders the results by the provider_address field.
-func ByProviderAddress(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldProviderAddress, opts...).ToFunc()
+// ByProviderID orders the results by the provider_id field.
+func ByProviderID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldProviderID, opts...).ToFunc()
 }
 
 // ByGatewayID orders the results by the gateway_id field.

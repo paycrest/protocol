@@ -27,43 +27,43 @@ func (tlu *TransactionLogUpdate) Where(ps ...predicate.TransactionLog) *Transact
 	return tlu
 }
 
-// SetSenderAddress sets the "sender_address" field.
-func (tlu *TransactionLogUpdate) SetSenderAddress(s string) *TransactionLogUpdate {
-	tlu.mutation.SetSenderAddress(s)
+// SetSenderID sets the "sender_id" field.
+func (tlu *TransactionLogUpdate) SetSenderID(s string) *TransactionLogUpdate {
+	tlu.mutation.SetSenderID(s)
 	return tlu
 }
 
-// SetNillableSenderAddress sets the "sender_address" field if the given value is not nil.
-func (tlu *TransactionLogUpdate) SetNillableSenderAddress(s *string) *TransactionLogUpdate {
+// SetNillableSenderID sets the "sender_id" field if the given value is not nil.
+func (tlu *TransactionLogUpdate) SetNillableSenderID(s *string) *TransactionLogUpdate {
 	if s != nil {
-		tlu.SetSenderAddress(*s)
+		tlu.SetSenderID(*s)
 	}
 	return tlu
 }
 
-// ClearSenderAddress clears the value of the "sender_address" field.
-func (tlu *TransactionLogUpdate) ClearSenderAddress() *TransactionLogUpdate {
-	tlu.mutation.ClearSenderAddress()
+// ClearSenderID clears the value of the "sender_id" field.
+func (tlu *TransactionLogUpdate) ClearSenderID() *TransactionLogUpdate {
+	tlu.mutation.ClearSenderID()
 	return tlu
 }
 
-// SetProviderAddress sets the "provider_address" field.
-func (tlu *TransactionLogUpdate) SetProviderAddress(s string) *TransactionLogUpdate {
-	tlu.mutation.SetProviderAddress(s)
+// SetProviderID sets the "provider_id" field.
+func (tlu *TransactionLogUpdate) SetProviderID(s string) *TransactionLogUpdate {
+	tlu.mutation.SetProviderID(s)
 	return tlu
 }
 
-// SetNillableProviderAddress sets the "provider_address" field if the given value is not nil.
-func (tlu *TransactionLogUpdate) SetNillableProviderAddress(s *string) *TransactionLogUpdate {
+// SetNillableProviderID sets the "provider_id" field if the given value is not nil.
+func (tlu *TransactionLogUpdate) SetNillableProviderID(s *string) *TransactionLogUpdate {
 	if s != nil {
-		tlu.SetProviderAddress(*s)
+		tlu.SetProviderID(*s)
 	}
 	return tlu
 }
 
-// ClearProviderAddress clears the value of the "provider_address" field.
-func (tlu *TransactionLogUpdate) ClearProviderAddress() *TransactionLogUpdate {
-	tlu.mutation.ClearProviderAddress()
+// ClearProviderID clears the value of the "provider_id" field.
+func (tlu *TransactionLogUpdate) ClearProviderID() *TransactionLogUpdate {
+	tlu.mutation.ClearProviderID()
 	return tlu
 }
 
@@ -174,17 +174,17 @@ func (tlu *TransactionLogUpdate) sqlSave(ctx context.Context) (n int, err error)
 			}
 		}
 	}
-	if value, ok := tlu.mutation.SenderAddress(); ok {
-		_spec.SetField(transactionlog.FieldSenderAddress, field.TypeString, value)
+	if value, ok := tlu.mutation.SenderID(); ok {
+		_spec.SetField(transactionlog.FieldSenderID, field.TypeString, value)
 	}
-	if tlu.mutation.SenderAddressCleared() {
-		_spec.ClearField(transactionlog.FieldSenderAddress, field.TypeString)
+	if tlu.mutation.SenderIDCleared() {
+		_spec.ClearField(transactionlog.FieldSenderID, field.TypeString)
 	}
-	if value, ok := tlu.mutation.ProviderAddress(); ok {
-		_spec.SetField(transactionlog.FieldProviderAddress, field.TypeString, value)
+	if value, ok := tlu.mutation.ProviderID(); ok {
+		_spec.SetField(transactionlog.FieldProviderID, field.TypeString, value)
 	}
-	if tlu.mutation.ProviderAddressCleared() {
-		_spec.ClearField(transactionlog.FieldProviderAddress, field.TypeString)
+	if tlu.mutation.ProviderIDCleared() {
+		_spec.ClearField(transactionlog.FieldProviderID, field.TypeString)
 	}
 	if value, ok := tlu.mutation.GatewayID(); ok {
 		_spec.SetField(transactionlog.FieldGatewayID, field.TypeString, value)
@@ -227,43 +227,43 @@ type TransactionLogUpdateOne struct {
 	mutation *TransactionLogMutation
 }
 
-// SetSenderAddress sets the "sender_address" field.
-func (tluo *TransactionLogUpdateOne) SetSenderAddress(s string) *TransactionLogUpdateOne {
-	tluo.mutation.SetSenderAddress(s)
+// SetSenderID sets the "sender_id" field.
+func (tluo *TransactionLogUpdateOne) SetSenderID(s string) *TransactionLogUpdateOne {
+	tluo.mutation.SetSenderID(s)
 	return tluo
 }
 
-// SetNillableSenderAddress sets the "sender_address" field if the given value is not nil.
-func (tluo *TransactionLogUpdateOne) SetNillableSenderAddress(s *string) *TransactionLogUpdateOne {
+// SetNillableSenderID sets the "sender_id" field if the given value is not nil.
+func (tluo *TransactionLogUpdateOne) SetNillableSenderID(s *string) *TransactionLogUpdateOne {
 	if s != nil {
-		tluo.SetSenderAddress(*s)
+		tluo.SetSenderID(*s)
 	}
 	return tluo
 }
 
-// ClearSenderAddress clears the value of the "sender_address" field.
-func (tluo *TransactionLogUpdateOne) ClearSenderAddress() *TransactionLogUpdateOne {
-	tluo.mutation.ClearSenderAddress()
+// ClearSenderID clears the value of the "sender_id" field.
+func (tluo *TransactionLogUpdateOne) ClearSenderID() *TransactionLogUpdateOne {
+	tluo.mutation.ClearSenderID()
 	return tluo
 }
 
-// SetProviderAddress sets the "provider_address" field.
-func (tluo *TransactionLogUpdateOne) SetProviderAddress(s string) *TransactionLogUpdateOne {
-	tluo.mutation.SetProviderAddress(s)
+// SetProviderID sets the "provider_id" field.
+func (tluo *TransactionLogUpdateOne) SetProviderID(s string) *TransactionLogUpdateOne {
+	tluo.mutation.SetProviderID(s)
 	return tluo
 }
 
-// SetNillableProviderAddress sets the "provider_address" field if the given value is not nil.
-func (tluo *TransactionLogUpdateOne) SetNillableProviderAddress(s *string) *TransactionLogUpdateOne {
+// SetNillableProviderID sets the "provider_id" field if the given value is not nil.
+func (tluo *TransactionLogUpdateOne) SetNillableProviderID(s *string) *TransactionLogUpdateOne {
 	if s != nil {
-		tluo.SetProviderAddress(*s)
+		tluo.SetProviderID(*s)
 	}
 	return tluo
 }
 
-// ClearProviderAddress clears the value of the "provider_address" field.
-func (tluo *TransactionLogUpdateOne) ClearProviderAddress() *TransactionLogUpdateOne {
-	tluo.mutation.ClearProviderAddress()
+// ClearProviderID clears the value of the "provider_id" field.
+func (tluo *TransactionLogUpdateOne) ClearProviderID() *TransactionLogUpdateOne {
+	tluo.mutation.ClearProviderID()
 	return tluo
 }
 
@@ -404,17 +404,17 @@ func (tluo *TransactionLogUpdateOne) sqlSave(ctx context.Context) (_node *Transa
 			}
 		}
 	}
-	if value, ok := tluo.mutation.SenderAddress(); ok {
-		_spec.SetField(transactionlog.FieldSenderAddress, field.TypeString, value)
+	if value, ok := tluo.mutation.SenderID(); ok {
+		_spec.SetField(transactionlog.FieldSenderID, field.TypeString, value)
 	}
-	if tluo.mutation.SenderAddressCleared() {
-		_spec.ClearField(transactionlog.FieldSenderAddress, field.TypeString)
+	if tluo.mutation.SenderIDCleared() {
+		_spec.ClearField(transactionlog.FieldSenderID, field.TypeString)
 	}
-	if value, ok := tluo.mutation.ProviderAddress(); ok {
-		_spec.SetField(transactionlog.FieldProviderAddress, field.TypeString, value)
+	if value, ok := tluo.mutation.ProviderID(); ok {
+		_spec.SetField(transactionlog.FieldProviderID, field.TypeString, value)
 	}
-	if tluo.mutation.ProviderAddressCleared() {
-		_spec.ClearField(transactionlog.FieldProviderAddress, field.TypeString)
+	if tluo.mutation.ProviderIDCleared() {
+		_spec.ClearField(transactionlog.FieldProviderID, field.TypeString)
 	}
 	if value, ok := tluo.mutation.GatewayID(); ok {
 		_spec.SetField(transactionlog.FieldGatewayID, field.TypeString, value)

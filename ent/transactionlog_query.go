@@ -263,12 +263,12 @@ func (tlq *TransactionLogQuery) Clone() *TransactionLogQuery {
 // Example:
 //
 //	var v []struct {
-//		SenderAddress string `json:"sender_address,omitempty"`
+//		SenderID string `json:"sender_id,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.TransactionLog.Query().
-//		GroupBy(transactionlog.FieldSenderAddress).
+//		GroupBy(transactionlog.FieldSenderID).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
 func (tlq *TransactionLogQuery) GroupBy(field string, fields ...string) *TransactionLogGroupBy {
@@ -286,11 +286,11 @@ func (tlq *TransactionLogQuery) GroupBy(field string, fields ...string) *Transac
 // Example:
 //
 //	var v []struct {
-//		SenderAddress string `json:"sender_address,omitempty"`
+//		SenderID string `json:"sender_id,omitempty"`
 //	}
 //
 //	client.TransactionLog.Query().
-//		Select(transactionlog.FieldSenderAddress).
+//		Select(transactionlog.FieldSenderID).
 //		Scan(ctx, &v)
 func (tlq *TransactionLogQuery) Select(fields ...string) *TransactionLogSelect {
 	tlq.ctx.Fields = append(tlq.ctx.Fields, fields...)
