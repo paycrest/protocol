@@ -75,7 +75,6 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 		return err
 	})
 	if retryErr != nil {
-		logger.Errorf("IndexERC20Transfer: %v", retryErr)
 		return retryErr
 	}
 
