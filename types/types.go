@@ -53,13 +53,44 @@ func NewEthClient(endpoint string) (RPCClient, error) {
 	return &ethRPC{ethClient}, nil
 }
 
-// TokenTransfer represents a token transfer event.
-type TokenTransfer struct {
-	BlockNumber     int64
-	TransactionHash string
-	From            string
-	To              string
-	Value           *big.Int
+// TokenTransferEvent represents a token transfer event.
+type TokenTransferEvent struct {
+	BlockNumber uint64
+	TxHash      string
+	From        string
+	To          string
+	Value       *big.Int
+}
+
+// OrderCreatedEvent represents an order created event.
+type OrderCreatedEvent struct {
+	BlockNumber     uint64
+	TxHash          string
+	Token           string
+	Amount          *big.Int
+	ProtocolFee     *big.Int
+	OrderId         [32]byte
+	Rate            *big.Int
+	InstitutionCode [32]byte
+	MessageHash     string
+}
+
+// OrderSettledEvent represents a order settled event.
+type OrderSettledEvent struct {
+	BlockNumber       uint64
+	TxHash            string
+	SplitOrderId      [32]byte
+	OrderId           [32]byte
+	LiquidityProvider string
+	SettlePercent     *big.Int
+}
+
+// OrderRefundedEvent represents a order refunded event.
+type OrderRefundedEvent struct {
+	BlockNumber uint64
+	TxHash      string
+	Fee         *big.Int
+	OrderId     [32]byte
 }
 
 // OrderService provides an interface for the OrderService

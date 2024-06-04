@@ -183,23 +183,45 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 			})
 			return
 		}
-		if !u.IsValidEthereumAddress(payload.FeeAddress) {
-			u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
-				Field:   "FeeAddress",
-				Message: "Invalid Ethereum address",
-			})
-			return
+
+		if !strings.HasPrefix(payload.Network, "tron") {
+			if !u.IsValidEthereumAddress(payload.FeeAddress) {
+				u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
+					Field:   "FeeAddress",
+					Message: "Invalid Ethereum address",
+				})
+				return
+			}
+		} else {
+			if !u.IsValidTronAddress(payload.FeeAddress) {
+				u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
+					Field:   "FeeAddress",
+					Message: "Invalid Tron address",
+				})
+				return
+			}
 		}
 		feeAddress = payload.FeeAddress
 	}
 
 	if payload.ReturnAddress != "" {
-		if !u.IsValidEthereumAddress(payload.ReturnAddress) {
-			u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
-				Field:   "ReturnAddress",
-				Message: "Invalid Ethereum address",
-			})
-			return
+		if !strings.HasPrefix(payload.Network, "tron") {
+			if !u.IsValidEthereumAddress(payload.ReturnAddress) {
+				u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
+					Field:   "ReturnAddress",
+					Message: "Invalid Ethereum address",
+				})
+				return
+			}
+		} else {
+			if !u.IsValidTronAddress(payload.ReturnAddress) {
+				u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
+					Field:   "ReturnAddress",
+					Message: "Invalid Tron address",
+				})
+				return
+			}
+
 		}
 	}
 

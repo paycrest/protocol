@@ -98,18 +98,17 @@ func (s *OrderTron) CreateOrder(ctx context.Context, orderID uuid.UUID) error {
 		return fmt.Errorf("%s - Tron.CreateOrder.GenerateTronAccountFromIndex: %w", orderIDPrefix, err)
 	}
 
-	_, err = masterWallet.Transfer(wallet.AddressBase58, 50000000)
+	balance, err := wallet.Balance()
 	if err != nil {
-		return fmt.Errorf("%s - Tron.CreateOrder.Transfer: %w", orderIDPrefix, err)
+		balance = 0
 	}
 
-	// Transfer network fee from receive address to master wallet
-	_, err = wallet.Transfer(
-		masterWallet.AddressBase58,
-		order.NetworkFee.Mul(decimal.NewFromInt(int64(order.Edges.Token.Decimals))).IntPart(),
-	)
-	if err != nil {
-		return fmt.Errorf("%s - Tron.CreateOrder.Transfer: %w", orderIDPrefix, err)
+	if balance < 45000000 {
+		_, err = masterWallet.Transfer(wallet.AddressBase58, 100000000)
+		if err != nil {
+			return fmt.Errorf("%s - Tron.CreateOrder.Transfer: %w", orderIDPrefix, err)
+		}
+		time.Sleep(5 * time.Second) // wait for wallet to be pre-funded with gas
 	}
 
 	// Normalize addresses
@@ -129,7 +128,7 @@ func (s *OrderTron) CreateOrder(ctx context.Context, orderID uuid.UUID) error {
 	}
 
 	// Approve gateway contract to spend token
-	calldata, err := s.approveCallData(gatewayContractAddress, utils.ToSubunit(order.Amount, order.Edges.Token.Decimals))
+	calldata, err := s.approveCallData(gatewayContractAddress, utils.ToSubunit(order.Amount.Add(order.ProtocolFee), order.Edges.Token.Decimals))
 	if err != nil {
 		return fmt.Errorf("%s - Tron.CreateOrder.approveCallData: %w", orderIDPrefix, err)
 	}
@@ -158,6 +157,19 @@ func (s *OrderTron) CreateOrder(ctx context.Context, orderID uuid.UUID) error {
 	txHash, err := s.sendTransaction(wallet, ct, 100000000)
 	if err != nil {
 		return fmt.Errorf("%s - Tron.CreateOrder.sendTransaction: %w", orderIDPrefix, err)
+	}
+
+	// Transfer network fee from receive address to master wallet
+	_, err = wallet.TransferTRC20(
+		&tronWallet.Token{
+			ContractAddress: enums.ContractAddress(order.Edges.Token.ContractAddress),
+		},
+		masterWallet.AddressBase58,
+		utils.ToSubunit(order.NetworkFee, order.Edges.Token.Decimals).Int64(),
+		50000000,
+	)
+	if err != nil {
+		return fmt.Errorf("%s - Tron.CreateOrder.Transfer: %w", orderIDPrefix, err)
 	}
 
 	// Update payment order
@@ -329,16 +341,8 @@ func (s *OrderTron) RevertOrder(ctx context.Context, order *ent.PaymentOrder) er
 		return nil
 	}
 
-	// Subtract the network fee from the amount
-	amountMinusFee := amountToRevert.Sub(order.NetworkFee)
-
-	// If amount minus fee is less than zero, return
-	if amountMinusFee.LessThan(decimal.Zero) {
-		return nil
-	}
-
 	// Convert amountMinusFee to big.Int
-	amountMinusFeeBigInt := utils.ToSubunit(amountMinusFee, order.Edges.Token.Decimals)
+	amountMinusFeeBigInt := utils.ToSubunit(amountToRevert, order.Edges.Token.Decimals)
 
 	// Create wallet
 	saltDecrypted, err := cryptoUtils.DecryptPlain(order.Edges.ReceiveAddress.Salt)
@@ -364,7 +368,7 @@ func (s *OrderTron) RevertOrder(ctx context.Context, order *ent.PaymentOrder) er
 	// Update payment order
 	_, err = order.Update().
 		SetTxHash(txHash).
-		SetAmountReturned(amountMinusFee).
+		SetAmountReturned(amountToRevert).
 		SetStatus(paymentorder.StatusReverted).
 		Save(ctx)
 	if err != nil {
@@ -521,7 +525,7 @@ func (s *OrderTron) approveCallData(spender util.Address, amount *big.Int) ([]by
 	}
 
 	// Create calldata
-	calldata, err := erc20ABI.Pack("approve", spender.Hex()[4:], amount)
+	calldata, err := erc20ABI.Pack("approve", common.HexToAddress(spender.Hex()[4:]), amount)
 	if err != nil {
 		return nil, fmt.Errorf("failed to pack approve ABI: %w", err)
 	}
@@ -537,17 +541,31 @@ func (s *OrderTron) createOrderCallData(order *ent.PaymentOrder) ([]byte, error)
 		return nil, fmt.Errorf("failed to encrypt recipient details: %w", err)
 	}
 
-	var refundAddress util.Address
+	var refundAddress string
+	var refundAddressTron util.Address
 
-	if order.Edges.SenderProfile.RefundAddress == "" {
-		refundAddress, _ = util.Base58ToAddress(order.ReturnAddress)
-	} else {
-		refundAddress, _ = util.Base58ToAddress(order.Edges.SenderProfile.RefundAddress)
-	}
+	// TODO: uncomment when there's a field in sender profile for tron refund address is implemented
+	// if order.Edges.SenderProfile.RefundAddress == "" {
+	// 	refundAddressTron, _ = util.Base58ToAddress(order.ReturnAddress)
+	// 	refundAddress = refundAddressTron.Hex()[4:]
+	// } else {
+	// 	refundAddressTron, _ = util.Base58ToAddress(order.Edges.SenderProfile.RefundAddress)
+	// 	refundAddress = refundAddressTron.Hex()[4:]
+	// }
+
+	refundAddressTron, _ = util.Base58ToAddress(order.ReturnAddress)
+	refundAddress = refundAddressTron.Hex()[4:]
 
 	amountWithProtocolFee := order.Amount.Add(order.ProtocolFee)
-	senderFeeRecipientTron, _ := util.Base58ToAddress(order.FeeAddress)
 	tokenContractAddressTron, _ := util.Base58ToAddress(order.Edges.Token.ContractAddress)
+
+	var senderFeeRecipient string
+	if order.FeeAddress != "" {
+		// TODO: uncomment when there's a field in sender profile for tron fee address is implemented
+		// senderFeeRecipientTron, _ := util.Base58ToAddress(order.FeeAddress)
+		// senderFeeRecipient = senderFeeRecipientTron.Hex()[4:]
+		senderFeeRecipient = ""
+	}
 
 	// Define params
 	params := &types.CreateOrderParams{
@@ -555,9 +573,9 @@ func (s *OrderTron) createOrderCallData(order *ent.PaymentOrder) ([]byte, error)
 		Amount:             utils.ToSubunit(amountWithProtocolFee, order.Edges.Token.Decimals),
 		InstitutionCode:    utils.StringToByte32(order.Edges.Recipient.Institution),
 		Rate:               order.Rate.BigInt(),
-		SenderFeeRecipient: common.HexToAddress(senderFeeRecipientTron.Hex()[4:]),
+		SenderFeeRecipient: common.HexToAddress(senderFeeRecipient),
 		SenderFee:          order.SenderFee.BigInt(),
-		RefundAddress:      common.HexToAddress(refundAddress.Hex()[4:]),
+		RefundAddress:      common.HexToAddress(refundAddress),
 		MessageHash:        encryptedOrderRecipient,
 	}
 

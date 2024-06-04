@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"reflect"
@@ -12,6 +13,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/anaskhan96/base58check"
+	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	fastshot "github.com/opus-domini/fast-shot"
 	"github.com/paycrest/protocol/ent"
@@ -357,6 +361,13 @@ func IsValidEthereumAddress(address string) bool {
 	return matched
 }
 
+// IsValidTronAddress checks if a string is a valid Tron address
+func IsValidTronAddress(address string) bool {
+	pattern := `^T[a-zA-Z0-9]{33}$`
+	matched, _ := regexp.MatchString(pattern, address)
+	return matched
+}
+
 // Retry is a function that attempts to execute a given function multiple times until it succeeds or the maximum number of attempts is reached.
 // It sleeps for a specified duration between each attempt.
 // Parameters:
@@ -375,4 +386,63 @@ func Retry(attempts int, sleep time.Duration, fn func() error) error {
 		time.Sleep(sleep)
 	}
 	return err
+}
+
+// ParseTopicToTronAddress converts a padded hex string to a Tron address
+func ParseTopicToTronAddress(paddedHexString string) string {
+	addressBytes, err := hex.DecodeString(paddedHexString)
+	if err != nil {
+		return ""
+	}
+	addressHex := common.BytesToAddress(addressBytes).Hex()
+	addressBase58, err := base58check.Encode("41", addressHex[2:])
+	if err != nil {
+		return ""
+	}
+
+	// Check if the address is a valid Tron address
+	if !IsValidTronAddress(addressBase58) {
+		return ""
+	}
+
+	return addressBase58
+}
+
+// ParseTopicToBigInt converts a padded hex string to a big.Int
+func ParseTopicToBigInt(paddedHexString string) *big.Int {
+	addressBytes, err := hex.DecodeString(paddedHexString)
+	if err != nil {
+		return nil
+	}
+	return new(big.Int).SetBytes(addressBytes)
+}
+
+// ParseTopicToByte32 converts a padded hex string to a [32]byte
+func ParseTopicToByte32(paddedHexString string) [32]byte {
+	addressBytes, err := hex.DecodeString(paddedHexString)
+	if err != nil {
+		return [32]byte{}
+	}
+
+	return [32]byte(addressBytes)
+}
+
+// UnpackEventData unpacks the data from a padded hex string using the ABI
+func UnpackEventData(paddedHexString, contractABI, eventName string) ([]interface{}, error) {
+	rawData, err := hex.DecodeString(paddedHexString)
+	if err != nil {
+		return nil, err
+	}
+
+	abiObj, err := abi.JSON(strings.NewReader(contractABI))
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := abiObj.Unpack(eventName, rawData)
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
 }
