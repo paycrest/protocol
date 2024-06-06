@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"strings"
 	"time"
 
@@ -182,7 +183,7 @@ func (s *IndexerService) IndexTRC20Transfer(ctx context.Context, order *ent.Paym
 				return nil
 			}
 
-			res, err = client.Build().POST("/walletsolidity/gettransactioninfobyid").
+			res, err = client.Build().POST("/wallet/gettransactioninfobyid").
 				Body().AsJSON(map[string]interface{}{"value": eventData["transaction_id"].(string)}).
 				Retry().Set(3, 1*time.Second).
 				Send()
@@ -352,7 +353,7 @@ func (s *IndexerService) IndexOrderCreatedTron(ctx context.Context, order *ent.P
 		order.TxHash,
 	)
 	if err != nil {
-		return fmt.Errorf("IndexOrderCreated.fetchLatestOrderEvents: %v", err)
+		return fmt.Errorf("IndexOrderCreatedTron.fetchLatestOrderEvents: %v", err)
 	}
 
 	for _, event := range events {
@@ -362,8 +363,8 @@ func (s *IndexerService) IndexOrderCreatedTron(ctx context.Context, order *ent.P
 				Config().SetTimeout(30*time.Second).
 				Header().Add("TRON_PRO_API_KEY", orderConf.TronProApiKey)
 
-			res, err := client.Build().
-				GET(fmt.Sprintf("/wallet/gettransactioninfobyid?value=%s", order.TxHash)).
+			res, err := client.Build().POST("/wallet/gettransactioninfobyid").
+				Body().AsJSON(map[string]interface{}{"value": order.TxHash}).
 				Retry().Set(3, 1*time.Second).
 				Send()
 			if err != nil {
@@ -383,7 +384,7 @@ func (s *IndexerService) IndexOrderCreatedTron(ctx context.Context, order *ent.P
 				if eventData["topics"].([]interface{})[0] == "3bdd0d86e09a22d7ce596118bd3ca5ec73ea47533a465be37621e913ed2bf333" {
 					unpackedEventData, err := utils.UnpackEventData(eventData["data"].(string), contracts.GatewayMetaData.ABI, "OrderCreated")
 					if err != nil {
-						logger.Errorf("IndexOrderCreated.UnpackEventData: %v", err)
+						logger.Errorf("IndexOrderCreatedTron.UnpackEventData: %v", err)
 						return err
 					}
 
@@ -392,17 +393,31 @@ func (s *IndexerService) IndexOrderCreatedTron(ctx context.Context, order *ent.P
 						TxHash:          data["id"].(string),
 						Token:           utils.ParseTopicToTronAddress(eventData["topics"].([]interface{})[2].(string)),
 						Amount:          utils.ParseTopicToBigInt(eventData["topics"].([]interface{})[3].(string)),
-						ProtocolFee:     utils.ParseTopicToBigInt(unpackedEventData[0].(string)),
+						ProtocolFee:     unpackedEventData[0].(*big.Int),
 						OrderId:         unpackedEventData[1].([32]byte),
-						Rate:            utils.ParseTopicToBigInt(unpackedEventData[2].(string)),
+						Rate:            unpackedEventData[2].(*big.Int),
 						InstitutionCode: unpackedEventData[3].([32]byte),
 						MessageHash:     unpackedEventData[4].(string),
 					}
 
-					err = s.CreateLockPaymentOrder(ctx, nil, order.Edges.Token.Edges.Network, event)
-					if err != nil {
-						logger.Errorf("IndexOrderCreated.CreateLockPaymentOrder: %v", err)
+					// Connect to RPC endpoint
+					// TODO: rewrite this piece of code to fetch from the Gateway contract on Tron when it has supported institutions added to it
+					var ethClient types.RPCClient
+					retryErr := utils.Retry(3, 1*time.Second, func() error {
+						ethClient, err = types.NewEthClient("https://polygon-mainnet.g.alchemy.com/v2/zfXjaatj2o5xKkqe0iSvnU9JkKZoiS54")
+						return err
+					})
+					if retryErr != nil {
+						logger.Errorf("IndexOrderCreatedTron.NewEthClient: %v", retryErr)
+						return retryErr
 					}
+
+					err = s.CreateLockPaymentOrder(ctx, ethClient, order.Edges.Token.Edges.Network, event)
+					if err != nil {
+						logger.Errorf("IndexOrderCreatedTron.CreateLockPaymentOrder: %v", err)
+					}
+
+					break
 				}
 			}
 
@@ -554,8 +569,8 @@ func (s *IndexerService) IndexOrderSettledTron(ctx context.Context, order *ent.L
 				Config().SetTimeout(30*time.Second).
 				Header().Add("TRON_PRO_API_KEY", orderConf.TronProApiKey)
 
-			res, err := client.Build().
-				GET(fmt.Sprintf("/wallet/gettransactioninfobyid?value=%s", order.TxHash)).
+			res, err := client.Build().POST("/wallet/gettransactioninfobyid").
+				Body().AsJSON(map[string]interface{}{"value": order.TxHash}).
 				Retry().Set(3, 1*time.Second).
 				Send()
 			if err != nil {
@@ -585,13 +600,15 @@ func (s *IndexerService) IndexOrderSettledTron(ctx context.Context, order *ent.L
 						SplitOrderId:      unpackedEventData[0].([32]byte),
 						OrderId:           utils.ParseTopicToByte32(eventData["topics"].([]interface{})[1].(string)),
 						LiquidityProvider: eventData["topics"].([]interface{})[2].(string),
-						SettlePercent:     utils.ParseTopicToBigInt(unpackedEventData[1].(string)),
+						SettlePercent:     unpackedEventData[1].(*big.Int),
 					}
 
 					err = s.UpdateOrderStatusSettled(ctx, event)
 					if err != nil {
 						logger.Errorf("IndexOrderSettledTron.UpdateOrderStatusSettled: %v", err)
 					}
+
+					break
 				}
 			}
 
@@ -738,8 +755,8 @@ func (s *IndexerService) IndexOrderRefundedTron(ctx context.Context, order *ent.
 				Config().SetTimeout(30*time.Second).
 				Header().Add("TRON_PRO_API_KEY", orderConf.TronProApiKey)
 
-			res, err := client.Build().
-				GET(fmt.Sprintf("/wallet/gettransactioninfobyid?value=%s", order.TxHash)).
+			res, err := client.Build().POST("/wallet/gettransactioninfobyid").
+				Body().AsJSON(map[string]interface{}{"value": order.TxHash}).
 				Retry().Set(3, 1*time.Second).
 				Send()
 			if err != nil {
@@ -767,13 +784,15 @@ func (s *IndexerService) IndexOrderRefundedTron(ctx context.Context, order *ent.
 						BlockNumber: uint64(data["blockNumber"].(float64)),
 						TxHash:      data["id"].(string),
 						OrderId:     eventData["topics"].([]interface{})[1].([32]byte),
-						Fee:         utils.ParseTopicToBigInt(unpackedEventData[0].(string)),
+						Fee:         unpackedEventData[0].(*big.Int),
 					}
 
 					err = s.UpdateOrderStatusRefunded(ctx, event)
 					if err != nil {
 						logger.Errorf("IndexOrderRefundedTron.UpdateOrderStatusRefunded: %v", err)
 					}
+
+					break
 				}
 			}
 
@@ -839,7 +858,7 @@ func (s *IndexerService) HandleReceiveAddressValidity(ctx context.Context, recei
 func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client types.RPCClient, network *ent.Network, event *types.OrderCreatedEvent) error {
 	gatewayId := fmt.Sprintf("0x%v", hex.EncodeToString(event.OrderId[:]))
 
-	if serverConf.Environment == "production" {
+	if serverConf.Environment == "production" && !strings.HasPrefix(network.Identifier, "tron") {
 		ok, err := s.checkAMLCompliance(network.RPCEndpoint, event.TxHash)
 		if err != nil {
 			logger.Errorf("CreateLockPaymentOrder.checkAMLCompliance: %v", err)
@@ -885,6 +904,7 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 
 	_, err = paymentOrder.
 		Update().
+		SetBlockNumber(int64(event.BlockNumber)).
 		SetGatewayID(gatewayId).
 		Save(ctx)
 	if err != nil {
@@ -1058,6 +1078,7 @@ func (s *IndexerService) UpdateOrderStatusRefunded(ctx context.Context, event *t
 		Where(
 			paymentorder.GatewayIDEQ(gatewayId),
 		).
+		SetBlockNumber(int64(event.BlockNumber)).
 		SetTxHash(event.TxHash).
 		SetStatus(paymentorder.StatusRefunded).
 		Save(ctx)
@@ -1121,6 +1142,7 @@ func (s *IndexerService) UpdateOrderStatusSettled(ctx context.Context, event *ty
 	}
 
 	_, err = paymentOrderUpdate.
+		SetBlockNumber(int64(event.BlockNumber)).
 		SetTxHash(event.TxHash).
 		SetPercentSettled(settledPercent).
 		Save(ctx)

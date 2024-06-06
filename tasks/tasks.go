@@ -741,7 +741,7 @@ func StartCronJobs() {
 	}
 
 	// Retry stale user operations every 2 minutes
-	_, err = scheduler.Cron("*/1 * * * *").Do(RetryStaleUserOperations)
+	_, err = scheduler.Cron("*/2 * * * *").Do(RetryStaleUserOperations)
 	if err != nil {
 		logger.Errorf("StartCronJobs: %v", err)
 	}

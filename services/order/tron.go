@@ -138,7 +138,7 @@ func (s *OrderTron) CreateOrder(ctx context.Context, orderID uuid.UUID) error {
 		ContractAddress: tokenContractAddress.Bytes(),
 		Data:            calldata,
 	}
-	_, err = s.sendTransaction(wallet, ct, 100000000)
+	_, err = s.sendTransaction(wallet, ct, 50000000)
 	if err != nil {
 		return fmt.Errorf("%s - Tron.CreateOrder.sendTransaction: %w", orderIDPrefix, err)
 	}
@@ -174,6 +174,7 @@ func (s *OrderTron) CreateOrder(ctx context.Context, orderID uuid.UUID) error {
 
 	// Update payment order
 	_, err = order.Update().
+		SetBlockNumber(order.Edges.ReceiveAddress.LastIndexedBlock).
 		SetTxHash(txHash).
 		SetStatus(paymentorder.StatusPending).
 		Save(ctx)
@@ -265,7 +266,7 @@ func (s *OrderTron) RefundOrder(ctx context.Context, orderID string) error {
 		ContractAddress: tokenContractAddress.Bytes(),
 		Data:            calldata,
 	}
-	_, err = s.sendTransaction(wallet, ct, 100000000)
+	_, err = s.sendTransaction(wallet, ct, 50000000)
 	if err != nil {
 		return fmt.Errorf("%s - Tron.RefundOrder.sendTransaction: %w", orderIDPrefix, err)
 	}
@@ -282,7 +283,7 @@ func (s *OrderTron) RefundOrder(ctx context.Context, orderID string) error {
 		ContractAddress: gatewayContractAddress.Bytes(),
 		Data:            calldata,
 	}
-	txHash, err := s.sendTransaction(wallet, ct, 100000000)
+	txHash, err := s.sendTransaction(wallet, ct, 50000000)
 	if err != nil {
 		return fmt.Errorf("%s - Tron.RefundOrder.sendTransaction: %w", orderIDPrefix, err)
 	}
@@ -462,7 +463,7 @@ func (s *OrderTron) SettleOrder(ctx context.Context, orderID uuid.UUID) error {
 		ContractAddress: gatewayContractAddress.Bytes(),
 		Data:            calldata,
 	}
-	txHash, err := s.sendTransaction(wallet, ct, 100000000)
+	txHash, err := s.sendTransaction(wallet, ct, 50000000)
 	if err != nil {
 		return fmt.Errorf("%s - Tron.SettleOrder.sendTransaction: %w", orderIDPrefix, err)
 	}
@@ -480,6 +481,7 @@ func (s *OrderTron) SettleOrder(ctx context.Context, orderID uuid.UUID) error {
 }
 
 // GetSupportedInstitutions fetches the supported institutions by currencyCode.
+// TODO: rewrite this piece of code to fetch from the Gateway contract on Tron when it has supported institutions added to it
 func (s *OrderTron) GetSupportedInstitutions(ctx context.Context, client types.RPCClient, currencyCode string) ([]types.Institution, error) {
 	// Connect to RPC endpoint
 	var err error
