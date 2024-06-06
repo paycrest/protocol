@@ -343,6 +343,7 @@ func (ctrl *SenderController) GetPaymentOrderByID(ctx *gin.Context) {
 		WithToken(func(tq *ent.TokenQuery) {
 			tq.WithNetwork()
 		}).
+		WithTransactions().
 		Only(ctx)
 
 	if err != nil {
@@ -350,6 +351,19 @@ func (ctrl *SenderController) GetPaymentOrderByID(ctx *gin.Context) {
 		u.APIResponse(ctx, http.StatusNotFound, "error",
 			"Payment order not found", nil)
 		return
+	}
+	var transactions []types.TransactionLog
+	for _, transaction := range paymentOrder.Edges.Transactions {
+		transactions = append(transactions, types.TransactionLog{
+			Id:              transaction.ID.String(),
+			SenderId:        transaction.SenderID,
+			ProviderId:      transaction.ProviderID,
+			GatewayId:       transaction.GatewayID,
+			Status:          string(transaction.Status),
+			TransactionHash: transaction.TransactionHash,
+			CreatedAt:       transaction.CreatedAt.String(),
+		})
+
 	}
 
 	u.APIResponse(ctx, http.StatusOK, "success", "The order has been successfully retrieved", &types.PaymentOrderResponse{
@@ -369,6 +383,7 @@ func (ctrl *SenderController) GetPaymentOrderByID(ctx *gin.Context) {
 			ProviderID:        paymentOrder.Edges.Recipient.ProviderID,
 			Memo:              paymentOrder.Edges.Recipient.Memo,
 		},
+		Transactions:   transactions,
 		FromAddress:    paymentOrder.FromAddress,
 		ReturnAddress:  paymentOrder.ReturnAddress,
 		ReceiveAddress: paymentOrder.ReceiveAddressText,

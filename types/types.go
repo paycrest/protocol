@@ -349,6 +349,16 @@ type PaymentOrderRecipient struct {
 	Memo              string `json:"memo" binding:"required"`
 }
 
+type TransactionLog struct {
+	Id              string `json:"id" binding:"required"`
+	SenderId        string `json:"sender_id" binding:"required"`
+	ProviderId      string `json:"provider_id" binding:"required"`
+	GatewayId       string `json:"gateway_id"`
+	Status          string `json:"status" binding:"required"`
+	TransactionHash string `json:"transaction_hash" binding:"required"`
+	CreatedAt       string `json:"created_at" binding:"required"`
+}
+
 // NewPaymentOrderPayload is the payload for the create payment order endpoint
 type NewPaymentOrderPayload struct {
 	Amount          decimal.Decimal       `json:"amount" binding:"required"`
@@ -394,6 +404,7 @@ type PaymentOrderResponse struct {
 	UpdatedAt      time.Time             `json:"updatedAt"`
 	TxHash         string                `json:"txHash"`
 	Status         paymentorder.Status   `json:"status"`
+	Transactions   []TransactionLog      `json:"transactionLog"`
 }
 
 // PaymentOrderWebhookData is the data type for a payment order webhook

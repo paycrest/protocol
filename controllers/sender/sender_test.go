@@ -192,6 +192,37 @@ func TestSender(t *testing.T) {
 		assert.Equal(t, paymentOrder.Edges.Recipient.Institution, payload["recipient"].(map[string]interface{})["institution"])
 		assert.Equal(t, data["senderFee"], "0.666667")
 		assert.Equal(t, data["transactionFee"], network.Fee.Add(paymentOrder.Amount.Mul(decimal.NewFromFloat(0.001))).String()) // 0.1% protocol fee
+
+		t.Run("Check Transaction Logs", func(t *testing.T) {
+			payload = map[string]interface{}{
+				"timestamp": time.Now().Unix(),
+			}
+
+			signature = token.GenerateHMACSignature(payload, testCtx.apiKeySecret)
+
+			headers = map[string]string{
+				"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
+			}
+
+			res, err = test.PerformRequest(t, "GET", fmt.Sprintf("/orders/%s", paymentOrderUUID), payload, headers, router)
+			assert.NoError(t, err)
+
+			type Response struct {
+				Status  string                     `json:"status"`
+				Message string                     `json:"message"`
+				Data    types.PaymentOrderResponse `json:"data"`
+			}
+
+			var response2 Response
+			// Assert the response body
+			assert.Equal(t, http.StatusOK, res.Code)
+
+			err = json.Unmarshal(res.Body.Bytes(), &response2)
+			assert.NoError(t, err)
+			assert.Equal(t, "The order has been successfully retrieved", response2.Message)
+			assert.Equal(t, 1, len(response2.Data.Transactions), "response.Data is nil")
+		})
+
 	})
 
 	t.Run("GetPaymentOrderByID", func(t *testing.T) {
