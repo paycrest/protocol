@@ -403,7 +403,7 @@ type PaymentOrderResponse struct {
 	CreatedAt      time.Time             `json:"createdAt"`
 	UpdatedAt      time.Time             `json:"updatedAt"`
 	TxHash         string                `json:"txHash"`
-	Status         paymentorder.Status   `json:"status"`
+	Status         string                `json:"status"`
 	Transactions   []TransactionLog      `json:"transactionLog"`
 }
 

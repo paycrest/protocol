@@ -106,6 +106,7 @@ func TestProvider(t *testing.T) {
 	router.GET("/orders", ctrl.GetLockPaymentOrders)
 	router.GET("/stats", ctrl.Stats)
 	router.GET("/node-info", ctrl.NodeInfo)
+	router.GET("/orders/:id", ctrl.GetLockPaymentOrderByID)
 
 	t.Run("GetLockPaymentOrders", func(t *testing.T) {
 		t.Run("fetch default list", func(t *testing.T) {
