@@ -9,12 +9,15 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/receiveaddress"
 	"github.com/paycrest/protocol/services/contracts"
 	db "github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
 	cryptoUtils "github.com/paycrest/protocol/utils/crypto"
+	tronWallet "github.com/paycrest/tron-wallet"
+	tronEnums "github.com/paycrest/tron-wallet/enums"
 )
 
 // ReceiveAddressService provides functionality related to managing receive addresses
@@ -25,8 +28,8 @@ func NewReceiveAddressService() *ReceiveAddressService {
 	return &ReceiveAddressService{}
 }
 
-// CreateSmartAccount function generates and saves a new EIP-4337 smart contract account address
-func (s *ReceiveAddressService) CreateSmartAccount(ctx context.Context, client types.RPCClient, factory *common.Address) (*ent.ReceiveAddress, error) {
+// CreateSmartAddress function generates and saves a new EIP-4337 smart contract account address
+func (s *ReceiveAddressService) CreateSmartAddress(ctx context.Context, client types.RPCClient, factory *common.Address) (*ent.ReceiveAddress, error) {
 
 	// Connect to RPC endpoint
 	var err error
@@ -67,6 +70,7 @@ func (s *ReceiveAddressService) CreateSmartAccount(ctx context.Context, client t
 		return nil, fmt.Errorf("failed to generate address: %w", err)
 	}
 
+	// Encrypt salt
 	saltEncrypted, err := cryptoUtils.EncryptPlain([]byte(salt.String()))
 	if err != nil {
 		return nil, fmt.Errorf("failed to encrypt salt: %w", err)
@@ -78,7 +82,40 @@ func (s *ReceiveAddressService) CreateSmartAccount(ctx context.Context, client t
 		SetAddress(address.Hex()).
 		SetSalt(saltEncrypted).
 		SetStatus(receiveaddress.StatusUnused).
-		SetValidUntil(time.Now().Add(OrderConf.ReceiveAddressValidity)).
+		SetValidUntil(time.Now().Add(config.OrderConfig().ReceiveAddressValidity)).
+		Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to save address: %w", err)
+	}
+
+	return receiveAddress, nil
+}
+
+// CreateTronAddress generates and saves a new Tron address
+func (s *ReceiveAddressService) CreateTronAddress(ctx context.Context) (*ent.ReceiveAddress, error) {
+	var nodeUrl tronEnums.Node
+	if config.ServerConfig().Environment == "production" {
+		nodeUrl = tronEnums.MAIN_NODE
+	} else {
+		nodeUrl = tronEnums.SHASTA_NODE
+	}
+
+	// Generate a new Tron address
+	wallet := tronWallet.GenerateTronWallet(nodeUrl)
+
+	// Encrypt private key
+	privateKeyEncrypted, err := cryptoUtils.EncryptPlain([]byte(wallet.PrivateKey))
+	if err != nil {
+		return nil, fmt.Errorf("failed to encrypt salt: %w", err)
+	}
+
+	// Save address in db
+	receiveAddress, err := db.Client.ReceiveAddress.
+		Create().
+		SetAddress(wallet.AddressBase58).
+		SetSalt(privateKeyEncrypted).
+		SetStatus(receiveaddress.StatusUnused).
+		SetValidUntil(time.Now().Add(config.OrderConfig().ReceiveAddressValidity)).
 		Save(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to save address: %w", err)

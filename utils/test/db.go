@@ -186,7 +186,7 @@ func CreateTestPaymentOrder(client types.RPCClient, token *ent.Token, overrides 
 	}
 
 	// Create smart wallet
-	receiveAddress, err := CreateSmartAccount(
+	receiveAddress, err := CreateSmartAddress(
 		context.Background(), client)
 	if err != nil {
 		return nil, err

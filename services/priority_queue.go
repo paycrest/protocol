@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	fastshot "github.com/opus-domini/fast-shot"
+	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
@@ -140,7 +141,7 @@ func (s *PriorityQueueService) CreatePriorityQueueForBucket(ctx context.Context,
 		// Check provider's rate against the market rate to ensure it's not too far off
 		percentDeviation := utils.AbsPercentageDeviation(bucket.Edges.Currency.MarketRate, rate)
 
-		if ServerConf.Environment == "production" && percentDeviation.GreaterThan(OrderConf.PercentDeviationFromMarketRate) {
+		if config.ServerConfig().Environment == "production" && percentDeviation.GreaterThan(config.OrderConfig().PercentDeviationFromMarketRate) {
 			// Skip this provider if the rate is too far off
 			// TODO: add a logic to notify the provider(s) to update his rate since it's stale. could be a cron job
 			continue
@@ -317,7 +318,7 @@ func (s *PriorityQueueService) sendOrderRequest(ctx context.Context, order types
 	}
 
 	// Set a TTL for the order request
-	err := storage.RedisClient.ExpireAt(ctx, orderKey, time.Now().Add(OrderConf.OrderRequestValidity)).Err()
+	err := storage.RedisClient.ExpireAt(ctx, orderKey, time.Now().Add(config.OrderConfig().OrderRequestValidity)).Err()
 	if err != nil {
 		logger.Errorf("failed to set TTL for order request: %v", err)
 		return err
@@ -439,7 +440,7 @@ func (s *PriorityQueueService) ReassignUnfulfilledLockOrders() {
 				),
 			),
 			lockpaymentorder.StatusEQ(lockpaymentorder.StatusProcessing),
-			lockpaymentorder.UpdatedAtLTE(time.Now().Add(-OrderConf.OrderFulfillmentValidity*time.Minute)),
+			lockpaymentorder.UpdatedAtLTE(time.Now().Add(-config.OrderConfig().OrderFulfillmentValidity*time.Minute)),
 		).
 		WithToken().
 		WithProvider().
@@ -457,7 +458,7 @@ func (s *PriorityQueueService) ReassignUnfulfilledLockOrders() {
 		Update().
 		Where(
 			lockpaymentorder.StatusEQ(lockpaymentorder.StatusProcessing),
-			lockpaymentorder.UpdatedAtLTE(time.Now().Add(-OrderConf.OrderFulfillmentValidity*time.Minute)),
+			lockpaymentorder.UpdatedAtLTE(time.Now().Add(-config.OrderConfig().OrderFulfillmentValidity*time.Minute)),
 			lockpaymentorder.Or(
 				lockpaymentorder.Not(lockpaymentorder.HasFulfillment()),
 				lockpaymentorder.HasFulfillmentWith(

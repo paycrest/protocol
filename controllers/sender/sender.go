@@ -2,6 +2,7 @@ package sender
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/paycrest/protocol/config"
@@ -25,22 +26,13 @@ import (
 // SenderController is a controller type for sender endpoints
 type SenderController struct {
 	receiveAddressService *svc.ReceiveAddressService
-	orderService          svc.Order
 }
 
 // NewSenderController creates a new instance of SenderController
-func NewSenderController(order svc.Order) *SenderController {
-	var orderService svc.Order
-
-	if order == nil {
-		orderService = svc.NewOrderService()
-	} else {
-		orderService = order
-	}
+func NewSenderController() *SenderController {
 
 	return &SenderController{
 		receiveAddressService: svc.NewReceiveAddressService(),
-		orderService:          orderService,
 	}
 }
 
@@ -91,6 +83,8 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 	isPrivate := false
 	isTokenNetworkPresent := false
 	maxOrderAmount := decimal.NewFromInt(0)
+	minOrderAmount := decimal.NewFromInt(0)
+
 	if payload.Recipient.ProviderID != "" {
 		providerProfile, err := storage.Client.ProviderProfile.
 			Query().
@@ -125,22 +119,40 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 		}
 
 		maxOrderAmount = providerProfile.Edges.OrderTokens[0].MaxOrderAmount
+		minOrderAmount = providerProfile.Edges.OrderTokens[0].MinOrderAmount
 
 		if providerProfile.VisibilityMode == providerprofile.VisibilityModePrivate {
 			isPrivate = true
 		}
 	}
 
-	if isPrivate && payload.Amount.GreaterThan(maxOrderAmount) {
-		u.APIResponse(ctx, http.StatusBadRequest, "error", "The amount is beyond the maximum order amount for the specified provider", nil)
-		return
+	// Validate amount for private orders
+	if isPrivate {
+		if payload.Amount.LessThan(minOrderAmount) {
+			u.APIResponse(ctx, http.StatusBadRequest, "error", "The amount is below the minimum order amount for the specified provider", nil)
+			return
+		} else if payload.Amount.GreaterThan(maxOrderAmount) {
+			u.APIResponse(ctx, http.StatusBadRequest, "error", "The amount is beyond the maximum order amount for the specified provider", nil)
+			return
+		}
 	}
+
 	// Generate receive address
-	receiveAddress, err := ctrl.receiveAddressService.CreateSmartAccount(ctx, nil, nil)
-	if err != nil {
-		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to initiate payment order", nil)
-		return
+	var receiveAddress *ent.ReceiveAddress
+	if strings.HasPrefix(payload.Network, "tron") {
+		receiveAddress, err = ctrl.receiveAddressService.CreateTronAddress(ctx)
+		if err != nil {
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to initiate payment order", nil)
+			return
+		}
+	} else {
+		receiveAddress, err = ctrl.receiveAddressService.CreateSmartAddress(ctx, nil, nil)
+		if err != nil {
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to initiate payment order", nil)
+			return
+		}
 	}
 
 	// Create payment order and recipient in a transaction
@@ -171,23 +183,45 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 			})
 			return
 		}
-		if !u.IsValidEthereumAddress(payload.FeeAddress) {
-			u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
-				Field:   "FeeAddress",
-				Message: "Invalid Ethereum address",
-			})
-			return
+
+		if !strings.HasPrefix(payload.Network, "tron") {
+			if !u.IsValidEthereumAddress(payload.FeeAddress) {
+				u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
+					Field:   "FeeAddress",
+					Message: "Invalid Ethereum address",
+				})
+				return
+			}
+		} else {
+			if !u.IsValidTronAddress(payload.FeeAddress) {
+				u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
+					Field:   "FeeAddress",
+					Message: "Invalid Tron address",
+				})
+				return
+			}
 		}
 		feeAddress = payload.FeeAddress
 	}
 
 	if payload.ReturnAddress != "" {
-		if !u.IsValidEthereumAddress(payload.ReturnAddress) {
-			u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
-				Field:   "ReturnAddress",
-				Message: "Invalid Ethereum address",
-			})
-			return
+		if !strings.HasPrefix(payload.Network, "tron") {
+			if !u.IsValidEthereumAddress(payload.ReturnAddress) {
+				u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
+					Field:   "ReturnAddress",
+					Message: "Invalid Ethereum address",
+				})
+				return
+			}
+		} else {
+			if !u.IsValidTronAddress(payload.ReturnAddress) {
+				u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
+					Field:   "ReturnAddress",
+					Message: "Invalid Tron address",
+				})
+				return
+			}
+
 		}
 	}
 

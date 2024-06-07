@@ -16,10 +16,9 @@ import (
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/token"
-	"github.com/paycrest/protocol/services"
+	orderService "github.com/paycrest/protocol/services/order"
 	"github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
-	"github.com/paycrest/protocol/utils"
 	u "github.com/paycrest/protocol/utils"
 	cryptoUtils "github.com/paycrest/protocol/utils/crypto"
 	"github.com/paycrest/protocol/utils/logger"
@@ -30,15 +29,11 @@ import (
 )
 
 // ProviderController is a controller type for provider endpoints
-type ProviderController struct {
-	orderService services.Order
-}
+type ProviderController struct{}
 
 // NewProviderController creates a new instance of ProviderController with injected services
 func NewProviderController() *ProviderController {
-	return &ProviderController{
-		orderService: services.NewOrderService(),
-	}
+	return &ProviderController{}
 }
 
 // GetLockPaymentOrders controller fetches all assigned orders
@@ -291,6 +286,11 @@ func (ctrl *ProviderController) FulfillOrder(ctx *gin.Context) {
 	fulfillment, err := storage.Client.LockOrderFulfillment.
 		Query().
 		Where(lockorderfulfillment.TxIDEQ(payload.TxID)).
+		WithOrder(func(poq *ent.LockPaymentOrderQuery) {
+			poq.WithToken(func(tq *ent.TokenQuery) {
+				tq.WithNetwork()
+			})
+		}).
 		Only(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {
@@ -331,7 +331,11 @@ func (ctrl *ProviderController) FulfillOrder(ctx *gin.Context) {
 		}
 
 		// Settle order or fail silently
-		err = ctrl.orderService.SettleOrder(ctx, orderID)
+		if strings.HasPrefix(fulfillment.Edges.Order.Edges.Token.Edges.Network.Identifier, "tron") {
+			err = orderService.NewOrderTron().SettleOrder(ctx, orderID)
+		} else {
+			err = orderService.NewOrderEVM().SettleOrder(ctx, orderID)
+		}
 		if err != nil {
 			logger.Errorf("FulfillOrder.SettleOrder: %v", err)
 		}
@@ -405,6 +409,9 @@ func (ctrl *ProviderController) CancelOrder(ctx *gin.Context) {
 			lockpaymentorder.IDEQ(orderID),
 			lockpaymentorder.HasProviderWith(providerprofile.IDEQ(provider.ID)),
 		).
+		WithToken(func(tq *ent.TokenQuery) {
+			tq.WithNetwork()
+		}).
 		WithProvider().
 		Only(ctx)
 	if err != nil {
@@ -438,7 +445,11 @@ func (ctrl *ProviderController) CancelOrder(ctx *gin.Context) {
 	// Check if order cancellation count is equal or greater than RefundCancellationCount in config,
 	// and the order has not been refunded, then trigger refund
 	if order.CancellationCount >= orderConf.RefundCancellationCount && order.Status == lockpaymentorder.StatusCancelled {
-		err = ctrl.orderService.RefundOrder(ctx, order.GatewayID)
+		if strings.HasPrefix(order.Edges.Token.Edges.Network.Identifier, "tron") {
+			err = orderService.NewOrderTron().RefundOrder(ctx, order.GatewayID)
+		} else {
+			err = orderService.NewOrderEVM().RefundOrder(ctx, order.GatewayID)
+		}
 		if err != nil {
 			logger.Errorf("CancelOrder.RefundOrder(%v): %v", orderID, err)
 		}
@@ -605,7 +616,7 @@ func (ctrl *ProviderController) NodeInfo(ctx *gin.Context) {
 		return
 	}
 
-	data, err := utils.ParseJSONResponse(res.RawResponse)
+	data, err := u.ParseJSONResponse(res.RawResponse)
 	if err != nil {
 		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusServiceUnavailable, "error", "Failed to fetch node info", nil)

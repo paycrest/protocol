@@ -10,6 +10,7 @@ import (
 	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/token"
 	svc "github.com/paycrest/protocol/services"
+	orderSvc "github.com/paycrest/protocol/services/order"
 	"github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
 	u "github.com/paycrest/protocol/utils"
@@ -21,14 +22,14 @@ import (
 
 // Controller is the default controller for other endpoints
 type Controller struct {
-	orderService         svc.Order
+	orderService         types.OrderService
 	priorityQueueService *svc.PriorityQueueService
 }
 
 // NewController creates a new instance of AuthController with injected services
 func NewController() *Controller {
 	return &Controller{
-		orderService:         svc.NewOrderService(),
+		orderService:         orderSvc.NewOrderEVM(),
 		priorityQueueService: svc.NewPriorityQueueService(),
 	}
 }

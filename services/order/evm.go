@@ -1,4 +1,4 @@
-package services
+package order
 
 import (
 	"context"
@@ -30,39 +30,16 @@ import (
 	cryptoUtils "github.com/paycrest/protocol/utils/crypto"
 )
 
-type CreateOrderParams struct {
-	Token              common.Address
-	Amount             *big.Int
-	InstitutionCode    [32]byte
-	Rate               *big.Int
-	SenderFeeRecipient common.Address
-	SenderFee          *big.Int
-	RefundAddress      common.Address
-	MessageHash        string
-}
+// OrderEVM provides functionality related to on-chain interactions for payment orders
+type OrderEVM struct{}
 
-var CryptoConf = config.CryptoConfig()
-var ServerConf = config.ServerConfig()
-
-// Order provides an interface for the OrderService
-type Order interface {
-	CreateOrder(ctx context.Context, orderID uuid.UUID) error
-	RefundOrder(ctx context.Context, orderID string) error
-	RevertOrder(ctx context.Context, order *ent.PaymentOrder) error
-	SettleOrder(ctx context.Context, orderID uuid.UUID) error
-	GetSupportedInstitutions(ctx context.Context, client types.RPCClient, currencyCode string) ([]types.Institution, error)
-}
-
-// OrderService provides functionality related to on-chain interactions for payment orders
-type OrderService struct{}
-
-// NewOrderService creates a new instance of OrderService.
-func NewOrderService() Order {
-	return &OrderService{}
+// NewOrderEVM creates a new instance of OrderEVM.
+func NewOrderEVM() types.OrderService {
+	return &OrderEVM{}
 }
 
 // CreateOrder creates a new payment order on-chain.
-func (s *OrderService) CreateOrder(ctx context.Context, orderID uuid.UUID) error {
+func (s *OrderEVM) CreateOrder(ctx context.Context, orderID uuid.UUID) error {
 	var err error
 	orderIDPrefix := strings.Split(orderID.String(), "-")[0]
 
@@ -103,7 +80,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, orderID uuid.UUID) error
 
 	// Sponsor user operation.
 	// This will populate the following fields in userOperation: PaymasterAndData, PreVerificationGas, VerificationGasLimit, CallGasLimit
-	if ServerConf.Environment != "production" {
+	if config.ServerConfig().Environment != "production" {
 		err = utils.SponsorUserOperation(userOperation, "erc20token", order.Edges.Token.ContractAddress, order.Edges.Token.Edges.Network.ChainID)
 	} else {
 		err = utils.SponsorUserOperation(userOperation, "payg", "", order.Edges.Token.Edges.Network.ChainID)
@@ -124,7 +101,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, orderID uuid.UUID) error
 		return fmt.Errorf("%s - CreateOrder.SendUserOperation: %w", orderIDPrefix, err)
 	}
 
-	// Update payment order with userOpHash
+	// Update payment order
 	_, err = order.Update().
 		SetTxHash(txHash).
 		SetBlockNumber(blockNumber).
@@ -153,7 +130,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, orderID uuid.UUID) error
 }
 
 // RefundOrder refunds sender on canceled lock order
-func (s *OrderService) RefundOrder(ctx context.Context, orderID string) error {
+func (s *OrderEVM) RefundOrder(ctx context.Context, orderID string) error {
 	// Fetch lock order from db
 	lockOrder, err := db.Client.LockPaymentOrder.
 		Query().
@@ -168,7 +145,7 @@ func (s *OrderService) RefundOrder(ctx context.Context, orderID string) error {
 
 	// Get default userOperation
 	userOperation, err := utils.InitializeUserOperation(
-		ctx, nil, lockOrder.Edges.Token.Edges.Network.RPCEndpoint, CryptoConf.AggregatorSmartAccount, CryptoConf.AggregatorSmartAccountSalt,
+		ctx, nil, lockOrder.Edges.Token.Edges.Network.RPCEndpoint, config.CryptoConfig().AggregatorSmartAccount, config.CryptoConfig().AggregatorSmartAccountSalt,
 	)
 	if err != nil {
 		return fmt.Errorf("RefundOrder.initializeUserOperation: %w", err)
@@ -183,7 +160,7 @@ func (s *OrderService) RefundOrder(ctx context.Context, orderID string) error {
 
 	// Sponsor user operation.
 	// This will populate the following fields in userOperation: PaymasterAndData, PreVerificationGas, VerificationGasLimit, CallGasLimit
-	if ServerConf.Environment != "production" {
+	if config.ServerConfig().Environment != "production" {
 		err = utils.SponsorUserOperation(userOperation, "erc20token", lockOrder.Edges.Token.ContractAddress, lockOrder.Edges.Token.Edges.Network.ChainID)
 	} else {
 		err = utils.SponsorUserOperation(userOperation, "payg", "", lockOrder.Edges.Token.Edges.Network.ChainID)
@@ -217,7 +194,7 @@ func (s *OrderService) RefundOrder(ctx context.Context, orderID string) error {
 }
 
 // RevertOrder reverts an initiated payment order on-chain.
-func (s *OrderService) RevertOrder(ctx context.Context, order *ent.PaymentOrder) error {
+func (s *OrderEVM) RevertOrder(ctx context.Context, order *ent.PaymentOrder) error {
 	if !order.AmountReturned.Equal(decimal.Zero) {
 		return nil
 	}
@@ -290,7 +267,7 @@ func (s *OrderService) RevertOrder(ctx context.Context, order *ent.PaymentOrder)
 
 	// Sponsor user operation.
 	// This will populate the following fields in userOperation: PaymasterAndData, PreVerificationGas, VerificationGasLimit, CallGasLimit
-	if ServerConf.Environment != "production" {
+	if config.ServerConfig().Environment != "production" {
 		err = utils.SponsorUserOperation(userOperation, "erc20token", order.Edges.Token.ContractAddress, order.Edges.Token.Edges.Network.ChainID)
 	} else {
 		err = utils.SponsorUserOperation(userOperation, "payg", "", order.Edges.Token.Edges.Network.ChainID)
@@ -333,7 +310,7 @@ func (s *OrderService) RevertOrder(ctx context.Context, order *ent.PaymentOrder)
 }
 
 // SettleOrder settles a payment order on-chain.
-func (s *OrderService) SettleOrder(ctx context.Context, orderID uuid.UUID) error {
+func (s *OrderEVM) SettleOrder(ctx context.Context, orderID uuid.UUID) error {
 	var err error
 
 	orderIDPrefix := strings.Split(orderID.String(), "-")[0]
@@ -359,7 +336,7 @@ func (s *OrderService) SettleOrder(ctx context.Context, orderID uuid.UUID) error
 
 	// Get default userOperation
 	userOperation, err := utils.InitializeUserOperation(
-		ctx, nil, order.Edges.Token.Edges.Network.RPCEndpoint, CryptoConf.AggregatorSmartAccount, CryptoConf.AggregatorSmartAccountSalt,
+		ctx, nil, order.Edges.Token.Edges.Network.RPCEndpoint, config.CryptoConfig().AggregatorSmartAccount, config.CryptoConfig().AggregatorSmartAccountSalt,
 	)
 	if err != nil {
 		return fmt.Errorf("%s - SettleOrder.initializeUserOperation: %w", orderIDPrefix, err)
@@ -374,7 +351,7 @@ func (s *OrderService) SettleOrder(ctx context.Context, orderID uuid.UUID) error
 
 	// Sponsor user operation.
 	// This will populate the following fields in userOperation: PaymasterAndData, PreVerificationGas, VerificationGasLimit, CallGasLimit
-	if ServerConf.Environment != "production" {
+	if config.ServerConfig().Environment != "production" {
 		err = utils.SponsorUserOperation(userOperation, "erc20token", order.Edges.Token.ContractAddress, order.Edges.Token.Edges.Network.ChainID)
 	} else {
 		err = utils.SponsorUserOperation(userOperation, "payg", "", order.Edges.Token.Edges.Network.ChainID)
@@ -406,7 +383,7 @@ func (s *OrderService) SettleOrder(ctx context.Context, orderID uuid.UUID) error
 }
 
 // GetSupportedInstitutions fetches the supported institutions by currencyCode.
-func (s *OrderService) GetSupportedInstitutions(ctx context.Context, client types.RPCClient, currencyCode string) ([]types.Institution, error) {
+func (s *OrderEVM) GetSupportedInstitutions(ctx context.Context, client types.RPCClient, currencyCode string) ([]types.Institution, error) {
 	// Connect to RPC endpoint
 	var err error
 	if client == nil {
@@ -419,7 +396,7 @@ func (s *OrderService) GetSupportedInstitutions(ctx context.Context, client type
 	currency := utils.StringToByte32(currencyCode)
 
 	// Initialize contract filterer
-	instance, err := contracts.NewGateway(OrderConf.GatewayContractAddress, client.(bind.ContractBackend))
+	instance, err := contracts.NewGateway(config.OrderConfig().GatewayContractAddress, client.(bind.ContractBackend))
 	if err != nil {
 		return nil, fmt.Errorf("GetSupportedInstitutions.NewGatewayOrder: %w", err)
 	}
@@ -443,14 +420,14 @@ func (s *OrderService) GetSupportedInstitutions(ctx context.Context, client type
 }
 
 // executeBatchTransferCallData creates the transfer calldata for the execute batch method in the smart account.
-func (s *OrderService) executeBatchTransferCallData(order *ent.PaymentOrder, to common.Address, amount *big.Int) ([]byte, error) {
+func (s *OrderEVM) executeBatchTransferCallData(order *ent.PaymentOrder, to common.Address, amount *big.Int) ([]byte, error) {
 	// Fetch paymaster account
 	paymasterAccount, err := utils.GetPaymasterAccount(order.Edges.Token.Edges.Network.ChainID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get paymaster account: %w", err)
 	}
 
-	if ServerConf.Environment != "staging" && ServerConf.Environment != "production" {
+	if config.ServerConfig().Environment != "staging" && config.ServerConfig().Environment != "production" {
 		time.Sleep(5 * time.Second)
 	}
 
@@ -490,12 +467,12 @@ func (s *OrderService) executeBatchTransferCallData(order *ent.PaymentOrder, to 
 }
 
 // executeBatchCreateOrderCallData creates the calldata for the execute batch method in the smart account.
-func (s *OrderService) executeBatchCreateOrderCallData(order *ent.PaymentOrder) ([]byte, error) {
+func (s *OrderEVM) executeBatchCreateOrderCallData(order *ent.PaymentOrder) ([]byte, error) {
 	orderAmountWithFees := order.Amount.Add(order.ProtocolFee).Add(order.SenderFee)
 
 	// Create approve data for gateway contract
 	approveGatewayData, err := s.approveCallData(
-		OrderConf.GatewayContractAddress,
+		config.OrderConfig().GatewayContractAddress,
 		utils.ToSubunit(orderAmountWithFees.Mul(decimal.NewFromInt(2)), order.Edges.Token.Decimals),
 	)
 	if err != nil {
@@ -508,7 +485,7 @@ func (s *OrderService) executeBatchCreateOrderCallData(order *ent.PaymentOrder) 
 		return nil, fmt.Errorf("failed to get paymaster account: %w", err)
 	}
 
-	if ServerConf.Environment != "production" {
+	if config.ServerConfig().Environment != "production" {
 		time.Sleep(5 * time.Second)
 	}
 
@@ -537,7 +514,7 @@ func (s *OrderService) executeBatchCreateOrderCallData(order *ent.PaymentOrder) 
 		[]common.Address{
 			common.HexToAddress(order.Edges.Token.ContractAddress),
 			common.HexToAddress(order.Edges.Token.ContractAddress),
-			OrderConf.GatewayContractAddress,
+			config.OrderConfig().GatewayContractAddress,
 		},
 		[][]byte{approvePaymasterData, approveGatewayData, createOrderData},
 	)
@@ -549,7 +526,7 @@ func (s *OrderService) executeBatchCreateOrderCallData(order *ent.PaymentOrder) 
 }
 
 // approveCallData creates the data for the ERC20 approve method
-func (s *OrderService) approveCallData(spender common.Address, amount *big.Int) ([]byte, error) {
+func (s *OrderEVM) approveCallData(spender common.Address, amount *big.Int) ([]byte, error) {
 	// Create ABI
 	erc20ABI, err := abi.JSON(strings.NewReader(contracts.ERC20TokenMetaData.ABI))
 	if err != nil {
@@ -566,7 +543,7 @@ func (s *OrderService) approveCallData(spender common.Address, amount *big.Int) 
 }
 
 // transferCallData creates the data for the ERC20 token transfer method
-func (s *OrderService) transferCallData(recipient common.Address, amount *big.Int) ([]byte, error) {
+func (s *OrderEVM) transferCallData(recipient common.Address, amount *big.Int) ([]byte, error) {
 	// Create ABI
 	erc20ABI, err := abi.JSON(strings.NewReader(contracts.ERC20TokenMetaData.ABI))
 	if err != nil {
@@ -583,7 +560,7 @@ func (s *OrderService) transferCallData(recipient common.Address, amount *big.In
 }
 
 // // executeCallData creates the data for the execute method in the smart account.
-// func (s *OrderService) executeCallData(dest common.Address, value *big.Int, data []byte) ([]byte, error) {
+// func (s *OrderEVM) executeCallData(dest common.Address, value *big.Int, data []byte) ([]byte, error) {
 // 	simpleAccountABI, err := abi.JSON(strings.NewReader(contracts.SimpleAccountMetaData.ABI))
 // 	if err != nil {
 // 		return nil, fmt.Errorf("failed to parse smart account ABI: %w", err)
@@ -603,7 +580,7 @@ func (s *OrderService) transferCallData(recipient common.Address, amount *big.In
 // }
 
 // createOrderCallData creates the data for the createOrder method
-func (s *OrderService) createOrderCallData(order *ent.PaymentOrder) ([]byte, error) {
+func (s *OrderEVM) createOrderCallData(order *ent.PaymentOrder) ([]byte, error) {
 	// Encrypt recipient details
 	encryptedOrderRecipient, err := s.encryptOrderRecipient(order.Edges.Recipient)
 	if err != nil {
@@ -620,7 +597,7 @@ func (s *OrderService) createOrderCallData(order *ent.PaymentOrder) ([]byte, err
 	amountWithProtocolFee := order.Amount.Add(order.ProtocolFee)
 
 	// Define params
-	params := &CreateOrderParams{
+	params := &types.CreateOrderParams{
 		Token:              common.HexToAddress(order.Edges.Token.ContractAddress),
 		Amount:             utils.ToSubunit(amountWithProtocolFee, order.Edges.Token.Decimals),
 		InstitutionCode:    utils.StringToByte32(order.Edges.Recipient.Institution),
@@ -657,7 +634,7 @@ func (s *OrderService) createOrderCallData(order *ent.PaymentOrder) ([]byte, err
 }
 
 // executeBatchRefundCallData creates the refund calldata for the execute batch method in the smart account.
-func (s *OrderService) executeBatchRefundCallData(order *ent.LockPaymentOrder) ([]byte, error) {
+func (s *OrderEVM) executeBatchRefundCallData(order *ent.LockPaymentOrder) ([]byte, error) {
 	sourceOrder, err := db.Client.PaymentOrder.
 		Query().
 		Where(paymentorder.GatewayIDEQ(order.GatewayID)).
@@ -671,7 +648,7 @@ func (s *OrderService) executeBatchRefundCallData(order *ent.LockPaymentOrder) (
 
 	// Create approve data for gateway contract
 	approveGatewayData, err := s.approveCallData(
-		OrderConf.GatewayContractAddress,
+		config.OrderConfig().GatewayContractAddress,
 		utils.ToSubunit(order.Amount.Add(sourceOrder.SenderFee).Add(sourceOrder.ProtocolFee), order.Edges.Token.Decimals),
 	)
 	if err != nil {
@@ -692,12 +669,12 @@ func (s *OrderService) executeBatchRefundCallData(order *ent.LockPaymentOrder) (
 
 	contractAddresses := []common.Address{
 		common.HexToAddress(order.Edges.Token.ContractAddress),
-		OrderConf.GatewayContractAddress,
+		config.OrderConfig().GatewayContractAddress,
 	}
 
 	data := [][]byte{approveGatewayData, refundData}
 
-	if ServerConf.Environment != "production" {
+	if config.ServerConfig().Environment != "production" {
 		paymasterAccount, err := utils.GetPaymasterAccount(order.Edges.Token.Edges.Network.ChainID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get paymaster account: %w", err)
@@ -738,7 +715,7 @@ func (s *OrderService) executeBatchRefundCallData(order *ent.LockPaymentOrder) (
 }
 
 // refundCallData creates the data for the refund method
-func (s *OrderService) refundCallData(fee *big.Int, orderId string) ([]byte, error) {
+func (s *OrderEVM) refundCallData(fee *big.Int, orderId string) ([]byte, error) {
 	gatewayABI, err := abi.JSON(strings.NewReader(contracts.GatewayMetaData.ABI))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse GatewayOrder ABI: %w", err)
@@ -764,10 +741,10 @@ func (s *OrderService) refundCallData(fee *big.Int, orderId string) ([]byte, err
 }
 
 // executeBatchSettleCallData creates the settle calldata for the execute batch method in the smart account.
-func (s *OrderService) executeBatchSettleCallData(ctx context.Context, order *ent.LockPaymentOrder) ([]byte, error) {
+func (s *OrderEVM) executeBatchSettleCallData(ctx context.Context, order *ent.LockPaymentOrder) ([]byte, error) {
 	// Create approve data for gateway contract
 	approveGatewayData, err := s.approveCallData(
-		OrderConf.GatewayContractAddress,
+		config.OrderConfig().GatewayContractAddress,
 		utils.ToSubunit(order.Amount, order.Edges.Token.Decimals),
 	)
 	if err != nil {
@@ -780,7 +757,7 @@ func (s *OrderService) executeBatchSettleCallData(ctx context.Context, order *en
 
 	data := [][]byte{approveGatewayData}
 
-	if ServerConf.Environment != "production" {
+	if config.ServerConfig().Environment != "production" {
 		// Fetch paymaster account
 		paymasterAccount, err := utils.GetPaymasterAccount(order.Edges.Token.Edges.Network.ChainID)
 		if err != nil {
@@ -817,7 +794,7 @@ func (s *OrderService) executeBatchSettleCallData(ctx context.Context, order *en
 
 	contractAddresses = append(
 		contractAddresses,
-		OrderConf.GatewayContractAddress,
+		config.OrderConfig().GatewayContractAddress,
 	)
 	data = append(data, settleData)
 
@@ -834,7 +811,7 @@ func (s *OrderService) executeBatchSettleCallData(ctx context.Context, order *en
 }
 
 // settleCallData creates the data for the settle method in the gateway contract
-func (s *OrderService) settleCallData(ctx context.Context, order *ent.LockPaymentOrder) ([]byte, error) {
+func (s *OrderEVM) settleCallData(ctx context.Context, order *ent.LockPaymentOrder) ([]byte, error) {
 	gatewayABI, err := abi.JSON(strings.NewReader(contracts.GatewayMetaData.ABI))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse GatewayOrder ABI: %w", err)
@@ -893,7 +870,7 @@ func (s *OrderService) settleCallData(ctx context.Context, order *ent.LockPaymen
 }
 
 // encryptOrderRecipient encrypts the recipient details
-func (s *OrderService) encryptOrderRecipient(recipient *ent.PaymentOrderRecipient) (string, error) {
+func (s *OrderEVM) encryptOrderRecipient(recipient *ent.PaymentOrderRecipient) (string, error) {
 	message := struct {
 		AccountIdentifier string
 		AccountName       string
@@ -905,7 +882,7 @@ func (s *OrderService) encryptOrderRecipient(recipient *ent.PaymentOrderRecipien
 	}
 
 	// Encrypt with the public key of the aggregator
-	messageCipher, err := cryptoUtils.PublicKeyEncryptJSON(message, CryptoConf.AggregatorPublicKey)
+	messageCipher, err := cryptoUtils.PublicKeyEncryptJSON(message, config.CryptoConfig().AggregatorPublicKey)
 	if err != nil {
 		return "", fmt.Errorf("failed to encrypt message: %w", err)
 	}

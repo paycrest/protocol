@@ -16,11 +16,14 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	hdwallet "github.com/miguelmota/go-ethereum-hdwallet"
 	"github.com/paycrest/protocol/config"
+	tronWallet "github.com/paycrest/tron-wallet"
+	tronEnums "github.com/paycrest/tron-wallet/enums"
 	"golang.org/x/crypto/bcrypt"
 )
 
 var authConf = config.AuthConfig()
 var cryptoConf = config.CryptoConfig()
+var serverConf = config.ServerConfig()
 
 // CheckPasswordHash is a function to compare provided password with the hashed password
 func CheckPasswordHash(password, hash string) bool {
@@ -224,4 +227,23 @@ func GenerateAccountFromIndex(accountIndex int) (*common.Address, *ecdsa.Private
 	privateKey.Curve = btcec.S256()
 
 	return &account.Address, privateKey, nil
+}
+
+// GenerateTronAccountFromIndex generates a Tron wallet account from HD wallet mnemonic
+func GenerateTronAccountFromIndex(accountIndex int) (wallet *tronWallet.TronWallet, err error) {
+	mnemonic := cryptoConf.HDWalletMnemonic
+
+	var nodeUrl tronEnums.Node
+	if serverConf.Environment == "production" {
+		nodeUrl = tronEnums.MAIN_NODE
+	} else {
+		nodeUrl = tronEnums.SHASTA_NODE
+	}
+
+	wallet, err = tronWallet.MnemonicToTronWallet(nodeUrl, mnemonic, fmt.Sprintf("m/44'/195'/3'/0/%d", accountIndex), "")
+	if err != nil {
+		return nil, fmt.Errorf("failed to create wallet from mnemonic: %w", err)
+	}
+
+	return wallet, nil
 }

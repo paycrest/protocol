@@ -22,6 +22,7 @@ import (
 	"github.com/paycrest/protocol/ent/token"
 	"github.com/paycrest/protocol/ent/webhookretryattempt"
 	"github.com/paycrest/protocol/services"
+	orderService "github.com/paycrest/protocol/services/order"
 	"github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
 	"github.com/paycrest/protocol/utils"
@@ -30,11 +31,59 @@ import (
 )
 
 var orderConf = config.OrderConfig()
+var serverConf = config.ServerConfig()
+
+// StartLiveIndexing starts live indexing of EVM blockchain events
+func StartLiveIndexing() error {
+	ctx := context.Background()
+	orderService := orderService.NewOrderEVM()
+	indexerService := services.NewIndexerService(orderService)
+
+	networks, err := storage.Client.Network.
+		Query().
+		Where(
+			networkent.IsTestnetEQ(serverConf.Environment != "production"),
+		).
+		All(ctx)
+	if err != nil {
+		return err
+	}
+
+	for _, network := range networks {
+		if strings.HasPrefix(network.Identifier, "tron") {
+			continue
+		}
+		// Start listening for order creation events
+		go func(network *ent.Network) {
+			err := indexerService.IndexOrderCreated(ctx, nil, network, "", true)
+			if err != nil {
+				logger.Errorf("process order deposits task => %v", err)
+			}
+		}(network)
+
+		// Start listening for order settlement events
+		go func(network *ent.Network) {
+			err = indexerService.IndexOrderSettled(ctx, nil, network, "", true)
+			if err != nil {
+				logger.Errorf("process order settlements task => %v", err)
+			}
+		}(network)
+
+		// Start listening for order refund events
+		go func(network *ent.Network) {
+			err = indexerService.IndexOrderRefunded(ctx, nil, network, "", true)
+			if err != nil {
+				logger.Errorf("process order refunds task => %v", err)
+			}
+		}(network)
+	}
+
+	return nil
+}
 
 // RetryStaleUserOperations retries stale user operations
 func RetryStaleUserOperations() error {
 	ctx := context.Background()
-	orderService := services.NewOrderService()
 
 	// Process initiated orders
 	orders, err := storage.Client.PaymentOrder.
@@ -49,6 +98,9 @@ func RetryStaleUserOperations() error {
 					sql.IsNull(s.C(paymentorder.FieldGatewayID)),
 				))
 		}).
+		WithToken(func(tq *ent.TokenQuery) {
+			tq.WithNetwork()
+		}).
 		All(ctx)
 	if err != nil {
 		return err
@@ -58,7 +110,13 @@ func RetryStaleUserOperations() error {
 		for _, order := range orders {
 			orderAmountWithFees := order.Amount.Add(order.NetworkFee).Add(order.SenderFee).Add(order.ProtocolFee)
 			if order.AmountPaid.GreaterThanOrEqual(orderAmountWithFees) {
-				err := orderService.CreateOrder(ctx, order.ID)
+				var service types.OrderService
+				if strings.HasPrefix(order.Edges.Token.Edges.Network.Identifier, "tron") {
+					service = orderService.NewOrderTron()
+				} else {
+					service = orderService.NewOrderEVM()
+				}
+				err := service.CreateOrder(ctx, order.ID)
 				if err != nil {
 					logger.Errorf("process task to create orders => %v", err)
 				}
@@ -78,6 +136,9 @@ func RetryStaleUserOperations() error {
 			paymentorder.UpdatedAtLT(time.Now().Add(-10*time.Minute)),
 		).
 		WithReceiveAddress().
+		WithToken(func(tq *ent.TokenQuery) {
+			tq.WithNetwork()
+		}).
 		All(ctx)
 	if err != nil {
 		return err
@@ -86,7 +147,13 @@ func RetryStaleUserOperations() error {
 	go func() {
 		for _, order := range orders {
 			if order.Edges.ReceiveAddress.Status == receiveaddress.StatusExpired || order.Edges.ReceiveAddress.Status == receiveaddress.StatusUsed {
-				err := orderService.RevertOrder(ctx, order)
+				var service types.OrderService
+				if strings.HasPrefix(order.Edges.Token.Edges.Network.Identifier, "tron") {
+					service = orderService.NewOrderTron()
+				} else {
+					service = orderService.NewOrderEVM()
+				}
+				err := service.RevertOrder(ctx, order)
 				if err != nil {
 					logger.Errorf("process task to revert orders => %v", err)
 				}
@@ -104,6 +171,9 @@ func RetryStaleUserOperations() error {
 			),
 			lockpaymentorder.UpdatedAtLT(time.Now().Add(-5*time.Minute)),
 		).
+		WithToken(func(tq *ent.TokenQuery) {
+			tq.WithNetwork()
+		}).
 		All(ctx)
 	if err != nil {
 		return err
@@ -111,7 +181,13 @@ func RetryStaleUserOperations() error {
 
 	go func() {
 		for _, order := range lockOrders {
-			err := orderService.SettleOrder(ctx, order.ID)
+			var service types.OrderService
+			if strings.HasPrefix(order.Edges.Token.Edges.Network.Identifier, "tron") {
+				service = orderService.NewOrderTron()
+			} else {
+				service = orderService.NewOrderEVM()
+			}
+			err := service.SettleOrder(ctx, order.ID)
 			if err != nil {
 				logger.Errorf("process order settlements task => %v", err)
 			}
@@ -133,6 +209,9 @@ func RetryStaleUserOperations() error {
 					sql.LTE(s.C(lockpaymentorder.FieldCreatedAt), time.Now().Add(-30*time.Minute)),
 				))
 		}).
+		WithToken(func(tq *ent.TokenQuery) {
+			tq.WithNetwork()
+		}).
 		All(ctx)
 	if err != nil {
 		return err
@@ -140,7 +219,13 @@ func RetryStaleUserOperations() error {
 
 	go func() {
 		for _, order := range lockOrders {
-			err := orderService.RefundOrder(ctx, order.GatewayID)
+			var service types.OrderService
+			if strings.HasPrefix(order.Edges.Token.Edges.Network.Identifier, "tron") {
+				service = orderService.NewOrderTron()
+			} else {
+				service = orderService.NewOrderEVM()
+			}
+			err := service.RefundOrder(ctx, order.GatewayID)
 			if err != nil {
 				logger.Errorf("process order refunds task => %v", err)
 			}
@@ -153,8 +238,6 @@ func RetryStaleUserOperations() error {
 // IndexBlockchainEvents indexes missed blocks
 func IndexBlockchainEvents() error {
 	ctx := context.Background()
-	orderService := services.NewOrderService()
-	indexerService := services.NewIndexerService(orderService)
 
 	networks, err := storage.Client.Network.Query().All(ctx)
 	if err != nil {
@@ -192,9 +275,20 @@ func IndexBlockchainEvents() error {
 
 				if len(orders) > 0 {
 					for _, order := range orders {
-						err := indexerService.IndexERC20Transfer(ctx, client, order)
-						if err != nil {
-							continue
+						if strings.HasPrefix(network.Identifier, "tron") {
+							indexerService := services.NewIndexerService(orderService.NewOrderTron())
+							err := indexerService.IndexTRC20Transfer(ctx, order)
+							if err != nil {
+								logger.Errorf("IndexBlockchainEvents: %v", err)
+								continue
+							}
+						} else {
+							indexerService := services.NewIndexerService(orderService.NewOrderEVM())
+							err := indexerService.IndexERC20Transfer(ctx, client, order)
+							if err != nil {
+								logger.Errorf("IndexBlockchainEvents: %v", err)
+								continue
+							}
 						}
 					}
 				}
@@ -227,6 +321,9 @@ func IndexBlockchainEvents() error {
 					}).
 					Where(paymentorder.HasTokenWith(token.HasNetworkWith(networkent.IDEQ(network.ID)))).
 					WithReceiveAddress().
+					WithToken(func(tq *ent.TokenQuery) {
+						tq.WithNetwork()
+					}).
 					Order(ent.Asc(paymentorder.FieldBlockNumber)).
 					All(ctx)
 				if err != nil {
@@ -235,9 +332,18 @@ func IndexBlockchainEvents() error {
 
 				if len(orders) > 0 {
 					for _, order := range orders {
-						err := indexerService.IndexOrderCreated(ctx, nil, network, order.Edges.ReceiveAddress.Address)
-						if err != nil {
-							continue
+						if strings.HasPrefix(network.Identifier, "tron") {
+							indexerService := services.NewIndexerService(orderService.NewOrderTron())
+							err := indexerService.IndexOrderCreatedTron(ctx, order)
+							if err != nil {
+								logger.Errorf("IndexBlockchainEvents: %v", err)
+							}
+						} else {
+							indexerService := services.NewIndexerService(orderService.NewOrderEVM())
+							err := indexerService.IndexOrderCreated(ctx, nil, network, order.Edges.ReceiveAddress.Address, false)
+							if err != nil {
+								logger.Errorf("IndexBlockchainEvents: %v", err)
+							}
 						}
 					}
 				}
@@ -265,6 +371,9 @@ func IndexBlockchainEvents() error {
 							)
 					}).
 					Where(lockpaymentorder.HasTokenWith(token.HasNetworkWith(networkent.IDEQ(network.ID)))).
+					WithToken(func(tq *ent.TokenQuery) {
+						tq.WithNetwork()
+					}).
 					Order(ent.Asc(lockpaymentorder.FieldBlockNumber)).
 					All(ctx)
 				if err != nil {
@@ -274,9 +383,18 @@ func IndexBlockchainEvents() error {
 
 				if len(lockOrders) > 0 {
 					for _, order := range lockOrders {
-						err := indexerService.IndexOrderSettled(ctx, nil, network, order.GatewayID)
-						if err != nil {
-							continue
+						if strings.HasPrefix(network.Identifier, "tron") {
+							indexerService := services.NewIndexerService(orderService.NewOrderTron())
+							err := indexerService.IndexOrderSettledTron(ctx, order)
+							if err != nil {
+								logger.Errorf("IndexBlockchainEvents: %v", err)
+							}
+						} else {
+							indexerService := services.NewIndexerService(orderService.NewOrderEVM())
+							err := indexerService.IndexOrderSettled(ctx, nil, network, order.GatewayID, false)
+							if err != nil {
+								logger.Errorf("IndexBlockchainEvents: %v", err)
+							}
 						}
 					}
 				}
@@ -307,6 +425,9 @@ func IndexBlockchainEvents() error {
 							))
 					}).
 					Where(lockpaymentorder.HasTokenWith(token.HasNetworkWith(networkent.IDEQ(network.ID)))).
+					WithToken(func(tq *ent.TokenQuery) {
+						tq.WithNetwork()
+					}).
 					Order(ent.Asc(lockpaymentorder.FieldBlockNumber)).
 					All(ctx)
 				if err != nil {
@@ -316,9 +437,18 @@ func IndexBlockchainEvents() error {
 
 				if len(lockOrders) > 0 {
 					for _, order := range lockOrders {
-						err := indexerService.IndexOrderRefunded(ctx, nil, network, order.GatewayID)
-						if err != nil {
-							continue
+						if strings.HasPrefix(network.Identifier, "tron") {
+							indexerService := services.NewIndexerService(orderService.NewOrderTron())
+							err := indexerService.IndexOrderRefundedTron(ctx, order)
+							if err != nil {
+								logger.Errorf("IndexBlockchainEvents: %v", err)
+							}
+						} else {
+							indexerService := services.NewIndexerService(orderService.NewOrderEVM())
+							err := indexerService.IndexOrderRefunded(ctx, nil, network, order.GatewayID, false)
+							if err != nil {
+								logger.Errorf("IndexBlockchainEvents: %v", err)
+							}
 						}
 					}
 				}
@@ -349,17 +479,26 @@ func HandleReceiveAddressValidity() error {
 					),
 				),
 			),
+			receiveaddress.HasPaymentOrder(),
 		).
-		WithPaymentOrder().
+		WithPaymentOrder(func(po *ent.PaymentOrderQuery) {
+			po.WithToken(func(tq *ent.TokenQuery) {
+				tq.WithNetwork()
+			})
+		}).
 		All(ctx)
 	if err != nil {
 		return err
 	}
 
-	orderService := services.NewOrderService()
-	indexerService := services.NewIndexerService(orderService)
-
+	var indexerService services.Indexer
 	for _, address := range addresses {
+		if strings.HasPrefix(address.Edges.PaymentOrder.Edges.Token.Edges.Network.Identifier, "tron") {
+			indexerService = services.NewIndexerService(orderService.NewOrderTron())
+		} else {
+			indexerService = services.NewIndexerService(orderService.NewOrderEVM())
+		}
+
 		err := indexerService.HandleReceiveAddressValidity(ctx, address, address.Edges.PaymentOrder)
 		if err != nil {
 			continue
@@ -388,8 +527,9 @@ func SubscribeToRedisKeyspaceEvents() {
 func fetchExternalRate(currency string) (decimal.Decimal, error) {
 	// Fetch stable coin rate from third-party API Quidax (USDT)
 	res, err := fastshot.NewClient("https://www.quidax.com").
-		Config().SetTimeout(30 * time.Second).
+		Config().SetTimeout(30*time.Second).
 		Build().GET(fmt.Sprintf("/api/v1/markets/tickers/usdt%s", strings.ToLower(currency))).
+		Retry().Set(3, 5*time.Second).
 		Send()
 	if err != nil {
 		return decimal.Zero, fmt.Errorf("ComputeMarketRate: %w", err)
@@ -430,7 +570,7 @@ func ComputeMarketRate() error {
 
 		// Fetch rates from token configs with fixed conversion rate
 		token := "USDT"
-		if config.ServerConfig().Environment != "production" {
+		if serverConf.Environment != "production" {
 			token = "6TEST"
 		}
 		tokenConfigs, err := storage.Client.ProviderOrderToken.
