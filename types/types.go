@@ -320,24 +320,34 @@ type LockPaymentOrderFields struct {
 	CreatedAt         time.Time
 }
 
+// TransactionLog
+type TransactionLog struct {
+	ID              uuid.UUID `json:"id" binding:"required"`
+	GatewayId       string    `json:"gateway_id"`
+	Status          string    `json:"status" binding:"required"`
+	TransactionHash string    `json:"transaction_hash" binding:"required"`
+	CreatedAt       string    `json:"created_at" binding:"required"`
+}
+
 // LockPaymentOrderResponse is the response for a lock payment order
 type LockPaymentOrderResponse struct {
-	ID                uuid.UUID       `json:"id"`
-	Token             string          `json:"token"`
-	GatewayID         string          `json:"gatewayId"`
-	Amount            decimal.Decimal `json:"amount"`
-	Rate              decimal.Decimal `json:"rate"`
-	BlockNumber       int64           `json:"blockNumber"`
-	TxHash            string          `json:"txHash"`
-	Institution       string          `json:"institution"`
-	AccountIdentifier string          `json:"accountIdentifier"`
-	AccountName       string          `json:"accountName"`
-	ProviderID        string          `json:"providerId"`
-	Memo              string          `json:"memo"`
-	Network           string          `json:"network"`
-	Status            string          `json:"status"`
-	UpdatedAt         time.Time       `json:"updatedAt"`
-	CreatedAt         time.Time       `json:"createdAt"`
+	ID                uuid.UUID               `json:"id"`
+	Token             string                  `json:"token"`
+	GatewayID         string                  `json:"gatewayId"`
+	Amount            decimal.Decimal         `json:"amount"`
+	Rate              decimal.Decimal         `json:"rate"`
+	BlockNumber       int64                   `json:"blockNumber"`
+	TxHash            string                  `json:"txHash"`
+	Institution       string                  `json:"institution"`
+	AccountIdentifier string                  `json:"accountIdentifier"`
+	AccountName       string                  `json:"accountName"`
+	ProviderID        string                  `json:"providerId"`
+	Memo              string                  `json:"memo"`
+	Network           string                  `json:"network"`
+	Status            lockpaymentorder.Status `json:"status"`
+	UpdatedAt         time.Time               `json:"updatedAt"`
+	CreatedAt         time.Time               `json:"createdAt"`
+	Transactions      []TransactionLog        `json:"transactionLogs"`
 }
 
 // PaymentOrderRecipient describes a payment order recipient
@@ -347,16 +357,6 @@ type PaymentOrderRecipient struct {
 	AccountName       string `json:"accountName" binding:"required"`
 	ProviderID        string `json:"providerId"`
 	Memo              string `json:"memo" binding:"required"`
-}
-
-type TransactionLog struct {
-	ID              uuid.UUID `json:"id" binding:"required"`
-	SenderId        string    `json:"sender_id" binding:"required"`
-	ProviderId      string    `json:"provider_id" binding:"required"`
-	GatewayId       string    `json:"gateway_id"`
-	Status          string    `json:"status" binding:"required"`
-	TransactionHash string    `json:"transaction_hash" binding:"required"`
-	CreatedAt       string    `json:"created_at" binding:"required"`
 }
 
 // NewPaymentOrderPayload is the payload for the create payment order endpoint
@@ -403,8 +403,8 @@ type PaymentOrderResponse struct {
 	CreatedAt      time.Time             `json:"createdAt"`
 	UpdatedAt      time.Time             `json:"updatedAt"`
 	TxHash         string                `json:"txHash"`
-	Status         string                `json:"status"`
-	Transactions   []TransactionLog      `json:"transactionLog"`
+	Status         paymentorder.Status   `json:"status"`
+	Transactions   []TransactionLog      `json:"transactionLogs"`
 }
 
 // PaymentOrderWebhookData is the data type for a payment order webhook
