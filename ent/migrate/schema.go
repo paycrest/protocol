@@ -418,7 +418,7 @@ var (
 	TransactionLogsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
 		{Name: "gateway_id", Type: field.TypeString, Nullable: true},
-		{Name: "status", Type: field.TypeEnum, Enums: []string{"order_initiated", "crypto_deposited", "order_created", "order_settled", "order_refunded", "order_reverted", "gas_prefunded", "gateway_approved"}, Default: "order_initiated"},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"order_initiated", "crypto_deposited", "order_created", "order_processing", "order_fulfilled", "order_validated", "order_settled", "order_refunded", "order_reverted", "gas_prefunded", "gateway_approved"}, Default: "order_initiated"},
 		{Name: "network", Type: field.TypeString, Nullable: true},
 		{Name: "tx_hash", Type: field.TypeString, Nullable: true},
 		{Name: "metadata", Type: field.TypeJSON},

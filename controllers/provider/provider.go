@@ -16,6 +16,7 @@ import (
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/token"
+	"github.com/paycrest/protocol/ent/transactionlog"
 	orderService "github.com/paycrest/protocol/services/order"
 	"github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
@@ -118,7 +119,7 @@ func (ctrl *ProviderController) GetLockPaymentOrders(ctx *gin.Context) {
 			AccountIdentifier: order.AccountIdentifier,
 			AccountName:       order.AccountName,
 			TxHash:            order.TxHash,
-			Status:            order.Status.String(),
+			Status:            order.Status,
 			Memo:              order.Memo,
 			Network:           order.Edges.Token.Edges.Network.Identifier,
 			UpdatedAt:         order.UpdatedAt,
@@ -175,10 +176,23 @@ func (ctrl *ProviderController) AcceptOrder(ctx *gin.Context) {
 		return
 	}
 
+	// create transaction
+	transactionlog, err := storage.Client.TransactionLog.Create().
+		SetStatus(transactionlog.StatusOrderProcessing).
+		SetMetadata(
+			map[string]interface{}{
+				"ProviderId": provider.ID,
+			}).
+		Save(ctx)
+	if err != nil {
+		u.APIResponse(ctx, http.StatusNotFound, "error", "Failed to update lock order status", nil)
+		return
+	}
 	// Update lock order status to processing
 	order, err := storage.Client.LockPaymentOrder.
 		UpdateOneID(orderID).
 		SetStatus(lockpaymentorder.StatusProcessing).
+		AddTransactions(transactionlog).
 		SetProviderID(provider.ID).
 		Save(ctx)
 	if err != nil {
@@ -321,8 +335,23 @@ func (ctrl *ProviderController) FulfillOrder(ctx *gin.Context) {
 			return
 		}
 
+		transactionLog, err := storage.Client.TransactionLog.Create().
+			SetStatus(transactionlog.StatusOrderValidated).
+			SetNetwork(fulfillment.Edges.Order.Edges.Token.Edges.Network.Identifier).
+			SetMetadata(map[string]interface{}{
+				"TransactionID": payload.TxID,
+			}).
+			Save(ctx)
+
+		if err != nil {
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update lock order status", nil)
+			return
+		}
+
 		_, err = updateLockOrder.
 			SetStatus(lockpaymentorder.StatusValidated).
+			AddTransactions(transactionLog).
 			Save(ctx)
 		if err != nil {
 			logger.Errorf("error: %v", err)
@@ -341,10 +370,12 @@ func (ctrl *ProviderController) FulfillOrder(ctx *gin.Context) {
 		}
 
 	} else if payload.ValidationStatus == lockorderfulfillment.ValidationStatusFailed {
-		_, err := fulfillment.Update().
+
+		_, err = fulfillment.Update().
 			SetValidationStatus(lockorderfulfillment.ValidationStatusFailed).
 			SetValidationError(payload.ValidationError).
 			Save(ctx)
+			
 		if err != nil {
 			logger.Errorf("error: %v", err)
 			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update lock order status", nil)
@@ -354,6 +385,7 @@ func (ctrl *ProviderController) FulfillOrder(ctx *gin.Context) {
 		_, err = updateLockOrder.
 			SetStatus(lockpaymentorder.StatusFulfilled).
 			Save(ctx)
+
 		if err != nil {
 			logger.Errorf("error: %v", err)
 			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update lock order status", nil)
@@ -361,9 +393,25 @@ func (ctrl *ProviderController) FulfillOrder(ctx *gin.Context) {
 		}
 
 	} else {
-		_, err := updateLockOrder.
-			SetStatus(lockpaymentorder.StatusFulfilled).
+		transactionLog, err := storage.Client.TransactionLog.Create().
+			SetStatus(transactionlog.StatusOrderFulfilled).
+			SetNetwork(fulfillment.Edges.Order.Edges.Token.Edges.Network.Identifier).
+			SetMetadata(map[string]interface{}{
+				"TransactionID": payload.TxID,
+			}).
 			Save(ctx)
+
+		if err != nil {
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update lock order status", nil)
+			return
+		}
+
+		_, err = updateLockOrder.
+			SetStatus(lockpaymentorder.StatusFulfilled).
+			AddTransactions(transactionLog).
+			Save(ctx)
+
 		if err != nil {
 			logger.Errorf("error: %v", err)
 			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update lock order status", nil)
@@ -688,17 +736,21 @@ func (ctrl *ProviderController) GetLockPaymentOrderByID(ctx *gin.Context) {
 
 	}
 
-	u.APIResponse(ctx, http.StatusOK, "success", "The order has been successfully retrieved", &types.PaymentOrderResponse{
-		ID:           lockPaymentOrder.ID,
-		Amount:       lockPaymentOrder.Amount,
-		Token:        lockPaymentOrder.Edges.Token.Symbol,
-		Rate:         lockPaymentOrder.Rate,
-		Network:      lockPaymentOrder.Edges.Token.Edges.Network.Identifier,
-		Transactions: transactions,
-		GatewayID:    lockPaymentOrder.GatewayID,
-		CreatedAt:    lockPaymentOrder.CreatedAt,
-		UpdatedAt:    lockPaymentOrder.UpdatedAt,
-		TxHash:       lockPaymentOrder.TxHash,
-		Status:       lockPaymentOrder.Status.String(),
+	u.APIResponse(ctx, http.StatusOK, "success", "The order has been successfully retrieved", &types.LockPaymentOrderResponse{
+		ID:                lockPaymentOrder.ID,
+		Token:             lockPaymentOrder.Edges.Token.Symbol,
+		GatewayID:         lockPaymentOrder.GatewayID,
+		Amount:            lockPaymentOrder.Amount,
+		Rate:              lockPaymentOrder.Rate,
+		Institution:       lockPaymentOrder.Institution,
+		AccountIdentifier: lockPaymentOrder.AccountIdentifier,
+		AccountName:       lockPaymentOrder.AccountName,
+		TxHash:            lockPaymentOrder.TxHash,
+		Status:            lockPaymentOrder.Status,
+		Memo:              lockPaymentOrder.Memo,
+		Network:           lockPaymentOrder.Edges.Token.Edges.Network.Identifier,
+		UpdatedAt:         lockPaymentOrder.UpdatedAt,
+		CreatedAt:         lockPaymentOrder.CreatedAt,
+		Transactions:      transactions,
 	})
 }

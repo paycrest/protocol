@@ -1019,7 +1019,8 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 			return fmt.Errorf("%s Failed to initiate DB transaction %w", lockPaymentOrder.GatewayID, err)
 		}
 
-		transactionLog, err := tx.TransactionLog.Create().
+		transactionLog, err := tx.TransactionLog.
+			Create().
 			SetStatus(transactionlog.StatusOrderCreated).
 			SetTxHash(lockPaymentOrder.TxHash).
 			SetNetwork(network.Identifier).
@@ -1052,7 +1053,8 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 			SetAccountIdentifier(lockPaymentOrder.AccountIdentifier).
 			SetAccountName(lockPaymentOrder.AccountName).
 			SetMemo(lockPaymentOrder.Memo).
-			SetProvisionBucket(lockPaymentOrder.ProvisionBucket).AddTransactions(transactionLog)
+			SetProvisionBucket(lockPaymentOrder.ProvisionBucket).
+			AddTransactions(transactionLog)
 
 		if lockPaymentOrder.ProviderID != "" {
 			orderBuilder = orderBuilder.SetProviderID(lockPaymentOrder.ProviderID)
@@ -1106,7 +1108,8 @@ func (s *IndexerService) UpdateOrderStatusRefunded(ctx context.Context, log *typ
 	}
 
 	// create Log
-	transactionLog, err := tx.TransactionLog.Create().
+	transactionLog, err := tx.TransactionLog.
+		Create().
 		SetStatus(transactionlog.StatusOrderRefunded).
 		SetTxHash(log.TxHash).
 		SetGatewayID(gatewayId).
@@ -1146,6 +1149,7 @@ func (s *IndexerService) UpdateOrderStatusRefunded(ctx context.Context, log *typ
 		SetStatus(paymentorder.StatusRefunded).
 		AddTransactions(transactionLog).
 		Save(ctx)
+
 	if err != nil {
 		return fmt.Errorf("UpdateOrderStatusRefunded.sender: %v", err)
 	}
@@ -1154,6 +1158,8 @@ func (s *IndexerService) UpdateOrderStatusRefunded(ctx context.Context, log *typ
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("UpdateOrderStatusRefunded.sender %v", err)
 	}
+
+	// manual overWrite
 	paymentOrder.Status = paymentorder.StatusRefunded
 	paymentOrder.TxHash = log.TxHash
 	// Send webhook notifcation to sender
@@ -1175,7 +1181,8 @@ func (s *IndexerService) UpdateOrderStatusSettled(ctx context.Context, event *ty
 	}
 
 	// create Log
-	transactionLog, err := tx.TransactionLog.Create().
+	transactionLog, err := tx.TransactionLog.
+		Create().
 		SetStatus(transactionlog.StatusOrderSettled).
 		SetTxHash(event.TxHash).
 		SetGatewayID(gatewayId).SetMetadata(
@@ -1200,6 +1207,7 @@ func (s *IndexerService) UpdateOrderStatusSettled(ctx context.Context, event *ty
 		SetStatus(lockpaymentorder.StatusSettled).
 		AddTransactions(transactionLog).
 		Save(ctx)
+
 	if err != nil {
 		return fmt.Errorf("UpdateOrderStatusSettled.aggregator: %v", err)
 	}
@@ -1348,7 +1356,8 @@ func (s *IndexerService) UpdateReceiveAddressStatus(
 			comparisonResult = 0
 		}
 
-		transactionLog, err := db.Client.TransactionLog.Create().
+		transactionLog, err := db.Client.TransactionLog.
+			Create().
 			SetStatus(transactionlog.StatusCryptoDeposited).
 			SetGatewayID(paymentOrder.GatewayID).
 			SetTxHash(event.TxHash).
@@ -1358,6 +1367,7 @@ func (s *IndexerService) UpdateReceiveAddressStatus(
 				"transactionData": event,
 			}).
 			Save(ctx)
+
 		if err != nil {
 			return true, fmt.Errorf("UpdateReceiveAddressStatus.transactionlog: %v", err)
 		}

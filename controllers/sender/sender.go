@@ -391,7 +391,7 @@ func (ctrl *SenderController) GetPaymentOrderByID(ctx *gin.Context) {
 		CreatedAt:      paymentOrder.CreatedAt,
 		UpdatedAt:      paymentOrder.UpdatedAt,
 		TxHash:         paymentOrder.TxHash,
-		Status:         paymentOrder.Status.String(),
+		Status:         paymentOrder.Status,
 	})
 }
 
@@ -545,7 +545,7 @@ func (ctrl *SenderController) GetPaymentOrders(ctx *gin.Context) {
 			CreatedAt:      paymentOrder.CreatedAt,
 			UpdatedAt:      paymentOrder.UpdatedAt,
 			TxHash:         paymentOrder.TxHash,
-			Status:         paymentOrder.Status.String(),
+			Status:         paymentOrder.Status,
 		})
 	}
 
