@@ -32,6 +32,9 @@ type OrderConfiguration struct {
 	PaymasterUrlBSC                  string
 	BundlerUrlArbitrum               string
 	PaymasterUrlArbitrum             string
+	ActiveAAService                  string
+	BiconomyBundlerKey               string
+	BiconomyPaymasterKey             string
 }
 
 // OrderConfig sets the order configuration
@@ -44,6 +47,7 @@ func OrderConfig() *OrderConfiguration {
 	viper.SetDefault("NETWORK_FEE", 0.05)
 	viper.SetDefault("PERCENT_DEVIATION_FROM_EXTERNAL_RATE", 0.01)
 	viper.SetDefault("PERCENT_DEVIATION_FROM_MARKET_RATE", 0.1)
+	viper.SetDefault("ACTIVE_AA_SERVICE", "STACKUP")
 
 	return &OrderConfiguration{
 		OrderFulfillmentValidity:         time.Duration(viper.GetInt("ORDER_FULFILLMENT_VALIDITY")) * time.Minute,
@@ -52,6 +56,9 @@ func OrderConfig() *OrderConfiguration {
 		GatewayContractAddress:           common.HexToAddress(viper.GetString("GATEWAY_CONTRACT_ADDRESS")),
 		GatewayContractAddressTron:       viper.GetString("GATEWAY_CONTRACT_ADDRESS_TRON"),
 		TronProApiKey:                    viper.GetString("TRON_PRO_API_KEY"),
+		ActiveAAService:                  viper.GetString("ACTIVE_AA_SERVICE"),
+		BiconomyBundlerKey:               viper.GetString("BICONOMY_BUNDLER_KEY"),
+		BiconomyPaymasterKey:             viper.GetString("BICONOMY_PAYMASTER_KEY"),
 		BundlerUrlEthereum:               viper.GetString("BUNDLER_URL_ETHEREUM"),
 		PaymasterUrlEthereum:             viper.GetString("PAYMASTER_URL_ETHEREUM"),
 		BundlerUrlPolygon:                viper.GetString("BUNDLER_URL_POLYGON"),
