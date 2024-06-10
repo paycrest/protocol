@@ -27,46 +27,6 @@ func (tlu *TransactionLogUpdate) Where(ps ...predicate.TransactionLog) *Transact
 	return tlu
 }
 
-// SetSenderID sets the "sender_id" field.
-func (tlu *TransactionLogUpdate) SetSenderID(s string) *TransactionLogUpdate {
-	tlu.mutation.SetSenderID(s)
-	return tlu
-}
-
-// SetNillableSenderID sets the "sender_id" field if the given value is not nil.
-func (tlu *TransactionLogUpdate) SetNillableSenderID(s *string) *TransactionLogUpdate {
-	if s != nil {
-		tlu.SetSenderID(*s)
-	}
-	return tlu
-}
-
-// ClearSenderID clears the value of the "sender_id" field.
-func (tlu *TransactionLogUpdate) ClearSenderID() *TransactionLogUpdate {
-	tlu.mutation.ClearSenderID()
-	return tlu
-}
-
-// SetProviderID sets the "provider_id" field.
-func (tlu *TransactionLogUpdate) SetProviderID(s string) *TransactionLogUpdate {
-	tlu.mutation.SetProviderID(s)
-	return tlu
-}
-
-// SetNillableProviderID sets the "provider_id" field if the given value is not nil.
-func (tlu *TransactionLogUpdate) SetNillableProviderID(s *string) *TransactionLogUpdate {
-	if s != nil {
-		tlu.SetProviderID(*s)
-	}
-	return tlu
-}
-
-// ClearProviderID clears the value of the "provider_id" field.
-func (tlu *TransactionLogUpdate) ClearProviderID() *TransactionLogUpdate {
-	tlu.mutation.ClearProviderID()
-	return tlu
-}
-
 // SetGatewayID sets the "gateway_id" field.
 func (tlu *TransactionLogUpdate) SetGatewayID(s string) *TransactionLogUpdate {
 	tlu.mutation.SetGatewayID(s)
@@ -107,23 +67,23 @@ func (tlu *TransactionLogUpdate) ClearNetwork() *TransactionLogUpdate {
 	return tlu
 }
 
-// SetTransactionHash sets the "transaction_hash" field.
-func (tlu *TransactionLogUpdate) SetTransactionHash(s string) *TransactionLogUpdate {
-	tlu.mutation.SetTransactionHash(s)
+// SetTxHash sets the "tx_hash" field.
+func (tlu *TransactionLogUpdate) SetTxHash(s string) *TransactionLogUpdate {
+	tlu.mutation.SetTxHash(s)
 	return tlu
 }
 
-// SetNillableTransactionHash sets the "transaction_hash" field if the given value is not nil.
-func (tlu *TransactionLogUpdate) SetNillableTransactionHash(s *string) *TransactionLogUpdate {
+// SetNillableTxHash sets the "tx_hash" field if the given value is not nil.
+func (tlu *TransactionLogUpdate) SetNillableTxHash(s *string) *TransactionLogUpdate {
 	if s != nil {
-		tlu.SetTransactionHash(*s)
+		tlu.SetTxHash(*s)
 	}
 	return tlu
 }
 
-// ClearTransactionHash clears the value of the "transaction_hash" field.
-func (tlu *TransactionLogUpdate) ClearTransactionHash() *TransactionLogUpdate {
-	tlu.mutation.ClearTransactionHash()
+// ClearTxHash clears the value of the "tx_hash" field.
+func (tlu *TransactionLogUpdate) ClearTxHash() *TransactionLogUpdate {
+	tlu.mutation.ClearTxHash()
 	return tlu
 }
 
@@ -174,18 +134,6 @@ func (tlu *TransactionLogUpdate) sqlSave(ctx context.Context) (n int, err error)
 			}
 		}
 	}
-	if value, ok := tlu.mutation.SenderID(); ok {
-		_spec.SetField(transactionlog.FieldSenderID, field.TypeString, value)
-	}
-	if tlu.mutation.SenderIDCleared() {
-		_spec.ClearField(transactionlog.FieldSenderID, field.TypeString)
-	}
-	if value, ok := tlu.mutation.ProviderID(); ok {
-		_spec.SetField(transactionlog.FieldProviderID, field.TypeString, value)
-	}
-	if tlu.mutation.ProviderIDCleared() {
-		_spec.ClearField(transactionlog.FieldProviderID, field.TypeString)
-	}
 	if value, ok := tlu.mutation.GatewayID(); ok {
 		_spec.SetField(transactionlog.FieldGatewayID, field.TypeString, value)
 	}
@@ -198,11 +146,11 @@ func (tlu *TransactionLogUpdate) sqlSave(ctx context.Context) (n int, err error)
 	if tlu.mutation.NetworkCleared() {
 		_spec.ClearField(transactionlog.FieldNetwork, field.TypeString)
 	}
-	if value, ok := tlu.mutation.TransactionHash(); ok {
-		_spec.SetField(transactionlog.FieldTransactionHash, field.TypeString, value)
+	if value, ok := tlu.mutation.TxHash(); ok {
+		_spec.SetField(transactionlog.FieldTxHash, field.TypeString, value)
 	}
-	if tlu.mutation.TransactionHashCleared() {
-		_spec.ClearField(transactionlog.FieldTransactionHash, field.TypeString)
+	if tlu.mutation.TxHashCleared() {
+		_spec.ClearField(transactionlog.FieldTxHash, field.TypeString)
 	}
 	if value, ok := tlu.mutation.Metadata(); ok {
 		_spec.SetField(transactionlog.FieldMetadata, field.TypeJSON, value)
@@ -225,46 +173,6 @@ type TransactionLogUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *TransactionLogMutation
-}
-
-// SetSenderID sets the "sender_id" field.
-func (tluo *TransactionLogUpdateOne) SetSenderID(s string) *TransactionLogUpdateOne {
-	tluo.mutation.SetSenderID(s)
-	return tluo
-}
-
-// SetNillableSenderID sets the "sender_id" field if the given value is not nil.
-func (tluo *TransactionLogUpdateOne) SetNillableSenderID(s *string) *TransactionLogUpdateOne {
-	if s != nil {
-		tluo.SetSenderID(*s)
-	}
-	return tluo
-}
-
-// ClearSenderID clears the value of the "sender_id" field.
-func (tluo *TransactionLogUpdateOne) ClearSenderID() *TransactionLogUpdateOne {
-	tluo.mutation.ClearSenderID()
-	return tluo
-}
-
-// SetProviderID sets the "provider_id" field.
-func (tluo *TransactionLogUpdateOne) SetProviderID(s string) *TransactionLogUpdateOne {
-	tluo.mutation.SetProviderID(s)
-	return tluo
-}
-
-// SetNillableProviderID sets the "provider_id" field if the given value is not nil.
-func (tluo *TransactionLogUpdateOne) SetNillableProviderID(s *string) *TransactionLogUpdateOne {
-	if s != nil {
-		tluo.SetProviderID(*s)
-	}
-	return tluo
-}
-
-// ClearProviderID clears the value of the "provider_id" field.
-func (tluo *TransactionLogUpdateOne) ClearProviderID() *TransactionLogUpdateOne {
-	tluo.mutation.ClearProviderID()
-	return tluo
 }
 
 // SetGatewayID sets the "gateway_id" field.
@@ -307,23 +215,23 @@ func (tluo *TransactionLogUpdateOne) ClearNetwork() *TransactionLogUpdateOne {
 	return tluo
 }
 
-// SetTransactionHash sets the "transaction_hash" field.
-func (tluo *TransactionLogUpdateOne) SetTransactionHash(s string) *TransactionLogUpdateOne {
-	tluo.mutation.SetTransactionHash(s)
+// SetTxHash sets the "tx_hash" field.
+func (tluo *TransactionLogUpdateOne) SetTxHash(s string) *TransactionLogUpdateOne {
+	tluo.mutation.SetTxHash(s)
 	return tluo
 }
 
-// SetNillableTransactionHash sets the "transaction_hash" field if the given value is not nil.
-func (tluo *TransactionLogUpdateOne) SetNillableTransactionHash(s *string) *TransactionLogUpdateOne {
+// SetNillableTxHash sets the "tx_hash" field if the given value is not nil.
+func (tluo *TransactionLogUpdateOne) SetNillableTxHash(s *string) *TransactionLogUpdateOne {
 	if s != nil {
-		tluo.SetTransactionHash(*s)
+		tluo.SetTxHash(*s)
 	}
 	return tluo
 }
 
-// ClearTransactionHash clears the value of the "transaction_hash" field.
-func (tluo *TransactionLogUpdateOne) ClearTransactionHash() *TransactionLogUpdateOne {
-	tluo.mutation.ClearTransactionHash()
+// ClearTxHash clears the value of the "tx_hash" field.
+func (tluo *TransactionLogUpdateOne) ClearTxHash() *TransactionLogUpdateOne {
+	tluo.mutation.ClearTxHash()
 	return tluo
 }
 
@@ -404,18 +312,6 @@ func (tluo *TransactionLogUpdateOne) sqlSave(ctx context.Context) (_node *Transa
 			}
 		}
 	}
-	if value, ok := tluo.mutation.SenderID(); ok {
-		_spec.SetField(transactionlog.FieldSenderID, field.TypeString, value)
-	}
-	if tluo.mutation.SenderIDCleared() {
-		_spec.ClearField(transactionlog.FieldSenderID, field.TypeString)
-	}
-	if value, ok := tluo.mutation.ProviderID(); ok {
-		_spec.SetField(transactionlog.FieldProviderID, field.TypeString, value)
-	}
-	if tluo.mutation.ProviderIDCleared() {
-		_spec.ClearField(transactionlog.FieldProviderID, field.TypeString)
-	}
 	if value, ok := tluo.mutation.GatewayID(); ok {
 		_spec.SetField(transactionlog.FieldGatewayID, field.TypeString, value)
 	}
@@ -428,11 +324,11 @@ func (tluo *TransactionLogUpdateOne) sqlSave(ctx context.Context) (_node *Transa
 	if tluo.mutation.NetworkCleared() {
 		_spec.ClearField(transactionlog.FieldNetwork, field.TypeString)
 	}
-	if value, ok := tluo.mutation.TransactionHash(); ok {
-		_spec.SetField(transactionlog.FieldTransactionHash, field.TypeString, value)
+	if value, ok := tluo.mutation.TxHash(); ok {
+		_spec.SetField(transactionlog.FieldTxHash, field.TypeString, value)
 	}
-	if tluo.mutation.TransactionHashCleared() {
-		_spec.ClearField(transactionlog.FieldTransactionHash, field.TypeString)
+	if tluo.mutation.TxHashCleared() {
+		_spec.ClearField(transactionlog.FieldTxHash, field.TypeString)
 	}
 	if value, ok := tluo.mutation.Metadata(); ok {
 		_spec.SetField(transactionlog.FieldMetadata, field.TypeJSON, value)

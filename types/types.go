@@ -350,13 +350,13 @@ type PaymentOrderRecipient struct {
 }
 
 type TransactionLog struct {
-	Id              string `json:"id" binding:"required"`
-	SenderId        string `json:"sender_id" binding:"required"`
-	ProviderId      string `json:"provider_id" binding:"required"`
-	GatewayId       string `json:"gateway_id"`
-	Status          string `json:"status" binding:"required"`
-	TransactionHash string `json:"transaction_hash" binding:"required"`
-	CreatedAt       string `json:"created_at" binding:"required"`
+	ID              uuid.UUID `json:"id" binding:"required"`
+	SenderId        string    `json:"sender_id" binding:"required"`
+	ProviderId      string    `json:"provider_id" binding:"required"`
+	GatewayId       string    `json:"gateway_id"`
+	Status          string    `json:"status" binding:"required"`
+	TransactionHash string    `json:"transaction_hash" binding:"required"`
+	CreatedAt       string    `json:"created_at" binding:"required"`
 }
 
 // NewPaymentOrderPayload is the payload for the create payment order endpoint

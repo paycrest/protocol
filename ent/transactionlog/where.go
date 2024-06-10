@@ -55,16 +55,6 @@ func IDLTE(id uuid.UUID) predicate.TransactionLog {
 	return predicate.TransactionLog(sql.FieldLTE(FieldID, id))
 }
 
-// SenderID applies equality check predicate on the "sender_id" field. It's identical to SenderIDEQ.
-func SenderID(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldEQ(FieldSenderID, v))
-}
-
-// ProviderID applies equality check predicate on the "provider_id" field. It's identical to ProviderIDEQ.
-func ProviderID(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldEQ(FieldProviderID, v))
-}
-
 // GatewayID applies equality check predicate on the "gateway_id" field. It's identical to GatewayIDEQ.
 func GatewayID(v string) predicate.TransactionLog {
 	return predicate.TransactionLog(sql.FieldEQ(FieldGatewayID, v))
@@ -75,164 +65,14 @@ func Network(v string) predicate.TransactionLog {
 	return predicate.TransactionLog(sql.FieldEQ(FieldNetwork, v))
 }
 
-// TransactionHash applies equality check predicate on the "transaction_hash" field. It's identical to TransactionHashEQ.
-func TransactionHash(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldEQ(FieldTransactionHash, v))
+// TxHash applies equality check predicate on the "tx_hash" field. It's identical to TxHashEQ.
+func TxHash(v string) predicate.TransactionLog {
+	return predicate.TransactionLog(sql.FieldEQ(FieldTxHash, v))
 }
 
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
 func CreatedAt(v time.Time) predicate.TransactionLog {
 	return predicate.TransactionLog(sql.FieldEQ(FieldCreatedAt, v))
-}
-
-// SenderIDEQ applies the EQ predicate on the "sender_id" field.
-func SenderIDEQ(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldEQ(FieldSenderID, v))
-}
-
-// SenderIDNEQ applies the NEQ predicate on the "sender_id" field.
-func SenderIDNEQ(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldNEQ(FieldSenderID, v))
-}
-
-// SenderIDIn applies the In predicate on the "sender_id" field.
-func SenderIDIn(vs ...string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldIn(FieldSenderID, vs...))
-}
-
-// SenderIDNotIn applies the NotIn predicate on the "sender_id" field.
-func SenderIDNotIn(vs ...string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldNotIn(FieldSenderID, vs...))
-}
-
-// SenderIDGT applies the GT predicate on the "sender_id" field.
-func SenderIDGT(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldGT(FieldSenderID, v))
-}
-
-// SenderIDGTE applies the GTE predicate on the "sender_id" field.
-func SenderIDGTE(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldGTE(FieldSenderID, v))
-}
-
-// SenderIDLT applies the LT predicate on the "sender_id" field.
-func SenderIDLT(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldLT(FieldSenderID, v))
-}
-
-// SenderIDLTE applies the LTE predicate on the "sender_id" field.
-func SenderIDLTE(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldLTE(FieldSenderID, v))
-}
-
-// SenderIDContains applies the Contains predicate on the "sender_id" field.
-func SenderIDContains(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldContains(FieldSenderID, v))
-}
-
-// SenderIDHasPrefix applies the HasPrefix predicate on the "sender_id" field.
-func SenderIDHasPrefix(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldHasPrefix(FieldSenderID, v))
-}
-
-// SenderIDHasSuffix applies the HasSuffix predicate on the "sender_id" field.
-func SenderIDHasSuffix(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldHasSuffix(FieldSenderID, v))
-}
-
-// SenderIDIsNil applies the IsNil predicate on the "sender_id" field.
-func SenderIDIsNil() predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldIsNull(FieldSenderID))
-}
-
-// SenderIDNotNil applies the NotNil predicate on the "sender_id" field.
-func SenderIDNotNil() predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldNotNull(FieldSenderID))
-}
-
-// SenderIDEqualFold applies the EqualFold predicate on the "sender_id" field.
-func SenderIDEqualFold(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldEqualFold(FieldSenderID, v))
-}
-
-// SenderIDContainsFold applies the ContainsFold predicate on the "sender_id" field.
-func SenderIDContainsFold(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldContainsFold(FieldSenderID, v))
-}
-
-// ProviderIDEQ applies the EQ predicate on the "provider_id" field.
-func ProviderIDEQ(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldEQ(FieldProviderID, v))
-}
-
-// ProviderIDNEQ applies the NEQ predicate on the "provider_id" field.
-func ProviderIDNEQ(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldNEQ(FieldProviderID, v))
-}
-
-// ProviderIDIn applies the In predicate on the "provider_id" field.
-func ProviderIDIn(vs ...string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldIn(FieldProviderID, vs...))
-}
-
-// ProviderIDNotIn applies the NotIn predicate on the "provider_id" field.
-func ProviderIDNotIn(vs ...string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldNotIn(FieldProviderID, vs...))
-}
-
-// ProviderIDGT applies the GT predicate on the "provider_id" field.
-func ProviderIDGT(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldGT(FieldProviderID, v))
-}
-
-// ProviderIDGTE applies the GTE predicate on the "provider_id" field.
-func ProviderIDGTE(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldGTE(FieldProviderID, v))
-}
-
-// ProviderIDLT applies the LT predicate on the "provider_id" field.
-func ProviderIDLT(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldLT(FieldProviderID, v))
-}
-
-// ProviderIDLTE applies the LTE predicate on the "provider_id" field.
-func ProviderIDLTE(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldLTE(FieldProviderID, v))
-}
-
-// ProviderIDContains applies the Contains predicate on the "provider_id" field.
-func ProviderIDContains(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldContains(FieldProviderID, v))
-}
-
-// ProviderIDHasPrefix applies the HasPrefix predicate on the "provider_id" field.
-func ProviderIDHasPrefix(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldHasPrefix(FieldProviderID, v))
-}
-
-// ProviderIDHasSuffix applies the HasSuffix predicate on the "provider_id" field.
-func ProviderIDHasSuffix(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldHasSuffix(FieldProviderID, v))
-}
-
-// ProviderIDIsNil applies the IsNil predicate on the "provider_id" field.
-func ProviderIDIsNil() predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldIsNull(FieldProviderID))
-}
-
-// ProviderIDNotNil applies the NotNil predicate on the "provider_id" field.
-func ProviderIDNotNil() predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldNotNull(FieldProviderID))
-}
-
-// ProviderIDEqualFold applies the EqualFold predicate on the "provider_id" field.
-func ProviderIDEqualFold(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldEqualFold(FieldProviderID, v))
-}
-
-// ProviderIDContainsFold applies the ContainsFold predicate on the "provider_id" field.
-func ProviderIDContainsFold(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldContainsFold(FieldProviderID, v))
 }
 
 // GatewayIDEQ applies the EQ predicate on the "gateway_id" field.
@@ -405,79 +245,79 @@ func NetworkContainsFold(v string) predicate.TransactionLog {
 	return predicate.TransactionLog(sql.FieldContainsFold(FieldNetwork, v))
 }
 
-// TransactionHashEQ applies the EQ predicate on the "transaction_hash" field.
-func TransactionHashEQ(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldEQ(FieldTransactionHash, v))
+// TxHashEQ applies the EQ predicate on the "tx_hash" field.
+func TxHashEQ(v string) predicate.TransactionLog {
+	return predicate.TransactionLog(sql.FieldEQ(FieldTxHash, v))
 }
 
-// TransactionHashNEQ applies the NEQ predicate on the "transaction_hash" field.
-func TransactionHashNEQ(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldNEQ(FieldTransactionHash, v))
+// TxHashNEQ applies the NEQ predicate on the "tx_hash" field.
+func TxHashNEQ(v string) predicate.TransactionLog {
+	return predicate.TransactionLog(sql.FieldNEQ(FieldTxHash, v))
 }
 
-// TransactionHashIn applies the In predicate on the "transaction_hash" field.
-func TransactionHashIn(vs ...string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldIn(FieldTransactionHash, vs...))
+// TxHashIn applies the In predicate on the "tx_hash" field.
+func TxHashIn(vs ...string) predicate.TransactionLog {
+	return predicate.TransactionLog(sql.FieldIn(FieldTxHash, vs...))
 }
 
-// TransactionHashNotIn applies the NotIn predicate on the "transaction_hash" field.
-func TransactionHashNotIn(vs ...string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldNotIn(FieldTransactionHash, vs...))
+// TxHashNotIn applies the NotIn predicate on the "tx_hash" field.
+func TxHashNotIn(vs ...string) predicate.TransactionLog {
+	return predicate.TransactionLog(sql.FieldNotIn(FieldTxHash, vs...))
 }
 
-// TransactionHashGT applies the GT predicate on the "transaction_hash" field.
-func TransactionHashGT(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldGT(FieldTransactionHash, v))
+// TxHashGT applies the GT predicate on the "tx_hash" field.
+func TxHashGT(v string) predicate.TransactionLog {
+	return predicate.TransactionLog(sql.FieldGT(FieldTxHash, v))
 }
 
-// TransactionHashGTE applies the GTE predicate on the "transaction_hash" field.
-func TransactionHashGTE(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldGTE(FieldTransactionHash, v))
+// TxHashGTE applies the GTE predicate on the "tx_hash" field.
+func TxHashGTE(v string) predicate.TransactionLog {
+	return predicate.TransactionLog(sql.FieldGTE(FieldTxHash, v))
 }
 
-// TransactionHashLT applies the LT predicate on the "transaction_hash" field.
-func TransactionHashLT(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldLT(FieldTransactionHash, v))
+// TxHashLT applies the LT predicate on the "tx_hash" field.
+func TxHashLT(v string) predicate.TransactionLog {
+	return predicate.TransactionLog(sql.FieldLT(FieldTxHash, v))
 }
 
-// TransactionHashLTE applies the LTE predicate on the "transaction_hash" field.
-func TransactionHashLTE(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldLTE(FieldTransactionHash, v))
+// TxHashLTE applies the LTE predicate on the "tx_hash" field.
+func TxHashLTE(v string) predicate.TransactionLog {
+	return predicate.TransactionLog(sql.FieldLTE(FieldTxHash, v))
 }
 
-// TransactionHashContains applies the Contains predicate on the "transaction_hash" field.
-func TransactionHashContains(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldContains(FieldTransactionHash, v))
+// TxHashContains applies the Contains predicate on the "tx_hash" field.
+func TxHashContains(v string) predicate.TransactionLog {
+	return predicate.TransactionLog(sql.FieldContains(FieldTxHash, v))
 }
 
-// TransactionHashHasPrefix applies the HasPrefix predicate on the "transaction_hash" field.
-func TransactionHashHasPrefix(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldHasPrefix(FieldTransactionHash, v))
+// TxHashHasPrefix applies the HasPrefix predicate on the "tx_hash" field.
+func TxHashHasPrefix(v string) predicate.TransactionLog {
+	return predicate.TransactionLog(sql.FieldHasPrefix(FieldTxHash, v))
 }
 
-// TransactionHashHasSuffix applies the HasSuffix predicate on the "transaction_hash" field.
-func TransactionHashHasSuffix(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldHasSuffix(FieldTransactionHash, v))
+// TxHashHasSuffix applies the HasSuffix predicate on the "tx_hash" field.
+func TxHashHasSuffix(v string) predicate.TransactionLog {
+	return predicate.TransactionLog(sql.FieldHasSuffix(FieldTxHash, v))
 }
 
-// TransactionHashIsNil applies the IsNil predicate on the "transaction_hash" field.
-func TransactionHashIsNil() predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldIsNull(FieldTransactionHash))
+// TxHashIsNil applies the IsNil predicate on the "tx_hash" field.
+func TxHashIsNil() predicate.TransactionLog {
+	return predicate.TransactionLog(sql.FieldIsNull(FieldTxHash))
 }
 
-// TransactionHashNotNil applies the NotNil predicate on the "transaction_hash" field.
-func TransactionHashNotNil() predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldNotNull(FieldTransactionHash))
+// TxHashNotNil applies the NotNil predicate on the "tx_hash" field.
+func TxHashNotNil() predicate.TransactionLog {
+	return predicate.TransactionLog(sql.FieldNotNull(FieldTxHash))
 }
 
-// TransactionHashEqualFold applies the EqualFold predicate on the "transaction_hash" field.
-func TransactionHashEqualFold(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldEqualFold(FieldTransactionHash, v))
+// TxHashEqualFold applies the EqualFold predicate on the "tx_hash" field.
+func TxHashEqualFold(v string) predicate.TransactionLog {
+	return predicate.TransactionLog(sql.FieldEqualFold(FieldTxHash, v))
 }
 
-// TransactionHashContainsFold applies the ContainsFold predicate on the "transaction_hash" field.
-func TransactionHashContainsFold(v string) predicate.TransactionLog {
-	return predicate.TransactionLog(sql.FieldContainsFold(FieldTransactionHash, v))
+// TxHashContainsFold applies the ContainsFold predicate on the "tx_hash" field.
+func TxHashContainsFold(v string) predicate.TransactionLog {
+	return predicate.TransactionLog(sql.FieldContainsFold(FieldTxHash, v))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.

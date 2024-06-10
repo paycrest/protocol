@@ -1018,11 +1018,11 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 		if err != nil {
 			return fmt.Errorf("%s Failed to initiate DB transaction %w", lockPaymentOrder.GatewayID, err)
 		}
+
 		transactionLog, err := tx.TransactionLog.Create().
 			SetStatus(transactionlog.StatusOrderCreated).
-			SetProviderID(lockPaymentOrder.ProviderID).
-			SetTransactionHash(lockPaymentOrder.TxHash).
-			SetNetwork(lockPaymentOrder.Token.Edges.Network.Identifier).
+			SetTxHash(lockPaymentOrder.TxHash).
+			SetNetwork(network.Identifier).
 			SetGatewayID(lockPaymentOrder.GatewayID).
 			SetMetadata(
 				map[string]interface{}{
@@ -1032,6 +1032,7 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 					"Rate":            rate,
 					"Memo":            recipient.Memo,
 					"ProvisionBucket": provisionBucket,
+					"ProviderID":      lockPaymentOrder.ProviderID,
 				}).Save(ctx)
 
 		if err != nil {
@@ -1106,15 +1107,15 @@ func (s *IndexerService) UpdateOrderStatusRefunded(ctx context.Context, log *typ
 
 	// create Log
 	transactionLog, err := tx.TransactionLog.Create().
-	SetStatus(transactionlog.StatusOrderRefunded).
-	SetTransactionHash(log.TxHash).
-	SetGatewayID(gatewayId).
-	SetMetadata(
-		map[string]interface{}{
-			"OrderId":         log.OrderId,
-			"GatewayID":       gatewayId,
-			"transactionData": log,
-		}).Save(ctx)
+		SetStatus(transactionlog.StatusOrderRefunded).
+		SetTxHash(log.TxHash).
+		SetGatewayID(gatewayId).
+		SetMetadata(
+			map[string]interface{}{
+				"OrderId":         log.OrderId,
+				"GatewayID":       gatewayId,
+				"transactionData": log,
+			}).Save(ctx)
 
 	if err != nil {
 		return fmt.Errorf("UpdateOrderStatusRefunded.aggregator: %v", err)
@@ -1176,7 +1177,7 @@ func (s *IndexerService) UpdateOrderStatusSettled(ctx context.Context, event *ty
 	// create Log
 	transactionLog, err := tx.TransactionLog.Create().
 		SetStatus(transactionlog.StatusOrderSettled).
-		SetTransactionHash(event.TxHash).
+		SetTxHash(event.TxHash).
 		SetGatewayID(gatewayId).SetMetadata(
 		map[string]interface{}{
 			"GatewayID":       gatewayId,
@@ -1346,11 +1347,11 @@ func (s *IndexerService) UpdateReceiveAddressStatus(
 			}
 			comparisonResult = 0
 		}
+
 		transactionLog, err := db.Client.TransactionLog.Create().
 			SetStatus(transactionlog.StatusCryptoDeposited).
 			SetGatewayID(paymentOrder.GatewayID).
-			SetProviderID(orderRecipient.ProviderID).
-			SetTransactionHash(event.TxHash).
+			SetTxHash(event.TxHash).
 			SetNetwork(paymentOrder.Edges.Token.Edges.Network.Identifier).
 			SetMetadata(map[string]interface{}{
 				"GatewayID":       paymentOrder.GatewayID,

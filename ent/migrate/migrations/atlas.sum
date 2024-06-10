@@ -1,4 +1,4 @@
-h1:TTNmPvZXomFdRmEYic7100IPSV/okY4Ve7GaUe4QN7Q=
+h1:sJqJ9mRbBRblE5efM/bgFaVFrPa3AH9DoMg6bdC8Zys=
 20240118234246_initial.sql h1:dYuYBqns33WT+3p8VQvbKUP62k3k6w6h8S+FqNqgSvU=
 20240130122324_order_from_address.sql h1:mMVI2iBUd1roIYLUqu0d2jZ7+B6exppRN8qqn+aIHx4=
 20240202010744_fees_on_order.sql h1:P7ngxZKqDKefBM5vk6M3kbWeMPVwbZ4MZVcLBjEfS34=
@@ -12,3 +12,4 @@ h1:TTNmPvZXomFdRmEYic7100IPSV/okY4Ve7GaUe4QN7Q=
 20240414002738_payment_order_block_number.sql h1:r5bHvVEdxltzfgQ3RggfgRUzSs8d7jLeLSCwfImb3DY=
 20240416055001_chain_id_hex.sql h1:6NUaokKTGwj3YZ4zaEMbYZueiZsEn2/MnkiwLZuK56o=
 20240421230634_add_return_address.sql h1:/4a1d784HzkPTYruYacw324unCPb+WqFVpBtQSMAIbU=
+20240610130003_add_transaction_log.sql h1:EBgixko/1/lb6O0y+YDEBfvJjKe6TtWyYgbmXVNA4dE=
