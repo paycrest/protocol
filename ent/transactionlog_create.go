@@ -21,34 +21,6 @@ type TransactionLogCreate struct {
 	hooks    []Hook
 }
 
-// SetSenderID sets the "sender_id" field.
-func (tlc *TransactionLogCreate) SetSenderID(s string) *TransactionLogCreate {
-	tlc.mutation.SetSenderID(s)
-	return tlc
-}
-
-// SetNillableSenderID sets the "sender_id" field if the given value is not nil.
-func (tlc *TransactionLogCreate) SetNillableSenderID(s *string) *TransactionLogCreate {
-	if s != nil {
-		tlc.SetSenderID(*s)
-	}
-	return tlc
-}
-
-// SetProviderID sets the "provider_id" field.
-func (tlc *TransactionLogCreate) SetProviderID(s string) *TransactionLogCreate {
-	tlc.mutation.SetProviderID(s)
-	return tlc
-}
-
-// SetNillableProviderID sets the "provider_id" field if the given value is not nil.
-func (tlc *TransactionLogCreate) SetNillableProviderID(s *string) *TransactionLogCreate {
-	if s != nil {
-		tlc.SetProviderID(*s)
-	}
-	return tlc
-}
-
 // SetGatewayID sets the "gateway_id" field.
 func (tlc *TransactionLogCreate) SetGatewayID(s string) *TransactionLogCreate {
 	tlc.mutation.SetGatewayID(s)
@@ -91,16 +63,16 @@ func (tlc *TransactionLogCreate) SetNillableNetwork(s *string) *TransactionLogCr
 	return tlc
 }
 
-// SetTransactionHash sets the "transaction_hash" field.
-func (tlc *TransactionLogCreate) SetTransactionHash(s string) *TransactionLogCreate {
-	tlc.mutation.SetTransactionHash(s)
+// SetTxHash sets the "tx_hash" field.
+func (tlc *TransactionLogCreate) SetTxHash(s string) *TransactionLogCreate {
+	tlc.mutation.SetTxHash(s)
 	return tlc
 }
 
-// SetNillableTransactionHash sets the "transaction_hash" field if the given value is not nil.
-func (tlc *TransactionLogCreate) SetNillableTransactionHash(s *string) *TransactionLogCreate {
+// SetNillableTxHash sets the "tx_hash" field if the given value is not nil.
+func (tlc *TransactionLogCreate) SetNillableTxHash(s *string) *TransactionLogCreate {
 	if s != nil {
-		tlc.SetTransactionHash(*s)
+		tlc.SetTxHash(*s)
 	}
 	return tlc
 }
@@ -239,14 +211,6 @@ func (tlc *TransactionLogCreate) createSpec() (*TransactionLog, *sqlgraph.Create
 		_node.ID = id
 		_spec.ID.Value = &id
 	}
-	if value, ok := tlc.mutation.SenderID(); ok {
-		_spec.SetField(transactionlog.FieldSenderID, field.TypeString, value)
-		_node.SenderID = value
-	}
-	if value, ok := tlc.mutation.ProviderID(); ok {
-		_spec.SetField(transactionlog.FieldProviderID, field.TypeString, value)
-		_node.ProviderID = value
-	}
 	if value, ok := tlc.mutation.GatewayID(); ok {
 		_spec.SetField(transactionlog.FieldGatewayID, field.TypeString, value)
 		_node.GatewayID = value
@@ -259,9 +223,9 @@ func (tlc *TransactionLogCreate) createSpec() (*TransactionLog, *sqlgraph.Create
 		_spec.SetField(transactionlog.FieldNetwork, field.TypeString, value)
 		_node.Network = value
 	}
-	if value, ok := tlc.mutation.TransactionHash(); ok {
-		_spec.SetField(transactionlog.FieldTransactionHash, field.TypeString, value)
-		_node.TransactionHash = value
+	if value, ok := tlc.mutation.TxHash(); ok {
+		_spec.SetField(transactionlog.FieldTxHash, field.TypeString, value)
+		_node.TxHash = value
 	}
 	if value, ok := tlc.mutation.Metadata(); ok {
 		_spec.SetField(transactionlog.FieldMetadata, field.TypeJSON, value)

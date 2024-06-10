@@ -104,8 +104,7 @@ func (s *OrderEVM) CreateOrder(ctx context.Context, orderID uuid.UUID) error {
 
 	transactionLog, err := db.Client.TransactionLog.Create().
 		SetStatus(transactionlog.StatusOrderCreated).
-		SetProviderID(order.Edges.Recipient.ProviderID).
-		SetTransactionHash(txHash).
+		SetTxHash(txHash).
 		SetNetwork(order.Edges.Token.Edges.Network.Identifier).
 		SetGatewayID(order.GatewayID).
 		SetMetadata(
@@ -196,8 +195,7 @@ func (s *OrderEVM) RefundOrder(ctx context.Context, orderID string) error {
 
 	transactionLog, err := db.Client.TransactionLog.Create().
 		SetStatus(transactionlog.StatusOrderRefunded).
-		SetProviderID(lockOrder.Edges.Provider.ID).
-		SetTransactionHash(txHash).
+		SetTxHash(txHash).
 		SetNetwork(lockOrder.Edges.Token.Edges.Network.Identifier).
 		SetGatewayID(lockOrder.GatewayID).
 		SetMetadata(
@@ -320,8 +318,7 @@ func (s *OrderEVM) RevertOrder(ctx context.Context, order *ent.PaymentOrder) err
 	}
 	transactionLog, err := db.Client.TransactionLog.Create().
 		SetStatus(transactionlog.StatusOrderReverted).
-		SetProviderID(order.Edges.Recipient.ProviderID).
-		SetTransactionHash(txHash).
+		SetTxHash(txHash).
 		SetNetwork(order.Edges.Token.Edges.Network.Identifier).
 		SetGatewayID(order.GatewayID).
 		SetMetadata(
@@ -415,8 +412,7 @@ func (s *OrderEVM) SettleOrder(ctx context.Context, orderID uuid.UUID) error {
 	}
 	transactionLog, err := db.Client.TransactionLog.Create().
 		SetStatus(transactionlog.StatusOrderSettled).
-		SetProviderID(order.Edges.Provider.ID).
-		SetTransactionHash(txHash).
+		SetTxHash(txHash).
 		SetNetwork(order.Edges.Token.Edges.Network.Identifier).
 		SetGatewayID(order.GatewayID).
 		SetMetadata(

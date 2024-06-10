@@ -417,12 +417,10 @@ var (
 	// TransactionLogsColumns holds the columns for the "transaction_logs" table.
 	TransactionLogsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
-		{Name: "sender_id", Type: field.TypeString, Nullable: true},
-		{Name: "provider_id", Type: field.TypeString, Nullable: true},
 		{Name: "gateway_id", Type: field.TypeString, Nullable: true},
-		{Name: "status", Type: field.TypeEnum, Enums: []string{"unset", "crypto_deposited", "order_created", "order_settled", "order_refunded", "order_reverted", "gas_prefunded", "gateway_approved"}, Default: "unset"},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"order_initiated", "crypto_deposited", "order_created", "order_settled", "order_refunded", "order_reverted", "gas_prefunded", "gateway_approved"}, Default: "order_initiated"},
 		{Name: "network", Type: field.TypeString, Nullable: true},
-		{Name: "transaction_hash", Type: field.TypeString, Nullable: true},
+		{Name: "tx_hash", Type: field.TypeString, Nullable: true},
 		{Name: "metadata", Type: field.TypeJSON},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "lock_payment_order_transactions", Type: field.TypeUUID, Nullable: true},
@@ -436,13 +434,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "transaction_logs_lock_payment_orders_transactions",
-				Columns:    []*schema.Column{TransactionLogsColumns[9]},
+				Columns:    []*schema.Column{TransactionLogsColumns[7]},
 				RefColumns: []*schema.Column{LockPaymentOrdersColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "transaction_logs_payment_orders_transactions",
-				Columns:    []*schema.Column{TransactionLogsColumns[10]},
+				Columns:    []*schema.Column{TransactionLogsColumns[8]},
 				RefColumns: []*schema.Column{PaymentOrdersColumns[0]},
 				OnDelete:   schema.SetNull,
 			},

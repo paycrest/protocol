@@ -14426,21 +14426,19 @@ func (m *TokenMutation) ResetEdge(name string) error {
 // TransactionLogMutation represents an operation that mutates the TransactionLog nodes in the graph.
 type TransactionLogMutation struct {
 	config
-	op               Op
-	typ              string
-	id               *uuid.UUID
-	sender_id        *string
-	provider_id      *string
-	gateway_id       *string
-	status           *transactionlog.Status
-	network          *string
-	transaction_hash *string
-	metadata         *map[string]interface{}
-	created_at       *time.Time
-	clearedFields    map[string]struct{}
-	done             bool
-	oldValue         func(context.Context) (*TransactionLog, error)
-	predicates       []predicate.TransactionLog
+	op            Op
+	typ           string
+	id            *uuid.UUID
+	gateway_id    *string
+	status        *transactionlog.Status
+	network       *string
+	tx_hash       *string
+	metadata      *map[string]interface{}
+	created_at    *time.Time
+	clearedFields map[string]struct{}
+	done          bool
+	oldValue      func(context.Context) (*TransactionLog, error)
+	predicates    []predicate.TransactionLog
 }
 
 var _ ent.Mutation = (*TransactionLogMutation)(nil)
@@ -14545,104 +14543,6 @@ func (m *TransactionLogMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
 	default:
 		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
 	}
-}
-
-// SetSenderID sets the "sender_id" field.
-func (m *TransactionLogMutation) SetSenderID(s string) {
-	m.sender_id = &s
-}
-
-// SenderID returns the value of the "sender_id" field in the mutation.
-func (m *TransactionLogMutation) SenderID() (r string, exists bool) {
-	v := m.sender_id
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldSenderID returns the old "sender_id" field's value of the TransactionLog entity.
-// If the TransactionLog object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *TransactionLogMutation) OldSenderID(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldSenderID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldSenderID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldSenderID: %w", err)
-	}
-	return oldValue.SenderID, nil
-}
-
-// ClearSenderID clears the value of the "sender_id" field.
-func (m *TransactionLogMutation) ClearSenderID() {
-	m.sender_id = nil
-	m.clearedFields[transactionlog.FieldSenderID] = struct{}{}
-}
-
-// SenderIDCleared returns if the "sender_id" field was cleared in this mutation.
-func (m *TransactionLogMutation) SenderIDCleared() bool {
-	_, ok := m.clearedFields[transactionlog.FieldSenderID]
-	return ok
-}
-
-// ResetSenderID resets all changes to the "sender_id" field.
-func (m *TransactionLogMutation) ResetSenderID() {
-	m.sender_id = nil
-	delete(m.clearedFields, transactionlog.FieldSenderID)
-}
-
-// SetProviderID sets the "provider_id" field.
-func (m *TransactionLogMutation) SetProviderID(s string) {
-	m.provider_id = &s
-}
-
-// ProviderID returns the value of the "provider_id" field in the mutation.
-func (m *TransactionLogMutation) ProviderID() (r string, exists bool) {
-	v := m.provider_id
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldProviderID returns the old "provider_id" field's value of the TransactionLog entity.
-// If the TransactionLog object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *TransactionLogMutation) OldProviderID(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldProviderID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldProviderID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldProviderID: %w", err)
-	}
-	return oldValue.ProviderID, nil
-}
-
-// ClearProviderID clears the value of the "provider_id" field.
-func (m *TransactionLogMutation) ClearProviderID() {
-	m.provider_id = nil
-	m.clearedFields[transactionlog.FieldProviderID] = struct{}{}
-}
-
-// ProviderIDCleared returns if the "provider_id" field was cleared in this mutation.
-func (m *TransactionLogMutation) ProviderIDCleared() bool {
-	_, ok := m.clearedFields[transactionlog.FieldProviderID]
-	return ok
-}
-
-// ResetProviderID resets all changes to the "provider_id" field.
-func (m *TransactionLogMutation) ResetProviderID() {
-	m.provider_id = nil
-	delete(m.clearedFields, transactionlog.FieldProviderID)
 }
 
 // SetGatewayID sets the "gateway_id" field.
@@ -14779,53 +14679,53 @@ func (m *TransactionLogMutation) ResetNetwork() {
 	delete(m.clearedFields, transactionlog.FieldNetwork)
 }
 
-// SetTransactionHash sets the "transaction_hash" field.
-func (m *TransactionLogMutation) SetTransactionHash(s string) {
-	m.transaction_hash = &s
+// SetTxHash sets the "tx_hash" field.
+func (m *TransactionLogMutation) SetTxHash(s string) {
+	m.tx_hash = &s
 }
 
-// TransactionHash returns the value of the "transaction_hash" field in the mutation.
-func (m *TransactionLogMutation) TransactionHash() (r string, exists bool) {
-	v := m.transaction_hash
+// TxHash returns the value of the "tx_hash" field in the mutation.
+func (m *TransactionLogMutation) TxHash() (r string, exists bool) {
+	v := m.tx_hash
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldTransactionHash returns the old "transaction_hash" field's value of the TransactionLog entity.
+// OldTxHash returns the old "tx_hash" field's value of the TransactionLog entity.
 // If the TransactionLog object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *TransactionLogMutation) OldTransactionHash(ctx context.Context) (v string, err error) {
+func (m *TransactionLogMutation) OldTxHash(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldTransactionHash is only allowed on UpdateOne operations")
+		return v, errors.New("OldTxHash is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldTransactionHash requires an ID field in the mutation")
+		return v, errors.New("OldTxHash requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldTransactionHash: %w", err)
+		return v, fmt.Errorf("querying old value for OldTxHash: %w", err)
 	}
-	return oldValue.TransactionHash, nil
+	return oldValue.TxHash, nil
 }
 
-// ClearTransactionHash clears the value of the "transaction_hash" field.
-func (m *TransactionLogMutation) ClearTransactionHash() {
-	m.transaction_hash = nil
-	m.clearedFields[transactionlog.FieldTransactionHash] = struct{}{}
+// ClearTxHash clears the value of the "tx_hash" field.
+func (m *TransactionLogMutation) ClearTxHash() {
+	m.tx_hash = nil
+	m.clearedFields[transactionlog.FieldTxHash] = struct{}{}
 }
 
-// TransactionHashCleared returns if the "transaction_hash" field was cleared in this mutation.
-func (m *TransactionLogMutation) TransactionHashCleared() bool {
-	_, ok := m.clearedFields[transactionlog.FieldTransactionHash]
+// TxHashCleared returns if the "tx_hash" field was cleared in this mutation.
+func (m *TransactionLogMutation) TxHashCleared() bool {
+	_, ok := m.clearedFields[transactionlog.FieldTxHash]
 	return ok
 }
 
-// ResetTransactionHash resets all changes to the "transaction_hash" field.
-func (m *TransactionLogMutation) ResetTransactionHash() {
-	m.transaction_hash = nil
-	delete(m.clearedFields, transactionlog.FieldTransactionHash)
+// ResetTxHash resets all changes to the "tx_hash" field.
+func (m *TransactionLogMutation) ResetTxHash() {
+	m.tx_hash = nil
+	delete(m.clearedFields, transactionlog.FieldTxHash)
 }
 
 // SetMetadata sets the "metadata" field.
@@ -14934,13 +14834,7 @@ func (m *TransactionLogMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *TransactionLogMutation) Fields() []string {
-	fields := make([]string, 0, 8)
-	if m.sender_id != nil {
-		fields = append(fields, transactionlog.FieldSenderID)
-	}
-	if m.provider_id != nil {
-		fields = append(fields, transactionlog.FieldProviderID)
-	}
+	fields := make([]string, 0, 6)
 	if m.gateway_id != nil {
 		fields = append(fields, transactionlog.FieldGatewayID)
 	}
@@ -14950,8 +14844,8 @@ func (m *TransactionLogMutation) Fields() []string {
 	if m.network != nil {
 		fields = append(fields, transactionlog.FieldNetwork)
 	}
-	if m.transaction_hash != nil {
-		fields = append(fields, transactionlog.FieldTransactionHash)
+	if m.tx_hash != nil {
+		fields = append(fields, transactionlog.FieldTxHash)
 	}
 	if m.metadata != nil {
 		fields = append(fields, transactionlog.FieldMetadata)
@@ -14967,18 +14861,14 @@ func (m *TransactionLogMutation) Fields() []string {
 // schema.
 func (m *TransactionLogMutation) Field(name string) (ent.Value, bool) {
 	switch name {
-	case transactionlog.FieldSenderID:
-		return m.SenderID()
-	case transactionlog.FieldProviderID:
-		return m.ProviderID()
 	case transactionlog.FieldGatewayID:
 		return m.GatewayID()
 	case transactionlog.FieldStatus:
 		return m.Status()
 	case transactionlog.FieldNetwork:
 		return m.Network()
-	case transactionlog.FieldTransactionHash:
-		return m.TransactionHash()
+	case transactionlog.FieldTxHash:
+		return m.TxHash()
 	case transactionlog.FieldMetadata:
 		return m.Metadata()
 	case transactionlog.FieldCreatedAt:
@@ -14992,18 +14882,14 @@ func (m *TransactionLogMutation) Field(name string) (ent.Value, bool) {
 // database failed.
 func (m *TransactionLogMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
-	case transactionlog.FieldSenderID:
-		return m.OldSenderID(ctx)
-	case transactionlog.FieldProviderID:
-		return m.OldProviderID(ctx)
 	case transactionlog.FieldGatewayID:
 		return m.OldGatewayID(ctx)
 	case transactionlog.FieldStatus:
 		return m.OldStatus(ctx)
 	case transactionlog.FieldNetwork:
 		return m.OldNetwork(ctx)
-	case transactionlog.FieldTransactionHash:
-		return m.OldTransactionHash(ctx)
+	case transactionlog.FieldTxHash:
+		return m.OldTxHash(ctx)
 	case transactionlog.FieldMetadata:
 		return m.OldMetadata(ctx)
 	case transactionlog.FieldCreatedAt:
@@ -15017,20 +14903,6 @@ func (m *TransactionLogMutation) OldField(ctx context.Context, name string) (ent
 // type.
 func (m *TransactionLogMutation) SetField(name string, value ent.Value) error {
 	switch name {
-	case transactionlog.FieldSenderID:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetSenderID(v)
-		return nil
-	case transactionlog.FieldProviderID:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetProviderID(v)
-		return nil
 	case transactionlog.FieldGatewayID:
 		v, ok := value.(string)
 		if !ok {
@@ -15052,12 +14924,12 @@ func (m *TransactionLogMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetNetwork(v)
 		return nil
-	case transactionlog.FieldTransactionHash:
+	case transactionlog.FieldTxHash:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetTransactionHash(v)
+		m.SetTxHash(v)
 		return nil
 	case transactionlog.FieldMetadata:
 		v, ok := value.(map[string]interface{})
@@ -15103,20 +14975,14 @@ func (m *TransactionLogMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *TransactionLogMutation) ClearedFields() []string {
 	var fields []string
-	if m.FieldCleared(transactionlog.FieldSenderID) {
-		fields = append(fields, transactionlog.FieldSenderID)
-	}
-	if m.FieldCleared(transactionlog.FieldProviderID) {
-		fields = append(fields, transactionlog.FieldProviderID)
-	}
 	if m.FieldCleared(transactionlog.FieldGatewayID) {
 		fields = append(fields, transactionlog.FieldGatewayID)
 	}
 	if m.FieldCleared(transactionlog.FieldNetwork) {
 		fields = append(fields, transactionlog.FieldNetwork)
 	}
-	if m.FieldCleared(transactionlog.FieldTransactionHash) {
-		fields = append(fields, transactionlog.FieldTransactionHash)
+	if m.FieldCleared(transactionlog.FieldTxHash) {
+		fields = append(fields, transactionlog.FieldTxHash)
 	}
 	return fields
 }
@@ -15132,20 +14998,14 @@ func (m *TransactionLogMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *TransactionLogMutation) ClearField(name string) error {
 	switch name {
-	case transactionlog.FieldSenderID:
-		m.ClearSenderID()
-		return nil
-	case transactionlog.FieldProviderID:
-		m.ClearProviderID()
-		return nil
 	case transactionlog.FieldGatewayID:
 		m.ClearGatewayID()
 		return nil
 	case transactionlog.FieldNetwork:
 		m.ClearNetwork()
 		return nil
-	case transactionlog.FieldTransactionHash:
-		m.ClearTransactionHash()
+	case transactionlog.FieldTxHash:
+		m.ClearTxHash()
 		return nil
 	}
 	return fmt.Errorf("unknown TransactionLog nullable field %s", name)
@@ -15155,12 +15015,6 @@ func (m *TransactionLogMutation) ClearField(name string) error {
 // It returns an error if the field is not defined in the schema.
 func (m *TransactionLogMutation) ResetField(name string) error {
 	switch name {
-	case transactionlog.FieldSenderID:
-		m.ResetSenderID()
-		return nil
-	case transactionlog.FieldProviderID:
-		m.ResetProviderID()
-		return nil
 	case transactionlog.FieldGatewayID:
 		m.ResetGatewayID()
 		return nil
@@ -15170,8 +15024,8 @@ func (m *TransactionLogMutation) ResetField(name string) error {
 	case transactionlog.FieldNetwork:
 		m.ResetNetwork()
 		return nil
-	case transactionlog.FieldTransactionHash:
-		m.ResetTransactionHash()
+	case transactionlog.FieldTxHash:
+		m.ResetTxHash()
 		return nil
 	case transactionlog.FieldMetadata:
 		m.ResetMetadata()

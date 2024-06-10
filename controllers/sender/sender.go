@@ -228,16 +228,17 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 
 	senderFee := feePerTokenUnit.Mul(payload.Amount).Div(payload.Rate).Round(int32(token.Decimals))
 	protocolFee := payload.Amount.Mul(decimal.NewFromFloat(0.001)) // TODO: get protocol fee from contract -- currently 0.1%
+
 	// Create transaction Log
 	transactionLog, err := tx.TransactionLog.
 		Create().
-		SetStatus(transactionlog.StatusOrderCreated).
-		SetSenderID(sender.ID.String()).
-		SetProviderID(payload.Recipient.ProviderID).SetMetadata(
-		map[string]interface{}{
-			"ReceiveAddress": receiveAddress.Address,
-		},
-	).SetNetwork(token.Edges.Network.Identifier).
+		SetStatus(transactionlog.StatusOrderInitiated).
+		SetMetadata(
+			map[string]interface{}{
+				"ReceiveAddress": receiveAddress.Address,
+				"SenderID":       sender.ID.String(),
+			},
+		).SetNetwork(token.Edges.Network.Identifier).
 		Save(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
@@ -355,12 +356,10 @@ func (ctrl *SenderController) GetPaymentOrderByID(ctx *gin.Context) {
 	var transactions []types.TransactionLog
 	for _, transaction := range paymentOrder.Edges.Transactions {
 		transactions = append(transactions, types.TransactionLog{
-			Id:              transaction.ID.String(),
-			SenderId:        transaction.SenderID,
-			ProviderId:      transaction.ProviderID,
+			ID:              transaction.ID,
 			GatewayId:       transaction.GatewayID,
 			Status:          string(transaction.Status),
-			TransactionHash: transaction.TransactionHash,
+			TransactionHash: transaction.TxHash,
 			CreatedAt:       transaction.CreatedAt.String(),
 		})
 

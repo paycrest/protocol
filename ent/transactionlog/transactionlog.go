@@ -15,18 +15,14 @@ const (
 	Label = "transaction_log"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
-	// FieldSenderID holds the string denoting the sender_id field in the database.
-	FieldSenderID = "sender_id"
-	// FieldProviderID holds the string denoting the provider_id field in the database.
-	FieldProviderID = "provider_id"
 	// FieldGatewayID holds the string denoting the gateway_id field in the database.
 	FieldGatewayID = "gateway_id"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
 	// FieldNetwork holds the string denoting the network field in the database.
 	FieldNetwork = "network"
-	// FieldTransactionHash holds the string denoting the transaction_hash field in the database.
-	FieldTransactionHash = "transaction_hash"
+	// FieldTxHash holds the string denoting the tx_hash field in the database.
+	FieldTxHash = "tx_hash"
 	// FieldMetadata holds the string denoting the metadata field in the database.
 	FieldMetadata = "metadata"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
@@ -38,12 +34,10 @@ const (
 // Columns holds all SQL columns for transactionlog fields.
 var Columns = []string{
 	FieldID,
-	FieldSenderID,
-	FieldProviderID,
 	FieldGatewayID,
 	FieldStatus,
 	FieldNetwork,
-	FieldTransactionHash,
+	FieldTxHash,
 	FieldMetadata,
 	FieldCreatedAt,
 }
@@ -80,12 +74,12 @@ var (
 // Status defines the type for the "status" enum field.
 type Status string
 
-// StatusUnset is the default value of the Status enum.
-const DefaultStatus = StatusUnset
+// StatusOrderInitiated is the default value of the Status enum.
+const DefaultStatus = StatusOrderInitiated
 
 // Status values.
 const (
-	StatusUnset           Status = "unset"
+	StatusOrderInitiated  Status = "order_initiated"
 	StatusCryptoDeposited Status = "crypto_deposited"
 	StatusOrderCreated    Status = "order_created"
 	StatusOrderSettled    Status = "order_settled"
@@ -102,7 +96,7 @@ func (s Status) String() string {
 // StatusValidator is a validator for the "status" field enum values. It is called by the builders before save.
 func StatusValidator(s Status) error {
 	switch s {
-	case StatusUnset, StatusCryptoDeposited, StatusOrderCreated, StatusOrderSettled, StatusOrderRefunded, StatusOrderReverted, StatusGasPrefunded, StatusGatewayApproved:
+	case StatusOrderInitiated, StatusCryptoDeposited, StatusOrderCreated, StatusOrderSettled, StatusOrderRefunded, StatusOrderReverted, StatusGasPrefunded, StatusGatewayApproved:
 		return nil
 	default:
 		return fmt.Errorf("transactionlog: invalid enum value for status field: %q", s)
@@ -115,16 +109,6 @@ type OrderOption func(*sql.Selector)
 // ByID orders the results by the id field.
 func ByID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldID, opts...).ToFunc()
-}
-
-// BySenderID orders the results by the sender_id field.
-func BySenderID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldSenderID, opts...).ToFunc()
-}
-
-// ByProviderID orders the results by the provider_id field.
-func ByProviderID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldProviderID, opts...).ToFunc()
 }
 
 // ByGatewayID orders the results by the gateway_id field.
@@ -142,9 +126,9 @@ func ByNetwork(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldNetwork, opts...).ToFunc()
 }
 
-// ByTransactionHash orders the results by the transaction_hash field.
-func ByTransactionHash(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldTransactionHash, opts...).ToFunc()
+// ByTxHash orders the results by the tx_hash field.
+func ByTxHash(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTxHash, opts...).ToFunc()
 }
 
 // ByCreatedAt orders the results by the created_at field.
