@@ -375,7 +375,7 @@ func (ctrl *ProviderController) FulfillOrder(ctx *gin.Context) {
 			SetValidationStatus(lockorderfulfillment.ValidationStatusFailed).
 			SetValidationError(payload.ValidationError).
 			Save(ctx)
-			
+
 		if err != nil {
 			logger.Errorf("error: %v", err)
 			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update lock order status", nil)
@@ -727,11 +727,11 @@ func (ctrl *ProviderController) GetLockPaymentOrderByID(ctx *gin.Context) {
 	var transactions []types.TransactionLog
 	for _, transaction := range lockPaymentOrder.Edges.Transactions {
 		transactions = append(transactions, types.TransactionLog{
-			ID:              transaction.ID,
-			GatewayId:       transaction.GatewayID,
-			Status:          string(transaction.Status),
-			TransactionHash: transaction.TxHash,
-			CreatedAt:       transaction.CreatedAt.String(),
+			ID:        transaction.ID,
+			GatewayId: transaction.GatewayID,
+			Status:    string(transaction.Status),
+			TxHash:    transaction.TxHash,
+			CreatedAt: transaction.CreatedAt.String(),
 		})
 
 	}

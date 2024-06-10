@@ -322,11 +322,11 @@ type LockPaymentOrderFields struct {
 
 // TransactionLog
 type TransactionLog struct {
-	ID              uuid.UUID `json:"id" binding:"required"`
-	GatewayId       string    `json:"gateway_id"`
-	Status          string    `json:"status" binding:"required"`
-	TransactionHash string    `json:"transaction_hash" binding:"required"`
-	CreatedAt       string    `json:"created_at" binding:"required"`
+	ID        uuid.UUID `json:"id" binding:"required"`
+	GatewayId string    `json:"gateway_id"`
+	Status    string    `json:"status" binding:"required"`
+	TxHash    string    `json:"tx_hash" binding:"required"`
+	CreatedAt string    `json:"created_at" binding:"required"`
 }
 
 // LockPaymentOrderResponse is the response for a lock payment order

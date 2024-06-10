@@ -356,11 +356,11 @@ func (ctrl *SenderController) GetPaymentOrderByID(ctx *gin.Context) {
 	var transactions []types.TransactionLog
 	for _, transaction := range paymentOrder.Edges.Transactions {
 		transactions = append(transactions, types.TransactionLog{
-			ID:              transaction.ID,
-			GatewayId:       transaction.GatewayID,
-			Status:          string(transaction.Status),
-			TransactionHash: transaction.TxHash,
-			CreatedAt:       transaction.CreatedAt.String(),
+			ID:        transaction.ID,
+			GatewayId: transaction.GatewayID,
+			Status:    string(transaction.Status),
+			TxHash:    transaction.TxHash,
+			CreatedAt: transaction.CreatedAt.String(),
 		})
 
 	}
