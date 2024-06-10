@@ -228,6 +228,23 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 
 	senderFee := feePerTokenUnit.Mul(payload.Amount).Div(payload.Rate).Round(int32(token.Decimals))
 	protocolFee := payload.Amount.Mul(decimal.NewFromFloat(0.001)) // TODO: get protocol fee from contract -- currently 0.1%
+	// Create transaction Log
+	transactionLog, err := tx.TransactionLog.
+		Create().
+		SetStatus(transactionlog.StatusOrderCreated).
+		SetSenderID(sender.ID.String()).
+		SetProviderID(payload.Recipient.ProviderID).SetMetadata(
+		map[string]interface{}{
+			"ReceiveAddress": receiveAddress.Address,
+		},
+	).SetNetwork(token.Edges.Network.Identifier).
+		Save(ctx)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to initiate payment order", nil)
+		_ = tx.Rollback()
+		return
+	}
 
 	// Create payment order
 	paymentOrder, err := tx.PaymentOrder.
@@ -247,6 +264,7 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 		SetFeePerTokenUnit(feePerTokenUnit).
 		SetFeeAddress(feeAddress).
 		SetReturnAddress(payload.ReturnAddress).
+		AddTransactions(transactionLog).
 		Save(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
@@ -264,24 +282,6 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 		SetProviderID(payload.Recipient.ProviderID).
 		SetMemo(payload.Recipient.Memo).
 		SetPaymentOrder(paymentOrder).
-		Save(ctx)
-	if err != nil {
-		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to initiate payment order", nil)
-		_ = tx.Rollback()
-		return
-	}
-
-	// Create transaction Log
-	_, err = tx.TransactionLog.
-		Create().
-		SetStatus(transactionlog.StatusOrderCreated).
-		SetSenderID(sender.ID.String()).
-		SetProviderID(payload.Recipient.ProviderID).SetMetadata(
-		map[string]interface{}{
-			"ReceiveAddress": receiveAddress.Address,
-		},
-	).SetNetwork(token.Edges.Network.Identifier).
 		Save(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)

@@ -21,7 +21,11 @@ fi
 
 # Run tests
 echo "Running tests..."
-go test "$(go list ./... | grep -v /ent | grep -v /config | grep -v /database | grep -v /routers)" -coverprofile=coverage.out ./...
+if [ "$(uname)" = "Linux" ]; then
+    go test $(go list ./... | grep -v /ent | grep -v /config | grep -v /database | grep -v /routers) -coverprofile=coverage.out ./...
+else
+    go test "$(go list ./... | grep -v /ent | grep -v /config | grep -v /database | grep -v /routers)" -coverprofile=coverage.out ./...
+fi
 
 # If any errors occurred, abort the commit
 if [ $? -ne 0 ]; then

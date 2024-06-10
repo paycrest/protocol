@@ -26,6 +26,7 @@ import (
 	"github.com/paycrest/protocol/ent/receiveaddress"
 	"github.com/paycrest/protocol/ent/senderprofile"
 	"github.com/paycrest/protocol/ent/token"
+	"github.com/paycrest/protocol/ent/transactionlog"
 	"github.com/paycrest/protocol/ent/user"
 	"github.com/paycrest/protocol/services/contracts"
 	db "github.com/paycrest/protocol/storage"
@@ -1012,8 +1013,27 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 			return fmt.Errorf("%s - failed to split lock payment order: %w", lockPaymentOrder.GatewayID, err)
 		}
 	} else {
+		// Create LockPaymentOrder and recipient in a transaction
+		tx, err := db.Client.Tx(ctx)
+		if err != nil {
+			return fmt.Errorf("%s Failed to initiate DB transaction %w", lockPaymentOrder.GatewayID, err)
+		}
+		transactionLog, err := tx.TransactionLog.Create().SetStatus(transactionlog.StatusOrderCreated).SetProviderID(lockPaymentOrder.ProviderID).SetTransactionHash(lockPaymentOrder.TxHash).SetNetwork(lockPaymentOrder.Token.Edges.Network.Identifier).SetGatewayID(lockPaymentOrder.GatewayID).SetMetadata(
+			map[string]interface{}{
+				"Token":           token,
+				"GatewayID":       gatewayId,
+				"Amount":          amountInDecimals,
+				"Rate":            rate,
+				"BlockNumber":     int64(deposit.Raw.BlockNumber),
+				"Memo":            recipient.Memo,
+				"ProvisionBucket": provisionBucket,
+			}).Save(ctx)
+
+		if err != nil {
+			return fmt.Errorf("%s - failed to create transaction Log : %w", lockPaymentOrder.GatewayID, err)
+		}
 		// Create lock payment order in db
-		orderBuilder := db.Client.LockPaymentOrder.
+		orderBuilder := tx.LockPaymentOrder.
 			Create().
 			SetToken(lockPaymentOrder.Token).
 			SetGatewayID(lockPaymentOrder.GatewayID).
@@ -1026,7 +1046,7 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 			SetAccountIdentifier(lockPaymentOrder.AccountIdentifier).
 			SetAccountName(lockPaymentOrder.AccountName).
 			SetMemo(lockPaymentOrder.Memo).
-			SetProvisionBucket(lockPaymentOrder.ProvisionBucket)
+			SetProvisionBucket(lockPaymentOrder.ProvisionBucket).AddTransactions(transactionLog)
 
 		if lockPaymentOrder.ProviderID != "" {
 			orderBuilder = orderBuilder.SetProviderID(lockPaymentOrder.ProviderID)
@@ -1034,6 +1054,11 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 
 		orderCreated, err := orderBuilder.Save(ctx)
 		if err != nil {
+			return fmt.Errorf("%s - failed to create lock payment order: %w", lockPaymentOrder.GatewayID, err)
+		}
+
+		// Commit the transaction
+		if err := tx.Commit(); err != nil {
 			return fmt.Errorf("%s - failed to create lock payment order: %w", lockPaymentOrder.GatewayID, err)
 		}
 
@@ -1054,17 +1079,17 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 }
 
 // UpdateOrderStatusRefunded updates the status of a payment order to refunded
-func (s *IndexerService) UpdateOrderStatusRefunded(ctx context.Context, event *types.OrderRefundedEvent) error {
-	gatewayId := fmt.Sprintf("0x%v", hex.EncodeToString(event.OrderId[:]))
+func (s *IndexerService) UpdateOrderStatusRefunded(ctx context.Context, log *contracts.GatewayOrderRefunded) error {
+	gatewayId := fmt.Sprintf("0x%v", hex.EncodeToString(log.OrderId[:]))
 
 	// Aggregator side status update
-	_, err := db.Client.LockPaymentOrder.
+	_, err = tx.LockPaymentOrder.
 		Update().
 		Where(
 			lockpaymentorder.GatewayIDEQ(gatewayId),
 		).
-		SetBlockNumber(int64(event.BlockNumber)).
-		SetTxHash(event.TxHash).
+		SetBlockNumber(int64(log.Raw.BlockNumber)).
+		SetTxHash(log.Raw.TxHash.Hex()).
 		SetStatus(lockpaymentorder.StatusRefunded).
 		Save(ctx)
 	if err != nil {
@@ -1072,17 +1097,21 @@ func (s *IndexerService) UpdateOrderStatusRefunded(ctx context.Context, event *t
 	}
 
 	// Sender side status update
-	_, err = db.Client.PaymentOrder.
+	_, err = tx.PaymentOrder.
 		Update().
 		Where(
 			paymentorder.GatewayIDEQ(gatewayId),
 		).
-		SetBlockNumber(int64(event.BlockNumber)).
-		SetTxHash(event.TxHash).
+		SetTxHash(log.Raw.TxHash.Hex()).
 		SetStatus(paymentorder.StatusRefunded).
 		Save(ctx)
 	if err != nil {
 		return fmt.Errorf("UpdateOrderStatusRefunded.sender: %v", err)
+	}
+
+	// Commit the transaction
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("UpdateOrderStatusRefunded.sender %v", err)
 	}
 
 	// Fetch payment order
