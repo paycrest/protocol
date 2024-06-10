@@ -1018,16 +1018,22 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 		if err != nil {
 			return fmt.Errorf("%s Failed to initiate DB transaction %w", lockPaymentOrder.GatewayID, err)
 		}
-		transactionLog, err := tx.TransactionLog.Create().SetStatus(transactionlog.StatusOrderCreated).SetProviderID(lockPaymentOrder.ProviderID).SetTransactionHash(lockPaymentOrder.TxHash).SetNetwork(lockPaymentOrder.Token.Edges.Network.Identifier).SetGatewayID(lockPaymentOrder.GatewayID).SetMetadata(
-			map[string]interface{}{
-				"Token":           token,
-				"GatewayID":       gatewayId,
-				"Amount":          amountInDecimals,
-				"Rate":            rate,
-				"BlockNumber":     int64(deposit.Raw.BlockNumber),
-				"Memo":            recipient.Memo,
-				"ProvisionBucket": provisionBucket,
-			}).Save(ctx)
+		transactionLog, err := tx.TransactionLog.Create().
+			SetStatus(transactionlog.StatusOrderCreated).
+			SetProviderID(lockPaymentOrder.ProviderID).
+			SetTransactionHash(lockPaymentOrder.TxHash).
+			SetNetwork(lockPaymentOrder.Token.Edges.Network.Identifier).
+			SetGatewayID(lockPaymentOrder.GatewayID).
+			SetMetadata(
+				map[string]interface{}{
+					"Token":           token,
+					"GatewayID":       gatewayId,
+					"Amount":          amountInDecimals,
+					"Rate":            rate,
+					"BlockNumber":     int64(deposit.Raw.BlockNumber),
+					"Memo":            recipient.Memo,
+					"ProvisionBucket": provisionBucket,
+				}).Save(ctx)
 
 		if err != nil {
 			return fmt.Errorf("%s - failed to create transaction Log : %w", lockPaymentOrder.GatewayID, err)
@@ -1082,6 +1088,23 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 func (s *IndexerService) UpdateOrderStatusRefunded(ctx context.Context, log *contracts.GatewayOrderRefunded) error {
 	gatewayId := fmt.Sprintf("0x%v", hex.EncodeToString(log.OrderId[:]))
 
+	tx, err := db.Client.Tx(ctx)
+	if err != nil {
+		return fmt.Errorf("UpdateOrderStatusRefunded.dbtransaction %v", err)
+	}
+
+	// create Log
+	transactionLog, err := tx.TransactionLog.Create().SetStatus(transactionlog.StatusOrderRefunded).SetTransactionHash(log.Raw.TxHash.Hex()).SetGatewayID(gatewayId).SetMetadata(
+		map[string]interface{}{
+			"OrderId":         log.OrderId,
+			"GatewayID":       gatewayId,
+			"transactionData": log.Raw.Data,
+		}).Save(ctx)
+
+	if err != nil {
+		return fmt.Errorf("UpdateOrderStatusRefunded.aggregator: %v", err)
+	}
+
 	// Aggregator side status update
 	_, err = tx.LockPaymentOrder.
 		Update().
@@ -1113,19 +1136,8 @@ func (s *IndexerService) UpdateOrderStatusRefunded(ctx context.Context, log *con
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("UpdateOrderStatusRefunded.sender %v", err)
 	}
-
-	// Fetch payment order
-	paymentOrder, err := db.Client.PaymentOrder.
-		Query().
-		Where(
-			paymentorder.GatewayIDEQ(gatewayId),
-		).
-		WithSenderProfile().
-		Only(ctx)
-	if err != nil {
-		return fmt.Errorf("UpdateOrderStatusRefunded.fetchOrder: %v", err)
-	}
-
+	paymentOrder.Status = paymentorder.StatusRefunded
+	paymentOrder.TxHash = log.Raw.TxHash.Hex()
 	// Send webhook notifcation to sender
 	err = utils.SendPaymentOrderWebhook(ctx, paymentOrder)
 	if err != nil {
@@ -1139,9 +1151,28 @@ func (s *IndexerService) UpdateOrderStatusRefunded(ctx context.Context, log *con
 func (s *IndexerService) UpdateOrderStatusSettled(ctx context.Context, event *types.OrderSettledEvent) error {
 	gatewayId := fmt.Sprintf("0x%v", hex.EncodeToString(event.OrderId[:]))
 
+	tx, err := db.Client.Tx(ctx)
+	if err != nil {
+		return fmt.Errorf("UpdateOrderStatusSettled.dbtransaction %v", err)
+	}
+
+	// create Log
+	transactionLog, err := tx.TransactionLog.Create().
+		SetStatus(transactionlog.StatusOrderSettled).
+		SetTransactionHash(event.Raw.TxHash.Hex()).
+		SetGatewayID(gatewayId).SetMetadata(
+		map[string]interface{}{
+			"GatewayID":       gatewayId,
+			"transactionData": event.Raw.Data,
+		}).Save(ctx)
+
+	if err != nil {
+		return fmt.Errorf("UpdateOrderStatusRefunded.aggregator: %v", err)
+	}
+
 	// Aggregator side status update
 	splitOrderId, _ := uuid.Parse(utils.Byte32ToString(event.SplitOrderId))
-	_, err := db.Client.LockPaymentOrder.
+	_, err = tx.LockPaymentOrder.
 		Update().
 		Where(
 			lockpaymentorder.IDEQ(splitOrderId),
@@ -1149,13 +1180,14 @@ func (s *IndexerService) UpdateOrderStatusSettled(ctx context.Context, event *ty
 		SetBlockNumber(int64(event.BlockNumber)).
 		SetTxHash(event.TxHash).
 		SetStatus(lockpaymentorder.StatusSettled).
+		AddTransactions(transactionLog).
 		Save(ctx)
 	if err != nil {
 		return fmt.Errorf("UpdateOrderStatusSettled.aggregator: %v", err)
 	}
 
 	// Sender side status update
-	paymentOrderUpdate := db.Client.PaymentOrder.
+	paymentOrderUpdate := tx.PaymentOrder.
 		Update().
 		Where(
 			paymentorder.GatewayIDEQ(gatewayId),
@@ -1179,7 +1211,7 @@ func (s *IndexerService) UpdateOrderStatusSettled(ctx context.Context, event *ty
 	}
 
 	// Fetch payment order
-	paymentOrder, err := db.Client.PaymentOrder.
+	paymentOrder, err := tx.PaymentOrder.
 		Query().
 		Where(
 			paymentorder.GatewayIDEQ(gatewayId),
@@ -1188,6 +1220,11 @@ func (s *IndexerService) UpdateOrderStatusSettled(ctx context.Context, event *ty
 		Only(ctx)
 	if err != nil {
 		return fmt.Errorf("UpdateOrderStatusSettled.fetchOrder: %v", err)
+	}
+
+	// Commit the transaction
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("UpdateOrderStatusRefunded.sender %v", err)
 	}
 
 	// Send webhook notifcation to sender
@@ -1292,11 +1329,26 @@ func (s *IndexerService) UpdateReceiveAddressStatus(
 			}
 			comparisonResult = 0
 		}
+		transactionLog, err := db.Client.TransactionLog.Create().
+			SetStatus(transactionlog.StatusCryptoDeposited).
+			SetGatewayID(paymentOrder.GatewayID).
+			SetProviderID(orderRecipient.ProviderID).
+			SetTransactionHash(event.Raw.TxHash.Hex()).
+			SetNetwork(paymentOrder.Edges.Token.Edges.Network.Identifier).
+			SetMetadata(map[string]interface{}{
+				"GatewayID":       paymentOrder.GatewayID,
+				"transactionData": event.Raw.Data,
+			}).
+			Save(ctx)
+		if err != nil {
+			return true, fmt.Errorf("UpdateReceiveAddressStatus.transactionlog: %v", err)
+		}
 
 		_, err = paymentOrderUpdate.
 			SetFromAddress(event.From).
 			SetTxHash(event.TxHash).
 			AddAmountPaid(utils.FromSubunit(event.Value, paymentOrder.Edges.Token.Decimals)).
+			AddTransactions(transactionLog).
 			Save(ctx)
 		if err != nil {
 			return true, fmt.Errorf("UpdateReceiveAddressStatus.db: %v", err)
