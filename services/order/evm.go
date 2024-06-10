@@ -25,6 +25,7 @@ import (
 	"github.com/paycrest/protocol/ent/providerordertoken"
 	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/receiveaddress"
+	"github.com/paycrest/protocol/ent/transactionlog"
 	"github.com/paycrest/protocol/types"
 	"github.com/paycrest/protocol/utils"
 	cryptoUtils "github.com/paycrest/protocol/utils/crypto"
@@ -101,11 +102,26 @@ func (s *OrderEVM) CreateOrder(ctx context.Context, orderID uuid.UUID) error {
 		return fmt.Errorf("%s - CreateOrder.SendUserOperation: %w", orderIDPrefix, err)
 	}
 
-	// Update payment order
+	transactionLog, err := db.Client.TransactionLog.Create().
+		SetStatus(transactionlog.StatusOrderCreated).
+		SetProviderID(order.Edges.Recipient.ProviderID).
+		SetTransactionHash(txHash).
+		SetNetwork(order.Edges.Token.Edges.Network.Identifier).
+		SetGatewayID(order.GatewayID).
+		SetMetadata(
+			map[string]interface{}{
+				"BlockNumber": blockNumber,
+			}).Save(ctx)
+	if err != nil {
+		return fmt.Errorf("%s - CreateOrder.transactionLog: %w", orderIDPrefix, err)
+	}
+
+	// Update payment order with userOpHash
 	_, err = order.Update().
 		SetTxHash(txHash).
 		SetBlockNumber(blockNumber).
 		SetStatus(paymentorder.StatusPending).
+		AddTransactions(transactionLog).
 		Save(ctx)
 	if err != nil {
 		return fmt.Errorf("%s - CreateOrder.updateTxHash: %w", orderIDPrefix, err)
@@ -178,6 +194,20 @@ func (s *OrderEVM) RefundOrder(ctx context.Context, orderID string) error {
 		return fmt.Errorf("RefundOrder.sendUserOperation: %w", err)
 	}
 
+	transactionLog, err := db.Client.TransactionLog.Create().
+		SetStatus(transactionlog.StatusOrderRefunded).
+		SetProviderID(lockOrder.Edges.Provider.ID).
+		SetTransactionHash(txHash).
+		SetNetwork(lockOrder.Edges.Token.Edges.Network.Identifier).
+		SetGatewayID(lockOrder.GatewayID).
+		SetMetadata(
+			map[string]interface{}{
+				"BlockNumber": blockNumber,
+			}).Save(ctx)
+	if err != nil {
+		return fmt.Errorf("RefundOrder.transactionLog(%v): %w", txHash, err)
+	}
+
 	// Update status of all lock orders with same order_id
 	_, err = db.Client.LockPaymentOrder.
 		Update().
@@ -185,6 +215,7 @@ func (s *OrderEVM) RefundOrder(ctx context.Context, orderID string) error {
 		SetTxHash(txHash).
 		SetBlockNumber(blockNumber).
 		SetStatus(lockpaymentorder.StatusRefunded).
+		AddTransactions(transactionLog).
 		Save(ctx)
 	if err != nil {
 		return fmt.Errorf("RefundOrder.updateTxHash(%v): %w", txHash, err)
@@ -287,6 +318,19 @@ func (s *OrderEVM) RevertOrder(ctx context.Context, order *ent.PaymentOrder) err
 	if err != nil {
 		return fmt.Errorf("%s - RevertOrder.sendUserOperation: %w", orderIDPrefix, err)
 	}
+	transactionLog, err := db.Client.TransactionLog.Create().
+		SetStatus(transactionlog.StatusOrderReverted).
+		SetProviderID(order.Edges.Recipient.ProviderID).
+		SetTransactionHash(txHash).
+		SetNetwork(order.Edges.Token.Edges.Network.Identifier).
+		SetGatewayID(order.GatewayID).
+		SetMetadata(
+			map[string]interface{}{
+				"BlockNumber": blockNumber,
+			}).Save(ctx)
+	if err != nil {
+		return fmt.Errorf("%s - RevertOrder.transactionLog: %w", orderIDPrefix, err)
+	}
 
 	// Update payment order
 	_, err = order.Update().
@@ -294,6 +338,7 @@ func (s *OrderEVM) RevertOrder(ctx context.Context, order *ent.PaymentOrder) err
 		SetBlockNumber(blockNumber).
 		SetAmountReturned(amountMinusFee).
 		SetStatus(paymentorder.StatusReverted).
+		AddTransactions(transactionLog).
 		Save(ctx)
 	if err != nil {
 		return fmt.Errorf("%s - RevertOrder.updateTxHash: %w", orderIDPrefix, err)
@@ -368,12 +413,26 @@ func (s *OrderEVM) SettleOrder(ctx context.Context, orderID uuid.UUID) error {
 	if err != nil {
 		return fmt.Errorf("%s - SettleOrder.sendUserOperation: %w", orderIDPrefix, err)
 	}
+	transactionLog, err := db.Client.TransactionLog.Create().
+		SetStatus(transactionlog.StatusOrderSettled).
+		SetProviderID(order.Edges.Provider.ID).
+		SetTransactionHash(txHash).
+		SetNetwork(order.Edges.Token.Edges.Network.Identifier).
+		SetGatewayID(order.GatewayID).
+		SetMetadata(
+			map[string]interface{}{
+				"BlockNumber": blockNumber,
+			}).Save(ctx)
+	if err != nil {
+		return fmt.Errorf("%s - SettleOrder.transactionLog: %w", orderIDPrefix, err)
+	}
 
 	// Update status of lock order
 	_, err = order.Update().
 		SetTxHash(txHash).
 		SetBlockNumber(blockNumber).
 		SetStatus(lockpaymentorder.StatusSettled).
+		AddTransactions(transactionLog).
 		Save(ctx)
 	if err != nil {
 		return fmt.Errorf("%s - SettleOrder.updateTxHash: %w", orderIDPrefix, err)
