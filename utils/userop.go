@@ -112,11 +112,11 @@ func SponsorUserOperation(userOp *userop.UserOperation, mode string, token strin
 
 	if config.OrderConfig().ActiveAAService == "stackup" {
 		switch mode {
-		case "payg":
+		case "sponsored":
 			payload = map[string]interface{}{
 				"type": "payg",
 			}
-		case "erc20token":
+		case "erc20":
 			if token == "" {
 				return fmt.Errorf("token address is required")
 			}
@@ -135,18 +135,36 @@ func SponsorUserOperation(userOp *userop.UserOperation, mode string, token strin
 			payload,
 		}
 	} else if config.OrderConfig().ActiveAAService == "biconomy" {
-		payload = map[string]interface{}{
-			"mode": "SPONSORED",
-			"sponsorshipInfo": map[string]interface{}{
-				"webhookData": map[string]interface{}{},
-				"smartAccountInfo": map[string]interface{}{
-					"name":    "INFINITISM",
-					"version": "1.0.0",
+		switch mode {
+		case "sponsored":
+			payload = map[string]interface{}{
+				"mode": "SPONSORED",
+				"sponsorshipInfo": map[string]interface{}{
+					"webhookData": map[string]interface{}{},
+					"smartAccountInfo": map[string]string{
+						"name":    "INFINITISM",
+						"version": "1.0.0",
+					},
 				},
-			},
-			"expiryDuration":     300,
-			"calculateGasLimits": true,
+				"expiryDuration":     300,
+				"calculateGasLimits": true,
+			}
+		case "erc20":
+			if token == "" {
+				return fmt.Errorf("token address is required")
+			}
+
+			payload = map[string]interface{}{
+				"mode": "ERC20",
+				"tokenInfo": map[string]string{
+					"feeTokenAddress": token,
+				},
+				"calculateGasLimits": true,
+			}
+		default:
+			return fmt.Errorf("invalid mode")
 		}
+
 		requestParams = []interface{}{
 			userOp,
 			payload,

@@ -80,10 +80,15 @@ func (s *OrderEVM) CreateOrder(ctx context.Context, orderID uuid.UUID) error {
 
 	// Sponsor user operation.
 	// This will populate the following fields in userOperation: PaymasterAndData, PreVerificationGas, VerificationGasLimit, CallGasLimit
+<<<<<<< HEAD:services/order/evm.go
 	if config.ServerConfig().Environment != "production" {
 		err = utils.SponsorUserOperation(userOperation, "erc20token", order.Edges.Token.ContractAddress, order.Edges.Token.Edges.Network.ChainID)
+=======
+	if ServerConf.Environment != "production" {
+		err = utils.SponsorUserOperation(userOperation, "erc20", order.Edges.Token.ContractAddress, order.Edges.Token.Edges.Network.ChainID)
+>>>>>>> 3b20f8d (refactor: SponsorUserOperation mode values in order.go and userop.go):services/order.go
 	} else {
-		err = utils.SponsorUserOperation(userOperation, "payg", "", order.Edges.Token.Edges.Network.ChainID)
+		err = utils.SponsorUserOperation(userOperation, "sponsored", "", order.Edges.Token.Edges.Network.ChainID)
 	}
 	if err != nil {
 		return fmt.Errorf("%s - CreateOrder.SponsorUserOperation: %w", orderIDPrefix, err)
@@ -174,10 +179,15 @@ func (s *OrderEVM) RefundOrder(ctx context.Context, orderID string) error {
 
 	// Sponsor user operation.
 	// This will populate the following fields in userOperation: PaymasterAndData, PreVerificationGas, VerificationGasLimit, CallGasLimit
+<<<<<<< HEAD:services/order/evm.go
 	if config.ServerConfig().Environment != "production" {
 		err = utils.SponsorUserOperation(userOperation, "erc20token", lockOrder.Edges.Token.ContractAddress, lockOrder.Edges.Token.Edges.Network.ChainID)
+=======
+	if ServerConf.Environment != "production" {
+		err = utils.SponsorUserOperation(userOperation, "erc20", lockOrder.Edges.Token.ContractAddress, lockOrder.Edges.Token.Edges.Network.ChainID)
+>>>>>>> 3b20f8d (refactor: SponsorUserOperation mode values in order.go and userop.go):services/order.go
 	} else {
-		err = utils.SponsorUserOperation(userOperation, "payg", "", lockOrder.Edges.Token.Edges.Network.ChainID)
+		err = utils.SponsorUserOperation(userOperation, "sponsored", "", lockOrder.Edges.Token.Edges.Network.ChainID)
 	}
 	if err != nil {
 		return fmt.Errorf("RefundOrder.sponsorUserOperation: %w", err)
@@ -295,10 +305,15 @@ func (s *OrderEVM) RevertOrder(ctx context.Context, order *ent.PaymentOrder) err
 
 	// Sponsor user operation.
 	// This will populate the following fields in userOperation: PaymasterAndData, PreVerificationGas, VerificationGasLimit, CallGasLimit
+<<<<<<< HEAD:services/order/evm.go
 	if config.ServerConfig().Environment != "production" {
 		err = utils.SponsorUserOperation(userOperation, "erc20token", order.Edges.Token.ContractAddress, order.Edges.Token.Edges.Network.ChainID)
+=======
+	if ServerConf.Environment != "production" {
+		err = utils.SponsorUserOperation(userOperation, "erc20", order.Edges.Token.ContractAddress, order.Edges.Token.Edges.Network.ChainID)
+>>>>>>> 3b20f8d (refactor: SponsorUserOperation mode values in order.go and userop.go):services/order.go
 	} else {
-		err = utils.SponsorUserOperation(userOperation, "payg", "", order.Edges.Token.Edges.Network.ChainID)
+		err = utils.SponsorUserOperation(userOperation, "sponsored", "", order.Edges.Token.Edges.Network.ChainID)
 	}
 	if err != nil {
 		return fmt.Errorf("%s - RevertOrder.SponsorUserOperation: %w", orderIDPrefix, err)
@@ -395,7 +410,7 @@ func (s *OrderEVM) SettleOrder(ctx context.Context, orderID uuid.UUID) error {
 	if config.ServerConfig().Environment != "production" {
 		err = utils.SponsorUserOperation(userOperation, "erc20token", order.Edges.Token.ContractAddress, order.Edges.Token.Edges.Network.ChainID)
 	} else {
-		err = utils.SponsorUserOperation(userOperation, "payg", "", order.Edges.Token.Edges.Network.ChainID)
+		err = utils.SponsorUserOperation(userOperation, "sponsored", "", order.Edges.Token.Edges.Network.ChainID)
 	}
 	if err != nil {
 		return fmt.Errorf("%s - SettleOrder.sponsorUserOperation: %w", orderIDPrefix, err)
