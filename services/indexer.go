@@ -1105,7 +1105,11 @@ func (s *IndexerService) UpdateOrderStatusRefunded(ctx context.Context, log *typ
 	}
 
 	// create Log
-	transactionLog, err := tx.TransactionLog.Create().SetStatus(transactionlog.StatusOrderRefunded).SetTransactionHash(log.Raw.TxHash.Hex()).SetGatewayID(gatewayId).SetMetadata(
+	transactionLog, err := tx.TransactionLog.Create().
+	SetStatus(transactionlog.StatusOrderRefunded).
+	SetTransactionHash(log.TxHash).
+	SetGatewayID(gatewayId).
+	SetMetadata(
 		map[string]interface{}{
 			"OrderId":         log.OrderId,
 			"GatewayID":       gatewayId,
@@ -1389,7 +1393,7 @@ func (s *IndexerService) UpdateReceiveAddressStatus(
 
 		} else if comparisonResult < 0 {
 			// Transfer value is less than order amount with fees
-
+			// and
 			// If amount paid meets or exceeds the order amount with fees, mark receive address as used
 			if paymentOrder.AmountPaid.GreaterThanOrEqual(orderAmountWithFees) {
 				_, err = receiveAddress.
