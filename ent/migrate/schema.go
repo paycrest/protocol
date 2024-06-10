@@ -54,6 +54,30 @@ var (
 		Columns:    FiatCurrenciesColumns,
 		PrimaryKey: []*schema.Column{FiatCurrenciesColumns[0]},
 	}
+	// FinancialInstitutionsColumns holds the columns for the "financial_institutions" table.
+	FinancialInstitutionsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "code", Type: field.TypeString, Unique: true},
+		{Name: "name", Type: field.TypeString, Nullable: true},
+		{Name: "type", Type: field.TypeString, Nullable: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "fiat_currency_financial_institutions", Type: field.TypeUUID, Nullable: true},
+	}
+	// FinancialInstitutionsTable holds the schema information for the "financial_institutions" table.
+	FinancialInstitutionsTable = &schema.Table{
+		Name:       "financial_institutions",
+		Columns:    FinancialInstitutionsColumns,
+		PrimaryKey: []*schema.Column{FinancialInstitutionsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "financial_institutions_fiat_currencies_financialInstitutions",
+				Columns:    []*schema.Column{FinancialInstitutionsColumns[6]},
+				RefColumns: []*schema.Column{FiatCurrenciesColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+	}
 	// LockOrderFulfillmentsColumns holds the columns for the "lock_order_fulfillments" table.
 	LockOrderFulfillmentsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -511,6 +535,7 @@ var (
 	Tables = []*schema.Table{
 		APIKeysTable,
 		FiatCurrenciesTable,
+		FinancialInstitutionsTable,
 		LockOrderFulfillmentsTable,
 		LockPaymentOrdersTable,
 		NetworksTable,
@@ -533,6 +558,7 @@ var (
 func init() {
 	APIKeysTable.ForeignKeys[0].RefTable = ProviderProfilesTable
 	APIKeysTable.ForeignKeys[1].RefTable = SenderProfilesTable
+	FinancialInstitutionsTable.ForeignKeys[0].RefTable = FiatCurrenciesTable
 	LockOrderFulfillmentsTable.ForeignKeys[0].RefTable = LockPaymentOrdersTable
 	LockPaymentOrdersTable.ForeignKeys[0].RefTable = ProviderProfilesTable
 	LockPaymentOrdersTable.ForeignKeys[1].RefTable = ProvisionBucketsTable

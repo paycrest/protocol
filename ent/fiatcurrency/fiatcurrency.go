@@ -37,6 +37,8 @@ const (
 	EdgeProviders = "providers"
 	// EdgeProvisionBuckets holds the string denoting the provision_buckets edge name in mutations.
 	EdgeProvisionBuckets = "provision_buckets"
+	// EdgeFinancialInstitutions holds the string denoting the financialinstitutions edge name in mutations.
+	EdgeFinancialInstitutions = "financialInstitutions"
 	// Table holds the table name of the fiatcurrency in the database.
 	Table = "fiat_currencies"
 	// ProvidersTable is the table that holds the providers relation/edge.
@@ -53,6 +55,13 @@ const (
 	ProvisionBucketsInverseTable = "provision_buckets"
 	// ProvisionBucketsColumn is the table column denoting the provision_buckets relation/edge.
 	ProvisionBucketsColumn = "fiat_currency_provision_buckets"
+	// FinancialInstitutionsTable is the table that holds the financialInstitutions relation/edge.
+	FinancialInstitutionsTable = "financial_institutions"
+	// FinancialInstitutionsInverseTable is the table name for the FinancialInstitution entity.
+	// It exists in this package in order to avoid circular dependency with the "financialinstitution" package.
+	FinancialInstitutionsInverseTable = "financial_institutions"
+	// FinancialInstitutionsColumn is the table column denoting the financialInstitutions relation/edge.
+	FinancialInstitutionsColumn = "fiat_currency_financial_institutions"
 )
 
 // Columns holds all SQL columns for fiatcurrency fields.
@@ -174,6 +183,20 @@ func ByProvisionBuckets(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption 
 		sqlgraph.OrderByNeighborTerms(s, newProvisionBucketsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByFinancialInstitutionsCount orders the results by financialInstitutions count.
+func ByFinancialInstitutionsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newFinancialInstitutionsStep(), opts...)
+	}
+}
+
+// ByFinancialInstitutions orders the results by financialInstitutions terms.
+func ByFinancialInstitutions(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newFinancialInstitutionsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newProvidersStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -186,5 +209,12 @@ func newProvisionBucketsStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(ProvisionBucketsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, ProvisionBucketsTable, ProvisionBucketsColumn),
+	)
+}
+func newFinancialInstitutionsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(FinancialInstitutionsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, FinancialInstitutionsTable, FinancialInstitutionsColumn),
 	)
 }

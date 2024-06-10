@@ -12,6 +12,9 @@ type APIKey func(*sql.Selector)
 // FiatCurrency is the predicate function for fiatcurrency builders.
 type FiatCurrency func(*sql.Selector)
 
+// FinancialInstitution is the predicate function for financialinstitution builders.
+type FinancialInstitution func(*sql.Selector)
+
 // LockOrderFulfillment is the predicate function for lockorderfulfillment builders.
 type LockOrderFulfillment func(*sql.Selector)
 

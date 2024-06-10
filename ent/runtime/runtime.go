@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/paycrest/protocol/ent/apikey"
 	"github.com/paycrest/protocol/ent/fiatcurrency"
+	"github.com/paycrest/protocol/ent/financialinstitution"
 	"github.com/paycrest/protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	"github.com/paycrest/protocol/ent/network"
@@ -66,6 +67,16 @@ func init() {
 	fiatcurrencyDescID := fiatcurrencyFields[0].Descriptor()
 	// fiatcurrency.DefaultID holds the default value on creation for the id field.
 	fiatcurrency.DefaultID = fiatcurrencyDescID.Default.(func() uuid.UUID)
+	financialinstitutionFields := schema.FinancialInstitution{}.Fields()
+	_ = financialinstitutionFields
+	// financialinstitutionDescCreatedAt is the schema descriptor for created_at field.
+	financialinstitutionDescCreatedAt := financialinstitutionFields[3].Descriptor()
+	// financialinstitution.DefaultCreatedAt holds the default value on creation for the created_at field.
+	financialinstitution.DefaultCreatedAt = financialinstitutionDescCreatedAt.Default.(func() time.Time)
+	// financialinstitutionDescUpdatedAt is the schema descriptor for updated_at field.
+	financialinstitutionDescUpdatedAt := financialinstitutionFields[4].Descriptor()
+	// financialinstitution.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	financialinstitution.DefaultUpdatedAt = financialinstitutionDescUpdatedAt.Default.(func() time.Time)
 	lockorderfulfillmentMixin := schema.LockOrderFulfillment{}.Mixin()
 	lockorderfulfillmentMixinFields0 := lockorderfulfillmentMixin[0].Fields()
 	_ = lockorderfulfillmentMixinFields0

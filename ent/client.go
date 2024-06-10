@@ -17,6 +17,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/paycrest/protocol/ent/apikey"
 	"github.com/paycrest/protocol/ent/fiatcurrency"
+	"github.com/paycrest/protocol/ent/financialinstitution"
 	"github.com/paycrest/protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	"github.com/paycrest/protocol/ent/network"
@@ -43,6 +44,8 @@ type Client struct {
 	APIKey *APIKeyClient
 	// FiatCurrency is the client for interacting with the FiatCurrency builders.
 	FiatCurrency *FiatCurrencyClient
+	// FinancialInstitution is the client for interacting with the FinancialInstitution builders.
+	FinancialInstitution *FinancialInstitutionClient
 	// LockOrderFulfillment is the client for interacting with the LockOrderFulfillment builders.
 	LockOrderFulfillment *LockOrderFulfillmentClient
 	// LockPaymentOrder is the client for interacting with the LockPaymentOrder builders.
@@ -88,6 +91,7 @@ func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
 	c.APIKey = NewAPIKeyClient(c.config)
 	c.FiatCurrency = NewFiatCurrencyClient(c.config)
+	c.FinancialInstitution = NewFinancialInstitutionClient(c.config)
 	c.LockOrderFulfillment = NewLockOrderFulfillmentClient(c.config)
 	c.LockPaymentOrder = NewLockPaymentOrderClient(c.config)
 	c.Network = NewNetworkClient(c.config)
@@ -187,6 +191,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		config:                cfg,
 		APIKey:                NewAPIKeyClient(cfg),
 		FiatCurrency:          NewFiatCurrencyClient(cfg),
+		FinancialInstitution:  NewFinancialInstitutionClient(cfg),
 		LockOrderFulfillment:  NewLockOrderFulfillmentClient(cfg),
 		LockPaymentOrder:      NewLockPaymentOrderClient(cfg),
 		Network:               NewNetworkClient(cfg),
@@ -223,6 +228,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		config:                cfg,
 		APIKey:                NewAPIKeyClient(cfg),
 		FiatCurrency:          NewFiatCurrencyClient(cfg),
+		FinancialInstitution:  NewFinancialInstitutionClient(cfg),
 		LockOrderFulfillment:  NewLockOrderFulfillmentClient(cfg),
 		LockPaymentOrder:      NewLockPaymentOrderClient(cfg),
 		Network:               NewNetworkClient(cfg),
@@ -267,10 +273,11 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.APIKey, c.FiatCurrency, c.LockOrderFulfillment, c.LockPaymentOrder, c.Network,
-		c.PaymentOrder, c.PaymentOrderRecipient, c.ProviderOrderToken,
-		c.ProviderProfile, c.ProviderRating, c.ProvisionBucket, c.ReceiveAddress,
-		c.SenderProfile, c.Token, c.User, c.VerificationToken, c.WebhookRetryAttempt,
+		c.APIKey, c.FiatCurrency, c.FinancialInstitution, c.LockOrderFulfillment,
+		c.LockPaymentOrder, c.Network, c.PaymentOrder, c.PaymentOrderRecipient,
+		c.ProviderOrderToken, c.ProviderProfile, c.ProviderRating, c.ProvisionBucket,
+		c.ReceiveAddress, c.SenderProfile, c.Token, c.User, c.VerificationToken,
+		c.WebhookRetryAttempt,
 	} {
 		n.Use(hooks...)
 	}
@@ -280,10 +287,11 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.APIKey, c.FiatCurrency, c.LockOrderFulfillment, c.LockPaymentOrder, c.Network,
-		c.PaymentOrder, c.PaymentOrderRecipient, c.ProviderOrderToken,
-		c.ProviderProfile, c.ProviderRating, c.ProvisionBucket, c.ReceiveAddress,
-		c.SenderProfile, c.Token, c.User, c.VerificationToken, c.WebhookRetryAttempt,
+		c.APIKey, c.FiatCurrency, c.FinancialInstitution, c.LockOrderFulfillment,
+		c.LockPaymentOrder, c.Network, c.PaymentOrder, c.PaymentOrderRecipient,
+		c.ProviderOrderToken, c.ProviderProfile, c.ProviderRating, c.ProvisionBucket,
+		c.ReceiveAddress, c.SenderProfile, c.Token, c.User, c.VerificationToken,
+		c.WebhookRetryAttempt,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -296,6 +304,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.APIKey.mutate(ctx, m)
 	case *FiatCurrencyMutation:
 		return c.FiatCurrency.mutate(ctx, m)
+	case *FinancialInstitutionMutation:
+		return c.FinancialInstitution.mutate(ctx, m)
 	case *LockOrderFulfillmentMutation:
 		return c.LockOrderFulfillment.mutate(ctx, m)
 	case *LockPaymentOrderMutation:
@@ -622,6 +632,22 @@ func (c *FiatCurrencyClient) QueryProvisionBuckets(fc *FiatCurrency) *ProvisionB
 	return query
 }
 
+// QueryFinancialInstitutions queries the financialInstitutions edge of a FiatCurrency.
+func (c *FiatCurrencyClient) QueryFinancialInstitutions(fc *FiatCurrency) *FinancialInstitutionQuery {
+	query := (&FinancialInstitutionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := fc.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(fiatcurrency.Table, fiatcurrency.FieldID, id),
+			sqlgraph.To(financialinstitution.Table, financialinstitution.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, fiatcurrency.FinancialInstitutionsTable, fiatcurrency.FinancialInstitutionsColumn),
+		)
+		fromV = sqlgraph.Neighbors(fc.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *FiatCurrencyClient) Hooks() []Hook {
 	return c.hooks.FiatCurrency
@@ -644,6 +670,140 @@ func (c *FiatCurrencyClient) mutate(ctx context.Context, m *FiatCurrencyMutation
 		return (&FiatCurrencyDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown FiatCurrency mutation op: %q", m.Op())
+	}
+}
+
+// FinancialInstitutionClient is a client for the FinancialInstitution schema.
+type FinancialInstitutionClient struct {
+	config
+}
+
+// NewFinancialInstitutionClient returns a client for the FinancialInstitution from the given config.
+func NewFinancialInstitutionClient(c config) *FinancialInstitutionClient {
+	return &FinancialInstitutionClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `financialinstitution.Hooks(f(g(h())))`.
+func (c *FinancialInstitutionClient) Use(hooks ...Hook) {
+	c.hooks.FinancialInstitution = append(c.hooks.FinancialInstitution, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `financialinstitution.Intercept(f(g(h())))`.
+func (c *FinancialInstitutionClient) Intercept(interceptors ...Interceptor) {
+	c.inters.FinancialInstitution = append(c.inters.FinancialInstitution, interceptors...)
+}
+
+// Create returns a builder for creating a FinancialInstitution entity.
+func (c *FinancialInstitutionClient) Create() *FinancialInstitutionCreate {
+	mutation := newFinancialInstitutionMutation(c.config, OpCreate)
+	return &FinancialInstitutionCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of FinancialInstitution entities.
+func (c *FinancialInstitutionClient) CreateBulk(builders ...*FinancialInstitutionCreate) *FinancialInstitutionCreateBulk {
+	return &FinancialInstitutionCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for FinancialInstitution.
+func (c *FinancialInstitutionClient) Update() *FinancialInstitutionUpdate {
+	mutation := newFinancialInstitutionMutation(c.config, OpUpdate)
+	return &FinancialInstitutionUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *FinancialInstitutionClient) UpdateOne(fi *FinancialInstitution) *FinancialInstitutionUpdateOne {
+	mutation := newFinancialInstitutionMutation(c.config, OpUpdateOne, withFinancialInstitution(fi))
+	return &FinancialInstitutionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *FinancialInstitutionClient) UpdateOneID(id int) *FinancialInstitutionUpdateOne {
+	mutation := newFinancialInstitutionMutation(c.config, OpUpdateOne, withFinancialInstitutionID(id))
+	return &FinancialInstitutionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for FinancialInstitution.
+func (c *FinancialInstitutionClient) Delete() *FinancialInstitutionDelete {
+	mutation := newFinancialInstitutionMutation(c.config, OpDelete)
+	return &FinancialInstitutionDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *FinancialInstitutionClient) DeleteOne(fi *FinancialInstitution) *FinancialInstitutionDeleteOne {
+	return c.DeleteOneID(fi.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *FinancialInstitutionClient) DeleteOneID(id int) *FinancialInstitutionDeleteOne {
+	builder := c.Delete().Where(financialinstitution.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &FinancialInstitutionDeleteOne{builder}
+}
+
+// Query returns a query builder for FinancialInstitution.
+func (c *FinancialInstitutionClient) Query() *FinancialInstitutionQuery {
+	return &FinancialInstitutionQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeFinancialInstitution},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a FinancialInstitution entity by its id.
+func (c *FinancialInstitutionClient) Get(ctx context.Context, id int) (*FinancialInstitution, error) {
+	return c.Query().Where(financialinstitution.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *FinancialInstitutionClient) GetX(ctx context.Context, id int) *FinancialInstitution {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryFiat queries the fiat edge of a FinancialInstitution.
+func (c *FinancialInstitutionClient) QueryFiat(fi *FinancialInstitution) *FiatCurrencyQuery {
+	query := (&FiatCurrencyClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := fi.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(financialinstitution.Table, financialinstitution.FieldID, id),
+			sqlgraph.To(fiatcurrency.Table, fiatcurrency.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, financialinstitution.FiatTable, financialinstitution.FiatColumn),
+		)
+		fromV = sqlgraph.Neighbors(fi.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *FinancialInstitutionClient) Hooks() []Hook {
+	return c.hooks.FinancialInstitution
+}
+
+// Interceptors returns the client interceptors.
+func (c *FinancialInstitutionClient) Interceptors() []Interceptor {
+	return c.inters.FinancialInstitution
+}
+
+func (c *FinancialInstitutionClient) mutate(ctx context.Context, m *FinancialInstitutionMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&FinancialInstitutionCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&FinancialInstitutionUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&FinancialInstitutionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&FinancialInstitutionDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown FinancialInstitution mutation op: %q", m.Op())
 	}
 }
 
@@ -2966,15 +3126,17 @@ func (c *WebhookRetryAttemptClient) mutate(ctx context.Context, m *WebhookRetryA
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		APIKey, FiatCurrency, LockOrderFulfillment, LockPaymentOrder, Network,
-		PaymentOrder, PaymentOrderRecipient, ProviderOrderToken, ProviderProfile,
-		ProviderRating, ProvisionBucket, ReceiveAddress, SenderProfile, Token, User,
-		VerificationToken, WebhookRetryAttempt []ent.Hook
+		APIKey, FiatCurrency, FinancialInstitution, LockOrderFulfillment,
+		LockPaymentOrder, Network, PaymentOrder, PaymentOrderRecipient,
+		ProviderOrderToken, ProviderProfile, ProviderRating, ProvisionBucket,
+		ReceiveAddress, SenderProfile, Token, User, VerificationToken,
+		WebhookRetryAttempt []ent.Hook
 	}
 	inters struct {
-		APIKey, FiatCurrency, LockOrderFulfillment, LockPaymentOrder, Network,
-		PaymentOrder, PaymentOrderRecipient, ProviderOrderToken, ProviderProfile,
-		ProviderRating, ProvisionBucket, ReceiveAddress, SenderProfile, Token, User,
-		VerificationToken, WebhookRetryAttempt []ent.Interceptor
+		APIKey, FiatCurrency, FinancialInstitution, LockOrderFulfillment,
+		LockPaymentOrder, Network, PaymentOrder, PaymentOrderRecipient,
+		ProviderOrderToken, ProviderProfile, ProviderRating, ProvisionBucket,
+		ReceiveAddress, SenderProfile, Token, User, VerificationToken,
+		WebhookRetryAttempt []ent.Interceptor
 	}
 )

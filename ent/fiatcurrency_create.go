@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
 	"github.com/paycrest/protocol/ent/fiatcurrency"
+	"github.com/paycrest/protocol/ent/financialinstitution"
 	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/provisionbucket"
 	"github.com/shopspring/decimal"
@@ -152,6 +153,21 @@ func (fcc *FiatCurrencyCreate) AddProvisionBuckets(p ...*ProvisionBucket) *FiatC
 		ids[i] = p[i].ID
 	}
 	return fcc.AddProvisionBucketIDs(ids...)
+}
+
+// AddFinancialInstitutionIDs adds the "financialInstitutions" edge to the FinancialInstitution entity by IDs.
+func (fcc *FiatCurrencyCreate) AddFinancialInstitutionIDs(ids ...int) *FiatCurrencyCreate {
+	fcc.mutation.AddFinancialInstitutionIDs(ids...)
+	return fcc
+}
+
+// AddFinancialInstitutions adds the "financialInstitutions" edges to the FinancialInstitution entity.
+func (fcc *FiatCurrencyCreate) AddFinancialInstitutions(f ...*FinancialInstitution) *FiatCurrencyCreate {
+	ids := make([]int, len(f))
+	for i := range f {
+		ids[i] = f[i].ID
+	}
+	return fcc.AddFinancialInstitutionIDs(ids...)
 }
 
 // Mutation returns the FiatCurrencyMutation object of the builder.
@@ -336,6 +352,22 @@ func (fcc *FiatCurrencyCreate) createSpec() (*FiatCurrency, *sqlgraph.CreateSpec
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(provisionbucket.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := fcc.mutation.FinancialInstitutionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   fiatcurrency.FinancialInstitutionsTable,
+			Columns: []string{fiatcurrency.FinancialInstitutionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(financialinstitution.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
