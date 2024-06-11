@@ -16,6 +16,7 @@ import (
 	"github.com/paycrest/protocol/ent/paymentorder"
 	"github.com/paycrest/protocol/ent/providerordertoken"
 	"github.com/paycrest/protocol/ent/providerprofile"
+	"github.com/paycrest/protocol/ent/transactionlog"
 	"github.com/shopspring/decimal"
 )
 
@@ -322,11 +323,11 @@ type LockPaymentOrderFields struct {
 
 // TransactionLog
 type TransactionLog struct {
-	ID        uuid.UUID `json:"id" binding:"required"`
-	GatewayId string    `json:"gateway_id"`
-	Status    string    `json:"status" binding:"required"`
-	TxHash    string    `json:"tx_hash" binding:"required"`
-	CreatedAt string    `json:"created_at" binding:"required"`
+	ID        uuid.UUID             `json:"id" binding:"required"`
+	GatewayId string                `json:"gateway_id"`
+	Status    transactionlog.Status `json:"status" binding:"required"`
+	TxHash    string                `json:"tx_hash" binding:"required"`
+	CreatedAt time.Time             `json:"created_at" binding:"required"`
 }
 
 // LockPaymentOrderResponse is the response for a lock payment order

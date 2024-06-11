@@ -729,9 +729,9 @@ func (ctrl *ProviderController) GetLockPaymentOrderByID(ctx *gin.Context) {
 		transactions = append(transactions, types.TransactionLog{
 			ID:        transaction.ID,
 			GatewayId: transaction.GatewayID,
-			Status:    string(transaction.Status),
+			Status:    transaction.Status,
 			TxHash:    transaction.TxHash,
-			CreatedAt: transaction.CreatedAt.String(),
+			CreatedAt: transaction.CreatedAt,
 		})
 
 	}
