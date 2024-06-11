@@ -76,7 +76,7 @@ func (ctrl *Controller) GetInstitutionsByCurrency(ctx *gin.Context) {
 		return
 	}
 
-	u.APIResponse(ctx, http.StatusOK, "success", "OK", institutions)
+	u.APIResponse(ctx, http.StatusOK, "success", "OK", institutions.Edges.Institutions)
 }
 
 // GetTokenRate controller fetches the current rate of the cryptocurrency token against the fiat currency
