@@ -42,6 +42,8 @@ type Tx struct {
 	SenderProfile *SenderProfileClient
 	// Token is the client for interacting with the Token builders.
 	Token *TokenClient
+	// TransactionLog is the client for interacting with the TransactionLog builders.
+	TransactionLog *TransactionLogClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
 	// VerificationToken is the client for interacting with the VerificationToken builders.
@@ -194,6 +196,7 @@ func (tx *Tx) init() {
 	tx.ReceiveAddress = NewReceiveAddressClient(tx.config)
 	tx.SenderProfile = NewSenderProfileClient(tx.config)
 	tx.Token = NewTokenClient(tx.config)
+	tx.TransactionLog = NewTransactionLogClient(tx.config)
 	tx.User = NewUserClient(tx.config)
 	tx.VerificationToken = NewVerificationTokenClient(tx.config)
 	tx.WebhookRetryAttempt = NewWebhookRetryAttemptClient(tx.config)

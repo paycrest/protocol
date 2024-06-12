@@ -14,6 +14,7 @@ import (
 	providerprofile "github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/senderprofile"
 	"github.com/paycrest/protocol/ent/token"
+	"github.com/paycrest/protocol/ent/transactionlog"
 	svc "github.com/paycrest/protocol/services"
 	"github.com/paycrest/protocol/types"
 	u "github.com/paycrest/protocol/utils"
@@ -228,6 +229,24 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 	senderFee := feePerTokenUnit.Mul(payload.Amount).Div(payload.Rate).Round(int32(token.Decimals))
 	protocolFee := payload.Amount.Mul(decimal.NewFromFloat(0.001)) // TODO: get protocol fee from contract -- currently 0.1%
 
+	// Create transaction Log
+	transactionLog, err := tx.TransactionLog.
+		Create().
+		SetStatus(transactionlog.StatusOrderInitiated).
+		SetMetadata(
+			map[string]interface{}{
+				"ReceiveAddress": receiveAddress.Address,
+				"SenderID":       sender.ID.String(),
+			},
+		).SetNetwork(token.Edges.Network.Identifier).
+		Save(ctx)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to initiate payment order", nil)
+		_ = tx.Rollback()
+		return
+	}
+
 	// Create payment order
 	paymentOrder, err := tx.PaymentOrder.
 		Create().
@@ -246,6 +265,7 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 		SetFeePerTokenUnit(feePerTokenUnit).
 		SetFeeAddress(feeAddress).
 		SetReturnAddress(payload.ReturnAddress).
+		AddTransactions(transactionLog).
 		Save(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
@@ -324,6 +344,7 @@ func (ctrl *SenderController) GetPaymentOrderByID(ctx *gin.Context) {
 		WithToken(func(tq *ent.TokenQuery) {
 			tq.WithNetwork()
 		}).
+		WithTransactions().
 		Only(ctx)
 
 	if err != nil {
@@ -331,6 +352,17 @@ func (ctrl *SenderController) GetPaymentOrderByID(ctx *gin.Context) {
 		u.APIResponse(ctx, http.StatusNotFound, "error",
 			"Payment order not found", nil)
 		return
+	}
+	var transactions []types.TransactionLog
+	for _, transaction := range paymentOrder.Edges.Transactions {
+		transactions = append(transactions, types.TransactionLog{
+			ID:        transaction.ID,
+			GatewayId: transaction.GatewayID,
+			Status:    transaction.Status,
+			TxHash:    transaction.TxHash,
+			CreatedAt: transaction.CreatedAt,
+		})
+
 	}
 
 	u.APIResponse(ctx, http.StatusOK, "success", "The order has been successfully retrieved", &types.PaymentOrderResponse{
@@ -350,6 +382,7 @@ func (ctrl *SenderController) GetPaymentOrderByID(ctx *gin.Context) {
 			ProviderID:        paymentOrder.Edges.Recipient.ProviderID,
 			Memo:              paymentOrder.Edges.Recipient.Memo,
 		},
+		Transactions:   transactions,
 		FromAddress:    paymentOrder.FromAddress,
 		ReturnAddress:  paymentOrder.ReturnAddress,
 		ReceiveAddress: paymentOrder.ReceiveAddressText,

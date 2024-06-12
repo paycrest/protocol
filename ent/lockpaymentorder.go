@@ -73,9 +73,11 @@ type LockPaymentOrderEdges struct {
 	Provider *ProviderProfile `json:"provider,omitempty"`
 	// Fulfillment holds the value of the fulfillment edge.
 	Fulfillment *LockOrderFulfillment `json:"fulfillment,omitempty"`
+	// Transactions holds the value of the transactions edge.
+	Transactions []*TransactionLog `json:"transactions,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [4]bool
+	loadedTypes [5]bool
 }
 
 // TokenOrErr returns the Token value or an error if the edge
@@ -128,6 +130,15 @@ func (e LockPaymentOrderEdges) FulfillmentOrErr() (*LockOrderFulfillment, error)
 		return e.Fulfillment, nil
 	}
 	return nil, &NotLoadedError{edge: "fulfillment"}
+}
+
+// TransactionsOrErr returns the Transactions value or an error if the edge
+// was not loaded in eager-loading.
+func (e LockPaymentOrderEdges) TransactionsOrErr() ([]*TransactionLog, error) {
+	if e.loadedTypes[4] {
+		return e.Transactions, nil
+	}
+	return nil, &NotLoadedError{edge: "transactions"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -318,6 +329,11 @@ func (lpo *LockPaymentOrder) QueryProvider() *ProviderProfileQuery {
 // QueryFulfillment queries the "fulfillment" edge of the LockPaymentOrder entity.
 func (lpo *LockPaymentOrder) QueryFulfillment() *LockOrderFulfillmentQuery {
 	return NewLockPaymentOrderClient(lpo.config).QueryFulfillment(lpo)
+}
+
+// QueryTransactions queries the "transactions" edge of the LockPaymentOrder entity.
+func (lpo *LockPaymentOrder) QueryTransactions() *TransactionLogQuery {
+	return NewLockPaymentOrderClient(lpo.config).QueryTransactions(lpo)
 }
 
 // Update returns a builder for updating this LockPaymentOrder.

@@ -54,6 +54,8 @@ const (
 	EdgeProvider = "provider"
 	// EdgeFulfillment holds the string denoting the fulfillment edge name in mutations.
 	EdgeFulfillment = "fulfillment"
+	// EdgeTransactions holds the string denoting the transactions edge name in mutations.
+	EdgeTransactions = "transactions"
 	// Table holds the table name of the lockpaymentorder in the database.
 	Table = "lock_payment_orders"
 	// TokenTable is the table that holds the token relation/edge.
@@ -84,6 +86,13 @@ const (
 	FulfillmentInverseTable = "lock_order_fulfillments"
 	// FulfillmentColumn is the table column denoting the fulfillment relation/edge.
 	FulfillmentColumn = "lock_payment_order_fulfillment"
+	// TransactionsTable is the table that holds the transactions relation/edge.
+	TransactionsTable = "transaction_logs"
+	// TransactionsInverseTable is the table name for the TransactionLog entity.
+	// It exists in this package in order to avoid circular dependency with the "transactionlog" package.
+	TransactionsInverseTable = "transaction_logs"
+	// TransactionsColumn is the table column denoting the transactions relation/edge.
+	TransactionsColumn = "lock_payment_order_transactions"
 )
 
 // Columns holds all SQL columns for lockpaymentorder fields.
@@ -284,6 +293,20 @@ func ByFulfillmentField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newFulfillmentStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// ByTransactionsCount orders the results by transactions count.
+func ByTransactionsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newTransactionsStep(), opts...)
+	}
+}
+
+// ByTransactions orders the results by transactions terms.
+func ByTransactions(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newTransactionsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newTokenStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -310,5 +333,12 @@ func newFulfillmentStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(FulfillmentInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2O, false, FulfillmentTable, FulfillmentColumn),
+	)
+}
+func newTransactionsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(TransactionsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, TransactionsTable, TransactionsColumn),
 	)
 }

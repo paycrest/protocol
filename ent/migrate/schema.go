@@ -438,6 +438,38 @@ var (
 			},
 		},
 	}
+	// TransactionLogsColumns holds the columns for the "transaction_logs" table.
+	TransactionLogsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "gateway_id", Type: field.TypeString, Nullable: true},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"order_initiated", "crypto_deposited", "order_created", "order_processing", "order_fulfilled", "order_validated", "order_settled", "order_refunded", "order_reverted", "gas_prefunded", "gateway_approved"}, Default: "order_initiated"},
+		{Name: "network", Type: field.TypeString, Nullable: true},
+		{Name: "tx_hash", Type: field.TypeString, Nullable: true},
+		{Name: "metadata", Type: field.TypeJSON},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "lock_payment_order_transactions", Type: field.TypeUUID, Nullable: true},
+		{Name: "payment_order_transactions", Type: field.TypeUUID, Nullable: true},
+	}
+	// TransactionLogsTable holds the schema information for the "transaction_logs" table.
+	TransactionLogsTable = &schema.Table{
+		Name:       "transaction_logs",
+		Columns:    TransactionLogsColumns,
+		PrimaryKey: []*schema.Column{TransactionLogsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "transaction_logs_lock_payment_orders_transactions",
+				Columns:    []*schema.Column{TransactionLogsColumns[7]},
+				RefColumns: []*schema.Column{LockPaymentOrdersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "transaction_logs_payment_orders_transactions",
+				Columns:    []*schema.Column{TransactionLogsColumns[8]},
+				RefColumns: []*schema.Column{PaymentOrdersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+	}
 	// UsersColumns holds the columns for the "users" table.
 	UsersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -548,6 +580,7 @@ var (
 		ReceiveAddressesTable,
 		SenderProfilesTable,
 		TokensTable,
+		TransactionLogsTable,
 		UsersTable,
 		VerificationTokensTable,
 		WebhookRetryAttemptsTable,
@@ -575,6 +608,8 @@ func init() {
 	ReceiveAddressesTable.ForeignKeys[0].RefTable = PaymentOrdersTable
 	SenderProfilesTable.ForeignKeys[0].RefTable = UsersTable
 	TokensTable.ForeignKeys[0].RefTable = NetworksTable
+	TransactionLogsTable.ForeignKeys[0].RefTable = LockPaymentOrdersTable
+	TransactionLogsTable.ForeignKeys[1].RefTable = PaymentOrdersTable
 	VerificationTokensTable.ForeignKeys[0].RefTable = UsersTable
 	ProvisionBucketProviderProfilesTable.ForeignKeys[0].RefTable = ProvisionBucketsTable
 	ProvisionBucketProviderProfilesTable.ForeignKeys[1].RefTable = ProviderProfilesTable

@@ -21,6 +21,7 @@ import (
 	"github.com/paycrest/protocol/ent/schema"
 	"github.com/paycrest/protocol/ent/senderprofile"
 	"github.com/paycrest/protocol/ent/token"
+	"github.com/paycrest/protocol/ent/transactionlog"
 	"github.com/paycrest/protocol/ent/user"
 	"github.com/paycrest/protocol/ent/verificationtoken"
 	"github.com/paycrest/protocol/ent/webhookretryattempt"
@@ -332,6 +333,16 @@ func init() {
 	tokenDescIsEnabled := tokenFields[3].Descriptor()
 	// token.DefaultIsEnabled holds the default value on creation for the is_enabled field.
 	token.DefaultIsEnabled = tokenDescIsEnabled.Default.(bool)
+	transactionlogFields := schema.TransactionLog{}.Fields()
+	_ = transactionlogFields
+	// transactionlogDescCreatedAt is the schema descriptor for created_at field.
+	transactionlogDescCreatedAt := transactionlogFields[6].Descriptor()
+	// transactionlog.DefaultCreatedAt holds the default value on creation for the created_at field.
+	transactionlog.DefaultCreatedAt = transactionlogDescCreatedAt.Default.(func() time.Time)
+	// transactionlogDescID is the schema descriptor for id field.
+	transactionlogDescID := transactionlogFields[0].Descriptor()
+	// transactionlog.DefaultID holds the default value on creation for the id field.
+	transactionlog.DefaultID = transactionlogDescID.Default.(func() uuid.UUID)
 	userMixin := schema.User{}.Mixin()
 	userHooks := schema.User{}.Hooks()
 	user.Hooks[0] = userHooks[0]

@@ -27,6 +27,7 @@ import (
 	"github.com/paycrest/protocol/ent/receiveaddress"
 	"github.com/paycrest/protocol/ent/senderprofile"
 	"github.com/paycrest/protocol/ent/token"
+	"github.com/paycrest/protocol/ent/transactionlog"
 	"github.com/paycrest/protocol/ent/user"
 	"github.com/paycrest/protocol/ent/verificationtoken"
 	"github.com/paycrest/protocol/ent/webhookretryattempt"
@@ -105,6 +106,7 @@ func checkColumn(table, column string) error {
 			receiveaddress.Table:        receiveaddress.ValidColumn,
 			senderprofile.Table:         senderprofile.ValidColumn,
 			token.Table:                 token.ValidColumn,
+			transactionlog.Table:        transactionlog.ValidColumn,
 			user.Table:                  user.ValidColumn,
 			verificationtoken.Table:     verificationtoken.ValidColumn,
 			webhookretryattempt.Table:   webhookretryattempt.ValidColumn,
