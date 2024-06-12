@@ -4,6 +4,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 )
 
 // Institution holds the schema definition for the Institution entity.
@@ -15,7 +16,9 @@ type Institution struct {
 func (Institution) Fields() []ent.Field {
 
 	return []ent.Field{
-		field.String("code").Unique(),
+		field.UUID("id", uuid.UUID{}).
+			Default(uuid.New),
+		field.String("code"),
 		field.String("name"),
 		field.Enum("type").
 			Values("bank", "mobile_money").

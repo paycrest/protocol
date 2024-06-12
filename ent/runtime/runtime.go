@@ -82,6 +82,10 @@ func init() {
 	institution.DefaultUpdatedAt = institutionDescUpdatedAt.Default.(func() time.Time)
 	// institution.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	institution.UpdateDefaultUpdatedAt = institutionDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// institutionDescID is the schema descriptor for id field.
+	institutionDescID := institutionFields[0].Descriptor()
+	// institution.DefaultID holds the default value on creation for the id field.
+	institution.DefaultID = institutionDescID.Default.(func() uuid.UUID)
 	lockorderfulfillmentMixin := schema.LockOrderFulfillment{}.Mixin()
 	lockorderfulfillmentMixinFields0 := lockorderfulfillmentMixin[0].Fields()
 	_ = lockorderfulfillmentMixinFields0

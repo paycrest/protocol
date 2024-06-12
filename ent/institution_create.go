@@ -76,6 +76,20 @@ func (ic *InstitutionCreate) SetNillableType(i *institution.Type) *InstitutionCr
 	return ic
 }
 
+// SetID sets the "id" field.
+func (ic *InstitutionCreate) SetID(u uuid.UUID) *InstitutionCreate {
+	ic.mutation.SetID(u)
+	return ic
+}
+
+// SetNillableID sets the "id" field if the given value is not nil.
+func (ic *InstitutionCreate) SetNillableID(u *uuid.UUID) *InstitutionCreate {
+	if u != nil {
+		ic.SetID(*u)
+	}
+	return ic
+}
+
 // SetFiatCurrencyID sets the "fiat_currency" edge to the FiatCurrency entity by ID.
 func (ic *InstitutionCreate) SetFiatCurrencyID(id uuid.UUID) *InstitutionCreate {
 	ic.mutation.SetFiatCurrencyID(id)
@@ -142,6 +156,10 @@ func (ic *InstitutionCreate) defaults() {
 		v := institution.DefaultType
 		ic.mutation.SetType(v)
 	}
+	if _, ok := ic.mutation.ID(); !ok {
+		v := institution.DefaultID()
+		ic.mutation.SetID(v)
+	}
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -180,8 +198,13 @@ func (ic *InstitutionCreate) sqlSave(ctx context.Context) (*Institution, error) 
 		}
 		return nil, err
 	}
-	id := _spec.ID.Value.(int64)
-	_node.ID = int(id)
+	if _spec.ID.Value != nil {
+		if id, ok := _spec.ID.Value.(*uuid.UUID); ok {
+			_node.ID = *id
+		} else if err := _node.ID.Scan(_spec.ID.Value); err != nil {
+			return nil, err
+		}
+	}
 	ic.mutation.id = &_node.ID
 	ic.mutation.done = true
 	return _node, nil
@@ -190,8 +213,12 @@ func (ic *InstitutionCreate) sqlSave(ctx context.Context) (*Institution, error) 
 func (ic *InstitutionCreate) createSpec() (*Institution, *sqlgraph.CreateSpec) {
 	var (
 		_node = &Institution{config: ic.config}
-		_spec = sqlgraph.NewCreateSpec(institution.Table, sqlgraph.NewFieldSpec(institution.FieldID, field.TypeInt))
+		_spec = sqlgraph.NewCreateSpec(institution.Table, sqlgraph.NewFieldSpec(institution.FieldID, field.TypeUUID))
 	)
+	if id, ok := ic.mutation.ID(); ok {
+		_node.ID = id
+		_spec.ID.Value = &id
+	}
 	if value, ok := ic.mutation.CreatedAt(); ok {
 		_spec.SetField(institution.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
@@ -273,10 +300,6 @@ func (icb *InstitutionCreateBulk) Save(ctx context.Context) ([]*Institution, err
 					return nil, err
 				}
 				mutation.id = &nodes[i].ID
-				if specs[i].ID.Value != nil {
-					id := specs[i].ID.Value.(int64)
-					nodes[i].ID = int(id)
-				}
 				mutation.done = true
 				return nodes[i], nil
 			})

@@ -719,7 +719,7 @@ func (c *InstitutionClient) UpdateOne(i *Institution) *InstitutionUpdateOne {
 }
 
 // UpdateOneID returns an update builder for the given id.
-func (c *InstitutionClient) UpdateOneID(id int) *InstitutionUpdateOne {
+func (c *InstitutionClient) UpdateOneID(id uuid.UUID) *InstitutionUpdateOne {
 	mutation := newInstitutionMutation(c.config, OpUpdateOne, withInstitutionID(id))
 	return &InstitutionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
@@ -736,7 +736,7 @@ func (c *InstitutionClient) DeleteOne(i *Institution) *InstitutionDeleteOne {
 }
 
 // DeleteOneID returns a builder for deleting the given entity by its id.
-func (c *InstitutionClient) DeleteOneID(id int) *InstitutionDeleteOne {
+func (c *InstitutionClient) DeleteOneID(id uuid.UUID) *InstitutionDeleteOne {
 	builder := c.Delete().Where(institution.ID(id))
 	builder.mutation.id = &id
 	builder.mutation.op = OpDeleteOne
@@ -753,12 +753,12 @@ func (c *InstitutionClient) Query() *InstitutionQuery {
 }
 
 // Get returns a Institution entity by its id.
-func (c *InstitutionClient) Get(ctx context.Context, id int) (*Institution, error) {
+func (c *InstitutionClient) Get(ctx context.Context, id uuid.UUID) (*Institution, error) {
 	return c.Query().Where(institution.ID(id)).Only(ctx)
 }
 
 // GetX is like Get, but panics if an error occurs.
-func (c *InstitutionClient) GetX(ctx context.Context, id int) *Institution {
+func (c *InstitutionClient) GetX(ctx context.Context, id uuid.UUID) *Institution {
 	obj, err := c.Get(ctx, id)
 	if err != nil {
 		panic(err)

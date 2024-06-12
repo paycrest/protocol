@@ -7,6 +7,7 @@ import (
 	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/fiatcurrency"
+	"github.com/paycrest/protocol/ent/institution"
 	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/token"
 	svc "github.com/paycrest/protocol/services"
@@ -68,7 +69,7 @@ func (ctrl *Controller) GetInstitutionsByCurrency(ctx *gin.Context) {
 	// Get currency code from the URL
 	currencyCode := ctx.Param("currency_code")
 
-	fiat_currency, err := storage.Client.FiatCurrency.Query().Where(fiatcurrency.CodeEQ(currencyCode)).WithInstitutions().Only(ctx)
+	Institutions, err := storage.Client.Institution.Query().Where(institution.CodeEQ(currencyCode)).All(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusBadRequest, "error",
@@ -76,7 +77,7 @@ func (ctrl *Controller) GetInstitutionsByCurrency(ctx *gin.Context) {
 		return
 	}
 
-	u.APIResponse(ctx, http.StatusOK, "success", "OK", fiat_currency.Edges.Institutions)
+	u.APIResponse(ctx, http.StatusOK, "success", "OK", Institutions)
 }
 
 // GetTokenRate controller fetches the current rate of the cryptocurrency token against the fiat currency

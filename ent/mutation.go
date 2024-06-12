@@ -630,8 +630,8 @@ type FiatCurrencyMutation struct {
 	provision_buckets        map[int]struct{}
 	removedprovision_buckets map[int]struct{}
 	clearedprovision_buckets bool
-	institutions             map[int]struct{}
-	removedinstitutions      map[int]struct{}
+	institutions             map[uuid.UUID]struct{}
+	removedinstitutions      map[uuid.UUID]struct{}
 	clearedinstitutions      bool
 	done                     bool
 	oldValue                 func(context.Context) (*FiatCurrency, error)
@@ -1215,9 +1215,9 @@ func (m *FiatCurrencyMutation) ResetProvisionBuckets() {
 }
 
 // AddInstitutionIDs adds the "institutions" edge to the Institution entity by ids.
-func (m *FiatCurrencyMutation) AddInstitutionIDs(ids ...int) {
+func (m *FiatCurrencyMutation) AddInstitutionIDs(ids ...uuid.UUID) {
 	if m.institutions == nil {
-		m.institutions = make(map[int]struct{})
+		m.institutions = make(map[uuid.UUID]struct{})
 	}
 	for i := range ids {
 		m.institutions[ids[i]] = struct{}{}
@@ -1235,9 +1235,9 @@ func (m *FiatCurrencyMutation) InstitutionsCleared() bool {
 }
 
 // RemoveInstitutionIDs removes the "institutions" edge to the Institution entity by IDs.
-func (m *FiatCurrencyMutation) RemoveInstitutionIDs(ids ...int) {
+func (m *FiatCurrencyMutation) RemoveInstitutionIDs(ids ...uuid.UUID) {
 	if m.removedinstitutions == nil {
-		m.removedinstitutions = make(map[int]struct{})
+		m.removedinstitutions = make(map[uuid.UUID]struct{})
 	}
 	for i := range ids {
 		delete(m.institutions, ids[i])
@@ -1246,7 +1246,7 @@ func (m *FiatCurrencyMutation) RemoveInstitutionIDs(ids ...int) {
 }
 
 // RemovedInstitutions returns the removed IDs of the "institutions" edge to the Institution entity.
-func (m *FiatCurrencyMutation) RemovedInstitutionsIDs() (ids []int) {
+func (m *FiatCurrencyMutation) RemovedInstitutionsIDs() (ids []uuid.UUID) {
 	for id := range m.removedinstitutions {
 		ids = append(ids, id)
 	}
@@ -1254,7 +1254,7 @@ func (m *FiatCurrencyMutation) RemovedInstitutionsIDs() (ids []int) {
 }
 
 // InstitutionsIDs returns the "institutions" edge IDs in the mutation.
-func (m *FiatCurrencyMutation) InstitutionsIDs() (ids []int) {
+func (m *FiatCurrencyMutation) InstitutionsIDs() (ids []uuid.UUID) {
 	for id := range m.institutions {
 		ids = append(ids, id)
 	}
@@ -1703,7 +1703,7 @@ type InstitutionMutation struct {
 	config
 	op                   Op
 	typ                  string
-	id                   *int
+	id                   *uuid.UUID
 	created_at           *time.Time
 	updated_at           *time.Time
 	code                 *string
@@ -1737,7 +1737,7 @@ func newInstitutionMutation(c config, op Op, opts ...institutionOption) *Institu
 }
 
 // withInstitutionID sets the ID field of the mutation.
-func withInstitutionID(id int) institutionOption {
+func withInstitutionID(id uuid.UUID) institutionOption {
 	return func(m *InstitutionMutation) {
 		var (
 			err   error
@@ -1787,9 +1787,15 @@ func (m InstitutionMutation) Tx() (*Tx, error) {
 	return tx, nil
 }
 
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of Institution entities.
+func (m *InstitutionMutation) SetID(id uuid.UUID) {
+	m.id = &id
+}
+
 // ID returns the ID value in the mutation. Note that the ID is only available
 // if it was provided to the builder or after it was returned from the database.
-func (m *InstitutionMutation) ID() (id int, exists bool) {
+func (m *InstitutionMutation) ID() (id uuid.UUID, exists bool) {
 	if m.id == nil {
 		return
 	}
@@ -1800,12 +1806,12 @@ func (m *InstitutionMutation) ID() (id int, exists bool) {
 // That means, if the mutation is applied within a transaction with an isolation level such
 // as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
 // or updated by the mutation.
-func (m *InstitutionMutation) IDs(ctx context.Context) ([]int, error) {
+func (m *InstitutionMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
 	switch {
 	case m.op.Is(OpUpdateOne | OpDeleteOne):
 		id, exists := m.ID()
 		if exists {
-			return []int{id}, nil
+			return []uuid.UUID{id}, nil
 		}
 		fallthrough
 	case m.op.Is(OpUpdate | OpDelete):

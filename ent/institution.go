@@ -18,7 +18,7 @@ import (
 type Institution struct {
 	config `json:"-"`
 	// ID of the ent.
-	ID int `json:"id,omitempty"`
+	ID uuid.UUID `json:"id,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
@@ -63,12 +63,12 @@ func (*Institution) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case institution.FieldID:
-			values[i] = new(sql.NullInt64)
 		case institution.FieldCode, institution.FieldName, institution.FieldType:
 			values[i] = new(sql.NullString)
 		case institution.FieldCreatedAt, institution.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
+		case institution.FieldID:
+			values[i] = new(uuid.UUID)
 		case institution.ForeignKeys[0]: // fiat_currency_institutions
 			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		default:
@@ -87,11 +87,11 @@ func (i *Institution) assignValues(columns []string, values []any) error {
 	for j := range columns {
 		switch columns[j] {
 		case institution.FieldID:
-			value, ok := values[j].(*sql.NullInt64)
-			if !ok {
-				return fmt.Errorf("unexpected type %T for field id", value)
+			if value, ok := values[j].(*uuid.UUID); !ok {
+				return fmt.Errorf("unexpected type %T for field id", values[j])
+			} else if value != nil {
+				i.ID = *value
 			}
-			i.ID = int(value.Int64)
 		case institution.FieldCreatedAt:
 			if value, ok := values[j].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[j])

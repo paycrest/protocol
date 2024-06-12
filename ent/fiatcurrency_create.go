@@ -156,14 +156,14 @@ func (fcc *FiatCurrencyCreate) AddProvisionBuckets(p ...*ProvisionBucket) *FiatC
 }
 
 // AddInstitutionIDs adds the "institutions" edge to the Institution entity by IDs.
-func (fcc *FiatCurrencyCreate) AddInstitutionIDs(ids ...int) *FiatCurrencyCreate {
+func (fcc *FiatCurrencyCreate) AddInstitutionIDs(ids ...uuid.UUID) *FiatCurrencyCreate {
 	fcc.mutation.AddInstitutionIDs(ids...)
 	return fcc
 }
 
 // AddInstitutions adds the "institutions" edges to the Institution entity.
 func (fcc *FiatCurrencyCreate) AddInstitutions(i ...*Institution) *FiatCurrencyCreate {
-	ids := make([]int, len(i))
+	ids := make([]uuid.UUID, len(i))
 	for j := range i {
 		ids[j] = i[j].ID
 	}
@@ -367,7 +367,7 @@ func (fcc *FiatCurrencyCreate) createSpec() (*FiatCurrency, *sqlgraph.CreateSpec
 			Columns: []string{fiatcurrency.InstitutionsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(institution.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(institution.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

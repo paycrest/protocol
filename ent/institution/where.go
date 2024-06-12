@@ -7,51 +7,52 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/google/uuid"
 	"github.com/paycrest/protocol/ent/predicate"
 )
 
 // ID filters vertices based on their ID field.
-func ID(id int) predicate.Institution {
+func ID(id uuid.UUID) predicate.Institution {
 	return predicate.Institution(sql.FieldEQ(FieldID, id))
 }
 
 // IDEQ applies the EQ predicate on the ID field.
-func IDEQ(id int) predicate.Institution {
+func IDEQ(id uuid.UUID) predicate.Institution {
 	return predicate.Institution(sql.FieldEQ(FieldID, id))
 }
 
 // IDNEQ applies the NEQ predicate on the ID field.
-func IDNEQ(id int) predicate.Institution {
+func IDNEQ(id uuid.UUID) predicate.Institution {
 	return predicate.Institution(sql.FieldNEQ(FieldID, id))
 }
 
 // IDIn applies the In predicate on the ID field.
-func IDIn(ids ...int) predicate.Institution {
+func IDIn(ids ...uuid.UUID) predicate.Institution {
 	return predicate.Institution(sql.FieldIn(FieldID, ids...))
 }
 
 // IDNotIn applies the NotIn predicate on the ID field.
-func IDNotIn(ids ...int) predicate.Institution {
+func IDNotIn(ids ...uuid.UUID) predicate.Institution {
 	return predicate.Institution(sql.FieldNotIn(FieldID, ids...))
 }
 
 // IDGT applies the GT predicate on the ID field.
-func IDGT(id int) predicate.Institution {
+func IDGT(id uuid.UUID) predicate.Institution {
 	return predicate.Institution(sql.FieldGT(FieldID, id))
 }
 
 // IDGTE applies the GTE predicate on the ID field.
-func IDGTE(id int) predicate.Institution {
+func IDGTE(id uuid.UUID) predicate.Institution {
 	return predicate.Institution(sql.FieldGTE(FieldID, id))
 }
 
 // IDLT applies the LT predicate on the ID field.
-func IDLT(id int) predicate.Institution {
+func IDLT(id uuid.UUID) predicate.Institution {
 	return predicate.Institution(sql.FieldLT(FieldID, id))
 }
 
 // IDLTE applies the LTE predicate on the ID field.
-func IDLTE(id int) predicate.Institution {
+func IDLTE(id uuid.UUID) predicate.Institution {
 	return predicate.Institution(sql.FieldLTE(FieldID, id))
 }
 
