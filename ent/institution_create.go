@@ -56,6 +56,12 @@ func (ic *InstitutionCreate) SetCode(s string) *InstitutionCreate {
 	return ic
 }
 
+// SetCurrencyCode sets the "currency_code" field.
+func (ic *InstitutionCreate) SetCurrencyCode(s string) *InstitutionCreate {
+	ic.mutation.SetCurrencyCode(s)
+	return ic
+}
+
 // SetName sets the "name" field.
 func (ic *InstitutionCreate) SetName(s string) *InstitutionCreate {
 	ic.mutation.SetName(s)
@@ -72,20 +78,6 @@ func (ic *InstitutionCreate) SetType(i institution.Type) *InstitutionCreate {
 func (ic *InstitutionCreate) SetNillableType(i *institution.Type) *InstitutionCreate {
 	if i != nil {
 		ic.SetType(*i)
-	}
-	return ic
-}
-
-// SetID sets the "id" field.
-func (ic *InstitutionCreate) SetID(u uuid.UUID) *InstitutionCreate {
-	ic.mutation.SetID(u)
-	return ic
-}
-
-// SetNillableID sets the "id" field if the given value is not nil.
-func (ic *InstitutionCreate) SetNillableID(u *uuid.UUID) *InstitutionCreate {
-	if u != nil {
-		ic.SetID(*u)
 	}
 	return ic
 }
@@ -156,10 +148,6 @@ func (ic *InstitutionCreate) defaults() {
 		v := institution.DefaultType
 		ic.mutation.SetType(v)
 	}
-	if _, ok := ic.mutation.ID(); !ok {
-		v := institution.DefaultID()
-		ic.mutation.SetID(v)
-	}
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -172,6 +160,9 @@ func (ic *InstitutionCreate) check() error {
 	}
 	if _, ok := ic.mutation.Code(); !ok {
 		return &ValidationError{Name: "code", err: errors.New(`ent: missing required field "Institution.code"`)}
+	}
+	if _, ok := ic.mutation.CurrencyCode(); !ok {
+		return &ValidationError{Name: "currency_code", err: errors.New(`ent: missing required field "Institution.currency_code"`)}
 	}
 	if _, ok := ic.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "Institution.name"`)}
@@ -198,13 +189,8 @@ func (ic *InstitutionCreate) sqlSave(ctx context.Context) (*Institution, error) 
 		}
 		return nil, err
 	}
-	if _spec.ID.Value != nil {
-		if id, ok := _spec.ID.Value.(*uuid.UUID); ok {
-			_node.ID = *id
-		} else if err := _node.ID.Scan(_spec.ID.Value); err != nil {
-			return nil, err
-		}
-	}
+	id := _spec.ID.Value.(int64)
+	_node.ID = int(id)
 	ic.mutation.id = &_node.ID
 	ic.mutation.done = true
 	return _node, nil
@@ -213,12 +199,8 @@ func (ic *InstitutionCreate) sqlSave(ctx context.Context) (*Institution, error) 
 func (ic *InstitutionCreate) createSpec() (*Institution, *sqlgraph.CreateSpec) {
 	var (
 		_node = &Institution{config: ic.config}
-		_spec = sqlgraph.NewCreateSpec(institution.Table, sqlgraph.NewFieldSpec(institution.FieldID, field.TypeUUID))
+		_spec = sqlgraph.NewCreateSpec(institution.Table, sqlgraph.NewFieldSpec(institution.FieldID, field.TypeInt))
 	)
-	if id, ok := ic.mutation.ID(); ok {
-		_node.ID = id
-		_spec.ID.Value = &id
-	}
 	if value, ok := ic.mutation.CreatedAt(); ok {
 		_spec.SetField(institution.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
@@ -230,6 +212,10 @@ func (ic *InstitutionCreate) createSpec() (*Institution, *sqlgraph.CreateSpec) {
 	if value, ok := ic.mutation.Code(); ok {
 		_spec.SetField(institution.FieldCode, field.TypeString, value)
 		_node.Code = value
+	}
+	if value, ok := ic.mutation.CurrencyCode(); ok {
+		_spec.SetField(institution.FieldCurrencyCode, field.TypeString, value)
+		_node.CurrencyCode = value
 	}
 	if value, ok := ic.mutation.Name(); ok {
 		_spec.SetField(institution.FieldName, field.TypeString, value)
@@ -300,6 +286,10 @@ func (icb *InstitutionCreateBulk) Save(ctx context.Context) ([]*Institution, err
 					return nil, err
 				}
 				mutation.id = &nodes[i].ID
+				if specs[i].ID.Value != nil {
+					id := specs[i].ID.Value.(int64)
+					nodes[i].ID = int(id)
+				}
 				mutation.done = true
 				return nodes[i], nil
 			})

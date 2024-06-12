@@ -107,8 +107,8 @@ func (iq *InstitutionQuery) FirstX(ctx context.Context) *Institution {
 
 // FirstID returns the first Institution ID from the query.
 // Returns a *NotFoundError when no Institution ID was found.
-func (iq *InstitutionQuery) FirstID(ctx context.Context) (id uuid.UUID, err error) {
-	var ids []uuid.UUID
+func (iq *InstitutionQuery) FirstID(ctx context.Context) (id int, err error) {
+	var ids []int
 	if ids, err = iq.Limit(1).IDs(setContextOp(ctx, iq.ctx, "FirstID")); err != nil {
 		return
 	}
@@ -120,7 +120,7 @@ func (iq *InstitutionQuery) FirstID(ctx context.Context) (id uuid.UUID, err erro
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (iq *InstitutionQuery) FirstIDX(ctx context.Context) uuid.UUID {
+func (iq *InstitutionQuery) FirstIDX(ctx context.Context) int {
 	id, err := iq.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -158,8 +158,8 @@ func (iq *InstitutionQuery) OnlyX(ctx context.Context) *Institution {
 // OnlyID is like Only, but returns the only Institution ID in the query.
 // Returns a *NotSingularError when more than one Institution ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (iq *InstitutionQuery) OnlyID(ctx context.Context) (id uuid.UUID, err error) {
-	var ids []uuid.UUID
+func (iq *InstitutionQuery) OnlyID(ctx context.Context) (id int, err error) {
+	var ids []int
 	if ids, err = iq.Limit(2).IDs(setContextOp(ctx, iq.ctx, "OnlyID")); err != nil {
 		return
 	}
@@ -175,7 +175,7 @@ func (iq *InstitutionQuery) OnlyID(ctx context.Context) (id uuid.UUID, err error
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (iq *InstitutionQuery) OnlyIDX(ctx context.Context) uuid.UUID {
+func (iq *InstitutionQuery) OnlyIDX(ctx context.Context) int {
 	id, err := iq.OnlyID(ctx)
 	if err != nil {
 		panic(err)
@@ -203,7 +203,7 @@ func (iq *InstitutionQuery) AllX(ctx context.Context) []*Institution {
 }
 
 // IDs executes the query and returns a list of Institution IDs.
-func (iq *InstitutionQuery) IDs(ctx context.Context) (ids []uuid.UUID, err error) {
+func (iq *InstitutionQuery) IDs(ctx context.Context) (ids []int, err error) {
 	if iq.ctx.Unique == nil && iq.path != nil {
 		iq.Unique(true)
 	}
@@ -215,7 +215,7 @@ func (iq *InstitutionQuery) IDs(ctx context.Context) (ids []uuid.UUID, err error
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (iq *InstitutionQuery) IDsX(ctx context.Context) []uuid.UUID {
+func (iq *InstitutionQuery) IDsX(ctx context.Context) []int {
 	ids, err := iq.IDs(ctx)
 	if err != nil {
 		panic(err)
@@ -452,7 +452,7 @@ func (iq *InstitutionQuery) sqlCount(ctx context.Context) (int, error) {
 }
 
 func (iq *InstitutionQuery) querySpec() *sqlgraph.QuerySpec {
-	_spec := sqlgraph.NewQuerySpec(institution.Table, institution.Columns, sqlgraph.NewFieldSpec(institution.FieldID, field.TypeUUID))
+	_spec := sqlgraph.NewQuerySpec(institution.Table, institution.Columns, sqlgraph.NewFieldSpec(institution.FieldID, field.TypeInt))
 	_spec.From = iq.sql
 	if unique := iq.ctx.Unique; unique != nil {
 		_spec.Unique = *unique

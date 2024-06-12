@@ -18,6 +18,7 @@ import (
 	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/fiatcurrency"
+	"github.com/paycrest/protocol/ent/institution"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	networkent "github.com/paycrest/protocol/ent/network"
 	"github.com/paycrest/protocol/ent/paymentorder"
@@ -933,7 +934,7 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 
 	// Get provision bucket
 	amountInDecimals := utils.FromSubunit(event.Amount, token.Decimals)
-	institution, err := s.getInstitutionByCode(client, event.InstitutionCode)
+	institution, err := s.getInstitutionByCode(event.InstitutionCode)
 	if err != nil {
 		return fmt.Errorf("failed to fetch institution: %w", err)
 	}
@@ -942,7 +943,7 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 		Query().
 		Where(
 			fiatcurrency.IsEnabledEQ(true),
-			fiatcurrency.CodeEQ(utils.Byte32ToString(institution.Currency)),
+			fiatcurrency.CodeEQ(institution.CurrencyCode),
 		).
 		Only(ctx)
 	if err != nil {
@@ -998,7 +999,7 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 			Query().
 			Where(
 				fiatcurrency.IsEnabledEQ(true),
-				fiatcurrency.CodeEQ(utils.Byte32ToString(institution.Currency)),
+				fiatcurrency.CodeEQ(institution.CurrencyCode),
 			).
 			Only(ctx)
 		if err != nil {
@@ -1507,18 +1508,12 @@ func (s *IndexerService) getProvisionBucket(ctx context.Context, amount decimal.
 }
 
 // getInstitutionByCode returns the institution for a given institution code
-func (s *IndexerService) getInstitutionByCode(client types.RPCClient, institutionCode [32]byte) (*contracts.SharedStructsInstitutionByCode, error) {
-	instance, err := contracts.NewGateway(orderConf.GatewayContractAddress, client.(bind.ContractBackend))
+func (s *IndexerService) getInstitutionByCode(institutionCode [32]byte) (*ent.Institution, error) {
+	instance, err := db.Client.Institution.Query().Where(institution.CodeEQ(fmt.Sprintf("%x", institutionCode))).Only(context.Background())
 	if err != nil {
 		return nil, err
 	}
-
-	institution, err := instance.GetSupportedInstitutionByCode(nil, institutionCode)
-	if err != nil {
-		return nil, err
-	}
-
-	return &institution, nil
+	return instance, nil
 }
 
 // splitLockPaymentOrder splits a lock payment order into multiple orders

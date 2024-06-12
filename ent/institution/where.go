@@ -7,52 +7,51 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	"github.com/google/uuid"
 	"github.com/paycrest/protocol/ent/predicate"
 )
 
 // ID filters vertices based on their ID field.
-func ID(id uuid.UUID) predicate.Institution {
+func ID(id int) predicate.Institution {
 	return predicate.Institution(sql.FieldEQ(FieldID, id))
 }
 
 // IDEQ applies the EQ predicate on the ID field.
-func IDEQ(id uuid.UUID) predicate.Institution {
+func IDEQ(id int) predicate.Institution {
 	return predicate.Institution(sql.FieldEQ(FieldID, id))
 }
 
 // IDNEQ applies the NEQ predicate on the ID field.
-func IDNEQ(id uuid.UUID) predicate.Institution {
+func IDNEQ(id int) predicate.Institution {
 	return predicate.Institution(sql.FieldNEQ(FieldID, id))
 }
 
 // IDIn applies the In predicate on the ID field.
-func IDIn(ids ...uuid.UUID) predicate.Institution {
+func IDIn(ids ...int) predicate.Institution {
 	return predicate.Institution(sql.FieldIn(FieldID, ids...))
 }
 
 // IDNotIn applies the NotIn predicate on the ID field.
-func IDNotIn(ids ...uuid.UUID) predicate.Institution {
+func IDNotIn(ids ...int) predicate.Institution {
 	return predicate.Institution(sql.FieldNotIn(FieldID, ids...))
 }
 
 // IDGT applies the GT predicate on the ID field.
-func IDGT(id uuid.UUID) predicate.Institution {
+func IDGT(id int) predicate.Institution {
 	return predicate.Institution(sql.FieldGT(FieldID, id))
 }
 
 // IDGTE applies the GTE predicate on the ID field.
-func IDGTE(id uuid.UUID) predicate.Institution {
+func IDGTE(id int) predicate.Institution {
 	return predicate.Institution(sql.FieldGTE(FieldID, id))
 }
 
 // IDLT applies the LT predicate on the ID field.
-func IDLT(id uuid.UUID) predicate.Institution {
+func IDLT(id int) predicate.Institution {
 	return predicate.Institution(sql.FieldLT(FieldID, id))
 }
 
 // IDLTE applies the LTE predicate on the ID field.
-func IDLTE(id uuid.UUID) predicate.Institution {
+func IDLTE(id int) predicate.Institution {
 	return predicate.Institution(sql.FieldLTE(FieldID, id))
 }
 
@@ -69,6 +68,11 @@ func UpdatedAt(v time.Time) predicate.Institution {
 // Code applies equality check predicate on the "code" field. It's identical to CodeEQ.
 func Code(v string) predicate.Institution {
 	return predicate.Institution(sql.FieldEQ(FieldCode, v))
+}
+
+// CurrencyCode applies equality check predicate on the "currency_code" field. It's identical to CurrencyCodeEQ.
+func CurrencyCode(v string) predicate.Institution {
+	return predicate.Institution(sql.FieldEQ(FieldCurrencyCode, v))
 }
 
 // Name applies equality check predicate on the "name" field. It's identical to NameEQ.
@@ -219,6 +223,71 @@ func CodeEqualFold(v string) predicate.Institution {
 // CodeContainsFold applies the ContainsFold predicate on the "code" field.
 func CodeContainsFold(v string) predicate.Institution {
 	return predicate.Institution(sql.FieldContainsFold(FieldCode, v))
+}
+
+// CurrencyCodeEQ applies the EQ predicate on the "currency_code" field.
+func CurrencyCodeEQ(v string) predicate.Institution {
+	return predicate.Institution(sql.FieldEQ(FieldCurrencyCode, v))
+}
+
+// CurrencyCodeNEQ applies the NEQ predicate on the "currency_code" field.
+func CurrencyCodeNEQ(v string) predicate.Institution {
+	return predicate.Institution(sql.FieldNEQ(FieldCurrencyCode, v))
+}
+
+// CurrencyCodeIn applies the In predicate on the "currency_code" field.
+func CurrencyCodeIn(vs ...string) predicate.Institution {
+	return predicate.Institution(sql.FieldIn(FieldCurrencyCode, vs...))
+}
+
+// CurrencyCodeNotIn applies the NotIn predicate on the "currency_code" field.
+func CurrencyCodeNotIn(vs ...string) predicate.Institution {
+	return predicate.Institution(sql.FieldNotIn(FieldCurrencyCode, vs...))
+}
+
+// CurrencyCodeGT applies the GT predicate on the "currency_code" field.
+func CurrencyCodeGT(v string) predicate.Institution {
+	return predicate.Institution(sql.FieldGT(FieldCurrencyCode, v))
+}
+
+// CurrencyCodeGTE applies the GTE predicate on the "currency_code" field.
+func CurrencyCodeGTE(v string) predicate.Institution {
+	return predicate.Institution(sql.FieldGTE(FieldCurrencyCode, v))
+}
+
+// CurrencyCodeLT applies the LT predicate on the "currency_code" field.
+func CurrencyCodeLT(v string) predicate.Institution {
+	return predicate.Institution(sql.FieldLT(FieldCurrencyCode, v))
+}
+
+// CurrencyCodeLTE applies the LTE predicate on the "currency_code" field.
+func CurrencyCodeLTE(v string) predicate.Institution {
+	return predicate.Institution(sql.FieldLTE(FieldCurrencyCode, v))
+}
+
+// CurrencyCodeContains applies the Contains predicate on the "currency_code" field.
+func CurrencyCodeContains(v string) predicate.Institution {
+	return predicate.Institution(sql.FieldContains(FieldCurrencyCode, v))
+}
+
+// CurrencyCodeHasPrefix applies the HasPrefix predicate on the "currency_code" field.
+func CurrencyCodeHasPrefix(v string) predicate.Institution {
+	return predicate.Institution(sql.FieldHasPrefix(FieldCurrencyCode, v))
+}
+
+// CurrencyCodeHasSuffix applies the HasSuffix predicate on the "currency_code" field.
+func CurrencyCodeHasSuffix(v string) predicate.Institution {
+	return predicate.Institution(sql.FieldHasSuffix(FieldCurrencyCode, v))
+}
+
+// CurrencyCodeEqualFold applies the EqualFold predicate on the "currency_code" field.
+func CurrencyCodeEqualFold(v string) predicate.Institution {
+	return predicate.Institution(sql.FieldEqualFold(FieldCurrencyCode, v))
+}
+
+// CurrencyCodeContainsFold applies the ContainsFold predicate on the "currency_code" field.
+func CurrencyCodeContainsFold(v string) predicate.Institution {
+	return predicate.Institution(sql.FieldContainsFold(FieldCurrencyCode, v))
 }
 
 // NameEQ applies the EQ predicate on the "name" field.

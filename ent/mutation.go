@@ -632,8 +632,8 @@ type FiatCurrencyMutation struct {
 	provision_buckets        map[int]struct{}
 	removedprovision_buckets map[int]struct{}
 	clearedprovision_buckets bool
-	institutions             map[uuid.UUID]struct{}
-	removedinstitutions      map[uuid.UUID]struct{}
+	institutions             map[int]struct{}
+	removedinstitutions      map[int]struct{}
 	clearedinstitutions      bool
 	done                     bool
 	oldValue                 func(context.Context) (*FiatCurrency, error)
@@ -1217,9 +1217,9 @@ func (m *FiatCurrencyMutation) ResetProvisionBuckets() {
 }
 
 // AddInstitutionIDs adds the "institutions" edge to the Institution entity by ids.
-func (m *FiatCurrencyMutation) AddInstitutionIDs(ids ...uuid.UUID) {
+func (m *FiatCurrencyMutation) AddInstitutionIDs(ids ...int) {
 	if m.institutions == nil {
-		m.institutions = make(map[uuid.UUID]struct{})
+		m.institutions = make(map[int]struct{})
 	}
 	for i := range ids {
 		m.institutions[ids[i]] = struct{}{}
@@ -1237,9 +1237,9 @@ func (m *FiatCurrencyMutation) InstitutionsCleared() bool {
 }
 
 // RemoveInstitutionIDs removes the "institutions" edge to the Institution entity by IDs.
-func (m *FiatCurrencyMutation) RemoveInstitutionIDs(ids ...uuid.UUID) {
+func (m *FiatCurrencyMutation) RemoveInstitutionIDs(ids ...int) {
 	if m.removedinstitutions == nil {
-		m.removedinstitutions = make(map[uuid.UUID]struct{})
+		m.removedinstitutions = make(map[int]struct{})
 	}
 	for i := range ids {
 		delete(m.institutions, ids[i])
@@ -1248,7 +1248,7 @@ func (m *FiatCurrencyMutation) RemoveInstitutionIDs(ids ...uuid.UUID) {
 }
 
 // RemovedInstitutions returns the removed IDs of the "institutions" edge to the Institution entity.
-func (m *FiatCurrencyMutation) RemovedInstitutionsIDs() (ids []uuid.UUID) {
+func (m *FiatCurrencyMutation) RemovedInstitutionsIDs() (ids []int) {
 	for id := range m.removedinstitutions {
 		ids = append(ids, id)
 	}
@@ -1256,7 +1256,7 @@ func (m *FiatCurrencyMutation) RemovedInstitutionsIDs() (ids []uuid.UUID) {
 }
 
 // InstitutionsIDs returns the "institutions" edge IDs in the mutation.
-func (m *FiatCurrencyMutation) InstitutionsIDs() (ids []uuid.UUID) {
+func (m *FiatCurrencyMutation) InstitutionsIDs() (ids []int) {
 	for id := range m.institutions {
 		ids = append(ids, id)
 	}
@@ -1705,10 +1705,11 @@ type InstitutionMutation struct {
 	config
 	op                   Op
 	typ                  string
-	id                   *uuid.UUID
+	id                   *int
 	created_at           *time.Time
 	updated_at           *time.Time
 	code                 *string
+	currency_code        *string
 	name                 *string
 	_type                *institution.Type
 	clearedFields        map[string]struct{}
@@ -1739,7 +1740,7 @@ func newInstitutionMutation(c config, op Op, opts ...institutionOption) *Institu
 }
 
 // withInstitutionID sets the ID field of the mutation.
-func withInstitutionID(id uuid.UUID) institutionOption {
+func withInstitutionID(id int) institutionOption {
 	return func(m *InstitutionMutation) {
 		var (
 			err   error
@@ -1789,15 +1790,9 @@ func (m InstitutionMutation) Tx() (*Tx, error) {
 	return tx, nil
 }
 
-// SetID sets the value of the id field. Note that this
-// operation is only accepted on creation of Institution entities.
-func (m *InstitutionMutation) SetID(id uuid.UUID) {
-	m.id = &id
-}
-
 // ID returns the ID value in the mutation. Note that the ID is only available
 // if it was provided to the builder or after it was returned from the database.
-func (m *InstitutionMutation) ID() (id uuid.UUID, exists bool) {
+func (m *InstitutionMutation) ID() (id int, exists bool) {
 	if m.id == nil {
 		return
 	}
@@ -1808,12 +1803,12 @@ func (m *InstitutionMutation) ID() (id uuid.UUID, exists bool) {
 // That means, if the mutation is applied within a transaction with an isolation level such
 // as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
 // or updated by the mutation.
-func (m *InstitutionMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
+func (m *InstitutionMutation) IDs(ctx context.Context) ([]int, error) {
 	switch {
 	case m.op.Is(OpUpdateOne | OpDeleteOne):
 		id, exists := m.ID()
 		if exists {
-			return []uuid.UUID{id}, nil
+			return []int{id}, nil
 		}
 		fallthrough
 	case m.op.Is(OpUpdate | OpDelete):
@@ -1929,6 +1924,42 @@ func (m *InstitutionMutation) OldCode(ctx context.Context) (v string, err error)
 // ResetCode resets all changes to the "code" field.
 func (m *InstitutionMutation) ResetCode() {
 	m.code = nil
+}
+
+// SetCurrencyCode sets the "currency_code" field.
+func (m *InstitutionMutation) SetCurrencyCode(s string) {
+	m.currency_code = &s
+}
+
+// CurrencyCode returns the value of the "currency_code" field in the mutation.
+func (m *InstitutionMutation) CurrencyCode() (r string, exists bool) {
+	v := m.currency_code
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCurrencyCode returns the old "currency_code" field's value of the Institution entity.
+// If the Institution object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InstitutionMutation) OldCurrencyCode(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCurrencyCode is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCurrencyCode requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCurrencyCode: %w", err)
+	}
+	return oldValue.CurrencyCode, nil
+}
+
+// ResetCurrencyCode resets all changes to the "currency_code" field.
+func (m *InstitutionMutation) ResetCurrencyCode() {
+	m.currency_code = nil
 }
 
 // SetName sets the "name" field.
@@ -2076,7 +2107,7 @@ func (m *InstitutionMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *InstitutionMutation) Fields() []string {
-	fields := make([]string, 0, 5)
+	fields := make([]string, 0, 6)
 	if m.created_at != nil {
 		fields = append(fields, institution.FieldCreatedAt)
 	}
@@ -2085,6 +2116,9 @@ func (m *InstitutionMutation) Fields() []string {
 	}
 	if m.code != nil {
 		fields = append(fields, institution.FieldCode)
+	}
+	if m.currency_code != nil {
+		fields = append(fields, institution.FieldCurrencyCode)
 	}
 	if m.name != nil {
 		fields = append(fields, institution.FieldName)
@@ -2106,6 +2140,8 @@ func (m *InstitutionMutation) Field(name string) (ent.Value, bool) {
 		return m.UpdatedAt()
 	case institution.FieldCode:
 		return m.Code()
+	case institution.FieldCurrencyCode:
+		return m.CurrencyCode()
 	case institution.FieldName:
 		return m.Name()
 	case institution.FieldType:
@@ -2125,6 +2161,8 @@ func (m *InstitutionMutation) OldField(ctx context.Context, name string) (ent.Va
 		return m.OldUpdatedAt(ctx)
 	case institution.FieldCode:
 		return m.OldCode(ctx)
+	case institution.FieldCurrencyCode:
+		return m.OldCurrencyCode(ctx)
 	case institution.FieldName:
 		return m.OldName(ctx)
 	case institution.FieldType:
@@ -2158,6 +2196,13 @@ func (m *InstitutionMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCode(v)
+		return nil
+	case institution.FieldCurrencyCode:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCurrencyCode(v)
 		return nil
 	case institution.FieldName:
 		v, ok := value.(string)
@@ -2230,6 +2275,9 @@ func (m *InstitutionMutation) ResetField(name string) error {
 		return nil
 	case institution.FieldCode:
 		m.ResetCode()
+		return nil
+	case institution.FieldCurrencyCode:
+		m.ResetCurrencyCode()
 		return nil
 	case institution.FieldName:
 		m.ResetName()
