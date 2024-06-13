@@ -11,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/google/uuid"
 	"github.com/paycrest/protocol/ent"
+	"github.com/paycrest/protocol/ent/institution"
 	"github.com/paycrest/protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	"github.com/paycrest/protocol/ent/paymentorder"
@@ -65,14 +66,14 @@ type TokenTransferEvent struct {
 
 // OrderCreatedEvent represents an order created event.
 type OrderCreatedEvent struct {
-	BlockNumber     uint64
-	TxHash          string
-	Token           string
-	Amount          *big.Int
-	ProtocolFee     *big.Int
-	OrderId         [32]byte
-	Rate            *big.Int
-	MessageHash     string
+	BlockNumber uint64
+	TxHash      string
+	Token       string
+	Amount      *big.Int
+	ProtocolFee *big.Int
+	OrderId     [32]byte
+	Rate        *big.Int
+	MessageHash string
 }
 
 // OrderSettledEvent represents a order settled event.
@@ -99,7 +100,6 @@ type OrderService interface {
 	RefundOrder(ctx context.Context, orderID string) error
 	RevertOrder(ctx context.Context, order *ent.PaymentOrder) error
 	SettleOrder(ctx context.Context, orderID uuid.UUID) error
-	GetSupportedInstitutions(ctx context.Context, client RPCClient, currencyCode string) ([]Institution, error)
 }
 
 // CreateOrderParams is the parameters for the create order payload
@@ -467,10 +467,10 @@ type ResendTokenPayload struct {
 	Email string `json:"email" binding:"required,email"`
 }
 
-type Institution struct {
-	Name string `json:"name"`
-	Code string `json:"code"`
-	Type string `json:"type"`
+type SupportedInstitutions struct {
+	Name string           `json:"name"`
+	Code string           `json:"code"`
+	Type institution.Type `json:"type"`
 }
 
 // SupportedCurrencies is the supported currencies response struct.

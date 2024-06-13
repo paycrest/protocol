@@ -69,7 +69,12 @@ func (ctrl *Controller) GetInstitutionsByCurrency(ctx *gin.Context) {
 	// Get currency code from the URL
 	currencyCode := ctx.Param("currency_code")
 
-	Institutions, err := storage.Client.Institution.Query().Where(institution.CodeEQ(currencyCode)).All(ctx)
+	institutions, err := storage.Client.Institution.
+		Query().
+		Where(institution.HasFiatCurrencyWith(
+			fiatcurrency.CodeEQ(currencyCode),
+		)).
+		All(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusBadRequest, "error",
@@ -77,7 +82,16 @@ func (ctrl *Controller) GetInstitutionsByCurrency(ctx *gin.Context) {
 		return
 	}
 
-	u.APIResponse(ctx, http.StatusOK, "success", "OK", Institutions)
+	response := make([]types.SupportedInstitutions, 0, len(institutions))
+	for _, institution := range institutions {
+		response = append(response, types.SupportedInstitutions{
+			Code: institution.Code,
+			Name: institution.Name,
+			Type: institution.Type,
+		})
+	}
+
+	u.APIResponse(ctx, http.StatusOK, "success", "OK", institutions)
 }
 
 // GetTokenRate controller fetches the current rate of the cryptocurrency token against the fiat currency

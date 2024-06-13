@@ -5,7 +5,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/paycrest/protocol/ent"
-	"github.com/paycrest/protocol/types"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -32,9 +31,4 @@ func (m *MockOrderService) RevertOrder(ctx context.Context, order *ent.PaymentOr
 // SettleOrder mocks the SettleOrder method
 func (m *MockOrderService) SettleOrder(ctx context.Context, orderID uuid.UUID) error {
 	return nil
-}
-
-// GetSupportedInstitutions mocks the GetSupportedInstitutions method
-func (m *MockOrderService) GetSupportedInstitutions(ctx context.Context, client types.RPCClient, currencyCode string) ([]types.Institution, error) {
-	return nil, nil
 }

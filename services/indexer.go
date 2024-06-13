@@ -267,14 +267,14 @@ func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPC
 			case log := <-logs:
 				go func() {
 					event := &types.OrderCreatedEvent{
-						BlockNumber:     log.Raw.BlockNumber,
-						TxHash:          log.Raw.TxHash.Hex(),
-						Token:           log.Token.Hex(),
-						Amount:          log.Amount,
-						ProtocolFee:     log.ProtocolFee,
-						OrderId:         log.OrderId,
-						Rate:            log.Rate,
-						MessageHash:     log.MessageHash,
+						BlockNumber: log.Raw.BlockNumber,
+						TxHash:      log.Raw.TxHash.Hex(),
+						Token:       log.Token.Hex(),
+						Amount:      log.Amount,
+						ProtocolFee: log.ProtocolFee,
+						OrderId:     log.OrderId,
+						Rate:        log.Rate,
+						MessageHash: log.MessageHash,
 					}
 					err := s.CreateLockPaymentOrder(ctx, client, network, event)
 					if err != nil {
@@ -323,14 +323,14 @@ func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPC
 		// Iterate over logs
 		for iter.Next() {
 			event := &types.OrderCreatedEvent{
-				BlockNumber:     iter.Event.Raw.BlockNumber,
-				TxHash:          iter.Event.Raw.TxHash.Hex(),
-				Token:           iter.Event.Token.Hex(),
-				Amount:          iter.Event.Amount,
-				ProtocolFee:     iter.Event.ProtocolFee,
-				OrderId:         iter.Event.OrderId,
-				Rate:            iter.Event.Rate,
-				MessageHash:     iter.Event.MessageHash,
+				BlockNumber: iter.Event.Raw.BlockNumber,
+				TxHash:      iter.Event.Raw.TxHash.Hex(),
+				Token:       iter.Event.Token.Hex(),
+				Amount:      iter.Event.Amount,
+				ProtocolFee: iter.Event.ProtocolFee,
+				OrderId:     iter.Event.OrderId,
+				Rate:        iter.Event.Rate,
+				MessageHash: iter.Event.MessageHash,
 			}
 			err := s.CreateLockPaymentOrder(ctx, client, network, event)
 			if err != nil {
@@ -388,14 +388,14 @@ func (s *IndexerService) IndexOrderCreatedTron(ctx context.Context, order *ent.P
 					}
 
 					event := &types.OrderCreatedEvent{
-						BlockNumber:     uint64(data["blockNumber"].(float64)),
-						TxHash:          data["id"].(string),
-						Token:           utils.ParseTopicToTronAddress(eventData["topics"].([]interface{})[2].(string)),
-						Amount:          utils.ParseTopicToBigInt(eventData["topics"].([]interface{})[3].(string)),
-						ProtocolFee:     unpackedEventData[0].(*big.Int),
-						OrderId:         unpackedEventData[1].([32]byte),
-						Rate:            unpackedEventData[2].(*big.Int),
-						MessageHash:     unpackedEventData[4].(string),
+						BlockNumber: uint64(data["blockNumber"].(float64)),
+						TxHash:      data["id"].(string),
+						Token:       utils.ParseTopicToTronAddress(eventData["topics"].([]interface{})[2].(string)),
+						Amount:      utils.ParseTopicToBigInt(eventData["topics"].([]interface{})[3].(string)),
+						ProtocolFee: unpackedEventData[0].(*big.Int),
+						OrderId:     unpackedEventData[1].([32]byte),
+						Rate:        unpackedEventData[2].(*big.Int),
+						MessageHash: unpackedEventData[4].(string),
 					}
 
 					// Connect to RPC endpoint
@@ -931,7 +931,7 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 
 	// Get provision bucket
 	amountInDecimals := utils.FromSubunit(event.Amount, token.Decimals)
-	institution, err := s.getInstitutionByCode(event.InstitutionCode)
+	institution, err := s.getInstitutionByCode(ctx, recipient.Institution)
 	if err != nil {
 		return fmt.Errorf("failed to fetch institution: %w", err)
 	}
@@ -940,7 +940,7 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 		Query().
 		Where(
 			fiatcurrency.IsEnabledEQ(true),
-			fiatcurrency.CodeEQ(institution.CurrencyCode),
+			fiatcurrency.CodeEQ(institution.Edges.FiatCurrency.Code),
 		).
 		Only(ctx)
 	if err != nil {
@@ -962,7 +962,7 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 		Rate:              rate,
 		BlockNumber:       int64(event.BlockNumber),
 		TxHash:            event.TxHash,
-		Institution:       "KUDANGPC",
+		Institution:       recipient.Institution,
 		AccountIdentifier: recipient.AccountIdentifier,
 		AccountName:       recipient.AccountName,
 		ProviderID:        recipient.ProviderID,
@@ -1505,12 +1505,16 @@ func (s *IndexerService) getProvisionBucket(ctx context.Context, amount decimal.
 }
 
 // getInstitutionByCode returns the institution for a given institution code
-func (s *IndexerService) getInstitutionByCode(institutionCode [32]byte) (*ent.Institution, error) {
-	instance, err := db.Client.Institution.Query().Where(institution.CodeEQ(fmt.Sprintf("%x", institutionCode))).Only(context.Background())
+func (s *IndexerService) getInstitutionByCode(ctx context.Context, institutionCode string) (*ent.Institution, error) {
+	institution, err := db.Client.Institution.
+		Query().
+		Where(institution.CodeEQ(institutionCode)).
+		WithFiatCurrency().
+		Only(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return instance, nil
+	return institution, nil
 }
 
 // splitLockPaymentOrder splits a lock payment order into multiple orders
