@@ -82,6 +82,20 @@ func (nc *NetworkCreate) SetRPCEndpoint(s string) *NetworkCreate {
 	return nc
 }
 
+// SetGatewayContractAddress sets the "gateway_contract_address" field.
+func (nc *NetworkCreate) SetGatewayContractAddress(s string) *NetworkCreate {
+	nc.mutation.SetGatewayContractAddress(s)
+	return nc
+}
+
+// SetNillableGatewayContractAddress sets the "gateway_contract_address" field if the given value is not nil.
+func (nc *NetworkCreate) SetNillableGatewayContractAddress(s *string) *NetworkCreate {
+	if s != nil {
+		nc.SetGatewayContractAddress(*s)
+	}
+	return nc
+}
+
 // SetIsTestnet sets the "is_testnet" field.
 func (nc *NetworkCreate) SetIsTestnet(b bool) *NetworkCreate {
 	nc.mutation.SetIsTestnet(b)
@@ -152,6 +166,10 @@ func (nc *NetworkCreate) defaults() {
 		v := network.DefaultUpdatedAt()
 		nc.mutation.SetUpdatedAt(v)
 	}
+	if _, ok := nc.mutation.GatewayContractAddress(); !ok {
+		v := network.DefaultGatewayContractAddress
+		nc.mutation.SetGatewayContractAddress(v)
+	}
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -170,6 +188,9 @@ func (nc *NetworkCreate) check() error {
 	}
 	if _, ok := nc.mutation.RPCEndpoint(); !ok {
 		return &ValidationError{Name: "rpc_endpoint", err: errors.New(`ent: missing required field "Network.rpc_endpoint"`)}
+	}
+	if _, ok := nc.mutation.GatewayContractAddress(); !ok {
+		return &ValidationError{Name: "gateway_contract_address", err: errors.New(`ent: missing required field "Network.gateway_contract_address"`)}
 	}
 	if _, ok := nc.mutation.IsTestnet(); !ok {
 		return &ValidationError{Name: "is_testnet", err: errors.New(`ent: missing required field "Network.is_testnet"`)}
@@ -226,6 +247,10 @@ func (nc *NetworkCreate) createSpec() (*Network, *sqlgraph.CreateSpec) {
 	if value, ok := nc.mutation.RPCEndpoint(); ok {
 		_spec.SetField(network.FieldRPCEndpoint, field.TypeString, value)
 		_node.RPCEndpoint = value
+	}
+	if value, ok := nc.mutation.GatewayContractAddress(); ok {
+		_spec.SetField(network.FieldGatewayContractAddress, field.TypeString, value)
+		_node.GatewayContractAddress = value
 	}
 	if value, ok := nc.mutation.IsTestnet(); ok {
 		_spec.SetField(network.FieldIsTestnet, field.TypeBool, value)

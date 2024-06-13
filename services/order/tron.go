@@ -112,7 +112,7 @@ func (s *OrderTron) CreateOrder(ctx context.Context, orderID uuid.UUID) error {
 	}
 
 	// Normalize addresses
-	gatewayContractAddress, err := util.Base58ToAddress(config.OrderConfig().GatewayContractAddressTron)
+	gatewayContractAddress, err := util.Base58ToAddress(order.Edges.Token.Edges.Network.GatewayContractAddress)
 	if err != nil {
 		return fmt.Errorf("%s - Tron.CreateOrder.Base58ToAddress: %w", orderIDPrefix, err)
 	}
@@ -223,7 +223,7 @@ func (s *OrderTron) RefundOrder(ctx context.Context, orderID string) error {
 	}
 
 	// Normalize addresses
-	gatewayContractAddress, err := util.Base58ToAddress(config.OrderConfig().GatewayContractAddressTron)
+	gatewayContractAddress, err := util.Base58ToAddress(lockOrder.Edges.Token.Edges.Network.GatewayContractAddress)
 	if err != nil {
 		return fmt.Errorf("%s - Tron.RefundOrder.Base58ToAddress: %w", orderIDPrefix, err)
 	}
@@ -418,7 +418,7 @@ func (s *OrderTron) SettleOrder(ctx context.Context, orderID uuid.UUID) error {
 	}
 
 	// Normalize addresses
-	gatewayContractAddress, err := util.Base58ToAddress(config.OrderConfig().GatewayContractAddressTron)
+	gatewayContractAddress, err := util.Base58ToAddress(order.Edges.Token.Edges.Network.GatewayContractAddress)
 	if err != nil {
 		return fmt.Errorf("%s - Tron.SettleOrder.Base58ToAddress: %w", orderIDPrefix, err)
 	}
