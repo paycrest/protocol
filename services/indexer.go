@@ -992,10 +992,10 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 	}
 
 	if provisionBucket == nil && !isPrivate {
-		currency := institution.Edges.FiatCurrency
-		if institution.Edges.FiatCurrency == nil || !currency.IsEnabled {
+		if institution.Edges.FiatCurrency == nil || !institution.Edges.FiatCurrency.IsEnabled {
 			return fmt.Errorf("failed to fetch an active fiat currency")
 		}
+		currency := institution.Edges.FiatCurrency
 
 		// Split lock payment order into multiple orders
 		err = s.splitLockPaymentOrder(
