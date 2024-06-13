@@ -14,8 +14,6 @@ type OrderConfiguration struct {
 	OrderFulfillmentValidity         time.Duration
 	ReceiveAddressValidity           time.Duration
 	OrderRequestValidity             time.Duration
-	GatewayContractAddress           common.Address
-	GatewayContractAddressTron       string
 	TronProApiKey                    string
 	EntryPointContractAddress        common.Address
 	BucketQueueRebuildInterval       int // in hours
@@ -51,8 +49,6 @@ func OrderConfig() *OrderConfiguration {
 		OrderFulfillmentValidity:         time.Duration(viper.GetInt("ORDER_FULFILLMENT_VALIDITY")) * time.Minute,
 		ReceiveAddressValidity:           time.Duration(viper.GetInt("RECEIVE_ADDRESS_VALIDITY")) * time.Minute,
 		OrderRequestValidity:             time.Duration(viper.GetInt("ORDER_REQUEST_VALIDITY")) * time.Second,
-		GatewayContractAddress:           common.HexToAddress(viper.GetString("GATEWAY_CONTRACT_ADDRESS")),
-		GatewayContractAddressTron:       viper.GetString("GATEWAY_CONTRACT_ADDRESS_TRON"),
 		TronProApiKey:                    viper.GetString("TRON_PRO_API_KEY"),
 		ActiveAAService:                  viper.GetString("ACTIVE_AA_SERVICE"),
 		BundlerUrlEthereum:               viper.GetString("BUNDLER_URL_ETHEREUM"),
