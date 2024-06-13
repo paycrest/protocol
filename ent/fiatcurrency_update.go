@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/paycrest/protocol/ent/fiatcurrency"
+	"github.com/paycrest/protocol/ent/institution"
 	"github.com/paycrest/protocol/ent/predicate"
 	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/provisionbucket"
@@ -139,6 +140,21 @@ func (fcu *FiatCurrencyUpdate) AddProvisionBuckets(p ...*ProvisionBucket) *FiatC
 	return fcu.AddProvisionBucketIDs(ids...)
 }
 
+// AddInstitutionIDs adds the "institutions" edge to the Institution entity by IDs.
+func (fcu *FiatCurrencyUpdate) AddInstitutionIDs(ids ...int) *FiatCurrencyUpdate {
+	fcu.mutation.AddInstitutionIDs(ids...)
+	return fcu
+}
+
+// AddInstitutions adds the "institutions" edges to the Institution entity.
+func (fcu *FiatCurrencyUpdate) AddInstitutions(i ...*Institution) *FiatCurrencyUpdate {
+	ids := make([]int, len(i))
+	for j := range i {
+		ids[j] = i[j].ID
+	}
+	return fcu.AddInstitutionIDs(ids...)
+}
+
 // Mutation returns the FiatCurrencyMutation object of the builder.
 func (fcu *FiatCurrencyUpdate) Mutation() *FiatCurrencyMutation {
 	return fcu.mutation
@@ -184,6 +200,27 @@ func (fcu *FiatCurrencyUpdate) RemoveProvisionBuckets(p ...*ProvisionBucket) *Fi
 		ids[i] = p[i].ID
 	}
 	return fcu.RemoveProvisionBucketIDs(ids...)
+}
+
+// ClearInstitutions clears all "institutions" edges to the Institution entity.
+func (fcu *FiatCurrencyUpdate) ClearInstitutions() *FiatCurrencyUpdate {
+	fcu.mutation.ClearInstitutions()
+	return fcu
+}
+
+// RemoveInstitutionIDs removes the "institutions" edge to Institution entities by IDs.
+func (fcu *FiatCurrencyUpdate) RemoveInstitutionIDs(ids ...int) *FiatCurrencyUpdate {
+	fcu.mutation.RemoveInstitutionIDs(ids...)
+	return fcu
+}
+
+// RemoveInstitutions removes "institutions" edges to Institution entities.
+func (fcu *FiatCurrencyUpdate) RemoveInstitutions(i ...*Institution) *FiatCurrencyUpdate {
+	ids := make([]int, len(i))
+	for j := range i {
+		ids[j] = i[j].ID
+	}
+	return fcu.RemoveInstitutionIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -351,6 +388,51 @@ func (fcu *FiatCurrencyUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if fcu.mutation.InstitutionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   fiatcurrency.InstitutionsTable,
+			Columns: []string{fiatcurrency.InstitutionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(institution.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := fcu.mutation.RemovedInstitutionsIDs(); len(nodes) > 0 && !fcu.mutation.InstitutionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   fiatcurrency.InstitutionsTable,
+			Columns: []string{fiatcurrency.InstitutionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(institution.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := fcu.mutation.InstitutionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   fiatcurrency.InstitutionsTable,
+			Columns: []string{fiatcurrency.InstitutionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(institution.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, fcu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{fiatcurrency.Label}
@@ -479,6 +561,21 @@ func (fcuo *FiatCurrencyUpdateOne) AddProvisionBuckets(p ...*ProvisionBucket) *F
 	return fcuo.AddProvisionBucketIDs(ids...)
 }
 
+// AddInstitutionIDs adds the "institutions" edge to the Institution entity by IDs.
+func (fcuo *FiatCurrencyUpdateOne) AddInstitutionIDs(ids ...int) *FiatCurrencyUpdateOne {
+	fcuo.mutation.AddInstitutionIDs(ids...)
+	return fcuo
+}
+
+// AddInstitutions adds the "institutions" edges to the Institution entity.
+func (fcuo *FiatCurrencyUpdateOne) AddInstitutions(i ...*Institution) *FiatCurrencyUpdateOne {
+	ids := make([]int, len(i))
+	for j := range i {
+		ids[j] = i[j].ID
+	}
+	return fcuo.AddInstitutionIDs(ids...)
+}
+
 // Mutation returns the FiatCurrencyMutation object of the builder.
 func (fcuo *FiatCurrencyUpdateOne) Mutation() *FiatCurrencyMutation {
 	return fcuo.mutation
@@ -524,6 +621,27 @@ func (fcuo *FiatCurrencyUpdateOne) RemoveProvisionBuckets(p ...*ProvisionBucket)
 		ids[i] = p[i].ID
 	}
 	return fcuo.RemoveProvisionBucketIDs(ids...)
+}
+
+// ClearInstitutions clears all "institutions" edges to the Institution entity.
+func (fcuo *FiatCurrencyUpdateOne) ClearInstitutions() *FiatCurrencyUpdateOne {
+	fcuo.mutation.ClearInstitutions()
+	return fcuo
+}
+
+// RemoveInstitutionIDs removes the "institutions" edge to Institution entities by IDs.
+func (fcuo *FiatCurrencyUpdateOne) RemoveInstitutionIDs(ids ...int) *FiatCurrencyUpdateOne {
+	fcuo.mutation.RemoveInstitutionIDs(ids...)
+	return fcuo
+}
+
+// RemoveInstitutions removes "institutions" edges to Institution entities.
+func (fcuo *FiatCurrencyUpdateOne) RemoveInstitutions(i ...*Institution) *FiatCurrencyUpdateOne {
+	ids := make([]int, len(i))
+	for j := range i {
+		ids[j] = i[j].ID
+	}
+	return fcuo.RemoveInstitutionIDs(ids...)
 }
 
 // Where appends a list predicates to the FiatCurrencyUpdate builder.
@@ -714,6 +832,51 @@ func (fcuo *FiatCurrencyUpdateOne) sqlSave(ctx context.Context) (_node *FiatCurr
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(provisionbucket.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if fcuo.mutation.InstitutionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   fiatcurrency.InstitutionsTable,
+			Columns: []string{fiatcurrency.InstitutionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(institution.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := fcuo.mutation.RemovedInstitutionsIDs(); len(nodes) > 0 && !fcuo.mutation.InstitutionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   fiatcurrency.InstitutionsTable,
+			Columns: []string{fiatcurrency.InstitutionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(institution.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := fcuo.mutation.InstitutionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   fiatcurrency.InstitutionsTable,
+			Columns: []string{fiatcurrency.InstitutionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(institution.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

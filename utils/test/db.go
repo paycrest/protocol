@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/paycrest/protocol/ent"
+	"github.com/paycrest/protocol/ent/institution"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	"github.com/paycrest/protocol/ent/paymentorder"
 	"github.com/paycrest/protocol/ent/providerprofile"
@@ -345,6 +346,22 @@ func CreateTestFiatCurrency(overrides map[string]interface{}) (*ent.FiatCurrency
 		payload[key] = value
 	}
 
+	institutions, err := db.Client.Institution.CreateBulk(
+		db.Client.Institution.
+			Create().
+			SetName("Kuda Microfinance Bank").
+			SetCode("KUDANGN").
+			SetType(institution.TypeMobileMoney),
+		db.Client.Institution.
+			Create().
+			SetName("FirstBank Bank").
+			SetCode("FBNNGN"),
+	).Save(context.Background())
+
+	if err != nil {
+		return nil, err
+	}
+
 	currency, err := db.Client.FiatCurrency.
 		Create().
 		SetCode(payload["code"].(string)).
@@ -354,6 +371,7 @@ func CreateTestFiatCurrency(overrides map[string]interface{}) (*ent.FiatCurrency
 		SetName(payload["name"].(string)).
 		SetMarketRate(decimal.NewFromFloat(payload["market_rate"].(float64))).
 		SetIsEnabled(true).
+		AddInstitutions(institutions...).
 		Save(context.Background())
 
 	return currency, err

@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/paycrest/protocol/ent/apikey"
 	"github.com/paycrest/protocol/ent/fiatcurrency"
+	"github.com/paycrest/protocol/ent/institution"
 	"github.com/paycrest/protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	"github.com/paycrest/protocol/ent/network"
@@ -67,6 +68,21 @@ func init() {
 	fiatcurrencyDescID := fiatcurrencyFields[0].Descriptor()
 	// fiatcurrency.DefaultID holds the default value on creation for the id field.
 	fiatcurrency.DefaultID = fiatcurrencyDescID.Default.(func() uuid.UUID)
+	institutionMixin := schema.Institution{}.Mixin()
+	institutionMixinFields0 := institutionMixin[0].Fields()
+	_ = institutionMixinFields0
+	institutionFields := schema.Institution{}.Fields()
+	_ = institutionFields
+	// institutionDescCreatedAt is the schema descriptor for created_at field.
+	institutionDescCreatedAt := institutionMixinFields0[0].Descriptor()
+	// institution.DefaultCreatedAt holds the default value on creation for the created_at field.
+	institution.DefaultCreatedAt = institutionDescCreatedAt.Default.(func() time.Time)
+	// institutionDescUpdatedAt is the schema descriptor for updated_at field.
+	institutionDescUpdatedAt := institutionMixinFields0[1].Descriptor()
+	// institution.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	institution.DefaultUpdatedAt = institutionDescUpdatedAt.Default.(func() time.Time)
+	// institution.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	institution.UpdateDefaultUpdatedAt = institutionDescUpdatedAt.UpdateDefault.(func() time.Time)
 	lockorderfulfillmentMixin := schema.LockOrderFulfillment{}.Mixin()
 	lockorderfulfillmentMixinFields0 := lockorderfulfillmentMixin[0].Fields()
 	_ = lockorderfulfillmentMixinFields0

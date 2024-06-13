@@ -37,6 +37,8 @@ const (
 	EdgeProviders = "providers"
 	// EdgeProvisionBuckets holds the string denoting the provision_buckets edge name in mutations.
 	EdgeProvisionBuckets = "provision_buckets"
+	// EdgeInstitutions holds the string denoting the institutions edge name in mutations.
+	EdgeInstitutions = "institutions"
 	// Table holds the table name of the fiatcurrency in the database.
 	Table = "fiat_currencies"
 	// ProvidersTable is the table that holds the providers relation/edge.
@@ -53,6 +55,13 @@ const (
 	ProvisionBucketsInverseTable = "provision_buckets"
 	// ProvisionBucketsColumn is the table column denoting the provision_buckets relation/edge.
 	ProvisionBucketsColumn = "fiat_currency_provision_buckets"
+	// InstitutionsTable is the table that holds the institutions relation/edge.
+	InstitutionsTable = "institutions"
+	// InstitutionsInverseTable is the table name for the Institution entity.
+	// It exists in this package in order to avoid circular dependency with the "institution" package.
+	InstitutionsInverseTable = "institutions"
+	// InstitutionsColumn is the table column denoting the institutions relation/edge.
+	InstitutionsColumn = "fiat_currency_institutions"
 )
 
 // Columns holds all SQL columns for fiatcurrency fields.
@@ -174,6 +183,20 @@ func ByProvisionBuckets(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption 
 		sqlgraph.OrderByNeighborTerms(s, newProvisionBucketsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByInstitutionsCount orders the results by institutions count.
+func ByInstitutionsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newInstitutionsStep(), opts...)
+	}
+}
+
+// ByInstitutions orders the results by institutions terms.
+func ByInstitutions(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newInstitutionsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newProvidersStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -186,5 +209,12 @@ func newProvisionBucketsStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(ProvisionBucketsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, ProvisionBucketsTable, ProvisionBucketsColumn),
+	)
+}
+func newInstitutionsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(InstitutionsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, InstitutionsTable, InstitutionsColumn),
 	)
 }

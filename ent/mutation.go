@@ -14,6 +14,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/paycrest/protocol/ent/apikey"
 	"github.com/paycrest/protocol/ent/fiatcurrency"
+	"github.com/paycrest/protocol/ent/institution"
 	"github.com/paycrest/protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	"github.com/paycrest/protocol/ent/network"
@@ -45,6 +46,7 @@ const (
 	// Node types.
 	TypeAPIKey                = "APIKey"
 	TypeFiatCurrency          = "FiatCurrency"
+	TypeInstitution           = "Institution"
 	TypeLockOrderFulfillment  = "LockOrderFulfillment"
 	TypeLockPaymentOrder      = "LockPaymentOrder"
 	TypeNetwork               = "Network"
@@ -630,6 +632,9 @@ type FiatCurrencyMutation struct {
 	provision_buckets        map[int]struct{}
 	removedprovision_buckets map[int]struct{}
 	clearedprovision_buckets bool
+	institutions             map[int]struct{}
+	removedinstitutions      map[int]struct{}
+	clearedinstitutions      bool
 	done                     bool
 	oldValue                 func(context.Context) (*FiatCurrency, error)
 	predicates               []predicate.FiatCurrency
@@ -1211,6 +1216,60 @@ func (m *FiatCurrencyMutation) ResetProvisionBuckets() {
 	m.removedprovision_buckets = nil
 }
 
+// AddInstitutionIDs adds the "institutions" edge to the Institution entity by ids.
+func (m *FiatCurrencyMutation) AddInstitutionIDs(ids ...int) {
+	if m.institutions == nil {
+		m.institutions = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.institutions[ids[i]] = struct{}{}
+	}
+}
+
+// ClearInstitutions clears the "institutions" edge to the Institution entity.
+func (m *FiatCurrencyMutation) ClearInstitutions() {
+	m.clearedinstitutions = true
+}
+
+// InstitutionsCleared reports if the "institutions" edge to the Institution entity was cleared.
+func (m *FiatCurrencyMutation) InstitutionsCleared() bool {
+	return m.clearedinstitutions
+}
+
+// RemoveInstitutionIDs removes the "institutions" edge to the Institution entity by IDs.
+func (m *FiatCurrencyMutation) RemoveInstitutionIDs(ids ...int) {
+	if m.removedinstitutions == nil {
+		m.removedinstitutions = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.institutions, ids[i])
+		m.removedinstitutions[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedInstitutions returns the removed IDs of the "institutions" edge to the Institution entity.
+func (m *FiatCurrencyMutation) RemovedInstitutionsIDs() (ids []int) {
+	for id := range m.removedinstitutions {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// InstitutionsIDs returns the "institutions" edge IDs in the mutation.
+func (m *FiatCurrencyMutation) InstitutionsIDs() (ids []int) {
+	for id := range m.institutions {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetInstitutions resets all changes to the "institutions" edge.
+func (m *FiatCurrencyMutation) ResetInstitutions() {
+	m.institutions = nil
+	m.clearedinstitutions = false
+	m.removedinstitutions = nil
+}
+
 // Where appends a list predicates to the FiatCurrencyMutation builder.
 func (m *FiatCurrencyMutation) Where(ps ...predicate.FiatCurrency) {
 	m.predicates = append(m.predicates, ps...)
@@ -1507,12 +1566,15 @@ func (m *FiatCurrencyMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *FiatCurrencyMutation) AddedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.providers != nil {
 		edges = append(edges, fiatcurrency.EdgeProviders)
 	}
 	if m.provision_buckets != nil {
 		edges = append(edges, fiatcurrency.EdgeProvisionBuckets)
+	}
+	if m.institutions != nil {
+		edges = append(edges, fiatcurrency.EdgeInstitutions)
 	}
 	return edges
 }
@@ -1533,18 +1595,27 @@ func (m *FiatCurrencyMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case fiatcurrency.EdgeInstitutions:
+		ids := make([]ent.Value, 0, len(m.institutions))
+		for id := range m.institutions {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *FiatCurrencyMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.removedproviders != nil {
 		edges = append(edges, fiatcurrency.EdgeProviders)
 	}
 	if m.removedprovision_buckets != nil {
 		edges = append(edges, fiatcurrency.EdgeProvisionBuckets)
+	}
+	if m.removedinstitutions != nil {
+		edges = append(edges, fiatcurrency.EdgeInstitutions)
 	}
 	return edges
 }
@@ -1565,18 +1636,27 @@ func (m *FiatCurrencyMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case fiatcurrency.EdgeInstitutions:
+		ids := make([]ent.Value, 0, len(m.removedinstitutions))
+		for id := range m.removedinstitutions {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *FiatCurrencyMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.clearedproviders {
 		edges = append(edges, fiatcurrency.EdgeProviders)
 	}
 	if m.clearedprovision_buckets {
 		edges = append(edges, fiatcurrency.EdgeProvisionBuckets)
+	}
+	if m.clearedinstitutions {
+		edges = append(edges, fiatcurrency.EdgeInstitutions)
 	}
 	return edges
 }
@@ -1589,6 +1669,8 @@ func (m *FiatCurrencyMutation) EdgeCleared(name string) bool {
 		return m.clearedproviders
 	case fiatcurrency.EdgeProvisionBuckets:
 		return m.clearedprovision_buckets
+	case fiatcurrency.EdgeInstitutions:
+		return m.clearedinstitutions
 	}
 	return false
 }
@@ -1611,8 +1693,620 @@ func (m *FiatCurrencyMutation) ResetEdge(name string) error {
 	case fiatcurrency.EdgeProvisionBuckets:
 		m.ResetProvisionBuckets()
 		return nil
+	case fiatcurrency.EdgeInstitutions:
+		m.ResetInstitutions()
+		return nil
 	}
 	return fmt.Errorf("unknown FiatCurrency edge %s", name)
+}
+
+// InstitutionMutation represents an operation that mutates the Institution nodes in the graph.
+type InstitutionMutation struct {
+	config
+	op                   Op
+	typ                  string
+	id                   *int
+	created_at           *time.Time
+	updated_at           *time.Time
+	code                 *string
+	name                 *string
+	_type                *institution.Type
+	clearedFields        map[string]struct{}
+	fiat_currency        *uuid.UUID
+	clearedfiat_currency bool
+	done                 bool
+	oldValue             func(context.Context) (*Institution, error)
+	predicates           []predicate.Institution
+}
+
+var _ ent.Mutation = (*InstitutionMutation)(nil)
+
+// institutionOption allows management of the mutation configuration using functional options.
+type institutionOption func(*InstitutionMutation)
+
+// newInstitutionMutation creates new mutation for the Institution entity.
+func newInstitutionMutation(c config, op Op, opts ...institutionOption) *InstitutionMutation {
+	m := &InstitutionMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeInstitution,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withInstitutionID sets the ID field of the mutation.
+func withInstitutionID(id int) institutionOption {
+	return func(m *InstitutionMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *Institution
+		)
+		m.oldValue = func(ctx context.Context) (*Institution, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().Institution.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withInstitution sets the old Institution of the mutation.
+func withInstitution(node *Institution) institutionOption {
+	return func(m *InstitutionMutation) {
+		m.oldValue = func(context.Context) (*Institution, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m InstitutionMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m InstitutionMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *InstitutionMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *InstitutionMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().Institution.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *InstitutionMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *InstitutionMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the Institution entity.
+// If the Institution object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InstitutionMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *InstitutionMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *InstitutionMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *InstitutionMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the Institution entity.
+// If the Institution object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InstitutionMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *InstitutionMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetCode sets the "code" field.
+func (m *InstitutionMutation) SetCode(s string) {
+	m.code = &s
+}
+
+// Code returns the value of the "code" field in the mutation.
+func (m *InstitutionMutation) Code() (r string, exists bool) {
+	v := m.code
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCode returns the old "code" field's value of the Institution entity.
+// If the Institution object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InstitutionMutation) OldCode(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCode is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCode requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCode: %w", err)
+	}
+	return oldValue.Code, nil
+}
+
+// ResetCode resets all changes to the "code" field.
+func (m *InstitutionMutation) ResetCode() {
+	m.code = nil
+}
+
+// SetName sets the "name" field.
+func (m *InstitutionMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *InstitutionMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the Institution entity.
+// If the Institution object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InstitutionMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *InstitutionMutation) ResetName() {
+	m.name = nil
+}
+
+// SetType sets the "type" field.
+func (m *InstitutionMutation) SetType(i institution.Type) {
+	m._type = &i
+}
+
+// GetType returns the value of the "type" field in the mutation.
+func (m *InstitutionMutation) GetType() (r institution.Type, exists bool) {
+	v := m._type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldType returns the old "type" field's value of the Institution entity.
+// If the Institution object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InstitutionMutation) OldType(ctx context.Context) (v institution.Type, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldType: %w", err)
+	}
+	return oldValue.Type, nil
+}
+
+// ResetType resets all changes to the "type" field.
+func (m *InstitutionMutation) ResetType() {
+	m._type = nil
+}
+
+// SetFiatCurrencyID sets the "fiat_currency" edge to the FiatCurrency entity by id.
+func (m *InstitutionMutation) SetFiatCurrencyID(id uuid.UUID) {
+	m.fiat_currency = &id
+}
+
+// ClearFiatCurrency clears the "fiat_currency" edge to the FiatCurrency entity.
+func (m *InstitutionMutation) ClearFiatCurrency() {
+	m.clearedfiat_currency = true
+}
+
+// FiatCurrencyCleared reports if the "fiat_currency" edge to the FiatCurrency entity was cleared.
+func (m *InstitutionMutation) FiatCurrencyCleared() bool {
+	return m.clearedfiat_currency
+}
+
+// FiatCurrencyID returns the "fiat_currency" edge ID in the mutation.
+func (m *InstitutionMutation) FiatCurrencyID() (id uuid.UUID, exists bool) {
+	if m.fiat_currency != nil {
+		return *m.fiat_currency, true
+	}
+	return
+}
+
+// FiatCurrencyIDs returns the "fiat_currency" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// FiatCurrencyID instead. It exists only for internal usage by the builders.
+func (m *InstitutionMutation) FiatCurrencyIDs() (ids []uuid.UUID) {
+	if id := m.fiat_currency; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetFiatCurrency resets all changes to the "fiat_currency" edge.
+func (m *InstitutionMutation) ResetFiatCurrency() {
+	m.fiat_currency = nil
+	m.clearedfiat_currency = false
+}
+
+// Where appends a list predicates to the InstitutionMutation builder.
+func (m *InstitutionMutation) Where(ps ...predicate.Institution) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the InstitutionMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *InstitutionMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.Institution, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *InstitutionMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *InstitutionMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (Institution).
+func (m *InstitutionMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *InstitutionMutation) Fields() []string {
+	fields := make([]string, 0, 5)
+	if m.created_at != nil {
+		fields = append(fields, institution.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, institution.FieldUpdatedAt)
+	}
+	if m.code != nil {
+		fields = append(fields, institution.FieldCode)
+	}
+	if m.name != nil {
+		fields = append(fields, institution.FieldName)
+	}
+	if m._type != nil {
+		fields = append(fields, institution.FieldType)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *InstitutionMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case institution.FieldCreatedAt:
+		return m.CreatedAt()
+	case institution.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case institution.FieldCode:
+		return m.Code()
+	case institution.FieldName:
+		return m.Name()
+	case institution.FieldType:
+		return m.GetType()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *InstitutionMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case institution.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case institution.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case institution.FieldCode:
+		return m.OldCode(ctx)
+	case institution.FieldName:
+		return m.OldName(ctx)
+	case institution.FieldType:
+		return m.OldType(ctx)
+	}
+	return nil, fmt.Errorf("unknown Institution field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *InstitutionMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case institution.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case institution.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case institution.FieldCode:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCode(v)
+		return nil
+	case institution.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case institution.FieldType:
+		v, ok := value.(institution.Type)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetType(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Institution field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *InstitutionMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *InstitutionMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *InstitutionMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown Institution numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *InstitutionMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *InstitutionMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *InstitutionMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown Institution nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *InstitutionMutation) ResetField(name string) error {
+	switch name {
+	case institution.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case institution.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case institution.FieldCode:
+		m.ResetCode()
+		return nil
+	case institution.FieldName:
+		m.ResetName()
+		return nil
+	case institution.FieldType:
+		m.ResetType()
+		return nil
+	}
+	return fmt.Errorf("unknown Institution field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *InstitutionMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.fiat_currency != nil {
+		edges = append(edges, institution.EdgeFiatCurrency)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *InstitutionMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case institution.EdgeFiatCurrency:
+		if id := m.fiat_currency; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *InstitutionMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *InstitutionMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *InstitutionMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.clearedfiat_currency {
+		edges = append(edges, institution.EdgeFiatCurrency)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *InstitutionMutation) EdgeCleared(name string) bool {
+	switch name {
+	case institution.EdgeFiatCurrency:
+		return m.clearedfiat_currency
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *InstitutionMutation) ClearEdge(name string) error {
+	switch name {
+	case institution.EdgeFiatCurrency:
+		m.ClearFiatCurrency()
+		return nil
+	}
+	return fmt.Errorf("unknown Institution unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *InstitutionMutation) ResetEdge(name string) error {
+	switch name {
+	case institution.EdgeFiatCurrency:
+		m.ResetFiatCurrency()
+		return nil
+	}
+	return fmt.Errorf("unknown Institution edge %s", name)
 }
 
 // LockOrderFulfillmentMutation represents an operation that mutates the LockOrderFulfillment nodes in the graph.

@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
 	"github.com/paycrest/protocol/ent/fiatcurrency"
+	"github.com/paycrest/protocol/ent/institution"
 	"github.com/paycrest/protocol/ent/predicate"
 	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/provisionbucket"
@@ -27,6 +28,7 @@ type FiatCurrencyQuery struct {
 	predicates           []predicate.FiatCurrency
 	withProviders        *ProviderProfileQuery
 	withProvisionBuckets *ProvisionBucketQuery
+	withInstitutions     *InstitutionQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -100,6 +102,28 @@ func (fcq *FiatCurrencyQuery) QueryProvisionBuckets() *ProvisionBucketQuery {
 			sqlgraph.From(fiatcurrency.Table, fiatcurrency.FieldID, selector),
 			sqlgraph.To(provisionbucket.Table, provisionbucket.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, fiatcurrency.ProvisionBucketsTable, fiatcurrency.ProvisionBucketsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(fcq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryInstitutions chains the current query on the "institutions" edge.
+func (fcq *FiatCurrencyQuery) QueryInstitutions() *InstitutionQuery {
+	query := (&InstitutionClient{config: fcq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := fcq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := fcq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(fiatcurrency.Table, fiatcurrency.FieldID, selector),
+			sqlgraph.To(institution.Table, institution.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, fiatcurrency.InstitutionsTable, fiatcurrency.InstitutionsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(fcq.driver.Dialect(), step)
 		return fromU, nil
@@ -301,6 +325,7 @@ func (fcq *FiatCurrencyQuery) Clone() *FiatCurrencyQuery {
 		predicates:           append([]predicate.FiatCurrency{}, fcq.predicates...),
 		withProviders:        fcq.withProviders.Clone(),
 		withProvisionBuckets: fcq.withProvisionBuckets.Clone(),
+		withInstitutions:     fcq.withInstitutions.Clone(),
 		// clone intermediate query.
 		sql:  fcq.sql.Clone(),
 		path: fcq.path,
@@ -326,6 +351,17 @@ func (fcq *FiatCurrencyQuery) WithProvisionBuckets(opts ...func(*ProvisionBucket
 		opt(query)
 	}
 	fcq.withProvisionBuckets = query
+	return fcq
+}
+
+// WithInstitutions tells the query-builder to eager-load the nodes that are connected to
+// the "institutions" edge. The optional arguments are used to configure the query builder of the edge.
+func (fcq *FiatCurrencyQuery) WithInstitutions(opts ...func(*InstitutionQuery)) *FiatCurrencyQuery {
+	query := (&InstitutionClient{config: fcq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	fcq.withInstitutions = query
 	return fcq
 }
 
@@ -407,9 +443,10 @@ func (fcq *FiatCurrencyQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([
 	var (
 		nodes       = []*FiatCurrency{}
 		_spec       = fcq.querySpec()
-		loadedTypes = [2]bool{
+		loadedTypes = [3]bool{
 			fcq.withProviders != nil,
 			fcq.withProvisionBuckets != nil,
+			fcq.withInstitutions != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -443,6 +480,13 @@ func (fcq *FiatCurrencyQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([
 			func(n *FiatCurrency, e *ProvisionBucket) {
 				n.Edges.ProvisionBuckets = append(n.Edges.ProvisionBuckets, e)
 			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := fcq.withInstitutions; query != nil {
+		if err := fcq.loadInstitutions(ctx, query, nodes,
+			func(n *FiatCurrency) { n.Edges.Institutions = []*Institution{} },
+			func(n *FiatCurrency, e *Institution) { n.Edges.Institutions = append(n.Edges.Institutions, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -506,6 +550,37 @@ func (fcq *FiatCurrencyQuery) loadProvisionBuckets(ctx context.Context, query *P
 		node, ok := nodeids[*fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "fiat_currency_provision_buckets" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (fcq *FiatCurrencyQuery) loadInstitutions(ctx context.Context, query *InstitutionQuery, nodes []*FiatCurrency, init func(*FiatCurrency), assign func(*FiatCurrency, *Institution)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*FiatCurrency)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.Institution(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(fiatcurrency.InstitutionsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.fiat_currency_institutions
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "fiat_currency_institutions" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "fiat_currency_institutions" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}

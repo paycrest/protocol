@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/paycrest/protocol/ent/apikey"
 	"github.com/paycrest/protocol/ent/fiatcurrency"
+	"github.com/paycrest/protocol/ent/institution"
 	"github.com/paycrest/protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	"github.com/paycrest/protocol/ent/network"
@@ -92,6 +93,7 @@ func checkColumn(table, column string) error {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
 			apikey.Table:                apikey.ValidColumn,
 			fiatcurrency.Table:          fiatcurrency.ValidColumn,
+			institution.Table:           institution.ValidColumn,
 			lockorderfulfillment.Table:  lockorderfulfillment.ValidColumn,
 			lockpaymentorder.Table:      lockpaymentorder.ValidColumn,
 			network.Table:               network.ValidColumn,

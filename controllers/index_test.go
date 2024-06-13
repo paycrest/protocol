@@ -2,11 +2,13 @@ package controllers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"testing"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/paycrest/protocol/config"
+	"github.com/paycrest/protocol/ent"
 	db "github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
 	"github.com/shopspring/decimal"
@@ -17,11 +19,17 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var testCtx = struct {
+	currency *ent.FiatCurrency
+}{}
+
 func setup() error {
 	// Set up test data
-	if _, err := test.CreateTestFiatCurrency(nil); err != nil {
+	currency, err := test.CreateTestFiatCurrency(nil)
+	if err != nil {
 		return err
 	}
+	testCtx.currency = currency
 
 	return nil
 }
@@ -43,6 +51,28 @@ func TestIndex(t *testing.T) {
 
 	router.GET("currencies", ctrl.GetFiatCurrencies)
 	router.GET("aggregator-key", ctrl.GetAggregatorPublicKey)
+	router.GET("institutions/:currency_code", ctrl.GetInstitutionsByCurrency)
+
+	t.Run("GetInstitutions By Currency", func(t *testing.T) {
+
+		res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/institutions/%s", testCtx.currency.Code), nil, nil, router)
+		assert.NoError(t, err)
+
+		type Response struct {
+			Status  string                        `json:"status"`
+			Message string                        `json:"message"`
+			Data    []types.SupportedInstitutions `json:"data"`
+		}
+
+		var response Response
+		// Assert the response body
+		assert.Equal(t, http.StatusOK, res.Code)
+
+		err = json.Unmarshal(res.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.Equal(t, "OK", response.Message)
+		assert.Equal(t, 2, len(response.Data), "SupportedInstitutions should be two")
+	})
 
 	t.Run("Currencies", func(t *testing.T) {
 		t.Run("fetch supported fiat currencies", func(t *testing.T) {

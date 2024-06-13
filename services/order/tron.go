@@ -479,42 +479,6 @@ func (s *OrderTron) SettleOrder(ctx context.Context, orderID uuid.UUID) error {
 	return nil
 }
 
-// GetSupportedInstitutions fetches the supported institutions by currencyCode.
-// TODO: rewrite this piece of code to fetch from the Gateway contract on Tron when it has supported institutions added to it
-func (s *OrderTron) GetSupportedInstitutions(ctx context.Context, client types.RPCClient, currencyCode string) ([]types.Institution, error) {
-	// Connect to RPC endpoint
-	var err error
-	if client == nil {
-		client, err = types.NewEthClient("https://polygon-mainnet.g.alchemy.com/v2/zfXjaatj2o5xKkqe0iSvnU9JkKZoiS54")
-		if err != nil {
-			return nil, fmt.Errorf("GetSupportedInstitutions.NewEthClient: %w", err)
-		}
-	}
-
-	// currency := utils.StringToByte32(currencyCode)
-
-	// Initialize contract filterer
-	// instance, err := contracts.NewGateway(config.OrderConfig().GatewayContractAddress, client.(bind.ContractBackend))
-	// if err != nil {
-	// 	return nil, fmt.Errorf("GetSupportedInstitutions.NewGatewayOrder: %w", err)
-	// }
-
-	// institutions, err := instance.GetSupportedInstitutions(nil, currency)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("GetSupportedInstitutions: %w", err)
-	// }
-
-	supportedInstitution := make([]types.Institution, 1)
-	institution := types.Institution{
-		Name: "Kuda Bank",
-		Code: "NGN",
-		Type: "BANK", // NOTE: defaults to bank.
-	}
-	supportedInstitution[0] = institution
-
-	return supportedInstitution, nil
-}
-
 // approveCallData creates the data for the ERC20 approve method
 func (s *OrderTron) approveCallData(spender util.Address, amount *big.Int) ([]byte, error) {
 	// Create ABI
