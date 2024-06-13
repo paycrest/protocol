@@ -26,6 +26,8 @@ const (
 	FieldIdentifier = "identifier"
 	// FieldRPCEndpoint holds the string denoting the rpc_endpoint field in the database.
 	FieldRPCEndpoint = "rpc_endpoint"
+	// FieldGatewayContractAddress holds the string denoting the gateway_contract_address field in the database.
+	FieldGatewayContractAddress = "gateway_contract_address"
 	// FieldIsTestnet holds the string denoting the is_testnet field in the database.
 	FieldIsTestnet = "is_testnet"
 	// FieldFee holds the string denoting the fee field in the database.
@@ -52,6 +54,7 @@ var Columns = []string{
 	FieldChainIDHex,
 	FieldIdentifier,
 	FieldRPCEndpoint,
+	FieldGatewayContractAddress,
 	FieldIsTestnet,
 	FieldFee,
 }
@@ -73,6 +76,8 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
+	// DefaultGatewayContractAddress holds the default value on creation for the "gateway_contract_address" field.
+	DefaultGatewayContractAddress string
 )
 
 // OrderOption defines the ordering options for the Network queries.
@@ -111,6 +116,11 @@ func ByIdentifier(opts ...sql.OrderTermOption) OrderOption {
 // ByRPCEndpoint orders the results by the rpc_endpoint field.
 func ByRPCEndpoint(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldRPCEndpoint, opts...).ToFunc()
+}
+
+// ByGatewayContractAddress orders the results by the gateway_contract_address field.
+func ByGatewayContractAddress(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldGatewayContractAddress, opts...).ToFunc()
 }
 
 // ByIsTestnet orders the results by the is_testnet field.

@@ -527,7 +527,7 @@ func (s *OrderEVM) executeBatchCreateOrderCallData(order *ent.PaymentOrder) ([]b
 
 	// Create approve data for gateway contract
 	approveGatewayData, err := s.approveCallData(
-		config.OrderConfig().GatewayContractAddress,
+		common.HexToAddress(order.Edges.Token.Edges.Network.GatewayContractAddress),
 		utils.ToSubunit(orderAmountWithFees.Mul(decimal.NewFromInt(2)), order.Edges.Token.Decimals),
 	)
 	if err != nil {
@@ -569,7 +569,7 @@ func (s *OrderEVM) executeBatchCreateOrderCallData(order *ent.PaymentOrder) ([]b
 		[]common.Address{
 			common.HexToAddress(order.Edges.Token.ContractAddress),
 			common.HexToAddress(order.Edges.Token.ContractAddress),
-			config.OrderConfig().GatewayContractAddress,
+			common.HexToAddress(order.Edges.Token.Edges.Network.GatewayContractAddress),
 		},
 		[][]byte{approvePaymasterData, approveGatewayData, createOrderData},
 	)
@@ -703,7 +703,7 @@ func (s *OrderEVM) executeBatchRefundCallData(order *ent.LockPaymentOrder) ([]by
 
 	// Create approve data for gateway contract
 	approveGatewayData, err := s.approveCallData(
-		config.OrderConfig().GatewayContractAddress,
+		common.HexToAddress(order.Edges.Token.Edges.Network.GatewayContractAddress),
 		utils.ToSubunit(order.Amount.Add(sourceOrder.SenderFee).Add(sourceOrder.ProtocolFee), order.Edges.Token.Decimals),
 	)
 	if err != nil {
@@ -724,7 +724,7 @@ func (s *OrderEVM) executeBatchRefundCallData(order *ent.LockPaymentOrder) ([]by
 
 	contractAddresses := []common.Address{
 		common.HexToAddress(order.Edges.Token.ContractAddress),
-		config.OrderConfig().GatewayContractAddress,
+		common.HexToAddress(order.Edges.Token.Edges.Network.GatewayContractAddress),
 	}
 
 	data := [][]byte{approveGatewayData, refundData}
@@ -799,7 +799,7 @@ func (s *OrderEVM) refundCallData(fee *big.Int, orderId string) ([]byte, error) 
 func (s *OrderEVM) executeBatchSettleCallData(ctx context.Context, order *ent.LockPaymentOrder) ([]byte, error) {
 	// Create approve data for gateway contract
 	approveGatewayData, err := s.approveCallData(
-		config.OrderConfig().GatewayContractAddress,
+		common.HexToAddress(order.Edges.Token.Edges.Network.GatewayContractAddress),
 		utils.ToSubunit(order.Amount, order.Edges.Token.Decimals),
 	)
 	if err != nil {
@@ -849,7 +849,7 @@ func (s *OrderEVM) executeBatchSettleCallData(ctx context.Context, order *ent.Lo
 
 	contractAddresses = append(
 		contractAddresses,
-		config.OrderConfig().GatewayContractAddress,
+		common.HexToAddress(order.Edges.Token.Edges.Network.GatewayContractAddress),
 	)
 	data = append(data, settleData)
 

@@ -30,6 +30,8 @@ type Network struct {
 	Identifier string `json:"identifier,omitempty"`
 	// RPCEndpoint holds the value of the "rpc_endpoint" field.
 	RPCEndpoint string `json:"rpc_endpoint,omitempty"`
+	// GatewayContractAddress holds the value of the "gateway_contract_address" field.
+	GatewayContractAddress string `json:"gateway_contract_address,omitempty"`
 	// IsTestnet holds the value of the "is_testnet" field.
 	IsTestnet bool `json:"is_testnet,omitempty"`
 	// Fee holds the value of the "fee" field.
@@ -69,7 +71,7 @@ func (*Network) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullBool)
 		case network.FieldID, network.FieldChainID:
 			values[i] = new(sql.NullInt64)
-		case network.FieldChainIDHex, network.FieldIdentifier, network.FieldRPCEndpoint:
+		case network.FieldChainIDHex, network.FieldIdentifier, network.FieldRPCEndpoint, network.FieldGatewayContractAddress:
 			values[i] = new(sql.NullString)
 		case network.FieldCreatedAt, network.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -129,6 +131,12 @@ func (n *Network) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field rpc_endpoint", values[i])
 			} else if value.Valid {
 				n.RPCEndpoint = value.String
+			}
+		case network.FieldGatewayContractAddress:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field gateway_contract_address", values[i])
+			} else if value.Valid {
+				n.GatewayContractAddress = value.String
 			}
 		case network.FieldIsTestnet:
 			if value, ok := values[i].(*sql.NullBool); !ok {
@@ -200,6 +208,9 @@ func (n *Network) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("rpc_endpoint=")
 	builder.WriteString(n.RPCEndpoint)
+	builder.WriteString(", ")
+	builder.WriteString("gateway_contract_address=")
+	builder.WriteString(n.GatewayContractAddress)
 	builder.WriteString(", ")
 	builder.WriteString("is_testnet=")
 	builder.WriteString(fmt.Sprintf("%v", n.IsTestnet))

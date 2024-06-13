@@ -86,6 +86,11 @@ func RPCEndpoint(v string) predicate.Network {
 	return predicate.Network(sql.FieldEQ(FieldRPCEndpoint, v))
 }
 
+// GatewayContractAddress applies equality check predicate on the "gateway_contract_address" field. It's identical to GatewayContractAddressEQ.
+func GatewayContractAddress(v string) predicate.Network {
+	return predicate.Network(sql.FieldEQ(FieldGatewayContractAddress, v))
+}
+
 // IsTestnet applies equality check predicate on the "is_testnet" field. It's identical to IsTestnetEQ.
 func IsTestnet(v bool) predicate.Network {
 	return predicate.Network(sql.FieldEQ(FieldIsTestnet, v))
@@ -419,6 +424,71 @@ func RPCEndpointEqualFold(v string) predicate.Network {
 // RPCEndpointContainsFold applies the ContainsFold predicate on the "rpc_endpoint" field.
 func RPCEndpointContainsFold(v string) predicate.Network {
 	return predicate.Network(sql.FieldContainsFold(FieldRPCEndpoint, v))
+}
+
+// GatewayContractAddressEQ applies the EQ predicate on the "gateway_contract_address" field.
+func GatewayContractAddressEQ(v string) predicate.Network {
+	return predicate.Network(sql.FieldEQ(FieldGatewayContractAddress, v))
+}
+
+// GatewayContractAddressNEQ applies the NEQ predicate on the "gateway_contract_address" field.
+func GatewayContractAddressNEQ(v string) predicate.Network {
+	return predicate.Network(sql.FieldNEQ(FieldGatewayContractAddress, v))
+}
+
+// GatewayContractAddressIn applies the In predicate on the "gateway_contract_address" field.
+func GatewayContractAddressIn(vs ...string) predicate.Network {
+	return predicate.Network(sql.FieldIn(FieldGatewayContractAddress, vs...))
+}
+
+// GatewayContractAddressNotIn applies the NotIn predicate on the "gateway_contract_address" field.
+func GatewayContractAddressNotIn(vs ...string) predicate.Network {
+	return predicate.Network(sql.FieldNotIn(FieldGatewayContractAddress, vs...))
+}
+
+// GatewayContractAddressGT applies the GT predicate on the "gateway_contract_address" field.
+func GatewayContractAddressGT(v string) predicate.Network {
+	return predicate.Network(sql.FieldGT(FieldGatewayContractAddress, v))
+}
+
+// GatewayContractAddressGTE applies the GTE predicate on the "gateway_contract_address" field.
+func GatewayContractAddressGTE(v string) predicate.Network {
+	return predicate.Network(sql.FieldGTE(FieldGatewayContractAddress, v))
+}
+
+// GatewayContractAddressLT applies the LT predicate on the "gateway_contract_address" field.
+func GatewayContractAddressLT(v string) predicate.Network {
+	return predicate.Network(sql.FieldLT(FieldGatewayContractAddress, v))
+}
+
+// GatewayContractAddressLTE applies the LTE predicate on the "gateway_contract_address" field.
+func GatewayContractAddressLTE(v string) predicate.Network {
+	return predicate.Network(sql.FieldLTE(FieldGatewayContractAddress, v))
+}
+
+// GatewayContractAddressContains applies the Contains predicate on the "gateway_contract_address" field.
+func GatewayContractAddressContains(v string) predicate.Network {
+	return predicate.Network(sql.FieldContains(FieldGatewayContractAddress, v))
+}
+
+// GatewayContractAddressHasPrefix applies the HasPrefix predicate on the "gateway_contract_address" field.
+func GatewayContractAddressHasPrefix(v string) predicate.Network {
+	return predicate.Network(sql.FieldHasPrefix(FieldGatewayContractAddress, v))
+}
+
+// GatewayContractAddressHasSuffix applies the HasSuffix predicate on the "gateway_contract_address" field.
+func GatewayContractAddressHasSuffix(v string) predicate.Network {
+	return predicate.Network(sql.FieldHasSuffix(FieldGatewayContractAddress, v))
+}
+
+// GatewayContractAddressEqualFold applies the EqualFold predicate on the "gateway_contract_address" field.
+func GatewayContractAddressEqualFold(v string) predicate.Network {
+	return predicate.Network(sql.FieldEqualFold(FieldGatewayContractAddress, v))
+}
+
+// GatewayContractAddressContainsFold applies the ContainsFold predicate on the "gateway_contract_address" field.
+func GatewayContractAddressContainsFold(v string) predicate.Network {
+	return predicate.Network(sql.FieldContainsFold(FieldGatewayContractAddress, v))
 }
 
 // IsTestnetEQ applies the EQ predicate on the "is_testnet" field.

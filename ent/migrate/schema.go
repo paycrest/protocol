@@ -135,6 +135,7 @@ var (
 		{Name: "chain_id_hex", Type: field.TypeString, Nullable: true},
 		{Name: "identifier", Type: field.TypeString, Unique: true},
 		{Name: "rpc_endpoint", Type: field.TypeString},
+		{Name: "gateway_contract_address", Type: field.TypeString, Default: ""},
 		{Name: "is_testnet", Type: field.TypeBool},
 		{Name: "fee", Type: field.TypeFloat64},
 	}

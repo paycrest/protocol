@@ -29,6 +29,7 @@ func (Network) Fields() []ent.Field {
 		field.String("identifier").
 			Unique(),
 		field.String("rpc_endpoint"),
+		field.String("gateway_contract_address").Default(""),
 		field.Bool("is_testnet"),
 		field.Float("fee").
 			GoType(decimal.Decimal{}),
