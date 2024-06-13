@@ -347,8 +347,15 @@ func CreateTestFiatCurrency(overrides map[string]interface{}) (*ent.FiatCurrency
 	}
 
 	institutions, err := db.Client.Institution.CreateBulk(
-		db.Client.Institution.Create().SetName("Kuda Microfinance Bank").SetCode("KUDANGN").SetType(institution.TypeMobileMoney),
-		db.Client.Institution.Create().SetName("FirstBank Bank").SetCode("FBNNGN"),
+		db.Client.Institution.
+			Create().
+			SetName("Kuda Microfinance Bank").
+			SetCode("KUDANGN").
+			SetType(institution.TypeMobileMoney),
+		db.Client.Institution.
+			Create().
+			SetName("FirstBank Bank").
+			SetCode("FBNNGN"),
 	).Save(context.Background())
 
 	if err != nil {
