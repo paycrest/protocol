@@ -56,12 +56,6 @@ func (ic *InstitutionCreate) SetCode(s string) *InstitutionCreate {
 	return ic
 }
 
-// SetCurrencyCode sets the "currency_code" field.
-func (ic *InstitutionCreate) SetCurrencyCode(s string) *InstitutionCreate {
-	ic.mutation.SetCurrencyCode(s)
-	return ic
-}
-
 // SetName sets the "name" field.
 func (ic *InstitutionCreate) SetName(s string) *InstitutionCreate {
 	ic.mutation.SetName(s)
@@ -161,9 +155,6 @@ func (ic *InstitutionCreate) check() error {
 	if _, ok := ic.mutation.Code(); !ok {
 		return &ValidationError{Name: "code", err: errors.New(`ent: missing required field "Institution.code"`)}
 	}
-	if _, ok := ic.mutation.CurrencyCode(); !ok {
-		return &ValidationError{Name: "currency_code", err: errors.New(`ent: missing required field "Institution.currency_code"`)}
-	}
 	if _, ok := ic.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "Institution.name"`)}
 	}
@@ -212,10 +203,6 @@ func (ic *InstitutionCreate) createSpec() (*Institution, *sqlgraph.CreateSpec) {
 	if value, ok := ic.mutation.Code(); ok {
 		_spec.SetField(institution.FieldCode, field.TypeString, value)
 		_node.Code = value
-	}
-	if value, ok := ic.mutation.CurrencyCode(); ok {
-		_spec.SetField(institution.FieldCurrencyCode, field.TypeString, value)
-		_node.CurrencyCode = value
 	}
 	if value, ok := ic.mutation.Name(); ok {
 		_spec.SetField(institution.FieldName, field.TypeString, value)

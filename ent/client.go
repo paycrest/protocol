@@ -282,9 +282,8 @@ func (c *Client) Use(hooks ...Hook) {
 		c.APIKey, c.FiatCurrency, c.Institution, c.LockOrderFulfillment,
 		c.LockPaymentOrder, c.Network, c.PaymentOrder, c.PaymentOrderRecipient,
 		c.ProviderOrderToken, c.ProviderProfile, c.ProviderRating, c.ProvisionBucket,
-		c.ReceiveAddress, c.SenderProfile, c.Token, c.User, c.VerificationToken,
-
-		c.WebhookRetryAttempt,
+		c.ReceiveAddress, c.SenderProfile, c.Token, c.TransactionLog, c.User,
+		c.VerificationToken, c.WebhookRetryAttempt,
 	} {
 		n.Use(hooks...)
 	}
@@ -297,8 +296,8 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.APIKey, c.FiatCurrency, c.Institution, c.LockOrderFulfillment,
 		c.LockPaymentOrder, c.Network, c.PaymentOrder, c.PaymentOrderRecipient,
 		c.ProviderOrderToken, c.ProviderProfile, c.ProviderRating, c.ProvisionBucket,
-		c.ReceiveAddress, c.SenderProfile, c.Token, c.User, c.VerificationToken,
-		c.WebhookRetryAttempt,
+		c.ReceiveAddress, c.SenderProfile, c.Token, c.TransactionLog, c.User,
+		c.VerificationToken, c.WebhookRetryAttempt,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -3288,13 +3287,14 @@ type (
 		APIKey, FiatCurrency, Institution, LockOrderFulfillment, LockPaymentOrder,
 		Network, PaymentOrder, PaymentOrderRecipient, ProviderOrderToken,
 		ProviderProfile, ProviderRating, ProvisionBucket, ReceiveAddress,
-		SenderProfile, Token, User, VerificationToken, WebhookRetryAttempt []ent.Hook
+		SenderProfile, Token, TransactionLog, User, VerificationToken,
+		WebhookRetryAttempt []ent.Hook
 	}
 	inters struct {
 		APIKey, FiatCurrency, Institution, LockOrderFulfillment, LockPaymentOrder,
 		Network, PaymentOrder, PaymentOrderRecipient, ProviderOrderToken,
 		ProviderProfile, ProviderRating, ProvisionBucket, ReceiveAddress,
-		SenderProfile, Token, User, VerificationToken,
+		SenderProfile, Token, TransactionLog, User, VerificationToken,
 		WebhookRetryAttempt []ent.Interceptor
 	}
 )

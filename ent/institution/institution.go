@@ -21,8 +21,6 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// FieldCode holds the string denoting the code field in the database.
 	FieldCode = "code"
-	// FieldCurrencyCode holds the string denoting the currency_code field in the database.
-	FieldCurrencyCode = "currency_code"
 	// FieldName holds the string denoting the name field in the database.
 	FieldName = "name"
 	// FieldType holds the string denoting the type field in the database.
@@ -46,7 +44,6 @@ var Columns = []string{
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldCode,
-	FieldCurrencyCode,
 	FieldName,
 	FieldType,
 }
@@ -128,11 +125,6 @@ func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByCode orders the results by the code field.
 func ByCode(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCode, opts...).ToFunc()
-}
-
-// ByCurrencyCode orders the results by the currency_code field.
-func ByCurrencyCode(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldCurrencyCode, opts...).ToFunc()
 }
 
 // ByName orders the results by the name field.

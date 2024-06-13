@@ -26,7 +26,7 @@ func (Institution) Fields() []ent.Field {
 		field.String("name"),
 		field.Enum("type").
 			Values("bank", "mobile_money").
-			Default("bank"), // Sets updated_at to the current time on update
+			Default("bank"), 
 	}
 }
 

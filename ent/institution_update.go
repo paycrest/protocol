@@ -42,12 +42,6 @@ func (iu *InstitutionUpdate) SetCode(s string) *InstitutionUpdate {
 	return iu
 }
 
-// SetCurrencyCode sets the "currency_code" field.
-func (iu *InstitutionUpdate) SetCurrencyCode(s string) *InstitutionUpdate {
-	iu.mutation.SetCurrencyCode(s)
-	return iu
-}
-
 // SetName sets the "name" field.
 func (iu *InstitutionUpdate) SetName(s string) *InstitutionUpdate {
 	iu.mutation.SetName(s)
@@ -162,9 +156,6 @@ func (iu *InstitutionUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if value, ok := iu.mutation.Code(); ok {
 		_spec.SetField(institution.FieldCode, field.TypeString, value)
 	}
-	if value, ok := iu.mutation.CurrencyCode(); ok {
-		_spec.SetField(institution.FieldCurrencyCode, field.TypeString, value)
-	}
 	if value, ok := iu.mutation.Name(); ok {
 		_spec.SetField(institution.FieldName, field.TypeString, value)
 	}
@@ -229,12 +220,6 @@ func (iuo *InstitutionUpdateOne) SetUpdatedAt(t time.Time) *InstitutionUpdateOne
 // SetCode sets the "code" field.
 func (iuo *InstitutionUpdateOne) SetCode(s string) *InstitutionUpdateOne {
 	iuo.mutation.SetCode(s)
-	return iuo
-}
-
-// SetCurrencyCode sets the "currency_code" field.
-func (iuo *InstitutionUpdateOne) SetCurrencyCode(s string) *InstitutionUpdateOne {
-	iuo.mutation.SetCurrencyCode(s)
 	return iuo
 }
 
@@ -381,9 +366,6 @@ func (iuo *InstitutionUpdateOne) sqlSave(ctx context.Context) (_node *Institutio
 	}
 	if value, ok := iuo.mutation.Code(); ok {
 		_spec.SetField(institution.FieldCode, field.TypeString, value)
-	}
-	if value, ok := iuo.mutation.CurrencyCode(); ok {
-		_spec.SetField(institution.FieldCurrencyCode, field.TypeString, value)
 	}
 	if value, ok := iuo.mutation.Name(); ok {
 		_spec.SetField(institution.FieldName, field.TypeString, value)

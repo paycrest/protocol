@@ -25,8 +25,6 @@ type Institution struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// Code holds the value of the "code" field.
 	Code string `json:"code,omitempty"`
-	// CurrencyCode holds the value of the "currency_code" field.
-	CurrencyCode string `json:"currency_code,omitempty"`
 	// Name holds the value of the "name" field.
 	Name string `json:"name,omitempty"`
 	// Type holds the value of the "type" field.
@@ -67,7 +65,7 @@ func (*Institution) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case institution.FieldID:
 			values[i] = new(sql.NullInt64)
-		case institution.FieldCode, institution.FieldCurrencyCode, institution.FieldName, institution.FieldType:
+		case institution.FieldCode, institution.FieldName, institution.FieldType:
 			values[i] = new(sql.NullString)
 		case institution.FieldCreatedAt, institution.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -111,12 +109,6 @@ func (i *Institution) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field code", values[j])
 			} else if value.Valid {
 				i.Code = value.String
-			}
-		case institution.FieldCurrencyCode:
-			if value, ok := values[j].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field currency_code", values[j])
-			} else if value.Valid {
-				i.CurrencyCode = value.String
 			}
 		case institution.FieldName:
 			if value, ok := values[j].(*sql.NullString); !ok {
@@ -186,9 +178,6 @@ func (i *Institution) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("code=")
 	builder.WriteString(i.Code)
-	builder.WriteString(", ")
-	builder.WriteString("currency_code=")
-	builder.WriteString(i.CurrencyCode)
 	builder.WriteString(", ")
 	builder.WriteString("name=")
 	builder.WriteString(i.Name)

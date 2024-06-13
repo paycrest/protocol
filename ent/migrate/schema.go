@@ -60,7 +60,6 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "code", Type: field.TypeString, Unique: true},
-		{Name: "currency_code", Type: field.TypeString},
 		{Name: "name", Type: field.TypeString},
 		{Name: "type", Type: field.TypeEnum, Enums: []string{"bank", "mobile_money"}, Default: "bank"},
 		{Name: "fiat_currency_institutions", Type: field.TypeUUID, Nullable: true},
@@ -73,7 +72,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "institutions_fiat_currencies_institutions",
-				Columns:    []*schema.Column{InstitutionsColumns[7]},
+				Columns:    []*schema.Column{InstitutionsColumns[6]},
 				RefColumns: []*schema.Column{FiatCurrenciesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
