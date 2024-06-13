@@ -19,14 +19,19 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func setup() (*ent.FiatCurrency, error) {
+var testCtx = struct {
+	currency *ent.FiatCurrency
+}{}
+
+func setup() error {
 	// Set up test data
 	currency, err := test.CreateTestFiatCurrency(nil)
 	if err != nil {
-		return nil, err
+		return err
 	}
+	testCtx.currency = currency
 
-	return currency, nil
+	return nil
 }
 
 func TestIndex(t *testing.T) {
@@ -37,7 +42,7 @@ func TestIndex(t *testing.T) {
 	db.Client = client
 
 	// Setup test data
-	currency, err := setup()
+	err := setup()
 	assert.NoError(t, err)
 
 	// Set up test routers
@@ -50,7 +55,7 @@ func TestIndex(t *testing.T) {
 
 	t.Run("GetInstitutions By Currency", func(t *testing.T) {
 
-		res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/institutions/%s", currency.Code), nil, nil, router)
+		res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/institutions/%s", testCtx.currency.Code), nil, nil, router)
 		assert.NoError(t, err)
 
 		type Response struct {
