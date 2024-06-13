@@ -280,13 +280,37 @@ func CreateTestSenderProfile(overrides map[string]interface{}) (*ent.SenderProfi
 
 	// Create SenderProfile
 	feePerTokenUnit, _ := decimal.NewFromString(payload["fee_per_token_unit"].(string))
+
+	// Configure addresses
+	addresses := []struct {
+		Token           string          `json:"token"`
+		Address         string          `json:"address"`
+		Network         string          `json:"network"`
+		FeeAddress      string          `json:"feeAddress"`
+		RefundAddress   string          `json:"refundAddress"`
+		FeePerTokenUnit decimal.Decimal `json:"fee_per_token_unit"`
+	}{
+		{
+			Address:         "0x409689E3008d43a9eb439e7B275749D4a71D8E2D",
+			Network:         "arbitrum-sepolia",
+			FeeAddress:      payload["fee_address"].(string),
+			RefundAddress:   payload["refund_address"].(string),
+			FeePerTokenUnit: feePerTokenUnit,
+		},
+		{
+			Address:         "0x409689E3008d43a9eb439e7B275749D4a71D8E2D",
+			Network:         "ethereum",
+			FeeAddress:      payload["fee_address"].(string),
+			RefundAddress:   payload["refund_address"].(string),
+			FeePerTokenUnit: feePerTokenUnit,
+		},
+	}
+
 	profile, err := db.Client.SenderProfile.
 		Create().
 		SetWebhookURL(payload["webhook_url"].(string)).
 		SetDomainWhitelist(payload["domain_whitelist"].([]string)).
-		SetFeePerTokenUnit(feePerTokenUnit).
-		SetFeeAddress(payload["fee_address"].(string)).
-		SetRefundAddress(payload["refund_address"].(string)).
+		SetAddresses(addresses).
 		SetUserID(payload["user_id"].(uuid.UUID)).
 		Save(context.Background())
 

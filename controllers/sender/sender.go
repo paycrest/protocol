@@ -167,15 +167,29 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 	// Handle sender profile overrides
 	var feePerTokenUnit decimal.Decimal
 	var feeAddress string
+	var selectedAddress types.SenderAddressDBModel
 
-	if payload.FeePerTokenUnit.IsZero() {
-		feePerTokenUnit = sender.FeePerTokenUnit
-	} else {
-		feePerTokenUnit = payload.FeePerTokenUnit
+	if len(sender.Addresses) == 0 {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "No Address configured", nil)
+		return
+	}
+
+senderAddressOut:
+	for _, sAddress := range sender.Addresses {
+		if sAddress.Network == payload.Network {
+			if payload.FeePerTokenUnit.IsZero() {
+				feePerTokenUnit = sAddress.FeePerTokenUnit
+			} else {
+				feePerTokenUnit = payload.FeePerTokenUnit
+			}
+			selectedAddress = sAddress
+			break senderAddressOut
+		}
 	}
 
 	if payload.FeeAddress == "" {
-		feeAddress = sender.FeeAddress
+		feeAddress = selectedAddress.FeeAddress
 	} else {
 		if !sender.IsPartner {
 			u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{

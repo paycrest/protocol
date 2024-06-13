@@ -604,11 +604,13 @@ func (s *OrderEVM) createOrderCallData(order *ent.PaymentOrder) ([]byte, error) 
 		return nil, fmt.Errorf("failed to encrypt recipient details: %w", err)
 	}
 
+	// TODO: access network from Order and use it filter the write address instead of using index zero
+
 	var refundAddress common.Address
-	if order.Edges.SenderProfile.RefundAddress == "" {
+	if order.Edges.SenderProfile.Addresses[0].RefundAddress == "" {
 		refundAddress = common.HexToAddress(order.ReturnAddress)
 	} else {
-		refundAddress = common.HexToAddress(order.Edges.SenderProfile.RefundAddress)
+		refundAddress = common.HexToAddress(order.Edges.SenderProfile.Addresses[0].RefundAddress)
 	}
 
 	amountWithProtocolFee := order.Amount.Add(order.ProtocolFee)

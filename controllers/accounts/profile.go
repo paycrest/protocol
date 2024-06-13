@@ -82,7 +82,37 @@ func (ctrl *ProfileController) UpdateSenderProfile(ctx *gin.Context) {
 			})
 			return
 		}
-		update.SetFeePerTokenUnit(payload.FeePerTokenUnit).SetFeeAddress(payload.FeeAddress)
+		var isNetworkPresent bool
+	out:
+		for index, sAddress := range sender.Addresses {
+			if sAddress.Network == payload.Network {
+				sender.Addresses[index].FeeAddress = payload.FeeAddress
+				sender.Addresses[index].FeePerTokenUnit = payload.FeePerTokenUnit
+				if payload.RefundAddress != "" {
+					sender.Addresses[index].RefundAddress = (payload.RefundAddress)
+				}
+				isNetworkPresent = true
+				break out
+			}
+		}
+		if isNetworkPresent {
+			update.SetAddresses(sender.Addresses)
+		} else {
+			sender.Addresses = append(sender.Addresses, struct {
+				Token           string          `json:"token"`
+				Address         string          `json:"address"`
+				Network         string          `json:"network"`
+				FeeAddress      string          `json:"feeAddress"`
+				RefundAddress   string          `json:"refundAddress"`
+				FeePerTokenUnit decimal.Decimal `json:"fee_per_token_unit"`
+			}{
+				Network:         payload.Network,
+				FeeAddress:      payload.FeeAddress,
+				RefundAddress:   payload.RefundAddress,
+				FeePerTokenUnit: payload.FeePerTokenUnit,
+			})
+			update.SetAddresses(sender.Addresses)
+		}
 	} else {
 		if !payload.FeePerTokenUnit.IsZero() && payload.FeeAddress == "" {
 			u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
@@ -98,10 +128,6 @@ func (ctrl *ProfileController) UpdateSenderProfile(ctx *gin.Context) {
 			})
 			return
 		}
-	}
-
-	if payload.RefundAddress != "" {
-		update.SetRefundAddress(payload.RefundAddress)
 	}
 
 	if !sender.IsActive {
@@ -389,6 +415,17 @@ func (ctrl *ProfileController) GetSenderProfile(ctx *gin.Context) {
 		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to retrieve profile", nil)
 		return
 	}
+	var addresses []types.SenderAddressDBModel
+	for _, address := range sender.Addresses {
+		addresses = append(addresses, types.SenderAddressDBModel{
+			Token:           address.Token,
+			Address:         address.Address,
+			Network:         address.Network,
+			FeeAddress:      address.FeeAddress,
+			RefundAddress:   address.RefundAddress,
+			FeePerTokenUnit: address.FeePerTokenUnit,
+		})
+	}
 
 	u.APIResponse(ctx, http.StatusOK, "success", "Profile retrieved successfully", &types.SenderProfileResponse{
 		ID:              sender.ID,
@@ -397,9 +434,7 @@ func (ctrl *ProfileController) GetSenderProfile(ctx *gin.Context) {
 		Email:           user.Email,
 		WebhookURL:      sender.WebhookURL,
 		DomainWhitelist: sender.DomainWhitelist,
-		FeePerTokenUnit: sender.FeePerTokenUnit,
-		FeeAddress:      sender.FeeAddress,
-		RefundAddress:   sender.RefundAddress,
+		Addresses:       addresses,
 		APIKey:          *apiKey,
 		IsActive:        sender.IsActive,
 	})

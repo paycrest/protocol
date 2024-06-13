@@ -22,10 +22,6 @@ func (SenderProfile) Fields() []ent.Field {
 		field.UUID("id", uuid.UUID{}).
 			Default(uuid.New),
 		field.String("webhook_url").Optional(),
-		field.Float("fee_per_token_unit").
-			GoType(decimal.Decimal{}),
-		field.String("fee_address").Optional(),
-		field.String("refund_address").Optional(),
 		field.Strings("domain_whitelist").
 			Default([]string{}),
 		field.Bool("is_partner").Default(false),
@@ -34,6 +30,14 @@ func (SenderProfile) Fields() []ent.Field {
 		field.Time("updated_at").
 			Default(time.Now).
 			UpdateDefault(time.Now),
+		field.JSON("addresses", []struct {
+			Token           string          `json:"token"`
+			Address         string          `json:"address"`
+			Network         string          `json:"network"`
+			FeeAddress      string          `json:"feeAddress"`
+			RefundAddress   string          `json:"refundAddress"`
+			FeePerTokenUnit decimal.Decimal `json:"fee_per_token_unit"`
+		}{}),
 	}
 }
 

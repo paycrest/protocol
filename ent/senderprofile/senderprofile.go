@@ -17,12 +17,6 @@ const (
 	FieldID = "id"
 	// FieldWebhookURL holds the string denoting the webhook_url field in the database.
 	FieldWebhookURL = "webhook_url"
-	// FieldFeePerTokenUnit holds the string denoting the fee_per_token_unit field in the database.
-	FieldFeePerTokenUnit = "fee_per_token_unit"
-	// FieldFeeAddress holds the string denoting the fee_address field in the database.
-	FieldFeeAddress = "fee_address"
-	// FieldRefundAddress holds the string denoting the refund_address field in the database.
-	FieldRefundAddress = "refund_address"
 	// FieldDomainWhitelist holds the string denoting the domain_whitelist field in the database.
 	FieldDomainWhitelist = "domain_whitelist"
 	// FieldIsPartner holds the string denoting the is_partner field in the database.
@@ -31,6 +25,8 @@ const (
 	FieldIsActive = "is_active"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
 	FieldUpdatedAt = "updated_at"
+	// FieldAddresses holds the string denoting the addresses field in the database.
+	FieldAddresses = "addresses"
 	// EdgeUser holds the string denoting the user edge name in mutations.
 	EdgeUser = "user"
 	// EdgeAPIKey holds the string denoting the api_key edge name in mutations.
@@ -66,13 +62,11 @@ const (
 var Columns = []string{
 	FieldID,
 	FieldWebhookURL,
-	FieldFeePerTokenUnit,
-	FieldFeeAddress,
-	FieldRefundAddress,
 	FieldDomainWhitelist,
 	FieldIsPartner,
 	FieldIsActive,
 	FieldUpdatedAt,
+	FieldAddresses,
 }
 
 // ForeignKeys holds the SQL foreign-keys that are owned by the "sender_profiles"
@@ -122,21 +116,6 @@ func ByID(opts ...sql.OrderTermOption) OrderOption {
 // ByWebhookURL orders the results by the webhook_url field.
 func ByWebhookURL(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldWebhookURL, opts...).ToFunc()
-}
-
-// ByFeePerTokenUnit orders the results by the fee_per_token_unit field.
-func ByFeePerTokenUnit(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldFeePerTokenUnit, opts...).ToFunc()
-}
-
-// ByFeeAddress orders the results by the fee_address field.
-func ByFeeAddress(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldFeeAddress, opts...).ToFunc()
-}
-
-// ByRefundAddress orders the results by the refund_address field.
-func ByRefundAddress(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldRefundAddress, opts...).ToFunc()
 }
 
 // ByIsPartner orders the results by the is_partner field.

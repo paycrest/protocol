@@ -117,6 +117,16 @@ func BigMin(x, y *big.Int) *big.Int {
 	return y
 }
 
+// find element in Array
+func Find[T any](a []T, fn func(T) bool) *T {
+    for i, v := range a {
+        if fn(v) {
+            return &a[i]
+        }
+    }
+    return nil
+}
+
 // PersonalSign is an equivalent of ethers.personal_sign for signing ethereum messages
 // Ref: https://github.com/etaaa/Golang-Ethereum-Personal-Sign/blob/main/main.go
 func PersonalSign(message string, privateKey *ecdsa.PrivateKey) ([]byte, error) {

@@ -199,6 +199,7 @@ type SenderProfilePayload struct {
 	FeePerTokenUnit decimal.Decimal `json:"feePerTokenUnit"`
 	FeeAddress      string          `json:"feeAddress"`
 	RefundAddress   string          `json:"refundAddress"`
+	Network         string          `json:"network" binding:"required"`
 }
 
 // ProviderOrderTokenPayload defines the provider setting for a token
@@ -269,17 +270,15 @@ type ValidatorProfileResponse struct {
 
 // SenderProfileResponse is the response for the sender profile endpoint
 type SenderProfileResponse struct {
-	ID              uuid.UUID       `json:"id"`
-	FirstName       string          `json:"firstName"`
-	LastName        string          `json:"lastName"`
-	Email           string          `json:"email"`
-	WebhookURL      string          `json:"webhookUrl"`
-	DomainWhitelist []string        `json:"domainWhitelist"`
-	FeePerTokenUnit decimal.Decimal `json:"feePerTokenUnit"`
-	FeeAddress      string          `json:"feeAddress"`
-	RefundAddress   string          `json:"refundAddress"`
-	APIKey          APIKeyResponse  `json:"apiKey"`
-	IsActive        bool            `json:"isActive"`
+	ID              uuid.UUID              `json:"id"`
+	FirstName       string                 `json:"firstName"`
+	LastName        string                 `json:"lastName"`
+	Email           string                 `json:"email"`
+	WebhookURL      string                 `json:"webhookUrl"`
+	DomainWhitelist []string               `json:"domainWhitelist"`
+	Addresses       []SenderAddressDBModel `json:"addresses"`
+	APIKey          APIKeyResponse         `json:"apiKey"`
+	IsActive        bool                   `json:"isActive"`
 }
 
 // RefreshResponse is the response for the refresh endpoint
@@ -494,6 +493,15 @@ type Response struct {
 type ErrorData struct {
 	Field   string `json:"field"`
 	Message string `json:"message"`
+}
+
+type SenderAddressDBModel struct {
+	Token           string          `json:"token"`
+	Address         string          `json:"address"`
+	Network         string          `json:"network"`
+	FeeAddress      string          `json:"feeAddress"`
+	RefundAddress   string          `json:"refundAddress"`
+	FeePerTokenUnit decimal.Decimal `json:"fee_per_token_unit"`
 }
 
 // Payload for reset password request

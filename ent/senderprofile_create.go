@@ -39,40 +39,6 @@ func (spc *SenderProfileCreate) SetNillableWebhookURL(s *string) *SenderProfileC
 	return spc
 }
 
-// SetFeePerTokenUnit sets the "fee_per_token_unit" field.
-func (spc *SenderProfileCreate) SetFeePerTokenUnit(d decimal.Decimal) *SenderProfileCreate {
-	spc.mutation.SetFeePerTokenUnit(d)
-	return spc
-}
-
-// SetFeeAddress sets the "fee_address" field.
-func (spc *SenderProfileCreate) SetFeeAddress(s string) *SenderProfileCreate {
-	spc.mutation.SetFeeAddress(s)
-	return spc
-}
-
-// SetNillableFeeAddress sets the "fee_address" field if the given value is not nil.
-func (spc *SenderProfileCreate) SetNillableFeeAddress(s *string) *SenderProfileCreate {
-	if s != nil {
-		spc.SetFeeAddress(*s)
-	}
-	return spc
-}
-
-// SetRefundAddress sets the "refund_address" field.
-func (spc *SenderProfileCreate) SetRefundAddress(s string) *SenderProfileCreate {
-	spc.mutation.SetRefundAddress(s)
-	return spc
-}
-
-// SetNillableRefundAddress sets the "refund_address" field if the given value is not nil.
-func (spc *SenderProfileCreate) SetNillableRefundAddress(s *string) *SenderProfileCreate {
-	if s != nil {
-		spc.SetRefundAddress(*s)
-	}
-	return spc
-}
-
 // SetDomainWhitelist sets the "domain_whitelist" field.
 func (spc *SenderProfileCreate) SetDomainWhitelist(s []string) *SenderProfileCreate {
 	spc.mutation.SetDomainWhitelist(s)
@@ -118,6 +84,19 @@ func (spc *SenderProfileCreate) SetNillableUpdatedAt(t *time.Time) *SenderProfil
 	if t != nil {
 		spc.SetUpdatedAt(*t)
 	}
+	return spc
+}
+
+// SetAddresses sets the "addresses" field.
+func (spc *SenderProfileCreate) SetAddresses(saaaaptuptu []struct {
+	Token           string          "json:\"token\""
+	Address         string          "json:\"address\""
+	Network         string          "json:\"network\""
+	FeeAddress      string          "json:\"feeAddress\""
+	RefundAddress   string          "json:\"refundAddress\""
+	FeePerTokenUnit decimal.Decimal "json:\"fee_per_token_unit\""
+}) *SenderProfileCreate {
+	spc.mutation.SetAddresses(saaaaptuptu)
 	return spc
 }
 
@@ -239,9 +218,6 @@ func (spc *SenderProfileCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (spc *SenderProfileCreate) check() error {
-	if _, ok := spc.mutation.FeePerTokenUnit(); !ok {
-		return &ValidationError{Name: "fee_per_token_unit", err: errors.New(`ent: missing required field "SenderProfile.fee_per_token_unit"`)}
-	}
 	if _, ok := spc.mutation.DomainWhitelist(); !ok {
 		return &ValidationError{Name: "domain_whitelist", err: errors.New(`ent: missing required field "SenderProfile.domain_whitelist"`)}
 	}
@@ -253,6 +229,9 @@ func (spc *SenderProfileCreate) check() error {
 	}
 	if _, ok := spc.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "SenderProfile.updated_at"`)}
+	}
+	if _, ok := spc.mutation.Addresses(); !ok {
+		return &ValidationError{Name: "addresses", err: errors.New(`ent: missing required field "SenderProfile.addresses"`)}
 	}
 	if _, ok := spc.mutation.UserID(); !ok {
 		return &ValidationError{Name: "user", err: errors.New(`ent: missing required edge "SenderProfile.user"`)}
@@ -296,18 +275,6 @@ func (spc *SenderProfileCreate) createSpec() (*SenderProfile, *sqlgraph.CreateSp
 		_spec.SetField(senderprofile.FieldWebhookURL, field.TypeString, value)
 		_node.WebhookURL = value
 	}
-	if value, ok := spc.mutation.FeePerTokenUnit(); ok {
-		_spec.SetField(senderprofile.FieldFeePerTokenUnit, field.TypeFloat64, value)
-		_node.FeePerTokenUnit = value
-	}
-	if value, ok := spc.mutation.FeeAddress(); ok {
-		_spec.SetField(senderprofile.FieldFeeAddress, field.TypeString, value)
-		_node.FeeAddress = value
-	}
-	if value, ok := spc.mutation.RefundAddress(); ok {
-		_spec.SetField(senderprofile.FieldRefundAddress, field.TypeString, value)
-		_node.RefundAddress = value
-	}
 	if value, ok := spc.mutation.DomainWhitelist(); ok {
 		_spec.SetField(senderprofile.FieldDomainWhitelist, field.TypeJSON, value)
 		_node.DomainWhitelist = value
@@ -323,6 +290,10 @@ func (spc *SenderProfileCreate) createSpec() (*SenderProfile, *sqlgraph.CreateSp
 	if value, ok := spc.mutation.UpdatedAt(); ok {
 		_spec.SetField(senderprofile.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
+	}
+	if value, ok := spc.mutation.Addresses(); ok {
+		_spec.SetField(senderprofile.FieldAddresses, field.TypeJSON, value)
+		_node.Addresses = value
 	}
 	if nodes := spc.mutation.UserIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

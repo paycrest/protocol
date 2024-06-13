@@ -24,12 +24,6 @@ type SenderProfile struct {
 	ID uuid.UUID `json:"id,omitempty"`
 	// WebhookURL holds the value of the "webhook_url" field.
 	WebhookURL string `json:"webhook_url,omitempty"`
-	// FeePerTokenUnit holds the value of the "fee_per_token_unit" field.
-	FeePerTokenUnit decimal.Decimal `json:"fee_per_token_unit,omitempty"`
-	// FeeAddress holds the value of the "fee_address" field.
-	FeeAddress string `json:"fee_address,omitempty"`
-	// RefundAddress holds the value of the "refund_address" field.
-	RefundAddress string `json:"refund_address,omitempty"`
 	// DomainWhitelist holds the value of the "domain_whitelist" field.
 	DomainWhitelist []string `json:"domain_whitelist,omitempty"`
 	// IsPartner holds the value of the "is_partner" field.
@@ -38,6 +32,15 @@ type SenderProfile struct {
 	IsActive bool `json:"is_active,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
+	// Addresses holds the value of the "addresses" field.
+	Addresses []struct {
+		Token           string          "json:\"token\""
+		Address         string          "json:\"address\""
+		Network         string          "json:\"network\""
+		FeeAddress      string          "json:\"feeAddress\""
+		RefundAddress   string          "json:\"refundAddress\""
+		FeePerTokenUnit decimal.Decimal "json:\"fee_per_token_unit\""
+	} `json:"addresses,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the SenderProfileQuery when eager-loading is set.
 	Edges               SenderProfileEdges `json:"edges"`
@@ -98,13 +101,11 @@ func (*SenderProfile) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case senderprofile.FieldDomainWhitelist:
+		case senderprofile.FieldDomainWhitelist, senderprofile.FieldAddresses:
 			values[i] = new([]byte)
-		case senderprofile.FieldFeePerTokenUnit:
-			values[i] = new(decimal.Decimal)
 		case senderprofile.FieldIsPartner, senderprofile.FieldIsActive:
 			values[i] = new(sql.NullBool)
-		case senderprofile.FieldWebhookURL, senderprofile.FieldFeeAddress, senderprofile.FieldRefundAddress:
+		case senderprofile.FieldWebhookURL:
 			values[i] = new(sql.NullString)
 		case senderprofile.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -139,24 +140,6 @@ func (sp *SenderProfile) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				sp.WebhookURL = value.String
 			}
-		case senderprofile.FieldFeePerTokenUnit:
-			if value, ok := values[i].(*decimal.Decimal); !ok {
-				return fmt.Errorf("unexpected type %T for field fee_per_token_unit", values[i])
-			} else if value != nil {
-				sp.FeePerTokenUnit = *value
-			}
-		case senderprofile.FieldFeeAddress:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field fee_address", values[i])
-			} else if value.Valid {
-				sp.FeeAddress = value.String
-			}
-		case senderprofile.FieldRefundAddress:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field refund_address", values[i])
-			} else if value.Valid {
-				sp.RefundAddress = value.String
-			}
 		case senderprofile.FieldDomainWhitelist:
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field domain_whitelist", values[i])
@@ -182,6 +165,14 @@ func (sp *SenderProfile) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
 				sp.UpdatedAt = value.Time
+			}
+		case senderprofile.FieldAddresses:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field addresses", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &sp.Addresses); err != nil {
+					return fmt.Errorf("unmarshal field addresses: %w", err)
+				}
 			}
 		case senderprofile.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullScanner); !ok {
@@ -244,15 +235,6 @@ func (sp *SenderProfile) String() string {
 	builder.WriteString("webhook_url=")
 	builder.WriteString(sp.WebhookURL)
 	builder.WriteString(", ")
-	builder.WriteString("fee_per_token_unit=")
-	builder.WriteString(fmt.Sprintf("%v", sp.FeePerTokenUnit))
-	builder.WriteString(", ")
-	builder.WriteString("fee_address=")
-	builder.WriteString(sp.FeeAddress)
-	builder.WriteString(", ")
-	builder.WriteString("refund_address=")
-	builder.WriteString(sp.RefundAddress)
-	builder.WriteString(", ")
 	builder.WriteString("domain_whitelist=")
 	builder.WriteString(fmt.Sprintf("%v", sp.DomainWhitelist))
 	builder.WriteString(", ")
@@ -264,6 +246,9 @@ func (sp *SenderProfile) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("updated_at=")
 	builder.WriteString(sp.UpdatedAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("addresses=")
+	builder.WriteString(fmt.Sprintf("%v", sp.Addresses))
 	builder.WriteByte(')')
 	return builder.String()
 }

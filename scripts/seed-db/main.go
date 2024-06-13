@@ -168,14 +168,36 @@ func seedSender(ctx context.Context, client *ent.Client, serial string) (string,
 	if err != nil {
 		return "", "", "", fmt.Errorf("failed creating user: %s", err)
 	}
+	// Configure addresses
+	addresses := []struct {
+		Token           string          `json:"token"`
+		Address         string          `json:"address"`
+		Network         string          `json:"network"`
+		FeeAddress      string          `json:"feeAddress"`
+		RefundAddress   string          `json:"refundAddress"`
+		FeePerTokenUnit decimal.Decimal `json:"fee_per_token_unit"`
+	}{
+		{
+			Address:         "0x409689E3008d43a9eb439e7B275749D4a71D8E2D",
+			Network:         "arbitrum-sepolia",
+			FeeAddress:      "0x409689E3008d43a9eb439e7B275749D4a71D8E2D",
+			RefundAddress:   "0x409689E3008d43a9eb439e7B275749D4a71D8E2D",
+			FeePerTokenUnit: decimal.NewFromFloat(10),
+		},
+		{
+			Address:         "0x409689E3008d43a9eb439e7B275749D4a71D8E2D",
+			Network:         "ethereum",
+			FeeAddress:      "0x409689E3008d43a9eb439e7B275749D4a71D8E2D",
+			RefundAddress:   "0x409689E3008d43a9eb439e7B275749D4a71D8E2D",
+			FeePerTokenUnit: decimal.NewFromFloat(10),
+		},
+	}
 
 	sender, err := client.SenderProfile.
 		Create().
 		SetUser(user).
 		SetWebhookURL("https://example.com/webhook").
-		SetFeePerTokenUnit(decimal.NewFromFloat(10)).
-		SetFeeAddress("0x409689E3008d43a9eb439e7B275749D4a71D8E2D").
-		SetRefundAddress("0x409689E3008d43a9eb439e7B275749D4a71D8E2D").
+		SetAddresses(addresses).
 		SetDomainWhitelist([]string{"https://example.com"}).
 		SetIsActive(true).
 		Save(ctx)
