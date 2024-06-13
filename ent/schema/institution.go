@@ -20,7 +20,6 @@ func (Institution) Mixin() []ent.Mixin {
 
 // Fields of the Institution.
 func (Institution) Fields() []ent.Field {
-
 	return []ent.Field{
 		field.String("code").Unique(),
 		field.String("name"),
