@@ -81,6 +81,20 @@ func (nu *NetworkUpdate) SetRPCEndpoint(s string) *NetworkUpdate {
 	return nu
 }
 
+// SetGatewayContractAddress sets the "gateway_contract_address" field.
+func (nu *NetworkUpdate) SetGatewayContractAddress(s string) *NetworkUpdate {
+	nu.mutation.SetGatewayContractAddress(s)
+	return nu
+}
+
+// SetNillableGatewayContractAddress sets the "gateway_contract_address" field if the given value is not nil.
+func (nu *NetworkUpdate) SetNillableGatewayContractAddress(s *string) *NetworkUpdate {
+	if s != nil {
+		nu.SetGatewayContractAddress(*s)
+	}
+	return nu
+}
+
 // SetIsTestnet sets the "is_testnet" field.
 func (nu *NetworkUpdate) SetIsTestnet(b bool) *NetworkUpdate {
 	nu.mutation.SetIsTestnet(b)
@@ -207,6 +221,9 @@ func (nu *NetworkUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if value, ok := nu.mutation.RPCEndpoint(); ok {
 		_spec.SetField(network.FieldRPCEndpoint, field.TypeString, value)
 	}
+	if value, ok := nu.mutation.GatewayContractAddress(); ok {
+		_spec.SetField(network.FieldGatewayContractAddress, field.TypeString, value)
+	}
 	if value, ok := nu.mutation.IsTestnet(); ok {
 		_spec.SetField(network.FieldIsTestnet, field.TypeBool, value)
 	}
@@ -329,6 +346,20 @@ func (nuo *NetworkUpdateOne) SetIdentifier(s string) *NetworkUpdateOne {
 // SetRPCEndpoint sets the "rpc_endpoint" field.
 func (nuo *NetworkUpdateOne) SetRPCEndpoint(s string) *NetworkUpdateOne {
 	nuo.mutation.SetRPCEndpoint(s)
+	return nuo
+}
+
+// SetGatewayContractAddress sets the "gateway_contract_address" field.
+func (nuo *NetworkUpdateOne) SetGatewayContractAddress(s string) *NetworkUpdateOne {
+	nuo.mutation.SetGatewayContractAddress(s)
+	return nuo
+}
+
+// SetNillableGatewayContractAddress sets the "gateway_contract_address" field if the given value is not nil.
+func (nuo *NetworkUpdateOne) SetNillableGatewayContractAddress(s *string) *NetworkUpdateOne {
+	if s != nil {
+		nuo.SetGatewayContractAddress(*s)
+	}
 	return nuo
 }
 
@@ -487,6 +518,9 @@ func (nuo *NetworkUpdateOne) sqlSave(ctx context.Context) (_node *Network, err e
 	}
 	if value, ok := nuo.mutation.RPCEndpoint(); ok {
 		_spec.SetField(network.FieldRPCEndpoint, field.TypeString, value)
+	}
+	if value, ok := nuo.mutation.GatewayContractAddress(); ok {
+		_spec.SetField(network.FieldGatewayContractAddress, field.TypeString, value)
 	}
 	if value, ok := nuo.mutation.IsTestnet(); ok {
 		_spec.SetField(network.FieldIsTestnet, field.TypeBool, value)

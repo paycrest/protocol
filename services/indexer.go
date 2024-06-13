@@ -240,7 +240,7 @@ func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPC
 	}
 
 	// Initialize contract filterer
-	filterer, err := contracts.NewGatewayFilterer(orderConf.GatewayContractAddress, client)
+	filterer, err := contracts.NewGatewayFilterer(common.HexToAddress(network.GatewayContractAddress), client)
 	if err != nil {
 		logger.Errorf("IndexOrderCreated.NewGatewayFilterer: %v", err)
 		return err
@@ -274,7 +274,6 @@ func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPC
 						ProtocolFee:     log.ProtocolFee,
 						OrderId:         log.OrderId,
 						Rate:            log.Rate,
-						InstitutionCode: log.InstitutionCode,
 						MessageHash:     log.MessageHash,
 					}
 					err := s.CreateLockPaymentOrder(ctx, client, network, event)
@@ -331,7 +330,6 @@ func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPC
 				ProtocolFee:     iter.Event.ProtocolFee,
 				OrderId:         iter.Event.OrderId,
 				Rate:            iter.Event.Rate,
-				InstitutionCode: iter.Event.InstitutionCode,
 				MessageHash:     iter.Event.MessageHash,
 			}
 			err := s.CreateLockPaymentOrder(ctx, client, network, event)
@@ -359,7 +357,7 @@ func (s *IndexerService) IndexOrderCreatedTron(ctx context.Context, order *ent.P
 
 	for _, event := range events {
 		eventData := event.(map[string]interface{})
-		if eventData["event_name"] == "OrderCreated" && eventData["contract_address"] == orderConf.GatewayContractAddressTron {
+		if eventData["event_name"] == "OrderCreated" && eventData["contract_address"] == order.Edges.Token.Edges.Network.GatewayContractAddress {
 			client := fastshot.NewClient(order.Edges.Token.Edges.Network.RPCEndpoint).
 				Config().SetTimeout(30*time.Second).
 				Header().Add("TRON_PRO_API_KEY", orderConf.TronProApiKey)
@@ -397,7 +395,6 @@ func (s *IndexerService) IndexOrderCreatedTron(ctx context.Context, order *ent.P
 						ProtocolFee:     unpackedEventData[0].(*big.Int),
 						OrderId:         unpackedEventData[1].([32]byte),
 						Rate:            unpackedEventData[2].(*big.Int),
-						InstitutionCode: unpackedEventData[3].([32]byte),
 						MessageHash:     unpackedEventData[4].(string),
 					}
 
@@ -446,7 +443,7 @@ func (s *IndexerService) IndexOrderSettled(ctx context.Context, client types.RPC
 	}
 
 	// Initialize contract filterer
-	filterer, err := contracts.NewGatewayFilterer(orderConf.GatewayContractAddress, client)
+	filterer, err := contracts.NewGatewayFilterer(common.HexToAddress(network.GatewayContractAddress), client)
 	if err != nil {
 		logger.Errorf("IndexOrderSettled.NewGatewayFilterer: %v", err)
 		return err
@@ -565,7 +562,7 @@ func (s *IndexerService) IndexOrderSettledTron(ctx context.Context, order *ent.L
 
 	for _, event := range events {
 		eventData := event.(map[string]interface{})
-		if eventData["event_name"] == "OrderSettled" && eventData["contract_address"] == orderConf.GatewayContractAddressTron {
+		if eventData["event_name"] == "OrderSettled" && eventData["contract_address"] == order.Edges.Token.Edges.Network.GatewayContractAddress {
 			client := fastshot.NewClient(order.Edges.Token.Edges.Network.RPCEndpoint).
 				Config().SetTimeout(30*time.Second).
 				Header().Add("TRON_PRO_API_KEY", orderConf.TronProApiKey)
@@ -637,7 +634,7 @@ func (s *IndexerService) IndexOrderRefunded(ctx context.Context, client types.RP
 	}
 
 	// Initialize contract filterer
-	filterer, err := contracts.NewGatewayFilterer(orderConf.GatewayContractAddress, client)
+	filterer, err := contracts.NewGatewayFilterer(common.HexToAddress(network.GatewayContractAddress), client)
 	if err != nil {
 		logger.Errorf("IndexOrderRefunded.NewGatewayFilterer: %v", err)
 		return err
@@ -751,7 +748,7 @@ func (s *IndexerService) IndexOrderRefundedTron(ctx context.Context, order *ent.
 
 	for _, event := range events {
 		eventData := event.(map[string]interface{})
-		if eventData["event_name"] == "OrderRefunded" && eventData["contract_address"] == orderConf.GatewayContractAddressTron {
+		if eventData["event_name"] == "OrderRefunded" && eventData["contract_address"] == order.Edges.Token.Edges.Network.GatewayContractAddress {
 			client := fastshot.NewClient(order.Edges.Token.Edges.Network.RPCEndpoint).
 				Config().SetTimeout(30*time.Second).
 				Header().Add("TRON_PRO_API_KEY", orderConf.TronProApiKey)
@@ -965,7 +962,7 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 		Rate:              rate,
 		BlockNumber:       int64(event.BlockNumber),
 		TxHash:            event.TxHash,
-		Institution:       utils.Byte32ToString(event.InstitutionCode),
+		Institution:       "KUDANGPC",
 		AccountIdentifier: recipient.AccountIdentifier,
 		AccountName:       recipient.AccountName,
 		ProviderID:        recipient.ProviderID,

@@ -72,7 +72,6 @@ type OrderCreatedEvent struct {
 	ProtocolFee     *big.Int
 	OrderId         [32]byte
 	Rate            *big.Int
-	InstitutionCode [32]byte
 	MessageHash     string
 }
 
@@ -107,7 +106,6 @@ type OrderService interface {
 type CreateOrderParams struct {
 	Token              common.Address
 	Amount             *big.Int
-	InstitutionCode    [32]byte
 	Rate               *big.Int
 	SenderFeeRecipient common.Address
 	SenderFee          *big.Int

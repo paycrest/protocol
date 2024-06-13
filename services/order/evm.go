@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/uuid"
 	"github.com/paycrest/protocol/config"
@@ -448,28 +447,26 @@ func (s *OrderEVM) GetSupportedInstitutions(ctx context.Context, client types.RP
 		}
 	}
 
-	currency := utils.StringToByte32(currencyCode)
+	// currency := utils.StringToByte32(currencyCode)
 
 	// Initialize contract filterer
-	instance, err := contracts.NewGateway(config.OrderConfig().GatewayContractAddress, client.(bind.ContractBackend))
-	if err != nil {
-		return nil, fmt.Errorf("GetSupportedInstitutions.NewGatewayOrder: %w", err)
-	}
+	// instance, err := contracts.NewGateway(config.OrderConfig().GatewayContractAddress, client.(bind.ContractBackend))
+	// if err != nil {
+	// 	return nil, fmt.Errorf("GetSupportedInstitutions.NewGatewayOrder: %w", err)
+	// }
 
-	institutions, err := instance.GetSupportedInstitutions(nil, currency)
-	if err != nil {
-		return nil, fmt.Errorf("GetSupportedInstitutions: %w", err)
-	}
+	// institutions, err := instance.GetSupportedInstitutions(nil, currency)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("GetSupportedInstitutions: %w", err)
+	// }
 
-	supportedInstitution := make([]types.Institution, len(institutions))
-	for i, v := range institutions {
-		institution := types.Institution{
-			Name: utils.Byte32ToString(v.Name),
-			Code: utils.Byte32ToString(v.Code),
-			Type: "BANK", // NOTE: defaults to bank.
-		}
-		supportedInstitution[i] = institution
+	supportedInstitution := make([]types.Institution, 1)
+	institution := types.Institution{
+		Name: "Kuda Bank",
+		Code: "NGN",
+		Type: "BANK", // NOTE: defaults to bank.
 	}
+	supportedInstitution[0] = institution
 
 	return supportedInstitution, nil
 }
@@ -527,7 +524,7 @@ func (s *OrderEVM) executeBatchCreateOrderCallData(order *ent.PaymentOrder) ([]b
 
 	// Create approve data for gateway contract
 	approveGatewayData, err := s.approveCallData(
-		config.OrderConfig().GatewayContractAddress,
+		common.HexToAddress(order.Edges.Token.Edges.Network.GatewayContractAddress),
 		utils.ToSubunit(orderAmountWithFees.Mul(decimal.NewFromInt(2)), order.Edges.Token.Decimals),
 	)
 	if err != nil {
@@ -569,7 +566,7 @@ func (s *OrderEVM) executeBatchCreateOrderCallData(order *ent.PaymentOrder) ([]b
 		[]common.Address{
 			common.HexToAddress(order.Edges.Token.ContractAddress),
 			common.HexToAddress(order.Edges.Token.ContractAddress),
-			config.OrderConfig().GatewayContractAddress,
+			common.HexToAddress(order.Edges.Token.Edges.Network.GatewayContractAddress),
 		},
 		[][]byte{approvePaymasterData, approveGatewayData, createOrderData},
 	)
@@ -655,7 +652,6 @@ func (s *OrderEVM) createOrderCallData(order *ent.PaymentOrder) ([]byte, error) 
 	params := &types.CreateOrderParams{
 		Token:              common.HexToAddress(order.Edges.Token.ContractAddress),
 		Amount:             utils.ToSubunit(amountWithProtocolFee, order.Edges.Token.Decimals),
-		InstitutionCode:    utils.StringToByte32(order.Edges.Recipient.Institution),
 		Rate:               order.Rate.BigInt(),
 		SenderFeeRecipient: common.HexToAddress(order.FeeAddress),
 		SenderFee:          order.SenderFee.BigInt(),
@@ -674,7 +670,6 @@ func (s *OrderEVM) createOrderCallData(order *ent.PaymentOrder) ([]byte, error) 
 		"createOrder",
 		params.Token,
 		params.Amount,
-		params.InstitutionCode,
 		params.Rate,
 		params.SenderFeeRecipient,
 		params.SenderFee,
@@ -703,7 +698,7 @@ func (s *OrderEVM) executeBatchRefundCallData(order *ent.LockPaymentOrder) ([]by
 
 	// Create approve data for gateway contract
 	approveGatewayData, err := s.approveCallData(
-		config.OrderConfig().GatewayContractAddress,
+		common.HexToAddress(order.Edges.Token.Edges.Network.GatewayContractAddress),
 		utils.ToSubunit(order.Amount.Add(sourceOrder.SenderFee).Add(sourceOrder.ProtocolFee), order.Edges.Token.Decimals),
 	)
 	if err != nil {
@@ -724,7 +719,7 @@ func (s *OrderEVM) executeBatchRefundCallData(order *ent.LockPaymentOrder) ([]by
 
 	contractAddresses := []common.Address{
 		common.HexToAddress(order.Edges.Token.ContractAddress),
-		config.OrderConfig().GatewayContractAddress,
+		common.HexToAddress(order.Edges.Token.Edges.Network.GatewayContractAddress),
 	}
 
 	data := [][]byte{approveGatewayData, refundData}
@@ -799,7 +794,7 @@ func (s *OrderEVM) refundCallData(fee *big.Int, orderId string) ([]byte, error) 
 func (s *OrderEVM) executeBatchSettleCallData(ctx context.Context, order *ent.LockPaymentOrder) ([]byte, error) {
 	// Create approve data for gateway contract
 	approveGatewayData, err := s.approveCallData(
-		config.OrderConfig().GatewayContractAddress,
+		common.HexToAddress(order.Edges.Token.Edges.Network.GatewayContractAddress),
 		utils.ToSubunit(order.Amount, order.Edges.Token.Decimals),
 	)
 	if err != nil {
@@ -849,7 +844,7 @@ func (s *OrderEVM) executeBatchSettleCallData(ctx context.Context, order *ent.Lo
 
 	contractAddresses = append(
 		contractAddresses,
-		config.OrderConfig().GatewayContractAddress,
+		common.HexToAddress(order.Edges.Token.Edges.Network.GatewayContractAddress),
 	)
 	data = append(data, settleData)
 

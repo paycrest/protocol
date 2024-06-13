@@ -4645,26 +4645,27 @@ func (m *LockPaymentOrderMutation) ResetEdge(name string) error {
 // NetworkMutation represents an operation that mutates the Network nodes in the graph.
 type NetworkMutation struct {
 	config
-	op            Op
-	typ           string
-	id            *int
-	created_at    *time.Time
-	updated_at    *time.Time
-	chain_id      *int64
-	addchain_id   *int64
-	chain_id_hex  *string
-	identifier    *string
-	rpc_endpoint  *string
-	is_testnet    *bool
-	fee           *decimal.Decimal
-	addfee        *decimal.Decimal
-	clearedFields map[string]struct{}
-	tokens        map[int]struct{}
-	removedtokens map[int]struct{}
-	clearedtokens bool
-	done          bool
-	oldValue      func(context.Context) (*Network, error)
-	predicates    []predicate.Network
+	op                       Op
+	typ                      string
+	id                       *int
+	created_at               *time.Time
+	updated_at               *time.Time
+	chain_id                 *int64
+	addchain_id              *int64
+	chain_id_hex             *string
+	identifier               *string
+	rpc_endpoint             *string
+	gateway_contract_address *string
+	is_testnet               *bool
+	fee                      *decimal.Decimal
+	addfee                   *decimal.Decimal
+	clearedFields            map[string]struct{}
+	tokens                   map[int]struct{}
+	removedtokens            map[int]struct{}
+	clearedtokens            bool
+	done                     bool
+	oldValue                 func(context.Context) (*Network, error)
+	predicates               []predicate.Network
 }
 
 var _ ent.Mutation = (*NetworkMutation)(nil)
@@ -5014,6 +5015,42 @@ func (m *NetworkMutation) ResetRPCEndpoint() {
 	m.rpc_endpoint = nil
 }
 
+// SetGatewayContractAddress sets the "gateway_contract_address" field.
+func (m *NetworkMutation) SetGatewayContractAddress(s string) {
+	m.gateway_contract_address = &s
+}
+
+// GatewayContractAddress returns the value of the "gateway_contract_address" field in the mutation.
+func (m *NetworkMutation) GatewayContractAddress() (r string, exists bool) {
+	v := m.gateway_contract_address
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldGatewayContractAddress returns the old "gateway_contract_address" field's value of the Network entity.
+// If the Network object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *NetworkMutation) OldGatewayContractAddress(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldGatewayContractAddress is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldGatewayContractAddress requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldGatewayContractAddress: %w", err)
+	}
+	return oldValue.GatewayContractAddress, nil
+}
+
+// ResetGatewayContractAddress resets all changes to the "gateway_contract_address" field.
+func (m *NetworkMutation) ResetGatewayContractAddress() {
+	m.gateway_contract_address = nil
+}
+
 // SetIsTestnet sets the "is_testnet" field.
 func (m *NetworkMutation) SetIsTestnet(b bool) {
 	m.is_testnet = &b
@@ -5194,7 +5231,7 @@ func (m *NetworkMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *NetworkMutation) Fields() []string {
-	fields := make([]string, 0, 8)
+	fields := make([]string, 0, 9)
 	if m.created_at != nil {
 		fields = append(fields, network.FieldCreatedAt)
 	}
@@ -5212,6 +5249,9 @@ func (m *NetworkMutation) Fields() []string {
 	}
 	if m.rpc_endpoint != nil {
 		fields = append(fields, network.FieldRPCEndpoint)
+	}
+	if m.gateway_contract_address != nil {
+		fields = append(fields, network.FieldGatewayContractAddress)
 	}
 	if m.is_testnet != nil {
 		fields = append(fields, network.FieldIsTestnet)
@@ -5239,6 +5279,8 @@ func (m *NetworkMutation) Field(name string) (ent.Value, bool) {
 		return m.Identifier()
 	case network.FieldRPCEndpoint:
 		return m.RPCEndpoint()
+	case network.FieldGatewayContractAddress:
+		return m.GatewayContractAddress()
 	case network.FieldIsTestnet:
 		return m.IsTestnet()
 	case network.FieldFee:
@@ -5264,6 +5306,8 @@ func (m *NetworkMutation) OldField(ctx context.Context, name string) (ent.Value,
 		return m.OldIdentifier(ctx)
 	case network.FieldRPCEndpoint:
 		return m.OldRPCEndpoint(ctx)
+	case network.FieldGatewayContractAddress:
+		return m.OldGatewayContractAddress(ctx)
 	case network.FieldIsTestnet:
 		return m.OldIsTestnet(ctx)
 	case network.FieldFee:
@@ -5318,6 +5362,13 @@ func (m *NetworkMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetRPCEndpoint(v)
+		return nil
+	case network.FieldGatewayContractAddress:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetGatewayContractAddress(v)
 		return nil
 	case network.FieldIsTestnet:
 		v, ok := value.(bool)
@@ -5435,6 +5486,9 @@ func (m *NetworkMutation) ResetField(name string) error {
 		return nil
 	case network.FieldRPCEndpoint:
 		m.ResetRPCEndpoint()
+		return nil
+	case network.FieldGatewayContractAddress:
+		m.ResetGatewayContractAddress()
 		return nil
 	case network.FieldIsTestnet:
 		m.ResetIsTestnet()

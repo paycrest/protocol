@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -112,7 +111,7 @@ func (s *OrderTron) CreateOrder(ctx context.Context, orderID uuid.UUID) error {
 	}
 
 	// Normalize addresses
-	gatewayContractAddress, err := util.Base58ToAddress(config.OrderConfig().GatewayContractAddressTron)
+	gatewayContractAddress, err := util.Base58ToAddress(order.Edges.Token.Edges.Network.GatewayContractAddress)
 	if err != nil {
 		return fmt.Errorf("%s - Tron.CreateOrder.Base58ToAddress: %w", orderIDPrefix, err)
 	}
@@ -223,7 +222,7 @@ func (s *OrderTron) RefundOrder(ctx context.Context, orderID string) error {
 	}
 
 	// Normalize addresses
-	gatewayContractAddress, err := util.Base58ToAddress(config.OrderConfig().GatewayContractAddressTron)
+	gatewayContractAddress, err := util.Base58ToAddress(lockOrder.Edges.Token.Edges.Network.GatewayContractAddress)
 	if err != nil {
 		return fmt.Errorf("%s - Tron.RefundOrder.Base58ToAddress: %w", orderIDPrefix, err)
 	}
@@ -418,7 +417,7 @@ func (s *OrderTron) SettleOrder(ctx context.Context, orderID uuid.UUID) error {
 	}
 
 	// Normalize addresses
-	gatewayContractAddress, err := util.Base58ToAddress(config.OrderConfig().GatewayContractAddressTron)
+	gatewayContractAddress, err := util.Base58ToAddress(order.Edges.Token.Edges.Network.GatewayContractAddress)
 	if err != nil {
 		return fmt.Errorf("%s - Tron.SettleOrder.Base58ToAddress: %w", orderIDPrefix, err)
 	}
@@ -492,28 +491,26 @@ func (s *OrderTron) GetSupportedInstitutions(ctx context.Context, client types.R
 		}
 	}
 
-	currency := utils.StringToByte32(currencyCode)
+	// currency := utils.StringToByte32(currencyCode)
 
 	// Initialize contract filterer
-	instance, err := contracts.NewGateway(config.OrderConfig().GatewayContractAddress, client.(bind.ContractBackend))
-	if err != nil {
-		return nil, fmt.Errorf("GetSupportedInstitutions.NewGatewayOrder: %w", err)
-	}
+	// instance, err := contracts.NewGateway(config.OrderConfig().GatewayContractAddress, client.(bind.ContractBackend))
+	// if err != nil {
+	// 	return nil, fmt.Errorf("GetSupportedInstitutions.NewGatewayOrder: %w", err)
+	// }
 
-	institutions, err := instance.GetSupportedInstitutions(nil, currency)
-	if err != nil {
-		return nil, fmt.Errorf("GetSupportedInstitutions: %w", err)
-	}
+	// institutions, err := instance.GetSupportedInstitutions(nil, currency)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("GetSupportedInstitutions: %w", err)
+	// }
 
-	supportedInstitution := make([]types.Institution, len(institutions))
-	for i, v := range institutions {
-		institution := types.Institution{
-			Name: utils.Byte32ToString(v.Name),
-			Code: utils.Byte32ToString(v.Code),
-			Type: "BANK", // NOTE: defaults to bank.
-		}
-		supportedInstitution[i] = institution
+	supportedInstitution := make([]types.Institution, 1)
+	institution := types.Institution{
+		Name: "Kuda Bank",
+		Code: "NGN",
+		Type: "BANK", // NOTE: defaults to bank.
 	}
+	supportedInstitution[0] = institution
 
 	return supportedInstitution, nil
 }
@@ -573,7 +570,6 @@ func (s *OrderTron) createOrderCallData(order *ent.PaymentOrder) ([]byte, error)
 	params := &types.CreateOrderParams{
 		Token:              common.HexToAddress(tokenContractAddressTron.Hex()[4:]),
 		Amount:             utils.ToSubunit(amountWithProtocolFee, order.Edges.Token.Decimals),
-		InstitutionCode:    utils.StringToByte32(order.Edges.Recipient.Institution),
 		Rate:               order.Rate.BigInt(),
 		SenderFeeRecipient: common.HexToAddress(senderFeeRecipient),
 		SenderFee:          order.SenderFee.BigInt(),
@@ -592,7 +588,6 @@ func (s *OrderTron) createOrderCallData(order *ent.PaymentOrder) ([]byte, error)
 		"createOrder",
 		params.Token,
 		params.Amount,
-		params.InstitutionCode,
 		params.Rate,
 		params.SenderFeeRecipient,
 		params.SenderFee,
