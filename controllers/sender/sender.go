@@ -167,7 +167,7 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 	// Handle sender profile overrides
 	var feePerTokenUnit decimal.Decimal
 	var feeAddress string
-	var selectedAddress types.SenderAddressDBModel
+	var selectedAddress types.SenderOrderToken
 
 	if len(sender.Addresses) == 0 {
 		logger.Errorf("error: %v", err)

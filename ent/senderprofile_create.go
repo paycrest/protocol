@@ -94,7 +94,7 @@ func (spc *SenderProfileCreate) SetAddresses(saaaaptuptu []struct {
 	Network         string          "json:\"network\""
 	FeeAddress      string          "json:\"feeAddress\""
 	RefundAddress   string          "json:\"refundAddress\""
-	FeePerTokenUnit decimal.Decimal "json:\"fee_per_token_unit\""
+	FeePerTokenUnit decimal.Decimal "json:\"feePerTokenUnit\""
 }) *SenderProfileCreate {
 	spc.mutation.SetAddresses(saaaaptuptu)
 	return spc

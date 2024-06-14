@@ -13289,7 +13289,7 @@ type SenderProfileMutation struct {
 		Network         string          "json:\"network\""
 		FeeAddress      string          "json:\"feeAddress\""
 		RefundAddress   string          "json:\"refundAddress\""
-		FeePerTokenUnit decimal.Decimal "json:\"fee_per_token_unit\""
+		FeePerTokenUnit decimal.Decimal "json:\"feePerTokenUnit\""
 	}
 	appendaddresses []struct {
 		Token           string          "json:\"token\""
@@ -13297,7 +13297,7 @@ type SenderProfileMutation struct {
 		Network         string          "json:\"network\""
 		FeeAddress      string          "json:\"feeAddress\""
 		RefundAddress   string          "json:\"refundAddress\""
-		FeePerTokenUnit decimal.Decimal "json:\"fee_per_token_unit\""
+		FeePerTokenUnit decimal.Decimal "json:\"feePerTokenUnit\""
 	}
 	clearedFields         map[string]struct{}
 	user                  *uuid.UUID
@@ -13631,7 +13631,7 @@ func (m *SenderProfileMutation) SetAddresses(saaaaptuptu []struct {
 	Network         string          "json:\"network\""
 	FeeAddress      string          "json:\"feeAddress\""
 	RefundAddress   string          "json:\"refundAddress\""
-	FeePerTokenUnit decimal.Decimal "json:\"fee_per_token_unit\""
+	FeePerTokenUnit decimal.Decimal "json:\"feePerTokenUnit\""
 }) {
 	m.addresses = &saaaaptuptu
 	m.appendaddresses = nil
@@ -13644,7 +13644,7 @@ func (m *SenderProfileMutation) Addresses() (r []struct {
 	Network         string          "json:\"network\""
 	FeeAddress      string          "json:\"feeAddress\""
 	RefundAddress   string          "json:\"refundAddress\""
-	FeePerTokenUnit decimal.Decimal "json:\"fee_per_token_unit\""
+	FeePerTokenUnit decimal.Decimal "json:\"feePerTokenUnit\""
 }, exists bool) {
 	v := m.addresses
 	if v == nil {
@@ -13662,7 +13662,7 @@ func (m *SenderProfileMutation) OldAddresses(ctx context.Context) (v []struct {
 	Network         string          "json:\"network\""
 	FeeAddress      string          "json:\"feeAddress\""
 	RefundAddress   string          "json:\"refundAddress\""
-	FeePerTokenUnit decimal.Decimal "json:\"fee_per_token_unit\""
+	FeePerTokenUnit decimal.Decimal "json:\"feePerTokenUnit\""
 }, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldAddresses is only allowed on UpdateOne operations")
@@ -13684,7 +13684,7 @@ func (m *SenderProfileMutation) AppendAddresses(saaaaptuptu []struct {
 	Network         string          "json:\"network\""
 	FeeAddress      string          "json:\"feeAddress\""
 	RefundAddress   string          "json:\"refundAddress\""
-	FeePerTokenUnit decimal.Decimal "json:\"fee_per_token_unit\""
+	FeePerTokenUnit decimal.Decimal "json:\"feePerTokenUnit\""
 }) {
 	m.appendaddresses = append(m.appendaddresses, saaaaptuptu...)
 }
@@ -13696,7 +13696,7 @@ func (m *SenderProfileMutation) AppendedAddresses() ([]struct {
 	Network         string          "json:\"network\""
 	FeeAddress      string          "json:\"feeAddress\""
 	RefundAddress   string          "json:\"refundAddress\""
-	FeePerTokenUnit decimal.Decimal "json:\"fee_per_token_unit\""
+	FeePerTokenUnit decimal.Decimal "json:\"feePerTokenUnit\""
 }, bool) {
 	if len(m.appendaddresses) == 0 {
 		return nil, false
@@ -13987,7 +13987,7 @@ func (m *SenderProfileMutation) SetField(name string, value ent.Value) error {
 			Network         string          "json:\"network\""
 			FeeAddress      string          "json:\"feeAddress\""
 			RefundAddress   string          "json:\"refundAddress\""
-			FeePerTokenUnit decimal.Decimal "json:\"fee_per_token_unit\""
+			FeePerTokenUnit decimal.Decimal "json:\"feePerTokenUnit\""
 		})
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)

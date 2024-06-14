@@ -60,6 +60,7 @@ func setup() error {
 
 	senderProfile, err := test.CreateTestSenderProfile(map[string]interface{}{
 		"user_id": user.ID,
+		"network": token.Edges.Network.Identifier,
 	})
 	if err != nil {
 		return err
@@ -80,6 +81,17 @@ func setup() error {
 	amount := decimal.NewFromFloat(29.93)
 	protocolFee := amount.Mul(decimal.NewFromFloat(0.001)) // 0.1% protocol fee
 
+	selectedAddress := utils.Find(senderProfile.Addresses, func(address struct {
+		Token           string          `json:"token"`
+		Address         string          `json:"address"`
+		Network         string          `json:"network"`
+		FeeAddress      string          `json:"feeAddress"`
+		RefundAddress   string          `json:"refundAddress"`
+		FeePerTokenUnit decimal.Decimal `json:"feePerTokenUnit"`
+	}) bool {
+		return address.Network == token.Edges.Network.Identifier
+	})
+
 	paymentOrder, err := db.Client.PaymentOrder.
 		Create().
 		SetSenderProfile(senderProfile).
@@ -94,8 +106,8 @@ func setup() error {
 		SetToken(token).
 		SetReceiveAddress(receiveAddress).
 		SetReceiveAddressText(receiveAddress.Address).
-		SetFeePerTokenUnit(senderProfile.Addresses[0].FeePerTokenUnit).
-		SetFeeAddress(senderProfile.Addresses[0].FeeAddress).
+		SetFeePerTokenUnit(selectedAddress.FeePerTokenUnit).
+		SetFeeAddress(selectedAddress.FeeAddress).
 		Save(context.Background())
 	if err != nil {
 		return err

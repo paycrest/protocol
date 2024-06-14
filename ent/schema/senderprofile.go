@@ -36,7 +36,7 @@ func (SenderProfile) Fields() []ent.Field {
 			Network         string          `json:"network"`
 			FeeAddress      string          `json:"feeAddress"`
 			RefundAddress   string          `json:"refundAddress"`
-			FeePerTokenUnit decimal.Decimal `json:"fee_per_token_unit"`
+			FeePerTokenUnit decimal.Decimal `json:"feePerTokenUnit"`
 		}{}),
 	}
 }

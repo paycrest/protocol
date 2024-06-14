@@ -39,7 +39,7 @@ type SenderProfile struct {
 		Network         string          "json:\"network\""
 		FeeAddress      string          "json:\"feeAddress\""
 		RefundAddress   string          "json:\"refundAddress\""
-		FeePerTokenUnit decimal.Decimal "json:\"fee_per_token_unit\""
+		FeePerTokenUnit decimal.Decimal "json:\"feePerTokenUnit\""
 	} `json:"addresses,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the SenderProfileQuery when eager-loading is set.

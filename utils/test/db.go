@@ -270,6 +270,7 @@ func CreateTestSenderProfile(overrides map[string]interface{}) (*ent.SenderProfi
 		"domain_whitelist":   []string{"example.com"},
 		"fee_address":        "0x1234567890123456789012345678901234567890",
 		"refund_address":     "0x0987654321098765432109876543210987654321",
+		"network":            "ethereum",
 		"user_id":            nil,
 	}
 
@@ -288,7 +289,7 @@ func CreateTestSenderProfile(overrides map[string]interface{}) (*ent.SenderProfi
 		Network         string          `json:"network"`
 		FeeAddress      string          `json:"feeAddress"`
 		RefundAddress   string          `json:"refundAddress"`
-		FeePerTokenUnit decimal.Decimal `json:"fee_per_token_unit"`
+		FeePerTokenUnit decimal.Decimal `json:"feePerTokenUnit"`
 	}{
 		{
 			Address:         "0x409689E3008d43a9eb439e7B275749D4a71D8E2D",
@@ -299,7 +300,7 @@ func CreateTestSenderProfile(overrides map[string]interface{}) (*ent.SenderProfi
 		},
 		{
 			Address:         "0x409689E3008d43a9eb439e7B275749D4a71D8E2D",
-			Network:         "ethereum",
+			Network:         payload["network"].(string),
 			FeeAddress:      payload["fee_address"].(string),
 			RefundAddress:   payload["refund_address"].(string),
 			FeePerTokenUnit: feePerTokenUnit,

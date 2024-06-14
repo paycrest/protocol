@@ -175,7 +175,7 @@ func seedSender(ctx context.Context, client *ent.Client, serial string) (string,
 		Network         string          `json:"network"`
 		FeeAddress      string          `json:"feeAddress"`
 		RefundAddress   string          `json:"refundAddress"`
-		FeePerTokenUnit decimal.Decimal `json:"fee_per_token_unit"`
+		FeePerTokenUnit decimal.Decimal `json:"feePerTokenUnit"`
 	}{
 		{
 			Address:         "0x409689E3008d43a9eb439e7B275749D4a71D8E2D",

@@ -106,7 +106,7 @@ func (spu *SenderProfileUpdate) SetAddresses(saaaaptuptu []struct {
 	Network         string          "json:\"network\""
 	FeeAddress      string          "json:\"feeAddress\""
 	RefundAddress   string          "json:\"refundAddress\""
-	FeePerTokenUnit decimal.Decimal "json:\"fee_per_token_unit\""
+	FeePerTokenUnit decimal.Decimal "json:\"feePerTokenUnit\""
 }) *SenderProfileUpdate {
 	spu.mutation.SetAddresses(saaaaptuptu)
 	return spu
@@ -119,7 +119,7 @@ func (spu *SenderProfileUpdate) AppendAddresses(saaaaptuptu []struct {
 	Network         string          "json:\"network\""
 	FeeAddress      string          "json:\"feeAddress\""
 	RefundAddress   string          "json:\"refundAddress\""
-	FeePerTokenUnit decimal.Decimal "json:\"fee_per_token_unit\""
+	FeePerTokenUnit decimal.Decimal "json:\"feePerTokenUnit\""
 }) *SenderProfileUpdate {
 	spu.mutation.AppendAddresses(saaaaptuptu)
 	return spu
@@ -445,7 +445,7 @@ func (spuo *SenderProfileUpdateOne) SetAddresses(saaaaptuptu []struct {
 	Network         string          "json:\"network\""
 	FeeAddress      string          "json:\"feeAddress\""
 	RefundAddress   string          "json:\"refundAddress\""
-	FeePerTokenUnit decimal.Decimal "json:\"fee_per_token_unit\""
+	FeePerTokenUnit decimal.Decimal "json:\"feePerTokenUnit\""
 }) *SenderProfileUpdateOne {
 	spuo.mutation.SetAddresses(saaaaptuptu)
 	return spuo
@@ -458,7 +458,7 @@ func (spuo *SenderProfileUpdateOne) AppendAddresses(saaaaptuptu []struct {
 	Network         string          "json:\"network\""
 	FeeAddress      string          "json:\"feeAddress\""
 	RefundAddress   string          "json:\"refundAddress\""
-	FeePerTokenUnit decimal.Decimal "json:\"fee_per_token_unit\""
+	FeePerTokenUnit decimal.Decimal "json:\"feePerTokenUnit\""
 }) *SenderProfileUpdateOne {
 	spuo.mutation.AppendAddresses(saaaaptuptu)
 	return spuo

@@ -104,8 +104,9 @@ func (ctrl *ProfileController) UpdateSenderProfile(ctx *gin.Context) {
 				Network         string          `json:"network"`
 				FeeAddress      string          `json:"feeAddress"`
 				RefundAddress   string          `json:"refundAddress"`
-				FeePerTokenUnit decimal.Decimal `json:"fee_per_token_unit"`
+				FeePerTokenUnit decimal.Decimal `json:"feePerTokenUnit"`
 			}{
+				Token:           "",
 				Network:         payload.Network,
 				FeeAddress:      payload.FeeAddress,
 				RefundAddress:   payload.RefundAddress,
@@ -415,9 +416,9 @@ func (ctrl *ProfileController) GetSenderProfile(ctx *gin.Context) {
 		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to retrieve profile", nil)
 		return
 	}
-	var addresses []types.SenderAddressDBModel
+	var addresses []types.SenderOrderToken
 	for _, address := range sender.Addresses {
-		addresses = append(addresses, types.SenderAddressDBModel{
+		addresses = append(addresses, types.SenderOrderToken{
 			Token:           address.Token,
 			Address:         address.Address,
 			Network:         address.Network,
