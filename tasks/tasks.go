@@ -33,54 +33,6 @@ import (
 var orderConf = config.OrderConfig()
 var serverConf = config.ServerConfig()
 
-// StartLiveIndexing starts live indexing of EVM blockchain events
-func StartLiveIndexing() error {
-	ctx := context.Background()
-	orderService := orderService.NewOrderEVM()
-	indexerService := services.NewIndexerService(orderService)
-
-	networks, err := storage.Client.Network.
-		Query().
-		Where(
-			networkent.IsTestnetEQ(serverConf.Environment != "production"),
-		).
-		All(ctx)
-	if err != nil {
-		return err
-	}
-
-	for _, network := range networks {
-		if strings.HasPrefix(network.Identifier, "tron") {
-			continue
-		}
-		// Start listening for order creation events
-		go func(network *ent.Network) {
-			err := indexerService.IndexOrderCreated(ctx, nil, network, "", true)
-			if err != nil {
-				logger.Errorf("process order deposits task => %v", err)
-			}
-		}(network)
-
-		// Start listening for order settlement events
-		go func(network *ent.Network) {
-			err = indexerService.IndexOrderSettled(ctx, nil, network, "", true)
-			if err != nil {
-				logger.Errorf("process order settlements task => %v", err)
-			}
-		}(network)
-
-		// Start listening for order refund events
-		go func(network *ent.Network) {
-			err = indexerService.IndexOrderRefunded(ctx, nil, network, "", true)
-			if err != nil {
-				logger.Errorf("process order refunds task => %v", err)
-			}
-		}(network)
-	}
-
-	return nil
-}
-
 // RetryStaleUserOperations retries stale user operations
 func RetryStaleUserOperations() error {
 	ctx := context.Background()
@@ -340,7 +292,7 @@ func IndexBlockchainEvents() error {
 							}
 						} else {
 							indexerService := services.NewIndexerService(orderService.NewOrderEVM())
-							err := indexerService.IndexOrderCreated(ctx, nil, network, order.Edges.ReceiveAddress.Address, false)
+							err := indexerService.IndexOrderCreated(ctx, nil, network, order.Edges.ReceiveAddress.Address)
 							if err != nil {
 								logger.Errorf("IndexBlockchainEvents: %v", err)
 							}
@@ -391,7 +343,7 @@ func IndexBlockchainEvents() error {
 							}
 						} else {
 							indexerService := services.NewIndexerService(orderService.NewOrderEVM())
-							err := indexerService.IndexOrderSettled(ctx, nil, network, order.GatewayID, false)
+							err := indexerService.IndexOrderSettled(ctx, nil, network, order.GatewayID)
 							if err != nil {
 								logger.Errorf("IndexBlockchainEvents: %v", err)
 							}
@@ -445,7 +397,7 @@ func IndexBlockchainEvents() error {
 							}
 						} else {
 							indexerService := services.NewIndexerService(orderService.NewOrderEVM())
-							err := indexerService.IndexOrderRefunded(ctx, nil, network, order.GatewayID, false)
+							err := indexerService.IndexOrderRefunded(ctx, nil, network, order.GatewayID)
 							if err != nil {
 								logger.Errorf("IndexBlockchainEvents: %v", err)
 							}

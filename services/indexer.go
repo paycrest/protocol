@@ -45,11 +45,11 @@ var serverConf = config.ServerConfig()
 type Indexer interface {
 	IndexERC20Transfer(ctx context.Context, client types.RPCClient, order *ent.PaymentOrder) error
 	IndexTRC20Transfer(ctx context.Context, order *ent.PaymentOrder) error
-	IndexOrderCreated(ctx context.Context, client types.RPCClient, network *ent.Network, sender string, isLive bool) error
+	IndexOrderCreated(ctx context.Context, client types.RPCClient, network *ent.Network, sender string) error
 	IndexOrderCreatedTron(ctx context.Context, order *ent.PaymentOrder) error
-	IndexOrderSettled(ctx context.Context, client types.RPCClient, network *ent.Network, gatewayId string, isLive bool) error
+	IndexOrderSettled(ctx context.Context, client types.RPCClient, network *ent.Network, gatewayId string) error
 	IndexOrderSettledTron(ctx context.Context, order *ent.LockPaymentOrder) error
-	IndexOrderRefunded(ctx context.Context, client types.RPCClient, network *ent.Network, gatewayId string, isLive bool) error
+	IndexOrderRefunded(ctx context.Context, client types.RPCClient, network *ent.Network, gatewayId string) error
 	IndexOrderRefundedTron(ctx context.Context, order *ent.LockPaymentOrder) error
 	HandleReceiveAddressValidity(ctx context.Context, receiveAddress *ent.ReceiveAddress, paymentOrder *ent.PaymentOrder) error
 	CreateLockPaymentOrder(ctx context.Context, client types.RPCClient, network *ent.Network, event *types.OrderCreatedEvent) error
@@ -224,7 +224,7 @@ func (s *IndexerService) IndexTRC20Transfer(ctx context.Context, order *ent.Paym
 }
 
 // IndexOrderCreated indexes deposits to the order contract for an EVM network.
-func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPCClient, network *ent.Network, sender string, isLive bool) error {
+func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPCClient, network *ent.Network, sender string) error {
 	var err error
 
 	// Connect to RPC endpoint
@@ -246,99 +246,45 @@ func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPC
 		return err
 	}
 
-	if serverConf.Environment != "test" && isLive {
-		// Start listening for deposit events
-		logs := make(chan *contracts.GatewayOrderCreated)
+	// Fetch current block header
+	header, err := client.HeaderByNumber(ctx, nil)
+	if err != nil {
+		logger.Errorf("IndexOrderCreated.HeaderByNumber: %v", err)
+	}
+	toBlock := header.Number.Uint64()
 
-		sub, err := filterer.WatchOrderCreated(&bind.WatchOpts{
-			Start: nil,
-		}, logs, nil, nil, nil)
+	// Fetch logs
+	var iter *contracts.GatewayOrderCreatedIterator
+	retryErr := utils.Retry(3, 1*time.Second, func() error {
+		var err error
+		iter, err = filterer.FilterOrderCreated(&bind.FilterOpts{
+			Start: uint64(int64(toBlock) - 5000),
+			End:   &toBlock,
+		}, []common.Address{common.HexToAddress(sender)}, nil, nil)
+		return err
+	})
+	if retryErr != nil {
+		logger.Errorf("IndexOrderCreated.FilterOrderCreated: %v", retryErr)
+		return retryErr
+	}
+
+	// Iterate over logs
+	for iter.Next() {
+		event := &types.OrderCreatedEvent{
+			BlockNumber: iter.Event.Raw.BlockNumber,
+			TxHash:      iter.Event.Raw.TxHash.Hex(),
+			Token:       iter.Event.Token.Hex(),
+			Amount:      iter.Event.Amount,
+			ProtocolFee: iter.Event.ProtocolFee,
+			OrderId:     iter.Event.OrderId,
+			Rate:        iter.Event.Rate,
+			MessageHash: iter.Event.MessageHash,
+		}
+		err := s.CreateLockPaymentOrder(ctx, client, network, event)
 		if err != nil {
-			logger.Errorf("IndexOrderCreated.WatchOrderCreated: %v", err)
-			return err
+			logger.Errorf("IndexOrderCreated.createOrder: %v", err)
+			continue
 		}
-
-		defer sub.Unsubscribe()
-
-		logger.Infof("Listening for OrderCreated events...\n")
-
-		for {
-			select {
-			case log := <-logs:
-				go func() {
-					event := &types.OrderCreatedEvent{
-						BlockNumber: log.Raw.BlockNumber,
-						TxHash:      log.Raw.TxHash.Hex(),
-						Token:       log.Token.Hex(),
-						Amount:      log.Amount,
-						ProtocolFee: log.ProtocolFee,
-						OrderId:     log.OrderId,
-						Rate:        log.Rate,
-						MessageHash: log.MessageHash,
-					}
-					err := s.CreateLockPaymentOrder(ctx, client, network, event)
-					if err != nil {
-						logger.Errorf("IndexOrderCreated.CreateLockPaymentOrder: %v", err)
-					}
-				}()
-			case err := <-sub.Err():
-				sub.Unsubscribe()
-
-				// Retry the subscription
-				retryErr := utils.Retry(3, 5*time.Second, func() error {
-					sub, err = filterer.WatchOrderCreated(&bind.WatchOpts{
-						Start: nil,
-					}, logs, nil, nil, nil)
-					return err
-				})
-				if retryErr != nil {
-					logger.Errorf("IndexOrderCreated.WatchOrderCreated: %v", retryErr)
-					return retryErr
-				}
-			}
-		}
-	} else {
-		// Fetch current block header
-		header, err := client.HeaderByNumber(ctx, nil)
-		if err != nil {
-			logger.Errorf("IndexOrderCreated.HeaderByNumber: %v", err)
-		}
-		toBlock := header.Number.Uint64()
-
-		// Fetch logs
-		var iter *contracts.GatewayOrderCreatedIterator
-		retryErr := utils.Retry(3, 1*time.Second, func() error {
-			var err error
-			iter, err = filterer.FilterOrderCreated(&bind.FilterOpts{
-				Start: uint64(int64(toBlock) - 5000),
-				End:   &toBlock,
-			}, []common.Address{common.HexToAddress(sender)}, nil, nil)
-			return err
-		})
-		if retryErr != nil {
-			logger.Errorf("IndexOrderCreated.FilterOrderCreated: %v", retryErr)
-			return retryErr
-		}
-
-		// Iterate over logs
-		for iter.Next() {
-			event := &types.OrderCreatedEvent{
-				BlockNumber: iter.Event.Raw.BlockNumber,
-				TxHash:      iter.Event.Raw.TxHash.Hex(),
-				Token:       iter.Event.Token.Hex(),
-				Amount:      iter.Event.Amount,
-				ProtocolFee: iter.Event.ProtocolFee,
-				OrderId:     iter.Event.OrderId,
-				Rate:        iter.Event.Rate,
-				MessageHash: iter.Event.MessageHash,
-			}
-			err := s.CreateLockPaymentOrder(ctx, client, network, event)
-			if err != nil {
-				logger.Errorf("IndexOrderCreated.createOrder: %v", err)
-				continue
-			}
-		}
-
 	}
 
 	return nil
@@ -427,7 +373,7 @@ func (s *IndexerService) IndexOrderCreatedTron(ctx context.Context, order *ent.P
 }
 
 // IndexOrderSettled indexes order settlements for an EVM network.
-func (s *IndexerService) IndexOrderSettled(ctx context.Context, client types.RPCClient, network *ent.Network, gatewayId string, isLive bool) error {
+func (s *IndexerService) IndexOrderSettled(ctx context.Context, client types.RPCClient, network *ent.Network, gatewayId string) error {
 	var err error
 
 	// Connect to RPC endpoint
@@ -449,100 +395,49 @@ func (s *IndexerService) IndexOrderSettled(ctx context.Context, client types.RPC
 		return err
 	}
 
-	if serverConf.Environment != "test" && isLive {
-		// Start listening for settlement events
-		logs := make(chan *contracts.GatewayOrderSettled)
+	// Filter logs from the oldest indexed to the latest
+	header, err := client.HeaderByNumber(ctx, nil)
+	if err != nil {
+		logger.Errorf("IndexOrderSettled.HeaderByNumber: %v", err)
+	}
+	toBlock := header.Number.Uint64()
 
-		sub, err := filterer.WatchOrderSettled(&bind.WatchOpts{
-			Start: nil,
-		}, logs, nil, nil)
+	// Fetch logs
+	var iter *contracts.GatewayOrderSettledIterator
+	retryErr := utils.Retry(3, 1*time.Second, func() error {
+		var err error
+
+		orderID, err := hex.DecodeString(gatewayId[2:])
 		if err != nil {
-			logger.Errorf("IndexOrderSettled.WatchOrderSettled: %v", err)
+			logger.Errorf("IndexOrderSettled.DecodeString: %v", err)
 			return err
 		}
 
-		defer sub.Unsubscribe()
+		iter, err = filterer.FilterOrderSettled(&bind.FilterOpts{
+			Start: uint64(int64(toBlock) - 50000),
+			End:   &toBlock,
+		}, [][32]byte{utils.StringToByte32(string(orderID))}, nil)
+		return err
+	})
+	if retryErr != nil {
+		logger.Errorf("IndexOrderSettled.FilterOrderSettled: %v", retryErr)
+		return retryErr
+	}
 
-		logger.Infof("Listening for OrderSettled events...\n")
-
-		for {
-			select {
-			case log := <-logs:
-				go func() {
-					settledEvent := &types.OrderSettledEvent{
-						BlockNumber:       log.Raw.BlockNumber,
-						TxHash:            log.Raw.TxHash.Hex(),
-						SplitOrderId:      log.SplitOrderId,
-						OrderId:           log.OrderId,
-						LiquidityProvider: log.LiquidityProvider.Hex(),
-						SettlePercent:     log.SettlePercent,
-					}
-					err := s.UpdateOrderStatusSettled(ctx, settledEvent)
-					if err != nil {
-						logger.Errorf("IndexOrderSettled.update: %v", err)
-					}
-				}()
-			case err := <-sub.Err():
-				sub.Unsubscribe()
-
-				// Retry the subscription
-				retryErr := utils.Retry(3, 5*time.Second, func() error {
-					sub, err = filterer.WatchOrderSettled(&bind.WatchOpts{
-						Start: nil,
-					}, logs, nil, nil)
-					return err
-				})
-				if retryErr != nil {
-					logger.Errorf("IndexOrderSettled.WatchOrderSettled: %v", retryErr)
-					return retryErr
-				}
-			}
+	// Iterate over logs
+	for iter.Next() {
+		settledEvent := &types.OrderSettledEvent{
+			BlockNumber:       iter.Event.Raw.BlockNumber,
+			TxHash:            iter.Event.Raw.TxHash.Hex(),
+			SplitOrderId:      iter.Event.SplitOrderId,
+			OrderId:           iter.Event.OrderId,
+			LiquidityProvider: iter.Event.LiquidityProvider.Hex(),
+			SettlePercent:     iter.Event.SettlePercent,
 		}
-	} else {
-		// Filter logs from the oldest indexed to the latest
-		header, err := client.HeaderByNumber(ctx, nil)
+		err := s.UpdateOrderStatusSettled(ctx, settledEvent)
 		if err != nil {
-			logger.Errorf("IndexOrderSettled.HeaderByNumber: %v", err)
-		}
-		toBlock := header.Number.Uint64()
-
-		// Fetch logs
-		var iter *contracts.GatewayOrderSettledIterator
-		retryErr := utils.Retry(3, 1*time.Second, func() error {
-			var err error
-
-			orderID, err := hex.DecodeString(gatewayId[2:])
-			if err != nil {
-				logger.Errorf("IndexOrderSettled.DecodeString: %v", err)
-				return err
-			}
-
-			iter, err = filterer.FilterOrderSettled(&bind.FilterOpts{
-				Start: uint64(int64(toBlock) - 50000),
-				End:   &toBlock,
-			}, [][32]byte{utils.StringToByte32(string(orderID))}, nil)
-			return err
-		})
-		if retryErr != nil {
-			logger.Errorf("IndexOrderSettled.FilterOrderSettled: %v", retryErr)
-			return retryErr
-		}
-
-		// Iterate over logs
-		for iter.Next() {
-			settledEvent := &types.OrderSettledEvent{
-				BlockNumber:       iter.Event.Raw.BlockNumber,
-				TxHash:            iter.Event.Raw.TxHash.Hex(),
-				SplitOrderId:      iter.Event.SplitOrderId,
-				OrderId:           iter.Event.OrderId,
-				LiquidityProvider: iter.Event.LiquidityProvider.Hex(),
-				SettlePercent:     iter.Event.SettlePercent,
-			}
-			err := s.UpdateOrderStatusSettled(ctx, settledEvent)
-			if err != nil {
-				logger.Errorf("IndexOrderSettled.UpdateOrderStatusSettled: %v", err)
-				continue
-			}
+			logger.Errorf("IndexOrderSettled.UpdateOrderStatusSettled: %v", err)
+			continue
 		}
 	}
 
@@ -618,7 +513,7 @@ func (s *IndexerService) IndexOrderSettledTron(ctx context.Context, order *ent.L
 }
 
 // IndexOrderRefunded indexes order refunds for an EVM network.
-func (s *IndexerService) IndexOrderRefunded(ctx context.Context, client types.RPCClient, network *ent.Network, gatewayId string, isLive bool) error {
+func (s *IndexerService) IndexOrderRefunded(ctx context.Context, client types.RPCClient, network *ent.Network, gatewayId string) error {
 	var err error
 
 	// Connect to RPC endpoint
@@ -640,95 +535,47 @@ func (s *IndexerService) IndexOrderRefunded(ctx context.Context, client types.RP
 		return err
 	}
 
-	if serverConf.Environment != "test" && isLive {
-		// Start listening for refund events
-		logs := make(chan *contracts.GatewayOrderRefunded)
-		sub, err := filterer.WatchOrderRefunded(&bind.WatchOpts{
-			Start: nil,
-		}, logs, nil)
+	// Filter logs from the oldest indexed to the latest
+	header, err := client.HeaderByNumber(ctx, nil)
+	if err != nil {
+		logger.Errorf("IndexOrderRefunded.HeaderByNumber: %v", err)
+	}
+	toBlock := header.Number.Uint64()
+
+	// Fetch logs
+	var iter *contracts.GatewayOrderRefundedIterator
+	retryErr := utils.Retry(3, 1*time.Second, func() error {
+		var err error
+
+		orderID, err := hex.DecodeString(gatewayId[2:])
 		if err != nil {
-			logger.Errorf("IndexOrderRefunded.WatchOrderRefunded: %v", err)
+			logger.Errorf("IndexOrderRefunded.DecodeString: %v", err)
 			return err
 		}
 
-		defer sub.Unsubscribe()
+		iter, err = filterer.FilterOrderRefunded(&bind.FilterOpts{
+			Start: uint64(int64(toBlock) - 50000),
+			End:   &toBlock,
+		}, [][32]byte{utils.StringToByte32(string(orderID))})
+		return err
+	})
+	if retryErr != nil {
+		logger.Errorf("IndexOrderRefunded.FilterOrderRefunded: %v", retryErr)
+		return retryErr
+	}
 
-		logger.Infof("Listening for OrderRefunded events...\n")
-
-		for {
-			select {
-			case log := <-logs:
-				go func() {
-					refundedEvent := &types.OrderRefundedEvent{
-						BlockNumber: log.Raw.BlockNumber,
-						TxHash:      log.Raw.TxHash.Hex(),
-						Fee:         log.Fee,
-						OrderId:     log.OrderId,
-					}
-					err := s.UpdateOrderStatusRefunded(ctx, refundedEvent)
-					if err != nil {
-						logger.Errorf("IndexOrderRefunded.update: %v", err)
-					}
-				}()
-			case err := <-sub.Err():
-				sub.Unsubscribe()
-
-				// Retry the subscription
-				retryErr := utils.Retry(3, 5*time.Second, func() error {
-					sub, err = filterer.WatchOrderRefunded(&bind.WatchOpts{
-						Start: nil,
-					}, logs, nil)
-					return err
-				})
-				if retryErr != nil {
-					logger.Errorf("IndexOrderRefunded.WatchOrderRefunded: %v", retryErr)
-					return retryErr
-				}
-			}
+	// Iterate over logs
+	for iter.Next() {
+		refundedEvent := &types.OrderRefundedEvent{
+			BlockNumber: iter.Event.Raw.BlockNumber,
+			TxHash:      iter.Event.Raw.TxHash.Hex(),
+			Fee:         iter.Event.Fee,
+			OrderId:     iter.Event.OrderId,
 		}
-	} else {
-		// Filter logs from the oldest indexed to the latest
-		header, err := client.HeaderByNumber(ctx, nil)
+		err := s.UpdateOrderStatusRefunded(ctx, refundedEvent)
 		if err != nil {
-			logger.Errorf("IndexOrderRefunded.HeaderByNumber: %v", err)
-		}
-		toBlock := header.Number.Uint64()
-
-		// Fetch logs
-		var iter *contracts.GatewayOrderRefundedIterator
-		retryErr := utils.Retry(3, 1*time.Second, func() error {
-			var err error
-
-			orderID, err := hex.DecodeString(gatewayId[2:])
-			if err != nil {
-				logger.Errorf("IndexOrderRefunded.DecodeString: %v", err)
-				return err
-			}
-
-			iter, err = filterer.FilterOrderRefunded(&bind.FilterOpts{
-				Start: uint64(int64(toBlock) - 50000),
-				End:   &toBlock,
-			}, [][32]byte{utils.StringToByte32(string(orderID))})
-			return err
-		})
-		if retryErr != nil {
-			logger.Errorf("IndexOrderRefunded.FilterOrderRefunded: %v", retryErr)
-			return retryErr
-		}
-
-		// Iterate over logs
-		for iter.Next() {
-			refundedEvent := &types.OrderRefundedEvent{
-				BlockNumber: iter.Event.Raw.BlockNumber,
-				TxHash:      iter.Event.Raw.TxHash.Hex(),
-				Fee:         iter.Event.Fee,
-				OrderId:     iter.Event.OrderId,
-			}
-			err := s.UpdateOrderStatusRefunded(ctx, refundedEvent)
-			if err != nil {
-				logger.Errorf("IndexOrderRefunded.UpdateOrderStatusRefunded: %v", err)
-				continue
-			}
+			logger.Errorf("IndexOrderRefunded.UpdateOrderStatusRefunded: %v", err)
+			continue
 		}
 	}
 
