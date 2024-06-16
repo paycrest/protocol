@@ -308,11 +308,26 @@ func (ctrl *ProviderController) FulfillOrder(ctx *gin.Context) {
 		Only(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {
-			fulfillment, err = storage.Client.LockOrderFulfillment.
+			_, err = storage.Client.LockOrderFulfillment.
 				Create().
 				SetOrderID(orderID).
 				SetTxID(payload.TxID).
 				Save(ctx)
+			if err != nil {
+				logger.Errorf("error: %v", err)
+				u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update lock order status", nil)
+				return
+			}
+
+			fulfillment, err = storage.Client.LockOrderFulfillment.
+				Query().
+				Where(lockorderfulfillment.TxIDEQ(payload.TxID)).
+				WithOrder(func(poq *ent.LockPaymentOrderQuery) {
+					poq.WithToken(func(tq *ent.TokenQuery) {
+						tq.WithNetwork()
+					})
+				}).
+				Only(ctx)
 			if err != nil {
 				logger.Errorf("error: %v", err)
 				u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update lock order status", nil)
