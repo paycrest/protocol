@@ -387,13 +387,32 @@ var (
 			},
 		},
 	}
+	// SenderOrderTokensColumns holds the columns for the "sender_order_tokens" table.
+	SenderOrderTokensColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "symbol", Type: field.TypeString},
+		{Name: "fee_per_token_unit", Type: field.TypeFloat64},
+		{Name: "addresses", Type: field.TypeJSON},
+		{Name: "sender_profile_order_tokens", Type: field.TypeUUID, Nullable: true},
+	}
+	// SenderOrderTokensTable holds the schema information for the "sender_order_tokens" table.
+	SenderOrderTokensTable = &schema.Table{
+		Name:       "sender_order_tokens",
+		Columns:    SenderOrderTokensColumns,
+		PrimaryKey: []*schema.Column{SenderOrderTokensColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "sender_order_tokens_sender_profiles_order_tokens",
+				Columns:    []*schema.Column{SenderOrderTokensColumns[4]},
+				RefColumns: []*schema.Column{SenderProfilesColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+	}
 	// SenderProfilesColumns holds the columns for the "sender_profiles" table.
 	SenderProfilesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
 		{Name: "webhook_url", Type: field.TypeString, Nullable: true},
-		{Name: "fee_per_token_unit", Type: field.TypeFloat64},
-		{Name: "fee_address", Type: field.TypeString, Nullable: true},
-		{Name: "refund_address", Type: field.TypeString, Nullable: true},
 		{Name: "domain_whitelist", Type: field.TypeJSON},
 		{Name: "is_partner", Type: field.TypeBool, Default: false},
 		{Name: "is_active", Type: field.TypeBool, Default: false},
@@ -408,7 +427,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "sender_profiles_users_sender_profile",
-				Columns:    []*schema.Column{SenderProfilesColumns[9]},
+				Columns:    []*schema.Column{SenderProfilesColumns[6]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
@@ -579,6 +598,7 @@ var (
 		ProviderRatingsTable,
 		ProvisionBucketsTable,
 		ReceiveAddressesTable,
+		SenderOrderTokensTable,
 		SenderProfilesTable,
 		TokensTable,
 		TransactionLogsTable,
@@ -607,6 +627,7 @@ func init() {
 	ProviderRatingsTable.ForeignKeys[0].RefTable = ProviderProfilesTable
 	ProvisionBucketsTable.ForeignKeys[0].RefTable = FiatCurrenciesTable
 	ReceiveAddressesTable.ForeignKeys[0].RefTable = PaymentOrdersTable
+	SenderOrderTokensTable.ForeignKeys[0].RefTable = SenderProfilesTable
 	SenderProfilesTable.ForeignKeys[0].RefTable = UsersTable
 	TokensTable.ForeignKeys[0].RefTable = NetworksTable
 	TransactionLogsTable.ForeignKeys[0].RefTable = LockPaymentOrdersTable

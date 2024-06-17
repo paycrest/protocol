@@ -168,15 +168,25 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 	var feePerTokenUnit decimal.Decimal
 	var feeAddress string
 
-	if payload.FeePerTokenUnit.IsZero() {
-		feePerTokenUnit = sender.FeePerTokenUnit
-	} else {
-		feePerTokenUnit = payload.FeePerTokenUnit
+	for _, senderOrderToken := range sender.Edges.OrderTokens {
+		if senderOrderToken.Symbol == payload.Token {
+			if payload.FeePerTokenUnit.IsZero() {
+				feePerTokenUnit = senderOrderToken.FeePerTokenUnit
+			} else {
+				feePerTokenUnit = payload.FeePerTokenUnit
+			}
+			for _, address := range senderOrderToken.Addresses {
+				if address.Network == payload.Network && payload.FeeAddress == "" {
+					feeAddress = address.FeeAddress
+					break
+				}
+			}
+			break
+		}
+
 	}
 
-	if payload.FeeAddress == "" {
-		feeAddress = sender.FeeAddress
-	} else {
+	if payload.FeeAddress != "" {
 		if !sender.IsPartner {
 			u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
 				Field:   "FeeAddress",

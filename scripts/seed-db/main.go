@@ -169,13 +169,33 @@ func seedSender(ctx context.Context, client *ent.Client, serial string) (string,
 		return "", "", "", fmt.Errorf("failed creating user: %s", err)
 	}
 
+	addresses := []struct {
+		IsDisabled    bool   `json:"isDisabled"` // addition field to disable a network
+		FeeAddress    string `json:"feeAddress"`
+		RefundAddress string `json:"refundAddress"`
+		Network       string `json:"network"`
+	}{
+		{
+			RefundAddress: "0x409689E3008d43a9eb439e7B275749D4a71D8E2D",
+			FeeAddress:    "0x409689E3008d43a9eb439e7B275749D4a71D8E2D",
+			Network:       "arbitrum-sepolia",
+		},
+	}
+	senderToken, err := storage.Client.SenderOrderToken.
+		Create().
+		SetSymbol("6TEST").
+		SetFeePerTokenUnit(decimal.NewFromFloat(10)).
+		SetAddresses(addresses).Save(ctx)
+
+	if err != nil {
+		return "", "", "", fmt.Errorf("failed creating sender Token: %s", err)
+	}
+
 	sender, err := client.SenderProfile.
 		Create().
 		SetUser(user).
 		SetWebhookURL("https://example.com/webhook").
-		SetFeePerTokenUnit(decimal.NewFromFloat(10)).
-		SetFeeAddress("0x409689E3008d43a9eb439e7B275749D4a71D8E2D").
-		SetRefundAddress("0x409689E3008d43a9eb439e7B275749D4a71D8E2D").
+		AddOrderTokens(senderToken).
 		SetDomainWhitelist([]string{"https://example.com"}).
 		SetIsActive(true).
 		Save(ctx)

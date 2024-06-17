@@ -13,9 +13,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/paycrest/protocol/ent/apikey"
 	"github.com/paycrest/protocol/ent/paymentorder"
+	"github.com/paycrest/protocol/ent/senderordertoken"
 	"github.com/paycrest/protocol/ent/senderprofile"
 	"github.com/paycrest/protocol/ent/user"
-	"github.com/shopspring/decimal"
 )
 
 // SenderProfileCreate is the builder for creating a SenderProfile entity.
@@ -35,40 +35,6 @@ func (spc *SenderProfileCreate) SetWebhookURL(s string) *SenderProfileCreate {
 func (spc *SenderProfileCreate) SetNillableWebhookURL(s *string) *SenderProfileCreate {
 	if s != nil {
 		spc.SetWebhookURL(*s)
-	}
-	return spc
-}
-
-// SetFeePerTokenUnit sets the "fee_per_token_unit" field.
-func (spc *SenderProfileCreate) SetFeePerTokenUnit(d decimal.Decimal) *SenderProfileCreate {
-	spc.mutation.SetFeePerTokenUnit(d)
-	return spc
-}
-
-// SetFeeAddress sets the "fee_address" field.
-func (spc *SenderProfileCreate) SetFeeAddress(s string) *SenderProfileCreate {
-	spc.mutation.SetFeeAddress(s)
-	return spc
-}
-
-// SetNillableFeeAddress sets the "fee_address" field if the given value is not nil.
-func (spc *SenderProfileCreate) SetNillableFeeAddress(s *string) *SenderProfileCreate {
-	if s != nil {
-		spc.SetFeeAddress(*s)
-	}
-	return spc
-}
-
-// SetRefundAddress sets the "refund_address" field.
-func (spc *SenderProfileCreate) SetRefundAddress(s string) *SenderProfileCreate {
-	spc.mutation.SetRefundAddress(s)
-	return spc
-}
-
-// SetNillableRefundAddress sets the "refund_address" field if the given value is not nil.
-func (spc *SenderProfileCreate) SetNillableRefundAddress(s *string) *SenderProfileCreate {
-	if s != nil {
-		spc.SetRefundAddress(*s)
 	}
 	return spc
 }
@@ -180,6 +146,21 @@ func (spc *SenderProfileCreate) AddPaymentOrders(p ...*PaymentOrder) *SenderProf
 	return spc.AddPaymentOrderIDs(ids...)
 }
 
+// AddOrderTokenIDs adds the "order_tokens" edge to the SenderOrderToken entity by IDs.
+func (spc *SenderProfileCreate) AddOrderTokenIDs(ids ...int) *SenderProfileCreate {
+	spc.mutation.AddOrderTokenIDs(ids...)
+	return spc
+}
+
+// AddOrderTokens adds the "order_tokens" edges to the SenderOrderToken entity.
+func (spc *SenderProfileCreate) AddOrderTokens(s ...*SenderOrderToken) *SenderProfileCreate {
+	ids := make([]int, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return spc.AddOrderTokenIDs(ids...)
+}
+
 // Mutation returns the SenderProfileMutation object of the builder.
 func (spc *SenderProfileCreate) Mutation() *SenderProfileMutation {
 	return spc.mutation
@@ -239,9 +220,6 @@ func (spc *SenderProfileCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (spc *SenderProfileCreate) check() error {
-	if _, ok := spc.mutation.FeePerTokenUnit(); !ok {
-		return &ValidationError{Name: "fee_per_token_unit", err: errors.New(`ent: missing required field "SenderProfile.fee_per_token_unit"`)}
-	}
 	if _, ok := spc.mutation.DomainWhitelist(); !ok {
 		return &ValidationError{Name: "domain_whitelist", err: errors.New(`ent: missing required field "SenderProfile.domain_whitelist"`)}
 	}
@@ -295,18 +273,6 @@ func (spc *SenderProfileCreate) createSpec() (*SenderProfile, *sqlgraph.CreateSp
 	if value, ok := spc.mutation.WebhookURL(); ok {
 		_spec.SetField(senderprofile.FieldWebhookURL, field.TypeString, value)
 		_node.WebhookURL = value
-	}
-	if value, ok := spc.mutation.FeePerTokenUnit(); ok {
-		_spec.SetField(senderprofile.FieldFeePerTokenUnit, field.TypeFloat64, value)
-		_node.FeePerTokenUnit = value
-	}
-	if value, ok := spc.mutation.FeeAddress(); ok {
-		_spec.SetField(senderprofile.FieldFeeAddress, field.TypeString, value)
-		_node.FeeAddress = value
-	}
-	if value, ok := spc.mutation.RefundAddress(); ok {
-		_spec.SetField(senderprofile.FieldRefundAddress, field.TypeString, value)
-		_node.RefundAddress = value
 	}
 	if value, ok := spc.mutation.DomainWhitelist(); ok {
 		_spec.SetField(senderprofile.FieldDomainWhitelist, field.TypeJSON, value)
@@ -366,6 +332,22 @@ func (spc *SenderProfileCreate) createSpec() (*SenderProfile, *sqlgraph.CreateSp
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := spc.mutation.OrderTokensIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   senderprofile.OrderTokensTable,
+			Columns: []string{senderprofile.OrderTokensColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(senderordertoken.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

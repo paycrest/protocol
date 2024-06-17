@@ -15,6 +15,7 @@ import (
 	"github.com/paycrest/protocol/ent/paymentorder"
 	"github.com/paycrest/protocol/ent/providerprofile"
 	entToken "github.com/paycrest/protocol/ent/token"
+	"github.com/paycrest/protocol/storage"
 	db "github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
 	"github.com/shopspring/decimal"
@@ -281,15 +282,36 @@ func CreateTestSenderProfile(overrides map[string]interface{}) (*ent.SenderProfi
 		payload[key] = value
 	}
 
-	// Create SenderProfile
+	addresses := []struct {
+		IsDisabled    bool   `json:"isDisabled"` // addition field to disable a network
+		FeeAddress    string `json:"feeAddress"`
+		RefundAddress string `json:"refundAddress"`
+		Network       string `json:"network"`
+	}{
+		{
+			RefundAddress: payload["refund_address"].(string),
+			FeeAddress:    (payload["fee_address"].(string)),
+			Network:       "arbitrum-sepolia",
+		},
+	}
 	feePerTokenUnit, _ := decimal.NewFromString(payload["fee_per_token_unit"].(string))
+
+	senderToken, err := storage.Client.SenderOrderToken.
+		Create().
+		SetSymbol("6TEST").
+		SetFeePerTokenUnit(feePerTokenUnit).
+		SetAddresses(addresses).Save(context.Background())
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Create SenderProfile
 	profile, err := db.Client.SenderProfile.
 		Create().
 		SetWebhookURL(payload["webhook_url"].(string)).
 		SetDomainWhitelist(payload["domain_whitelist"].([]string)).
-		SetFeePerTokenUnit(feePerTokenUnit).
-		SetFeeAddress(payload["fee_address"].(string)).
-		SetRefundAddress(payload["refund_address"].(string)).
+		AddOrderTokens(senderToken).
 		SetUserID(payload["user_id"].(uuid.UUID)).
 		Save(context.Background())
 

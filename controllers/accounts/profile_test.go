@@ -124,6 +124,8 @@ func TestProfile(t *testing.T) {
 			payload := types.SenderProfilePayload{
 				DomainWhitelist: []string{"example.com", "mydomain.com"},
 				RefundAddress:   "0x1234567890123456789012345678901234567890",
+				Network:         "arbitrum-sepolia",
+				Token:           "6TEST",
 			}
 
 			res, err := test.PerformRequest(t, "PATCH", "/settings/sender", payload, headers, router)
@@ -218,6 +220,8 @@ func TestProfile(t *testing.T) {
 			payload := types.SenderProfilePayload{
 				DomainWhitelist: []string{"example.com", "mydomain.com"},
 				RefundAddress:   "0x1234567890123456789012345678901234567890",
+				Network:         "arbitrum-sepolia",
+				Token:           "6TEST",
 			}
 
 			res, err := test.PerformRequest(t, "PATCH", "/settings/sender", payload, headers, router)
@@ -253,12 +257,12 @@ func TestProfile(t *testing.T) {
 				"Authorization": "Bearer " + accessToken,
 			}
 			payload := types.ProviderProfilePayload{
-				TradingName:    "My Trading Name",
-				Currency:       "KES",
-				HostIdentifier: "example.com",
+				TradingName:      "My Trading Name",
+				Currency:         "KES",
+				HostIdentifier:   "example.com",
 				BusinessDocument: "https://example.com/business_doc.png",
 				IdentityDocument: "https://example.com/national_id.png",
-				IsAvailable:    true,
+				IsAvailable:      true,
 			}
 
 			res, err := test.PerformRequest(t, "PATCH", "/settings/provider", payload, headers, router)

@@ -197,6 +197,8 @@ type SenderProfilePayload struct {
 	WebhookURL      string          `json:"webhookURL"`
 	DomainWhitelist []string        `json:"domainWhitelist"`
 	FeePerTokenUnit decimal.Decimal `json:"feePerTokenUnit"`
+	Network         string          `json:"network"  binding:"required"`
+	Token           string          `json:"token"  binding:"required"`
 	FeeAddress      string          `json:"feeAddress"`
 	RefundAddress   string          `json:"refundAddress"`
 }
@@ -269,17 +271,18 @@ type ValidatorProfileResponse struct {
 
 // SenderProfileResponse is the response for the sender profile endpoint
 type SenderProfileResponse struct {
-	ID              uuid.UUID       `json:"id"`
-	FirstName       string          `json:"firstName"`
-	LastName        string          `json:"lastName"`
-	Email           string          `json:"email"`
-	WebhookURL      string          `json:"webhookUrl"`
-	DomainWhitelist []string        `json:"domainWhitelist"`
-	FeePerTokenUnit decimal.Decimal `json:"feePerTokenUnit"`
-	FeeAddress      string          `json:"feeAddress"`
-	RefundAddress   string          `json:"refundAddress"`
-	APIKey          APIKeyResponse  `json:"apiKey"`
-	IsActive        bool            `json:"isActive"`
+	ID               uuid.UUID               `json:"id"`
+	FirstName        string                  `json:"firstName"`
+	LastName         string                  `json:"lastName"`
+	Email            string                  `json:"email"`
+	WebhookURL       string                  `json:"webhookUrl"`
+	DomainWhitelist  []string                `json:"domainWhitelist"`
+	SenderOrderToken []*ent.SenderOrderToken `json:"senderOrderToken"`
+	FeePerTokenUnit  decimal.Decimal         `json:"feePerTokenUnit"`
+	FeeAddress       string                  `json:"feeAddress"`
+	RefundAddress    string                  `json:"refundAddress"`
+	APIKey           APIKeyResponse          `json:"apiKey"`
+	IsActive         bool                    `json:"isActive"`
 }
 
 // RefreshResponse is the response for the refresh endpoint

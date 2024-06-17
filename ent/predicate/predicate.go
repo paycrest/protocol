@@ -45,6 +45,9 @@ type ProvisionBucket func(*sql.Selector)
 // ReceiveAddress is the predicate function for receiveaddress builders.
 type ReceiveAddress func(*sql.Selector)
 
+// SenderOrderToken is the predicate function for senderordertoken builders.
+type SenderOrderToken func(*sql.Selector)
+
 // SenderProfile is the predicate function for senderprofile builders.
 type SenderProfile func(*sql.Selector)
 

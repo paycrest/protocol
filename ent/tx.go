@@ -38,6 +38,8 @@ type Tx struct {
 	ProvisionBucket *ProvisionBucketClient
 	// ReceiveAddress is the client for interacting with the ReceiveAddress builders.
 	ReceiveAddress *ReceiveAddressClient
+	// SenderOrderToken is the client for interacting with the SenderOrderToken builders.
+	SenderOrderToken *SenderOrderTokenClient
 	// SenderProfile is the client for interacting with the SenderProfile builders.
 	SenderProfile *SenderProfileClient
 	// Token is the client for interacting with the Token builders.
@@ -194,6 +196,7 @@ func (tx *Tx) init() {
 	tx.ProviderRating = NewProviderRatingClient(tx.config)
 	tx.ProvisionBucket = NewProvisionBucketClient(tx.config)
 	tx.ReceiveAddress = NewReceiveAddressClient(tx.config)
+	tx.SenderOrderToken = NewSenderOrderTokenClient(tx.config)
 	tx.SenderProfile = NewSenderProfileClient(tx.config)
 	tx.Token = NewTokenClient(tx.config)
 	tx.TransactionLog = NewTransactionLogClient(tx.config)

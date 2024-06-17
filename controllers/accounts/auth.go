@@ -19,7 +19,6 @@ import (
 	"github.com/paycrest/protocol/utils/crypto"
 	"github.com/paycrest/protocol/utils/logger"
 	"github.com/paycrest/protocol/utils/token"
-	"github.com/shopspring/decimal"
 )
 
 var conf = config.AuthConfig()
@@ -158,7 +157,6 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 		sender, err := tx.SenderProfile.
 			Create().
 			SetUser(user).
-			SetFeePerTokenUnit(decimal.NewFromFloat(0.0)).
 			Save(ctx)
 		if err != nil {
 			_ = tx.Rollback()

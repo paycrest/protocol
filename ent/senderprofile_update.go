@@ -16,8 +16,8 @@ import (
 	"github.com/paycrest/protocol/ent/apikey"
 	"github.com/paycrest/protocol/ent/paymentorder"
 	"github.com/paycrest/protocol/ent/predicate"
+	"github.com/paycrest/protocol/ent/senderordertoken"
 	"github.com/paycrest/protocol/ent/senderprofile"
-	"github.com/shopspring/decimal"
 )
 
 // SenderProfileUpdate is the builder for updating SenderProfile entities.
@@ -50,59 +50,6 @@ func (spu *SenderProfileUpdate) SetNillableWebhookURL(s *string) *SenderProfileU
 // ClearWebhookURL clears the value of the "webhook_url" field.
 func (spu *SenderProfileUpdate) ClearWebhookURL() *SenderProfileUpdate {
 	spu.mutation.ClearWebhookURL()
-	return spu
-}
-
-// SetFeePerTokenUnit sets the "fee_per_token_unit" field.
-func (spu *SenderProfileUpdate) SetFeePerTokenUnit(d decimal.Decimal) *SenderProfileUpdate {
-	spu.mutation.ResetFeePerTokenUnit()
-	spu.mutation.SetFeePerTokenUnit(d)
-	return spu
-}
-
-// AddFeePerTokenUnit adds d to the "fee_per_token_unit" field.
-func (spu *SenderProfileUpdate) AddFeePerTokenUnit(d decimal.Decimal) *SenderProfileUpdate {
-	spu.mutation.AddFeePerTokenUnit(d)
-	return spu
-}
-
-// SetFeeAddress sets the "fee_address" field.
-func (spu *SenderProfileUpdate) SetFeeAddress(s string) *SenderProfileUpdate {
-	spu.mutation.SetFeeAddress(s)
-	return spu
-}
-
-// SetNillableFeeAddress sets the "fee_address" field if the given value is not nil.
-func (spu *SenderProfileUpdate) SetNillableFeeAddress(s *string) *SenderProfileUpdate {
-	if s != nil {
-		spu.SetFeeAddress(*s)
-	}
-	return spu
-}
-
-// ClearFeeAddress clears the value of the "fee_address" field.
-func (spu *SenderProfileUpdate) ClearFeeAddress() *SenderProfileUpdate {
-	spu.mutation.ClearFeeAddress()
-	return spu
-}
-
-// SetRefundAddress sets the "refund_address" field.
-func (spu *SenderProfileUpdate) SetRefundAddress(s string) *SenderProfileUpdate {
-	spu.mutation.SetRefundAddress(s)
-	return spu
-}
-
-// SetNillableRefundAddress sets the "refund_address" field if the given value is not nil.
-func (spu *SenderProfileUpdate) SetNillableRefundAddress(s *string) *SenderProfileUpdate {
-	if s != nil {
-		spu.SetRefundAddress(*s)
-	}
-	return spu
-}
-
-// ClearRefundAddress clears the value of the "refund_address" field.
-func (spu *SenderProfileUpdate) ClearRefundAddress() *SenderProfileUpdate {
-	spu.mutation.ClearRefundAddress()
 	return spu
 }
 
@@ -186,6 +133,21 @@ func (spu *SenderProfileUpdate) AddPaymentOrders(p ...*PaymentOrder) *SenderProf
 	return spu.AddPaymentOrderIDs(ids...)
 }
 
+// AddOrderTokenIDs adds the "order_tokens" edge to the SenderOrderToken entity by IDs.
+func (spu *SenderProfileUpdate) AddOrderTokenIDs(ids ...int) *SenderProfileUpdate {
+	spu.mutation.AddOrderTokenIDs(ids...)
+	return spu
+}
+
+// AddOrderTokens adds the "order_tokens" edges to the SenderOrderToken entity.
+func (spu *SenderProfileUpdate) AddOrderTokens(s ...*SenderOrderToken) *SenderProfileUpdate {
+	ids := make([]int, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return spu.AddOrderTokenIDs(ids...)
+}
+
 // Mutation returns the SenderProfileMutation object of the builder.
 func (spu *SenderProfileUpdate) Mutation() *SenderProfileMutation {
 	return spu.mutation
@@ -216,6 +178,27 @@ func (spu *SenderProfileUpdate) RemovePaymentOrders(p ...*PaymentOrder) *SenderP
 		ids[i] = p[i].ID
 	}
 	return spu.RemovePaymentOrderIDs(ids...)
+}
+
+// ClearOrderTokens clears all "order_tokens" edges to the SenderOrderToken entity.
+func (spu *SenderProfileUpdate) ClearOrderTokens() *SenderProfileUpdate {
+	spu.mutation.ClearOrderTokens()
+	return spu
+}
+
+// RemoveOrderTokenIDs removes the "order_tokens" edge to SenderOrderToken entities by IDs.
+func (spu *SenderProfileUpdate) RemoveOrderTokenIDs(ids ...int) *SenderProfileUpdate {
+	spu.mutation.RemoveOrderTokenIDs(ids...)
+	return spu
+}
+
+// RemoveOrderTokens removes "order_tokens" edges to SenderOrderToken entities.
+func (spu *SenderProfileUpdate) RemoveOrderTokens(s ...*SenderOrderToken) *SenderProfileUpdate {
+	ids := make([]int, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return spu.RemoveOrderTokenIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -279,24 +262,6 @@ func (spu *SenderProfileUpdate) sqlSave(ctx context.Context) (n int, err error) 
 	}
 	if spu.mutation.WebhookURLCleared() {
 		_spec.ClearField(senderprofile.FieldWebhookURL, field.TypeString)
-	}
-	if value, ok := spu.mutation.FeePerTokenUnit(); ok {
-		_spec.SetField(senderprofile.FieldFeePerTokenUnit, field.TypeFloat64, value)
-	}
-	if value, ok := spu.mutation.AddedFeePerTokenUnit(); ok {
-		_spec.AddField(senderprofile.FieldFeePerTokenUnit, field.TypeFloat64, value)
-	}
-	if value, ok := spu.mutation.FeeAddress(); ok {
-		_spec.SetField(senderprofile.FieldFeeAddress, field.TypeString, value)
-	}
-	if spu.mutation.FeeAddressCleared() {
-		_spec.ClearField(senderprofile.FieldFeeAddress, field.TypeString)
-	}
-	if value, ok := spu.mutation.RefundAddress(); ok {
-		_spec.SetField(senderprofile.FieldRefundAddress, field.TypeString, value)
-	}
-	if spu.mutation.RefundAddressCleared() {
-		_spec.ClearField(senderprofile.FieldRefundAddress, field.TypeString)
 	}
 	if value, ok := spu.mutation.DomainWhitelist(); ok {
 		_spec.SetField(senderprofile.FieldDomainWhitelist, field.TypeJSON, value)
@@ -389,6 +354,51 @@ func (spu *SenderProfileUpdate) sqlSave(ctx context.Context) (n int, err error) 
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if spu.mutation.OrderTokensCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   senderprofile.OrderTokensTable,
+			Columns: []string{senderprofile.OrderTokensColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(senderordertoken.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := spu.mutation.RemovedOrderTokensIDs(); len(nodes) > 0 && !spu.mutation.OrderTokensCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   senderprofile.OrderTokensTable,
+			Columns: []string{senderprofile.OrderTokensColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(senderordertoken.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := spu.mutation.OrderTokensIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   senderprofile.OrderTokensTable,
+			Columns: []string{senderprofile.OrderTokensColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(senderordertoken.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, spu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{senderprofile.Label}
@@ -426,59 +436,6 @@ func (spuo *SenderProfileUpdateOne) SetNillableWebhookURL(s *string) *SenderProf
 // ClearWebhookURL clears the value of the "webhook_url" field.
 func (spuo *SenderProfileUpdateOne) ClearWebhookURL() *SenderProfileUpdateOne {
 	spuo.mutation.ClearWebhookURL()
-	return spuo
-}
-
-// SetFeePerTokenUnit sets the "fee_per_token_unit" field.
-func (spuo *SenderProfileUpdateOne) SetFeePerTokenUnit(d decimal.Decimal) *SenderProfileUpdateOne {
-	spuo.mutation.ResetFeePerTokenUnit()
-	spuo.mutation.SetFeePerTokenUnit(d)
-	return spuo
-}
-
-// AddFeePerTokenUnit adds d to the "fee_per_token_unit" field.
-func (spuo *SenderProfileUpdateOne) AddFeePerTokenUnit(d decimal.Decimal) *SenderProfileUpdateOne {
-	spuo.mutation.AddFeePerTokenUnit(d)
-	return spuo
-}
-
-// SetFeeAddress sets the "fee_address" field.
-func (spuo *SenderProfileUpdateOne) SetFeeAddress(s string) *SenderProfileUpdateOne {
-	spuo.mutation.SetFeeAddress(s)
-	return spuo
-}
-
-// SetNillableFeeAddress sets the "fee_address" field if the given value is not nil.
-func (spuo *SenderProfileUpdateOne) SetNillableFeeAddress(s *string) *SenderProfileUpdateOne {
-	if s != nil {
-		spuo.SetFeeAddress(*s)
-	}
-	return spuo
-}
-
-// ClearFeeAddress clears the value of the "fee_address" field.
-func (spuo *SenderProfileUpdateOne) ClearFeeAddress() *SenderProfileUpdateOne {
-	spuo.mutation.ClearFeeAddress()
-	return spuo
-}
-
-// SetRefundAddress sets the "refund_address" field.
-func (spuo *SenderProfileUpdateOne) SetRefundAddress(s string) *SenderProfileUpdateOne {
-	spuo.mutation.SetRefundAddress(s)
-	return spuo
-}
-
-// SetNillableRefundAddress sets the "refund_address" field if the given value is not nil.
-func (spuo *SenderProfileUpdateOne) SetNillableRefundAddress(s *string) *SenderProfileUpdateOne {
-	if s != nil {
-		spuo.SetRefundAddress(*s)
-	}
-	return spuo
-}
-
-// ClearRefundAddress clears the value of the "refund_address" field.
-func (spuo *SenderProfileUpdateOne) ClearRefundAddress() *SenderProfileUpdateOne {
-	spuo.mutation.ClearRefundAddress()
 	return spuo
 }
 
@@ -562,6 +519,21 @@ func (spuo *SenderProfileUpdateOne) AddPaymentOrders(p ...*PaymentOrder) *Sender
 	return spuo.AddPaymentOrderIDs(ids...)
 }
 
+// AddOrderTokenIDs adds the "order_tokens" edge to the SenderOrderToken entity by IDs.
+func (spuo *SenderProfileUpdateOne) AddOrderTokenIDs(ids ...int) *SenderProfileUpdateOne {
+	spuo.mutation.AddOrderTokenIDs(ids...)
+	return spuo
+}
+
+// AddOrderTokens adds the "order_tokens" edges to the SenderOrderToken entity.
+func (spuo *SenderProfileUpdateOne) AddOrderTokens(s ...*SenderOrderToken) *SenderProfileUpdateOne {
+	ids := make([]int, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return spuo.AddOrderTokenIDs(ids...)
+}
+
 // Mutation returns the SenderProfileMutation object of the builder.
 func (spuo *SenderProfileUpdateOne) Mutation() *SenderProfileMutation {
 	return spuo.mutation
@@ -592,6 +564,27 @@ func (spuo *SenderProfileUpdateOne) RemovePaymentOrders(p ...*PaymentOrder) *Sen
 		ids[i] = p[i].ID
 	}
 	return spuo.RemovePaymentOrderIDs(ids...)
+}
+
+// ClearOrderTokens clears all "order_tokens" edges to the SenderOrderToken entity.
+func (spuo *SenderProfileUpdateOne) ClearOrderTokens() *SenderProfileUpdateOne {
+	spuo.mutation.ClearOrderTokens()
+	return spuo
+}
+
+// RemoveOrderTokenIDs removes the "order_tokens" edge to SenderOrderToken entities by IDs.
+func (spuo *SenderProfileUpdateOne) RemoveOrderTokenIDs(ids ...int) *SenderProfileUpdateOne {
+	spuo.mutation.RemoveOrderTokenIDs(ids...)
+	return spuo
+}
+
+// RemoveOrderTokens removes "order_tokens" edges to SenderOrderToken entities.
+func (spuo *SenderProfileUpdateOne) RemoveOrderTokens(s ...*SenderOrderToken) *SenderProfileUpdateOne {
+	ids := make([]int, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return spuo.RemoveOrderTokenIDs(ids...)
 }
 
 // Where appends a list predicates to the SenderProfileUpdate builder.
@@ -686,24 +679,6 @@ func (spuo *SenderProfileUpdateOne) sqlSave(ctx context.Context) (_node *SenderP
 	if spuo.mutation.WebhookURLCleared() {
 		_spec.ClearField(senderprofile.FieldWebhookURL, field.TypeString)
 	}
-	if value, ok := spuo.mutation.FeePerTokenUnit(); ok {
-		_spec.SetField(senderprofile.FieldFeePerTokenUnit, field.TypeFloat64, value)
-	}
-	if value, ok := spuo.mutation.AddedFeePerTokenUnit(); ok {
-		_spec.AddField(senderprofile.FieldFeePerTokenUnit, field.TypeFloat64, value)
-	}
-	if value, ok := spuo.mutation.FeeAddress(); ok {
-		_spec.SetField(senderprofile.FieldFeeAddress, field.TypeString, value)
-	}
-	if spuo.mutation.FeeAddressCleared() {
-		_spec.ClearField(senderprofile.FieldFeeAddress, field.TypeString)
-	}
-	if value, ok := spuo.mutation.RefundAddress(); ok {
-		_spec.SetField(senderprofile.FieldRefundAddress, field.TypeString, value)
-	}
-	if spuo.mutation.RefundAddressCleared() {
-		_spec.ClearField(senderprofile.FieldRefundAddress, field.TypeString)
-	}
 	if value, ok := spuo.mutation.DomainWhitelist(); ok {
 		_spec.SetField(senderprofile.FieldDomainWhitelist, field.TypeJSON, value)
 	}
@@ -788,6 +763,51 @@ func (spuo *SenderProfileUpdateOne) sqlSave(ctx context.Context) (_node *SenderP
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(paymentorder.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if spuo.mutation.OrderTokensCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   senderprofile.OrderTokensTable,
+			Columns: []string{senderprofile.OrderTokensColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(senderordertoken.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := spuo.mutation.RemovedOrderTokensIDs(); len(nodes) > 0 && !spuo.mutation.OrderTokensCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   senderprofile.OrderTokensTable,
+			Columns: []string{senderprofile.OrderTokensColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(senderordertoken.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := spuo.mutation.OrderTokensIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   senderprofile.OrderTokensTable,
+			Columns: []string{senderprofile.OrderTokensColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(senderordertoken.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

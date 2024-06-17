@@ -24,6 +24,8 @@ import (
 	"github.com/paycrest/protocol/ent/providerordertoken"
 	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/receiveaddress"
+	"github.com/paycrest/protocol/ent/senderordertoken"
+	"github.com/paycrest/protocol/ent/senderprofile"
 	"github.com/paycrest/protocol/ent/transactionlog"
 	"github.com/paycrest/protocol/types"
 	"github.com/paycrest/protocol/utils"
@@ -605,10 +607,26 @@ func (s *OrderEVM) createOrderCallData(order *ent.PaymentOrder) ([]byte, error) 
 	}
 
 	var refundAddress common.Address
-	if order.Edges.SenderProfile.RefundAddress == "" {
-		refundAddress = common.HexToAddress(order.ReturnAddress)
-	} else {
-		refundAddress = common.HexToAddress(order.Edges.SenderProfile.RefundAddress)
+	token, err := db.Client.SenderOrderToken.Query().Where(
+		senderordertoken.SymbolEQ(order.Edges.Token.Symbol),
+		senderordertoken.HasSenderWith(
+			senderprofile.IDEQ(order.Edges.SenderProfile.ID),
+		),
+	).Only(context.Background())
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch order token: %w", err)
+	}
+
+	for _, address := range token.Addresses {
+		if address.Network == order.Edges.Token.Edges.Network.Identifier {
+			if address.RefundAddress == "" {
+				refundAddress = common.HexToAddress(order.ReturnAddress)
+			} else {
+				refundAddress = common.HexToAddress(address.RefundAddress)
+			}
+			break
+		}
 	}
 
 	amountWithProtocolFee := order.Amount.Add(order.ProtocolFee)

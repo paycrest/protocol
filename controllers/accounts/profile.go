@@ -82,7 +82,94 @@ func (ctrl *ProfileController) UpdateSenderProfile(ctx *gin.Context) {
 			})
 			return
 		}
-		update.SetFeePerTokenUnit(payload.FeePerTokenUnit).SetFeeAddress(payload.FeeAddress)
+		var isTokenFound bool
+
+		// search OrderTokens to find token symbol match
+		for _, token := range sender.Edges.OrderTokens {
+			if token.Symbol == payload.Token {
+				var isNetworkFound bool
+				// search address to find match fot network
+				for j, address := range token.Addresses {
+					if address.Network == payload.Network {
+						token.Addresses[j].FeeAddress = payload.FeeAddress
+						if payload.RefundAddress != "" {
+							token.Addresses[j].RefundAddress = payload.RefundAddress
+						}
+						// Save updated Address
+						_, err := storage.Client.SenderOrderToken.
+							UpdateOneID(token.ID).
+							SetAddresses(token.Addresses).
+							Save(ctx)
+						if err != nil {
+							u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to update Order Token", types.ErrorData{
+								Field:   "Order Token",
+								Message: "These fields is required",
+							})
+							return
+						}
+						isNetworkFound = true
+						break
+					}
+				}
+				// if Network doesn't exist in address
+				if !isNetworkFound {
+					address := struct {
+						IsDisabled    bool   `json:"isDisabled"` // addition field to disable a network
+						FeeAddress    string `json:"feeAddress"`
+						RefundAddress string `json:"refundAddress"`
+						Network       string `json:"network"`
+					}{
+
+						RefundAddress: payload.RefundAddress,
+						FeeAddress:    payload.FeeAddress,
+						Network:       payload.Network,
+					}
+					token.Addresses = append(token.Addresses, address)
+					// Save updated Address
+					_, err := storage.Client.SenderOrderToken.
+						UpdateOneID(token.ID).
+						SetAddresses(token.Addresses).
+						Save(ctx)
+					if err != nil {
+						u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to update Order Token", types.ErrorData{
+							Field:   "Order Token",
+							Message: "These fields is required",
+						})
+						return
+					}
+				}
+				isTokenFound = true
+				break
+			}
+		}
+		if !isTokenFound {
+			// Configure tokens
+			addresses := []struct {
+				IsDisabled    bool   `json:"isDisabled"` // addition field to disable a network
+				FeeAddress    string `json:"feeAddress"`
+				RefundAddress string `json:"refundAddress"`
+				Network       string `json:"network"`
+			}{
+				{
+					RefundAddress: payload.RefundAddress,
+					FeeAddress:    payload.FeeAddress,
+					Network:       payload.Network,
+				},
+			}
+			senderToken, err := storage.Client.SenderOrderToken.
+				Create().
+				SetSymbol(payload.Token).
+				SetFeePerTokenUnit(payload.FeePerTokenUnit).
+				SetAddresses(addresses).Save(ctx)
+			if err != nil {
+				u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to set order Token", types.ErrorData{
+					Field:   "Token and Network",
+					Message: "These fields is required",
+				})
+				return
+			}
+			update.AddOrderTokens(senderToken)
+		}
 	} else {
 		if !payload.FeePerTokenUnit.IsZero() && payload.FeeAddress == "" {
 			u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
@@ -98,10 +185,6 @@ func (ctrl *ProfileController) UpdateSenderProfile(ctx *gin.Context) {
 			})
 			return
 		}
-	}
-
-	if payload.RefundAddress != "" {
-		update.SetRefundAddress(payload.RefundAddress)
 	}
 
 	if !sender.IsActive {
@@ -391,17 +474,15 @@ func (ctrl *ProfileController) GetSenderProfile(ctx *gin.Context) {
 	}
 
 	u.APIResponse(ctx, http.StatusOK, "success", "Profile retrieved successfully", &types.SenderProfileResponse{
-		ID:              sender.ID,
-		FirstName:       user.FirstName,
-		LastName:        user.LastName,
-		Email:           user.Email,
-		WebhookURL:      sender.WebhookURL,
-		DomainWhitelist: sender.DomainWhitelist,
-		FeePerTokenUnit: sender.FeePerTokenUnit,
-		FeeAddress:      sender.FeeAddress,
-		RefundAddress:   sender.RefundAddress,
-		APIKey:          *apiKey,
-		IsActive:        sender.IsActive,
+		ID:               sender.ID,
+		FirstName:        user.FirstName,
+		LastName:         user.LastName,
+		Email:            user.Email,
+		WebhookURL:       sender.WebhookURL,
+		DomainWhitelist:  sender.DomainWhitelist,
+		SenderOrderToken: sender.Edges.OrderTokens,
+		APIKey:           *apiKey,
+		IsActive:         sender.IsActive,
 	})
 }
 
