@@ -15,7 +15,6 @@ import (
 	"github.com/paycrest/protocol/ent/paymentorder"
 	"github.com/paycrest/protocol/ent/providerprofile"
 	entToken "github.com/paycrest/protocol/ent/token"
-	"github.com/paycrest/protocol/storage"
 	db "github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
 	"github.com/shopspring/decimal"
@@ -68,7 +67,7 @@ func CreateERC20Token(client types.RPCClient, overrides map[string]interface{}) 
 		"decimals":         6,
 		"networkRPC":       "ws://localhost:8545",
 		"is_enabled":       true,
-		"identifier":       "localhost" + uuid.New().String(),
+		"identifier":       "localhost",
 		"chainID":          int64(1337),
 	}
 
@@ -78,34 +77,34 @@ func CreateERC20Token(client types.RPCClient, overrides map[string]interface{}) 
 	}
 
 	// Create Network
-	network, err := db.Client.Network.
+	networkId := db.Client.Network.
 		Create().
-		SetIdentifier(payload["identifier"].(string)). // randomize the identifier to avoid conflicts
+		SetIdentifier(payload["identifier"].(string)).
 		SetChainID(payload["chainID"].(int64)).
 		SetRPCEndpoint(payload["networkRPC"].(string)).
 		SetFee(decimal.NewFromFloat(0.1)).
 		SetIsTestnet(true).
-		Save(context.Background())
-	if err != nil {
-		return nil, err
-	}
+		OnConflict().
+		// Use the new values that were set on create.
+		UpdateNewValues().
+		IDX(context.Background())
 
 	// Create token
-	token, err := db.Client.Token.
+	tokenId := db.Client.Token.
 		Create().
 		SetSymbol(payload["symbol"].(string)).
 		SetContractAddress(payload["contract_address"].(string)).
 		SetDecimals(int8(payload["decimals"].(int))).
-		SetNetwork(network).
+		SetNetworkID(networkId).
 		SetIsEnabled(payload["is_enabled"].(bool)).
-		Save(context.Background())
-	if err != nil {
-		return nil, err
-	}
+		OnConflict().
+		// Use the new values that were set on create.
+		UpdateNewValues().
+		IDX(context.Background())
 
-	token, err = db.Client.Token.
+	token, err := db.Client.Token.
 		Query().
-		Where(entToken.IDEQ(token.ID)).
+		Where(entToken.IDEQ(tokenId)).
 		WithNetwork().
 		Only(context.Background())
 
@@ -275,6 +274,7 @@ func CreateTestSenderProfile(overrides map[string]interface{}) (*ent.SenderProfi
 		"fee_address":        "0x1234567890123456789012345678901234567890",
 		"refund_address":     "0x0987654321098765432109876543210987654321",
 		"user_id":            nil,
+		"network":            "localhost",
 	}
 
 	// Apply overrides
@@ -291,14 +291,14 @@ func CreateTestSenderProfile(overrides map[string]interface{}) (*ent.SenderProfi
 		{
 			RefundAddress: payload["refund_address"].(string),
 			FeeAddress:    (payload["fee_address"].(string)),
-			Network:       "arbitrum-sepolia",
+			Network:       (payload["network"].(string)),
 		},
 	}
 	feePerTokenUnit, _ := decimal.NewFromString(payload["fee_per_token_unit"].(string))
 
-	senderToken, err := storage.Client.SenderOrderToken.
+	senderToken, err := db.Client.SenderOrderToken.
 		Create().
-		SetSymbol("6TEST").
+		SetSymbol("TST").
 		SetFeePerTokenUnit(feePerTokenUnit).
 		SetAddresses(addresses).Save(context.Background())
 

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 
+	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
@@ -20,6 +21,7 @@ type SenderOrderTokenCreate struct {
 	config
 	mutation *SenderOrderTokenMutation
 	hooks    []Hook
+	conflict []sql.ConflictOption
 }
 
 // SetSymbol sets the "symbol" field.
@@ -133,6 +135,7 @@ func (sotc *SenderOrderTokenCreate) createSpec() (*SenderOrderToken, *sqlgraph.C
 		_node = &SenderOrderToken{config: sotc.config}
 		_spec = sqlgraph.NewCreateSpec(senderordertoken.Table, sqlgraph.NewFieldSpec(senderordertoken.FieldID, field.TypeInt))
 	)
+	_spec.OnConflict = sotc.conflict
 	if value, ok := sotc.mutation.Symbol(); ok {
 		_spec.SetField(senderordertoken.FieldSymbol, field.TypeString, value)
 		_node.Symbol = value
@@ -165,10 +168,234 @@ func (sotc *SenderOrderTokenCreate) createSpec() (*SenderOrderToken, *sqlgraph.C
 	return _node, _spec
 }
 
+// OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
+// of the `INSERT` statement. For example:
+//
+//	client.SenderOrderToken.Create().
+//		SetSymbol(v).
+//		OnConflict(
+//			// Update the row with the new values
+//			// the was proposed for insertion.
+//			sql.ResolveWithNewValues(),
+//		).
+//		// Override some of the fields with custom
+//		// update values.
+//		Update(func(u *ent.SenderOrderTokenUpsert) {
+//			SetSymbol(v+v).
+//		}).
+//		Exec(ctx)
+func (sotc *SenderOrderTokenCreate) OnConflict(opts ...sql.ConflictOption) *SenderOrderTokenUpsertOne {
+	sotc.conflict = opts
+	return &SenderOrderTokenUpsertOne{
+		create: sotc,
+	}
+}
+
+// OnConflictColumns calls `OnConflict` and configures the columns
+// as conflict target. Using this option is equivalent to using:
+//
+//	client.SenderOrderToken.Create().
+//		OnConflict(sql.ConflictColumns(columns...)).
+//		Exec(ctx)
+func (sotc *SenderOrderTokenCreate) OnConflictColumns(columns ...string) *SenderOrderTokenUpsertOne {
+	sotc.conflict = append(sotc.conflict, sql.ConflictColumns(columns...))
+	return &SenderOrderTokenUpsertOne{
+		create: sotc,
+	}
+}
+
+type (
+	// SenderOrderTokenUpsertOne is the builder for "upsert"-ing
+	//  one SenderOrderToken node.
+	SenderOrderTokenUpsertOne struct {
+		create *SenderOrderTokenCreate
+	}
+
+	// SenderOrderTokenUpsert is the "OnConflict" setter.
+	SenderOrderTokenUpsert struct {
+		*sql.UpdateSet
+	}
+)
+
+// SetSymbol sets the "symbol" field.
+func (u *SenderOrderTokenUpsert) SetSymbol(v string) *SenderOrderTokenUpsert {
+	u.Set(senderordertoken.FieldSymbol, v)
+	return u
+}
+
+// UpdateSymbol sets the "symbol" field to the value that was provided on create.
+func (u *SenderOrderTokenUpsert) UpdateSymbol() *SenderOrderTokenUpsert {
+	u.SetExcluded(senderordertoken.FieldSymbol)
+	return u
+}
+
+// SetFeePerTokenUnit sets the "fee_per_token_unit" field.
+func (u *SenderOrderTokenUpsert) SetFeePerTokenUnit(v decimal.Decimal) *SenderOrderTokenUpsert {
+	u.Set(senderordertoken.FieldFeePerTokenUnit, v)
+	return u
+}
+
+// UpdateFeePerTokenUnit sets the "fee_per_token_unit" field to the value that was provided on create.
+func (u *SenderOrderTokenUpsert) UpdateFeePerTokenUnit() *SenderOrderTokenUpsert {
+	u.SetExcluded(senderordertoken.FieldFeePerTokenUnit)
+	return u
+}
+
+// AddFeePerTokenUnit adds v to the "fee_per_token_unit" field.
+func (u *SenderOrderTokenUpsert) AddFeePerTokenUnit(v decimal.Decimal) *SenderOrderTokenUpsert {
+	u.Add(senderordertoken.FieldFeePerTokenUnit, v)
+	return u
+}
+
+// SetAddresses sets the "addresses" field.
+func (u *SenderOrderTokenUpsert) SetAddresses(v []struct {
+	IsDisabled    bool   "json:\"isDisabled\""
+	FeeAddress    string "json:\"feeAddress\""
+	RefundAddress string "json:\"refundAddress\""
+	Network       string "json:\"network\""
+}) *SenderOrderTokenUpsert {
+	u.Set(senderordertoken.FieldAddresses, v)
+	return u
+}
+
+// UpdateAddresses sets the "addresses" field to the value that was provided on create.
+func (u *SenderOrderTokenUpsert) UpdateAddresses() *SenderOrderTokenUpsert {
+	u.SetExcluded(senderordertoken.FieldAddresses)
+	return u
+}
+
+// UpdateNewValues updates the mutable fields using the new values that were set on create.
+// Using this option is equivalent to using:
+//
+//	client.SenderOrderToken.Create().
+//		OnConflict(
+//			sql.ResolveWithNewValues(),
+//		).
+//		Exec(ctx)
+func (u *SenderOrderTokenUpsertOne) UpdateNewValues() *SenderOrderTokenUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
+	return u
+}
+
+// Ignore sets each column to itself in case of conflict.
+// Using this option is equivalent to using:
+//
+//	client.SenderOrderToken.Create().
+//	    OnConflict(sql.ResolveWithIgnore()).
+//	    Exec(ctx)
+func (u *SenderOrderTokenUpsertOne) Ignore() *SenderOrderTokenUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithIgnore())
+	return u
+}
+
+// DoNothing configures the conflict_action to `DO NOTHING`.
+// Supported only by SQLite and PostgreSQL.
+func (u *SenderOrderTokenUpsertOne) DoNothing() *SenderOrderTokenUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.DoNothing())
+	return u
+}
+
+// Update allows overriding fields `UPDATE` values. See the SenderOrderTokenCreate.OnConflict
+// documentation for more info.
+func (u *SenderOrderTokenUpsertOne) Update(set func(*SenderOrderTokenUpsert)) *SenderOrderTokenUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(update *sql.UpdateSet) {
+		set(&SenderOrderTokenUpsert{UpdateSet: update})
+	}))
+	return u
+}
+
+// SetSymbol sets the "symbol" field.
+func (u *SenderOrderTokenUpsertOne) SetSymbol(v string) *SenderOrderTokenUpsertOne {
+	return u.Update(func(s *SenderOrderTokenUpsert) {
+		s.SetSymbol(v)
+	})
+}
+
+// UpdateSymbol sets the "symbol" field to the value that was provided on create.
+func (u *SenderOrderTokenUpsertOne) UpdateSymbol() *SenderOrderTokenUpsertOne {
+	return u.Update(func(s *SenderOrderTokenUpsert) {
+		s.UpdateSymbol()
+	})
+}
+
+// SetFeePerTokenUnit sets the "fee_per_token_unit" field.
+func (u *SenderOrderTokenUpsertOne) SetFeePerTokenUnit(v decimal.Decimal) *SenderOrderTokenUpsertOne {
+	return u.Update(func(s *SenderOrderTokenUpsert) {
+		s.SetFeePerTokenUnit(v)
+	})
+}
+
+// AddFeePerTokenUnit adds v to the "fee_per_token_unit" field.
+func (u *SenderOrderTokenUpsertOne) AddFeePerTokenUnit(v decimal.Decimal) *SenderOrderTokenUpsertOne {
+	return u.Update(func(s *SenderOrderTokenUpsert) {
+		s.AddFeePerTokenUnit(v)
+	})
+}
+
+// UpdateFeePerTokenUnit sets the "fee_per_token_unit" field to the value that was provided on create.
+func (u *SenderOrderTokenUpsertOne) UpdateFeePerTokenUnit() *SenderOrderTokenUpsertOne {
+	return u.Update(func(s *SenderOrderTokenUpsert) {
+		s.UpdateFeePerTokenUnit()
+	})
+}
+
+// SetAddresses sets the "addresses" field.
+func (u *SenderOrderTokenUpsertOne) SetAddresses(v []struct {
+	IsDisabled    bool   "json:\"isDisabled\""
+	FeeAddress    string "json:\"feeAddress\""
+	RefundAddress string "json:\"refundAddress\""
+	Network       string "json:\"network\""
+}) *SenderOrderTokenUpsertOne {
+	return u.Update(func(s *SenderOrderTokenUpsert) {
+		s.SetAddresses(v)
+	})
+}
+
+// UpdateAddresses sets the "addresses" field to the value that was provided on create.
+func (u *SenderOrderTokenUpsertOne) UpdateAddresses() *SenderOrderTokenUpsertOne {
+	return u.Update(func(s *SenderOrderTokenUpsert) {
+		s.UpdateAddresses()
+	})
+}
+
+// Exec executes the query.
+func (u *SenderOrderTokenUpsertOne) Exec(ctx context.Context) error {
+	if len(u.create.conflict) == 0 {
+		return errors.New("ent: missing options for SenderOrderTokenCreate.OnConflict")
+	}
+	return u.create.Exec(ctx)
+}
+
+// ExecX is like Exec, but panics if an error occurs.
+func (u *SenderOrderTokenUpsertOne) ExecX(ctx context.Context) {
+	if err := u.create.Exec(ctx); err != nil {
+		panic(err)
+	}
+}
+
+// Exec executes the UPSERT query and returns the inserted/updated ID.
+func (u *SenderOrderTokenUpsertOne) ID(ctx context.Context) (id int, err error) {
+	node, err := u.create.Save(ctx)
+	if err != nil {
+		return id, err
+	}
+	return node.ID, nil
+}
+
+// IDX is like ID, but panics if an error occurs.
+func (u *SenderOrderTokenUpsertOne) IDX(ctx context.Context) int {
+	id, err := u.ID(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return id
+}
+
 // SenderOrderTokenCreateBulk is the builder for creating many SenderOrderToken entities in bulk.
 type SenderOrderTokenCreateBulk struct {
 	config
 	builders []*SenderOrderTokenCreate
+	conflict []sql.ConflictOption
 }
 
 // Save creates the SenderOrderToken entities in the database.
@@ -194,6 +421,7 @@ func (sotcb *SenderOrderTokenCreateBulk) Save(ctx context.Context) ([]*SenderOrd
 					_, err = mutators[i+1].Mutate(root, sotcb.builders[i+1].mutation)
 				} else {
 					spec := &sqlgraph.BatchCreateSpec{Nodes: specs}
+					spec.OnConflict = sotcb.conflict
 					// Invoke the actual operation on the latest mutation in the chain.
 					if err = sqlgraph.BatchCreate(ctx, sotcb.driver, spec); err != nil {
 						if sqlgraph.IsConstraintError(err) {
@@ -244,6 +472,161 @@ func (sotcb *SenderOrderTokenCreateBulk) Exec(ctx context.Context) error {
 // ExecX is like Exec, but panics if an error occurs.
 func (sotcb *SenderOrderTokenCreateBulk) ExecX(ctx context.Context) {
 	if err := sotcb.Exec(ctx); err != nil {
+		panic(err)
+	}
+}
+
+// OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
+// of the `INSERT` statement. For example:
+//
+//	client.SenderOrderToken.CreateBulk(builders...).
+//		OnConflict(
+//			// Update the row with the new values
+//			// the was proposed for insertion.
+//			sql.ResolveWithNewValues(),
+//		).
+//		// Override some of the fields with custom
+//		// update values.
+//		Update(func(u *ent.SenderOrderTokenUpsert) {
+//			SetSymbol(v+v).
+//		}).
+//		Exec(ctx)
+func (sotcb *SenderOrderTokenCreateBulk) OnConflict(opts ...sql.ConflictOption) *SenderOrderTokenUpsertBulk {
+	sotcb.conflict = opts
+	return &SenderOrderTokenUpsertBulk{
+		create: sotcb,
+	}
+}
+
+// OnConflictColumns calls `OnConflict` and configures the columns
+// as conflict target. Using this option is equivalent to using:
+//
+//	client.SenderOrderToken.Create().
+//		OnConflict(sql.ConflictColumns(columns...)).
+//		Exec(ctx)
+func (sotcb *SenderOrderTokenCreateBulk) OnConflictColumns(columns ...string) *SenderOrderTokenUpsertBulk {
+	sotcb.conflict = append(sotcb.conflict, sql.ConflictColumns(columns...))
+	return &SenderOrderTokenUpsertBulk{
+		create: sotcb,
+	}
+}
+
+// SenderOrderTokenUpsertBulk is the builder for "upsert"-ing
+// a bulk of SenderOrderToken nodes.
+type SenderOrderTokenUpsertBulk struct {
+	create *SenderOrderTokenCreateBulk
+}
+
+// UpdateNewValues updates the mutable fields using the new values that
+// were set on create. Using this option is equivalent to using:
+//
+//	client.SenderOrderToken.Create().
+//		OnConflict(
+//			sql.ResolveWithNewValues(),
+//		).
+//		Exec(ctx)
+func (u *SenderOrderTokenUpsertBulk) UpdateNewValues() *SenderOrderTokenUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
+	return u
+}
+
+// Ignore sets each column to itself in case of conflict.
+// Using this option is equivalent to using:
+//
+//	client.SenderOrderToken.Create().
+//		OnConflict(sql.ResolveWithIgnore()).
+//		Exec(ctx)
+func (u *SenderOrderTokenUpsertBulk) Ignore() *SenderOrderTokenUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithIgnore())
+	return u
+}
+
+// DoNothing configures the conflict_action to `DO NOTHING`.
+// Supported only by SQLite and PostgreSQL.
+func (u *SenderOrderTokenUpsertBulk) DoNothing() *SenderOrderTokenUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.DoNothing())
+	return u
+}
+
+// Update allows overriding fields `UPDATE` values. See the SenderOrderTokenCreateBulk.OnConflict
+// documentation for more info.
+func (u *SenderOrderTokenUpsertBulk) Update(set func(*SenderOrderTokenUpsert)) *SenderOrderTokenUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(update *sql.UpdateSet) {
+		set(&SenderOrderTokenUpsert{UpdateSet: update})
+	}))
+	return u
+}
+
+// SetSymbol sets the "symbol" field.
+func (u *SenderOrderTokenUpsertBulk) SetSymbol(v string) *SenderOrderTokenUpsertBulk {
+	return u.Update(func(s *SenderOrderTokenUpsert) {
+		s.SetSymbol(v)
+	})
+}
+
+// UpdateSymbol sets the "symbol" field to the value that was provided on create.
+func (u *SenderOrderTokenUpsertBulk) UpdateSymbol() *SenderOrderTokenUpsertBulk {
+	return u.Update(func(s *SenderOrderTokenUpsert) {
+		s.UpdateSymbol()
+	})
+}
+
+// SetFeePerTokenUnit sets the "fee_per_token_unit" field.
+func (u *SenderOrderTokenUpsertBulk) SetFeePerTokenUnit(v decimal.Decimal) *SenderOrderTokenUpsertBulk {
+	return u.Update(func(s *SenderOrderTokenUpsert) {
+		s.SetFeePerTokenUnit(v)
+	})
+}
+
+// AddFeePerTokenUnit adds v to the "fee_per_token_unit" field.
+func (u *SenderOrderTokenUpsertBulk) AddFeePerTokenUnit(v decimal.Decimal) *SenderOrderTokenUpsertBulk {
+	return u.Update(func(s *SenderOrderTokenUpsert) {
+		s.AddFeePerTokenUnit(v)
+	})
+}
+
+// UpdateFeePerTokenUnit sets the "fee_per_token_unit" field to the value that was provided on create.
+func (u *SenderOrderTokenUpsertBulk) UpdateFeePerTokenUnit() *SenderOrderTokenUpsertBulk {
+	return u.Update(func(s *SenderOrderTokenUpsert) {
+		s.UpdateFeePerTokenUnit()
+	})
+}
+
+// SetAddresses sets the "addresses" field.
+func (u *SenderOrderTokenUpsertBulk) SetAddresses(v []struct {
+	IsDisabled    bool   "json:\"isDisabled\""
+	FeeAddress    string "json:\"feeAddress\""
+	RefundAddress string "json:\"refundAddress\""
+	Network       string "json:\"network\""
+}) *SenderOrderTokenUpsertBulk {
+	return u.Update(func(s *SenderOrderTokenUpsert) {
+		s.SetAddresses(v)
+	})
+}
+
+// UpdateAddresses sets the "addresses" field to the value that was provided on create.
+func (u *SenderOrderTokenUpsertBulk) UpdateAddresses() *SenderOrderTokenUpsertBulk {
+	return u.Update(func(s *SenderOrderTokenUpsert) {
+		s.UpdateAddresses()
+	})
+}
+
+// Exec executes the query.
+func (u *SenderOrderTokenUpsertBulk) Exec(ctx context.Context) error {
+	for i, b := range u.create.builders {
+		if len(b.conflict) != 0 {
+			return fmt.Errorf("ent: OnConflict was set for builder %d. Set it on the SenderOrderTokenCreateBulk instead", i)
+		}
+	}
+	if len(u.create.conflict) == 0 {
+		return errors.New("ent: missing options for SenderOrderTokenCreateBulk.OnConflict")
+	}
+	return u.create.Exec(ctx)
+}
+
+// ExecX is like Exec, but panics if an error occurs.
+func (u *SenderOrderTokenUpsertBulk) ExecX(ctx context.Context) {
+	if err := u.create.Exec(ctx); err != nil {
 		panic(err)
 	}
 }

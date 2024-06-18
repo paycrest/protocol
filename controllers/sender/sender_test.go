@@ -49,6 +49,7 @@ func setup() error {
 		"user_id":            user.ID,
 		"fee_per_token_unit": "5",
 	})
+
 	if err != nil {
 		return err
 	}
@@ -73,7 +74,7 @@ func setup() error {
 	}
 
 	// Create a test token
-	testCtx.networkIdentifier = "localhost" + uuid.New().String()
+	testCtx.networkIdentifier = "localhost"
 	token, err := test.CreateERC20Token(backend, map[string]interface{}{
 		"identifier": testCtx.networkIdentifier,
 	})
@@ -108,6 +109,10 @@ func TestSender(t *testing.T) {
 	// Setup test data
 	err := setup()
 	assert.NoError(t, err)
+
+	tokens, err := db.Client.SenderOrderToken.Query().All(context.Background())
+	assert.NoError(t, err)
+	assert.Greater(t, 0, len(tokens))
 
 	// Set up test routers
 	router := gin.New()

@@ -60,14 +60,14 @@ func main() {
 	fmt.Println("seeding tokens...")
 	_, err = client.Token.
 		Create().
-		SetSymbol("6TEST").
+		SetSymbol("TST").
 		SetContractAddress("0x3870419Ba2BBf0127060bCB37f69A1b1C090992B").
 		SetDecimals(6).
 		SetNetwork(network).
 		SetIsEnabled(true).
 		Save(ctx)
 	if err != nil {
-		logger.Fatalf("failed seeding 6TEST: %s", err)
+		logger.Fatalf("failed seeding TST: %s", err)
 	}
 
 	// Seed Fiat Currencies and Provision Buckets
@@ -183,7 +183,7 @@ func seedSender(ctx context.Context, client *ent.Client, serial string) (string,
 	}
 	senderToken, err := storage.Client.SenderOrderToken.
 		Create().
-		SetSymbol("6TEST").
+		SetSymbol("TST").
 		SetFeePerTokenUnit(decimal.NewFromFloat(10)).
 		SetAddresses(addresses).Save(ctx)
 
@@ -279,7 +279,7 @@ func seedProvider(ctx context.Context, client *ent.Client, bucket *ent.Provision
 
 	_, err = client.ProviderOrderToken.
 		Create().
-		SetSymbol("6TEST").
+		SetSymbol("TST").
 		SetConversionRateType("floating").
 		SetFixedConversionRate(decimal.NewFromFloat(0)).
 		SetFloatingConversionRate(decimal.NewFromFloat(1)).
