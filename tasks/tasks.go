@@ -156,7 +156,7 @@ func RetryStaleUserOperations() error {
 					sql.EQ(po.C(paymentorder.FieldStatus), paymentorder.StatusPending),
 					sql.Or(
 						sql.EQ(s.C(lockpaymentorder.FieldStatus), lockpaymentorder.StatusPending),
-						sql.EQ(s.C(paymentorder.FieldStatus), lockpaymentorder.StatusCancelled),
+						sql.EQ(s.C(lockpaymentorder.FieldStatus), lockpaymentorder.StatusCancelled),
 					),
 					sql.LTE(s.C(lockpaymentorder.FieldCreatedAt), time.Now().Add(-30*time.Minute)),
 				))

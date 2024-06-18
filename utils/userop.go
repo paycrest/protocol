@@ -11,7 +11,9 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/shopspring/decimal"
 
 	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/services/contracts"
@@ -22,6 +24,7 @@ import (
 
 var (
 	fromAddress, privateKey, _ = cryptoUtils.GenerateAccountFromIndex(0)
+	orderConf                  = config.OrderConfig()
 )
 
 // Initialize user operation with defaults
@@ -110,7 +113,7 @@ func SponsorUserOperation(userOp *userop.UserOperation, mode string, token strin
 	var payload map[string]interface{}
 	var requestParams []interface{}
 
-	if config.OrderConfig().ActiveAAService == "stackup" {
+	if orderConf.ActiveAAService == "stackup" {
 		switch mode {
 		case "sponsored":
 			payload = map[string]interface{}{
@@ -131,10 +134,12 @@ func SponsorUserOperation(userOp *userop.UserOperation, mode string, token strin
 
 		requestParams = []interface{}{
 			userOp,
-			config.OrderConfig().EntryPointContractAddress.Hex(),
+			orderConf.EntryPointContractAddress.Hex(),
 			payload,
 		}
-	} else if config.OrderConfig().ActiveAAService == "biconomy" {
+	} else if orderConf.ActiveAAService == "biconomy" {
+		mode = "sponsored"
+
 		switch mode {
 		case "sponsored":
 			payload = map[string]interface{}{
@@ -166,7 +171,19 @@ func SponsorUserOperation(userOp *userop.UserOperation, mode string, token strin
 		}
 
 		requestParams = []interface{}{
-			userOp,
+			map[string]interface{}{
+				"sender":               userOp.Sender.Hex(),
+				"nonce":                userOp.Nonce.String(),
+				"initCode":             hexutil.Encode(userOp.InitCode),
+				"callData":             hexutil.Encode(userOp.CallData),
+				"callGasLimit":         userOp.CallGasLimit.String(),
+				"verificationGasLimit": userOp.VerificationGasLimit.String(),
+				"preVerificationGas":   userOp.PreVerificationGas.String(),
+				"maxFeePerGas":         userOp.MaxFeePerGas.String(),
+				"maxPriorityFeePerGas": userOp.MaxPriorityFeePerGas.String(),
+				"paymasterAndData":     hexutil.Encode(userOp.PaymasterAndData),
+				"signature":            hexutil.Encode(userOp.Signature),
+			},
 			payload,
 		}
 	}
@@ -180,23 +197,38 @@ func SponsorUserOperation(userOp *userop.UserOperation, mode string, token strin
 		return fmt.Errorf("RPC error: %w", err)
 	}
 
-	type Response struct {
-		PaymasterAndData     string `json:"paymasterAndData"     mapstructure:"paymasterAndData"`
-		PreVerificationGas   string `json:"preVerificationGas"   mapstructure:"preVerificationGas"`
-		VerificationGasLimit string `json:"verificationGasLimit" mapstructure:"verificationGasLimit"`
-		CallGasLimit         string `json:"callGasLimit"         mapstructure:"callGasLimit"`
-	}
+	if orderConf.ActiveAAService == "stackup" {
+		type Response struct {
+			PaymasterAndData     string `json:"paymasterAndData"     mapstructure:"paymasterAndData"`
+			PreVerificationGas   string `json:"preVerificationGas"   mapstructure:"preVerificationGas"`
+			VerificationGasLimit string `json:"verificationGasLimit" mapstructure:"verificationGasLimit"`
+			CallGasLimit         string `json:"callGasLimit"         mapstructure:"callGasLimit"`
+		}
+		var response Response
 
-	var response Response
-	err = json.Unmarshal(result, &response)
-	if err != nil {
-		return fmt.Errorf("failed to unmarshal response: %w", err)
-	}
+		err = json.Unmarshal(result, &response)
+		if err != nil {
+			return fmt.Errorf("failed to unmarshal response: %w", err)
+		}
 
-	userOp.CallGasLimit, _ = new(big.Int).SetString(response.CallGasLimit, 0)
-	userOp.VerificationGasLimit, _ = new(big.Int).SetString(response.VerificationGasLimit, 0)
-	userOp.PreVerificationGas, _ = new(big.Int).SetString(response.PreVerificationGas, 0)
-	userOp.PaymasterAndData = common.FromHex(response.PaymasterAndData)
+		userOp.CallGasLimit, _ = new(big.Int).SetString(response.CallGasLimit, 0)
+		userOp.VerificationGasLimit, _ = new(big.Int).SetString(response.VerificationGasLimit, 0)
+		userOp.PreVerificationGas, _ = new(big.Int).SetString(response.PreVerificationGas, 0)
+		userOp.PaymasterAndData = common.FromHex(response.PaymasterAndData)
+
+	} else if orderConf.ActiveAAService == "biconomy" {
+		var response map[string]interface{}
+
+		err = json.Unmarshal(result, &response)
+		if err != nil {
+			return fmt.Errorf("failed to unmarshal response: %w", err)
+		}
+
+		userOp.PaymasterAndData = common.FromHex(response["paymasterAndData"].(string))
+		userOp.PreVerificationGas, _ = new(big.Int).SetString(response["preVerificationGas"].(string), 0)
+		userOp.VerificationGasLimit = decimal.NewFromFloat(response["verificationGasLimit"].(float64)).BigInt()
+		userOp.CallGasLimit = decimal.NewFromFloat(response["callGasLimit"].(float64)).BigInt()
+	}
 
 	return nil
 }
@@ -205,7 +237,7 @@ func SponsorUserOperation(userOp *userop.UserOperation, mode string, token strin
 func SignUserOperation(userOperation *userop.UserOperation, chainId int64) error {
 	// Sign user operation
 	userOpHash := userOperation.GetUserOpHash(
-		config.OrderConfig().EntryPointContractAddress,
+		orderConf.EntryPointContractAddress,
 		big.NewInt(chainId),
 	)
 
@@ -232,15 +264,15 @@ func SendUserOperation(userOp *userop.UserOperation, chainId int64) (string, int
 
 	var requestParams []interface{}
 
-	if config.OrderConfig().ActiveAAService == "stackup" {
+	if orderConf.ActiveAAService == "stackup" {
 		requestParams = []interface{}{
 			userOp,
-			config.OrderConfig().EntryPointContractAddress.Hex(),
+			orderConf.EntryPointContractAddress.Hex(),
 		}
-	} else if config.OrderConfig().ActiveAAService == "biconomy" {
+	} else if orderConf.ActiveAAService == "biconomy" {
 		requestParams = []interface{}{
 			userOp,
-			config.OrderConfig().EntryPointContractAddress.Hex(),
+			orderConf.EntryPointContractAddress.Hex(),
 			map[string]string{
 				"simulation_type": "validation_and_execution",
 			},
@@ -326,6 +358,10 @@ func GetUserOperationByHash(userOpHash string, chainId int64) (map[string]interf
 // GetPaymasterAccount fetches the paymaster account from stackup
 // ref: https://docs.stackup.sh/docs/paymaster-api-rpc-methods#pm_accounts
 func GetPaymasterAccount(chainId int64) (string, error) {
+	if orderConf.ActiveAAService == "biconomy" {
+		return "0x00000f79b7faf42eebadba19acc07cd08af44789", nil
+	}
+
 	_, paymasterUrl, err := getEndpoints(chainId)
 	if err != nil {
 		return "", fmt.Errorf("failed to get endpoints: %w", err)
@@ -337,7 +373,7 @@ func GetPaymasterAccount(chainId int64) (string, error) {
 	}
 
 	requestParams := []interface{}{
-		config.OrderConfig().EntryPointContractAddress.Hex(),
+		orderConf.EntryPointContractAddress.Hex(),
 	}
 
 	var result json.RawMessage
@@ -433,26 +469,29 @@ func eip1559GasPrice(ctx context.Context, client types.RPCClient) (maxFeePerGas,
 func getEndpoints(chainId int64) (bundlerUrl, paymasterUrl string, err error) {
 	switch chainId {
 	case 1:
-		bundlerUrl = config.OrderConfig().BundlerUrlEthereum
-		paymasterUrl = config.OrderConfig().PaymasterUrlEthereum
+		bundlerUrl = orderConf.BundlerUrlEthereum
+		paymasterUrl = orderConf.PaymasterUrlEthereum
 	case 11155111:
-		bundlerUrl = config.OrderConfig().BundlerUrlEthereum
-		paymasterUrl = config.OrderConfig().PaymasterUrlEthereum
+		bundlerUrl = orderConf.BundlerUrlEthereum
+		paymasterUrl = orderConf.PaymasterUrlEthereum
 	case 137:
-		bundlerUrl = config.OrderConfig().BundlerUrlPolygon
-		paymasterUrl = config.OrderConfig().PaymasterUrlPolygon
+		bundlerUrl = orderConf.BundlerUrlPolygon
+		paymasterUrl = orderConf.PaymasterUrlPolygon
 	case 56:
-		bundlerUrl = config.OrderConfig().BundlerUrlBSC
-		paymasterUrl = config.OrderConfig().PaymasterUrlBSC
+		bundlerUrl = orderConf.BundlerUrlBSC
+		paymasterUrl = orderConf.PaymasterUrlBSC
 	case 8453:
-		bundlerUrl = config.OrderConfig().BundlerUrlBase
-		paymasterUrl = config.OrderConfig().PaymasterUrlBase
+		bundlerUrl = orderConf.BundlerUrlBase
+		paymasterUrl = orderConf.PaymasterUrlBase
+	case 84532:
+		bundlerUrl = orderConf.BundlerUrlBase
+		paymasterUrl = orderConf.PaymasterUrlBase
 	case 42161:
-		bundlerUrl = config.OrderConfig().BundlerUrlArbitrum
-		paymasterUrl = config.OrderConfig().PaymasterUrlArbitrum
+		bundlerUrl = orderConf.BundlerUrlArbitrum
+		paymasterUrl = orderConf.PaymasterUrlArbitrum
 	case 421614:
-		bundlerUrl = config.OrderConfig().BundlerUrlArbitrum
-		paymasterUrl = config.OrderConfig().PaymasterUrlArbitrum
+		bundlerUrl = orderConf.BundlerUrlArbitrum
+		paymasterUrl = orderConf.PaymasterUrlArbitrum
 	default:
 		return "", "", fmt.Errorf("unsupported chain ID")
 	}
@@ -463,7 +502,7 @@ func getEndpoints(chainId int64) (bundlerUrl, paymasterUrl string, err error) {
 // getNonce returns the nonce for the given sender
 // https://docs.stackup.sh/docs/useroperation-nonce
 func getNonce(client types.RPCClient, sender common.Address) (nonce *big.Int, err error) {
-	entrypoint, err := contracts.NewEntryPoint(config.OrderConfig().EntryPointContractAddress, client.(bind.ContractBackend))
+	entrypoint, err := contracts.NewEntryPoint(orderConf.EntryPointContractAddress, client.(bind.ContractBackend))
 	if err != nil {
 		return nil, err
 	}

@@ -168,22 +168,33 @@ func TestUserop(t *testing.T) {
 					log.Fatal(err)
 				}
 
+				var resp *http.Response
 				if strings.Contains(string(bytes), "pm_sponsorUserOperation") {
 					if config.OrderConfig().ActiveAAService == "biconomy" {
 						assert.True(t, strings.Contains(string(bytes), "INFINITISM"))
+						resp, err = httpmock.NewJsonResponse(200, map[string]interface{}{
+							"jsonrpc": "2.0",
+							"id":      1,
+							"result": map[string]interface{}{
+								"paymasterAndData":     "0x00000f79b7faf42eebadba19acc07cd08af447890000000000000000000...",
+								"preVerificationGas":   "186034",
+								"verificationGasLimit": 395693,
+								"callGasLimit":         55412,
+							},
+						})
 					} else {
 						assert.True(t, strings.Contains(string(bytes), "payg"))
+						resp, err = httpmock.NewJsonResponse(200, map[string]interface{}{
+							"jsonrpc": "2.0",
+							"id":      1,
+							"result": map[string]interface{}{
+								"paymasterAndData":     "0x00000f79b7faf42eebadba19acc07cd08af447890000000000000000000...",
+								"preVerificationGas":   "0x1234",
+								"verificationGasLimit": "0x1234",
+								"callGasLimit":         "0x1234",
+							},
+						})
 					}
-					resp, err := httpmock.NewJsonResponse(200, map[string]interface{}{
-						"jsonrpc": "2.0",
-						"id":      1,
-						"result": map[string]interface{}{
-							"paymasterAndData":     "0x123...",
-							"preVerificationGas":   "1000000000000000000",
-							"verificationGasLimit": "2000000000000000000",
-							"callGasLimit":         "3000000000000000000",
-						},
-					})
 					return resp, err
 				}
 				return httpmock.NewBytesResponse(200, []byte(`{"jsonrpc": "2.0","id": 1,"result":[]}`)), nil
