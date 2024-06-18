@@ -192,15 +192,21 @@ type ValidatorProfilePayload struct {
 	HostIdentifier string `json:"hostIdentifier"`
 }
 
+type SenderOrderTokenPayload struct {
+	Symbol          string          `json:"symbol" binding:"required"`
+	FeePerTokenUnit decimal.Decimal `json:"feePerTokenUnit" binding:"required"`
+	Addresses       []struct {
+		Network       string `json:"network" binding:"required"`
+		FeeAddress    string `json:"feeAddress" binding:"required"`
+		RefundAddress string `json:"refundAddress" binding:"required"`
+	} `json:"addresses"`
+}
+
 // SenderProfilePayload is the payload for the sender profile endpoint
 type SenderProfilePayload struct {
-	WebhookURL      string          `json:"webhookURL"`
-	DomainWhitelist []string        `json:"domainWhitelist"`
-	FeePerTokenUnit decimal.Decimal `json:"feePerTokenUnit"`
-	Network         string          `json:"network"  binding:"required"`
-	Token           string          `json:"token"  binding:"required"`
-	FeeAddress      string          `json:"feeAddress"`
-	RefundAddress   string          `json:"refundAddress"`
+	WebhookURL      string                    `json:"webhookURL"`
+	DomainWhitelist []string                  `json:"domainWhitelist"`
+	Tokens          []SenderOrderTokenPayload `json:"tokens"`
 }
 
 // ProviderOrderTokenPayload defines the provider setting for a token

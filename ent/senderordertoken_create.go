@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -13,6 +14,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/paycrest/protocol/ent/senderordertoken"
 	"github.com/paycrest/protocol/ent/senderprofile"
+	"github.com/paycrest/protocol/ent/token"
 	"github.com/shopspring/decimal"
 )
 
@@ -24,9 +26,31 @@ type SenderOrderTokenCreate struct {
 	conflict []sql.ConflictOption
 }
 
-// SetSymbol sets the "symbol" field.
-func (sotc *SenderOrderTokenCreate) SetSymbol(s string) *SenderOrderTokenCreate {
-	sotc.mutation.SetSymbol(s)
+// SetCreatedAt sets the "created_at" field.
+func (sotc *SenderOrderTokenCreate) SetCreatedAt(t time.Time) *SenderOrderTokenCreate {
+	sotc.mutation.SetCreatedAt(t)
+	return sotc
+}
+
+// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
+func (sotc *SenderOrderTokenCreate) SetNillableCreatedAt(t *time.Time) *SenderOrderTokenCreate {
+	if t != nil {
+		sotc.SetCreatedAt(*t)
+	}
+	return sotc
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (sotc *SenderOrderTokenCreate) SetUpdatedAt(t time.Time) *SenderOrderTokenCreate {
+	sotc.mutation.SetUpdatedAt(t)
+	return sotc
+}
+
+// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
+func (sotc *SenderOrderTokenCreate) SetNillableUpdatedAt(t *time.Time) *SenderOrderTokenCreate {
+	if t != nil {
+		sotc.SetUpdatedAt(*t)
+	}
 	return sotc
 }
 
@@ -36,14 +60,15 @@ func (sotc *SenderOrderTokenCreate) SetFeePerTokenUnit(d decimal.Decimal) *Sende
 	return sotc
 }
 
-// SetAddresses sets the "addresses" field.
-func (sotc *SenderOrderTokenCreate) SetAddresses(sddaaaa []struct {
-	IsDisabled    bool   "json:\"isDisabled\""
-	FeeAddress    string "json:\"feeAddress\""
-	RefundAddress string "json:\"refundAddress\""
-	Network       string "json:\"network\""
-}) *SenderOrderTokenCreate {
-	sotc.mutation.SetAddresses(sddaaaa)
+// SetFeeAddress sets the "fee_address" field.
+func (sotc *SenderOrderTokenCreate) SetFeeAddress(s string) *SenderOrderTokenCreate {
+	sotc.mutation.SetFeeAddress(s)
+	return sotc
+}
+
+// SetRefundAddress sets the "refund_address" field.
+func (sotc *SenderOrderTokenCreate) SetRefundAddress(s string) *SenderOrderTokenCreate {
+	sotc.mutation.SetRefundAddress(s)
 	return sotc
 }
 
@@ -53,17 +78,20 @@ func (sotc *SenderOrderTokenCreate) SetSenderID(id uuid.UUID) *SenderOrderTokenC
 	return sotc
 }
 
-// SetNillableSenderID sets the "sender" edge to the SenderProfile entity by ID if the given value is not nil.
-func (sotc *SenderOrderTokenCreate) SetNillableSenderID(id *uuid.UUID) *SenderOrderTokenCreate {
-	if id != nil {
-		sotc = sotc.SetSenderID(*id)
-	}
-	return sotc
-}
-
 // SetSender sets the "sender" edge to the SenderProfile entity.
 func (sotc *SenderOrderTokenCreate) SetSender(s *SenderProfile) *SenderOrderTokenCreate {
 	return sotc.SetSenderID(s.ID)
+}
+
+// SetRegisteredTokenID sets the "registered_token" edge to the Token entity by ID.
+func (sotc *SenderOrderTokenCreate) SetRegisteredTokenID(id int) *SenderOrderTokenCreate {
+	sotc.mutation.SetRegisteredTokenID(id)
+	return sotc
+}
+
+// SetRegisteredToken sets the "registered_token" edge to the Token entity.
+func (sotc *SenderOrderTokenCreate) SetRegisteredToken(t *Token) *SenderOrderTokenCreate {
+	return sotc.SetRegisteredTokenID(t.ID)
 }
 
 // Mutation returns the SenderOrderTokenMutation object of the builder.
@@ -73,6 +101,7 @@ func (sotc *SenderOrderTokenCreate) Mutation() *SenderOrderTokenMutation {
 
 // Save creates the SenderOrderToken in the database.
 func (sotc *SenderOrderTokenCreate) Save(ctx context.Context) (*SenderOrderToken, error) {
+	sotc.defaults()
 	return withHooks(ctx, sotc.sqlSave, sotc.mutation, sotc.hooks)
 }
 
@@ -98,16 +127,50 @@ func (sotc *SenderOrderTokenCreate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (sotc *SenderOrderTokenCreate) defaults() {
+	if _, ok := sotc.mutation.CreatedAt(); !ok {
+		v := senderordertoken.DefaultCreatedAt()
+		sotc.mutation.SetCreatedAt(v)
+	}
+	if _, ok := sotc.mutation.UpdatedAt(); !ok {
+		v := senderordertoken.DefaultUpdatedAt()
+		sotc.mutation.SetUpdatedAt(v)
+	}
+}
+
 // check runs all checks and user-defined validators on the builder.
 func (sotc *SenderOrderTokenCreate) check() error {
-	if _, ok := sotc.mutation.Symbol(); !ok {
-		return &ValidationError{Name: "symbol", err: errors.New(`ent: missing required field "SenderOrderToken.symbol"`)}
+	if _, ok := sotc.mutation.CreatedAt(); !ok {
+		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "SenderOrderToken.created_at"`)}
+	}
+	if _, ok := sotc.mutation.UpdatedAt(); !ok {
+		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "SenderOrderToken.updated_at"`)}
 	}
 	if _, ok := sotc.mutation.FeePerTokenUnit(); !ok {
 		return &ValidationError{Name: "fee_per_token_unit", err: errors.New(`ent: missing required field "SenderOrderToken.fee_per_token_unit"`)}
 	}
-	if _, ok := sotc.mutation.Addresses(); !ok {
-		return &ValidationError{Name: "addresses", err: errors.New(`ent: missing required field "SenderOrderToken.addresses"`)}
+	if _, ok := sotc.mutation.FeeAddress(); !ok {
+		return &ValidationError{Name: "fee_address", err: errors.New(`ent: missing required field "SenderOrderToken.fee_address"`)}
+	}
+	if v, ok := sotc.mutation.FeeAddress(); ok {
+		if err := senderordertoken.FeeAddressValidator(v); err != nil {
+			return &ValidationError{Name: "fee_address", err: fmt.Errorf(`ent: validator failed for field "SenderOrderToken.fee_address": %w`, err)}
+		}
+	}
+	if _, ok := sotc.mutation.RefundAddress(); !ok {
+		return &ValidationError{Name: "refund_address", err: errors.New(`ent: missing required field "SenderOrderToken.refund_address"`)}
+	}
+	if v, ok := sotc.mutation.RefundAddress(); ok {
+		if err := senderordertoken.RefundAddressValidator(v); err != nil {
+			return &ValidationError{Name: "refund_address", err: fmt.Errorf(`ent: validator failed for field "SenderOrderToken.refund_address": %w`, err)}
+		}
+	}
+	if _, ok := sotc.mutation.SenderID(); !ok {
+		return &ValidationError{Name: "sender", err: errors.New(`ent: missing required edge "SenderOrderToken.sender"`)}
+	}
+	if _, ok := sotc.mutation.RegisteredTokenID(); !ok {
+		return &ValidationError{Name: "registered_token", err: errors.New(`ent: missing required edge "SenderOrderToken.registered_token"`)}
 	}
 	return nil
 }
@@ -136,17 +199,25 @@ func (sotc *SenderOrderTokenCreate) createSpec() (*SenderOrderToken, *sqlgraph.C
 		_spec = sqlgraph.NewCreateSpec(senderordertoken.Table, sqlgraph.NewFieldSpec(senderordertoken.FieldID, field.TypeInt))
 	)
 	_spec.OnConflict = sotc.conflict
-	if value, ok := sotc.mutation.Symbol(); ok {
-		_spec.SetField(senderordertoken.FieldSymbol, field.TypeString, value)
-		_node.Symbol = value
+	if value, ok := sotc.mutation.CreatedAt(); ok {
+		_spec.SetField(senderordertoken.FieldCreatedAt, field.TypeTime, value)
+		_node.CreatedAt = value
+	}
+	if value, ok := sotc.mutation.UpdatedAt(); ok {
+		_spec.SetField(senderordertoken.FieldUpdatedAt, field.TypeTime, value)
+		_node.UpdatedAt = value
 	}
 	if value, ok := sotc.mutation.FeePerTokenUnit(); ok {
 		_spec.SetField(senderordertoken.FieldFeePerTokenUnit, field.TypeFloat64, value)
 		_node.FeePerTokenUnit = value
 	}
-	if value, ok := sotc.mutation.Addresses(); ok {
-		_spec.SetField(senderordertoken.FieldAddresses, field.TypeJSON, value)
-		_node.Addresses = value
+	if value, ok := sotc.mutation.FeeAddress(); ok {
+		_spec.SetField(senderordertoken.FieldFeeAddress, field.TypeString, value)
+		_node.FeeAddress = value
+	}
+	if value, ok := sotc.mutation.RefundAddress(); ok {
+		_spec.SetField(senderordertoken.FieldRefundAddress, field.TypeString, value)
+		_node.RefundAddress = value
 	}
 	if nodes := sotc.mutation.SenderIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -165,6 +236,23 @@ func (sotc *SenderOrderTokenCreate) createSpec() (*SenderOrderToken, *sqlgraph.C
 		_node.sender_profile_order_tokens = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
+	if nodes := sotc.mutation.RegisteredTokenIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   senderordertoken.RegisteredTokenTable,
+			Columns: []string{senderordertoken.RegisteredTokenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(token.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.token_sender_orders = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
 	return _node, _spec
 }
 
@@ -172,7 +260,7 @@ func (sotc *SenderOrderTokenCreate) createSpec() (*SenderOrderToken, *sqlgraph.C
 // of the `INSERT` statement. For example:
 //
 //	client.SenderOrderToken.Create().
-//		SetSymbol(v).
+//		SetCreatedAt(v).
 //		OnConflict(
 //			// Update the row with the new values
 //			// the was proposed for insertion.
@@ -181,7 +269,7 @@ func (sotc *SenderOrderTokenCreate) createSpec() (*SenderOrderToken, *sqlgraph.C
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.SenderOrderTokenUpsert) {
-//			SetSymbol(v+v).
+//			SetCreatedAt(v+v).
 //		}).
 //		Exec(ctx)
 func (sotc *SenderOrderTokenCreate) OnConflict(opts ...sql.ConflictOption) *SenderOrderTokenUpsertOne {
@@ -217,15 +305,15 @@ type (
 	}
 )
 
-// SetSymbol sets the "symbol" field.
-func (u *SenderOrderTokenUpsert) SetSymbol(v string) *SenderOrderTokenUpsert {
-	u.Set(senderordertoken.FieldSymbol, v)
+// SetUpdatedAt sets the "updated_at" field.
+func (u *SenderOrderTokenUpsert) SetUpdatedAt(v time.Time) *SenderOrderTokenUpsert {
+	u.Set(senderordertoken.FieldUpdatedAt, v)
 	return u
 }
 
-// UpdateSymbol sets the "symbol" field to the value that was provided on create.
-func (u *SenderOrderTokenUpsert) UpdateSymbol() *SenderOrderTokenUpsert {
-	u.SetExcluded(senderordertoken.FieldSymbol)
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *SenderOrderTokenUpsert) UpdateUpdatedAt() *SenderOrderTokenUpsert {
+	u.SetExcluded(senderordertoken.FieldUpdatedAt)
 	return u
 }
 
@@ -247,20 +335,27 @@ func (u *SenderOrderTokenUpsert) AddFeePerTokenUnit(v decimal.Decimal) *SenderOr
 	return u
 }
 
-// SetAddresses sets the "addresses" field.
-func (u *SenderOrderTokenUpsert) SetAddresses(v []struct {
-	IsDisabled    bool   "json:\"isDisabled\""
-	FeeAddress    string "json:\"feeAddress\""
-	RefundAddress string "json:\"refundAddress\""
-	Network       string "json:\"network\""
-}) *SenderOrderTokenUpsert {
-	u.Set(senderordertoken.FieldAddresses, v)
+// SetFeeAddress sets the "fee_address" field.
+func (u *SenderOrderTokenUpsert) SetFeeAddress(v string) *SenderOrderTokenUpsert {
+	u.Set(senderordertoken.FieldFeeAddress, v)
 	return u
 }
 
-// UpdateAddresses sets the "addresses" field to the value that was provided on create.
-func (u *SenderOrderTokenUpsert) UpdateAddresses() *SenderOrderTokenUpsert {
-	u.SetExcluded(senderordertoken.FieldAddresses)
+// UpdateFeeAddress sets the "fee_address" field to the value that was provided on create.
+func (u *SenderOrderTokenUpsert) UpdateFeeAddress() *SenderOrderTokenUpsert {
+	u.SetExcluded(senderordertoken.FieldFeeAddress)
+	return u
+}
+
+// SetRefundAddress sets the "refund_address" field.
+func (u *SenderOrderTokenUpsert) SetRefundAddress(v string) *SenderOrderTokenUpsert {
+	u.Set(senderordertoken.FieldRefundAddress, v)
+	return u
+}
+
+// UpdateRefundAddress sets the "refund_address" field to the value that was provided on create.
+func (u *SenderOrderTokenUpsert) UpdateRefundAddress() *SenderOrderTokenUpsert {
+	u.SetExcluded(senderordertoken.FieldRefundAddress)
 	return u
 }
 
@@ -274,6 +369,11 @@ func (u *SenderOrderTokenUpsert) UpdateAddresses() *SenderOrderTokenUpsert {
 //		Exec(ctx)
 func (u *SenderOrderTokenUpsertOne) UpdateNewValues() *SenderOrderTokenUpsertOne {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
+		if _, exists := u.create.mutation.CreatedAt(); exists {
+			s.SetIgnore(senderordertoken.FieldCreatedAt)
+		}
+	}))
 	return u
 }
 
@@ -304,17 +404,17 @@ func (u *SenderOrderTokenUpsertOne) Update(set func(*SenderOrderTokenUpsert)) *S
 	return u
 }
 
-// SetSymbol sets the "symbol" field.
-func (u *SenderOrderTokenUpsertOne) SetSymbol(v string) *SenderOrderTokenUpsertOne {
+// SetUpdatedAt sets the "updated_at" field.
+func (u *SenderOrderTokenUpsertOne) SetUpdatedAt(v time.Time) *SenderOrderTokenUpsertOne {
 	return u.Update(func(s *SenderOrderTokenUpsert) {
-		s.SetSymbol(v)
+		s.SetUpdatedAt(v)
 	})
 }
 
-// UpdateSymbol sets the "symbol" field to the value that was provided on create.
-func (u *SenderOrderTokenUpsertOne) UpdateSymbol() *SenderOrderTokenUpsertOne {
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *SenderOrderTokenUpsertOne) UpdateUpdatedAt() *SenderOrderTokenUpsertOne {
 	return u.Update(func(s *SenderOrderTokenUpsert) {
-		s.UpdateSymbol()
+		s.UpdateUpdatedAt()
 	})
 }
 
@@ -339,22 +439,31 @@ func (u *SenderOrderTokenUpsertOne) UpdateFeePerTokenUnit() *SenderOrderTokenUps
 	})
 }
 
-// SetAddresses sets the "addresses" field.
-func (u *SenderOrderTokenUpsertOne) SetAddresses(v []struct {
-	IsDisabled    bool   "json:\"isDisabled\""
-	FeeAddress    string "json:\"feeAddress\""
-	RefundAddress string "json:\"refundAddress\""
-	Network       string "json:\"network\""
-}) *SenderOrderTokenUpsertOne {
+// SetFeeAddress sets the "fee_address" field.
+func (u *SenderOrderTokenUpsertOne) SetFeeAddress(v string) *SenderOrderTokenUpsertOne {
 	return u.Update(func(s *SenderOrderTokenUpsert) {
-		s.SetAddresses(v)
+		s.SetFeeAddress(v)
 	})
 }
 
-// UpdateAddresses sets the "addresses" field to the value that was provided on create.
-func (u *SenderOrderTokenUpsertOne) UpdateAddresses() *SenderOrderTokenUpsertOne {
+// UpdateFeeAddress sets the "fee_address" field to the value that was provided on create.
+func (u *SenderOrderTokenUpsertOne) UpdateFeeAddress() *SenderOrderTokenUpsertOne {
 	return u.Update(func(s *SenderOrderTokenUpsert) {
-		s.UpdateAddresses()
+		s.UpdateFeeAddress()
+	})
+}
+
+// SetRefundAddress sets the "refund_address" field.
+func (u *SenderOrderTokenUpsertOne) SetRefundAddress(v string) *SenderOrderTokenUpsertOne {
+	return u.Update(func(s *SenderOrderTokenUpsert) {
+		s.SetRefundAddress(v)
+	})
+}
+
+// UpdateRefundAddress sets the "refund_address" field to the value that was provided on create.
+func (u *SenderOrderTokenUpsertOne) UpdateRefundAddress() *SenderOrderTokenUpsertOne {
+	return u.Update(func(s *SenderOrderTokenUpsert) {
+		s.UpdateRefundAddress()
 	})
 }
 
@@ -406,6 +515,7 @@ func (sotcb *SenderOrderTokenCreateBulk) Save(ctx context.Context) ([]*SenderOrd
 	for i := range sotcb.builders {
 		func(i int, root context.Context) {
 			builder := sotcb.builders[i]
+			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*SenderOrderTokenMutation)
 				if !ok {
@@ -488,7 +598,7 @@ func (sotcb *SenderOrderTokenCreateBulk) ExecX(ctx context.Context) {
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.SenderOrderTokenUpsert) {
-//			SetSymbol(v+v).
+//			SetCreatedAt(v+v).
 //		}).
 //		Exec(ctx)
 func (sotcb *SenderOrderTokenCreateBulk) OnConflict(opts ...sql.ConflictOption) *SenderOrderTokenUpsertBulk {
@@ -527,6 +637,13 @@ type SenderOrderTokenUpsertBulk struct {
 //		Exec(ctx)
 func (u *SenderOrderTokenUpsertBulk) UpdateNewValues() *SenderOrderTokenUpsertBulk {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
+		for _, b := range u.create.builders {
+			if _, exists := b.mutation.CreatedAt(); exists {
+				s.SetIgnore(senderordertoken.FieldCreatedAt)
+			}
+		}
+	}))
 	return u
 }
 
@@ -557,17 +674,17 @@ func (u *SenderOrderTokenUpsertBulk) Update(set func(*SenderOrderTokenUpsert)) *
 	return u
 }
 
-// SetSymbol sets the "symbol" field.
-func (u *SenderOrderTokenUpsertBulk) SetSymbol(v string) *SenderOrderTokenUpsertBulk {
+// SetUpdatedAt sets the "updated_at" field.
+func (u *SenderOrderTokenUpsertBulk) SetUpdatedAt(v time.Time) *SenderOrderTokenUpsertBulk {
 	return u.Update(func(s *SenderOrderTokenUpsert) {
-		s.SetSymbol(v)
+		s.SetUpdatedAt(v)
 	})
 }
 
-// UpdateSymbol sets the "symbol" field to the value that was provided on create.
-func (u *SenderOrderTokenUpsertBulk) UpdateSymbol() *SenderOrderTokenUpsertBulk {
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *SenderOrderTokenUpsertBulk) UpdateUpdatedAt() *SenderOrderTokenUpsertBulk {
 	return u.Update(func(s *SenderOrderTokenUpsert) {
-		s.UpdateSymbol()
+		s.UpdateUpdatedAt()
 	})
 }
 
@@ -592,22 +709,31 @@ func (u *SenderOrderTokenUpsertBulk) UpdateFeePerTokenUnit() *SenderOrderTokenUp
 	})
 }
 
-// SetAddresses sets the "addresses" field.
-func (u *SenderOrderTokenUpsertBulk) SetAddresses(v []struct {
-	IsDisabled    bool   "json:\"isDisabled\""
-	FeeAddress    string "json:\"feeAddress\""
-	RefundAddress string "json:\"refundAddress\""
-	Network       string "json:\"network\""
-}) *SenderOrderTokenUpsertBulk {
+// SetFeeAddress sets the "fee_address" field.
+func (u *SenderOrderTokenUpsertBulk) SetFeeAddress(v string) *SenderOrderTokenUpsertBulk {
 	return u.Update(func(s *SenderOrderTokenUpsert) {
-		s.SetAddresses(v)
+		s.SetFeeAddress(v)
 	})
 }
 
-// UpdateAddresses sets the "addresses" field to the value that was provided on create.
-func (u *SenderOrderTokenUpsertBulk) UpdateAddresses() *SenderOrderTokenUpsertBulk {
+// UpdateFeeAddress sets the "fee_address" field to the value that was provided on create.
+func (u *SenderOrderTokenUpsertBulk) UpdateFeeAddress() *SenderOrderTokenUpsertBulk {
 	return u.Update(func(s *SenderOrderTokenUpsert) {
-		s.UpdateAddresses()
+		s.UpdateFeeAddress()
+	})
+}
+
+// SetRefundAddress sets the "refund_address" field.
+func (u *SenderOrderTokenUpsertBulk) SetRefundAddress(v string) *SenderOrderTokenUpsertBulk {
+	return u.Update(func(s *SenderOrderTokenUpsert) {
+		s.SetRefundAddress(v)
+	})
+}
+
+// UpdateRefundAddress sets the "refund_address" field to the value that was provided on create.
+func (u *SenderOrderTokenUpsertBulk) UpdateRefundAddress() *SenderOrderTokenUpsertBulk {
+	return u.Update(func(s *SenderOrderTokenUpsert) {
+		s.UpdateRefundAddress()
 	})
 }
 

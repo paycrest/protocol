@@ -3,6 +3,8 @@
 package senderordertoken
 
 import (
+	"time"
+
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/paycrest/protocol/ent/predicate"
@@ -54,9 +56,14 @@ func IDLTE(id int) predicate.SenderOrderToken {
 	return predicate.SenderOrderToken(sql.FieldLTE(FieldID, id))
 }
 
-// Symbol applies equality check predicate on the "symbol" field. It's identical to SymbolEQ.
-func Symbol(v string) predicate.SenderOrderToken {
-	return predicate.SenderOrderToken(sql.FieldEQ(FieldSymbol, v))
+// CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
+func CreatedAt(v time.Time) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldEQ(FieldCreatedAt, v))
+}
+
+// UpdatedAt applies equality check predicate on the "updated_at" field. It's identical to UpdatedAtEQ.
+func UpdatedAt(v time.Time) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldEQ(FieldUpdatedAt, v))
 }
 
 // FeePerTokenUnit applies equality check predicate on the "fee_per_token_unit" field. It's identical to FeePerTokenUnitEQ.
@@ -64,69 +71,94 @@ func FeePerTokenUnit(v decimal.Decimal) predicate.SenderOrderToken {
 	return predicate.SenderOrderToken(sql.FieldEQ(FieldFeePerTokenUnit, v))
 }
 
-// SymbolEQ applies the EQ predicate on the "symbol" field.
-func SymbolEQ(v string) predicate.SenderOrderToken {
-	return predicate.SenderOrderToken(sql.FieldEQ(FieldSymbol, v))
+// FeeAddress applies equality check predicate on the "fee_address" field. It's identical to FeeAddressEQ.
+func FeeAddress(v string) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldEQ(FieldFeeAddress, v))
 }
 
-// SymbolNEQ applies the NEQ predicate on the "symbol" field.
-func SymbolNEQ(v string) predicate.SenderOrderToken {
-	return predicate.SenderOrderToken(sql.FieldNEQ(FieldSymbol, v))
+// RefundAddress applies equality check predicate on the "refund_address" field. It's identical to RefundAddressEQ.
+func RefundAddress(v string) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldEQ(FieldRefundAddress, v))
 }
 
-// SymbolIn applies the In predicate on the "symbol" field.
-func SymbolIn(vs ...string) predicate.SenderOrderToken {
-	return predicate.SenderOrderToken(sql.FieldIn(FieldSymbol, vs...))
+// CreatedAtEQ applies the EQ predicate on the "created_at" field.
+func CreatedAtEQ(v time.Time) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldEQ(FieldCreatedAt, v))
 }
 
-// SymbolNotIn applies the NotIn predicate on the "symbol" field.
-func SymbolNotIn(vs ...string) predicate.SenderOrderToken {
-	return predicate.SenderOrderToken(sql.FieldNotIn(FieldSymbol, vs...))
+// CreatedAtNEQ applies the NEQ predicate on the "created_at" field.
+func CreatedAtNEQ(v time.Time) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldNEQ(FieldCreatedAt, v))
 }
 
-// SymbolGT applies the GT predicate on the "symbol" field.
-func SymbolGT(v string) predicate.SenderOrderToken {
-	return predicate.SenderOrderToken(sql.FieldGT(FieldSymbol, v))
+// CreatedAtIn applies the In predicate on the "created_at" field.
+func CreatedAtIn(vs ...time.Time) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldIn(FieldCreatedAt, vs...))
 }
 
-// SymbolGTE applies the GTE predicate on the "symbol" field.
-func SymbolGTE(v string) predicate.SenderOrderToken {
-	return predicate.SenderOrderToken(sql.FieldGTE(FieldSymbol, v))
+// CreatedAtNotIn applies the NotIn predicate on the "created_at" field.
+func CreatedAtNotIn(vs ...time.Time) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldNotIn(FieldCreatedAt, vs...))
 }
 
-// SymbolLT applies the LT predicate on the "symbol" field.
-func SymbolLT(v string) predicate.SenderOrderToken {
-	return predicate.SenderOrderToken(sql.FieldLT(FieldSymbol, v))
+// CreatedAtGT applies the GT predicate on the "created_at" field.
+func CreatedAtGT(v time.Time) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldGT(FieldCreatedAt, v))
 }
 
-// SymbolLTE applies the LTE predicate on the "symbol" field.
-func SymbolLTE(v string) predicate.SenderOrderToken {
-	return predicate.SenderOrderToken(sql.FieldLTE(FieldSymbol, v))
+// CreatedAtGTE applies the GTE predicate on the "created_at" field.
+func CreatedAtGTE(v time.Time) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldGTE(FieldCreatedAt, v))
 }
 
-// SymbolContains applies the Contains predicate on the "symbol" field.
-func SymbolContains(v string) predicate.SenderOrderToken {
-	return predicate.SenderOrderToken(sql.FieldContains(FieldSymbol, v))
+// CreatedAtLT applies the LT predicate on the "created_at" field.
+func CreatedAtLT(v time.Time) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldLT(FieldCreatedAt, v))
 }
 
-// SymbolHasPrefix applies the HasPrefix predicate on the "symbol" field.
-func SymbolHasPrefix(v string) predicate.SenderOrderToken {
-	return predicate.SenderOrderToken(sql.FieldHasPrefix(FieldSymbol, v))
+// CreatedAtLTE applies the LTE predicate on the "created_at" field.
+func CreatedAtLTE(v time.Time) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldLTE(FieldCreatedAt, v))
 }
 
-// SymbolHasSuffix applies the HasSuffix predicate on the "symbol" field.
-func SymbolHasSuffix(v string) predicate.SenderOrderToken {
-	return predicate.SenderOrderToken(sql.FieldHasSuffix(FieldSymbol, v))
+// UpdatedAtEQ applies the EQ predicate on the "updated_at" field.
+func UpdatedAtEQ(v time.Time) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldEQ(FieldUpdatedAt, v))
 }
 
-// SymbolEqualFold applies the EqualFold predicate on the "symbol" field.
-func SymbolEqualFold(v string) predicate.SenderOrderToken {
-	return predicate.SenderOrderToken(sql.FieldEqualFold(FieldSymbol, v))
+// UpdatedAtNEQ applies the NEQ predicate on the "updated_at" field.
+func UpdatedAtNEQ(v time.Time) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldNEQ(FieldUpdatedAt, v))
 }
 
-// SymbolContainsFold applies the ContainsFold predicate on the "symbol" field.
-func SymbolContainsFold(v string) predicate.SenderOrderToken {
-	return predicate.SenderOrderToken(sql.FieldContainsFold(FieldSymbol, v))
+// UpdatedAtIn applies the In predicate on the "updated_at" field.
+func UpdatedAtIn(vs ...time.Time) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldIn(FieldUpdatedAt, vs...))
+}
+
+// UpdatedAtNotIn applies the NotIn predicate on the "updated_at" field.
+func UpdatedAtNotIn(vs ...time.Time) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldNotIn(FieldUpdatedAt, vs...))
+}
+
+// UpdatedAtGT applies the GT predicate on the "updated_at" field.
+func UpdatedAtGT(v time.Time) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldGT(FieldUpdatedAt, v))
+}
+
+// UpdatedAtGTE applies the GTE predicate on the "updated_at" field.
+func UpdatedAtGTE(v time.Time) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldGTE(FieldUpdatedAt, v))
+}
+
+// UpdatedAtLT applies the LT predicate on the "updated_at" field.
+func UpdatedAtLT(v time.Time) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldLT(FieldUpdatedAt, v))
+}
+
+// UpdatedAtLTE applies the LTE predicate on the "updated_at" field.
+func UpdatedAtLTE(v time.Time) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldLTE(FieldUpdatedAt, v))
 }
 
 // FeePerTokenUnitEQ applies the EQ predicate on the "fee_per_token_unit" field.
@@ -169,6 +201,136 @@ func FeePerTokenUnitLTE(v decimal.Decimal) predicate.SenderOrderToken {
 	return predicate.SenderOrderToken(sql.FieldLTE(FieldFeePerTokenUnit, v))
 }
 
+// FeeAddressEQ applies the EQ predicate on the "fee_address" field.
+func FeeAddressEQ(v string) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldEQ(FieldFeeAddress, v))
+}
+
+// FeeAddressNEQ applies the NEQ predicate on the "fee_address" field.
+func FeeAddressNEQ(v string) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldNEQ(FieldFeeAddress, v))
+}
+
+// FeeAddressIn applies the In predicate on the "fee_address" field.
+func FeeAddressIn(vs ...string) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldIn(FieldFeeAddress, vs...))
+}
+
+// FeeAddressNotIn applies the NotIn predicate on the "fee_address" field.
+func FeeAddressNotIn(vs ...string) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldNotIn(FieldFeeAddress, vs...))
+}
+
+// FeeAddressGT applies the GT predicate on the "fee_address" field.
+func FeeAddressGT(v string) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldGT(FieldFeeAddress, v))
+}
+
+// FeeAddressGTE applies the GTE predicate on the "fee_address" field.
+func FeeAddressGTE(v string) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldGTE(FieldFeeAddress, v))
+}
+
+// FeeAddressLT applies the LT predicate on the "fee_address" field.
+func FeeAddressLT(v string) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldLT(FieldFeeAddress, v))
+}
+
+// FeeAddressLTE applies the LTE predicate on the "fee_address" field.
+func FeeAddressLTE(v string) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldLTE(FieldFeeAddress, v))
+}
+
+// FeeAddressContains applies the Contains predicate on the "fee_address" field.
+func FeeAddressContains(v string) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldContains(FieldFeeAddress, v))
+}
+
+// FeeAddressHasPrefix applies the HasPrefix predicate on the "fee_address" field.
+func FeeAddressHasPrefix(v string) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldHasPrefix(FieldFeeAddress, v))
+}
+
+// FeeAddressHasSuffix applies the HasSuffix predicate on the "fee_address" field.
+func FeeAddressHasSuffix(v string) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldHasSuffix(FieldFeeAddress, v))
+}
+
+// FeeAddressEqualFold applies the EqualFold predicate on the "fee_address" field.
+func FeeAddressEqualFold(v string) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldEqualFold(FieldFeeAddress, v))
+}
+
+// FeeAddressContainsFold applies the ContainsFold predicate on the "fee_address" field.
+func FeeAddressContainsFold(v string) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldContainsFold(FieldFeeAddress, v))
+}
+
+// RefundAddressEQ applies the EQ predicate on the "refund_address" field.
+func RefundAddressEQ(v string) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldEQ(FieldRefundAddress, v))
+}
+
+// RefundAddressNEQ applies the NEQ predicate on the "refund_address" field.
+func RefundAddressNEQ(v string) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldNEQ(FieldRefundAddress, v))
+}
+
+// RefundAddressIn applies the In predicate on the "refund_address" field.
+func RefundAddressIn(vs ...string) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldIn(FieldRefundAddress, vs...))
+}
+
+// RefundAddressNotIn applies the NotIn predicate on the "refund_address" field.
+func RefundAddressNotIn(vs ...string) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldNotIn(FieldRefundAddress, vs...))
+}
+
+// RefundAddressGT applies the GT predicate on the "refund_address" field.
+func RefundAddressGT(v string) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldGT(FieldRefundAddress, v))
+}
+
+// RefundAddressGTE applies the GTE predicate on the "refund_address" field.
+func RefundAddressGTE(v string) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldGTE(FieldRefundAddress, v))
+}
+
+// RefundAddressLT applies the LT predicate on the "refund_address" field.
+func RefundAddressLT(v string) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldLT(FieldRefundAddress, v))
+}
+
+// RefundAddressLTE applies the LTE predicate on the "refund_address" field.
+func RefundAddressLTE(v string) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldLTE(FieldRefundAddress, v))
+}
+
+// RefundAddressContains applies the Contains predicate on the "refund_address" field.
+func RefundAddressContains(v string) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldContains(FieldRefundAddress, v))
+}
+
+// RefundAddressHasPrefix applies the HasPrefix predicate on the "refund_address" field.
+func RefundAddressHasPrefix(v string) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldHasPrefix(FieldRefundAddress, v))
+}
+
+// RefundAddressHasSuffix applies the HasSuffix predicate on the "refund_address" field.
+func RefundAddressHasSuffix(v string) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldHasSuffix(FieldRefundAddress, v))
+}
+
+// RefundAddressEqualFold applies the EqualFold predicate on the "refund_address" field.
+func RefundAddressEqualFold(v string) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldEqualFold(FieldRefundAddress, v))
+}
+
+// RefundAddressContainsFold applies the ContainsFold predicate on the "refund_address" field.
+func RefundAddressContainsFold(v string) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldContainsFold(FieldRefundAddress, v))
+}
+
 // HasSender applies the HasEdge predicate on the "sender" edge.
 func HasSender() predicate.SenderOrderToken {
 	return predicate.SenderOrderToken(func(s *sql.Selector) {
@@ -184,6 +346,29 @@ func HasSender() predicate.SenderOrderToken {
 func HasSenderWith(preds ...predicate.SenderProfile) predicate.SenderOrderToken {
 	return predicate.SenderOrderToken(func(s *sql.Selector) {
 		step := newSenderStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasRegisteredToken applies the HasEdge predicate on the "registered_token" edge.
+func HasRegisteredToken() predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, RegisteredTokenTable, RegisteredTokenColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasRegisteredTokenWith applies the HasEdge predicate on the "registered_token" edge with a given conditions (other predicates).
+func HasRegisteredTokenWith(preds ...predicate.Token) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(func(s *sql.Selector) {
+		step := newRegisteredTokenStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

@@ -13,6 +13,10 @@ import (
 	"github.com/paycrest/protocol/ent/enttest"
 	"github.com/paycrest/protocol/ent/paymentorder"
 	"github.com/paycrest/protocol/ent/receiveaddress"
+	"github.com/paycrest/protocol/ent/senderordertoken"
+	"github.com/paycrest/protocol/ent/senderprofile"
+	tokenDB "github.com/paycrest/protocol/ent/token"
+
 	"github.com/paycrest/protocol/services/contracts"
 	db "github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
@@ -76,6 +80,21 @@ func setup() error {
 		return err
 	}
 
+	// find sender token
+	senderToken, err := db.Client.SenderOrderToken.
+		Query().
+		Where(
+			senderordertoken.And(
+				senderordertoken.HasSenderWith(senderprofile.IDEQ(senderProfile.ID)),
+				senderordertoken.HasRegisteredTokenWith(tokenDB.IDEQ(token.ID)),
+			),
+		).
+		Only(context.Background())
+
+	if err != nil {
+		return err
+	}
+
 	// Create a payment order
 	amount := decimal.NewFromFloat(29.93)
 	protocolFee := amount.Mul(decimal.NewFromFloat(0.001)) // 0.1% protocol fee
@@ -94,8 +113,8 @@ func setup() error {
 		SetToken(token).
 		SetReceiveAddress(receiveAddress).
 		SetReceiveAddressText(receiveAddress.Address).
-		SetFeePerTokenUnit(senderProfile.Edges.OrderTokens[0].FeePerTokenUnit).
-		SetFeeAddress(senderProfile.Edges.OrderTokens[0].Addresses[0].FeeAddress).
+		SetFeePerTokenUnit(senderToken.FeePerTokenUnit).
+		SetFeeAddress(senderToken.FeeAddress).
 		Save(context.Background())
 	if err != nil {
 		return err

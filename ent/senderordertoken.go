@@ -3,15 +3,16 @@
 package ent
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
 	"github.com/paycrest/protocol/ent/senderordertoken"
 	"github.com/paycrest/protocol/ent/senderprofile"
+	"github.com/paycrest/protocol/ent/token"
 	"github.com/shopspring/decimal"
 )
 
@@ -20,21 +21,21 @@ type SenderOrderToken struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID int `json:"id,omitempty"`
-	// Symbol holds the value of the "symbol" field.
-	Symbol string `json:"symbol,omitempty"`
+	// CreatedAt holds the value of the "created_at" field.
+	CreatedAt time.Time `json:"created_at,omitempty"`
+	// UpdatedAt holds the value of the "updated_at" field.
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// FeePerTokenUnit holds the value of the "fee_per_token_unit" field.
 	FeePerTokenUnit decimal.Decimal `json:"fee_per_token_unit,omitempty"`
-	// Addresses holds the value of the "addresses" field.
-	Addresses []struct {
-		IsDisabled    bool   "json:\"isDisabled\""
-		FeeAddress    string "json:\"feeAddress\""
-		RefundAddress string "json:\"refundAddress\""
-		Network       string "json:\"network\""
-	} `json:"addresses,omitempty"`
+	// FeeAddress holds the value of the "fee_address" field.
+	FeeAddress string `json:"fee_address,omitempty"`
+	// RefundAddress holds the value of the "refund_address" field.
+	RefundAddress string `json:"refund_address,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the SenderOrderTokenQuery when eager-loading is set.
 	Edges                       SenderOrderTokenEdges `json:"edges"`
 	sender_profile_order_tokens *uuid.UUID
+	token_sender_orders         *int
 	selectValues                sql.SelectValues
 }
 
@@ -42,9 +43,11 @@ type SenderOrderToken struct {
 type SenderOrderTokenEdges struct {
 	// Sender holds the value of the sender edge.
 	Sender *SenderProfile `json:"sender,omitempty"`
+	// RegisteredToken holds the value of the registered_token edge.
+	RegisteredToken *Token `json:"registered_token,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
 }
 
 // SenderOrErr returns the Sender value or an error if the edge
@@ -60,21 +63,36 @@ func (e SenderOrderTokenEdges) SenderOrErr() (*SenderProfile, error) {
 	return nil, &NotLoadedError{edge: "sender"}
 }
 
+// RegisteredTokenOrErr returns the RegisteredToken value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e SenderOrderTokenEdges) RegisteredTokenOrErr() (*Token, error) {
+	if e.loadedTypes[1] {
+		if e.RegisteredToken == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: token.Label}
+		}
+		return e.RegisteredToken, nil
+	}
+	return nil, &NotLoadedError{edge: "registered_token"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*SenderOrderToken) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case senderordertoken.FieldAddresses:
-			values[i] = new([]byte)
 		case senderordertoken.FieldFeePerTokenUnit:
 			values[i] = new(decimal.Decimal)
 		case senderordertoken.FieldID:
 			values[i] = new(sql.NullInt64)
-		case senderordertoken.FieldSymbol:
+		case senderordertoken.FieldFeeAddress, senderordertoken.FieldRefundAddress:
 			values[i] = new(sql.NullString)
+		case senderordertoken.FieldCreatedAt, senderordertoken.FieldUpdatedAt:
+			values[i] = new(sql.NullTime)
 		case senderordertoken.ForeignKeys[0]: // sender_profile_order_tokens
 			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
+		case senderordertoken.ForeignKeys[1]: // token_sender_orders
+			values[i] = new(sql.NullInt64)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -96,11 +114,17 @@ func (sot *SenderOrderToken) assignValues(columns []string, values []any) error 
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			sot.ID = int(value.Int64)
-		case senderordertoken.FieldSymbol:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field symbol", values[i])
+		case senderordertoken.FieldCreatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
-				sot.Symbol = value.String
+				sot.CreatedAt = value.Time
+			}
+		case senderordertoken.FieldUpdatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
+			} else if value.Valid {
+				sot.UpdatedAt = value.Time
 			}
 		case senderordertoken.FieldFeePerTokenUnit:
 			if value, ok := values[i].(*decimal.Decimal); !ok {
@@ -108,13 +132,17 @@ func (sot *SenderOrderToken) assignValues(columns []string, values []any) error 
 			} else if value != nil {
 				sot.FeePerTokenUnit = *value
 			}
-		case senderordertoken.FieldAddresses:
-			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field addresses", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &sot.Addresses); err != nil {
-					return fmt.Errorf("unmarshal field addresses: %w", err)
-				}
+		case senderordertoken.FieldFeeAddress:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field fee_address", values[i])
+			} else if value.Valid {
+				sot.FeeAddress = value.String
+			}
+		case senderordertoken.FieldRefundAddress:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field refund_address", values[i])
+			} else if value.Valid {
+				sot.RefundAddress = value.String
 			}
 		case senderordertoken.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullScanner); !ok {
@@ -122,6 +150,13 @@ func (sot *SenderOrderToken) assignValues(columns []string, values []any) error 
 			} else if value.Valid {
 				sot.sender_profile_order_tokens = new(uuid.UUID)
 				*sot.sender_profile_order_tokens = *value.S.(*uuid.UUID)
+			}
+		case senderordertoken.ForeignKeys[1]:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for edge-field token_sender_orders", value)
+			} else if value.Valid {
+				sot.token_sender_orders = new(int)
+				*sot.token_sender_orders = int(value.Int64)
 			}
 		default:
 			sot.selectValues.Set(columns[i], values[i])
@@ -139,6 +174,11 @@ func (sot *SenderOrderToken) Value(name string) (ent.Value, error) {
 // QuerySender queries the "sender" edge of the SenderOrderToken entity.
 func (sot *SenderOrderToken) QuerySender() *SenderProfileQuery {
 	return NewSenderOrderTokenClient(sot.config).QuerySender(sot)
+}
+
+// QueryRegisteredToken queries the "registered_token" edge of the SenderOrderToken entity.
+func (sot *SenderOrderToken) QueryRegisteredToken() *TokenQuery {
+	return NewSenderOrderTokenClient(sot.config).QueryRegisteredToken(sot)
 }
 
 // Update returns a builder for updating this SenderOrderToken.
@@ -164,14 +204,20 @@ func (sot *SenderOrderToken) String() string {
 	var builder strings.Builder
 	builder.WriteString("SenderOrderToken(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", sot.ID))
-	builder.WriteString("symbol=")
-	builder.WriteString(sot.Symbol)
+	builder.WriteString("created_at=")
+	builder.WriteString(sot.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("updated_at=")
+	builder.WriteString(sot.UpdatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
 	builder.WriteString("fee_per_token_unit=")
 	builder.WriteString(fmt.Sprintf("%v", sot.FeePerTokenUnit))
 	builder.WriteString(", ")
-	builder.WriteString("addresses=")
-	builder.WriteString(fmt.Sprintf("%v", sot.Addresses))
+	builder.WriteString("fee_address=")
+	builder.WriteString(sot.FeeAddress)
+	builder.WriteString(", ")
+	builder.WriteString("refund_address=")
+	builder.WriteString(sot.RefundAddress)
 	builder.WriteByte(')')
 	return builder.String()
 }

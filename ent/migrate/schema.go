@@ -390,10 +390,13 @@ var (
 	// SenderOrderTokensColumns holds the columns for the "sender_order_tokens" table.
 	SenderOrderTokensColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
-		{Name: "symbol", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "fee_per_token_unit", Type: field.TypeFloat64},
-		{Name: "addresses", Type: field.TypeJSON},
-		{Name: "sender_profile_order_tokens", Type: field.TypeUUID, Nullable: true},
+		{Name: "fee_address", Type: field.TypeString, Size: 60},
+		{Name: "refund_address", Type: field.TypeString, Size: 60},
+		{Name: "sender_profile_order_tokens", Type: field.TypeUUID},
+		{Name: "token_sender_orders", Type: field.TypeInt},
 	}
 	// SenderOrderTokensTable holds the schema information for the "sender_order_tokens" table.
 	SenderOrderTokensTable = &schema.Table{
@@ -403,9 +406,22 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "sender_order_tokens_sender_profiles_order_tokens",
-				Columns:    []*schema.Column{SenderOrderTokensColumns[4]},
+				Columns:    []*schema.Column{SenderOrderTokensColumns[6]},
 				RefColumns: []*schema.Column{SenderProfilesColumns[0]},
 				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "sender_order_tokens_tokens_sender_orders",
+				Columns:    []*schema.Column{SenderOrderTokensColumns[7]},
+				RefColumns: []*schema.Column{TokensColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "senderordertoken_sender_profile_order_tokens_token_sender_orders",
+				Unique:  true,
+				Columns: []*schema.Column{SenderOrderTokensColumns[6], SenderOrderTokensColumns[7]},
 			},
 		},
 	}
@@ -628,6 +644,7 @@ func init() {
 	ProvisionBucketsTable.ForeignKeys[0].RefTable = FiatCurrenciesTable
 	ReceiveAddressesTable.ForeignKeys[0].RefTable = PaymentOrdersTable
 	SenderOrderTokensTable.ForeignKeys[0].RefTable = SenderProfilesTable
+	SenderOrderTokensTable.ForeignKeys[1].RefTable = TokensTable
 	SenderProfilesTable.ForeignKeys[0].RefTable = UsersTable
 	TokensTable.ForeignKeys[0].RefTable = NetworksTable
 	TransactionLogsTable.ForeignKeys[0].RefTable = LockPaymentOrdersTable

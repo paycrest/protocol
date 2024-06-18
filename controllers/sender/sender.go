@@ -12,8 +12,10 @@ import (
 	"github.com/paycrest/protocol/ent/network"
 	"github.com/paycrest/protocol/ent/paymentorder"
 	providerprofile "github.com/paycrest/protocol/ent/providerprofile"
+	"github.com/paycrest/protocol/ent/senderordertoken"
 	"github.com/paycrest/protocol/ent/senderprofile"
 	"github.com/paycrest/protocol/ent/token"
+	tokenDB "github.com/paycrest/protocol/ent/token"
 	"github.com/paycrest/protocol/ent/transactionlog"
 	svc "github.com/paycrest/protocol/services"
 	"github.com/paycrest/protocol/types"
@@ -67,9 +69,9 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 	token, err := storage.Client.Token.
 		Query().
 		Where(
-			token.SymbolEQ(payload.Token),
-			token.HasNetworkWith(network.IdentifierEQ(payload.Network)),
-			// TODO: check if token is enabled
+			tokenDB.SymbolEQ(payload.Token),
+			tokenDB.HasNetworkWith(network.IdentifierEQ(payload.Network)),
+			tokenDB.IsEnabledEQ(true),
 		).
 		WithNetwork().
 		Only(ctx)
@@ -168,22 +170,31 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 	var feePerTokenUnit decimal.Decimal
 	var feeAddress string
 
-	for _, senderOrderToken := range sender.Edges.OrderTokens {
-		if senderOrderToken.Symbol == payload.Token {
-			if payload.FeePerTokenUnit.IsZero() {
-				feePerTokenUnit = senderOrderToken.FeePerTokenUnit
-			} else {
-				feePerTokenUnit = payload.FeePerTokenUnit
-			}
-			for _, address := range senderOrderToken.Addresses {
-				if address.Network == payload.Network && payload.FeeAddress == "" {
-					feeAddress = address.FeeAddress
-					break
-				}
-			}
-			break
-		}
+	senderOrderToken, err := storage.Client.SenderOrderToken.Query().Where(
+		senderordertoken.And(
+			senderordertoken.HasRegisteredTokenWith(
+				tokenDB.IDEQ(token.ID),
+			),
+			senderordertoken.HasSenderWith(
+				senderprofile.IDEQ(sender.ID),
+			),
+		),
+	).Only(ctx)
 
+	if err != nil {
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to fetch Order Token", types.ErrorData{
+			Message: "this token has not be configured by sender",
+		})
+		return
+	}
+
+	if payload.FeePerTokenUnit.IsZero() {
+		feePerTokenUnit = senderOrderToken.FeePerTokenUnit
+	} else {
+		feePerTokenUnit = payload.FeePerTokenUnit
+	}
+	if payload.FeeAddress == "" {
+		feeAddress = senderOrderToken.FeeAddress
 	}
 
 	if payload.FeeAddress != "" {

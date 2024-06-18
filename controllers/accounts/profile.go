@@ -72,119 +72,99 @@ func (ctrl *ProfileController) UpdateSenderProfile(ctx *gin.Context) {
 		update.SetDomainWhitelist(payload.DomainWhitelist)
 	}
 
-	feeAddressIsValid := u.IsValidEthereumAddress(payload.FeeAddress)
+	for _, tokenPayload := range payload.Tokens {
 
-	if payload.FeeAddress != "" {
-		if !feeAddressIsValid {
-			u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
-				Field:   "FeeAddress",
-				Message: "Invalid Ethereum address",
-			})
+		if len(tokenPayload.Addresses) == 0 {
+			u.APIResponse(ctx, http.StatusBadRequest, "error", fmt.Sprintf("No wallet address provided for %s token", tokenPayload.Symbol), nil)
 			return
 		}
-		var isTokenFound bool
 
-		// search OrderTokens to find token symbol match
-		for _, token := range sender.Edges.OrderTokens {
-			if token.Symbol == payload.Token {
-				var isNetworkFound bool
-				// search address to find match fot network
-				for j, address := range token.Addresses {
-					if address.Network == payload.Network {
-						token.Addresses[j].FeeAddress = payload.FeeAddress
-						if payload.RefundAddress != "" {
-							token.Addresses[j].RefundAddress = payload.RefundAddress
-						}
-						// Save updated Address
-						_, err := storage.Client.SenderOrderToken.
-							UpdateOneID(token.ID).
-							SetAddresses(token.Addresses).
-							Save(ctx)
-						if err != nil {
-							u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to update Order Token", types.ErrorData{
-								Field:   "Order Token",
-								Message: "These fields is required",
-							})
-							return
-						}
-						isNetworkFound = true
-						break
-					}
-				}
-				// if Network doesn't exist in address
-				if !isNetworkFound {
-					address := struct {
-						IsDisabled    bool   `json:"isDisabled"` // addition field to disable a network
-						FeeAddress    string `json:"feeAddress"`
-						RefundAddress string `json:"refundAddress"`
-						Network       string `json:"network"`
-					}{
-
-						RefundAddress: payload.RefundAddress,
-						FeeAddress:    payload.FeeAddress,
-						Network:       payload.Network,
-					}
-					token.Addresses = append(token.Addresses, address)
-					// Save updated Address
-					_, err := storage.Client.SenderOrderToken.
-						UpdateOneID(token.ID).
-						SetAddresses(token.Addresses).
-						Save(ctx)
-					if err != nil {
-						u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to update Order Token", types.ErrorData{
-							Field:   "Order Token",
-							Message: "These fields is required",
-						})
-						return
-					}
-				}
-				isTokenFound = true
-				break
-			}
+		// Check if token is supported
+		_, err := storage.Client.Token.
+			Query().
+			Where(token.Symbol(tokenPayload.Symbol)).
+			First(ctx)
+		if err != nil {
+			u.APIResponse(ctx, http.StatusBadRequest, "error", "Token not supported", nil)
+			return
 		}
-		if !isTokenFound {
-			// Configure tokens
-			addresses := []struct {
-				IsDisabled    bool   `json:"isDisabled"` // addition field to disable a network
-				FeeAddress    string `json:"feeAddress"`
-				RefundAddress string `json:"refundAddress"`
-				Network       string `json:"network"`
-			}{
-				{
-					RefundAddress: payload.RefundAddress,
-					FeeAddress:    payload.FeeAddress,
-					Network:       payload.Network,
-				},
+
+		var networksIdInPayload map[string]int = make(map[string]int)
+
+		for _, address := range tokenPayload.Addresses {
+
+			if address.Network == "tron" {
+				feeAddressIsValid := u.IsValidTronAddress(address.FeeAddress)
+				if address.FeeAddress != "" && !feeAddressIsValid {
+					u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
+						Field:   "FeeAddress",
+						Message: "Invalid Tron address",
+					})
+					return
+				}
+			} else {
+				feeAddressIsValid := u.IsValidEthereumAddress(address.FeeAddress)
+				if address.FeeAddress != "" && !feeAddressIsValid {
+					u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
+						Field:   "FeeAddress",
+						Message: "Invalid Ethereum address",
+					})
+					return
+				}
+
 			}
-			senderToken, err := storage.Client.SenderOrderToken.
-				Create().
-				SetSymbol(payload.Token).
-				SetFeePerTokenUnit(payload.FeePerTokenUnit).
-				SetAddresses(addresses).Save(ctx)
+			networksIdInPayload[address.Network] = 0
+		}
+
+		// Check if network is supported
+		for key := range networksIdInPayload {
+			network, err := storage.Client.Network.
+				Query().
+				Where(network.IdentifierEQ(key)).
+				First(ctx)
 			if err != nil {
-				u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to set order Token", types.ErrorData{
-					Field:   "Token and Network",
-					Message: "These fields is required",
-				})
+				u.APIResponse(
+					ctx,
+					http.StatusBadRequest,
+					"error", "Network not supported - "+key,
+					nil,
+				)
 				return
 			}
-			update.AddOrderTokens(senderToken)
+			networksIdInPayload[key] = network.ID
 		}
-	} else {
-		if !payload.FeePerTokenUnit.IsZero() && payload.FeeAddress == "" {
-			u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
-				Field:   "FeeAddress",
-				Message: "This field is required",
-			})
+
+		// save or update SenderOrderToken
+		tx, err := storage.Client.Tx(ctx)
+		if err != nil {
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update profile", nil)
 			return
 		}
-		if payload.FeeAddress != "" && !feeAddressIsValid {
-			u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
-				Field:   "FeeAddress",
-				Message: "Invalid Ethereum address",
-			})
+
+		for _, tokenPayload := range payload.Tokens {
+			for _, address := range tokenPayload.Addresses {
+				_, err := tx.SenderOrderToken.
+					Create().
+					SetSenderID(sender.ID).
+					SetRegisteredTokenID(networksIdInPayload[address.Network]).
+					SetRefundAddress(address.RefundAddress).
+					SetFeePerTokenUnit(tokenPayload.FeePerTokenUnit).
+					SetFeeAddress(address.FeeAddress).
+					OnConflict().
+					UpdateNewValues().
+					ID(ctx)
+				if err != nil {
+					u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update profile", nil)
+					return
+				}
+			}
+		}
+		// Commit the transaction
+		if err := tx.Commit(); err != nil {
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update profile", nil)
 			return
 		}
+
 	}
 
 	if !sender.IsActive {

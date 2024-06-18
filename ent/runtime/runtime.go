@@ -19,6 +19,7 @@ import (
 	"github.com/paycrest/protocol/ent/provisionbucket"
 	"github.com/paycrest/protocol/ent/receiveaddress"
 	"github.com/paycrest/protocol/ent/schema"
+	"github.com/paycrest/protocol/ent/senderordertoken"
 	"github.com/paycrest/protocol/ent/senderprofile"
 	"github.com/paycrest/protocol/ent/token"
 	"github.com/paycrest/protocol/ent/transactionlog"
@@ -282,6 +283,29 @@ func init() {
 	receiveaddressDescTxHash := receiveaddressFields[5].Descriptor()
 	// receiveaddress.TxHashValidator is a validator for the "tx_hash" field. It is called by the builders before save.
 	receiveaddress.TxHashValidator = receiveaddressDescTxHash.Validators[0].(func(string) error)
+	senderordertokenMixin := schema.SenderOrderToken{}.Mixin()
+	senderordertokenMixinFields0 := senderordertokenMixin[0].Fields()
+	_ = senderordertokenMixinFields0
+	senderordertokenFields := schema.SenderOrderToken{}.Fields()
+	_ = senderordertokenFields
+	// senderordertokenDescCreatedAt is the schema descriptor for created_at field.
+	senderordertokenDescCreatedAt := senderordertokenMixinFields0[0].Descriptor()
+	// senderordertoken.DefaultCreatedAt holds the default value on creation for the created_at field.
+	senderordertoken.DefaultCreatedAt = senderordertokenDescCreatedAt.Default.(func() time.Time)
+	// senderordertokenDescUpdatedAt is the schema descriptor for updated_at field.
+	senderordertokenDescUpdatedAt := senderordertokenMixinFields0[1].Descriptor()
+	// senderordertoken.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	senderordertoken.DefaultUpdatedAt = senderordertokenDescUpdatedAt.Default.(func() time.Time)
+	// senderordertoken.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	senderordertoken.UpdateDefaultUpdatedAt = senderordertokenDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// senderordertokenDescFeeAddress is the schema descriptor for fee_address field.
+	senderordertokenDescFeeAddress := senderordertokenFields[1].Descriptor()
+	// senderordertoken.FeeAddressValidator is a validator for the "fee_address" field. It is called by the builders before save.
+	senderordertoken.FeeAddressValidator = senderordertokenDescFeeAddress.Validators[0].(func(string) error)
+	// senderordertokenDescRefundAddress is the schema descriptor for refund_address field.
+	senderordertokenDescRefundAddress := senderordertokenFields[2].Descriptor()
+	// senderordertoken.RefundAddressValidator is a validator for the "refund_address" field. It is called by the builders before save.
+	senderordertoken.RefundAddressValidator = senderordertokenDescRefundAddress.Validators[0].(func(string) error)
 	senderprofileFields := schema.SenderProfile{}.Fields()
 	_ = senderprofileFields
 	// senderprofileDescDomainWhitelist is the schema descriptor for domain_whitelist field.

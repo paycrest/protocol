@@ -123,9 +123,6 @@ func TestProfile(t *testing.T) {
 			}
 			payload := types.SenderProfilePayload{
 				DomainWhitelist: []string{"example.com", "mydomain.com"},
-				RefundAddress:   "0x1234567890123456789012345678901234567890",
-				Network:         "localhost",
-				Token:           "TST",
 			}
 
 			res, err := test.PerformRequest(t, "PATCH", "/settings/sender", payload, headers, router)
@@ -170,9 +167,6 @@ func TestProfile(t *testing.T) {
 			payload := types.SenderProfilePayload{
 				WebhookURL:      "examplecom",
 				DomainWhitelist: []string{"example.com", "mydomain.com"},
-				RefundAddress:   "0x1234567890123456789012345678901234567890",
-				Network:         "localhost",
-				Token:           "TST",
 			}
 
 			res, err := test.PerformRequest(t, "PATCH", "/settings/sender", payload, headers, router)
@@ -221,9 +215,6 @@ func TestProfile(t *testing.T) {
 			}
 			payload := types.SenderProfilePayload{
 				DomainWhitelist: []string{"example.com", "mydomain.com"},
-				RefundAddress:   "0x1234567890123456789012345678901234567890",
-				Network:         "localhost",
-				Token:           "TST",
 			}
 
 			res, err := test.PerformRequest(t, "PATCH", "/settings/sender", payload, headers, router)

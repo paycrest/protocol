@@ -3,6 +3,8 @@
 package senderordertoken
 
 import (
+	"time"
+
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 )
@@ -12,14 +14,20 @@ const (
 	Label = "sender_order_token"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
-	// FieldSymbol holds the string denoting the symbol field in the database.
-	FieldSymbol = "symbol"
+	// FieldCreatedAt holds the string denoting the created_at field in the database.
+	FieldCreatedAt = "created_at"
+	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
+	FieldUpdatedAt = "updated_at"
 	// FieldFeePerTokenUnit holds the string denoting the fee_per_token_unit field in the database.
 	FieldFeePerTokenUnit = "fee_per_token_unit"
-	// FieldAddresses holds the string denoting the addresses field in the database.
-	FieldAddresses = "addresses"
+	// FieldFeeAddress holds the string denoting the fee_address field in the database.
+	FieldFeeAddress = "fee_address"
+	// FieldRefundAddress holds the string denoting the refund_address field in the database.
+	FieldRefundAddress = "refund_address"
 	// EdgeSender holds the string denoting the sender edge name in mutations.
 	EdgeSender = "sender"
+	// EdgeRegisteredToken holds the string denoting the registered_token edge name in mutations.
+	EdgeRegisteredToken = "registered_token"
 	// Table holds the table name of the senderordertoken in the database.
 	Table = "sender_order_tokens"
 	// SenderTable is the table that holds the sender relation/edge.
@@ -29,20 +37,30 @@ const (
 	SenderInverseTable = "sender_profiles"
 	// SenderColumn is the table column denoting the sender relation/edge.
 	SenderColumn = "sender_profile_order_tokens"
+	// RegisteredTokenTable is the table that holds the registered_token relation/edge.
+	RegisteredTokenTable = "sender_order_tokens"
+	// RegisteredTokenInverseTable is the table name for the Token entity.
+	// It exists in this package in order to avoid circular dependency with the "token" package.
+	RegisteredTokenInverseTable = "tokens"
+	// RegisteredTokenColumn is the table column denoting the registered_token relation/edge.
+	RegisteredTokenColumn = "token_sender_orders"
 )
 
 // Columns holds all SQL columns for senderordertoken fields.
 var Columns = []string{
 	FieldID,
-	FieldSymbol,
+	FieldCreatedAt,
+	FieldUpdatedAt,
 	FieldFeePerTokenUnit,
-	FieldAddresses,
+	FieldFeeAddress,
+	FieldRefundAddress,
 }
 
 // ForeignKeys holds the SQL foreign-keys that are owned by the "sender_order_tokens"
 // table and are not defined as standalone fields in the schema.
 var ForeignKeys = []string{
 	"sender_profile_order_tokens",
+	"token_sender_orders",
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -60,6 +78,19 @@ func ValidColumn(column string) bool {
 	return false
 }
 
+var (
+	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
+	DefaultCreatedAt func() time.Time
+	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
+	DefaultUpdatedAt func() time.Time
+	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
+	UpdateDefaultUpdatedAt func() time.Time
+	// FeeAddressValidator is a validator for the "fee_address" field. It is called by the builders before save.
+	FeeAddressValidator func(string) error
+	// RefundAddressValidator is a validator for the "refund_address" field. It is called by the builders before save.
+	RefundAddressValidator func(string) error
+)
+
 // OrderOption defines the ordering options for the SenderOrderToken queries.
 type OrderOption func(*sql.Selector)
 
@@ -68,14 +99,29 @@ func ByID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldID, opts...).ToFunc()
 }
 
-// BySymbol orders the results by the symbol field.
-func BySymbol(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldSymbol, opts...).ToFunc()
+// ByCreatedAt orders the results by the created_at field.
+func ByCreatedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCreatedAt, opts...).ToFunc()
+}
+
+// ByUpdatedAt orders the results by the updated_at field.
+func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUpdatedAt, opts...).ToFunc()
 }
 
 // ByFeePerTokenUnit orders the results by the fee_per_token_unit field.
 func ByFeePerTokenUnit(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldFeePerTokenUnit, opts...).ToFunc()
+}
+
+// ByFeeAddress orders the results by the fee_address field.
+func ByFeeAddress(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFeeAddress, opts...).ToFunc()
+}
+
+// ByRefundAddress orders the results by the refund_address field.
+func ByRefundAddress(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldRefundAddress, opts...).ToFunc()
 }
 
 // BySenderField orders the results by sender field.
@@ -84,10 +130,24 @@ func BySenderField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newSenderStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// ByRegisteredTokenField orders the results by registered_token field.
+func ByRegisteredTokenField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newRegisteredTokenStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newSenderStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(SenderInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, SenderTable, SenderColumn),
+	)
+}
+func newRegisteredTokenStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(RegisteredTokenInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, RegisteredTokenTable, RegisteredTokenColumn),
 	)
 }

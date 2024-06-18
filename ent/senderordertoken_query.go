@@ -14,17 +14,19 @@ import (
 	"github.com/paycrest/protocol/ent/predicate"
 	"github.com/paycrest/protocol/ent/senderordertoken"
 	"github.com/paycrest/protocol/ent/senderprofile"
+	"github.com/paycrest/protocol/ent/token"
 )
 
 // SenderOrderTokenQuery is the builder for querying SenderOrderToken entities.
 type SenderOrderTokenQuery struct {
 	config
-	ctx        *QueryContext
-	order      []senderordertoken.OrderOption
-	inters     []Interceptor
-	predicates []predicate.SenderOrderToken
-	withSender *SenderProfileQuery
-	withFKs    bool
+	ctx                 *QueryContext
+	order               []senderordertoken.OrderOption
+	inters              []Interceptor
+	predicates          []predicate.SenderOrderToken
+	withSender          *SenderProfileQuery
+	withRegisteredToken *TokenQuery
+	withFKs             bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -76,6 +78,28 @@ func (sotq *SenderOrderTokenQuery) QuerySender() *SenderProfileQuery {
 			sqlgraph.From(senderordertoken.Table, senderordertoken.FieldID, selector),
 			sqlgraph.To(senderprofile.Table, senderprofile.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, senderordertoken.SenderTable, senderordertoken.SenderColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(sotq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryRegisteredToken chains the current query on the "registered_token" edge.
+func (sotq *SenderOrderTokenQuery) QueryRegisteredToken() *TokenQuery {
+	query := (&TokenClient{config: sotq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := sotq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := sotq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(senderordertoken.Table, senderordertoken.FieldID, selector),
+			sqlgraph.To(token.Table, token.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, senderordertoken.RegisteredTokenTable, senderordertoken.RegisteredTokenColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(sotq.driver.Dialect(), step)
 		return fromU, nil
@@ -270,12 +294,13 @@ func (sotq *SenderOrderTokenQuery) Clone() *SenderOrderTokenQuery {
 		return nil
 	}
 	return &SenderOrderTokenQuery{
-		config:     sotq.config,
-		ctx:        sotq.ctx.Clone(),
-		order:      append([]senderordertoken.OrderOption{}, sotq.order...),
-		inters:     append([]Interceptor{}, sotq.inters...),
-		predicates: append([]predicate.SenderOrderToken{}, sotq.predicates...),
-		withSender: sotq.withSender.Clone(),
+		config:              sotq.config,
+		ctx:                 sotq.ctx.Clone(),
+		order:               append([]senderordertoken.OrderOption{}, sotq.order...),
+		inters:              append([]Interceptor{}, sotq.inters...),
+		predicates:          append([]predicate.SenderOrderToken{}, sotq.predicates...),
+		withSender:          sotq.withSender.Clone(),
+		withRegisteredToken: sotq.withRegisteredToken.Clone(),
 		// clone intermediate query.
 		sql:  sotq.sql.Clone(),
 		path: sotq.path,
@@ -293,18 +318,29 @@ func (sotq *SenderOrderTokenQuery) WithSender(opts ...func(*SenderProfileQuery))
 	return sotq
 }
 
+// WithRegisteredToken tells the query-builder to eager-load the nodes that are connected to
+// the "registered_token" edge. The optional arguments are used to configure the query builder of the edge.
+func (sotq *SenderOrderTokenQuery) WithRegisteredToken(opts ...func(*TokenQuery)) *SenderOrderTokenQuery {
+	query := (&TokenClient{config: sotq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	sotq.withRegisteredToken = query
+	return sotq
+}
+
 // GroupBy is used to group vertices by one or more fields/columns.
 // It is often used with aggregate functions, like: count, max, mean, min, sum.
 //
 // Example:
 //
 //	var v []struct {
-//		Symbol string `json:"symbol,omitempty"`
+//		CreatedAt time.Time `json:"created_at,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.SenderOrderToken.Query().
-//		GroupBy(senderordertoken.FieldSymbol).
+//		GroupBy(senderordertoken.FieldCreatedAt).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
 func (sotq *SenderOrderTokenQuery) GroupBy(field string, fields ...string) *SenderOrderTokenGroupBy {
@@ -322,11 +358,11 @@ func (sotq *SenderOrderTokenQuery) GroupBy(field string, fields ...string) *Send
 // Example:
 //
 //	var v []struct {
-//		Symbol string `json:"symbol,omitempty"`
+//		CreatedAt time.Time `json:"created_at,omitempty"`
 //	}
 //
 //	client.SenderOrderToken.Query().
-//		Select(senderordertoken.FieldSymbol).
+//		Select(senderordertoken.FieldCreatedAt).
 //		Scan(ctx, &v)
 func (sotq *SenderOrderTokenQuery) Select(fields ...string) *SenderOrderTokenSelect {
 	sotq.ctx.Fields = append(sotq.ctx.Fields, fields...)
@@ -372,11 +408,12 @@ func (sotq *SenderOrderTokenQuery) sqlAll(ctx context.Context, hooks ...queryHoo
 		nodes       = []*SenderOrderToken{}
 		withFKs     = sotq.withFKs
 		_spec       = sotq.querySpec()
-		loadedTypes = [1]bool{
+		loadedTypes = [2]bool{
 			sotq.withSender != nil,
+			sotq.withRegisteredToken != nil,
 		}
 	)
-	if sotq.withSender != nil {
+	if sotq.withSender != nil || sotq.withRegisteredToken != nil {
 		withFKs = true
 	}
 	if withFKs {
@@ -403,6 +440,12 @@ func (sotq *SenderOrderTokenQuery) sqlAll(ctx context.Context, hooks ...queryHoo
 	if query := sotq.withSender; query != nil {
 		if err := sotq.loadSender(ctx, query, nodes, nil,
 			func(n *SenderOrderToken, e *SenderProfile) { n.Edges.Sender = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := sotq.withRegisteredToken; query != nil {
+		if err := sotq.loadRegisteredToken(ctx, query, nodes, nil,
+			func(n *SenderOrderToken, e *Token) { n.Edges.RegisteredToken = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -434,6 +477,38 @@ func (sotq *SenderOrderTokenQuery) loadSender(ctx context.Context, query *Sender
 		nodes, ok := nodeids[n.ID]
 		if !ok {
 			return fmt.Errorf(`unexpected foreign-key "sender_profile_order_tokens" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
+func (sotq *SenderOrderTokenQuery) loadRegisteredToken(ctx context.Context, query *TokenQuery, nodes []*SenderOrderToken, init func(*SenderOrderToken), assign func(*SenderOrderToken, *Token)) error {
+	ids := make([]int, 0, len(nodes))
+	nodeids := make(map[int][]*SenderOrderToken)
+	for i := range nodes {
+		if nodes[i].token_sender_orders == nil {
+			continue
+		}
+		fk := *nodes[i].token_sender_orders
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(token.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "token_sender_orders" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)

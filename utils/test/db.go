@@ -14,6 +14,7 @@ import (
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	"github.com/paycrest/protocol/ent/paymentorder"
 	"github.com/paycrest/protocol/ent/providerprofile"
+	"github.com/paycrest/protocol/ent/token"
 	entToken "github.com/paycrest/protocol/ent/token"
 	db "github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
@@ -274,7 +275,7 @@ func CreateTestSenderProfile(overrides map[string]interface{}) (*ent.SenderProfi
 		"fee_address":        "0x1234567890123456789012345678901234567890",
 		"refund_address":     "0x0987654321098765432109876543210987654321",
 		"user_id":            nil,
-		"network":            "localhost",
+		"token":              "TST",
 	}
 
 	// Apply overrides
@@ -282,38 +283,40 @@ func CreateTestSenderProfile(overrides map[string]interface{}) (*ent.SenderProfi
 		payload[key] = value
 	}
 
-	addresses := []struct {
-		IsDisabled    bool   `json:"isDisabled"` // addition field to disable a network
-		FeeAddress    string `json:"feeAddress"`
-		RefundAddress string `json:"refundAddress"`
-		Network       string `json:"network"`
-	}{
-		{
-			RefundAddress: payload["refund_address"].(string),
-			FeeAddress:    (payload["fee_address"].(string)),
-			Network:       (payload["network"].(string)),
-		},
-	}
-	feePerTokenUnit, _ := decimal.NewFromString(payload["fee_per_token_unit"].(string))
-
-	senderToken, err := db.Client.SenderOrderToken.
-		Create().
-		SetSymbol("TST").
-		SetFeePerTokenUnit(feePerTokenUnit).
-		SetAddresses(addresses).Save(context.Background())
+	token, err := db.Client.Token.Query().Where(token.SymbolEQ(payload["token"].(string))).Only(context.Background())
 
 	if err != nil {
 		return nil, err
 	}
+
+	feePerTokenUnit, _ := decimal.NewFromString(payload["fee_per_token_unit"].(string))
 
 	// Create SenderProfile
 	profile, err := db.Client.SenderProfile.
 		Create().
 		SetWebhookURL(payload["webhook_url"].(string)).
 		SetDomainWhitelist(payload["domain_whitelist"].([]string)).
-		AddOrderTokens(senderToken).
 		SetUserID(payload["user_id"].(uuid.UUID)).
 		Save(context.Background())
+
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = db.Client.SenderOrderToken.
+		Create().
+		SetSenderID(payload["user_id"].(uuid.UUID)).
+		SetRegisteredTokenID(token.ID).
+		SetRefundAddress(payload["refund_address"].(string)).
+		SetFeePerTokenUnit(feePerTokenUnit).
+		SetFeeAddress(payload["fee_address"].(string)).
+		OnConflict().
+		UpdateNewValues().
+		ID(context.Background())
+
+	if err != nil {
+		return nil, err
+	}
 
 	return profile, err
 }

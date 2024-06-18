@@ -6,15 +6,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
 	"github.com/paycrest/protocol/ent/predicate"
 	"github.com/paycrest/protocol/ent/senderordertoken"
 	"github.com/paycrest/protocol/ent/senderprofile"
+	"github.com/paycrest/protocol/ent/token"
 	"github.com/shopspring/decimal"
 )
 
@@ -31,9 +32,9 @@ func (sotu *SenderOrderTokenUpdate) Where(ps ...predicate.SenderOrderToken) *Sen
 	return sotu
 }
 
-// SetSymbol sets the "symbol" field.
-func (sotu *SenderOrderTokenUpdate) SetSymbol(s string) *SenderOrderTokenUpdate {
-	sotu.mutation.SetSymbol(s)
+// SetUpdatedAt sets the "updated_at" field.
+func (sotu *SenderOrderTokenUpdate) SetUpdatedAt(t time.Time) *SenderOrderTokenUpdate {
+	sotu.mutation.SetUpdatedAt(t)
 	return sotu
 }
 
@@ -50,25 +51,15 @@ func (sotu *SenderOrderTokenUpdate) AddFeePerTokenUnit(d decimal.Decimal) *Sende
 	return sotu
 }
 
-// SetAddresses sets the "addresses" field.
-func (sotu *SenderOrderTokenUpdate) SetAddresses(sddaaaa []struct {
-	IsDisabled    bool   "json:\"isDisabled\""
-	FeeAddress    string "json:\"feeAddress\""
-	RefundAddress string "json:\"refundAddress\""
-	Network       string "json:\"network\""
-}) *SenderOrderTokenUpdate {
-	sotu.mutation.SetAddresses(sddaaaa)
+// SetFeeAddress sets the "fee_address" field.
+func (sotu *SenderOrderTokenUpdate) SetFeeAddress(s string) *SenderOrderTokenUpdate {
+	sotu.mutation.SetFeeAddress(s)
 	return sotu
 }
 
-// AppendAddresses appends sddaaaa to the "addresses" field.
-func (sotu *SenderOrderTokenUpdate) AppendAddresses(sddaaaa []struct {
-	IsDisabled    bool   "json:\"isDisabled\""
-	FeeAddress    string "json:\"feeAddress\""
-	RefundAddress string "json:\"refundAddress\""
-	Network       string "json:\"network\""
-}) *SenderOrderTokenUpdate {
-	sotu.mutation.AppendAddresses(sddaaaa)
+// SetRefundAddress sets the "refund_address" field.
+func (sotu *SenderOrderTokenUpdate) SetRefundAddress(s string) *SenderOrderTokenUpdate {
+	sotu.mutation.SetRefundAddress(s)
 	return sotu
 }
 
@@ -78,17 +69,20 @@ func (sotu *SenderOrderTokenUpdate) SetSenderID(id uuid.UUID) *SenderOrderTokenU
 	return sotu
 }
 
-// SetNillableSenderID sets the "sender" edge to the SenderProfile entity by ID if the given value is not nil.
-func (sotu *SenderOrderTokenUpdate) SetNillableSenderID(id *uuid.UUID) *SenderOrderTokenUpdate {
-	if id != nil {
-		sotu = sotu.SetSenderID(*id)
-	}
-	return sotu
-}
-
 // SetSender sets the "sender" edge to the SenderProfile entity.
 func (sotu *SenderOrderTokenUpdate) SetSender(s *SenderProfile) *SenderOrderTokenUpdate {
 	return sotu.SetSenderID(s.ID)
+}
+
+// SetRegisteredTokenID sets the "registered_token" edge to the Token entity by ID.
+func (sotu *SenderOrderTokenUpdate) SetRegisteredTokenID(id int) *SenderOrderTokenUpdate {
+	sotu.mutation.SetRegisteredTokenID(id)
+	return sotu
+}
+
+// SetRegisteredToken sets the "registered_token" edge to the Token entity.
+func (sotu *SenderOrderTokenUpdate) SetRegisteredToken(t *Token) *SenderOrderTokenUpdate {
+	return sotu.SetRegisteredTokenID(t.ID)
 }
 
 // Mutation returns the SenderOrderTokenMutation object of the builder.
@@ -102,8 +96,15 @@ func (sotu *SenderOrderTokenUpdate) ClearSender() *SenderOrderTokenUpdate {
 	return sotu
 }
 
+// ClearRegisteredToken clears the "registered_token" edge to the Token entity.
+func (sotu *SenderOrderTokenUpdate) ClearRegisteredToken() *SenderOrderTokenUpdate {
+	sotu.mutation.ClearRegisteredToken()
+	return sotu
+}
+
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (sotu *SenderOrderTokenUpdate) Save(ctx context.Context) (int, error) {
+	sotu.defaults()
 	return withHooks(ctx, sotu.sqlSave, sotu.mutation, sotu.hooks)
 }
 
@@ -129,7 +130,39 @@ func (sotu *SenderOrderTokenUpdate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (sotu *SenderOrderTokenUpdate) defaults() {
+	if _, ok := sotu.mutation.UpdatedAt(); !ok {
+		v := senderordertoken.UpdateDefaultUpdatedAt()
+		sotu.mutation.SetUpdatedAt(v)
+	}
+}
+
+// check runs all checks and user-defined validators on the builder.
+func (sotu *SenderOrderTokenUpdate) check() error {
+	if v, ok := sotu.mutation.FeeAddress(); ok {
+		if err := senderordertoken.FeeAddressValidator(v); err != nil {
+			return &ValidationError{Name: "fee_address", err: fmt.Errorf(`ent: validator failed for field "SenderOrderToken.fee_address": %w`, err)}
+		}
+	}
+	if v, ok := sotu.mutation.RefundAddress(); ok {
+		if err := senderordertoken.RefundAddressValidator(v); err != nil {
+			return &ValidationError{Name: "refund_address", err: fmt.Errorf(`ent: validator failed for field "SenderOrderToken.refund_address": %w`, err)}
+		}
+	}
+	if _, ok := sotu.mutation.SenderID(); sotu.mutation.SenderCleared() && !ok {
+		return errors.New(`ent: clearing a required unique edge "SenderOrderToken.sender"`)
+	}
+	if _, ok := sotu.mutation.RegisteredTokenID(); sotu.mutation.RegisteredTokenCleared() && !ok {
+		return errors.New(`ent: clearing a required unique edge "SenderOrderToken.registered_token"`)
+	}
+	return nil
+}
+
 func (sotu *SenderOrderTokenUpdate) sqlSave(ctx context.Context) (n int, err error) {
+	if err := sotu.check(); err != nil {
+		return n, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(senderordertoken.Table, senderordertoken.Columns, sqlgraph.NewFieldSpec(senderordertoken.FieldID, field.TypeInt))
 	if ps := sotu.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -138,8 +171,8 @@ func (sotu *SenderOrderTokenUpdate) sqlSave(ctx context.Context) (n int, err err
 			}
 		}
 	}
-	if value, ok := sotu.mutation.Symbol(); ok {
-		_spec.SetField(senderordertoken.FieldSymbol, field.TypeString, value)
+	if value, ok := sotu.mutation.UpdatedAt(); ok {
+		_spec.SetField(senderordertoken.FieldUpdatedAt, field.TypeTime, value)
 	}
 	if value, ok := sotu.mutation.FeePerTokenUnit(); ok {
 		_spec.SetField(senderordertoken.FieldFeePerTokenUnit, field.TypeFloat64, value)
@@ -147,13 +180,11 @@ func (sotu *SenderOrderTokenUpdate) sqlSave(ctx context.Context) (n int, err err
 	if value, ok := sotu.mutation.AddedFeePerTokenUnit(); ok {
 		_spec.AddField(senderordertoken.FieldFeePerTokenUnit, field.TypeFloat64, value)
 	}
-	if value, ok := sotu.mutation.Addresses(); ok {
-		_spec.SetField(senderordertoken.FieldAddresses, field.TypeJSON, value)
+	if value, ok := sotu.mutation.FeeAddress(); ok {
+		_spec.SetField(senderordertoken.FieldFeeAddress, field.TypeString, value)
 	}
-	if value, ok := sotu.mutation.AppendedAddresses(); ok {
-		_spec.AddModifier(func(u *sql.UpdateBuilder) {
-			sqljson.Append(u, senderordertoken.FieldAddresses, value)
-		})
+	if value, ok := sotu.mutation.RefundAddress(); ok {
+		_spec.SetField(senderordertoken.FieldRefundAddress, field.TypeString, value)
 	}
 	if sotu.mutation.SenderCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -184,6 +215,35 @@ func (sotu *SenderOrderTokenUpdate) sqlSave(ctx context.Context) (n int, err err
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if sotu.mutation.RegisteredTokenCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   senderordertoken.RegisteredTokenTable,
+			Columns: []string{senderordertoken.RegisteredTokenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(token.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := sotu.mutation.RegisteredTokenIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   senderordertoken.RegisteredTokenTable,
+			Columns: []string{senderordertoken.RegisteredTokenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(token.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, sotu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{senderordertoken.Label}
@@ -204,9 +264,9 @@ type SenderOrderTokenUpdateOne struct {
 	mutation *SenderOrderTokenMutation
 }
 
-// SetSymbol sets the "symbol" field.
-func (sotuo *SenderOrderTokenUpdateOne) SetSymbol(s string) *SenderOrderTokenUpdateOne {
-	sotuo.mutation.SetSymbol(s)
+// SetUpdatedAt sets the "updated_at" field.
+func (sotuo *SenderOrderTokenUpdateOne) SetUpdatedAt(t time.Time) *SenderOrderTokenUpdateOne {
+	sotuo.mutation.SetUpdatedAt(t)
 	return sotuo
 }
 
@@ -223,25 +283,15 @@ func (sotuo *SenderOrderTokenUpdateOne) AddFeePerTokenUnit(d decimal.Decimal) *S
 	return sotuo
 }
 
-// SetAddresses sets the "addresses" field.
-func (sotuo *SenderOrderTokenUpdateOne) SetAddresses(sddaaaa []struct {
-	IsDisabled    bool   "json:\"isDisabled\""
-	FeeAddress    string "json:\"feeAddress\""
-	RefundAddress string "json:\"refundAddress\""
-	Network       string "json:\"network\""
-}) *SenderOrderTokenUpdateOne {
-	sotuo.mutation.SetAddresses(sddaaaa)
+// SetFeeAddress sets the "fee_address" field.
+func (sotuo *SenderOrderTokenUpdateOne) SetFeeAddress(s string) *SenderOrderTokenUpdateOne {
+	sotuo.mutation.SetFeeAddress(s)
 	return sotuo
 }
 
-// AppendAddresses appends sddaaaa to the "addresses" field.
-func (sotuo *SenderOrderTokenUpdateOne) AppendAddresses(sddaaaa []struct {
-	IsDisabled    bool   "json:\"isDisabled\""
-	FeeAddress    string "json:\"feeAddress\""
-	RefundAddress string "json:\"refundAddress\""
-	Network       string "json:\"network\""
-}) *SenderOrderTokenUpdateOne {
-	sotuo.mutation.AppendAddresses(sddaaaa)
+// SetRefundAddress sets the "refund_address" field.
+func (sotuo *SenderOrderTokenUpdateOne) SetRefundAddress(s string) *SenderOrderTokenUpdateOne {
+	sotuo.mutation.SetRefundAddress(s)
 	return sotuo
 }
 
@@ -251,17 +301,20 @@ func (sotuo *SenderOrderTokenUpdateOne) SetSenderID(id uuid.UUID) *SenderOrderTo
 	return sotuo
 }
 
-// SetNillableSenderID sets the "sender" edge to the SenderProfile entity by ID if the given value is not nil.
-func (sotuo *SenderOrderTokenUpdateOne) SetNillableSenderID(id *uuid.UUID) *SenderOrderTokenUpdateOne {
-	if id != nil {
-		sotuo = sotuo.SetSenderID(*id)
-	}
-	return sotuo
-}
-
 // SetSender sets the "sender" edge to the SenderProfile entity.
 func (sotuo *SenderOrderTokenUpdateOne) SetSender(s *SenderProfile) *SenderOrderTokenUpdateOne {
 	return sotuo.SetSenderID(s.ID)
+}
+
+// SetRegisteredTokenID sets the "registered_token" edge to the Token entity by ID.
+func (sotuo *SenderOrderTokenUpdateOne) SetRegisteredTokenID(id int) *SenderOrderTokenUpdateOne {
+	sotuo.mutation.SetRegisteredTokenID(id)
+	return sotuo
+}
+
+// SetRegisteredToken sets the "registered_token" edge to the Token entity.
+func (sotuo *SenderOrderTokenUpdateOne) SetRegisteredToken(t *Token) *SenderOrderTokenUpdateOne {
+	return sotuo.SetRegisteredTokenID(t.ID)
 }
 
 // Mutation returns the SenderOrderTokenMutation object of the builder.
@@ -272,6 +325,12 @@ func (sotuo *SenderOrderTokenUpdateOne) Mutation() *SenderOrderTokenMutation {
 // ClearSender clears the "sender" edge to the SenderProfile entity.
 func (sotuo *SenderOrderTokenUpdateOne) ClearSender() *SenderOrderTokenUpdateOne {
 	sotuo.mutation.ClearSender()
+	return sotuo
+}
+
+// ClearRegisteredToken clears the "registered_token" edge to the Token entity.
+func (sotuo *SenderOrderTokenUpdateOne) ClearRegisteredToken() *SenderOrderTokenUpdateOne {
+	sotuo.mutation.ClearRegisteredToken()
 	return sotuo
 }
 
@@ -290,6 +349,7 @@ func (sotuo *SenderOrderTokenUpdateOne) Select(field string, fields ...string) *
 
 // Save executes the query and returns the updated SenderOrderToken entity.
 func (sotuo *SenderOrderTokenUpdateOne) Save(ctx context.Context) (*SenderOrderToken, error) {
+	sotuo.defaults()
 	return withHooks(ctx, sotuo.sqlSave, sotuo.mutation, sotuo.hooks)
 }
 
@@ -315,7 +375,39 @@ func (sotuo *SenderOrderTokenUpdateOne) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (sotuo *SenderOrderTokenUpdateOne) defaults() {
+	if _, ok := sotuo.mutation.UpdatedAt(); !ok {
+		v := senderordertoken.UpdateDefaultUpdatedAt()
+		sotuo.mutation.SetUpdatedAt(v)
+	}
+}
+
+// check runs all checks and user-defined validators on the builder.
+func (sotuo *SenderOrderTokenUpdateOne) check() error {
+	if v, ok := sotuo.mutation.FeeAddress(); ok {
+		if err := senderordertoken.FeeAddressValidator(v); err != nil {
+			return &ValidationError{Name: "fee_address", err: fmt.Errorf(`ent: validator failed for field "SenderOrderToken.fee_address": %w`, err)}
+		}
+	}
+	if v, ok := sotuo.mutation.RefundAddress(); ok {
+		if err := senderordertoken.RefundAddressValidator(v); err != nil {
+			return &ValidationError{Name: "refund_address", err: fmt.Errorf(`ent: validator failed for field "SenderOrderToken.refund_address": %w`, err)}
+		}
+	}
+	if _, ok := sotuo.mutation.SenderID(); sotuo.mutation.SenderCleared() && !ok {
+		return errors.New(`ent: clearing a required unique edge "SenderOrderToken.sender"`)
+	}
+	if _, ok := sotuo.mutation.RegisteredTokenID(); sotuo.mutation.RegisteredTokenCleared() && !ok {
+		return errors.New(`ent: clearing a required unique edge "SenderOrderToken.registered_token"`)
+	}
+	return nil
+}
+
 func (sotuo *SenderOrderTokenUpdateOne) sqlSave(ctx context.Context) (_node *SenderOrderToken, err error) {
+	if err := sotuo.check(); err != nil {
+		return _node, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(senderordertoken.Table, senderordertoken.Columns, sqlgraph.NewFieldSpec(senderordertoken.FieldID, field.TypeInt))
 	id, ok := sotuo.mutation.ID()
 	if !ok {
@@ -341,8 +433,8 @@ func (sotuo *SenderOrderTokenUpdateOne) sqlSave(ctx context.Context) (_node *Sen
 			}
 		}
 	}
-	if value, ok := sotuo.mutation.Symbol(); ok {
-		_spec.SetField(senderordertoken.FieldSymbol, field.TypeString, value)
+	if value, ok := sotuo.mutation.UpdatedAt(); ok {
+		_spec.SetField(senderordertoken.FieldUpdatedAt, field.TypeTime, value)
 	}
 	if value, ok := sotuo.mutation.FeePerTokenUnit(); ok {
 		_spec.SetField(senderordertoken.FieldFeePerTokenUnit, field.TypeFloat64, value)
@@ -350,13 +442,11 @@ func (sotuo *SenderOrderTokenUpdateOne) sqlSave(ctx context.Context) (_node *Sen
 	if value, ok := sotuo.mutation.AddedFeePerTokenUnit(); ok {
 		_spec.AddField(senderordertoken.FieldFeePerTokenUnit, field.TypeFloat64, value)
 	}
-	if value, ok := sotuo.mutation.Addresses(); ok {
-		_spec.SetField(senderordertoken.FieldAddresses, field.TypeJSON, value)
+	if value, ok := sotuo.mutation.FeeAddress(); ok {
+		_spec.SetField(senderordertoken.FieldFeeAddress, field.TypeString, value)
 	}
-	if value, ok := sotuo.mutation.AppendedAddresses(); ok {
-		_spec.AddModifier(func(u *sql.UpdateBuilder) {
-			sqljson.Append(u, senderordertoken.FieldAddresses, value)
-		})
+	if value, ok := sotuo.mutation.RefundAddress(); ok {
+		_spec.SetField(senderordertoken.FieldRefundAddress, field.TypeString, value)
 	}
 	if sotuo.mutation.SenderCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -380,6 +470,35 @@ func (sotuo *SenderOrderTokenUpdateOne) sqlSave(ctx context.Context) (_node *Sen
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(senderprofile.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if sotuo.mutation.RegisteredTokenCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   senderordertoken.RegisteredTokenTable,
+			Columns: []string{senderordertoken.RegisteredTokenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(token.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := sotuo.mutation.RegisteredTokenIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   senderordertoken.RegisteredTokenTable,
+			Columns: []string{senderordertoken.RegisteredTokenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(token.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

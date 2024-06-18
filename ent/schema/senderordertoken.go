@@ -4,6 +4,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
+	"entgo.io/ent/schema/index"
 	"github.com/shopspring/decimal"
 )
 
@@ -12,22 +13,20 @@ type SenderOrderToken struct {
 	ent.Schema
 }
 
+// Mixin of the Token.
+func (SenderOrderToken) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		TimeMixin{},
+	}
+}
+
 // Fields of the SenderOrderToken.
 func (SenderOrderToken) Fields() []ent.Field {
 	return []ent.Field{
-		field.String("symbol"),
 		field.Float("fee_per_token_unit").
 			GoType(decimal.Decimal{}),
-
-		// Even though this is what was approved, I would recommend promoting Network from a JSON field to an Actual DB field
-		// and making a unique index with both symbol and network that way the JSON field is not an array
-		// and direct queries can be made to find address by Network or by token
-		field.JSON("addresses", []struct {
-			IsDisabled    bool   `json:"isDisabled"` // addition field to disable a network
-			FeeAddress    string `json:"feeAddress"`
-			RefundAddress string `json:"refundAddress"`
-			Network       string `json:"network"`
-		}{}),
+		field.String("fee_address").MaxLen(60),
+		field.String("refund_address").MaxLen(60),
 	}
 }
 
@@ -36,6 +35,18 @@ func (SenderOrderToken) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("sender", SenderProfile.Type).
 			Ref("order_tokens").
+			Required().
 			Unique(),
+		edge.From("registered_token", Token.Type).
+			Ref("sender_orders").
+			Required().
+			Unique(),
+	}
+}
+
+func (SenderOrderToken) Indexes() []ent.Index {
+	return []ent.Index{
+		// Define a unique index across multiple fields.
+		index.Edges("sender", "registered_token").Unique(),
 	}
 }
