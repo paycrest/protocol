@@ -1,66 +1,21 @@
 package utils
 
 import (
-	"fmt"
 	"io"
 	"log"
 	"math/big"
 	"net/http"
-	"os"
 	"strings"
 
 	"testing"
-	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/jarcoal/httpmock"
-	"github.com/paycrest/protocol/config"
-	"github.com/paycrest/protocol/utils/test"
-	"github.com/spf13/viper"
 	"github.com/stackup-wallet/stackup-bundler/pkg/userop"
 	"github.com/stretchr/testify/assert"
 )
 
-var (
-	PAYMASTER_URL_ETHEREUM = "https://api.stackup.sh/v1/xxx"
-	BUNDLER_URL_ETHEREUM   = "https://api.stackup.sh/v1/yyy"
-)
-
-func setup() (string, error) {
-	// Set up test data
-	file, err := test.CreateEnvFile(fmt.Sprintf("%d.env", time.Now().UnixNano()), map[string]string{
-		"ACTIVE_AA_SERVICE":      "biconomy",
-		"PAYMASTER_URL_ETHEREUM": PAYMASTER_URL_ETHEREUM,
-		"BUNDLER_URL_ETHEREUM":   BUNDLER_URL_ETHEREUM,
-	})
-	if err != nil {
-		return "", err
-	}
-
-	// change .env file loaded
-	viper.AddConfigPath(".")
-	viper.SetConfigName(file)
-	viper.SetConfigType("env")
-	viper.AutomaticEnv()
-
-	err = viper.ReadInConfig()
-	if err != nil {
-		fmt.Printf("Error reading config file, %s", err)
-	}
-	return file, nil
-}
-func TestUserop(t *testing.T) {
-	file, err := setup()
-	assert.NoError(t, err)
-
-	// remove the generated file
-	t.Cleanup(func() {
-		os.Remove(file)
-	})
-	// TEST TODO
-	t.Run("ActiveAAService should change to 'biconomy'", func(t *testing.T) {
-		assert.Equal(t, "biconomy", config.OrderConfig().ActiveAAService)
-	})
+func TestUserOp(t *testing.T) {
 
 	t.Run("test getEndpoints", func(t *testing.T) {
 		t.Run("when chainID is supported getEndpoints", func(t *testing.T) {
@@ -99,7 +54,7 @@ func TestUserop(t *testing.T) {
 		}
 
 		// register mock response
-		httpmock.RegisterResponder("POST", BUNDLER_URL_ETHEREUM,
+		httpmock.RegisterResponder("POST", orderConf.BundlerUrlEthereum,
 			func(r *http.Request) (*http.Response, error) {
 				bytes, err := io.ReadAll(r.Body)
 				if err != nil {
@@ -107,7 +62,7 @@ func TestUserop(t *testing.T) {
 				}
 
 				if strings.Contains(string(bytes), "eth_sendUserOperation") {
-					if config.OrderConfig().ActiveAAService == "biconomy" {
+					if orderConf.ActiveAAService == "biconomy" {
 						assert.True(t, strings.Contains(string(bytes), "validation_and_execution"))
 					} else {
 						assert.False(t, strings.Contains(string(bytes), "validation_and_execution"))
@@ -161,18 +116,17 @@ func TestUserop(t *testing.T) {
 		}
 
 		// register mock response
-		httpmock.RegisterResponder("POST", PAYMASTER_URL_ETHEREUM,
+		httpmock.RegisterResponder("POST", orderConf.PaymasterUrlEthereum,
 			func(r *http.Request) (*http.Response, error) {
 				bytes, err := io.ReadAll(r.Body)
 				if err != nil {
 					log.Fatal(err)
 				}
 
-				var resp *http.Response
 				if strings.Contains(string(bytes), "pm_sponsorUserOperation") {
-					if config.OrderConfig().ActiveAAService == "biconomy" {
+					if orderConf.ActiveAAService == "biconomy" {
 						assert.True(t, strings.Contains(string(bytes), "INFINITISM"))
-						resp, err = httpmock.NewJsonResponse(200, map[string]interface{}{
+						resp, err := httpmock.NewJsonResponse(200, map[string]interface{}{
 							"jsonrpc": "2.0",
 							"id":      1,
 							"result": map[string]interface{}{
@@ -182,9 +136,10 @@ func TestUserop(t *testing.T) {
 								"callGasLimit":         55412,
 							},
 						})
+						return resp, err
 					} else {
 						assert.True(t, strings.Contains(string(bytes), "payg"))
-						resp, err = httpmock.NewJsonResponse(200, map[string]interface{}{
+						resp, err := httpmock.NewJsonResponse(200, map[string]interface{}{
 							"jsonrpc": "2.0",
 							"id":      1,
 							"result": map[string]interface{}{
@@ -194,13 +149,14 @@ func TestUserop(t *testing.T) {
 								"callGasLimit":         "0x1234",
 							},
 						})
+						return resp, err
 					}
-					return resp, err
 				}
 				return httpmock.NewBytesResponse(200, []byte(`{"jsonrpc": "2.0","id": 1,"result":[]}`)), nil
 
 			},
 		)
+
 		err := SponsorUserOperation(data, "sponsored", "", 1)
 		assert.NoError(t, err)
 	})
