@@ -615,8 +615,8 @@ func (s *OrderEVM) createOrderCallData(order *ent.PaymentOrder) ([]byte, error) 
 			senderordertoken.HasSenderWith(
 				senderprofile.IDEQ(order.Edges.SenderProfile.ID),
 			),
-		),
-	).Only(context.Background())
+		)).
+		Only(context.Background())
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch order token: %w", err)

@@ -275,20 +275,29 @@ type ValidatorProfileResponse struct {
 	APIKey         APIKeyResponse `json:"apiKey"`
 }
 
+// SenderOrderTokenResponse defines the provider setting for a token
+type SenderOrderTokenResponse struct {
+	Symbol          string          `json:"symbol" binding:"required"`
+	FeePerTokenUnit decimal.Decimal `json:"feePerTokenUnit" binding:"required"`
+	Network         string          `json:"network" binding:"required"`
+	FeeAddress      string          `json:"feeAddress" binding:"required"`
+	RefundAddress   string          `json:"refundAddress" binding:"required"`
+}
+
 // SenderProfileResponse is the response for the sender profile endpoint
 type SenderProfileResponse struct {
-	ID               uuid.UUID               `json:"id"`
-	FirstName        string                  `json:"firstName"`
-	LastName         string                  `json:"lastName"`
-	Email            string                  `json:"email"`
-	WebhookURL       string                  `json:"webhookUrl"`
-	DomainWhitelist  []string                `json:"domainWhitelist"`
-	SenderOrderToken []*ent.SenderOrderToken `json:"senderOrderToken"`
-	FeePerTokenUnit  decimal.Decimal         `json:"feePerTokenUnit"`
-	FeeAddress       string                  `json:"feeAddress"`
-	RefundAddress    string                  `json:"refundAddress"`
-	APIKey           APIKeyResponse          `json:"apiKey"`
-	IsActive         bool                    `json:"isActive"`
+	ID               uuid.UUID                  `json:"id"`
+	FirstName        string                     `json:"firstName"`
+	LastName         string                     `json:"lastName"`
+	Email            string                     `json:"email"`
+	WebhookURL       string                     `json:"webhookUrl"`
+	DomainWhitelist  []string                   `json:"domainWhitelist"`
+	SenderOrderToken []SenderOrderTokenResponse `json:"senderOrderToken"`
+	FeePerTokenUnit  decimal.Decimal            `json:"feePerTokenUnit"`
+	FeeAddress       string                     `json:"feeAddress"`
+	RefundAddress    string                     `json:"refundAddress"`
+	APIKey           APIKeyResponse             `json:"apiKey"`
+	IsActive         bool                       `json:"isActive"`
 }
 
 // RefreshResponse is the response for the refresh endpoint

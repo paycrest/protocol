@@ -11,6 +11,8 @@ import (
 	"github.com/paycrest/protocol/ent/providerordertoken"
 	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/provisionbucket"
+	"github.com/paycrest/protocol/ent/senderordertoken"
+	"github.com/paycrest/protocol/ent/senderprofile"
 	"github.com/paycrest/protocol/ent/token"
 	svc "github.com/paycrest/protocol/services"
 	"github.com/paycrest/protocol/storage"
@@ -453,6 +455,35 @@ func (ctrl *ProfileController) GetSenderProfile(ctx *gin.Context) {
 		return
 	}
 
+	senderToken, err := storage.Client.SenderOrderToken.
+		Query().
+		Where(senderordertoken.HasSenderWith(senderprofile.IDEQ(sender.ID))).
+		WithRegisteredToken(
+			func(tq *ent.TokenQuery) {
+				tq.WithNetwork()
+			},
+		).
+		All(ctx)
+
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to Sender OrderToken", nil)
+		return
+	}
+
+	tokensPayload := make([]types.SenderOrderTokenResponse, len(sender.Edges.OrderTokens))
+	for i, token := range senderToken {
+		payload := types.SenderOrderTokenResponse{
+			Symbol:          token.Edges.RegisteredToken.Symbol,
+			RefundAddress:   token.RefundAddress,
+			FeePerTokenUnit: token.FeePerTokenUnit,
+			FeeAddress:      token.FeeAddress,
+			Network:         token.Edges.RegisteredToken.Edges.Network.Identifier,
+		}
+
+		tokensPayload[i] = payload
+	}
+
 	u.APIResponse(ctx, http.StatusOK, "success", "Profile retrieved successfully", &types.SenderProfileResponse{
 		ID:               sender.ID,
 		FirstName:        user.FirstName,
@@ -460,7 +491,7 @@ func (ctrl *ProfileController) GetSenderProfile(ctx *gin.Context) {
 		Email:            user.Email,
 		WebhookURL:       sender.WebhookURL,
 		DomainWhitelist:  sender.DomainWhitelist,
-		SenderOrderToken: sender.Edges.OrderTokens,
+		SenderOrderToken: tokensPayload,
 		APIKey:           *apiKey,
 		IsActive:         sender.IsActive,
 	})
