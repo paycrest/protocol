@@ -14,6 +14,7 @@ import (
 	"github.com/paycrest/protocol/services"
 	db "github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
+	"github.com/shopspring/decimal"
 
 	"github.com/gin-gonic/gin"
 	"github.com/paycrest/protocol/ent/enttest"
@@ -29,6 +30,7 @@ var testCtx = struct {
 	user            *ent.User
 	providerProfile *ent.ProviderProfile
 	token           *ent.Token
+	client          types.RPCClient
 }{}
 
 func setup() error {
@@ -38,6 +40,7 @@ func setup() error {
 		return err
 	}
 
+	testCtx.client = client
 	// Create a test token
 	token, err := test.CreateERC20Token(
 		client,
@@ -85,7 +88,7 @@ func setup() error {
 
 func TestProfile(t *testing.T) {
 	// Set up test database client
-	client := enttest.Open(t, "sqlite3", "file:ent?mode=memory&_fk=1")
+	client := enttest.Open(t, "sqlite3", "file:ent/provider?mode=memory&_fk=1")
 	defer client.Close()
 
 	db.Client = client
@@ -224,6 +227,7 @@ func TestProfile(t *testing.T) {
 			_, err = test.CreateTestSenderProfile(map[string]interface{}{
 				"domain_whitelist": []string{"example.com"},
 				"user_id":          testUser.ID,
+				"token":            testCtx.token.Symbol,
 			})
 			assert.NoError(t, err)
 
@@ -232,8 +236,40 @@ func TestProfile(t *testing.T) {
 			headers := map[string]string{
 				"Authorization": "Bearer " + accessToken,
 			}
+
+			// setup payload
+			tokenPayload := make([]types.SenderOrderTokenPayload, 2)
+			tokenAddresses := make([]types.SenderOrderAddressPayload, 1)
+
+			// setup ERC20 token
+			tokenAddresses[0].FeeAddress = "0xD4EB9067111F81b9bAabE06E2b8ebBaDADEd5DAf"
+			tokenAddresses[0].Network = testCtx.token.Edges.Network.Identifier
+			tokenAddresses[0].RefundAddress = "0xD4EB9067111F81b9bAabE06E2b8ebBaDADEd5DAf"
+
+			tokenPayload[0].FeePerTokenUnit = decimal.NewFromInt(1)
+			tokenPayload[0].Symbol = testCtx.token.Symbol
+			tokenPayload[0].Addresses = tokenAddresses
+
+			// setup TRC token
+			tronToken, err := test.CreateTRC20Token(testCtx.client, map[string]interface{}{})
+			assert.NoError(t, err)
+			assert.NotEqual(t, "localhost", tronToken.Edges.Network.Identifier)
+
+			// setup TRC20 token
+			tronTokenAddresses := make([]types.SenderOrderAddressPayload, 1)
+			tronTokenAddresses[0].FeeAddress = "TFRKiHrHCeSyWL67CEwydFvUMYJ6CbYYX7"
+			tronTokenAddresses[0].Network = tronToken.Edges.Network.Identifier
+			tronTokenAddresses[0].RefundAddress = "TFRKiHrHCeSyWL67CEwydFvUMYJ6CbYYX7"
+
+			tokenPayload[1].FeePerTokenUnit = decimal.NewFromInt(2)
+			tokenPayload[1].Symbol = tronToken.Symbol
+			tokenPayload[1].Addresses = tronTokenAddresses
+
+			// put the payload together
 			payload := types.SenderProfilePayload{
 				DomainWhitelist: []string{"example.com", "mydomain.com"},
+				WebhookURL:      "https://example.com",
+				Tokens:          tokenPayload,
 			}
 
 			res, err := test.PerformRequest(t, "PATCH", "/settings/sender", payload, headers, router)

@@ -77,7 +77,6 @@ func CreateERC20Token(client types.RPCClient, overrides map[string]interface{}) 
 	}
 
 	if payload["deployContract"].(bool) {
-
 		// Deploy ERC20 token contract
 		deployedTokenAddress, err := DeployERC20Contract(client)
 		if err != nil {
@@ -86,6 +85,63 @@ func CreateERC20Token(client types.RPCClient, overrides map[string]interface{}) 
 		contractAddress = deployedTokenAddress.Hex()
 	} else {
 		contractAddress = "0xd4E96eF8eee8678dBFf4d535E033Ed1a4F7605b7"
+	}
+
+	// Create Network
+	networkId, err := db.Client.Network.
+		Create().
+		SetIdentifier(payload["identifier"].(string)).
+		SetChainID(payload["chainID"].(int64)).
+		SetRPCEndpoint(payload["networkRPC"].(string)).
+		SetFee(decimal.NewFromFloat(0.1)).
+		SetIsTestnet(true).
+		OnConflict().
+		UpdateNewValues().
+		ID(context.Background())
+
+	if err != nil {
+		return nil, fmt.Errorf("CreateERC20Token.networkId: %w", err)
+	}
+	// Create token
+	tokenId := db.Client.Token.
+		Create().
+		SetSymbol(payload["symbol"].(string)).
+		SetContractAddress(contractAddress).
+		SetDecimals(int8(payload["decimals"].(int))).
+		SetNetworkID(networkId).
+		SetIsEnabled(payload["is_enabled"].(bool)).
+		OnConflict().
+		// Use the new values that were set on create.
+		UpdateNewValues().
+		IDX(context.Background())
+
+	token, err := db.Client.Token.
+		Query().
+		Where(entToken.IDEQ(tokenId)).
+		WithNetwork().
+		Only(context.Background())
+
+	return token, err
+}
+
+// CreateERC20Token creates a test token with default or custom values
+func CreateTRC20Token(client types.RPCClient, overrides map[string]interface{}) (*ent.Token, error) {
+
+	// Default payload
+	payload := map[string]interface{}{
+		"symbol":         "TRON_ST",
+		"decimals":       6,
+		"networkRPC":     "ws://localhost:8544",
+		"is_enabled":     true,
+		"identifier":     "tron",
+		"chainID":        int64(13378),
+	}
+
+	 contractAddress :="TFRKiHrHCeSyWL67CEwydFvUMYJ6CbYYX6"
+
+	// Apply overrides
+	for key, value := range overrides {
+		payload[key] = value
 	}
 
 	// Create Network

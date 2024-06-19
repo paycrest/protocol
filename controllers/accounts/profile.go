@@ -75,6 +75,13 @@ func (ctrl *ProfileController) UpdateSenderProfile(ctx *gin.Context) {
 		update.SetDomainWhitelist(payload.DomainWhitelist)
 	}
 
+	// save or update SenderOrderToken
+	tx, err := storage.Client.Tx(ctx)
+	if err != nil {
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update profile init", nil)
+		return
+	}
+
 	for _, tokenPayload := range payload.Tokens {
 
 		if len(tokenPayload.Addresses) == 0 {
@@ -83,7 +90,7 @@ func (ctrl *ProfileController) UpdateSenderProfile(ctx *gin.Context) {
 		}
 
 		// Check if token is supported
-		_, err := storage.Client.Token.
+		_, err := tx.Token.
 			Query().
 			Where(token.Symbol(tokenPayload.Symbol)).
 			First(ctx)
@@ -92,8 +99,7 @@ func (ctrl *ProfileController) UpdateSenderProfile(ctx *gin.Context) {
 			return
 		}
 
-		var networksIdInPayload map[string]int = make(map[string]int)
-
+		var networksToTokenId map[string]int = map[string]int{}
 		for _, address := range tokenPayload.Addresses {
 
 			if address.Network == "tron" {
@@ -105,6 +111,7 @@ func (ctrl *ProfileController) UpdateSenderProfile(ctx *gin.Context) {
 					})
 					return
 				}
+				networksToTokenId[address.Network] = 0
 			} else {
 				feeAddressIsValid := u.IsValidEthereumAddress(address.FeeAddress)
 				if address.FeeAddress != "" && !feeAddressIsValid {
@@ -114,17 +121,20 @@ func (ctrl *ProfileController) UpdateSenderProfile(ctx *gin.Context) {
 					})
 					return
 				}
-
+				networksToTokenId[address.Network] = 0
 			}
-			networksIdInPayload[address.Network] = 0
 		}
 
 		// Check if network is supported
-		for key := range networksIdInPayload {
-			network, err := storage.Client.Network.
+		for key := range networksToTokenId {
+			tokenId, err := tx.Token.
 				Query().
-				Where(network.IdentifierEQ(key)).
-				First(ctx)
+				Where(
+					token.And(
+						token.HasNetworkWith(network.IdentifierEQ(key)),
+						token.SymbolEQ(tokenPayload.Symbol),
+					)).
+				Only(ctx)
 			if err != nil {
 				u.APIResponse(
 					ctx,
@@ -134,70 +144,60 @@ func (ctrl *ProfileController) UpdateSenderProfile(ctx *gin.Context) {
 				)
 				return
 			}
-			networksIdInPayload[key] = network.ID
+			networksToTokenId[key] = tokenId.ID
 		}
 
-		// save or update SenderOrderToken
-		tx, err := storage.Client.Tx(ctx)
-		if err != nil {
-			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update profile", nil)
-			return
-		}
-
-		for _, tokenPayload := range payload.Tokens {
-			for _, address := range tokenPayload.Addresses {
-				senderToken, err := tx.SenderOrderToken.
-					Query().
-					Where(
-						senderordertoken.And(
-							senderordertoken.HasRegisteredTokenWith(token.IDEQ(networksIdInPayload[address.Network])),
-							senderordertoken.HasSenderWith(senderprofile.IDEQ(sender.ID)),
-						),
-					).Only(context.Background())
-				if ent.IsNotFound(err) {
-					_, err := tx.SenderOrderToken.
-						Create().
-						SetSenderID(sender.ID).
-						SetRegisteredTokenID(networksIdInPayload[address.Network]).
-						SetRefundAddress(address.RefundAddress).
-						SetFeePerTokenUnit(tokenPayload.FeePerTokenUnit).
-						SetFeeAddress(address.FeeAddress).
-						Save(context.Background())
-					if err != nil {
-						u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update profile", nil)
-						return
-					}
-				} else if err == nil {
-					_, err := senderToken.
-						Update().
-						SetRefundAddress(address.RefundAddress).
-						SetFeePerTokenUnit(tokenPayload.FeePerTokenUnit).
-						SetFeeAddress(address.FeeAddress).
-						Save(context.Background())
-					if err != nil {
-						u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update profile", nil)
-						return
-					}
-				}
+		for _, address := range tokenPayload.Addresses {
+			senderToken, err := tx.SenderOrderToken.
+				Query().
+				Where(
+					senderordertoken.And(
+						senderordertoken.HasRegisteredTokenWith(token.IDEQ(networksToTokenId[address.Network])),
+						senderordertoken.HasSenderWith(senderprofile.IDEQ(sender.ID)),
+					),
+				).Only(context.Background())
+			if ent.IsNotFound(err) {
+				_, err := tx.SenderOrderToken.
+					Create().
+					SetSenderID(sender.ID).
+					SetRegisteredTokenID(networksToTokenId[address.Network]).
+					SetRefundAddress(address.RefundAddress).
+					SetFeePerTokenUnit(tokenPayload.FeePerTokenUnit).
+					SetFeeAddress(address.FeeAddress).
+					Save(context.Background())
 				if err != nil {
-					u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update profile", nil)
+					u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update profile create", nil)
 					return
 				}
+			} else if err == nil {
+				_, err := senderToken.
+					Update().
+					SetRefundAddress(address.RefundAddress).
+					SetFeePerTokenUnit(tokenPayload.FeePerTokenUnit).
+					SetFeeAddress(address.FeeAddress).
+					Save(context.Background())
+				if err != nil {
+					u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update profile update", nil)
+					return
+				}
+			} else {
+				u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update profile err:", nil)
+				return
 			}
-		}
-		// Commit the transaction
-		if err := tx.Commit(); err != nil {
-			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update profile", nil)
-			return
-		}
 
+		}
+	}
+	// Commit the transaction
+	if err := tx.Commit(); err != nil {
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update profile commit", nil)
+		return
 	}
 
 	if !sender.IsActive {
 		update.SetIsActive(true)
 	}
 
-	_, err := update.Save(ctx)
+	_, err = update.Save(ctx)
 	if err != nil {
 		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update profile", nil)
 		return

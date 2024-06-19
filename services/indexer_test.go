@@ -3,7 +3,6 @@ package services
 import (
 	"context"
 	"fmt"
-	"math"
 	"testing"
 	"time"
 
@@ -241,7 +240,7 @@ func IndexERC20Transfer(ctx context.Context, client types.RPCClient, receiveAddr
 		return err
 	})
 	if retryErr != nil {
-		return fmt.Errorf("IndexERC20Transfer.ERC20TokenTransferIterator: %v, start BlockNumber: %d, end BlockNumber: %d", retryErr, toBlock, uint64(math.Max(1, float64((toBlock-350)))))
+		return fmt.Errorf("IndexERC20Transfer.ERC20TokenTransferIterator: %v, start BlockNumber: %d, end BlockNumber: %d", retryErr, 1, toBlock)
 	}
 
 	// Iterate over logs

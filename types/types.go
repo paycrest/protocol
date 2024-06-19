@@ -192,14 +192,15 @@ type ValidatorProfilePayload struct {
 	HostIdentifier string `json:"hostIdentifier"`
 }
 
+type SenderOrderAddressPayload struct {
+	Network       string `json:"network" binding:"required"`
+	FeeAddress    string `json:"feeAddress" binding:"required"`
+	RefundAddress string `json:"refundAddress" binding:"required"`
+}
 type SenderOrderTokenPayload struct {
-	Symbol          string          `json:"symbol" binding:"required"`
-	FeePerTokenUnit decimal.Decimal `json:"feePerTokenUnit" binding:"required"`
-	Addresses       []struct {
-		Network       string `json:"network" binding:"required"`
-		FeeAddress    string `json:"feeAddress" binding:"required"`
-		RefundAddress string `json:"refundAddress" binding:"required"`
-	} `json:"addresses"`
+	Symbol          string                      `json:"symbol" binding:"required"`
+	FeePerTokenUnit decimal.Decimal             `json:"feePerTokenUnit" binding:"required"`
+	Addresses       []SenderOrderAddressPayload `json:"addresses"`
 }
 
 // SenderProfilePayload is the payload for the sender profile endpoint
