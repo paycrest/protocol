@@ -232,16 +232,16 @@ func IndexERC20Transfer(ctx context.Context, client types.RPCClient, receiveAddr
 
 	// Fetch logs
 	var iter *contracts.ERC20TokenTransferIterator
-	retryErr := utils.Retry(2, 10*time.Second, func() error {
+	retryErr := utils.Retry(2, 8*time.Second, func() error {
 		var err error
 		iter, err = filterer.FilterTransfer(&bind.FilterOpts{
-			Start: uint64(math.Max(1, float64((toBlock - 200)))),
+			Start: uint64(math.Max(1, float64((toBlock - 350)))),
 			End:   &toBlock,
 		}, nil, []common.Address{common.HexToAddress(receiveAddress.Address)})
 		return err
 	})
 	if retryErr != nil {
-		return fmt.Errorf("IndexERC20Transfer.ERC20TokenTransferIterator: %w", err)
+		return fmt.Errorf("IndexERC20Transfer.ERC20TokenTransferIterator: %v, BlockNumber: %d", retryErr, toBlock)
 	}
 
 	// Iterate over logs
