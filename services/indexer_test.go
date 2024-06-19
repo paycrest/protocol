@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"math"
 	"testing"
 	"time"
 
@@ -234,7 +235,7 @@ func IndexERC20Transfer(ctx context.Context, client types.RPCClient, receiveAddr
 	retryErr := utils.Retry(3, 5*time.Second, func() error {
 		var err error
 		iter, err = filterer.FilterTransfer(&bind.FilterOpts{
-			Start: uint64(int64(toBlock) - 15),
+			Start: uint64(math.Max(0, float64((toBlock - 50)))),
 			End:   &toBlock,
 		}, nil, []common.Address{common.HexToAddress(receiveAddress.Address)})
 		return err
