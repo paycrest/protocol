@@ -57,26 +57,35 @@ func CreateTestUser(overrides map[string]interface{}) (*ent.User, error) {
 
 // CreateERC20Token creates a test token with default or custom values
 func CreateERC20Token(client types.RPCClient, overrides map[string]interface{}) (*ent.Token, error) {
-	// Deploy ERC20 token contract
-	deployedTokenAddress, err := DeployERC20Contract(client)
-	if err != nil {
-		return nil, err
-	}
 
 	// Default payload
 	payload := map[string]interface{}{
-		"symbol":           "TST",
-		"contract_address": deployedTokenAddress.Hex(),
-		"decimals":         6,
-		"networkRPC":       "ws://localhost:8545",
-		"is_enabled":       true,
-		"identifier":       "localhost",
-		"chainID":          int64(1337),
+		"symbol":         "TST",
+		"decimals":       6,
+		"networkRPC":     "ws://localhost:8545",
+		"is_enabled":     true,
+		"identifier":     "localhost",
+		"chainID":        int64(1337),
+		"deployContract": true,
 	}
+
+	var contractAddress string
 
 	// Apply overrides
 	for key, value := range overrides {
 		payload[key] = value
+	}
+
+	if payload["deployContract"].(bool) {
+
+		// Deploy ERC20 token contract
+		deployedTokenAddress, err := DeployERC20Contract(client)
+		if err != nil {
+			return nil, err
+		}
+		contractAddress = deployedTokenAddress.Hex()
+	} else {
+		contractAddress = "0xd4E96eF8eee8678dBFf4d535E033Ed1a4F7605b7"
 	}
 
 	// Create Network
@@ -88,7 +97,6 @@ func CreateERC20Token(client types.RPCClient, overrides map[string]interface{}) 
 		SetFee(decimal.NewFromFloat(0.1)).
 		SetIsTestnet(true).
 		OnConflict().
-		// Use the new values that were set on create.
 		UpdateNewValues().
 		ID(context.Background())
 
@@ -99,7 +107,7 @@ func CreateERC20Token(client types.RPCClient, overrides map[string]interface{}) 
 	tokenId := db.Client.Token.
 		Create().
 		SetSymbol(payload["symbol"].(string)).
-		SetContractAddress(payload["contract_address"].(string)).
+		SetContractAddress(contractAddress).
 		SetDecimals(int8(payload["decimals"].(int))).
 		SetNetworkID(networkId).
 		SetIsEnabled(payload["is_enabled"].(bool)).

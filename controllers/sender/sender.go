@@ -170,14 +170,16 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 	var feePerTokenUnit decimal.Decimal
 	var feeAddress string
 
-	senderOrderToken, err := storage.Client.SenderOrderToken.Query().Where(
-		senderordertoken.HasRegisteredTokenWith(
-			tokenDB.IDEQ(token.ID),
-		),
-		senderordertoken.HasSenderWith(
-			senderprofile.IDEQ(sender.ID),
-		),
-	).Only(ctx)
+	senderOrderToken, err := tx.SenderOrderToken.
+		Query().
+		Where(
+			senderordertoken.HasRegisteredTokenWith(
+				tokenDB.IDEQ(token.ID),
+			),
+			senderordertoken.HasSenderWith(
+				senderprofile.IDEQ(sender.ID),
+			),
+		).Only(ctx)
 
 	if err != nil {
 		u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to fetch Order Token", types.ErrorData{

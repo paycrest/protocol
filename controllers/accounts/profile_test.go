@@ -28,9 +28,27 @@ import (
 var testCtx = struct {
 	user            *ent.User
 	providerProfile *ent.ProviderProfile
+	token           *ent.Token
 }{}
 
 func setup() error {
+	// Set up test blockchain client
+	client, err := test.SetUpTestBlockchain()
+	if err != nil {
+		return err
+	}
+
+	// Create a test token
+	token, err := test.CreateERC20Token(
+		client,
+		map[string]interface{}{
+			"deployContract": false,
+		})
+	if err != nil {
+		return err
+	}
+	testCtx.token = token
+
 	// Set up test data
 	user, err := test.CreateTestUser(map[string]interface{}{
 		"scope": "provider",
@@ -113,6 +131,7 @@ func TestProfile(t *testing.T) {
 			_, err = test.CreateTestSenderProfile(map[string]interface{}{
 				"domain_whitelist": []string{"example.com"},
 				"user_id":          testUser.ID,
+				"token":            testCtx.token.Symbol,
 			})
 			assert.NoError(t, err)
 
