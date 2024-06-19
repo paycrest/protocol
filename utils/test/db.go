@@ -155,12 +155,13 @@ func CreateTestLockPaymentOrder(overrides map[string]interface{}) (*ent.LockPaym
 
 	// Create test token
 	backend, _ := SetUpTestBlockchain()
-	token, err := CreateERC20Token(backend, nil)
+	token, err := CreateERC20Token(backend, map[string]interface{}{
+		"deployContract": false,
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	time.Sleep(time.Second)
 
 	// Create LockPaymentOrder
 	order, err := db.Client.LockPaymentOrder.

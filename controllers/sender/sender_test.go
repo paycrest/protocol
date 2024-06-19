@@ -103,7 +103,7 @@ func setup() error {
 func TestSender(t *testing.T) {
 
 	// Set up test database client
-	client := enttest.Open(t, "sqlite3", "file:ent?mode=memory&_fk=1")
+	client := enttest.Open(t, "sqlite3", "file:ent/sender?mode=memory&_fk=1")
 	defer client.Close()
 
 	db.Client = client
@@ -112,7 +112,7 @@ func TestSender(t *testing.T) {
 	err := setup()
 	assert.NoError(t, err)
 
-	senderTokens, err := db.Client.SenderOrderToken.Query().All(context.Background())
+	senderTokens, err := client.SenderOrderToken.Query().All(context.Background())
 	assert.NoError(t, err)
 	assert.Greater(t, len(senderTokens), 0)
 
