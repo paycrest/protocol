@@ -45,13 +45,29 @@ func setup() error {
 		return err
 	}
 
+	// Set up test blockchain client
+	backend, err := test.SetUpTestBlockchain()
+	if err != nil {
+		return err
+	}
+
+	// Create a test token
+	testCtx.networkIdentifier = "localhost"
+	token, err := test.CreateERC20Token(backend, map[string]interface{}{
+		"identifier": testCtx.networkIdentifier,
+	})
+	if err != nil {
+		return fmt.Errorf("CreateERC20Token.sender_test: %w", err)
+	}
+
 	senderProfile, err := test.CreateTestSenderProfile(map[string]interface{}{
 		"user_id":            user.ID,
 		"fee_per_token_unit": "5",
+		"token":              token.Symbol,
 	})
 
 	if err != nil {
-		return err
+		return fmt.Errorf("CreateTestSenderProfile.sender_test: %w", err)
 	}
 	testCtx.user = senderProfile
 
@@ -67,20 +83,6 @@ func setup() error {
 	}
 	testCtx.apiKey = apiKey
 
-	// Set up test blockchain client
-	backend, err := test.SetUpTestBlockchain()
-	if err != nil {
-		return err
-	}
-
-	// Create a test token
-	testCtx.networkIdentifier = "localhost"
-	token, err := test.CreateERC20Token(backend, map[string]interface{}{
-		"identifier": testCtx.networkIdentifier,
-	})
-	if err != nil {
-		return err
-	}
 	testCtx.token = token
 	testCtx.client = backend
 
@@ -110,9 +112,9 @@ func TestSender(t *testing.T) {
 	err := setup()
 	assert.NoError(t, err)
 
-	tokens, err := db.Client.SenderOrderToken.Query().All(context.Background())
+	senderTokens, err := db.Client.SenderOrderToken.Query().All(context.Background())
 	assert.NoError(t, err)
-	assert.Greater(t, 0, len(tokens))
+	assert.Greater(t, len(senderTokens), 0)
 
 	// Set up test routers
 	router := gin.New()

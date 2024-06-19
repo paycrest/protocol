@@ -1,6 +1,7 @@
 package accounts
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
@@ -145,16 +146,39 @@ func (ctrl *ProfileController) UpdateSenderProfile(ctx *gin.Context) {
 
 		for _, tokenPayload := range payload.Tokens {
 			for _, address := range tokenPayload.Addresses {
-				_, err := tx.SenderOrderToken.
-					Create().
-					SetSenderID(sender.ID).
-					SetRegisteredTokenID(networksIdInPayload[address.Network]).
-					SetRefundAddress(address.RefundAddress).
-					SetFeePerTokenUnit(tokenPayload.FeePerTokenUnit).
-					SetFeeAddress(address.FeeAddress).
-					OnConflict().
-					UpdateNewValues().
-					ID(ctx)
+				senderToken, err := tx.SenderOrderToken.
+					Query().
+					Where(
+						senderordertoken.And(
+							senderordertoken.HasRegisteredTokenWith(token.IDEQ(networksIdInPayload[address.Network])),
+							senderordertoken.HasSenderWith(senderprofile.IDEQ(sender.ID)),
+						),
+					).Only(context.Background())
+				if ent.IsNotFound(err) {
+					_, err := tx.SenderOrderToken.
+						Create().
+						SetSenderID(sender.ID).
+						SetRegisteredTokenID(networksIdInPayload[address.Network]).
+						SetRefundAddress(address.RefundAddress).
+						SetFeePerTokenUnit(tokenPayload.FeePerTokenUnit).
+						SetFeeAddress(address.FeeAddress).
+						Save(context.Background())
+					if err != nil {
+						u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update profile", nil)
+						return
+					}
+				} else if err == nil {
+					_, err := senderToken.
+						Update().
+						SetRefundAddress(address.RefundAddress).
+						SetFeePerTokenUnit(tokenPayload.FeePerTokenUnit).
+						SetFeeAddress(address.FeeAddress).
+						Save(context.Background())
+					if err != nil {
+						u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update profile", nil)
+						return
+					}
+				}
 				if err != nil {
 					u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update profile", nil)
 					return

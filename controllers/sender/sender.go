@@ -171,13 +171,11 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 	var feeAddress string
 
 	senderOrderToken, err := storage.Client.SenderOrderToken.Query().Where(
-		senderordertoken.And(
-			senderordertoken.HasRegisteredTokenWith(
-				tokenDB.IDEQ(token.ID),
-			),
-			senderordertoken.HasSenderWith(
-				senderprofile.IDEQ(sender.ID),
-			),
+		senderordertoken.HasRegisteredTokenWith(
+			tokenDB.IDEQ(token.ID),
+		),
+		senderordertoken.HasSenderWith(
+			senderprofile.IDEQ(sender.ID),
 		),
 	).Only(ctx)
 

@@ -52,21 +52,22 @@ func setup() error {
 	receiveAddress, err := test.CreateSmartAddress(
 		context.Background(), client)
 	if err != nil {
-		return err
+		return fmt.Errorf("CreateSmartAddress.setup.indexer_test: %w", err)
 	}
 	testCtx.receiveAddress = receiveAddress
 
 	// Create a test api key
 	user, err := test.CreateTestUser(nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("CreateTestUser.setup.indexer_test: %w", err)
 	}
 
 	senderProfile, err := test.CreateTestSenderProfile(map[string]interface{}{
 		"user_id": user.ID,
+		"token":   token.Symbol,
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("CreateTestSenderProfile.setup.indexer_test: %w", err)
 	}
 
 	apiKeyService := NewAPIKeyService()
@@ -77,22 +78,20 @@ func setup() error {
 		nil,
 	)
 	if err != nil {
-		return err
+		return fmt.Errorf("GenerateAPIKey.setup.indexer_test: %w", err)
 	}
 
 	// find sender token
 	senderToken, err := db.Client.SenderOrderToken.
 		Query().
 		Where(
-			senderordertoken.And(
-				senderordertoken.HasSenderWith(senderprofile.IDEQ(senderProfile.ID)),
-				senderordertoken.HasRegisteredTokenWith(tokenDB.IDEQ(token.ID)),
-			),
+			senderordertoken.HasSenderWith(senderprofile.IDEQ(senderProfile.ID)),
+			senderordertoken.HasRegisteredTokenWith(tokenDB.IDEQ(token.ID)),
 		).
 		Only(context.Background())
 
 	if err != nil {
-		return err
+		return fmt.Errorf("Mine %w", err)
 	}
 
 	// Create a payment order
@@ -117,7 +116,7 @@ func setup() error {
 		SetFeeAddress(senderToken.FeeAddress).
 		Save(context.Background())
 	if err != nil {
-		return err
+		return fmt.Errorf("setup,paymentOrder  %w", err)
 	}
 	testCtx.paymentOrder = paymentOrder
 
@@ -132,7 +131,7 @@ func setup() error {
 		SetPaymentOrder(paymentOrder).
 		Save(context.Background())
 	if err != nil {
-		return err
+		return fmt.Errorf("PaymentOrderRecipient.setup.indexer_test: %w", err)
 	}
 
 	// Fund receive address
@@ -144,7 +143,7 @@ func setup() error {
 		common.HexToAddress(receiveAddress.Address),
 	)
 	if err != nil {
-		return err
+		return fmt.Errorf("FundAddressWithERC20Token.setup.indexer_test: %w", err)
 	}
 
 	// Create a mock instance of the OrderService

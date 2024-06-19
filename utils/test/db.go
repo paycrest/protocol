@@ -14,6 +14,8 @@ import (
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	"github.com/paycrest/protocol/ent/paymentorder"
 	"github.com/paycrest/protocol/ent/providerprofile"
+	"github.com/paycrest/protocol/ent/senderordertoken"
+	"github.com/paycrest/protocol/ent/senderprofile"
 	"github.com/paycrest/protocol/ent/token"
 	entToken "github.com/paycrest/protocol/ent/token"
 	db "github.com/paycrest/protocol/storage"
@@ -78,7 +80,7 @@ func CreateERC20Token(client types.RPCClient, overrides map[string]interface{}) 
 	}
 
 	// Create Network
-	networkId := db.Client.Network.
+	networkId, err := db.Client.Network.
 		Create().
 		SetIdentifier(payload["identifier"].(string)).
 		SetChainID(payload["chainID"].(int64)).
@@ -88,8 +90,11 @@ func CreateERC20Token(client types.RPCClient, overrides map[string]interface{}) 
 		OnConflict().
 		// Use the new values that were set on create.
 		UpdateNewValues().
-		IDX(context.Background())
+		ID(context.Background())
 
+	if err != nil {
+		return nil, fmt.Errorf("CreateERC20Token.networkId: %w", err)
+	}
 	// Create token
 	tokenId := db.Client.Token.
 		Create().
@@ -283,7 +288,7 @@ func CreateTestSenderProfile(overrides map[string]interface{}) (*ent.SenderProfi
 		payload[key] = value
 	}
 
-	token, err := db.Client.Token.Query().Where(token.SymbolEQ(payload["token"].(string))).Only(context.Background())
+	_token, err := db.Client.Token.Query().Where(token.SymbolEQ(payload["token"].(string))).Only(context.Background())
 
 	if err != nil {
 		return nil, err
@@ -304,20 +309,27 @@ func CreateTestSenderProfile(overrides map[string]interface{}) (*ent.SenderProfi
 	}
 
 	_, err = db.Client.SenderOrderToken.
-		Create().
-		SetSenderID(payload["user_id"].(uuid.UUID)).
-		SetRegisteredTokenID(token.ID).
-		SetRefundAddress(payload["refund_address"].(string)).
-		SetFeePerTokenUnit(feePerTokenUnit).
-		SetFeeAddress(payload["fee_address"].(string)).
-		OnConflict().
-		UpdateNewValues().
-		ID(context.Background())
-
-	if err != nil {
-		return nil, err
+		Query().
+		Where(
+			senderordertoken.And(
+				senderordertoken.HasRegisteredTokenWith(token.IDEQ(_token.ID)),
+				senderordertoken.HasSenderWith(senderprofile.IDEQ(profile.ID)),
+			),
+		).Only(context.Background())
+	if ent.IsNotFound(err) {
+		_, err := db.Client.SenderOrderToken.
+			Create().
+			SetSenderID(profile.ID).
+			SetRegisteredTokenID(_token.ID).
+			SetRefundAddress(payload["refund_address"].(string)).
+			SetFeePerTokenUnit(feePerTokenUnit).
+			SetFeeAddress(payload["fee_address"].(string)).
+			Save(context.Background())
+		if err != nil {
+			return nil, fmt.Errorf("CreateTestSenderProfile: %w", err)
+		}
+		return profile, nil
 	}
-
 	return profile, err
 }
 
