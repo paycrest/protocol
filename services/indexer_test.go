@@ -241,7 +241,7 @@ func IndexERC20Transfer(ctx context.Context, client types.RPCClient, receiveAddr
 		return err
 	})
 	if retryErr != nil {
-		return fmt.Errorf("IndexERC20Transfer.ERC20TokenTransferIterator: %v, BlockNumber: %d", retryErr, toBlock)
+		return fmt.Errorf("IndexERC20Transfer.ERC20TokenTransferIterator: %v, start BlockNumber: %d, end BlockNumber: %d", retryErr, toBlock, uint64(math.Max(1, float64((toBlock-350)))))
 	}
 
 	// Iterate over logs
