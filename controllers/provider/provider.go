@@ -667,11 +667,12 @@ func (ctrl *ProviderController) NodeInfo(ctx *gin.Context) {
 	}
 	signature := tokenUtils.GenerateHMACSignature(map[string]interface{}{}, string(decryptedSecret))
 
+	// TODO: Get approval to install github.com/go-ping/ping to replace Get request
 	res, err := fastshot.NewClient(provider.HostIdentifier).
 		Config().SetTimeout(30*time.Second).
 		Header().Add("X-Request-Signature", signature).
 		Build().GET("/health").
-		Retry().Set(3, 5*time.Second).
+		// Retry().Set(3, 5*time.Second).  // #329 - Remove retries for /provider/node-info endpoint
 		Send()
 	if err != nil {
 		logger.Errorf("error: %v", err)
