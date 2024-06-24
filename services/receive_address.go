@@ -9,7 +9,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/receiveaddress"
 	"github.com/paycrest/protocol/services/contracts"
@@ -82,7 +81,7 @@ func (s *ReceiveAddressService) CreateSmartAddress(ctx context.Context, client t
 		SetAddress(address.Hex()).
 		SetSalt(saltEncrypted).
 		SetStatus(receiveaddress.StatusUnused).
-		SetValidUntil(time.Now().Add(config.OrderConfig().ReceiveAddressValidity)).
+		SetValidUntil(time.Now().Add(orderConf.ReceiveAddressValidity)).
 		Save(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to save address: %w", err)
@@ -94,7 +93,7 @@ func (s *ReceiveAddressService) CreateSmartAddress(ctx context.Context, client t
 // CreateTronAddress generates and saves a new Tron address
 func (s *ReceiveAddressService) CreateTronAddress(ctx context.Context) (*ent.ReceiveAddress, error) {
 	var nodeUrl tronEnums.Node
-	if config.ServerConfig().Environment == "production" {
+	if serverConf.Environment == "production" {
 		nodeUrl = tronEnums.MAIN_NODE
 	} else {
 		nodeUrl = tronEnums.SHASTA_NODE
@@ -115,7 +114,7 @@ func (s *ReceiveAddressService) CreateTronAddress(ctx context.Context) (*ent.Rec
 		SetAddress(wallet.AddressBase58).
 		SetSalt(privateKeyEncrypted).
 		SetStatus(receiveaddress.StatusUnused).
-		SetValidUntil(time.Now().Add(config.OrderConfig().ReceiveAddressValidity)).
+		SetValidUntil(time.Now().Add(orderConf.ReceiveAddressValidity)).
 		Save(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to save address: %w", err)

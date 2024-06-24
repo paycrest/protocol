@@ -3,6 +3,7 @@ package sender
 import (
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/paycrest/protocol/config"
@@ -69,7 +70,7 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 		Where(
 			token.SymbolEQ(payload.Token),
 			token.HasNetworkWith(network.IdentifierEQ(payload.Network)),
-			// TODO: check if token is enabled
+			token.IsEnabledEQ(true),
 		).
 		WithNetwork().
 		Only(ctx)
@@ -154,6 +155,11 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to initiate payment order", nil)
 			return
 		}
+	}
+
+	// Prevent receive address expiry for private orders
+	if strings.HasPrefix(payload.Recipient.Memo, "P#P") {
+		receiveAddress.ValidUntil = time.Time{}
 	}
 
 	// Create payment order and recipient in a transaction

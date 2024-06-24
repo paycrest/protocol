@@ -357,7 +357,6 @@ func (ctrl *ProviderController) FulfillOrder(ctx *gin.Context) {
 				"TransactionID": payload.TxID,
 			}).
 			Save(ctx)
-
 		if err != nil {
 			logger.Errorf("error: %v", err)
 			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update lock order status", nil)
@@ -385,12 +384,10 @@ func (ctrl *ProviderController) FulfillOrder(ctx *gin.Context) {
 		}
 
 	} else if payload.ValidationStatus == lockorderfulfillment.ValidationStatusFailed {
-
 		_, err = fulfillment.Update().
 			SetValidationStatus(lockorderfulfillment.ValidationStatusFailed).
 			SetValidationError(payload.ValidationError).
 			Save(ctx)
-
 		if err != nil {
 			logger.Errorf("error: %v", err)
 			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update lock order status", nil)
@@ -400,7 +397,6 @@ func (ctrl *ProviderController) FulfillOrder(ctx *gin.Context) {
 		_, err = updateLockOrder.
 			SetStatus(lockpaymentorder.StatusFulfilled).
 			Save(ctx)
-
 		if err != nil {
 			logger.Errorf("error: %v", err)
 			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update lock order status", nil)
@@ -415,7 +411,6 @@ func (ctrl *ProviderController) FulfillOrder(ctx *gin.Context) {
 				"TransactionID": payload.TxID,
 			}).
 			Save(ctx)
-
 		if err != nil {
 			logger.Errorf("error: %v", err)
 			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update lock order status", nil)
@@ -426,7 +421,6 @@ func (ctrl *ProviderController) FulfillOrder(ctx *gin.Context) {
 			SetStatus(lockpaymentorder.StatusFulfilled).
 			AddTransactions(transactionLog).
 			Save(ctx)
-
 		if err != nil {
 			logger.Errorf("error: %v", err)
 			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update lock order status", nil)
