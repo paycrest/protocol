@@ -231,14 +231,12 @@ func IndexBlockchainEvents() error {
 							indexerService := services.NewIndexerService(orderService.NewOrderTron())
 							err := indexerService.IndexTRC20Transfer(ctx, order)
 							if err != nil {
-								logger.Errorf("IndexBlockchainEvents: %v", err)
 								continue
 							}
 						} else {
 							indexerService := services.NewIndexerService(orderService.NewOrderEVM())
 							err := indexerService.IndexERC20Transfer(ctx, client, order)
 							if err != nil {
-								logger.Errorf("IndexBlockchainEvents: %v", err)
 								continue
 							}
 						}
@@ -288,13 +286,13 @@ func IndexBlockchainEvents() error {
 							indexerService := services.NewIndexerService(orderService.NewOrderTron())
 							err := indexerService.IndexOrderCreatedTron(ctx, order)
 							if err != nil {
-								logger.Errorf("IndexBlockchainEvents: %v", err)
+								continue
 							}
 						} else {
 							indexerService := services.NewIndexerService(orderService.NewOrderEVM())
 							err := indexerService.IndexOrderCreated(ctx, nil, network, order.Edges.ReceiveAddress.Address)
 							if err != nil {
-								logger.Errorf("IndexBlockchainEvents: %v", err)
+								continue
 							}
 						}
 					}
@@ -329,7 +327,6 @@ func IndexBlockchainEvents() error {
 					Order(ent.Asc(lockpaymentorder.FieldBlockNumber)).
 					All(ctx)
 				if err != nil {
-					logger.Errorf("IndexBlockchainEvents: %v", err)
 					continue
 				}
 
@@ -339,13 +336,13 @@ func IndexBlockchainEvents() error {
 							indexerService := services.NewIndexerService(orderService.NewOrderTron())
 							err := indexerService.IndexOrderSettledTron(ctx, order)
 							if err != nil {
-								logger.Errorf("IndexBlockchainEvents: %v", err)
+								continue
 							}
 						} else {
 							indexerService := services.NewIndexerService(orderService.NewOrderEVM())
 							err := indexerService.IndexOrderSettled(ctx, nil, network, order.GatewayID)
 							if err != nil {
-								logger.Errorf("IndexBlockchainEvents: %v", err)
+								continue
 							}
 						}
 					}
@@ -383,7 +380,6 @@ func IndexBlockchainEvents() error {
 					Order(ent.Asc(lockpaymentorder.FieldBlockNumber)).
 					All(ctx)
 				if err != nil {
-					logger.Errorf("IndexBlockchainEvents: %v", err)
 					continue
 				}
 
@@ -393,13 +389,13 @@ func IndexBlockchainEvents() error {
 							indexerService := services.NewIndexerService(orderService.NewOrderTron())
 							err := indexerService.IndexOrderRefundedTron(ctx, order)
 							if err != nil {
-								logger.Errorf("IndexBlockchainEvents: %v", err)
+								continue
 							}
 						} else {
 							indexerService := services.NewIndexerService(orderService.NewOrderEVM())
 							err := indexerService.IndexOrderRefunded(ctx, nil, network, order.GatewayID)
 							if err != nil {
-								logger.Errorf("IndexBlockchainEvents: %v", err)
+								continue
 							}
 						}
 					}
