@@ -212,7 +212,7 @@ func (s *OrderTron) RefundOrder(ctx context.Context, orderID string) error {
 		}).
 		First(ctx)
 	if err != nil {
-		return fmt.Errorf("RefundOrder.fetchLockOrder: %w", err)
+		return fmt.Errorf("Tron.RefundOrder.fetchLockOrder: %w", err)
 	}
 
 	// Generate master wallet
@@ -246,7 +246,7 @@ func (s *OrderTron) RefundOrder(ctx context.Context, orderID string) error {
 		}).
 		Only(context.Background())
 	if err != nil {
-		return fmt.Errorf("RefundOrder.fetchPaymentOrder: %w", err)
+		return fmt.Errorf("Tron.RefundOrder.fetchPaymentOrder: %w", err)
 	}
 
 	calldata, err := s.approveCallData(
@@ -295,7 +295,7 @@ func (s *OrderTron) RefundOrder(ctx context.Context, orderID string) error {
 		SetStatus(lockpaymentorder.StatusRefunded).
 		Save(ctx)
 	if err != nil {
-		return fmt.Errorf("RefundOrder.updateTxHash(%v): %w", txHash, err)
+		return fmt.Errorf("Tron.RefundOrder.updateTxHash(%v): %w", txHash, err)
 	}
 
 	return nil
@@ -319,7 +319,7 @@ func (s *OrderTron) RevertOrder(ctx context.Context, order *ent.PaymentOrder) er
 		WithReceiveAddress().
 		Only(ctx)
 	if err != nil {
-		return fmt.Errorf("%s - RevertOrder.fetchOrder: %w", orderIDPrefix, err)
+		return fmt.Errorf("%s - Tron.RevertOrder.fetchOrder: %w", orderIDPrefix, err)
 	}
 
 	fees := order.NetworkFee.Add(order.SenderFee).Add(order.ProtocolFee)
@@ -347,12 +347,31 @@ func (s *OrderTron) RevertOrder(ctx context.Context, order *ent.PaymentOrder) er
 	// Create wallet
 	saltDecrypted, err := cryptoUtils.DecryptPlain(order.Edges.ReceiveAddress.Salt)
 	if err != nil {
-		return fmt.Errorf("%s - Tron.CreateOrder.DecryptPlain: %w", orderIDPrefix, err)
+		return fmt.Errorf("%s - Tron.RevertOrder.DecryptPlain: %w", orderIDPrefix, err)
 	}
 
 	wallet, err := tronWallet.CreateTronWallet(s.getNode(), string(saltDecrypted))
 	if err != nil {
-		return fmt.Errorf("%s - Tron.CreateOrder.CreateTronWallet: %w", orderIDPrefix, err)
+		return fmt.Errorf("%s - Tron.RevertOrder.CreateTronWallet: %w", orderIDPrefix, err)
+	}
+
+	// Transfer TRX from master wallet to receive address for gas
+	masterWallet, err := cryptoUtils.GenerateTronAccountFromIndex(0)
+	if err != nil {
+		return fmt.Errorf("%s - Tron.RevertOrder.GenerateTronAccountFromIndex: %w", orderIDPrefix, err)
+	}
+
+	balance, err := wallet.Balance()
+	if err != nil {
+		balance = 0
+	}
+
+	if balance < 30000000 {
+		_, err = masterWallet.Transfer(wallet.AddressBase58, 30000000)
+		if err != nil {
+			return fmt.Errorf("%s - Tron.RevertOrder.Transfer: %w", orderIDPrefix, err)
+		}
+		time.Sleep(5 * time.Second) // wait for wallet to be pre-funded with gas
 	}
 
 	// Transfer TRC20 token
@@ -372,14 +391,14 @@ func (s *OrderTron) RevertOrder(ctx context.Context, order *ent.PaymentOrder) er
 		SetStatus(paymentorder.StatusReverted).
 		Save(ctx)
 	if err != nil {
-		return fmt.Errorf("%s - RevertOrder.updateTxHash: %w", orderIDPrefix, err)
+		return fmt.Errorf("%s - Tron.RevertOrder.updateTxHash: %w", orderIDPrefix, err)
 	}
 
 	// Send webhook notifcation to sender
 	order.Status = paymentorder.StatusReverted
 	err = utils.SendPaymentOrderWebhook(ctx, order)
 	if err != nil {
-		return fmt.Errorf("RevertOrder.webhook: %v", err)
+		return fmt.Errorf("Tron.RevertOrder.webhook: %v", err)
 	}
 
 	return nil
@@ -407,7 +426,7 @@ func (s *OrderTron) SettleOrder(ctx context.Context, orderID uuid.UUID) error {
 		WithProvider().
 		Only(ctx)
 	if err != nil {
-		return fmt.Errorf("%s - SettleOrder.fetchOrder: %w", orderIDPrefix, err)
+		return fmt.Errorf("%s - Tron.SettleOrder.fetchOrder: %w", orderIDPrefix, err)
 	}
 
 	// Generate master wallet
@@ -429,7 +448,7 @@ func (s *OrderTron) SettleOrder(ctx context.Context, orderID uuid.UUID) error {
 
 	tokenContractAddress, err := util.Base58ToAddress(order.Edges.Token.ContractAddress)
 	if err != nil {
-		return fmt.Errorf("%s - Tron.RefundOrder.Base58ToAddress: %w", orderIDPrefix, err)
+		return fmt.Errorf("%s - Tron.SettleOrder.Base58ToAddress: %w", orderIDPrefix, err)
 	}
 
 	// Approve gateway contract to spend token
@@ -438,7 +457,7 @@ func (s *OrderTron) SettleOrder(ctx context.Context, orderID uuid.UUID) error {
 		utils.ToSubunit(order.Amount, order.Edges.Token.Decimals),
 	)
 	if err != nil {
-		return fmt.Errorf("%s - Tron.RefundOrder.approveCallData: %w", orderIDPrefix, err)
+		return fmt.Errorf("%s - Tron.SettleOrder.approveCallData: %w", orderIDPrefix, err)
 	}
 
 	ct := &core.TriggerSmartContract{
@@ -448,7 +467,7 @@ func (s *OrderTron) SettleOrder(ctx context.Context, orderID uuid.UUID) error {
 	}
 	_, err = s.sendTransaction(wallet, ct, 50000000)
 	if err != nil {
-		return fmt.Errorf("%s - Tron.RefundOrder.sendTransaction: %w", orderIDPrefix, err)
+		return fmt.Errorf("%s - Tron.SettleOrder.sendTransaction: %w", orderIDPrefix, err)
 	}
 
 	// Settle order in gateway contract
@@ -473,7 +492,7 @@ func (s *OrderTron) SettleOrder(ctx context.Context, orderID uuid.UUID) error {
 		SetStatus(lockpaymentorder.StatusSettled).
 		Save(ctx)
 	if err != nil {
-		return fmt.Errorf("%s - SettleOrder.updateTxHash: %w", orderIDPrefix, err)
+		return fmt.Errorf("%s - Tron.SettleOrder.updateTxHash: %w", orderIDPrefix, err)
 	}
 
 	return nil
