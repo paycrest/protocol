@@ -86,7 +86,7 @@ func setup() error {
 		Query().
 		Where(
 			senderordertoken.HasSenderWith(senderprofile.IDEQ(senderProfile.ID)),
-			senderordertoken.HasRegisteredTokenWith(tokenDB.IDEQ(token.ID)),
+			senderordertoken.HasTokenWith(tokenDB.IDEQ(token.ID)),
 		).
 		Only(context.Background())
 

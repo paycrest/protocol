@@ -175,23 +175,26 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 	// Handle sender profile overrides
 	var feePerTokenUnit decimal.Decimal
 	var feeAddress string
+	var senderOrderToken *ent.SenderOrderToken
 
-	senderOrderToken, err := tx.SenderOrderToken.
-		Query().
-		Where(
-			senderordertoken.HasRegisteredTokenWith(
-				tokenDB.IDEQ(token.ID),
-			),
-			senderordertoken.HasSenderWith(
-				senderprofile.IDEQ(sender.ID),
-			),
-		).Only(ctx)
-
-	if err != nil {
-		u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to fetch Order Token", types.ErrorData{
-			Message: "this token has not be configured by sender",
-		})
-		return
+	if payload.FeePerTokenUnit.IsZero() || payload.FeeAddress == "" {
+		senderOrderToken, err = tx.SenderOrderToken.
+			Query().
+			Where(
+				senderordertoken.HasTokenWith(
+					tokenDB.IDEQ(token.ID),
+				),
+				senderordertoken.HasSenderWith(
+					senderprofile.IDEQ(sender.ID),
+				),
+			).Only(ctx)
+		if err != nil {
+			u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
+				Field:   "Token",
+				Message: "Provided token is not supported",
+			})
+			return
+		}
 	}
 
 	if payload.FeePerTokenUnit.IsZero() {
@@ -199,6 +202,7 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 	} else {
 		feePerTokenUnit = payload.FeePerTokenUnit
 	}
+
 	if payload.FeeAddress == "" {
 		feeAddress = senderOrderToken.FeeAddress
 	}

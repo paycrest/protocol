@@ -13276,23 +13276,23 @@ func (m *ReceiveAddressMutation) ResetEdge(name string) error {
 // SenderOrderTokenMutation represents an operation that mutates the SenderOrderToken nodes in the graph.
 type SenderOrderTokenMutation struct {
 	config
-	op                      Op
-	typ                     string
-	id                      *int
-	created_at              *time.Time
-	updated_at              *time.Time
-	fee_per_token_unit      *decimal.Decimal
-	addfee_per_token_unit   *decimal.Decimal
-	fee_address             *string
-	refund_address          *string
-	clearedFields           map[string]struct{}
-	sender                  *uuid.UUID
-	clearedsender           bool
-	registered_token        *int
-	clearedregistered_token bool
-	done                    bool
-	oldValue                func(context.Context) (*SenderOrderToken, error)
-	predicates              []predicate.SenderOrderToken
+	op                    Op
+	typ                   string
+	id                    *int
+	created_at            *time.Time
+	updated_at            *time.Time
+	fee_per_token_unit    *decimal.Decimal
+	addfee_per_token_unit *decimal.Decimal
+	fee_address           *string
+	refund_address        *string
+	clearedFields         map[string]struct{}
+	sender                *uuid.UUID
+	clearedsender         bool
+	token                 *int
+	clearedtoken          bool
+	done                  bool
+	oldValue              func(context.Context) (*SenderOrderToken, error)
+	predicates            []predicate.SenderOrderToken
 }
 
 var _ ent.Mutation = (*SenderOrderTokenMutation)(nil)
@@ -13632,43 +13632,43 @@ func (m *SenderOrderTokenMutation) ResetSender() {
 	m.clearedsender = false
 }
 
-// SetRegisteredTokenID sets the "registered_token" edge to the Token entity by id.
-func (m *SenderOrderTokenMutation) SetRegisteredTokenID(id int) {
-	m.registered_token = &id
+// SetTokenID sets the "token" edge to the Token entity by id.
+func (m *SenderOrderTokenMutation) SetTokenID(id int) {
+	m.token = &id
 }
 
-// ClearRegisteredToken clears the "registered_token" edge to the Token entity.
-func (m *SenderOrderTokenMutation) ClearRegisteredToken() {
-	m.clearedregistered_token = true
+// ClearToken clears the "token" edge to the Token entity.
+func (m *SenderOrderTokenMutation) ClearToken() {
+	m.clearedtoken = true
 }
 
-// RegisteredTokenCleared reports if the "registered_token" edge to the Token entity was cleared.
-func (m *SenderOrderTokenMutation) RegisteredTokenCleared() bool {
-	return m.clearedregistered_token
+// TokenCleared reports if the "token" edge to the Token entity was cleared.
+func (m *SenderOrderTokenMutation) TokenCleared() bool {
+	return m.clearedtoken
 }
 
-// RegisteredTokenID returns the "registered_token" edge ID in the mutation.
-func (m *SenderOrderTokenMutation) RegisteredTokenID() (id int, exists bool) {
-	if m.registered_token != nil {
-		return *m.registered_token, true
+// TokenID returns the "token" edge ID in the mutation.
+func (m *SenderOrderTokenMutation) TokenID() (id int, exists bool) {
+	if m.token != nil {
+		return *m.token, true
 	}
 	return
 }
 
-// RegisteredTokenIDs returns the "registered_token" edge IDs in the mutation.
+// TokenIDs returns the "token" edge IDs in the mutation.
 // Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// RegisteredTokenID instead. It exists only for internal usage by the builders.
-func (m *SenderOrderTokenMutation) RegisteredTokenIDs() (ids []int) {
-	if id := m.registered_token; id != nil {
+// TokenID instead. It exists only for internal usage by the builders.
+func (m *SenderOrderTokenMutation) TokenIDs() (ids []int) {
+	if id := m.token; id != nil {
 		ids = append(ids, *id)
 	}
 	return
 }
 
-// ResetRegisteredToken resets all changes to the "registered_token" edge.
-func (m *SenderOrderTokenMutation) ResetRegisteredToken() {
-	m.registered_token = nil
-	m.clearedregistered_token = false
+// ResetToken resets all changes to the "token" edge.
+func (m *SenderOrderTokenMutation) ResetToken() {
+	m.token = nil
+	m.clearedtoken = false
 }
 
 // Where appends a list predicates to the SenderOrderTokenMutation builder.
@@ -13891,8 +13891,8 @@ func (m *SenderOrderTokenMutation) AddedEdges() []string {
 	if m.sender != nil {
 		edges = append(edges, senderordertoken.EdgeSender)
 	}
-	if m.registered_token != nil {
-		edges = append(edges, senderordertoken.EdgeRegisteredToken)
+	if m.token != nil {
+		edges = append(edges, senderordertoken.EdgeToken)
 	}
 	return edges
 }
@@ -13905,8 +13905,8 @@ func (m *SenderOrderTokenMutation) AddedIDs(name string) []ent.Value {
 		if id := m.sender; id != nil {
 			return []ent.Value{*id}
 		}
-	case senderordertoken.EdgeRegisteredToken:
-		if id := m.registered_token; id != nil {
+	case senderordertoken.EdgeToken:
+		if id := m.token; id != nil {
 			return []ent.Value{*id}
 		}
 	}
@@ -13931,8 +13931,8 @@ func (m *SenderOrderTokenMutation) ClearedEdges() []string {
 	if m.clearedsender {
 		edges = append(edges, senderordertoken.EdgeSender)
 	}
-	if m.clearedregistered_token {
-		edges = append(edges, senderordertoken.EdgeRegisteredToken)
+	if m.clearedtoken {
+		edges = append(edges, senderordertoken.EdgeToken)
 	}
 	return edges
 }
@@ -13943,8 +13943,8 @@ func (m *SenderOrderTokenMutation) EdgeCleared(name string) bool {
 	switch name {
 	case senderordertoken.EdgeSender:
 		return m.clearedsender
-	case senderordertoken.EdgeRegisteredToken:
-		return m.clearedregistered_token
+	case senderordertoken.EdgeToken:
+		return m.clearedtoken
 	}
 	return false
 }
@@ -13956,8 +13956,8 @@ func (m *SenderOrderTokenMutation) ClearEdge(name string) error {
 	case senderordertoken.EdgeSender:
 		m.ClearSender()
 		return nil
-	case senderordertoken.EdgeRegisteredToken:
-		m.ClearRegisteredToken()
+	case senderordertoken.EdgeToken:
+		m.ClearToken()
 		return nil
 	}
 	return fmt.Errorf("unknown SenderOrderToken unique edge %s", name)
@@ -13970,8 +13970,8 @@ func (m *SenderOrderTokenMutation) ResetEdge(name string) error {
 	case senderordertoken.EdgeSender:
 		m.ResetSender()
 		return nil
-	case senderordertoken.EdgeRegisteredToken:
-		m.ResetRegisteredToken()
+	case senderordertoken.EdgeToken:
+		m.ResetToken()
 		return nil
 	}
 	return fmt.Errorf("unknown SenderOrderToken edge %s", name)
@@ -14879,9 +14879,9 @@ type TokenMutation struct {
 	lock_payment_orders        map[uuid.UUID]struct{}
 	removedlock_payment_orders map[uuid.UUID]struct{}
 	clearedlock_payment_orders bool
-	sender_orders              map[int]struct{}
-	removedsender_orders       map[int]struct{}
-	clearedsender_orders       bool
+	sender_settings            map[int]struct{}
+	removedsender_settings     map[int]struct{}
+	clearedsender_settings     bool
 	done                       bool
 	oldValue                   func(context.Context) (*Token, error)
 	predicates                 []predicate.Token
@@ -15368,58 +15368,58 @@ func (m *TokenMutation) ResetLockPaymentOrders() {
 	m.removedlock_payment_orders = nil
 }
 
-// AddSenderOrderIDs adds the "sender_orders" edge to the SenderOrderToken entity by ids.
-func (m *TokenMutation) AddSenderOrderIDs(ids ...int) {
-	if m.sender_orders == nil {
-		m.sender_orders = make(map[int]struct{})
+// AddSenderSettingIDs adds the "sender_settings" edge to the SenderOrderToken entity by ids.
+func (m *TokenMutation) AddSenderSettingIDs(ids ...int) {
+	if m.sender_settings == nil {
+		m.sender_settings = make(map[int]struct{})
 	}
 	for i := range ids {
-		m.sender_orders[ids[i]] = struct{}{}
+		m.sender_settings[ids[i]] = struct{}{}
 	}
 }
 
-// ClearSenderOrders clears the "sender_orders" edge to the SenderOrderToken entity.
-func (m *TokenMutation) ClearSenderOrders() {
-	m.clearedsender_orders = true
+// ClearSenderSettings clears the "sender_settings" edge to the SenderOrderToken entity.
+func (m *TokenMutation) ClearSenderSettings() {
+	m.clearedsender_settings = true
 }
 
-// SenderOrdersCleared reports if the "sender_orders" edge to the SenderOrderToken entity was cleared.
-func (m *TokenMutation) SenderOrdersCleared() bool {
-	return m.clearedsender_orders
+// SenderSettingsCleared reports if the "sender_settings" edge to the SenderOrderToken entity was cleared.
+func (m *TokenMutation) SenderSettingsCleared() bool {
+	return m.clearedsender_settings
 }
 
-// RemoveSenderOrderIDs removes the "sender_orders" edge to the SenderOrderToken entity by IDs.
-func (m *TokenMutation) RemoveSenderOrderIDs(ids ...int) {
-	if m.removedsender_orders == nil {
-		m.removedsender_orders = make(map[int]struct{})
+// RemoveSenderSettingIDs removes the "sender_settings" edge to the SenderOrderToken entity by IDs.
+func (m *TokenMutation) RemoveSenderSettingIDs(ids ...int) {
+	if m.removedsender_settings == nil {
+		m.removedsender_settings = make(map[int]struct{})
 	}
 	for i := range ids {
-		delete(m.sender_orders, ids[i])
-		m.removedsender_orders[ids[i]] = struct{}{}
+		delete(m.sender_settings, ids[i])
+		m.removedsender_settings[ids[i]] = struct{}{}
 	}
 }
 
-// RemovedSenderOrders returns the removed IDs of the "sender_orders" edge to the SenderOrderToken entity.
-func (m *TokenMutation) RemovedSenderOrdersIDs() (ids []int) {
-	for id := range m.removedsender_orders {
+// RemovedSenderSettings returns the removed IDs of the "sender_settings" edge to the SenderOrderToken entity.
+func (m *TokenMutation) RemovedSenderSettingsIDs() (ids []int) {
+	for id := range m.removedsender_settings {
 		ids = append(ids, id)
 	}
 	return
 }
 
-// SenderOrdersIDs returns the "sender_orders" edge IDs in the mutation.
-func (m *TokenMutation) SenderOrdersIDs() (ids []int) {
-	for id := range m.sender_orders {
+// SenderSettingsIDs returns the "sender_settings" edge IDs in the mutation.
+func (m *TokenMutation) SenderSettingsIDs() (ids []int) {
+	for id := range m.sender_settings {
 		ids = append(ids, id)
 	}
 	return
 }
 
-// ResetSenderOrders resets all changes to the "sender_orders" edge.
-func (m *TokenMutation) ResetSenderOrders() {
-	m.sender_orders = nil
-	m.clearedsender_orders = false
-	m.removedsender_orders = nil
+// ResetSenderSettings resets all changes to the "sender_settings" edge.
+func (m *TokenMutation) ResetSenderSettings() {
+	m.sender_settings = nil
+	m.clearedsender_settings = false
+	m.removedsender_settings = nil
 }
 
 // Where appends a list predicates to the TokenMutation builder.
@@ -15665,8 +15665,8 @@ func (m *TokenMutation) AddedEdges() []string {
 	if m.lock_payment_orders != nil {
 		edges = append(edges, token.EdgeLockPaymentOrders)
 	}
-	if m.sender_orders != nil {
-		edges = append(edges, token.EdgeSenderOrders)
+	if m.sender_settings != nil {
+		edges = append(edges, token.EdgeSenderSettings)
 	}
 	return edges
 }
@@ -15691,9 +15691,9 @@ func (m *TokenMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
-	case token.EdgeSenderOrders:
-		ids := make([]ent.Value, 0, len(m.sender_orders))
-		for id := range m.sender_orders {
+	case token.EdgeSenderSettings:
+		ids := make([]ent.Value, 0, len(m.sender_settings))
+		for id := range m.sender_settings {
 			ids = append(ids, id)
 		}
 		return ids
@@ -15710,8 +15710,8 @@ func (m *TokenMutation) RemovedEdges() []string {
 	if m.removedlock_payment_orders != nil {
 		edges = append(edges, token.EdgeLockPaymentOrders)
 	}
-	if m.removedsender_orders != nil {
-		edges = append(edges, token.EdgeSenderOrders)
+	if m.removedsender_settings != nil {
+		edges = append(edges, token.EdgeSenderSettings)
 	}
 	return edges
 }
@@ -15732,9 +15732,9 @@ func (m *TokenMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
-	case token.EdgeSenderOrders:
-		ids := make([]ent.Value, 0, len(m.removedsender_orders))
-		for id := range m.removedsender_orders {
+	case token.EdgeSenderSettings:
+		ids := make([]ent.Value, 0, len(m.removedsender_settings))
+		for id := range m.removedsender_settings {
 			ids = append(ids, id)
 		}
 		return ids
@@ -15754,8 +15754,8 @@ func (m *TokenMutation) ClearedEdges() []string {
 	if m.clearedlock_payment_orders {
 		edges = append(edges, token.EdgeLockPaymentOrders)
 	}
-	if m.clearedsender_orders {
-		edges = append(edges, token.EdgeSenderOrders)
+	if m.clearedsender_settings {
+		edges = append(edges, token.EdgeSenderSettings)
 	}
 	return edges
 }
@@ -15770,8 +15770,8 @@ func (m *TokenMutation) EdgeCleared(name string) bool {
 		return m.clearedpayment_orders
 	case token.EdgeLockPaymentOrders:
 		return m.clearedlock_payment_orders
-	case token.EdgeSenderOrders:
-		return m.clearedsender_orders
+	case token.EdgeSenderSettings:
+		return m.clearedsender_settings
 	}
 	return false
 }
@@ -15800,8 +15800,8 @@ func (m *TokenMutation) ResetEdge(name string) error {
 	case token.EdgeLockPaymentOrders:
 		m.ResetLockPaymentOrders()
 		return nil
-	case token.EdgeSenderOrders:
-		m.ResetSenderOrders()
+	case token.EdgeSenderSettings:
+		m.ResetSenderSettings()
 		return nil
 	}
 	return fmt.Errorf("unknown Token edge %s", name)

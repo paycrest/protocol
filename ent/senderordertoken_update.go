@@ -74,15 +74,15 @@ func (sotu *SenderOrderTokenUpdate) SetSender(s *SenderProfile) *SenderOrderToke
 	return sotu.SetSenderID(s.ID)
 }
 
-// SetRegisteredTokenID sets the "registered_token" edge to the Token entity by ID.
-func (sotu *SenderOrderTokenUpdate) SetRegisteredTokenID(id int) *SenderOrderTokenUpdate {
-	sotu.mutation.SetRegisteredTokenID(id)
+// SetTokenID sets the "token" edge to the Token entity by ID.
+func (sotu *SenderOrderTokenUpdate) SetTokenID(id int) *SenderOrderTokenUpdate {
+	sotu.mutation.SetTokenID(id)
 	return sotu
 }
 
-// SetRegisteredToken sets the "registered_token" edge to the Token entity.
-func (sotu *SenderOrderTokenUpdate) SetRegisteredToken(t *Token) *SenderOrderTokenUpdate {
-	return sotu.SetRegisteredTokenID(t.ID)
+// SetToken sets the "token" edge to the Token entity.
+func (sotu *SenderOrderTokenUpdate) SetToken(t *Token) *SenderOrderTokenUpdate {
+	return sotu.SetTokenID(t.ID)
 }
 
 // Mutation returns the SenderOrderTokenMutation object of the builder.
@@ -96,9 +96,9 @@ func (sotu *SenderOrderTokenUpdate) ClearSender() *SenderOrderTokenUpdate {
 	return sotu
 }
 
-// ClearRegisteredToken clears the "registered_token" edge to the Token entity.
-func (sotu *SenderOrderTokenUpdate) ClearRegisteredToken() *SenderOrderTokenUpdate {
-	sotu.mutation.ClearRegisteredToken()
+// ClearToken clears the "token" edge to the Token entity.
+func (sotu *SenderOrderTokenUpdate) ClearToken() *SenderOrderTokenUpdate {
+	sotu.mutation.ClearToken()
 	return sotu
 }
 
@@ -153,8 +153,8 @@ func (sotu *SenderOrderTokenUpdate) check() error {
 	if _, ok := sotu.mutation.SenderID(); sotu.mutation.SenderCleared() && !ok {
 		return errors.New(`ent: clearing a required unique edge "SenderOrderToken.sender"`)
 	}
-	if _, ok := sotu.mutation.RegisteredTokenID(); sotu.mutation.RegisteredTokenCleared() && !ok {
-		return errors.New(`ent: clearing a required unique edge "SenderOrderToken.registered_token"`)
+	if _, ok := sotu.mutation.TokenID(); sotu.mutation.TokenCleared() && !ok {
+		return errors.New(`ent: clearing a required unique edge "SenderOrderToken.token"`)
 	}
 	return nil
 }
@@ -215,12 +215,12 @@ func (sotu *SenderOrderTokenUpdate) sqlSave(ctx context.Context) (n int, err err
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if sotu.mutation.RegisteredTokenCleared() {
+	if sotu.mutation.TokenCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
-			Table:   senderordertoken.RegisteredTokenTable,
-			Columns: []string{senderordertoken.RegisteredTokenColumn},
+			Table:   senderordertoken.TokenTable,
+			Columns: []string{senderordertoken.TokenColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(token.FieldID, field.TypeInt),
@@ -228,12 +228,12 @@ func (sotu *SenderOrderTokenUpdate) sqlSave(ctx context.Context) (n int, err err
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := sotu.mutation.RegisteredTokenIDs(); len(nodes) > 0 {
+	if nodes := sotu.mutation.TokenIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
-			Table:   senderordertoken.RegisteredTokenTable,
-			Columns: []string{senderordertoken.RegisteredTokenColumn},
+			Table:   senderordertoken.TokenTable,
+			Columns: []string{senderordertoken.TokenColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(token.FieldID, field.TypeInt),
@@ -306,15 +306,15 @@ func (sotuo *SenderOrderTokenUpdateOne) SetSender(s *SenderProfile) *SenderOrder
 	return sotuo.SetSenderID(s.ID)
 }
 
-// SetRegisteredTokenID sets the "registered_token" edge to the Token entity by ID.
-func (sotuo *SenderOrderTokenUpdateOne) SetRegisteredTokenID(id int) *SenderOrderTokenUpdateOne {
-	sotuo.mutation.SetRegisteredTokenID(id)
+// SetTokenID sets the "token" edge to the Token entity by ID.
+func (sotuo *SenderOrderTokenUpdateOne) SetTokenID(id int) *SenderOrderTokenUpdateOne {
+	sotuo.mutation.SetTokenID(id)
 	return sotuo
 }
 
-// SetRegisteredToken sets the "registered_token" edge to the Token entity.
-func (sotuo *SenderOrderTokenUpdateOne) SetRegisteredToken(t *Token) *SenderOrderTokenUpdateOne {
-	return sotuo.SetRegisteredTokenID(t.ID)
+// SetToken sets the "token" edge to the Token entity.
+func (sotuo *SenderOrderTokenUpdateOne) SetToken(t *Token) *SenderOrderTokenUpdateOne {
+	return sotuo.SetTokenID(t.ID)
 }
 
 // Mutation returns the SenderOrderTokenMutation object of the builder.
@@ -328,9 +328,9 @@ func (sotuo *SenderOrderTokenUpdateOne) ClearSender() *SenderOrderTokenUpdateOne
 	return sotuo
 }
 
-// ClearRegisteredToken clears the "registered_token" edge to the Token entity.
-func (sotuo *SenderOrderTokenUpdateOne) ClearRegisteredToken() *SenderOrderTokenUpdateOne {
-	sotuo.mutation.ClearRegisteredToken()
+// ClearToken clears the "token" edge to the Token entity.
+func (sotuo *SenderOrderTokenUpdateOne) ClearToken() *SenderOrderTokenUpdateOne {
+	sotuo.mutation.ClearToken()
 	return sotuo
 }
 
@@ -398,8 +398,8 @@ func (sotuo *SenderOrderTokenUpdateOne) check() error {
 	if _, ok := sotuo.mutation.SenderID(); sotuo.mutation.SenderCleared() && !ok {
 		return errors.New(`ent: clearing a required unique edge "SenderOrderToken.sender"`)
 	}
-	if _, ok := sotuo.mutation.RegisteredTokenID(); sotuo.mutation.RegisteredTokenCleared() && !ok {
-		return errors.New(`ent: clearing a required unique edge "SenderOrderToken.registered_token"`)
+	if _, ok := sotuo.mutation.TokenID(); sotuo.mutation.TokenCleared() && !ok {
+		return errors.New(`ent: clearing a required unique edge "SenderOrderToken.token"`)
 	}
 	return nil
 }
@@ -477,12 +477,12 @@ func (sotuo *SenderOrderTokenUpdateOne) sqlSave(ctx context.Context) (_node *Sen
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if sotuo.mutation.RegisteredTokenCleared() {
+	if sotuo.mutation.TokenCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
-			Table:   senderordertoken.RegisteredTokenTable,
-			Columns: []string{senderordertoken.RegisteredTokenColumn},
+			Table:   senderordertoken.TokenTable,
+			Columns: []string{senderordertoken.TokenColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(token.FieldID, field.TypeInt),
@@ -490,12 +490,12 @@ func (sotuo *SenderOrderTokenUpdateOne) sqlSave(ctx context.Context) (_node *Sen
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := sotuo.mutation.RegisteredTokenIDs(); len(nodes) > 0 {
+	if nodes := sotuo.mutation.TokenIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
-			Table:   senderordertoken.RegisteredTokenTable,
-			Columns: []string{senderordertoken.RegisteredTokenColumn},
+			Table:   senderordertoken.TokenTable,
+			Columns: []string{senderordertoken.TokenColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(token.FieldID, field.TypeInt),

@@ -396,7 +396,7 @@ var (
 		{Name: "fee_address", Type: field.TypeString, Size: 60},
 		{Name: "refund_address", Type: field.TypeString, Size: 60},
 		{Name: "sender_profile_order_tokens", Type: field.TypeUUID},
-		{Name: "token_sender_orders", Type: field.TypeInt},
+		{Name: "token_sender_settings", Type: field.TypeInt},
 	}
 	// SenderOrderTokensTable holds the schema information for the "sender_order_tokens" table.
 	SenderOrderTokensTable = &schema.Table{
@@ -411,7 +411,7 @@ var (
 				OnDelete:   schema.Cascade,
 			},
 			{
-				Symbol:     "sender_order_tokens_tokens_sender_orders",
+				Symbol:     "sender_order_tokens_tokens_sender_settings",
 				Columns:    []*schema.Column{SenderOrderTokensColumns[7]},
 				RefColumns: []*schema.Column{TokensColumns[0]},
 				OnDelete:   schema.NoAction,
@@ -419,7 +419,7 @@ var (
 		},
 		Indexes: []*schema.Index{
 			{
-				Name:    "senderordertoken_sender_profile_order_tokens_token_sender_orders",
+				Name:    "senderordertoken_sender_profile_order_tokens_token_sender_settings",
 				Unique:  true,
 				Columns: []*schema.Column{SenderOrderTokensColumns[6], SenderOrderTokensColumns[7]},
 			},

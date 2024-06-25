@@ -611,7 +611,7 @@ func (s *OrderEVM) createOrderCallData(order *ent.PaymentOrder) ([]byte, error) 
 
 	token, err := db.Client.SenderOrderToken.Query().Where(
 		senderordertoken.And(
-			senderordertoken.HasRegisteredTokenWith(tokenDB.IDEQ(order.Edges.Token.ID)),
+			senderordertoken.HasTokenWith(tokenDB.IDEQ(order.Edges.Token.ID)),
 			senderordertoken.HasSenderWith(
 				senderprofile.IDEQ(order.Edges.SenderProfile.ID),
 			),

@@ -2528,15 +2528,15 @@ func (c *SenderOrderTokenClient) QuerySender(sot *SenderOrderToken) *SenderProfi
 	return query
 }
 
-// QueryRegisteredToken queries the registered_token edge of a SenderOrderToken.
-func (c *SenderOrderTokenClient) QueryRegisteredToken(sot *SenderOrderToken) *TokenQuery {
+// QueryToken queries the token edge of a SenderOrderToken.
+func (c *SenderOrderTokenClient) QueryToken(sot *SenderOrderToken) *TokenQuery {
 	query := (&TokenClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := sot.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(senderordertoken.Table, senderordertoken.FieldID, id),
 			sqlgraph.To(token.Table, token.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, senderordertoken.RegisteredTokenTable, senderordertoken.RegisteredTokenColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, senderordertoken.TokenTable, senderordertoken.TokenColumn),
 		)
 		fromV = sqlgraph.Neighbors(sot.driver.Dialect(), step)
 		return fromV, nil
@@ -2892,15 +2892,15 @@ func (c *TokenClient) QueryLockPaymentOrders(t *Token) *LockPaymentOrderQuery {
 	return query
 }
 
-// QuerySenderOrders queries the sender_orders edge of a Token.
-func (c *TokenClient) QuerySenderOrders(t *Token) *SenderOrderTokenQuery {
+// QuerySenderSettings queries the sender_settings edge of a Token.
+func (c *TokenClient) QuerySenderSettings(t *Token) *SenderOrderTokenQuery {
 	query := (&SenderOrderTokenClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := t.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(token.Table, token.FieldID, id),
 			sqlgraph.To(senderordertoken.Table, senderordertoken.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, token.SenderOrdersTable, token.SenderOrdersColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, token.SenderSettingsTable, token.SenderSettingsColumn),
 		)
 		fromV = sqlgraph.Neighbors(t.driver.Dialect(), step)
 		return fromV, nil

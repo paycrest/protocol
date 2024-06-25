@@ -83,15 +83,15 @@ func (sotc *SenderOrderTokenCreate) SetSender(s *SenderProfile) *SenderOrderToke
 	return sotc.SetSenderID(s.ID)
 }
 
-// SetRegisteredTokenID sets the "registered_token" edge to the Token entity by ID.
-func (sotc *SenderOrderTokenCreate) SetRegisteredTokenID(id int) *SenderOrderTokenCreate {
-	sotc.mutation.SetRegisteredTokenID(id)
+// SetTokenID sets the "token" edge to the Token entity by ID.
+func (sotc *SenderOrderTokenCreate) SetTokenID(id int) *SenderOrderTokenCreate {
+	sotc.mutation.SetTokenID(id)
 	return sotc
 }
 
-// SetRegisteredToken sets the "registered_token" edge to the Token entity.
-func (sotc *SenderOrderTokenCreate) SetRegisteredToken(t *Token) *SenderOrderTokenCreate {
-	return sotc.SetRegisteredTokenID(t.ID)
+// SetToken sets the "token" edge to the Token entity.
+func (sotc *SenderOrderTokenCreate) SetToken(t *Token) *SenderOrderTokenCreate {
+	return sotc.SetTokenID(t.ID)
 }
 
 // Mutation returns the SenderOrderTokenMutation object of the builder.
@@ -169,8 +169,8 @@ func (sotc *SenderOrderTokenCreate) check() error {
 	if _, ok := sotc.mutation.SenderID(); !ok {
 		return &ValidationError{Name: "sender", err: errors.New(`ent: missing required edge "SenderOrderToken.sender"`)}
 	}
-	if _, ok := sotc.mutation.RegisteredTokenID(); !ok {
-		return &ValidationError{Name: "registered_token", err: errors.New(`ent: missing required edge "SenderOrderToken.registered_token"`)}
+	if _, ok := sotc.mutation.TokenID(); !ok {
+		return &ValidationError{Name: "token", err: errors.New(`ent: missing required edge "SenderOrderToken.token"`)}
 	}
 	return nil
 }
@@ -236,12 +236,12 @@ func (sotc *SenderOrderTokenCreate) createSpec() (*SenderOrderToken, *sqlgraph.C
 		_node.sender_profile_order_tokens = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := sotc.mutation.RegisteredTokenIDs(); len(nodes) > 0 {
+	if nodes := sotc.mutation.TokenIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
-			Table:   senderordertoken.RegisteredTokenTable,
-			Columns: []string{senderordertoken.RegisteredTokenColumn},
+			Table:   senderordertoken.TokenTable,
+			Columns: []string{senderordertoken.TokenColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(token.FieldID, field.TypeInt),
@@ -250,7 +250,7 @@ func (sotc *SenderOrderTokenCreate) createSpec() (*SenderOrderToken, *sqlgraph.C
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.token_sender_orders = &nodes[0]
+		_node.token_sender_settings = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

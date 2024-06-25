@@ -35,7 +35,7 @@ type SenderOrderToken struct {
 	// The values are being populated by the SenderOrderTokenQuery when eager-loading is set.
 	Edges                       SenderOrderTokenEdges `json:"edges"`
 	sender_profile_order_tokens *uuid.UUID
-	token_sender_orders         *int
+	token_sender_settings       *int
 	selectValues                sql.SelectValues
 }
 
@@ -43,8 +43,8 @@ type SenderOrderToken struct {
 type SenderOrderTokenEdges struct {
 	// Sender holds the value of the sender edge.
 	Sender *SenderProfile `json:"sender,omitempty"`
-	// RegisteredToken holds the value of the registered_token edge.
-	RegisteredToken *Token `json:"registered_token,omitempty"`
+	// Token holds the value of the token edge.
+	Token *Token `json:"token,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
 	loadedTypes [2]bool
@@ -63,17 +63,17 @@ func (e SenderOrderTokenEdges) SenderOrErr() (*SenderProfile, error) {
 	return nil, &NotLoadedError{edge: "sender"}
 }
 
-// RegisteredTokenOrErr returns the RegisteredToken value or an error if the edge
+// TokenOrErr returns the Token value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
-func (e SenderOrderTokenEdges) RegisteredTokenOrErr() (*Token, error) {
+func (e SenderOrderTokenEdges) TokenOrErr() (*Token, error) {
 	if e.loadedTypes[1] {
-		if e.RegisteredToken == nil {
+		if e.Token == nil {
 			// Edge was loaded but was not found.
 			return nil, &NotFoundError{label: token.Label}
 		}
-		return e.RegisteredToken, nil
+		return e.Token, nil
 	}
-	return nil, &NotLoadedError{edge: "registered_token"}
+	return nil, &NotLoadedError{edge: "token"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -91,7 +91,7 @@ func (*SenderOrderToken) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullTime)
 		case senderordertoken.ForeignKeys[0]: // sender_profile_order_tokens
 			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
-		case senderordertoken.ForeignKeys[1]: // token_sender_orders
+		case senderordertoken.ForeignKeys[1]: // token_sender_settings
 			values[i] = new(sql.NullInt64)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -153,10 +153,10 @@ func (sot *SenderOrderToken) assignValues(columns []string, values []any) error 
 			}
 		case senderordertoken.ForeignKeys[1]:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for edge-field token_sender_orders", value)
+				return fmt.Errorf("unexpected type %T for edge-field token_sender_settings", value)
 			} else if value.Valid {
-				sot.token_sender_orders = new(int)
-				*sot.token_sender_orders = int(value.Int64)
+				sot.token_sender_settings = new(int)
+				*sot.token_sender_settings = int(value.Int64)
 			}
 		default:
 			sot.selectValues.Set(columns[i], values[i])
@@ -176,9 +176,9 @@ func (sot *SenderOrderToken) QuerySender() *SenderProfileQuery {
 	return NewSenderOrderTokenClient(sot.config).QuerySender(sot)
 }
 
-// QueryRegisteredToken queries the "registered_token" edge of the SenderOrderToken entity.
-func (sot *SenderOrderToken) QueryRegisteredToken() *TokenQuery {
-	return NewSenderOrderTokenClient(sot.config).QueryRegisteredToken(sot)
+// QueryToken queries the "token" edge of the SenderOrderToken entity.
+func (sot *SenderOrderToken) QueryToken() *TokenQuery {
+	return NewSenderOrderTokenClient(sot.config).QueryToken(sot)
 }
 
 // Update returns a builder for updating this SenderOrderToken.

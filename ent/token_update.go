@@ -119,19 +119,19 @@ func (tu *TokenUpdate) AddLockPaymentOrders(l ...*LockPaymentOrder) *TokenUpdate
 	return tu.AddLockPaymentOrderIDs(ids...)
 }
 
-// AddSenderOrderIDs adds the "sender_orders" edge to the SenderOrderToken entity by IDs.
-func (tu *TokenUpdate) AddSenderOrderIDs(ids ...int) *TokenUpdate {
-	tu.mutation.AddSenderOrderIDs(ids...)
+// AddSenderSettingIDs adds the "sender_settings" edge to the SenderOrderToken entity by IDs.
+func (tu *TokenUpdate) AddSenderSettingIDs(ids ...int) *TokenUpdate {
+	tu.mutation.AddSenderSettingIDs(ids...)
 	return tu
 }
 
-// AddSenderOrders adds the "sender_orders" edges to the SenderOrderToken entity.
-func (tu *TokenUpdate) AddSenderOrders(s ...*SenderOrderToken) *TokenUpdate {
+// AddSenderSettings adds the "sender_settings" edges to the SenderOrderToken entity.
+func (tu *TokenUpdate) AddSenderSettings(s ...*SenderOrderToken) *TokenUpdate {
 	ids := make([]int, len(s))
 	for i := range s {
 		ids[i] = s[i].ID
 	}
-	return tu.AddSenderOrderIDs(ids...)
+	return tu.AddSenderSettingIDs(ids...)
 }
 
 // Mutation returns the TokenMutation object of the builder.
@@ -187,25 +187,25 @@ func (tu *TokenUpdate) RemoveLockPaymentOrders(l ...*LockPaymentOrder) *TokenUpd
 	return tu.RemoveLockPaymentOrderIDs(ids...)
 }
 
-// ClearSenderOrders clears all "sender_orders" edges to the SenderOrderToken entity.
-func (tu *TokenUpdate) ClearSenderOrders() *TokenUpdate {
-	tu.mutation.ClearSenderOrders()
+// ClearSenderSettings clears all "sender_settings" edges to the SenderOrderToken entity.
+func (tu *TokenUpdate) ClearSenderSettings() *TokenUpdate {
+	tu.mutation.ClearSenderSettings()
 	return tu
 }
 
-// RemoveSenderOrderIDs removes the "sender_orders" edge to SenderOrderToken entities by IDs.
-func (tu *TokenUpdate) RemoveSenderOrderIDs(ids ...int) *TokenUpdate {
-	tu.mutation.RemoveSenderOrderIDs(ids...)
+// RemoveSenderSettingIDs removes the "sender_settings" edge to SenderOrderToken entities by IDs.
+func (tu *TokenUpdate) RemoveSenderSettingIDs(ids ...int) *TokenUpdate {
+	tu.mutation.RemoveSenderSettingIDs(ids...)
 	return tu
 }
 
-// RemoveSenderOrders removes "sender_orders" edges to SenderOrderToken entities.
-func (tu *TokenUpdate) RemoveSenderOrders(s ...*SenderOrderToken) *TokenUpdate {
+// RemoveSenderSettings removes "sender_settings" edges to SenderOrderToken entities.
+func (tu *TokenUpdate) RemoveSenderSettings(s ...*SenderOrderToken) *TokenUpdate {
 	ids := make([]int, len(s))
 	for i := range s {
 		ids[i] = s[i].ID
 	}
-	return tu.RemoveSenderOrderIDs(ids...)
+	return tu.RemoveSenderSettingIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -411,12 +411,12 @@ func (tu *TokenUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if tu.mutation.SenderOrdersCleared() {
+	if tu.mutation.SenderSettingsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   token.SenderOrdersTable,
-			Columns: []string{token.SenderOrdersColumn},
+			Table:   token.SenderSettingsTable,
+			Columns: []string{token.SenderSettingsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(senderordertoken.FieldID, field.TypeInt),
@@ -424,12 +424,12 @@ func (tu *TokenUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := tu.mutation.RemovedSenderOrdersIDs(); len(nodes) > 0 && !tu.mutation.SenderOrdersCleared() {
+	if nodes := tu.mutation.RemovedSenderSettingsIDs(); len(nodes) > 0 && !tu.mutation.SenderSettingsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   token.SenderOrdersTable,
-			Columns: []string{token.SenderOrdersColumn},
+			Table:   token.SenderSettingsTable,
+			Columns: []string{token.SenderSettingsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(senderordertoken.FieldID, field.TypeInt),
@@ -440,12 +440,12 @@ func (tu *TokenUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := tu.mutation.SenderOrdersIDs(); len(nodes) > 0 {
+	if nodes := tu.mutation.SenderSettingsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   token.SenderOrdersTable,
-			Columns: []string{token.SenderOrdersColumn},
+			Table:   token.SenderSettingsTable,
+			Columns: []string{token.SenderSettingsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(senderordertoken.FieldID, field.TypeInt),
@@ -562,19 +562,19 @@ func (tuo *TokenUpdateOne) AddLockPaymentOrders(l ...*LockPaymentOrder) *TokenUp
 	return tuo.AddLockPaymentOrderIDs(ids...)
 }
 
-// AddSenderOrderIDs adds the "sender_orders" edge to the SenderOrderToken entity by IDs.
-func (tuo *TokenUpdateOne) AddSenderOrderIDs(ids ...int) *TokenUpdateOne {
-	tuo.mutation.AddSenderOrderIDs(ids...)
+// AddSenderSettingIDs adds the "sender_settings" edge to the SenderOrderToken entity by IDs.
+func (tuo *TokenUpdateOne) AddSenderSettingIDs(ids ...int) *TokenUpdateOne {
+	tuo.mutation.AddSenderSettingIDs(ids...)
 	return tuo
 }
 
-// AddSenderOrders adds the "sender_orders" edges to the SenderOrderToken entity.
-func (tuo *TokenUpdateOne) AddSenderOrders(s ...*SenderOrderToken) *TokenUpdateOne {
+// AddSenderSettings adds the "sender_settings" edges to the SenderOrderToken entity.
+func (tuo *TokenUpdateOne) AddSenderSettings(s ...*SenderOrderToken) *TokenUpdateOne {
 	ids := make([]int, len(s))
 	for i := range s {
 		ids[i] = s[i].ID
 	}
-	return tuo.AddSenderOrderIDs(ids...)
+	return tuo.AddSenderSettingIDs(ids...)
 }
 
 // Mutation returns the TokenMutation object of the builder.
@@ -630,25 +630,25 @@ func (tuo *TokenUpdateOne) RemoveLockPaymentOrders(l ...*LockPaymentOrder) *Toke
 	return tuo.RemoveLockPaymentOrderIDs(ids...)
 }
 
-// ClearSenderOrders clears all "sender_orders" edges to the SenderOrderToken entity.
-func (tuo *TokenUpdateOne) ClearSenderOrders() *TokenUpdateOne {
-	tuo.mutation.ClearSenderOrders()
+// ClearSenderSettings clears all "sender_settings" edges to the SenderOrderToken entity.
+func (tuo *TokenUpdateOne) ClearSenderSettings() *TokenUpdateOne {
+	tuo.mutation.ClearSenderSettings()
 	return tuo
 }
 
-// RemoveSenderOrderIDs removes the "sender_orders" edge to SenderOrderToken entities by IDs.
-func (tuo *TokenUpdateOne) RemoveSenderOrderIDs(ids ...int) *TokenUpdateOne {
-	tuo.mutation.RemoveSenderOrderIDs(ids...)
+// RemoveSenderSettingIDs removes the "sender_settings" edge to SenderOrderToken entities by IDs.
+func (tuo *TokenUpdateOne) RemoveSenderSettingIDs(ids ...int) *TokenUpdateOne {
+	tuo.mutation.RemoveSenderSettingIDs(ids...)
 	return tuo
 }
 
-// RemoveSenderOrders removes "sender_orders" edges to SenderOrderToken entities.
-func (tuo *TokenUpdateOne) RemoveSenderOrders(s ...*SenderOrderToken) *TokenUpdateOne {
+// RemoveSenderSettings removes "sender_settings" edges to SenderOrderToken entities.
+func (tuo *TokenUpdateOne) RemoveSenderSettings(s ...*SenderOrderToken) *TokenUpdateOne {
 	ids := make([]int, len(s))
 	for i := range s {
 		ids[i] = s[i].ID
 	}
-	return tuo.RemoveSenderOrderIDs(ids...)
+	return tuo.RemoveSenderSettingIDs(ids...)
 }
 
 // Where appends a list predicates to the TokenUpdate builder.
@@ -884,12 +884,12 @@ func (tuo *TokenUpdateOne) sqlSave(ctx context.Context) (_node *Token, err error
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if tuo.mutation.SenderOrdersCleared() {
+	if tuo.mutation.SenderSettingsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   token.SenderOrdersTable,
-			Columns: []string{token.SenderOrdersColumn},
+			Table:   token.SenderSettingsTable,
+			Columns: []string{token.SenderSettingsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(senderordertoken.FieldID, field.TypeInt),
@@ -897,12 +897,12 @@ func (tuo *TokenUpdateOne) sqlSave(ctx context.Context) (_node *Token, err error
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := tuo.mutation.RemovedSenderOrdersIDs(); len(nodes) > 0 && !tuo.mutation.SenderOrdersCleared() {
+	if nodes := tuo.mutation.RemovedSenderSettingsIDs(); len(nodes) > 0 && !tuo.mutation.SenderSettingsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   token.SenderOrdersTable,
-			Columns: []string{token.SenderOrdersColumn},
+			Table:   token.SenderSettingsTable,
+			Columns: []string{token.SenderSettingsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(senderordertoken.FieldID, field.TypeInt),
@@ -913,12 +913,12 @@ func (tuo *TokenUpdateOne) sqlSave(ctx context.Context) (_node *Token, err error
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := tuo.mutation.SenderOrdersIDs(); len(nodes) > 0 {
+	if nodes := tuo.mutation.SenderSettingsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   token.SenderOrdersTable,
-			Columns: []string{token.SenderOrdersColumn},
+			Table:   token.SenderSettingsTable,
+			Columns: []string{token.SenderSettingsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(senderordertoken.FieldID, field.TypeInt),

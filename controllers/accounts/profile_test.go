@@ -19,7 +19,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/paycrest/protocol/ent/enttest"
 	"github.com/paycrest/protocol/ent/providerprofile"
+	"github.com/paycrest/protocol/ent/senderordertoken"
 	"github.com/paycrest/protocol/ent/senderprofile"
+	tokenDB "github.com/paycrest/protocol/ent/token"
 	"github.com/paycrest/protocol/ent/user"
 	"github.com/paycrest/protocol/utils/test"
 	"github.com/paycrest/protocol/utils/token"
@@ -88,7 +90,7 @@ func setup() error {
 
 func TestProfile(t *testing.T) {
 	// Set up test database client
-	client := enttest.Open(t, "sqlite3", "file:ent/provider?mode=memory&_fk=1")
+	client := enttest.Open(t, "sqlite3", "file:ent?mode=memory&_fk=1")
 	defer client.Close()
 
 	db.Client = client
@@ -244,7 +246,7 @@ func TestProfile(t *testing.T) {
 			// setup ERC20 token
 			tokenAddresses[0].FeeAddress = "0xD4EB9067111F81b9bAabE06E2b8ebBaDADEd5DAf"
 			tokenAddresses[0].Network = testCtx.token.Edges.Network.Identifier
-			tokenAddresses[0].RefundAddress = "0xD4EB9067111F81b9bAabE06E2b8ebBaDADEd5DAf"
+			tokenAddresses[0].RefundAddress = "0xD4EB9067111F81b9bAabE06E2b8ebBaDADEd5DA0"
 
 			tokenPayload[0].FeePerTokenUnit = decimal.NewFromInt(1)
 			tokenPayload[0].Symbol = testCtx.token.Symbol
@@ -259,7 +261,7 @@ func TestProfile(t *testing.T) {
 			tronTokenAddresses := make([]types.SenderOrderAddressPayload, 1)
 			tronTokenAddresses[0].FeeAddress = "TFRKiHrHCeSyWL67CEwydFvUMYJ6CbYYX7"
 			tronTokenAddresses[0].Network = tronToken.Edges.Network.Identifier
-			tronTokenAddresses[0].RefundAddress = "TFRKiHrHCeSyWL67CEwydFvUMYJ6CbYYX7"
+			tronTokenAddresses[0].RefundAddress = "TFRKiHrHCeSyWL67CEwydFvUMYJ6CbYYXR"
 
 			tokenPayload[1].FeePerTokenUnit = decimal.NewFromInt(2)
 			tokenPayload[1].Symbol = tronToken.Symbol
@@ -287,9 +289,40 @@ func TestProfile(t *testing.T) {
 			senderProfile, err := db.Client.SenderProfile.
 				Query().
 				Where(senderprofile.HasUserWith(user.ID(testUser.ID))).
+				WithOrderTokens().
 				Only(context.Background())
 			assert.NoError(t, err)
+			assert.Equal(t, len(senderProfile.Edges.OrderTokens), 2)
 
+			t.Run("check If Tron was added", func(t *testing.T) {
+				senderorder, err := db.Client.SenderOrderToken.
+					Query().
+					Where(
+						senderordertoken.HasSenderWith(
+							senderprofile.IDEQ(senderProfile.ID),
+						),
+						senderordertoken.HasTokenWith(tokenDB.IDEQ(tronToken.ID)),
+					).
+					Only(context.Background())
+				assert.NoError(t, err)
+				assert.Equal(t, senderorder.FeeAddress, "TFRKiHrHCeSyWL67CEwydFvUMYJ6CbYYX7")
+				assert.Equal(t, senderorder.RefundAddress, "TFRKiHrHCeSyWL67CEwydFvUMYJ6CbYYXR")
+			})
+
+			t.Run("check If EVM chain was added", func(t *testing.T) {
+				senderorder, err := db.Client.SenderOrderToken.
+					Query().
+					Where(
+						senderordertoken.HasSenderWith(
+							senderprofile.IDEQ(senderProfile.ID),
+						),
+						senderordertoken.HasTokenWith(tokenDB.IDEQ(testCtx.token.ID)),
+					).
+					Only(context.Background())
+				assert.NoError(t, err)
+				assert.Equal(t, senderorder.FeeAddress, "0xD4EB9067111F81b9bAabE06E2b8ebBaDADEd5DAf")
+				assert.Equal(t, senderorder.RefundAddress, "0xD4EB9067111F81b9bAabE06E2b8ebBaDADEd5DA0")
+			})
 			assert.Contains(t, senderProfile.DomainWhitelist, "mydomain.com")
 			assert.True(t, senderProfile.IsActive)
 		})

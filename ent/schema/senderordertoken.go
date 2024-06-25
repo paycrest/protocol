@@ -37,8 +37,8 @@ func (SenderOrderToken) Edges() []ent.Edge {
 			Ref("order_tokens").
 			Required().
 			Unique(),
-		edge.From("registered_token", Token.Type).
-			Ref("sender_orders").
+		edge.From("token", Token.Type).
+			Ref("sender_settings").
 			Required().
 			Unique(),
 	}
@@ -47,6 +47,6 @@ func (SenderOrderToken) Edges() []ent.Edge {
 func (SenderOrderToken) Indexes() []ent.Index {
 	return []ent.Index{
 		// Define a unique index across multiple fields.
-		index.Edges("sender", "registered_token").Unique(),
+		index.Edges("sender", "token").Unique(),
 	}
 }

@@ -128,19 +128,19 @@ func (tc *TokenCreate) AddLockPaymentOrders(l ...*LockPaymentOrder) *TokenCreate
 	return tc.AddLockPaymentOrderIDs(ids...)
 }
 
-// AddSenderOrderIDs adds the "sender_orders" edge to the SenderOrderToken entity by IDs.
-func (tc *TokenCreate) AddSenderOrderIDs(ids ...int) *TokenCreate {
-	tc.mutation.AddSenderOrderIDs(ids...)
+// AddSenderSettingIDs adds the "sender_settings" edge to the SenderOrderToken entity by IDs.
+func (tc *TokenCreate) AddSenderSettingIDs(ids ...int) *TokenCreate {
+	tc.mutation.AddSenderSettingIDs(ids...)
 	return tc
 }
 
-// AddSenderOrders adds the "sender_orders" edges to the SenderOrderToken entity.
-func (tc *TokenCreate) AddSenderOrders(s ...*SenderOrderToken) *TokenCreate {
+// AddSenderSettings adds the "sender_settings" edges to the SenderOrderToken entity.
+func (tc *TokenCreate) AddSenderSettings(s ...*SenderOrderToken) *TokenCreate {
 	ids := make([]int, len(s))
 	for i := range s {
 		ids[i] = s[i].ID
 	}
-	return tc.AddSenderOrderIDs(ids...)
+	return tc.AddSenderSettingIDs(ids...)
 }
 
 // Mutation returns the TokenMutation object of the builder.
@@ -325,12 +325,12 @@ func (tc *TokenCreate) createSpec() (*Token, *sqlgraph.CreateSpec) {
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := tc.mutation.SenderOrdersIDs(); len(nodes) > 0 {
+	if nodes := tc.mutation.SenderSettingsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   token.SenderOrdersTable,
-			Columns: []string{token.SenderOrdersColumn},
+			Table:   token.SenderSettingsTable,
+			Columns: []string{token.SenderSettingsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(senderordertoken.FieldID, field.TypeInt),

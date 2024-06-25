@@ -20,13 +20,13 @@ import (
 // SenderOrderTokenQuery is the builder for querying SenderOrderToken entities.
 type SenderOrderTokenQuery struct {
 	config
-	ctx                 *QueryContext
-	order               []senderordertoken.OrderOption
-	inters              []Interceptor
-	predicates          []predicate.SenderOrderToken
-	withSender          *SenderProfileQuery
-	withRegisteredToken *TokenQuery
-	withFKs             bool
+	ctx        *QueryContext
+	order      []senderordertoken.OrderOption
+	inters     []Interceptor
+	predicates []predicate.SenderOrderToken
+	withSender *SenderProfileQuery
+	withToken  *TokenQuery
+	withFKs    bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -85,8 +85,8 @@ func (sotq *SenderOrderTokenQuery) QuerySender() *SenderProfileQuery {
 	return query
 }
 
-// QueryRegisteredToken chains the current query on the "registered_token" edge.
-func (sotq *SenderOrderTokenQuery) QueryRegisteredToken() *TokenQuery {
+// QueryToken chains the current query on the "token" edge.
+func (sotq *SenderOrderTokenQuery) QueryToken() *TokenQuery {
 	query := (&TokenClient{config: sotq.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := sotq.prepareQuery(ctx); err != nil {
@@ -99,7 +99,7 @@ func (sotq *SenderOrderTokenQuery) QueryRegisteredToken() *TokenQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(senderordertoken.Table, senderordertoken.FieldID, selector),
 			sqlgraph.To(token.Table, token.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, senderordertoken.RegisteredTokenTable, senderordertoken.RegisteredTokenColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, senderordertoken.TokenTable, senderordertoken.TokenColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(sotq.driver.Dialect(), step)
 		return fromU, nil
@@ -294,13 +294,13 @@ func (sotq *SenderOrderTokenQuery) Clone() *SenderOrderTokenQuery {
 		return nil
 	}
 	return &SenderOrderTokenQuery{
-		config:              sotq.config,
-		ctx:                 sotq.ctx.Clone(),
-		order:               append([]senderordertoken.OrderOption{}, sotq.order...),
-		inters:              append([]Interceptor{}, sotq.inters...),
-		predicates:          append([]predicate.SenderOrderToken{}, sotq.predicates...),
-		withSender:          sotq.withSender.Clone(),
-		withRegisteredToken: sotq.withRegisteredToken.Clone(),
+		config:     sotq.config,
+		ctx:        sotq.ctx.Clone(),
+		order:      append([]senderordertoken.OrderOption{}, sotq.order...),
+		inters:     append([]Interceptor{}, sotq.inters...),
+		predicates: append([]predicate.SenderOrderToken{}, sotq.predicates...),
+		withSender: sotq.withSender.Clone(),
+		withToken:  sotq.withToken.Clone(),
 		// clone intermediate query.
 		sql:  sotq.sql.Clone(),
 		path: sotq.path,
@@ -318,14 +318,14 @@ func (sotq *SenderOrderTokenQuery) WithSender(opts ...func(*SenderProfileQuery))
 	return sotq
 }
 
-// WithRegisteredToken tells the query-builder to eager-load the nodes that are connected to
-// the "registered_token" edge. The optional arguments are used to configure the query builder of the edge.
-func (sotq *SenderOrderTokenQuery) WithRegisteredToken(opts ...func(*TokenQuery)) *SenderOrderTokenQuery {
+// WithToken tells the query-builder to eager-load the nodes that are connected to
+// the "token" edge. The optional arguments are used to configure the query builder of the edge.
+func (sotq *SenderOrderTokenQuery) WithToken(opts ...func(*TokenQuery)) *SenderOrderTokenQuery {
 	query := (&TokenClient{config: sotq.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	sotq.withRegisteredToken = query
+	sotq.withToken = query
 	return sotq
 }
 
@@ -410,10 +410,10 @@ func (sotq *SenderOrderTokenQuery) sqlAll(ctx context.Context, hooks ...queryHoo
 		_spec       = sotq.querySpec()
 		loadedTypes = [2]bool{
 			sotq.withSender != nil,
-			sotq.withRegisteredToken != nil,
+			sotq.withToken != nil,
 		}
 	)
-	if sotq.withSender != nil || sotq.withRegisteredToken != nil {
+	if sotq.withSender != nil || sotq.withToken != nil {
 		withFKs = true
 	}
 	if withFKs {
@@ -443,9 +443,9 @@ func (sotq *SenderOrderTokenQuery) sqlAll(ctx context.Context, hooks ...queryHoo
 			return nil, err
 		}
 	}
-	if query := sotq.withRegisteredToken; query != nil {
-		if err := sotq.loadRegisteredToken(ctx, query, nodes, nil,
-			func(n *SenderOrderToken, e *Token) { n.Edges.RegisteredToken = e }); err != nil {
+	if query := sotq.withToken; query != nil {
+		if err := sotq.loadToken(ctx, query, nodes, nil,
+			func(n *SenderOrderToken, e *Token) { n.Edges.Token = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -484,14 +484,14 @@ func (sotq *SenderOrderTokenQuery) loadSender(ctx context.Context, query *Sender
 	}
 	return nil
 }
-func (sotq *SenderOrderTokenQuery) loadRegisteredToken(ctx context.Context, query *TokenQuery, nodes []*SenderOrderToken, init func(*SenderOrderToken), assign func(*SenderOrderToken, *Token)) error {
+func (sotq *SenderOrderTokenQuery) loadToken(ctx context.Context, query *TokenQuery, nodes []*SenderOrderToken, init func(*SenderOrderToken), assign func(*SenderOrderToken, *Token)) error {
 	ids := make([]int, 0, len(nodes))
 	nodeids := make(map[int][]*SenderOrderToken)
 	for i := range nodes {
-		if nodes[i].token_sender_orders == nil {
+		if nodes[i].token_sender_settings == nil {
 			continue
 		}
-		fk := *nodes[i].token_sender_orders
+		fk := *nodes[i].token_sender_settings
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}
@@ -508,7 +508,7 @@ func (sotq *SenderOrderTokenQuery) loadRegisteredToken(ctx context.Context, quer
 	for _, n := range neighbors {
 		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "token_sender_orders" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "token_sender_settings" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)

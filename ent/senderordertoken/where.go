@@ -354,21 +354,21 @@ func HasSenderWith(preds ...predicate.SenderProfile) predicate.SenderOrderToken 
 	})
 }
 
-// HasRegisteredToken applies the HasEdge predicate on the "registered_token" edge.
-func HasRegisteredToken() predicate.SenderOrderToken {
+// HasToken applies the HasEdge predicate on the "token" edge.
+func HasToken() predicate.SenderOrderToken {
 	return predicate.SenderOrderToken(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, RegisteredTokenTable, RegisteredTokenColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, TokenTable, TokenColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasRegisteredTokenWith applies the HasEdge predicate on the "registered_token" edge with a given conditions (other predicates).
-func HasRegisteredTokenWith(preds ...predicate.Token) predicate.SenderOrderToken {
+// HasTokenWith applies the HasEdge predicate on the "token" edge with a given conditions (other predicates).
+func HasTokenWith(preds ...predicate.Token) predicate.SenderOrderToken {
 	return predicate.SenderOrderToken(func(s *sql.Selector) {
-		step := newRegisteredTokenStep()
+		step := newTokenStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/ent"
@@ -102,7 +103,7 @@ func (ctrl *ProfileController) UpdateSenderProfile(ctx *gin.Context) {
 		var networksToTokenId map[string]int = map[string]int{}
 		for _, address := range tokenPayload.Addresses {
 
-			if address.Network == "tron" {
+			if strings.HasPrefix(address.Network, "tron") {
 				feeAddressIsValid := u.IsValidTronAddress(address.FeeAddress)
 				if address.FeeAddress != "" && !feeAddressIsValid {
 					u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
@@ -152,24 +153,30 @@ func (ctrl *ProfileController) UpdateSenderProfile(ctx *gin.Context) {
 				Query().
 				Where(
 					senderordertoken.And(
-						senderordertoken.HasRegisteredTokenWith(token.IDEQ(networksToTokenId[address.Network])),
+						senderordertoken.HasTokenWith(token.IDEQ(networksToTokenId[address.Network])),
 						senderordertoken.HasSenderWith(senderprofile.IDEQ(sender.ID)),
 					),
 				).Only(context.Background())
-			if ent.IsNotFound(err) {
-				_, err := tx.SenderOrderToken.
-					Create().
-					SetSenderID(sender.ID).
-					SetRegisteredTokenID(networksToTokenId[address.Network]).
-					SetRefundAddress(address.RefundAddress).
-					SetFeePerTokenUnit(tokenPayload.FeePerTokenUnit).
-					SetFeeAddress(address.FeeAddress).
-					Save(context.Background())
-				if err != nil {
-					u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update profile create", nil)
+			if err != nil {
+				if ent.IsNotFound(err) {
+					_, err := tx.SenderOrderToken.
+						Create().
+						SetSenderID(sender.ID).
+						SetTokenID(networksToTokenId[address.Network]).
+						SetRefundAddress(address.RefundAddress).
+						SetFeePerTokenUnit(tokenPayload.FeePerTokenUnit).
+						SetFeeAddress(address.FeeAddress).
+						Save(context.Background())
+					if err != nil {
+						u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update profile", nil)
+						return
+					}
+				} else {
+					u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update profile err:", nil)
 					return
 				}
-			} else if err == nil {
+
+			} else {
 				_, err := senderToken.
 					Update().
 					SetRefundAddress(address.RefundAddress).
@@ -177,14 +184,10 @@ func (ctrl *ProfileController) UpdateSenderProfile(ctx *gin.Context) {
 					SetFeeAddress(address.FeeAddress).
 					Save(context.Background())
 				if err != nil {
-					u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update profile update", nil)
+					u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update profile", nil)
 					return
 				}
-			} else {
-				u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update profile err:", nil)
-				return
 			}
-
 		}
 	}
 	// Commit the transaction
@@ -482,7 +485,7 @@ func (ctrl *ProfileController) GetSenderProfile(ctx *gin.Context) {
 	senderToken, err := storage.Client.SenderOrderToken.
 		Query().
 		Where(senderordertoken.HasSenderWith(senderprofile.IDEQ(sender.ID))).
-		WithRegisteredToken(
+		WithToken(
 			func(tq *ent.TokenQuery) {
 				tq.WithNetwork()
 			},
@@ -498,26 +501,26 @@ func (ctrl *ProfileController) GetSenderProfile(ctx *gin.Context) {
 	tokensPayload := make([]types.SenderOrderTokenResponse, len(sender.Edges.OrderTokens))
 	for i, token := range senderToken {
 		payload := types.SenderOrderTokenResponse{
-			Symbol:          token.Edges.RegisteredToken.Symbol,
+			Symbol:          token.Edges.Token.Symbol,
 			RefundAddress:   token.RefundAddress,
 			FeePerTokenUnit: token.FeePerTokenUnit,
 			FeeAddress:      token.FeeAddress,
-			Network:         token.Edges.RegisteredToken.Edges.Network.Identifier,
+			Network:         token.Edges.Token.Edges.Network.Identifier,
 		}
 
 		tokensPayload[i] = payload
 	}
 
 	u.APIResponse(ctx, http.StatusOK, "success", "Profile retrieved successfully", &types.SenderProfileResponse{
-		ID:               sender.ID,
-		FirstName:        user.FirstName,
-		LastName:         user.LastName,
-		Email:            user.Email,
-		WebhookURL:       sender.WebhookURL,
-		DomainWhitelist:  sender.DomainWhitelist,
-		SenderOrderToken: tokensPayload,
-		APIKey:           *apiKey,
-		IsActive:         sender.IsActive,
+		ID:              sender.ID,
+		FirstName:       user.FirstName,
+		LastName:        user.LastName,
+		Email:           user.Email,
+		WebhookURL:      sender.WebhookURL,
+		DomainWhitelist: sender.DomainWhitelist,
+		Token:           tokensPayload,
+		APIKey:          *apiKey,
+		IsActive:        sender.IsActive,
 	})
 }
 

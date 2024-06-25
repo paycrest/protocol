@@ -26,8 +26,8 @@ const (
 	FieldRefundAddress = "refund_address"
 	// EdgeSender holds the string denoting the sender edge name in mutations.
 	EdgeSender = "sender"
-	// EdgeRegisteredToken holds the string denoting the registered_token edge name in mutations.
-	EdgeRegisteredToken = "registered_token"
+	// EdgeToken holds the string denoting the token edge name in mutations.
+	EdgeToken = "token"
 	// Table holds the table name of the senderordertoken in the database.
 	Table = "sender_order_tokens"
 	// SenderTable is the table that holds the sender relation/edge.
@@ -37,13 +37,13 @@ const (
 	SenderInverseTable = "sender_profiles"
 	// SenderColumn is the table column denoting the sender relation/edge.
 	SenderColumn = "sender_profile_order_tokens"
-	// RegisteredTokenTable is the table that holds the registered_token relation/edge.
-	RegisteredTokenTable = "sender_order_tokens"
-	// RegisteredTokenInverseTable is the table name for the Token entity.
+	// TokenTable is the table that holds the token relation/edge.
+	TokenTable = "sender_order_tokens"
+	// TokenInverseTable is the table name for the Token entity.
 	// It exists in this package in order to avoid circular dependency with the "token" package.
-	RegisteredTokenInverseTable = "tokens"
-	// RegisteredTokenColumn is the table column denoting the registered_token relation/edge.
-	RegisteredTokenColumn = "token_sender_orders"
+	TokenInverseTable = "tokens"
+	// TokenColumn is the table column denoting the token relation/edge.
+	TokenColumn = "token_sender_settings"
 )
 
 // Columns holds all SQL columns for senderordertoken fields.
@@ -60,7 +60,7 @@ var Columns = []string{
 // table and are not defined as standalone fields in the schema.
 var ForeignKeys = []string{
 	"sender_profile_order_tokens",
-	"token_sender_orders",
+	"token_sender_settings",
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -131,10 +131,10 @@ func BySenderField(field string, opts ...sql.OrderTermOption) OrderOption {
 	}
 }
 
-// ByRegisteredTokenField orders the results by registered_token field.
-func ByRegisteredTokenField(field string, opts ...sql.OrderTermOption) OrderOption {
+// ByTokenField orders the results by token field.
+func ByTokenField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newRegisteredTokenStep(), sql.OrderByField(field, opts...))
+		sqlgraph.OrderByNeighborTerms(s, newTokenStep(), sql.OrderByField(field, opts...))
 	}
 }
 func newSenderStep() *sqlgraph.Step {
@@ -144,10 +144,10 @@ func newSenderStep() *sqlgraph.Step {
 		sqlgraph.Edge(sqlgraph.M2O, true, SenderTable, SenderColumn),
 	)
 }
-func newRegisteredTokenStep() *sqlgraph.Step {
+func newTokenStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(RegisteredTokenInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, true, RegisteredTokenTable, RegisteredTokenColumn),
+		sqlgraph.To(TokenInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, TokenTable, TokenColumn),
 	)
 }
