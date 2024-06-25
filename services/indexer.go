@@ -1150,6 +1150,12 @@ func (s *IndexerService) UpdateReceiveAddressStatus(
 			return false, nil
 		}
 
+		// Check for existing payment order with txHash
+		if paymentOrder.TxHash == event.TxHash {
+			// This transfer has already been indexed
+			return false, nil
+		}
+
 		// This is a transfer to the receive address to create an order on-chain
 		// Compare the transferred value with the expected order amount + fees
 		fees := paymentOrder.NetworkFee.Add(paymentOrder.SenderFee).Add(paymentOrder.ProtocolFee)
