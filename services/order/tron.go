@@ -102,8 +102,8 @@ func (s *OrderTron) CreateOrder(ctx context.Context, orderID uuid.UUID) error {
 		balance = 0
 	}
 
-	if balance < 45000000 {
-		_, err = masterWallet.Transfer(wallet.AddressBase58, 100000000)
+	if balance < 150000000 {
+		_, err = masterWallet.Transfer(wallet.AddressBase58, 150000000)
 		if err != nil {
 			return fmt.Errorf("%s - Tron.CreateOrder.Transfer: %w", orderIDPrefix, err)
 		}
@@ -137,7 +137,7 @@ func (s *OrderTron) CreateOrder(ctx context.Context, orderID uuid.UUID) error {
 		ContractAddress: tokenContractAddress.Bytes(),
 		Data:            calldata,
 	}
-	_, err = s.sendTransaction(wallet, ct, 50000000)
+	_, err = s.sendTransaction(wallet, ct, 30000000)
 	if err != nil {
 		return fmt.Errorf("%s - Tron.CreateOrder.sendTransaction: %w", orderIDPrefix, err)
 	}
@@ -153,7 +153,7 @@ func (s *OrderTron) CreateOrder(ctx context.Context, orderID uuid.UUID) error {
 		ContractAddress: gatewayContractAddress.Bytes(),
 		Data:            calldata,
 	}
-	txHash, err := s.sendTransaction(wallet, ct, 100000000)
+	txHash, err := s.sendTransaction(wallet, ct, 150000000)
 	if err != nil {
 		return fmt.Errorf("%s - Tron.CreateOrder.sendTransaction: %w", orderIDPrefix, err)
 	}
@@ -165,10 +165,10 @@ func (s *OrderTron) CreateOrder(ctx context.Context, orderID uuid.UUID) error {
 		},
 		masterWallet.AddressBase58,
 		utils.ToSubunit(order.NetworkFee, order.Edges.Token.Decimals).Int64(),
-		50000000,
+		30000000,
 	)
 	if err != nil {
-		return fmt.Errorf("%s - Tron.CreateOrder.Transfer: %w", orderIDPrefix, err)
+		return fmt.Errorf("%s - Tron.CreateOrder.TransferTRC20: %w", orderIDPrefix, err)
 	}
 
 	// Update payment order
