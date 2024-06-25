@@ -650,6 +650,10 @@ func (s *IndexerService) IndexOrderRefundedTron(ctx context.Context, order *ent.
 
 // HandleReceiveAddressValidity checks the validity of a receive address
 func (s *IndexerService) HandleReceiveAddressValidity(ctx context.Context, receiveAddress *ent.ReceiveAddress, paymentOrder *ent.PaymentOrder) error {
+	if receiveAddress.ValidUntil.IsZero() {
+		return nil
+	}
+
 	if receiveAddress.Status != receiveaddress.StatusUsed {
 		amountNotPaidInFull := receiveAddress.Status == receiveaddress.StatusPartial || receiveAddress.Status == receiveaddress.StatusUnused
 		validUntilIsFarGone := receiveAddress.ValidUntil.Before(time.Now().Add(-(5 * time.Minute)))
@@ -1142,6 +1146,12 @@ func (s *IndexerService) UpdateReceiveAddressStatus(
 		}
 
 		if count > 0 && receiveAddress.Status != receiveaddress.StatusUnused {
+			// This transfer has already been indexed
+			return false, nil
+		}
+
+		// Check for existing payment order with txHash
+		if paymentOrder.TxHash == event.TxHash {
 			// This transfer has already been indexed
 			return false, nil
 		}
