@@ -741,6 +741,7 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 	}
 
 	// Update payment order with the gateway ID
+	paymentOrderExists := true
 	paymentOrder, err := db.Client.PaymentOrder.
 		Query().
 		Where(
@@ -748,16 +749,23 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 		).
 		Only(ctx)
 	if err != nil {
-		return fmt.Errorf("CreateLockPaymentOrder.db: %v", err)
+		if ent.IsNotFound(err) {
+			// Payment order does not exist, no need to update
+			paymentOrderExists = false
+		} else {
+			return fmt.Errorf("CreateLockPaymentOrder.db: %v", err)
+		}
 	}
 
-	_, err = paymentOrder.
-		Update().
-		SetBlockNumber(int64(event.BlockNumber)).
-		SetGatewayID(gatewayId).
-		Save(ctx)
-	if err != nil {
-		return fmt.Errorf("CreateLockPaymentOrder.db: %v", err)
+	if paymentOrderExists {
+		_, err = paymentOrder.
+			Update().
+			SetBlockNumber(int64(event.BlockNumber)).
+			SetGatewayID(gatewayId).
+			Save(ctx)
+		if err != nil {
+			return fmt.Errorf("CreateLockPaymentOrder.db: %v", err)
+		}
 	}
 
 	// Get token from db
@@ -859,7 +867,7 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 		// Create LockPaymentOrder and recipient in a transaction
 		tx, err := db.Client.Tx(ctx)
 		if err != nil {
-			return fmt.Errorf("%s Failed to initiate DB transaction %w", lockPaymentOrder.GatewayID, err)
+			return fmt.Errorf("%s failed to initiate db transaction %w", lockPaymentOrder.GatewayID, err)
 		}
 
 		transactionLog, err := tx.TransactionLog.
@@ -934,6 +942,7 @@ func (s *IndexerService) UpdateOrderStatusRefunded(ctx context.Context, log *typ
 	gatewayId := fmt.Sprintf("0x%v", hex.EncodeToString(log.OrderId[:]))
 
 	// Fetch payment order
+	paymentOrderExists := true
 	paymentOrder, err := db.Client.PaymentOrder.
 		Query().
 		Where(
@@ -942,7 +951,12 @@ func (s *IndexerService) UpdateOrderStatusRefunded(ctx context.Context, log *typ
 		WithSenderProfile().
 		Only(ctx)
 	if err != nil {
-		return fmt.Errorf("UpdateOrderStatusRefunded.fetchOrder: %v", err)
+		if ent.IsNotFound(err) {
+			// Payment order does not exist, no need to update
+			paymentOrderExists = false
+		} else {
+			return fmt.Errorf("UpdateOrderStatusRefunded.fetchOrder: %v", err)
+		}
 	}
 
 	tx, err := db.Client.Tx(ctx)
@@ -950,7 +964,7 @@ func (s *IndexerService) UpdateOrderStatusRefunded(ctx context.Context, log *typ
 		return fmt.Errorf("UpdateOrderStatusRefunded.dbtransaction %v", err)
 	}
 
-	// create Log
+	// Create log
 	transactionLog, err := tx.TransactionLog.
 		Create().
 		SetStatus(transactionlog.StatusOrderRefunded).
@@ -983,32 +997,35 @@ func (s *IndexerService) UpdateOrderStatusRefunded(ctx context.Context, log *typ
 	}
 
 	// Sender side status update
-	_, err = tx.PaymentOrder.
-		Update().
-		Where(
-			paymentorder.GatewayIDEQ(gatewayId),
-		).
-		SetTxHash(log.TxHash).
-		SetStatus(paymentorder.StatusRefunded).
-		AddTransactions(transactionLog).
-		Save(ctx)
-
-	if err != nil {
-		return fmt.Errorf("UpdateOrderStatusRefunded.sender: %v", err)
+	if paymentOrderExists {
+		_, err = tx.PaymentOrder.
+			Update().
+			Where(
+				paymentorder.GatewayIDEQ(gatewayId),
+			).
+			SetTxHash(log.TxHash).
+			SetStatus(paymentorder.StatusRefunded).
+			AddTransactions(transactionLog).
+			Save(ctx)
+		if err != nil {
+			return fmt.Errorf("UpdateOrderStatusRefunded.sender: %v", err)
+		}
 	}
 
 	// Commit the transaction
 	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("UpdateOrderStatusRefunded.sender %v", err)
+		return fmt.Errorf("UpdateOrderStatusRefunded.commit %v", err)
 	}
 
-	// manual overWrite
-	paymentOrder.Status = paymentorder.StatusRefunded
-	paymentOrder.TxHash = log.TxHash
-	// Send webhook notifcation to sender
-	err = utils.SendPaymentOrderWebhook(ctx, paymentOrder)
-	if err != nil {
-		return fmt.Errorf("UpdateOrderStatusRefunded.webhook: %v", err)
+	if paymentOrderExists {
+		paymentOrder.Status = paymentorder.StatusRefunded
+		paymentOrder.TxHash = log.TxHash
+
+		// Send webhook notification to sender
+		err = utils.SendPaymentOrderWebhook(ctx, paymentOrder)
+		if err != nil {
+			return fmt.Errorf("UpdateOrderStatusRefunded.webhook: %v", err)
+		}
 	}
 
 	return nil
@@ -1018,12 +1035,30 @@ func (s *IndexerService) UpdateOrderStatusRefunded(ctx context.Context, log *typ
 func (s *IndexerService) UpdateOrderStatusSettled(ctx context.Context, event *types.OrderSettledEvent) error {
 	gatewayId := fmt.Sprintf("0x%v", hex.EncodeToString(event.OrderId[:]))
 
-	tx, err := db.Client.Tx(ctx)
+	// Fetch payment order
+	paymentOrderExists := true
+	paymentOrder, err := db.Client.PaymentOrder.
+		Query().
+		Where(
+			paymentorder.GatewayIDEQ(gatewayId),
+		).
+		WithSenderProfile().
+		Only(ctx)
 	if err != nil {
-		return fmt.Errorf("UpdateOrderStatusSettled.dbtransaction %v", err)
+		if ent.IsNotFound(err) {
+			// Payment order does not exist, no need to update
+			paymentOrderExists = false
+		} else {
+			return fmt.Errorf("UpdateOrderStatusSettled.fetchOrder: %v", err)
+		}
 	}
 
-	// create Log
+	tx, err := db.Client.Tx(ctx)
+	if err != nil {
+		return fmt.Errorf("UpdateOrderStatusSettled.db: %v", err)
+	}
+
+	// Create log
 	transactionLog, err := tx.TransactionLog.
 		Create().
 		SetStatus(transactionlog.StatusOrderSettled).
@@ -1033,9 +1068,8 @@ func (s *IndexerService) UpdateOrderStatusSettled(ctx context.Context, event *ty
 			"GatewayID":       gatewayId,
 			"transactionData": event,
 		}).Save(ctx)
-
 	if err != nil {
-		return fmt.Errorf("UpdateOrderStatusRefunded.aggregator: %v", err)
+		return fmt.Errorf("UpdateOrderStatusSettled.aggregator: %v", err)
 	}
 
 	// Aggregator side status update
@@ -1050,56 +1084,49 @@ func (s *IndexerService) UpdateOrderStatusSettled(ctx context.Context, event *ty
 		SetStatus(lockpaymentorder.StatusSettled).
 		AddTransactions(transactionLog).
 		Save(ctx)
-
 	if err != nil {
 		return fmt.Errorf("UpdateOrderStatusSettled.aggregator: %v", err)
 	}
 
 	// Sender side status update
-	paymentOrderUpdate := tx.PaymentOrder.
-		Update().
-		Where(
-			paymentorder.GatewayIDEQ(gatewayId),
-		)
+	if paymentOrderExists {
+		paymentOrderUpdate := tx.PaymentOrder.
+			Update().
+			Where(
+				paymentorder.GatewayIDEQ(gatewayId),
+			)
 
-	// Convert settled percent to BPS
-	settledPercent := decimal.NewFromBigInt(event.SettlePercent, 0).Div(decimal.NewFromInt(1000))
+		// Convert settled percent to BPS
+		settledPercent := decimal.NewFromBigInt(event.SettlePercent, 0).Div(decimal.NewFromInt(1000))
 
-	// If settled percent is 100%, mark order as settled
-	if settledPercent.Equal(decimal.NewFromInt(100)) {
-		paymentOrderUpdate = paymentOrderUpdate.SetStatus(paymentorder.StatusSettled)
-	}
+		// If settled percent is 100%, mark order as settled
+		if settledPercent.Equal(decimal.NewFromInt(100)) {
+			paymentOrderUpdate = paymentOrderUpdate.SetStatus(paymentorder.StatusSettled)
+		}
 
-	_, err = paymentOrderUpdate.
-		SetBlockNumber(int64(event.BlockNumber)).
-		SetTxHash(event.TxHash).
-		SetPercentSettled(settledPercent).
-		Save(ctx)
-	if err != nil {
-		return fmt.Errorf("UpdateOrderStatusSettled.sender: %v", err)
-	}
+		_, err = paymentOrderUpdate.
+			SetBlockNumber(int64(event.BlockNumber)).
+			SetTxHash(event.TxHash).
+			SetPercentSettled(settledPercent).
+			Save(ctx)
+		if err != nil {
+			return fmt.Errorf("UpdateOrderStatusSettled.sender: %v", err)
+		}
 
-	// Fetch payment order
-	paymentOrder, err := tx.PaymentOrder.
-		Query().
-		Where(
-			paymentorder.GatewayIDEQ(gatewayId),
-		).
-		WithSenderProfile().
-		Only(ctx)
-	if err != nil {
-		return fmt.Errorf("UpdateOrderStatusSettled.fetchOrder: %v", err)
-	}
+		// Commit the transaction
+		if err := tx.Commit(); err != nil {
+			return fmt.Errorf("UpdateOrderStatusSettled.sender %v", err)
+		}
 
-	// Commit the transaction
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("UpdateOrderStatusRefunded.sender %v", err)
-	}
+		// Send webhook notifcation to sender
+		paymentOrder.BlockNumber = int64(event.BlockNumber)
+		paymentOrder.TxHash = event.TxHash
+		paymentOrder.PercentSettled = settledPercent
 
-	// Send webhook notifcation to sender
-	err = utils.SendPaymentOrderWebhook(ctx, paymentOrder)
-	if err != nil {
-		return fmt.Errorf("UpdateOrderStatusSettled.webhook: %v", err)
+		err = utils.SendPaymentOrderWebhook(ctx, paymentOrder)
+		if err != nil {
+			return fmt.Errorf("UpdateOrderStatusSettled.webhook: %v", err)
+		}
 	}
 
 	return nil
