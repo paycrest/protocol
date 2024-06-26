@@ -293,7 +293,7 @@ type SenderProfileResponse struct {
 	Email           string                     `json:"email"`
 	WebhookURL      string                     `json:"webhookUrl"`
 	DomainWhitelist []string                   `json:"domainWhitelist"`
-	Token           []SenderOrderTokenResponse `json:"tokens"`
+	Tokens          []SenderOrderTokenResponse `json:"tokens"`
 	FeePerTokenUnit decimal.Decimal            `json:"feePerTokenUnit"`
 	FeeAddress      string                     `json:"feeAddress"`
 	RefundAddress   string                     `json:"refundAddress"`

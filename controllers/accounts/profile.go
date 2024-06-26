@@ -491,10 +491,9 @@ func (ctrl *ProfileController) GetSenderProfile(ctx *gin.Context) {
 			},
 		).
 		All(ctx)
-
 	if err != nil {
 		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to Sender OrderToken", nil)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to retrieve profile", nil)
 		return
 	}
 
@@ -518,7 +517,7 @@ func (ctrl *ProfileController) GetSenderProfile(ctx *gin.Context) {
 		Email:           user.Email,
 		WebhookURL:      sender.WebhookURL,
 		DomainWhitelist: sender.DomainWhitelist,
-		Token:           tokensPayload,
+		Tokens:           tokensPayload,
 		APIKey:          *apiKey,
 		IsActive:        sender.IsActive,
 	})
