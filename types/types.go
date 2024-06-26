@@ -192,13 +192,22 @@ type ValidatorProfilePayload struct {
 	HostIdentifier string `json:"hostIdentifier"`
 }
 
+type SenderOrderAddressPayload struct {
+	Network       string `json:"network" binding:"required"`
+	FeeAddress    string `json:"feeAddress" binding:"required"`
+	RefundAddress string `json:"refundAddress" binding:"required"`
+}
+type SenderOrderTokenPayload struct {
+	Symbol          string                      `json:"symbol" binding:"required"`
+	FeePerTokenUnit decimal.Decimal             `json:"feePerTokenUnit" binding:"required"`
+	Addresses       []SenderOrderAddressPayload `json:"addresses"`
+}
+
 // SenderProfilePayload is the payload for the sender profile endpoint
 type SenderProfilePayload struct {
-	WebhookURL      string          `json:"webhookURL"`
-	DomainWhitelist []string        `json:"domainWhitelist"`
-	FeePerTokenUnit decimal.Decimal `json:"feePerTokenUnit"`
-	FeeAddress      string          `json:"feeAddress"`
-	RefundAddress   string          `json:"refundAddress"`
+	WebhookURL      string                    `json:"webhookURL"`
+	DomainWhitelist []string                  `json:"domainWhitelist"`
+	Tokens          []SenderOrderTokenPayload `json:"tokens"`
 }
 
 // ProviderOrderTokenPayload defines the provider setting for a token
@@ -267,19 +276,29 @@ type ValidatorProfileResponse struct {
 	APIKey         APIKeyResponse `json:"apiKey"`
 }
 
+// SenderOrderTokenResponse defines the provider setting for a token
+type SenderOrderTokenResponse struct {
+	Symbol          string          `json:"symbol" binding:"required"`
+	FeePerTokenUnit decimal.Decimal `json:"feePerTokenUnit" binding:"required"`
+	Network         string          `json:"network" binding:"required"`
+	FeeAddress      string          `json:"feeAddress" binding:"required"`
+	RefundAddress   string          `json:"refundAddress" binding:"required"`
+}
+
 // SenderProfileResponse is the response for the sender profile endpoint
 type SenderProfileResponse struct {
-	ID              uuid.UUID       `json:"id"`
-	FirstName       string          `json:"firstName"`
-	LastName        string          `json:"lastName"`
-	Email           string          `json:"email"`
-	WebhookURL      string          `json:"webhookUrl"`
-	DomainWhitelist []string        `json:"domainWhitelist"`
-	FeePerTokenUnit decimal.Decimal `json:"feePerTokenUnit"`
-	FeeAddress      string          `json:"feeAddress"`
-	RefundAddress   string          `json:"refundAddress"`
-	APIKey          APIKeyResponse  `json:"apiKey"`
-	IsActive        bool            `json:"isActive"`
+	ID              uuid.UUID                  `json:"id"`
+	FirstName       string                     `json:"firstName"`
+	LastName        string                     `json:"lastName"`
+	Email           string                     `json:"email"`
+	WebhookURL      string                     `json:"webhookUrl"`
+	DomainWhitelist []string                   `json:"domainWhitelist"`
+	Tokens          []SenderOrderTokenResponse `json:"tokens"`
+	FeePerTokenUnit decimal.Decimal            `json:"feePerTokenUnit"`
+	FeeAddress      string                     `json:"feeAddress"`
+	RefundAddress   string                     `json:"refundAddress"`
+	APIKey          APIKeyResponse             `json:"apiKey"`
+	IsActive        bool                       `json:"isActive"`
 }
 
 // RefreshResponse is the response for the refresh endpoint

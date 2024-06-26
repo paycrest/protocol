@@ -70,6 +70,7 @@ func JWTMiddleware(c *gin.Context) {
 		senderProfile, err := storage.Client.SenderProfile.
 			Query().
 			Where(senderprofile.HasUserWith(user.IDEQ(userUUID))).
+			WithOrderTokens().
 			Only(c)
 		if err != nil {
 			c.Set("sender", nil)

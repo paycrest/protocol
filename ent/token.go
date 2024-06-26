@@ -45,9 +45,11 @@ type TokenEdges struct {
 	PaymentOrders []*PaymentOrder `json:"payment_orders,omitempty"`
 	// LockPaymentOrders holds the value of the lock_payment_orders edge.
 	LockPaymentOrders []*LockPaymentOrder `json:"lock_payment_orders,omitempty"`
+	// SenderSettings holds the value of the sender_settings edge.
+	SenderSettings []*SenderOrderToken `json:"sender_settings,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [4]bool
 }
 
 // NetworkOrErr returns the Network value or an error if the edge
@@ -79,6 +81,15 @@ func (e TokenEdges) LockPaymentOrdersOrErr() ([]*LockPaymentOrder, error) {
 		return e.LockPaymentOrders, nil
 	}
 	return nil, &NotLoadedError{edge: "lock_payment_orders"}
+}
+
+// SenderSettingsOrErr returns the SenderSettings value or an error if the edge
+// was not loaded in eager-loading.
+func (e TokenEdges) SenderSettingsOrErr() ([]*SenderOrderToken, error) {
+	if e.loadedTypes[3] {
+		return e.SenderSettings, nil
+	}
+	return nil, &NotLoadedError{edge: "sender_settings"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -186,6 +197,11 @@ func (t *Token) QueryPaymentOrders() *PaymentOrderQuery {
 // QueryLockPaymentOrders queries the "lock_payment_orders" edge of the Token entity.
 func (t *Token) QueryLockPaymentOrders() *LockPaymentOrderQuery {
 	return NewTokenClient(t.config).QueryLockPaymentOrders(t)
+}
+
+// QuerySenderSettings queries the "sender_settings" edge of the Token entity.
+func (t *Token) QuerySenderSettings() *SenderOrderTokenQuery {
+	return NewTokenClient(t.config).QuerySenderSettings(t)
 }
 
 // Update returns a builder for updating this Token.

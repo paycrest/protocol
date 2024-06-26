@@ -14,7 +14,6 @@ import (
 	"github.com/paycrest/protocol/ent/apikey"
 	"github.com/paycrest/protocol/ent/senderprofile"
 	"github.com/paycrest/protocol/ent/user"
-	"github.com/shopspring/decimal"
 )
 
 // SenderProfile is the model entity for the SenderProfile schema.
@@ -24,12 +23,6 @@ type SenderProfile struct {
 	ID uuid.UUID `json:"id,omitempty"`
 	// WebhookURL holds the value of the "webhook_url" field.
 	WebhookURL string `json:"webhook_url,omitempty"`
-	// FeePerTokenUnit holds the value of the "fee_per_token_unit" field.
-	FeePerTokenUnit decimal.Decimal `json:"fee_per_token_unit,omitempty"`
-	// FeeAddress holds the value of the "fee_address" field.
-	FeeAddress string `json:"fee_address,omitempty"`
-	// RefundAddress holds the value of the "refund_address" field.
-	RefundAddress string `json:"refund_address,omitempty"`
 	// DomainWhitelist holds the value of the "domain_whitelist" field.
 	DomainWhitelist []string `json:"domain_whitelist,omitempty"`
 	// IsPartner holds the value of the "is_partner" field.
@@ -53,9 +46,11 @@ type SenderProfileEdges struct {
 	APIKey *APIKey `json:"api_key,omitempty"`
 	// PaymentOrders holds the value of the payment_orders edge.
 	PaymentOrders []*PaymentOrder `json:"payment_orders,omitempty"`
+	// OrderTokens holds the value of the order_tokens edge.
+	OrderTokens []*SenderOrderToken `json:"order_tokens,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [4]bool
 }
 
 // UserOrErr returns the User value or an error if the edge
@@ -93,6 +88,15 @@ func (e SenderProfileEdges) PaymentOrdersOrErr() ([]*PaymentOrder, error) {
 	return nil, &NotLoadedError{edge: "payment_orders"}
 }
 
+// OrderTokensOrErr returns the OrderTokens value or an error if the edge
+// was not loaded in eager-loading.
+func (e SenderProfileEdges) OrderTokensOrErr() ([]*SenderOrderToken, error) {
+	if e.loadedTypes[3] {
+		return e.OrderTokens, nil
+	}
+	return nil, &NotLoadedError{edge: "order_tokens"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*SenderProfile) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -100,11 +104,9 @@ func (*SenderProfile) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case senderprofile.FieldDomainWhitelist:
 			values[i] = new([]byte)
-		case senderprofile.FieldFeePerTokenUnit:
-			values[i] = new(decimal.Decimal)
 		case senderprofile.FieldIsPartner, senderprofile.FieldIsActive:
 			values[i] = new(sql.NullBool)
-		case senderprofile.FieldWebhookURL, senderprofile.FieldFeeAddress, senderprofile.FieldRefundAddress:
+		case senderprofile.FieldWebhookURL:
 			values[i] = new(sql.NullString)
 		case senderprofile.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -138,24 +140,6 @@ func (sp *SenderProfile) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field webhook_url", values[i])
 			} else if value.Valid {
 				sp.WebhookURL = value.String
-			}
-		case senderprofile.FieldFeePerTokenUnit:
-			if value, ok := values[i].(*decimal.Decimal); !ok {
-				return fmt.Errorf("unexpected type %T for field fee_per_token_unit", values[i])
-			} else if value != nil {
-				sp.FeePerTokenUnit = *value
-			}
-		case senderprofile.FieldFeeAddress:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field fee_address", values[i])
-			} else if value.Valid {
-				sp.FeeAddress = value.String
-			}
-		case senderprofile.FieldRefundAddress:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field refund_address", values[i])
-			} else if value.Valid {
-				sp.RefundAddress = value.String
 			}
 		case senderprofile.FieldDomainWhitelist:
 			if value, ok := values[i].(*[]byte); !ok {
@@ -218,6 +202,11 @@ func (sp *SenderProfile) QueryPaymentOrders() *PaymentOrderQuery {
 	return NewSenderProfileClient(sp.config).QueryPaymentOrders(sp)
 }
 
+// QueryOrderTokens queries the "order_tokens" edge of the SenderProfile entity.
+func (sp *SenderProfile) QueryOrderTokens() *SenderOrderTokenQuery {
+	return NewSenderProfileClient(sp.config).QueryOrderTokens(sp)
+}
+
 // Update returns a builder for updating this SenderProfile.
 // Note that you need to call SenderProfile.Unwrap() before calling this method if this SenderProfile
 // was returned from a transaction, and the transaction was committed or rolled back.
@@ -243,15 +232,6 @@ func (sp *SenderProfile) String() string {
 	builder.WriteString(fmt.Sprintf("id=%v, ", sp.ID))
 	builder.WriteString("webhook_url=")
 	builder.WriteString(sp.WebhookURL)
-	builder.WriteString(", ")
-	builder.WriteString("fee_per_token_unit=")
-	builder.WriteString(fmt.Sprintf("%v", sp.FeePerTokenUnit))
-	builder.WriteString(", ")
-	builder.WriteString("fee_address=")
-	builder.WriteString(sp.FeeAddress)
-	builder.WriteString(", ")
-	builder.WriteString("refund_address=")
-	builder.WriteString(sp.RefundAddress)
 	builder.WriteString(", ")
 	builder.WriteString("domain_whitelist=")
 	builder.WriteString(fmt.Sprintf("%v", sp.DomainWhitelist))

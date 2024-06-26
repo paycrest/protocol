@@ -519,7 +519,7 @@ func ComputeMarketRate() error {
 		// Fetch rates from token configs with fixed conversion rate
 		token := "USDT"
 		if serverConf.Environment != "production" {
-			token = "6TEST"
+			token = "TST"
 		}
 		tokenConfigs, err := storage.Client.ProviderOrderToken.
 			Query().

@@ -8,14 +8,16 @@ import (
 	"fmt"
 	"time"
 
+	"entgo.io/ent/dialect"
+	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
 	"github.com/paycrest/protocol/ent/apikey"
 	"github.com/paycrest/protocol/ent/paymentorder"
+	"github.com/paycrest/protocol/ent/senderordertoken"
 	"github.com/paycrest/protocol/ent/senderprofile"
 	"github.com/paycrest/protocol/ent/user"
-	"github.com/shopspring/decimal"
 )
 
 // SenderProfileCreate is the builder for creating a SenderProfile entity.
@@ -23,6 +25,7 @@ type SenderProfileCreate struct {
 	config
 	mutation *SenderProfileMutation
 	hooks    []Hook
+	conflict []sql.ConflictOption
 }
 
 // SetWebhookURL sets the "webhook_url" field.
@@ -35,40 +38,6 @@ func (spc *SenderProfileCreate) SetWebhookURL(s string) *SenderProfileCreate {
 func (spc *SenderProfileCreate) SetNillableWebhookURL(s *string) *SenderProfileCreate {
 	if s != nil {
 		spc.SetWebhookURL(*s)
-	}
-	return spc
-}
-
-// SetFeePerTokenUnit sets the "fee_per_token_unit" field.
-func (spc *SenderProfileCreate) SetFeePerTokenUnit(d decimal.Decimal) *SenderProfileCreate {
-	spc.mutation.SetFeePerTokenUnit(d)
-	return spc
-}
-
-// SetFeeAddress sets the "fee_address" field.
-func (spc *SenderProfileCreate) SetFeeAddress(s string) *SenderProfileCreate {
-	spc.mutation.SetFeeAddress(s)
-	return spc
-}
-
-// SetNillableFeeAddress sets the "fee_address" field if the given value is not nil.
-func (spc *SenderProfileCreate) SetNillableFeeAddress(s *string) *SenderProfileCreate {
-	if s != nil {
-		spc.SetFeeAddress(*s)
-	}
-	return spc
-}
-
-// SetRefundAddress sets the "refund_address" field.
-func (spc *SenderProfileCreate) SetRefundAddress(s string) *SenderProfileCreate {
-	spc.mutation.SetRefundAddress(s)
-	return spc
-}
-
-// SetNillableRefundAddress sets the "refund_address" field if the given value is not nil.
-func (spc *SenderProfileCreate) SetNillableRefundAddress(s *string) *SenderProfileCreate {
-	if s != nil {
-		spc.SetRefundAddress(*s)
 	}
 	return spc
 }
@@ -180,6 +149,21 @@ func (spc *SenderProfileCreate) AddPaymentOrders(p ...*PaymentOrder) *SenderProf
 	return spc.AddPaymentOrderIDs(ids...)
 }
 
+// AddOrderTokenIDs adds the "order_tokens" edge to the SenderOrderToken entity by IDs.
+func (spc *SenderProfileCreate) AddOrderTokenIDs(ids ...int) *SenderProfileCreate {
+	spc.mutation.AddOrderTokenIDs(ids...)
+	return spc
+}
+
+// AddOrderTokens adds the "order_tokens" edges to the SenderOrderToken entity.
+func (spc *SenderProfileCreate) AddOrderTokens(s ...*SenderOrderToken) *SenderProfileCreate {
+	ids := make([]int, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return spc.AddOrderTokenIDs(ids...)
+}
+
 // Mutation returns the SenderProfileMutation object of the builder.
 func (spc *SenderProfileCreate) Mutation() *SenderProfileMutation {
 	return spc.mutation
@@ -239,9 +223,6 @@ func (spc *SenderProfileCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (spc *SenderProfileCreate) check() error {
-	if _, ok := spc.mutation.FeePerTokenUnit(); !ok {
-		return &ValidationError{Name: "fee_per_token_unit", err: errors.New(`ent: missing required field "SenderProfile.fee_per_token_unit"`)}
-	}
 	if _, ok := spc.mutation.DomainWhitelist(); !ok {
 		return &ValidationError{Name: "domain_whitelist", err: errors.New(`ent: missing required field "SenderProfile.domain_whitelist"`)}
 	}
@@ -288,6 +269,7 @@ func (spc *SenderProfileCreate) createSpec() (*SenderProfile, *sqlgraph.CreateSp
 		_node = &SenderProfile{config: spc.config}
 		_spec = sqlgraph.NewCreateSpec(senderprofile.Table, sqlgraph.NewFieldSpec(senderprofile.FieldID, field.TypeUUID))
 	)
+	_spec.OnConflict = spc.conflict
 	if id, ok := spc.mutation.ID(); ok {
 		_node.ID = id
 		_spec.ID.Value = &id
@@ -295,18 +277,6 @@ func (spc *SenderProfileCreate) createSpec() (*SenderProfile, *sqlgraph.CreateSp
 	if value, ok := spc.mutation.WebhookURL(); ok {
 		_spec.SetField(senderprofile.FieldWebhookURL, field.TypeString, value)
 		_node.WebhookURL = value
-	}
-	if value, ok := spc.mutation.FeePerTokenUnit(); ok {
-		_spec.SetField(senderprofile.FieldFeePerTokenUnit, field.TypeFloat64, value)
-		_node.FeePerTokenUnit = value
-	}
-	if value, ok := spc.mutation.FeeAddress(); ok {
-		_spec.SetField(senderprofile.FieldFeeAddress, field.TypeString, value)
-		_node.FeeAddress = value
-	}
-	if value, ok := spc.mutation.RefundAddress(); ok {
-		_spec.SetField(senderprofile.FieldRefundAddress, field.TypeString, value)
-		_node.RefundAddress = value
 	}
 	if value, ok := spc.mutation.DomainWhitelist(); ok {
 		_spec.SetField(senderprofile.FieldDomainWhitelist, field.TypeJSON, value)
@@ -373,13 +343,308 @@ func (spc *SenderProfileCreate) createSpec() (*SenderProfile, *sqlgraph.CreateSp
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
+	if nodes := spc.mutation.OrderTokensIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   senderprofile.OrderTokensTable,
+			Columns: []string{senderprofile.OrderTokensColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(senderordertoken.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
 	return _node, _spec
+}
+
+// OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
+// of the `INSERT` statement. For example:
+//
+//	client.SenderProfile.Create().
+//		SetWebhookURL(v).
+//		OnConflict(
+//			// Update the row with the new values
+//			// the was proposed for insertion.
+//			sql.ResolveWithNewValues(),
+//		).
+//		// Override some of the fields with custom
+//		// update values.
+//		Update(func(u *ent.SenderProfileUpsert) {
+//			SetWebhookURL(v+v).
+//		}).
+//		Exec(ctx)
+func (spc *SenderProfileCreate) OnConflict(opts ...sql.ConflictOption) *SenderProfileUpsertOne {
+	spc.conflict = opts
+	return &SenderProfileUpsertOne{
+		create: spc,
+	}
+}
+
+// OnConflictColumns calls `OnConflict` and configures the columns
+// as conflict target. Using this option is equivalent to using:
+//
+//	client.SenderProfile.Create().
+//		OnConflict(sql.ConflictColumns(columns...)).
+//		Exec(ctx)
+func (spc *SenderProfileCreate) OnConflictColumns(columns ...string) *SenderProfileUpsertOne {
+	spc.conflict = append(spc.conflict, sql.ConflictColumns(columns...))
+	return &SenderProfileUpsertOne{
+		create: spc,
+	}
+}
+
+type (
+	// SenderProfileUpsertOne is the builder for "upsert"-ing
+	//  one SenderProfile node.
+	SenderProfileUpsertOne struct {
+		create *SenderProfileCreate
+	}
+
+	// SenderProfileUpsert is the "OnConflict" setter.
+	SenderProfileUpsert struct {
+		*sql.UpdateSet
+	}
+)
+
+// SetWebhookURL sets the "webhook_url" field.
+func (u *SenderProfileUpsert) SetWebhookURL(v string) *SenderProfileUpsert {
+	u.Set(senderprofile.FieldWebhookURL, v)
+	return u
+}
+
+// UpdateWebhookURL sets the "webhook_url" field to the value that was provided on create.
+func (u *SenderProfileUpsert) UpdateWebhookURL() *SenderProfileUpsert {
+	u.SetExcluded(senderprofile.FieldWebhookURL)
+	return u
+}
+
+// ClearWebhookURL clears the value of the "webhook_url" field.
+func (u *SenderProfileUpsert) ClearWebhookURL() *SenderProfileUpsert {
+	u.SetNull(senderprofile.FieldWebhookURL)
+	return u
+}
+
+// SetDomainWhitelist sets the "domain_whitelist" field.
+func (u *SenderProfileUpsert) SetDomainWhitelist(v []string) *SenderProfileUpsert {
+	u.Set(senderprofile.FieldDomainWhitelist, v)
+	return u
+}
+
+// UpdateDomainWhitelist sets the "domain_whitelist" field to the value that was provided on create.
+func (u *SenderProfileUpsert) UpdateDomainWhitelist() *SenderProfileUpsert {
+	u.SetExcluded(senderprofile.FieldDomainWhitelist)
+	return u
+}
+
+// SetIsPartner sets the "is_partner" field.
+func (u *SenderProfileUpsert) SetIsPartner(v bool) *SenderProfileUpsert {
+	u.Set(senderprofile.FieldIsPartner, v)
+	return u
+}
+
+// UpdateIsPartner sets the "is_partner" field to the value that was provided on create.
+func (u *SenderProfileUpsert) UpdateIsPartner() *SenderProfileUpsert {
+	u.SetExcluded(senderprofile.FieldIsPartner)
+	return u
+}
+
+// SetIsActive sets the "is_active" field.
+func (u *SenderProfileUpsert) SetIsActive(v bool) *SenderProfileUpsert {
+	u.Set(senderprofile.FieldIsActive, v)
+	return u
+}
+
+// UpdateIsActive sets the "is_active" field to the value that was provided on create.
+func (u *SenderProfileUpsert) UpdateIsActive() *SenderProfileUpsert {
+	u.SetExcluded(senderprofile.FieldIsActive)
+	return u
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (u *SenderProfileUpsert) SetUpdatedAt(v time.Time) *SenderProfileUpsert {
+	u.Set(senderprofile.FieldUpdatedAt, v)
+	return u
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *SenderProfileUpsert) UpdateUpdatedAt() *SenderProfileUpsert {
+	u.SetExcluded(senderprofile.FieldUpdatedAt)
+	return u
+}
+
+// UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
+// Using this option is equivalent to using:
+//
+//	client.SenderProfile.Create().
+//		OnConflict(
+//			sql.ResolveWithNewValues(),
+//			sql.ResolveWith(func(u *sql.UpdateSet) {
+//				u.SetIgnore(senderprofile.FieldID)
+//			}),
+//		).
+//		Exec(ctx)
+func (u *SenderProfileUpsertOne) UpdateNewValues() *SenderProfileUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
+		if _, exists := u.create.mutation.ID(); exists {
+			s.SetIgnore(senderprofile.FieldID)
+		}
+	}))
+	return u
+}
+
+// Ignore sets each column to itself in case of conflict.
+// Using this option is equivalent to using:
+//
+//	client.SenderProfile.Create().
+//	    OnConflict(sql.ResolveWithIgnore()).
+//	    Exec(ctx)
+func (u *SenderProfileUpsertOne) Ignore() *SenderProfileUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithIgnore())
+	return u
+}
+
+// DoNothing configures the conflict_action to `DO NOTHING`.
+// Supported only by SQLite and PostgreSQL.
+func (u *SenderProfileUpsertOne) DoNothing() *SenderProfileUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.DoNothing())
+	return u
+}
+
+// Update allows overriding fields `UPDATE` values. See the SenderProfileCreate.OnConflict
+// documentation for more info.
+func (u *SenderProfileUpsertOne) Update(set func(*SenderProfileUpsert)) *SenderProfileUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(update *sql.UpdateSet) {
+		set(&SenderProfileUpsert{UpdateSet: update})
+	}))
+	return u
+}
+
+// SetWebhookURL sets the "webhook_url" field.
+func (u *SenderProfileUpsertOne) SetWebhookURL(v string) *SenderProfileUpsertOne {
+	return u.Update(func(s *SenderProfileUpsert) {
+		s.SetWebhookURL(v)
+	})
+}
+
+// UpdateWebhookURL sets the "webhook_url" field to the value that was provided on create.
+func (u *SenderProfileUpsertOne) UpdateWebhookURL() *SenderProfileUpsertOne {
+	return u.Update(func(s *SenderProfileUpsert) {
+		s.UpdateWebhookURL()
+	})
+}
+
+// ClearWebhookURL clears the value of the "webhook_url" field.
+func (u *SenderProfileUpsertOne) ClearWebhookURL() *SenderProfileUpsertOne {
+	return u.Update(func(s *SenderProfileUpsert) {
+		s.ClearWebhookURL()
+	})
+}
+
+// SetDomainWhitelist sets the "domain_whitelist" field.
+func (u *SenderProfileUpsertOne) SetDomainWhitelist(v []string) *SenderProfileUpsertOne {
+	return u.Update(func(s *SenderProfileUpsert) {
+		s.SetDomainWhitelist(v)
+	})
+}
+
+// UpdateDomainWhitelist sets the "domain_whitelist" field to the value that was provided on create.
+func (u *SenderProfileUpsertOne) UpdateDomainWhitelist() *SenderProfileUpsertOne {
+	return u.Update(func(s *SenderProfileUpsert) {
+		s.UpdateDomainWhitelist()
+	})
+}
+
+// SetIsPartner sets the "is_partner" field.
+func (u *SenderProfileUpsertOne) SetIsPartner(v bool) *SenderProfileUpsertOne {
+	return u.Update(func(s *SenderProfileUpsert) {
+		s.SetIsPartner(v)
+	})
+}
+
+// UpdateIsPartner sets the "is_partner" field to the value that was provided on create.
+func (u *SenderProfileUpsertOne) UpdateIsPartner() *SenderProfileUpsertOne {
+	return u.Update(func(s *SenderProfileUpsert) {
+		s.UpdateIsPartner()
+	})
+}
+
+// SetIsActive sets the "is_active" field.
+func (u *SenderProfileUpsertOne) SetIsActive(v bool) *SenderProfileUpsertOne {
+	return u.Update(func(s *SenderProfileUpsert) {
+		s.SetIsActive(v)
+	})
+}
+
+// UpdateIsActive sets the "is_active" field to the value that was provided on create.
+func (u *SenderProfileUpsertOne) UpdateIsActive() *SenderProfileUpsertOne {
+	return u.Update(func(s *SenderProfileUpsert) {
+		s.UpdateIsActive()
+	})
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (u *SenderProfileUpsertOne) SetUpdatedAt(v time.Time) *SenderProfileUpsertOne {
+	return u.Update(func(s *SenderProfileUpsert) {
+		s.SetUpdatedAt(v)
+	})
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *SenderProfileUpsertOne) UpdateUpdatedAt() *SenderProfileUpsertOne {
+	return u.Update(func(s *SenderProfileUpsert) {
+		s.UpdateUpdatedAt()
+	})
+}
+
+// Exec executes the query.
+func (u *SenderProfileUpsertOne) Exec(ctx context.Context) error {
+	if len(u.create.conflict) == 0 {
+		return errors.New("ent: missing options for SenderProfileCreate.OnConflict")
+	}
+	return u.create.Exec(ctx)
+}
+
+// ExecX is like Exec, but panics if an error occurs.
+func (u *SenderProfileUpsertOne) ExecX(ctx context.Context) {
+	if err := u.create.Exec(ctx); err != nil {
+		panic(err)
+	}
+}
+
+// Exec executes the UPSERT query and returns the inserted/updated ID.
+func (u *SenderProfileUpsertOne) ID(ctx context.Context) (id uuid.UUID, err error) {
+	if u.create.driver.Dialect() == dialect.MySQL {
+		// In case of "ON CONFLICT", there is no way to get back non-numeric ID
+		// fields from the database since MySQL does not support the RETURNING clause.
+		return id, errors.New("ent: SenderProfileUpsertOne.ID is not supported by MySQL driver. Use SenderProfileUpsertOne.Exec instead")
+	}
+	node, err := u.create.Save(ctx)
+	if err != nil {
+		return id, err
+	}
+	return node.ID, nil
+}
+
+// IDX is like ID, but panics if an error occurs.
+func (u *SenderProfileUpsertOne) IDX(ctx context.Context) uuid.UUID {
+	id, err := u.ID(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return id
 }
 
 // SenderProfileCreateBulk is the builder for creating many SenderProfile entities in bulk.
 type SenderProfileCreateBulk struct {
 	config
 	builders []*SenderProfileCreate
+	conflict []sql.ConflictOption
 }
 
 // Save creates the SenderProfile entities in the database.
@@ -406,6 +671,7 @@ func (spcb *SenderProfileCreateBulk) Save(ctx context.Context) ([]*SenderProfile
 					_, err = mutators[i+1].Mutate(root, spcb.builders[i+1].mutation)
 				} else {
 					spec := &sqlgraph.BatchCreateSpec{Nodes: specs}
+					spec.OnConflict = spcb.conflict
 					// Invoke the actual operation on the latest mutation in the chain.
 					if err = sqlgraph.BatchCreate(ctx, spcb.driver, spec); err != nil {
 						if sqlgraph.IsConstraintError(err) {
@@ -452,6 +718,194 @@ func (spcb *SenderProfileCreateBulk) Exec(ctx context.Context) error {
 // ExecX is like Exec, but panics if an error occurs.
 func (spcb *SenderProfileCreateBulk) ExecX(ctx context.Context) {
 	if err := spcb.Exec(ctx); err != nil {
+		panic(err)
+	}
+}
+
+// OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
+// of the `INSERT` statement. For example:
+//
+//	client.SenderProfile.CreateBulk(builders...).
+//		OnConflict(
+//			// Update the row with the new values
+//			// the was proposed for insertion.
+//			sql.ResolveWithNewValues(),
+//		).
+//		// Override some of the fields with custom
+//		// update values.
+//		Update(func(u *ent.SenderProfileUpsert) {
+//			SetWebhookURL(v+v).
+//		}).
+//		Exec(ctx)
+func (spcb *SenderProfileCreateBulk) OnConflict(opts ...sql.ConflictOption) *SenderProfileUpsertBulk {
+	spcb.conflict = opts
+	return &SenderProfileUpsertBulk{
+		create: spcb,
+	}
+}
+
+// OnConflictColumns calls `OnConflict` and configures the columns
+// as conflict target. Using this option is equivalent to using:
+//
+//	client.SenderProfile.Create().
+//		OnConflict(sql.ConflictColumns(columns...)).
+//		Exec(ctx)
+func (spcb *SenderProfileCreateBulk) OnConflictColumns(columns ...string) *SenderProfileUpsertBulk {
+	spcb.conflict = append(spcb.conflict, sql.ConflictColumns(columns...))
+	return &SenderProfileUpsertBulk{
+		create: spcb,
+	}
+}
+
+// SenderProfileUpsertBulk is the builder for "upsert"-ing
+// a bulk of SenderProfile nodes.
+type SenderProfileUpsertBulk struct {
+	create *SenderProfileCreateBulk
+}
+
+// UpdateNewValues updates the mutable fields using the new values that
+// were set on create. Using this option is equivalent to using:
+//
+//	client.SenderProfile.Create().
+//		OnConflict(
+//			sql.ResolveWithNewValues(),
+//			sql.ResolveWith(func(u *sql.UpdateSet) {
+//				u.SetIgnore(senderprofile.FieldID)
+//			}),
+//		).
+//		Exec(ctx)
+func (u *SenderProfileUpsertBulk) UpdateNewValues() *SenderProfileUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
+		for _, b := range u.create.builders {
+			if _, exists := b.mutation.ID(); exists {
+				s.SetIgnore(senderprofile.FieldID)
+			}
+		}
+	}))
+	return u
+}
+
+// Ignore sets each column to itself in case of conflict.
+// Using this option is equivalent to using:
+//
+//	client.SenderProfile.Create().
+//		OnConflict(sql.ResolveWithIgnore()).
+//		Exec(ctx)
+func (u *SenderProfileUpsertBulk) Ignore() *SenderProfileUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithIgnore())
+	return u
+}
+
+// DoNothing configures the conflict_action to `DO NOTHING`.
+// Supported only by SQLite and PostgreSQL.
+func (u *SenderProfileUpsertBulk) DoNothing() *SenderProfileUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.DoNothing())
+	return u
+}
+
+// Update allows overriding fields `UPDATE` values. See the SenderProfileCreateBulk.OnConflict
+// documentation for more info.
+func (u *SenderProfileUpsertBulk) Update(set func(*SenderProfileUpsert)) *SenderProfileUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(update *sql.UpdateSet) {
+		set(&SenderProfileUpsert{UpdateSet: update})
+	}))
+	return u
+}
+
+// SetWebhookURL sets the "webhook_url" field.
+func (u *SenderProfileUpsertBulk) SetWebhookURL(v string) *SenderProfileUpsertBulk {
+	return u.Update(func(s *SenderProfileUpsert) {
+		s.SetWebhookURL(v)
+	})
+}
+
+// UpdateWebhookURL sets the "webhook_url" field to the value that was provided on create.
+func (u *SenderProfileUpsertBulk) UpdateWebhookURL() *SenderProfileUpsertBulk {
+	return u.Update(func(s *SenderProfileUpsert) {
+		s.UpdateWebhookURL()
+	})
+}
+
+// ClearWebhookURL clears the value of the "webhook_url" field.
+func (u *SenderProfileUpsertBulk) ClearWebhookURL() *SenderProfileUpsertBulk {
+	return u.Update(func(s *SenderProfileUpsert) {
+		s.ClearWebhookURL()
+	})
+}
+
+// SetDomainWhitelist sets the "domain_whitelist" field.
+func (u *SenderProfileUpsertBulk) SetDomainWhitelist(v []string) *SenderProfileUpsertBulk {
+	return u.Update(func(s *SenderProfileUpsert) {
+		s.SetDomainWhitelist(v)
+	})
+}
+
+// UpdateDomainWhitelist sets the "domain_whitelist" field to the value that was provided on create.
+func (u *SenderProfileUpsertBulk) UpdateDomainWhitelist() *SenderProfileUpsertBulk {
+	return u.Update(func(s *SenderProfileUpsert) {
+		s.UpdateDomainWhitelist()
+	})
+}
+
+// SetIsPartner sets the "is_partner" field.
+func (u *SenderProfileUpsertBulk) SetIsPartner(v bool) *SenderProfileUpsertBulk {
+	return u.Update(func(s *SenderProfileUpsert) {
+		s.SetIsPartner(v)
+	})
+}
+
+// UpdateIsPartner sets the "is_partner" field to the value that was provided on create.
+func (u *SenderProfileUpsertBulk) UpdateIsPartner() *SenderProfileUpsertBulk {
+	return u.Update(func(s *SenderProfileUpsert) {
+		s.UpdateIsPartner()
+	})
+}
+
+// SetIsActive sets the "is_active" field.
+func (u *SenderProfileUpsertBulk) SetIsActive(v bool) *SenderProfileUpsertBulk {
+	return u.Update(func(s *SenderProfileUpsert) {
+		s.SetIsActive(v)
+	})
+}
+
+// UpdateIsActive sets the "is_active" field to the value that was provided on create.
+func (u *SenderProfileUpsertBulk) UpdateIsActive() *SenderProfileUpsertBulk {
+	return u.Update(func(s *SenderProfileUpsert) {
+		s.UpdateIsActive()
+	})
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (u *SenderProfileUpsertBulk) SetUpdatedAt(v time.Time) *SenderProfileUpsertBulk {
+	return u.Update(func(s *SenderProfileUpsert) {
+		s.SetUpdatedAt(v)
+	})
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *SenderProfileUpsertBulk) UpdateUpdatedAt() *SenderProfileUpsertBulk {
+	return u.Update(func(s *SenderProfileUpsert) {
+		s.UpdateUpdatedAt()
+	})
+}
+
+// Exec executes the query.
+func (u *SenderProfileUpsertBulk) Exec(ctx context.Context) error {
+	for i, b := range u.create.builders {
+		if len(b.conflict) != 0 {
+			return fmt.Errorf("ent: OnConflict was set for builder %d. Set it on the SenderProfileCreateBulk instead", i)
+		}
+	}
+	if len(u.create.conflict) == 0 {
+		return errors.New("ent: missing options for SenderProfileCreateBulk.OnConflict")
+	}
+	return u.create.Exec(ctx)
+}
+
+// ExecX is like Exec, but panics if an error occurs.
+func (u *SenderProfileUpsertBulk) ExecX(ctx context.Context) {
+	if err := u.create.Exec(ctx); err != nil {
 		panic(err)
 	}
 }

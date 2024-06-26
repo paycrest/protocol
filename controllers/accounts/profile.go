@@ -1,8 +1,10 @@
 package accounts
 
 import (
+	"context"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/ent"
@@ -11,6 +13,8 @@ import (
 	"github.com/paycrest/protocol/ent/providerordertoken"
 	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/provisionbucket"
+	"github.com/paycrest/protocol/ent/senderordertoken"
+	"github.com/paycrest/protocol/ent/senderprofile"
 	"github.com/paycrest/protocol/ent/token"
 	svc "github.com/paycrest/protocol/services"
 	"github.com/paycrest/protocol/storage"
@@ -72,43 +76,131 @@ func (ctrl *ProfileController) UpdateSenderProfile(ctx *gin.Context) {
 		update.SetDomainWhitelist(payload.DomainWhitelist)
 	}
 
-	feeAddressIsValid := u.IsValidEthereumAddress(payload.FeeAddress)
-
-	if payload.FeeAddress != "" {
-		if !feeAddressIsValid {
-			u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
-				Field:   "FeeAddress",
-				Message: "Invalid Ethereum address",
-			})
-			return
-		}
-		update.SetFeePerTokenUnit(payload.FeePerTokenUnit).SetFeeAddress(payload.FeeAddress)
-	} else {
-		if !payload.FeePerTokenUnit.IsZero() && payload.FeeAddress == "" {
-			u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
-				Field:   "FeeAddress",
-				Message: "This field is required",
-			})
-			return
-		}
-		if payload.FeeAddress != "" && !feeAddressIsValid {
-			u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
-				Field:   "FeeAddress",
-				Message: "Invalid Ethereum address",
-			})
-			return
-		}
+	// save or update SenderOrderToken
+	tx, err := storage.Client.Tx(ctx)
+	if err != nil {
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update profile init", nil)
+		return
 	}
 
-	if payload.RefundAddress != "" {
-		update.SetRefundAddress(payload.RefundAddress)
+	for _, tokenPayload := range payload.Tokens {
+
+		if len(tokenPayload.Addresses) == 0 {
+			u.APIResponse(ctx, http.StatusBadRequest, "error", fmt.Sprintf("No wallet address provided for %s token", tokenPayload.Symbol), nil)
+			return
+		}
+
+		// Check if token is supported
+		_, err := tx.Token.
+			Query().
+			Where(token.Symbol(tokenPayload.Symbol)).
+			First(ctx)
+		if err != nil {
+			u.APIResponse(ctx, http.StatusBadRequest, "error", "Token not supported", nil)
+			return
+		}
+
+		var networksToTokenId map[string]int = map[string]int{}
+		for _, address := range tokenPayload.Addresses {
+
+			if strings.HasPrefix(address.Network, "tron") {
+				feeAddressIsValid := u.IsValidTronAddress(address.FeeAddress)
+				if address.FeeAddress != "" && !feeAddressIsValid {
+					u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
+						Field:   "FeeAddress",
+						Message: "Invalid Tron address",
+					})
+					return
+				}
+				networksToTokenId[address.Network] = 0
+			} else {
+				feeAddressIsValid := u.IsValidEthereumAddress(address.FeeAddress)
+				if address.FeeAddress != "" && !feeAddressIsValid {
+					u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
+						Field:   "FeeAddress",
+						Message: "Invalid Ethereum address",
+					})
+					return
+				}
+				networksToTokenId[address.Network] = 0
+			}
+		}
+
+		// Check if network is supported
+		for key := range networksToTokenId {
+			tokenId, err := tx.Token.
+				Query().
+				Where(
+					token.And(
+						token.HasNetworkWith(network.IdentifierEQ(key)),
+						token.SymbolEQ(tokenPayload.Symbol),
+					)).
+				Only(ctx)
+			if err != nil {
+				u.APIResponse(
+					ctx,
+					http.StatusBadRequest,
+					"error", "Network not supported - "+key,
+					nil,
+				)
+				return
+			}
+			networksToTokenId[key] = tokenId.ID
+		}
+
+		for _, address := range tokenPayload.Addresses {
+			senderToken, err := tx.SenderOrderToken.
+				Query().
+				Where(
+					senderordertoken.And(
+						senderordertoken.HasTokenWith(token.IDEQ(networksToTokenId[address.Network])),
+						senderordertoken.HasSenderWith(senderprofile.IDEQ(sender.ID)),
+					),
+				).Only(context.Background())
+			if err != nil {
+				if ent.IsNotFound(err) {
+					_, err := tx.SenderOrderToken.
+						Create().
+						SetSenderID(sender.ID).
+						SetTokenID(networksToTokenId[address.Network]).
+						SetRefundAddress(address.RefundAddress).
+						SetFeePerTokenUnit(tokenPayload.FeePerTokenUnit).
+						SetFeeAddress(address.FeeAddress).
+						Save(context.Background())
+					if err != nil {
+						u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update profile", nil)
+						return
+					}
+				} else {
+					u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update profile err:", nil)
+					return
+				}
+
+			} else {
+				_, err := senderToken.
+					Update().
+					SetRefundAddress(address.RefundAddress).
+					SetFeePerTokenUnit(tokenPayload.FeePerTokenUnit).
+					SetFeeAddress(address.FeeAddress).
+					Save(context.Background())
+				if err != nil {
+					u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update profile", nil)
+					return
+				}
+			}
+		}
+	}
+	// Commit the transaction
+	if err := tx.Commit(); err != nil {
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update profile commit", nil)
+		return
 	}
 
 	if !sender.IsActive {
 		update.SetIsActive(true)
 	}
 
-	_, err := update.Save(ctx)
+	_, err = update.Save(ctx)
 	if err != nil {
 		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update profile", nil)
 		return
@@ -390,6 +482,34 @@ func (ctrl *ProfileController) GetSenderProfile(ctx *gin.Context) {
 		return
 	}
 
+	senderToken, err := storage.Client.SenderOrderToken.
+		Query().
+		Where(senderordertoken.HasSenderWith(senderprofile.IDEQ(sender.ID))).
+		WithToken(
+			func(tq *ent.TokenQuery) {
+				tq.WithNetwork()
+			},
+		).
+		All(ctx)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to retrieve profile", nil)
+		return
+	}
+
+	tokensPayload := make([]types.SenderOrderTokenResponse, len(sender.Edges.OrderTokens))
+	for i, token := range senderToken {
+		payload := types.SenderOrderTokenResponse{
+			Symbol:          token.Edges.Token.Symbol,
+			RefundAddress:   token.RefundAddress,
+			FeePerTokenUnit: token.FeePerTokenUnit,
+			FeeAddress:      token.FeeAddress,
+			Network:         token.Edges.Token.Edges.Network.Identifier,
+		}
+
+		tokensPayload[i] = payload
+	}
+
 	u.APIResponse(ctx, http.StatusOK, "success", "Profile retrieved successfully", &types.SenderProfileResponse{
 		ID:              sender.ID,
 		FirstName:       user.FirstName,
@@ -397,9 +517,7 @@ func (ctrl *ProfileController) GetSenderProfile(ctx *gin.Context) {
 		Email:           user.Email,
 		WebhookURL:      sender.WebhookURL,
 		DomainWhitelist: sender.DomainWhitelist,
-		FeePerTokenUnit: sender.FeePerTokenUnit,
-		FeeAddress:      sender.FeeAddress,
-		RefundAddress:   sender.RefundAddress,
+		Tokens:           tokensPayload,
 		APIKey:          *apiKey,
 		IsActive:        sender.IsActive,
 	})

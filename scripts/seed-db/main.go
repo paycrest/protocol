@@ -173,9 +173,6 @@ func seedSender(ctx context.Context, client *ent.Client, serial string) (string,
 		Create().
 		SetUser(user).
 		SetWebhookURL("https://example.com/webhook").
-		SetFeePerTokenUnit(decimal.NewFromFloat(10)).
-		SetFeeAddress("0x409689E3008d43a9eb439e7B275749D4a71D8E2D").
-		SetRefundAddress("0x409689E3008d43a9eb439e7B275749D4a71D8E2D").
 		SetDomainWhitelist([]string{"https://example.com"}).
 		SetIsActive(true).
 		Save(ctx)

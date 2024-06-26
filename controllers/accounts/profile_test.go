@@ -14,11 +14,14 @@ import (
 	"github.com/paycrest/protocol/services"
 	db "github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
+	"github.com/shopspring/decimal"
 
 	"github.com/gin-gonic/gin"
 	"github.com/paycrest/protocol/ent/enttest"
 	"github.com/paycrest/protocol/ent/providerprofile"
+	"github.com/paycrest/protocol/ent/senderordertoken"
 	"github.com/paycrest/protocol/ent/senderprofile"
+	tokenDB "github.com/paycrest/protocol/ent/token"
 	"github.com/paycrest/protocol/ent/user"
 	"github.com/paycrest/protocol/utils/test"
 	"github.com/paycrest/protocol/utils/token"
@@ -28,9 +31,29 @@ import (
 var testCtx = struct {
 	user            *ent.User
 	providerProfile *ent.ProviderProfile
+	token           *ent.Token
+	client          types.RPCClient
 }{}
 
 func setup() error {
+	// Set up test blockchain client
+	client, err := test.SetUpTestBlockchain()
+	if err != nil {
+		return err
+	}
+
+	testCtx.client = client
+	// Create a test token
+	token, err := test.CreateERC20Token(
+		client,
+		map[string]interface{}{
+			"deployContract": false,
+		})
+	if err != nil {
+		return err
+	}
+	testCtx.token = token
+
 	// Set up test data
 	user, err := test.CreateTestUser(map[string]interface{}{
 		"scope": "provider",
@@ -113,6 +136,7 @@ func TestProfile(t *testing.T) {
 			_, err = test.CreateTestSenderProfile(map[string]interface{}{
 				"domain_whitelist": []string{"example.com"},
 				"user_id":          testUser.ID,
+				"token":            testCtx.token.Symbol,
 			})
 			assert.NoError(t, err)
 
@@ -123,7 +147,6 @@ func TestProfile(t *testing.T) {
 			}
 			payload := types.SenderProfilePayload{
 				DomainWhitelist: []string{"example.com", "mydomain.com"},
-				RefundAddress:   "0x1234567890123456789012345678901234567890",
 			}
 
 			res, err := test.PerformRequest(t, "PATCH", "/settings/sender", payload, headers, router)
@@ -168,7 +191,6 @@ func TestProfile(t *testing.T) {
 			payload := types.SenderProfilePayload{
 				WebhookURL:      "examplecom",
 				DomainWhitelist: []string{"example.com", "mydomain.com"},
-				RefundAddress:   "0x1234567890123456789012345678901234567890",
 			}
 
 			res, err := test.PerformRequest(t, "PATCH", "/settings/sender", payload, headers, router)
@@ -207,6 +229,7 @@ func TestProfile(t *testing.T) {
 			_, err = test.CreateTestSenderProfile(map[string]interface{}{
 				"domain_whitelist": []string{"example.com"},
 				"user_id":          testUser.ID,
+				"token":            testCtx.token.Symbol,
 			})
 			assert.NoError(t, err)
 
@@ -215,9 +238,40 @@ func TestProfile(t *testing.T) {
 			headers := map[string]string{
 				"Authorization": "Bearer " + accessToken,
 			}
+
+			// setup payload
+			tokenPayload := make([]types.SenderOrderTokenPayload, 2)
+			tokenAddresses := make([]types.SenderOrderAddressPayload, 1)
+
+			// setup ERC20 token
+			tokenAddresses[0].FeeAddress = "0xD4EB9067111F81b9bAabE06E2b8ebBaDADEd5DAf"
+			tokenAddresses[0].Network = testCtx.token.Edges.Network.Identifier
+			tokenAddresses[0].RefundAddress = "0xD4EB9067111F81b9bAabE06E2b8ebBaDADEd5DA0"
+
+			tokenPayload[0].FeePerTokenUnit = decimal.NewFromInt(1)
+			tokenPayload[0].Symbol = testCtx.token.Symbol
+			tokenPayload[0].Addresses = tokenAddresses
+
+			// setup TRC token
+			tronToken, err := test.CreateTRC20Token(testCtx.client, map[string]interface{}{})
+			assert.NoError(t, err)
+			assert.NotEqual(t, "localhost", tronToken.Edges.Network.Identifier)
+
+			// setup TRC20 token
+			tronTokenAddresses := make([]types.SenderOrderAddressPayload, 1)
+			tronTokenAddresses[0].FeeAddress = "TFRKiHrHCeSyWL67CEwydFvUMYJ6CbYYX7"
+			tronTokenAddresses[0].Network = tronToken.Edges.Network.Identifier
+			tronTokenAddresses[0].RefundAddress = "TFRKiHrHCeSyWL67CEwydFvUMYJ6CbYYXR"
+
+			tokenPayload[1].FeePerTokenUnit = decimal.NewFromInt(2)
+			tokenPayload[1].Symbol = tronToken.Symbol
+			tokenPayload[1].Addresses = tronTokenAddresses
+
+			// put the payload together
 			payload := types.SenderProfilePayload{
 				DomainWhitelist: []string{"example.com", "mydomain.com"},
-				RefundAddress:   "0x1234567890123456789012345678901234567890",
+				WebhookURL:      "https://example.com",
+				Tokens:          tokenPayload,
 			}
 
 			res, err := test.PerformRequest(t, "PATCH", "/settings/sender", payload, headers, router)
@@ -235,9 +289,40 @@ func TestProfile(t *testing.T) {
 			senderProfile, err := db.Client.SenderProfile.
 				Query().
 				Where(senderprofile.HasUserWith(user.ID(testUser.ID))).
+				WithOrderTokens().
 				Only(context.Background())
 			assert.NoError(t, err)
+			assert.Equal(t, len(senderProfile.Edges.OrderTokens), 2)
 
+			t.Run("check If Tron was added", func(t *testing.T) {
+				senderorder, err := db.Client.SenderOrderToken.
+					Query().
+					Where(
+						senderordertoken.HasSenderWith(
+							senderprofile.IDEQ(senderProfile.ID),
+						),
+						senderordertoken.HasTokenWith(tokenDB.IDEQ(tronToken.ID)),
+					).
+					Only(context.Background())
+				assert.NoError(t, err)
+				assert.Equal(t, senderorder.FeeAddress, "TFRKiHrHCeSyWL67CEwydFvUMYJ6CbYYX7")
+				assert.Equal(t, senderorder.RefundAddress, "TFRKiHrHCeSyWL67CEwydFvUMYJ6CbYYXR")
+			})
+
+			t.Run("check If EVM chain was added", func(t *testing.T) {
+				senderorder, err := db.Client.SenderOrderToken.
+					Query().
+					Where(
+						senderordertoken.HasSenderWith(
+							senderprofile.IDEQ(senderProfile.ID),
+						),
+						senderordertoken.HasTokenWith(tokenDB.IDEQ(testCtx.token.ID)),
+					).
+					Only(context.Background())
+				assert.NoError(t, err)
+				assert.Equal(t, senderorder.FeeAddress, "0xD4EB9067111F81b9bAabE06E2b8ebBaDADEd5DAf")
+				assert.Equal(t, senderorder.RefundAddress, "0xD4EB9067111F81b9bAabE06E2b8ebBaDADEd5DA0")
+			})
 			assert.Contains(t, senderProfile.DomainWhitelist, "mydomain.com")
 			assert.True(t, senderProfile.IsActive)
 		})
@@ -253,12 +338,12 @@ func TestProfile(t *testing.T) {
 				"Authorization": "Bearer " + accessToken,
 			}
 			payload := types.ProviderProfilePayload{
-				TradingName:    "My Trading Name",
-				Currency:       "KES",
-				HostIdentifier: "example.com",
+				TradingName:      "My Trading Name",
+				Currency:         "KES",
+				HostIdentifier:   "example.com",
 				BusinessDocument: "https://example.com/business_doc.png",
 				IdentityDocument: "https://example.com/national_id.png",
-				IsAvailable:    true,
+				IsAvailable:      true,
 			}
 
 			res, err := test.PerformRequest(t, "PATCH", "/settings/provider", payload, headers, router)

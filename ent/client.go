@@ -28,6 +28,7 @@ import (
 	"github.com/paycrest/protocol/ent/providerrating"
 	"github.com/paycrest/protocol/ent/provisionbucket"
 	"github.com/paycrest/protocol/ent/receiveaddress"
+	"github.com/paycrest/protocol/ent/senderordertoken"
 	"github.com/paycrest/protocol/ent/senderprofile"
 	"github.com/paycrest/protocol/ent/token"
 	"github.com/paycrest/protocol/ent/transactionlog"
@@ -67,6 +68,8 @@ type Client struct {
 	ProvisionBucket *ProvisionBucketClient
 	// ReceiveAddress is the client for interacting with the ReceiveAddress builders.
 	ReceiveAddress *ReceiveAddressClient
+	// SenderOrderToken is the client for interacting with the SenderOrderToken builders.
+	SenderOrderToken *SenderOrderTokenClient
 	// SenderProfile is the client for interacting with the SenderProfile builders.
 	SenderProfile *SenderProfileClient
 	// Token is the client for interacting with the Token builders.
@@ -105,6 +108,7 @@ func (c *Client) init() {
 	c.ProviderRating = NewProviderRatingClient(c.config)
 	c.ProvisionBucket = NewProvisionBucketClient(c.config)
 	c.ReceiveAddress = NewReceiveAddressClient(c.config)
+	c.SenderOrderToken = NewSenderOrderTokenClient(c.config)
 	c.SenderProfile = NewSenderProfileClient(c.config)
 	c.Token = NewTokenClient(c.config)
 	c.TransactionLog = NewTransactionLogClient(c.config)
@@ -206,6 +210,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		ProviderRating:        NewProviderRatingClient(cfg),
 		ProvisionBucket:       NewProvisionBucketClient(cfg),
 		ReceiveAddress:        NewReceiveAddressClient(cfg),
+		SenderOrderToken:      NewSenderOrderTokenClient(cfg),
 		SenderProfile:         NewSenderProfileClient(cfg),
 		Token:                 NewTokenClient(cfg),
 		TransactionLog:        NewTransactionLogClient(cfg),
@@ -244,6 +249,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		ProviderRating:        NewProviderRatingClient(cfg),
 		ProvisionBucket:       NewProvisionBucketClient(cfg),
 		ReceiveAddress:        NewReceiveAddressClient(cfg),
+		SenderOrderToken:      NewSenderOrderTokenClient(cfg),
 		SenderProfile:         NewSenderProfileClient(cfg),
 		Token:                 NewTokenClient(cfg),
 		TransactionLog:        NewTransactionLogClient(cfg),
@@ -282,8 +288,8 @@ func (c *Client) Use(hooks ...Hook) {
 		c.APIKey, c.FiatCurrency, c.Institution, c.LockOrderFulfillment,
 		c.LockPaymentOrder, c.Network, c.PaymentOrder, c.PaymentOrderRecipient,
 		c.ProviderOrderToken, c.ProviderProfile, c.ProviderRating, c.ProvisionBucket,
-		c.ReceiveAddress, c.SenderProfile, c.Token, c.TransactionLog, c.User,
-		c.VerificationToken, c.WebhookRetryAttempt,
+		c.ReceiveAddress, c.SenderOrderToken, c.SenderProfile, c.Token,
+		c.TransactionLog, c.User, c.VerificationToken, c.WebhookRetryAttempt,
 	} {
 		n.Use(hooks...)
 	}
@@ -296,8 +302,8 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.APIKey, c.FiatCurrency, c.Institution, c.LockOrderFulfillment,
 		c.LockPaymentOrder, c.Network, c.PaymentOrder, c.PaymentOrderRecipient,
 		c.ProviderOrderToken, c.ProviderProfile, c.ProviderRating, c.ProvisionBucket,
-		c.ReceiveAddress, c.SenderProfile, c.Token, c.TransactionLog, c.User,
-		c.VerificationToken, c.WebhookRetryAttempt,
+		c.ReceiveAddress, c.SenderOrderToken, c.SenderProfile, c.Token,
+		c.TransactionLog, c.User, c.VerificationToken, c.WebhookRetryAttempt,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -332,6 +338,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.ProvisionBucket.mutate(ctx, m)
 	case *ReceiveAddressMutation:
 		return c.ReceiveAddress.mutate(ctx, m)
+	case *SenderOrderTokenMutation:
+		return c.SenderOrderToken.mutate(ctx, m)
 	case *SenderProfileMutation:
 		return c.SenderProfile.mutate(ctx, m)
 	case *TokenMutation:
@@ -2411,6 +2419,156 @@ func (c *ReceiveAddressClient) mutate(ctx context.Context, m *ReceiveAddressMuta
 	}
 }
 
+// SenderOrderTokenClient is a client for the SenderOrderToken schema.
+type SenderOrderTokenClient struct {
+	config
+}
+
+// NewSenderOrderTokenClient returns a client for the SenderOrderToken from the given config.
+func NewSenderOrderTokenClient(c config) *SenderOrderTokenClient {
+	return &SenderOrderTokenClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `senderordertoken.Hooks(f(g(h())))`.
+func (c *SenderOrderTokenClient) Use(hooks ...Hook) {
+	c.hooks.SenderOrderToken = append(c.hooks.SenderOrderToken, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `senderordertoken.Intercept(f(g(h())))`.
+func (c *SenderOrderTokenClient) Intercept(interceptors ...Interceptor) {
+	c.inters.SenderOrderToken = append(c.inters.SenderOrderToken, interceptors...)
+}
+
+// Create returns a builder for creating a SenderOrderToken entity.
+func (c *SenderOrderTokenClient) Create() *SenderOrderTokenCreate {
+	mutation := newSenderOrderTokenMutation(c.config, OpCreate)
+	return &SenderOrderTokenCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of SenderOrderToken entities.
+func (c *SenderOrderTokenClient) CreateBulk(builders ...*SenderOrderTokenCreate) *SenderOrderTokenCreateBulk {
+	return &SenderOrderTokenCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for SenderOrderToken.
+func (c *SenderOrderTokenClient) Update() *SenderOrderTokenUpdate {
+	mutation := newSenderOrderTokenMutation(c.config, OpUpdate)
+	return &SenderOrderTokenUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *SenderOrderTokenClient) UpdateOne(sot *SenderOrderToken) *SenderOrderTokenUpdateOne {
+	mutation := newSenderOrderTokenMutation(c.config, OpUpdateOne, withSenderOrderToken(sot))
+	return &SenderOrderTokenUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *SenderOrderTokenClient) UpdateOneID(id int) *SenderOrderTokenUpdateOne {
+	mutation := newSenderOrderTokenMutation(c.config, OpUpdateOne, withSenderOrderTokenID(id))
+	return &SenderOrderTokenUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for SenderOrderToken.
+func (c *SenderOrderTokenClient) Delete() *SenderOrderTokenDelete {
+	mutation := newSenderOrderTokenMutation(c.config, OpDelete)
+	return &SenderOrderTokenDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *SenderOrderTokenClient) DeleteOne(sot *SenderOrderToken) *SenderOrderTokenDeleteOne {
+	return c.DeleteOneID(sot.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *SenderOrderTokenClient) DeleteOneID(id int) *SenderOrderTokenDeleteOne {
+	builder := c.Delete().Where(senderordertoken.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &SenderOrderTokenDeleteOne{builder}
+}
+
+// Query returns a query builder for SenderOrderToken.
+func (c *SenderOrderTokenClient) Query() *SenderOrderTokenQuery {
+	return &SenderOrderTokenQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeSenderOrderToken},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a SenderOrderToken entity by its id.
+func (c *SenderOrderTokenClient) Get(ctx context.Context, id int) (*SenderOrderToken, error) {
+	return c.Query().Where(senderordertoken.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *SenderOrderTokenClient) GetX(ctx context.Context, id int) *SenderOrderToken {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QuerySender queries the sender edge of a SenderOrderToken.
+func (c *SenderOrderTokenClient) QuerySender(sot *SenderOrderToken) *SenderProfileQuery {
+	query := (&SenderProfileClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := sot.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(senderordertoken.Table, senderordertoken.FieldID, id),
+			sqlgraph.To(senderprofile.Table, senderprofile.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, senderordertoken.SenderTable, senderordertoken.SenderColumn),
+		)
+		fromV = sqlgraph.Neighbors(sot.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryToken queries the token edge of a SenderOrderToken.
+func (c *SenderOrderTokenClient) QueryToken(sot *SenderOrderToken) *TokenQuery {
+	query := (&TokenClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := sot.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(senderordertoken.Table, senderordertoken.FieldID, id),
+			sqlgraph.To(token.Table, token.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, senderordertoken.TokenTable, senderordertoken.TokenColumn),
+		)
+		fromV = sqlgraph.Neighbors(sot.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *SenderOrderTokenClient) Hooks() []Hook {
+	return c.hooks.SenderOrderToken
+}
+
+// Interceptors returns the client interceptors.
+func (c *SenderOrderTokenClient) Interceptors() []Interceptor {
+	return c.inters.SenderOrderToken
+}
+
+func (c *SenderOrderTokenClient) mutate(ctx context.Context, m *SenderOrderTokenMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&SenderOrderTokenCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&SenderOrderTokenUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&SenderOrderTokenUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&SenderOrderTokenDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown SenderOrderToken mutation op: %q", m.Op())
+	}
+}
+
 // SenderProfileClient is a client for the SenderProfile schema.
 type SenderProfileClient struct {
 	config
@@ -2545,6 +2703,22 @@ func (c *SenderProfileClient) QueryPaymentOrders(sp *SenderProfile) *PaymentOrde
 			sqlgraph.From(senderprofile.Table, senderprofile.FieldID, id),
 			sqlgraph.To(paymentorder.Table, paymentorder.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, senderprofile.PaymentOrdersTable, senderprofile.PaymentOrdersColumn),
+		)
+		fromV = sqlgraph.Neighbors(sp.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryOrderTokens queries the order_tokens edge of a SenderProfile.
+func (c *SenderProfileClient) QueryOrderTokens(sp *SenderProfile) *SenderOrderTokenQuery {
+	query := (&SenderOrderTokenClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := sp.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(senderprofile.Table, senderprofile.FieldID, id),
+			sqlgraph.To(senderordertoken.Table, senderordertoken.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, senderprofile.OrderTokensTable, senderprofile.OrderTokensColumn),
 		)
 		fromV = sqlgraph.Neighbors(sp.driver.Dialect(), step)
 		return fromV, nil
@@ -2711,6 +2885,22 @@ func (c *TokenClient) QueryLockPaymentOrders(t *Token) *LockPaymentOrderQuery {
 			sqlgraph.From(token.Table, token.FieldID, id),
 			sqlgraph.To(lockpaymentorder.Table, lockpaymentorder.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, token.LockPaymentOrdersTable, token.LockPaymentOrdersColumn),
+		)
+		fromV = sqlgraph.Neighbors(t.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QuerySenderSettings queries the sender_settings edge of a Token.
+func (c *TokenClient) QuerySenderSettings(t *Token) *SenderOrderTokenQuery {
+	query := (&SenderOrderTokenClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := t.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(token.Table, token.FieldID, id),
+			sqlgraph.To(senderordertoken.Table, senderordertoken.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, token.SenderSettingsTable, token.SenderSettingsColumn),
 		)
 		fromV = sqlgraph.Neighbors(t.driver.Dialect(), step)
 		return fromV, nil
@@ -3287,14 +3477,14 @@ type (
 		APIKey, FiatCurrency, Institution, LockOrderFulfillment, LockPaymentOrder,
 		Network, PaymentOrder, PaymentOrderRecipient, ProviderOrderToken,
 		ProviderProfile, ProviderRating, ProvisionBucket, ReceiveAddress,
-		SenderProfile, Token, TransactionLog, User, VerificationToken,
-		WebhookRetryAttempt []ent.Hook
+		SenderOrderToken, SenderProfile, Token, TransactionLog, User,
+		VerificationToken, WebhookRetryAttempt []ent.Hook
 	}
 	inters struct {
 		APIKey, FiatCurrency, Institution, LockOrderFulfillment, LockPaymentOrder,
 		Network, PaymentOrder, PaymentOrderRecipient, ProviderOrderToken,
 		ProviderProfile, ProviderRating, ProvisionBucket, ReceiveAddress,
-		SenderProfile, Token, TransactionLog, User, VerificationToken,
-		WebhookRetryAttempt []ent.Interceptor
+		SenderOrderToken, SenderProfile, Token, TransactionLog, User,
+		VerificationToken, WebhookRetryAttempt []ent.Interceptor
 	}
 )

@@ -13,6 +13,10 @@ import (
 	"github.com/paycrest/protocol/ent/enttest"
 	"github.com/paycrest/protocol/ent/paymentorder"
 	"github.com/paycrest/protocol/ent/receiveaddress"
+	"github.com/paycrest/protocol/ent/senderordertoken"
+	"github.com/paycrest/protocol/ent/senderprofile"
+	tokenDB "github.com/paycrest/protocol/ent/token"
+
 	"github.com/paycrest/protocol/services/contracts"
 	db "github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
@@ -48,21 +52,22 @@ func setup() error {
 	receiveAddress, err := test.CreateSmartAddress(
 		context.Background(), client)
 	if err != nil {
-		return err
+		return fmt.Errorf("CreateSmartAddress.setup.indexer_test: %w", err)
 	}
 	testCtx.receiveAddress = receiveAddress
 
 	// Create a test api key
 	user, err := test.CreateTestUser(nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("CreateTestUser.setup.indexer_test: %w", err)
 	}
 
 	senderProfile, err := test.CreateTestSenderProfile(map[string]interface{}{
 		"user_id": user.ID,
+		"token":   token.Symbol,
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("CreateTestSenderProfile.setup.indexer_test: %w", err)
 	}
 
 	apiKeyService := NewAPIKeyService()
@@ -73,7 +78,20 @@ func setup() error {
 		nil,
 	)
 	if err != nil {
-		return err
+		return fmt.Errorf("GenerateAPIKey.setup.indexer_test: %w", err)
+	}
+
+	// find sender token
+	senderToken, err := db.Client.SenderOrderToken.
+		Query().
+		Where(
+			senderordertoken.HasSenderWith(senderprofile.IDEQ(senderProfile.ID)),
+			senderordertoken.HasTokenWith(tokenDB.IDEQ(token.ID)),
+		).
+		Only(context.Background())
+
+	if err != nil {
+		return fmt.Errorf("Mine %w", err)
 	}
 
 	// Create a payment order
@@ -94,11 +112,11 @@ func setup() error {
 		SetToken(token).
 		SetReceiveAddress(receiveAddress).
 		SetReceiveAddressText(receiveAddress.Address).
-		SetFeePerTokenUnit(senderProfile.FeePerTokenUnit).
-		SetFeeAddress(senderProfile.FeeAddress).
+		SetFeePerTokenUnit(senderToken.FeePerTokenUnit).
+		SetFeeAddress(senderToken.FeeAddress).
 		Save(context.Background())
 	if err != nil {
-		return err
+		return fmt.Errorf("setup,paymentOrder  %w", err)
 	}
 	testCtx.paymentOrder = paymentOrder
 
@@ -113,7 +131,7 @@ func setup() error {
 		SetPaymentOrder(paymentOrder).
 		Save(context.Background())
 	if err != nil {
-		return err
+		return fmt.Errorf("PaymentOrderRecipient.setup.indexer_test: %w", err)
 	}
 
 	// Fund receive address
@@ -125,7 +143,7 @@ func setup() error {
 		common.HexToAddress(receiveAddress.Address),
 	)
 	if err != nil {
-		return err
+		return fmt.Errorf("FundAddressWithERC20Token.setup.indexer_test: %w", err)
 	}
 
 	// Create a mock instance of the OrderService
@@ -213,16 +231,16 @@ func IndexERC20Transfer(ctx context.Context, client types.RPCClient, receiveAddr
 
 	// Fetch logs
 	var iter *contracts.ERC20TokenTransferIterator
-	retryErr := utils.Retry(3, 5*time.Second, func() error {
+	retryErr := utils.Retry(3, 8*time.Second, func() error {
 		var err error
 		iter, err = filterer.FilterTransfer(&bind.FilterOpts{
-			Start: uint64(int64(toBlock) - 10),
+			Start: 1,
 			End:   &toBlock,
 		}, nil, []common.Address{common.HexToAddress(receiveAddress.Address)})
 		return err
 	})
 	if retryErr != nil {
-		return fmt.Errorf("IndexERC20Transfer.FilterTransfer: %w", err)
+		return fmt.Errorf("IndexERC20Transfer.ERC20TokenTransferIterator: %v, start BlockNumber: %d, end BlockNumber: %d", retryErr, 1, toBlock)
 	}
 
 	// Iterate over logs

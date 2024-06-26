@@ -17,12 +17,6 @@ const (
 	FieldID = "id"
 	// FieldWebhookURL holds the string denoting the webhook_url field in the database.
 	FieldWebhookURL = "webhook_url"
-	// FieldFeePerTokenUnit holds the string denoting the fee_per_token_unit field in the database.
-	FieldFeePerTokenUnit = "fee_per_token_unit"
-	// FieldFeeAddress holds the string denoting the fee_address field in the database.
-	FieldFeeAddress = "fee_address"
-	// FieldRefundAddress holds the string denoting the refund_address field in the database.
-	FieldRefundAddress = "refund_address"
 	// FieldDomainWhitelist holds the string denoting the domain_whitelist field in the database.
 	FieldDomainWhitelist = "domain_whitelist"
 	// FieldIsPartner holds the string denoting the is_partner field in the database.
@@ -37,6 +31,8 @@ const (
 	EdgeAPIKey = "api_key"
 	// EdgePaymentOrders holds the string denoting the payment_orders edge name in mutations.
 	EdgePaymentOrders = "payment_orders"
+	// EdgeOrderTokens holds the string denoting the order_tokens edge name in mutations.
+	EdgeOrderTokens = "order_tokens"
 	// Table holds the table name of the senderprofile in the database.
 	Table = "sender_profiles"
 	// UserTable is the table that holds the user relation/edge.
@@ -60,15 +56,19 @@ const (
 	PaymentOrdersInverseTable = "payment_orders"
 	// PaymentOrdersColumn is the table column denoting the payment_orders relation/edge.
 	PaymentOrdersColumn = "sender_profile_payment_orders"
+	// OrderTokensTable is the table that holds the order_tokens relation/edge.
+	OrderTokensTable = "sender_order_tokens"
+	// OrderTokensInverseTable is the table name for the SenderOrderToken entity.
+	// It exists in this package in order to avoid circular dependency with the "senderordertoken" package.
+	OrderTokensInverseTable = "sender_order_tokens"
+	// OrderTokensColumn is the table column denoting the order_tokens relation/edge.
+	OrderTokensColumn = "sender_profile_order_tokens"
 )
 
 // Columns holds all SQL columns for senderprofile fields.
 var Columns = []string{
 	FieldID,
 	FieldWebhookURL,
-	FieldFeePerTokenUnit,
-	FieldFeeAddress,
-	FieldRefundAddress,
 	FieldDomainWhitelist,
 	FieldIsPartner,
 	FieldIsActive,
@@ -124,21 +124,6 @@ func ByWebhookURL(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldWebhookURL, opts...).ToFunc()
 }
 
-// ByFeePerTokenUnit orders the results by the fee_per_token_unit field.
-func ByFeePerTokenUnit(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldFeePerTokenUnit, opts...).ToFunc()
-}
-
-// ByFeeAddress orders the results by the fee_address field.
-func ByFeeAddress(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldFeeAddress, opts...).ToFunc()
-}
-
-// ByRefundAddress orders the results by the refund_address field.
-func ByRefundAddress(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldRefundAddress, opts...).ToFunc()
-}
-
 // ByIsPartner orders the results by the is_partner field.
 func ByIsPartner(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldIsPartner, opts...).ToFunc()
@@ -181,6 +166,20 @@ func ByPaymentOrders(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newPaymentOrdersStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByOrderTokensCount orders the results by order_tokens count.
+func ByOrderTokensCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newOrderTokensStep(), opts...)
+	}
+}
+
+// ByOrderTokens orders the results by order_tokens terms.
+func ByOrderTokens(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newOrderTokensStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newUserStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -200,5 +199,12 @@ func newPaymentOrdersStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(PaymentOrdersInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, PaymentOrdersTable, PaymentOrdersColumn),
+	)
+}
+func newOrderTokensStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(OrderTokensInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, OrderTokensTable, OrderTokensColumn),
 	)
 }
