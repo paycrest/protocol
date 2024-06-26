@@ -50,7 +50,7 @@ func TestIndex(t *testing.T) {
 	router := gin.New()
 
 	router.GET("currencies", ctrl.GetFiatCurrencies)
-	router.GET("aggregator-key", ctrl.GetAggregatorPublicKey)
+	router.GET("pubkey", ctrl.GetAggregatorPublicKey)
 	router.GET("institutions/:currency_code", ctrl.GetInstitutionsByCurrency)
 
 	t.Run("GetInstitutions By Currency", func(t *testing.T) {
@@ -111,21 +111,21 @@ func TestIndex(t *testing.T) {
 
 	t.Run("Get Aggregator Public key", func(t *testing.T) {
 		t.Run("fetch Aggregator Public key", func(t *testing.T) {
-			res, err := test.PerformRequest(t, "GET", "/aggregator-key", nil, nil, router)
+			res, err := test.PerformRequest(t, "GET", "/pubkey", nil, nil, router)
 			assert.NoError(t, err)
 
 			// Assert the response code.
 			assert.Equal(t, http.StatusOK, res.Code)
 
 			var response struct {
-				Data    map[string]interface{}
+				Data    string
 				Message string
 			}
 			err = json.Unmarshal(res.Body.Bytes(), &response)
 			assert.NoError(t, err)
 			assert.Equal(t, "OK", response.Message)
 
-			assert.Equal(t, response.Data["aggregatorPublicKey"], config.CryptoConfig().AggregatorPublicKey)
+			assert.Equal(t, response.Data, config.CryptoConfig().AggregatorPublicKey)
 		})
 	})
 }

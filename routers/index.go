@@ -38,7 +38,7 @@ func RegisterRoutes(route *gin.Engine) {
 		ctrl.GetInstitutionsByCurrency,
 	)
 	v1.GET("rates/:token/:amount/:fiat", ctrl.GetTokenRate)
-	v1.GET("aggregator-key", ctrl.GetAggregatorPublicKey)
+	v1.GET("pubkey", ctrl.GetAggregatorPublicKey)
 }
 
 func authRoutes(route *gin.Engine) {
