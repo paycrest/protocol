@@ -1199,11 +1199,8 @@ func (s *IndexerService) UpdateReceiveAddressStatus(
 		if strings.HasPrefix(orderRecipient.Memo, "P#P") && orderRecipient.ProviderID != "" && comparisonResult != 0 {
 			// This is a P2P order created from the provider dashboard. No reverts are allowed
 			// Hence, the order amount will be updated to whatever amount was sent to the receive address
-			// updated order amount = (indexed amount) / (1 + protocol fee percent)
-			// TODO: get protocol fee from contract -- currently 0.1%
-			orderAmount := utils.FromSubunit(event.Value, paymentOrder.Edges.Token.Decimals).Div(decimal.NewFromFloat(1.001))
-			paymentOrderUpdate.SetAmount(orderAmount.Round(int32(paymentOrder.Edges.Token.Decimals)))
-			paymentOrderUpdate.SetProtocolFee(orderAmount.Mul(decimal.NewFromFloat(0.001)).Round(int32(paymentOrder.Edges.Token.Decimals)))
+			orderAmount := utils.FromSubunit(event.Value, paymentOrder.Edges.Token.Decimals)
+			paymentOrderUpdate.SetAmount(orderAmount.Round(int32(2)))
 
 			// Update the rate with the current rate if order is older than 30 mins
 			if paymentOrder.CreatedAt.Before(time.Now().Add(-30 * time.Minute)) {

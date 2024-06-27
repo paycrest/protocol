@@ -275,7 +275,7 @@ func CreateTestPaymentOrder(client types.RPCClient, token *ent.Token, overrides 
 		SetAmountReturned(decimal.NewFromInt(0)).
 		SetPercentSettled(decimal.NewFromInt(0)).
 		SetNetworkFee(token.Edges.Network.Fee).
-		SetProtocolFee(decimal.NewFromFloat(payload["amount"].(float64)).Mul(decimal.NewFromFloat(0.001))).
+		SetProtocolFee(decimal.NewFromFloat(payload["amount"].(float64)).Mul(decimal.NewFromFloat(0))).
 		SetSenderFee(decimal.NewFromFloat(payload["fee_per_token_unit"].(float64)).Mul(decimal.NewFromFloat(payload["amount"].(float64))).Div(decimal.NewFromFloat(payload["rate"].(float64))).Round(int32(token.Decimals))).
 		SetToken(token).
 		SetRate(decimal.NewFromFloat(payload["rate"].(float64))).
@@ -286,7 +286,6 @@ func CreateTestPaymentOrder(client types.RPCClient, token *ent.Token, overrides 
 		SetReturnAddress(payload["return_address"].(string)).
 		SetStatus(paymentorder.Status(payload["status"].(string))).
 		Save(context.Background())
-
 	if err != nil {
 		return nil, err
 	}

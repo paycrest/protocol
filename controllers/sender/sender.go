@@ -15,8 +15,7 @@ import (
 	providerprofile "github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/senderordertoken"
 	"github.com/paycrest/protocol/ent/senderprofile"
-	"github.com/paycrest/protocol/ent/token"
-	tokenDB "github.com/paycrest/protocol/ent/token"
+	tokenEnt "github.com/paycrest/protocol/ent/token"
 	"github.com/paycrest/protocol/ent/transactionlog"
 	svc "github.com/paycrest/protocol/services"
 	"github.com/paycrest/protocol/types"
@@ -70,9 +69,9 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 	token, err := storage.Client.Token.
 		Query().
 		Where(
-			tokenDB.SymbolEQ(payload.Token),
-			tokenDB.HasNetworkWith(network.IdentifierEQ(payload.Network)),
-			tokenDB.IsEnabledEQ(true),
+			tokenEnt.SymbolEQ(payload.Token),
+			tokenEnt.HasNetworkWith(network.IdentifierEQ(payload.Network)),
+			tokenEnt.IsEnabledEQ(true),
 		).
 		WithNetwork().
 		Only(ctx)
@@ -177,12 +176,12 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 	var feeAddress string
 	var senderOrderToken *ent.SenderOrderToken
 
-	if payload.FeePerTokenUnit.IsZero() || payload.FeeAddress == "" {
+	if (payload.FeePerTokenUnit.IsZero() && !strings.HasPrefix(payload.Recipient.Memo, "P#P")) || payload.FeeAddress == "" {
 		senderOrderToken, err = tx.SenderOrderToken.
 			Query().
 			Where(
 				senderordertoken.HasTokenWith(
-					tokenDB.IDEQ(token.ID),
+					tokenEnt.IDEQ(token.ID),
 				),
 				senderordertoken.HasSenderWith(
 					senderprofile.IDEQ(sender.ID),
@@ -191,13 +190,13 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 		if err != nil {
 			u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
 				Field:   "Token",
-				Message: "Provided token is not supported",
+				Message: "Provided token is not configured",
 			})
 			return
 		}
 	}
 
-	if payload.FeePerTokenUnit.IsZero() {
+	if payload.FeePerTokenUnit.IsZero() && !strings.HasPrefix(payload.Recipient.Memo, "P#P") {
 		feePerTokenUnit = senderOrderToken.FeePerTokenUnit
 	} else {
 		feePerTokenUnit = payload.FeePerTokenUnit
@@ -253,12 +252,11 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 				})
 				return
 			}
-
 		}
 	}
 
 	senderFee := feePerTokenUnit.Mul(payload.Amount).Div(payload.Rate).Round(int32(token.Decimals))
-	protocolFee := payload.Amount.Mul(decimal.NewFromFloat(0.001)) // TODO: get protocol fee from contract -- currently 0.1%
+	protocolFee := decimal.NewFromFloat(0)
 
 	// Create transaction Log
 	transactionLog, err := tx.TransactionLog.
@@ -477,7 +475,7 @@ func (ctrl *SenderController) GetPaymentOrders(ctx *gin.Context) {
 		tokenExists, err := storage.Client.Token.
 			Query().
 			Where(
-				token.SymbolEQ(tokenQueryParam),
+				tokenEnt.SymbolEQ(tokenQueryParam),
 			).
 			Exist(ctx)
 		if err != nil {
@@ -490,7 +488,7 @@ func (ctrl *SenderController) GetPaymentOrders(ctx *gin.Context) {
 		if tokenExists {
 			paymentOrderQuery = paymentOrderQuery.Where(
 				paymentorder.HasTokenWith(
-					token.SymbolEQ(tokenQueryParam),
+					tokenEnt.SymbolEQ(tokenQueryParam),
 				),
 			)
 		}
@@ -516,7 +514,7 @@ func (ctrl *SenderController) GetPaymentOrders(ctx *gin.Context) {
 		if networkExists {
 			paymentOrderQuery = paymentOrderQuery.Where(
 				paymentorder.HasTokenWith(
-					token.HasNetworkWith(
+					tokenEnt.HasNetworkWith(
 						network.IdentifierEQ(networkQueryParam),
 					),
 				),
