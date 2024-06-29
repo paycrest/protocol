@@ -236,6 +236,7 @@ func (ctrl *Controller) VerifyAccount(ctx *gin.Context) {
 			),
 			providerprofile.HostIdentifierNotNil(),
 			providerprofile.IsActiveEQ(true),
+			providerprofile.IsAvailableEQ(true),
 		).
 		First(ctx)
 	if err != nil {
