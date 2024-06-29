@@ -485,16 +485,20 @@ func (ctrl *ProviderController) CancelOrder(ctx *gin.Context) {
 		CancellationCount += 1
 		orderUpdate.AppendCancellationReasons([]string{payload.Reason})
 	}
+
 	// Update lock order status to cancelled
-	orderUpdate.
+	_, err = orderUpdate.
 		SetStatus(lockpaymentorder.StatusCancelled).
-		SetCancellationCount(CancellationCount)
-	order, err = orderUpdate.Save(ctx)
+		SetCancellationCount(CancellationCount).
+		Save(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to cancel order", nil)
 		return
 	}
+
+	order.Status = lockpaymentorder.StatusCancelled
+	order.CancellationCount = CancellationCount
 
 	// Check if order cancellation count is equal or greater than RefundCancellationCount in config,
 	// and the order has not been refunded, then trigger refund
