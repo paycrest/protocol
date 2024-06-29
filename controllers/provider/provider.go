@@ -1,7 +1,6 @@
 package provider
 
 import (
-	"encoding/base64"
 	"fmt"
 	"net/http"
 	"strings"
@@ -21,9 +20,7 @@ import (
 	"github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
 	u "github.com/paycrest/protocol/utils"
-	cryptoUtils "github.com/paycrest/protocol/utils/crypto"
 	"github.com/paycrest/protocol/utils/logger"
-	tokenUtils "github.com/paycrest/protocol/utils/token"
 	"github.com/shopspring/decimal"
 
 	"github.com/gin-gonic/gin"
@@ -646,25 +643,9 @@ func (ctrl *ProviderController) NodeInfo(ctx *gin.Context) {
 		return
 	}
 
-	// Compute HMAC
-	decodedSecret, err := base64.StdEncoding.DecodeString(provider.Edges.APIKey.Secret)
-	if err != nil {
-		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch node info", nil)
-		return
-	}
-	decryptedSecret, err := cryptoUtils.DecryptPlain(decodedSecret)
-	if err != nil {
-		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch node info", nil)
-		return
-	}
-	signature := tokenUtils.GenerateHMACSignature(map[string]interface{}{}, string(decryptedSecret))
-
 	// TODO: Get approval to install github.com/go-ping/ping to replace Get request
 	res, err := fastshot.NewClient(provider.HostIdentifier).
-		Config().SetTimeout(30*time.Second).
-		Header().Add("X-Request-Signature", signature).
+		Config().SetTimeout(30 * time.Second).
 		Build().GET("/health").
 		// Retry().Set(3, 5*time.Second).  // #329 - Remove retries for /provider/node-info endpoint
 		Send()

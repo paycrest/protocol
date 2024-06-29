@@ -561,3 +561,9 @@ type ProviderStatsResponse struct {
 	TotalFiatVolume   decimal.Decimal `json:"totalFiatVolume"`
 	TotalCryptoVolume decimal.Decimal `json:"totalCryptoVolume"`
 }
+
+// VerifyAccountRequest is the request for account verification of an institution
+type VerifyAccountRequest struct {
+	Institution       string          `json:"institution"`
+	AccountIdentifier string          `json:"accountIdentifier"`
+}

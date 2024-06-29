@@ -3,7 +3,9 @@ package controllers
 import (
 	"net/http"
 	"strings"
+	"time"
 
+	fastshot "github.com/opus-domini/fast-shot"
 	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/fiatcurrency"
@@ -78,7 +80,7 @@ func (ctrl *Controller) GetInstitutionsByCurrency(ctx *gin.Context) {
 	if err != nil {
 		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusBadRequest, "error",
-			"Failed to fetch institutions", err.Error())
+			"Failed to fetch institutions", nil)
 		return
 	}
 
@@ -199,4 +201,67 @@ func (ctrl *Controller) GetTokenRate(ctx *gin.Context) {
 // GetAggregatorPublicKey controller expose Aggregator Public Key
 func (ctrl *Controller) GetAggregatorPublicKey(ctx *gin.Context) {
 	u.APIResponse(ctx, http.StatusOK, "success", "OK", config.CryptoConfig().AggregatorPublicKey)
+}
+
+// VerifyAccount controller verifies an account of a given institution
+func (ctrl *Controller) VerifyAccount(ctx *gin.Context) {
+	var payload types.VerifyAccountRequest
+
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusBadRequest, "error",
+			"Failed to validate payload", u.GetErrorData(err))
+		return
+	}
+
+	institution, err := storage.Client.Institution.
+		Query().
+		Where(institution.CodeEQ(payload.Institution)).
+		WithFiatCurrency().
+		Only(ctx)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", []types.ErrorData{{
+			Field:   "Institution",
+			Message: "Institution is not supported",
+		}})
+		return
+	}
+
+	provider, err := storage.Client.ProviderProfile.
+		Query().
+		Where(
+			providerprofile.HasCurrencyWith(
+				fiatcurrency.CodeEQ(institution.Edges.FiatCurrency.Code),
+			),
+			providerprofile.HostIdentifierNotNil(),
+			providerprofile.IsActiveEQ(true),
+		).
+		First(ctx)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusBadRequest, "error",
+			"Failed to verify account", err.Error())
+		return
+	}
+
+	res, err := fastshot.NewClient(provider.HostIdentifier).
+		Config().SetTimeout(30 * time.Second).
+		Build().POST("/verify_account").
+		Body().AsJSON(payload).
+		Send()
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusServiceUnavailable, "error", "Failed to verify account", nil)
+		return
+	}
+
+	data, err := u.ParseJSONResponse(res.RawResponse)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusServiceUnavailable, "error", "Failed to fetch node info", nil)
+		return
+	}
+
+	u.APIResponse(ctx, http.StatusOK, "success", "Account name was fetched successfully", data["data"].(string))
 }

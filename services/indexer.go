@@ -257,10 +257,17 @@ func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPC
 	var iter *contracts.GatewayOrderCreatedIterator
 	retryErr := utils.Retry(3, 1*time.Second, func() error {
 		var err error
-		iter, err = filterer.FilterOrderCreated(&bind.FilterOpts{
-			Start: uint64(int64(toBlock) - 5000),
-			End:   &toBlock,
-		}, []common.Address{common.HexToAddress(sender)}, nil, nil)
+		if sender != "" {
+			iter, err = filterer.FilterOrderCreated(&bind.FilterOpts{
+				Start: uint64(int64(toBlock) - 5000),
+				End:   &toBlock,
+			}, []common.Address{common.HexToAddress(sender)}, nil, nil)
+		} else {
+			iter, err = filterer.FilterOrderCreated(&bind.FilterOpts{
+				Start: uint64(int64(toBlock) - 5000),
+				End:   &toBlock,
+			}, nil, nil, nil)
+		}
 		return err
 	})
 	if retryErr != nil {
@@ -405,19 +412,27 @@ func (s *IndexerService) IndexOrderSettled(ctx context.Context, client types.RPC
 	// Fetch logs
 	var iter *contracts.GatewayOrderSettledIterator
 	retryErr := utils.Retry(3, 1*time.Second, func() error {
-		var err error
+		if gatewayId != "" {
+			orderID, err := hex.DecodeString(gatewayId[2:])
+			if err != nil {
+				logger.Errorf("IndexOrderSettled.DecodeString: %v", err)
+				return err
+			}
 
-		orderID, err := hex.DecodeString(gatewayId[2:])
-		if err != nil {
-			logger.Errorf("IndexOrderSettled.DecodeString: %v", err)
+			iter, err = filterer.FilterOrderSettled(&bind.FilterOpts{
+				Start: uint64(int64(toBlock) - 50000),
+				End:   &toBlock,
+			}, [][32]byte{utils.StringToByte32(string(orderID))}, nil)
+
+			return err
+		} else {
+			iter, err = filterer.FilterOrderSettled(&bind.FilterOpts{
+				Start: uint64(int64(toBlock) - 50000),
+				End:   &toBlock,
+			}, nil, nil)
+
 			return err
 		}
-
-		iter, err = filterer.FilterOrderSettled(&bind.FilterOpts{
-			Start: uint64(int64(toBlock) - 50000),
-			End:   &toBlock,
-		}, [][32]byte{utils.StringToByte32(string(orderID))}, nil)
-		return err
 	})
 	if retryErr != nil {
 		logger.Errorf("IndexOrderSettled.FilterOrderSettled: %v", retryErr)
@@ -545,19 +560,25 @@ func (s *IndexerService) IndexOrderRefunded(ctx context.Context, client types.RP
 	// Fetch logs
 	var iter *contracts.GatewayOrderRefundedIterator
 	retryErr := utils.Retry(3, 1*time.Second, func() error {
-		var err error
+		if gatewayId != "" {
+			orderID, err := hex.DecodeString(gatewayId[2:])
+			if err != nil {
+				logger.Errorf("IndexOrderRefunded.DecodeString: %v", err)
+				return err
+			}
 
-		orderID, err := hex.DecodeString(gatewayId[2:])
-		if err != nil {
-			logger.Errorf("IndexOrderRefunded.DecodeString: %v", err)
+			iter, err = filterer.FilterOrderRefunded(&bind.FilterOpts{
+				Start: uint64(int64(toBlock) - 50000),
+				End:   &toBlock,
+			}, [][32]byte{utils.StringToByte32(string(orderID))})
+			return err
+		} else {
+			iter, err = filterer.FilterOrderRefunded(&bind.FilterOpts{
+				Start: uint64(int64(toBlock) - 50000),
+				End:   &toBlock,
+			}, nil)
 			return err
 		}
-
-		iter, err = filterer.FilterOrderRefunded(&bind.FilterOpts{
-			Start: uint64(int64(toBlock) - 50000),
-			End:   &toBlock,
-		}, [][32]byte{utils.StringToByte32(string(orderID))})
-		return err
 	})
 	if retryErr != nil {
 		logger.Errorf("IndexOrderRefunded.FilterOrderRefunded: %v", retryErr)
