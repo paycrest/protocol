@@ -53,7 +53,7 @@ func JWTMiddleware(c *gin.Context) {
 	}
 	scope, ok := claims["scope"].(string)
 	if !ok {
-		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid or expired token", err.Error())
+		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid or expired token", "Invalid scope in token")
 		c.Abort()
 		return
 	}

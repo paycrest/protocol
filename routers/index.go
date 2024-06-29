@@ -39,6 +39,7 @@ func RegisterRoutes(route *gin.Engine) {
 	)
 	v1.GET("rates/:token/:amount/:fiat", ctrl.GetTokenRate)
 	v1.GET("pubkey", ctrl.GetAggregatorPublicKey)
+	v1.POST("verify-account", ctrl.VerifyAccount)
 }
 
 func authRoutes(route *gin.Engine) {

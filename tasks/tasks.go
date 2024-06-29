@@ -252,6 +252,7 @@ func IndexBlockchainEvents() error {
 	go func() {
 		_ = utils.Retry(3, 15*time.Second, func() error {
 			for _, network := range networks {
+				// Index events triggered from API
 				orders, err := storage.Client.PaymentOrder.
 					Query().
 					Where(func(s *sql.Selector) {
@@ -295,6 +296,15 @@ func IndexBlockchainEvents() error {
 								continue
 							}
 						}
+					}
+				}
+
+				// Index events triggered from Gateway contract
+				if !strings.HasPrefix(network.Identifier, "tron") {
+					indexerService := services.NewIndexerService(orderService.NewOrderEVM())
+					err = indexerService.IndexOrderCreated(ctx, nil, network, "")
+					if err != nil {
+						continue
 					}
 				}
 			}
