@@ -200,7 +200,7 @@ func IndexBlockchainEvents() error {
 
 	// Index ERC20 transfer events
 	go func() {
-		_ = utils.Retry(3, 15*time.Second, func() error {
+		_ = utils.Retry(3, 5*time.Second, func() error {
 			for _, network := range networks {
 				orders, err := storage.Client.PaymentOrder.
 					Query().
@@ -250,7 +250,7 @@ func IndexBlockchainEvents() error {
 
 	// Index OrderCreated events
 	go func() {
-		_ = utils.Retry(3, 15*time.Second, func() error {
+		_ = utils.Retry(3, 2*time.Second, func() error {
 			for _, network := range networks {
 				// Index events triggered from API
 				orders, err := storage.Client.PaymentOrder.
@@ -315,7 +315,7 @@ func IndexBlockchainEvents() error {
 
 	// Index OrderSettled events
 	go func() {
-		_ = utils.Retry(3, 15*time.Second, func() error {
+		_ = utils.Retry(3, 2*time.Second, func() error {
 			for _, network := range networks {
 				lockOrders, err := storage.Client.LockPaymentOrder.
 					Query().
@@ -365,7 +365,7 @@ func IndexBlockchainEvents() error {
 
 	// Index OrderRefunded events
 	go func() {
-		_ = utils.Retry(3, 15*time.Second, func() error {
+		_ = utils.Retry(3, 2*time.Second, func() error {
 			for _, network := range networks {
 				lockOrders, err := storage.Client.LockPaymentOrder.
 					Query().

@@ -1026,16 +1026,20 @@ func (s *IndexerService) UpdateOrderStatusRefunded(ctx context.Context, log *typ
 	}
 
 	// Aggregator side status update
-	_, err = tx.LockPaymentOrder.
+	lockPaymentOrderUpdate := tx.LockPaymentOrder.
 		Update().
 		Where(
 			lockpaymentorder.GatewayIDEQ(gatewayId),
 		).
 		SetBlockNumber(int64(log.BlockNumber)).
 		SetTxHash(log.TxHash).
-		SetStatus(lockpaymentorder.StatusRefunded).
-		AddTransactions(transactionLog).
-		Save(ctx)
+		SetStatus(lockpaymentorder.StatusRefunded)
+
+	if transactionLog != nil {
+		lockPaymentOrderUpdate = lockPaymentOrderUpdate.AddTransactions(transactionLog)
+	}
+
+	_, err = lockPaymentOrderUpdate.Save(ctx)
 	if err != nil {
 		return fmt.Errorf("UpdateOrderStatusRefunded.aggregator: %v", err)
 	}
@@ -1139,16 +1143,20 @@ func (s *IndexerService) UpdateOrderStatusSettled(ctx context.Context, event *ty
 
 	// Aggregator side status update
 	splitOrderId, _ := uuid.Parse(utils.Byte32ToString(event.SplitOrderId))
-	_, err = tx.LockPaymentOrder.
+	lockPaymentOrderUpdate := tx.LockPaymentOrder.
 		Update().
 		Where(
 			lockpaymentorder.IDEQ(splitOrderId),
 		).
 		SetBlockNumber(int64(event.BlockNumber)).
 		SetTxHash(event.TxHash).
-		SetStatus(lockpaymentorder.StatusSettled).
-		AddTransactions(transactionLog).
-		Save(ctx)
+		SetStatus(lockpaymentorder.StatusSettled)
+
+	if transactionLog != nil {
+		lockPaymentOrderUpdate = lockPaymentOrderUpdate.AddTransactions(transactionLog)
+	}
+
+	_, err = lockPaymentOrderUpdate.Save(ctx)
 	if err != nil {
 		return fmt.Errorf("UpdateOrderStatusSettled.aggregator: %v", err)
 	}
