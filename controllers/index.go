@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
@@ -10,12 +11,14 @@ import (
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/fiatcurrency"
 	"github.com/paycrest/protocol/ent/institution"
+	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/token"
 	svc "github.com/paycrest/protocol/services"
 	orderSvc "github.com/paycrest/protocol/services/order"
 	"github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
+	"github.com/paycrest/protocol/utils"
 	u "github.com/paycrest/protocol/utils"
 	"github.com/paycrest/protocol/utils/logger"
 	"github.com/shopspring/decimal"
@@ -265,4 +268,79 @@ func (ctrl *Controller) VerifyAccount(ctx *gin.Context) {
 	}
 
 	u.APIResponse(ctx, http.StatusOK, "success", "Account name was fetched successfully", data["data"].(string))
+}
+
+// GetLockPaymentOrderStatus controller fetches a payment order status by ID
+func (ctrl *Controller) GetLockPaymentOrderStatus(ctx *gin.Context) {
+	// Get order ID from the URL
+	orderID := ctx.Param("id")
+
+	// Fetch related payment orders from the database
+	orders, err := storage.Client.LockPaymentOrder.
+		Query().
+		Where(
+			lockpaymentorder.GatewayIDEQ(orderID),
+		).
+		WithToken(func(tq *ent.TokenQuery) {
+			tq.WithNetwork()
+		}).
+		WithTransactions().
+		All(ctx)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch order status", nil)
+		return
+	}
+
+	var settlements []types.LockPaymentOrderSplitOrder
+	var receipts []types.LockPaymentOrderTxReceipt
+	var settlePercent decimal.Decimal
+	var totalAmount decimal.Decimal
+
+	for _, order := range orders {
+		for _, transaction := range order.Edges.Transactions {
+			if utils.ContainsString([]string{"order_settled", "order_created", "order_refunded"}, transaction.Status.String()) {
+				var status lockpaymentorder.Status
+				if transaction.Status.String() == "order_created" {
+					status = lockpaymentorder.StatusPending
+				} else {
+					status = lockpaymentorder.Status(strings.TrimPrefix(transaction.Status.String(), "order_"))
+				}
+				receipts = append(receipts, types.LockPaymentOrderTxReceipt{
+					Status:    status,
+					TxHash:    transaction.TxHash,
+					Timestamp: transaction.CreatedAt,
+				})
+			}
+		}
+
+		settlements = append(settlements, types.LockPaymentOrderSplitOrder{
+			SplitOrderID: order.ID,
+			Amount:       order.Amount,
+			Rate:         order.Rate,
+			OrderPercent: order.OrderPercent,
+		})
+
+		settlePercent = settlePercent.Add(order.OrderPercent)
+		totalAmount = totalAmount.Add(order.Amount)
+	}
+
+	// Sort receipts by latest timestamp
+	slices.SortStableFunc(receipts, func(a, b types.LockPaymentOrderTxReceipt) int {
+		return b.Timestamp.Compare(a.Timestamp)
+	})
+
+	response := &types.LockPaymentOrderStatusResponse{
+		OrderID:       orders[0].GatewayID,
+		Amount:        totalAmount,
+		Token:         orders[0].Edges.Token.Symbol,
+		Network:       orders[0].Edges.Token.Edges.Network.Identifier,
+		SettlePercent: settlePercent,
+		Status:        receipts[0].Status,
+		TxHash:        receipts[0].TxHash,
+		Settlements:   settlements,
+		TxReceipts:    receipts,
+	}
+
+	u.APIResponse(ctx, http.StatusOK, "success", "Order status fetched successfully", response)
 }
