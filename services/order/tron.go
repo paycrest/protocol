@@ -286,20 +286,9 @@ func (s *OrderTron) RefundOrder(ctx context.Context, orderID string) error {
 		ContractAddress: gatewayContractAddress.Bytes(),
 		Data:            calldata,
 	}
-	txHash, err := s.sendTransaction(wallet, ct, 50000000)
+	_, err = s.sendTransaction(wallet, ct, 50000000)
 	if err != nil {
 		return fmt.Errorf("%s - Tron.RefundOrder.sendTransaction: %w", orderIDPrefix, err)
-	}
-
-	// Update status of all lock orders with same order_id
-	_, err = db.Client.LockPaymentOrder.
-		Update().
-		Where(lockpaymentorder.GatewayIDEQ(lockOrder.GatewayID)).
-		SetTxHash(txHash).
-		SetStatus(lockpaymentorder.StatusRefunded).
-		Save(ctx)
-	if err != nil {
-		return fmt.Errorf("Tron.RefundOrder.updateTxHash(%v): %w", txHash, err)
 	}
 
 	return nil
@@ -485,18 +474,9 @@ func (s *OrderTron) SettleOrder(ctx context.Context, orderID uuid.UUID) error {
 		ContractAddress: gatewayContractAddress.Bytes(),
 		Data:            calldata,
 	}
-	txHash, err := s.sendTransaction(wallet, ct, 50000000)
+	_, err = s.sendTransaction(wallet, ct, 50000000)
 	if err != nil {
 		return fmt.Errorf("%s - Tron.SettleOrder.sendTransaction: %w", orderIDPrefix, err)
-	}
-
-	// Update status of lock order
-	_, err = order.Update().
-		SetTxHash(txHash).
-		SetStatus(lockpaymentorder.StatusSettled).
-		Save(ctx)
-	if err != nil {
-		return fmt.Errorf("%s - Tron.SettleOrder.updateTxHash: %w", orderIDPrefix, err)
 	}
 
 	return nil

@@ -107,7 +107,8 @@ func (s *OrderEVM) CreateOrder(ctx context.Context, orderID uuid.UUID) error {
 		return fmt.Errorf("%s - CreateOrder.SendUserOperation: %w", orderIDPrefix, err)
 	}
 
-	transactionLog, err := db.Client.TransactionLog.Create().
+	transactionLog, err := db.Client.TransactionLog.
+		Create().
 		SetStatus(transactionlog.StatusOrderCreated).
 		SetTxHash(txHash).
 		SetNetwork(order.Edges.Token.Edges.Network.Identifier).
@@ -198,7 +199,9 @@ func (s *OrderEVM) RefundOrder(ctx context.Context, orderID string) error {
 		return fmt.Errorf("RefundOrder.sendUserOperation: %w", err)
 	}
 
-	transactionLog, err := db.Client.TransactionLog.Create().
+	// Create log
+	transactionLog, err := db.Client.TransactionLog.
+		Create().
 		SetStatus(transactionlog.StatusOrderRefunded).
 		SetTxHash(txHash).
 		SetNetwork(lockOrder.Edges.Token.Edges.Network.Identifier).
@@ -206,7 +209,8 @@ func (s *OrderEVM) RefundOrder(ctx context.Context, orderID string) error {
 		SetMetadata(
 			map[string]interface{}{
 				"BlockNumber": blockNumber,
-			}).Save(ctx)
+			}).
+		Save(ctx)
 	if err != nil {
 		return fmt.Errorf("RefundOrder.transactionLog(%v): %w", txHash, err)
 	}
@@ -321,7 +325,10 @@ func (s *OrderEVM) RevertOrder(ctx context.Context, order *ent.PaymentOrder) err
 	if err != nil {
 		return fmt.Errorf("%s - RevertOrder.sendUserOperation: %w", orderIDPrefix, err)
 	}
-	transactionLog, err := db.Client.TransactionLog.Create().
+
+	// Create log
+	transactionLog, err := db.Client.TransactionLog.
+		Create().
 		SetStatus(transactionlog.StatusOrderReverted).
 		SetTxHash(txHash).
 		SetNetwork(order.Edges.Token.Edges.Network.Identifier).
@@ -329,7 +336,8 @@ func (s *OrderEVM) RevertOrder(ctx context.Context, order *ent.PaymentOrder) err
 		SetMetadata(
 			map[string]interface{}{
 				"BlockNumber": blockNumber,
-			}).Save(ctx)
+			}).
+		Save(ctx)
 	if err != nil {
 		return fmt.Errorf("%s - RevertOrder.transactionLog: %w", orderIDPrefix, err)
 	}
@@ -415,7 +423,10 @@ func (s *OrderEVM) SettleOrder(ctx context.Context, orderID uuid.UUID) error {
 	if err != nil {
 		return fmt.Errorf("%s - SettleOrder.sendUserOperation: %w", orderIDPrefix, err)
 	}
-	transactionLog, err := db.Client.TransactionLog.Create().
+
+	// Create log
+	transactionLog, err := db.Client.TransactionLog.
+		Create().
 		SetStatus(transactionlog.StatusOrderSettled).
 		SetTxHash(txHash).
 		SetNetwork(order.Edges.Token.Edges.Network.Identifier).
@@ -423,7 +434,8 @@ func (s *OrderEVM) SettleOrder(ctx context.Context, orderID uuid.UUID) error {
 		SetMetadata(
 			map[string]interface{}{
 				"BlockNumber": blockNumber,
-			}).Save(ctx)
+			}).
+		Save(ctx)
 	if err != nil {
 		return fmt.Errorf("%s - SettleOrder.transactionLog: %w", orderIDPrefix, err)
 	}

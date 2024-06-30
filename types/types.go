@@ -368,6 +368,31 @@ type LockPaymentOrderResponse struct {
 	Transactions      []TransactionLog        `json:"transactionLogs"`
 }
 
+type LockPaymentOrderTxReceipt struct {
+	Status    lockpaymentorder.Status `json:"status"`
+	TxHash    string                  `json:"txHash"`
+	Timestamp time.Time               `json:"timestamp"`
+}
+
+type LockPaymentOrderSplitOrder struct {
+	SplitOrderID uuid.UUID       `json:"splitOrderId"`
+	Amount       decimal.Decimal `json:"amount"`
+	Rate         decimal.Decimal `json:"rate"`
+	OrderPercent decimal.Decimal `json:"orderPercent"`
+}
+
+type LockPaymentOrderStatusResponse struct {
+	OrderID       string                       `json:"orderId"`
+	Amount        decimal.Decimal              `json:"amount"`
+	Token         string                       `json:"token"`
+	Network       string                       `json:"network"`
+	SettlePercent decimal.Decimal              `json:"settlePercent"`
+	Status        lockpaymentorder.Status      `json:"status"`
+	TxHash        string                       `json:"txHash"`
+	Settlements   []LockPaymentOrderSplitOrder `json:"settlements"`
+	TxReceipts    []LockPaymentOrderTxReceipt  `json:"txReceipts"`
+}
+
 // PaymentOrderRecipient describes a payment order recipient
 type PaymentOrderRecipient struct {
 	Institution       string `json:"institution" binding:"required"`
@@ -564,6 +589,6 @@ type ProviderStatsResponse struct {
 
 // VerifyAccountRequest is the request for account verification of an institution
 type VerifyAccountRequest struct {
-	Institution       string          `json:"institution"`
-	AccountIdentifier string          `json:"accountIdentifier"`
+	Institution       string `json:"institution"`
+	AccountIdentifier string `json:"accountIdentifier"`
 }

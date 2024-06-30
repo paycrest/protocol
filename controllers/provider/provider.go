@@ -477,19 +477,19 @@ func (ctrl *ProviderController) CancelOrder(ctx *gin.Context) {
 	// Get new cancellation count based on cancel reason
 	orderConf := config.OrderConfig()
 	orderUpdate := storage.Client.LockPaymentOrder.UpdateOneID(orderID)
-	CancellationCount := order.CancellationCount
+	cancellationCount := order.CancellationCount
 	if payload.Reason == "Invalid recipient bank details" || provider.VisibilityMode == providerprofile.VisibilityModePrivate {
-		CancellationCount += orderConf.RefundCancellationCount // Allows us refund immediately for invalid recipient
+		cancellationCount += orderConf.RefundCancellationCount // Allows us refund immediately for invalid recipient
 		orderUpdate.AppendCancellationReasons([]string{payload.Reason})
 	} else if payload.Reason != "Insufficient funds" {
-		CancellationCount += 1
+		cancellationCount += 1
 		orderUpdate.AppendCancellationReasons([]string{payload.Reason})
 	}
 
 	// Update lock order status to cancelled
 	_, err = orderUpdate.
 		SetStatus(lockpaymentorder.StatusCancelled).
-		SetCancellationCount(CancellationCount).
+		SetCancellationCount(cancellationCount).
 		Save(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
@@ -498,7 +498,9 @@ func (ctrl *ProviderController) CancelOrder(ctx *gin.Context) {
 	}
 
 	order.Status = lockpaymentorder.StatusCancelled
-	order.CancellationCount = CancellationCount
+	order.CancellationCount = cancellationCount
+
+	logger.Errorf("cancellation count, status", order.Status.String(), order.CancellationCount)
 
 	// Check if order cancellation count is equal or greater than RefundCancellationCount in config,
 	// and the order has not been refunded, then trigger refund
@@ -706,7 +708,6 @@ func (ctrl *ProviderController) GetLockPaymentOrderByID(ctx *gin.Context) {
 			lockpaymentorder.IDEQ(id),
 			lockpaymentorder.HasProviderWith(providerprofile.IDEQ(provider.ID)),
 		).
-		WithTransactions().
 		WithToken(func(tq *ent.TokenQuery) {
 			tq.WithNetwork()
 		}).

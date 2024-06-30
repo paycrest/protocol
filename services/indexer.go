@@ -906,7 +906,8 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 					"Memo":            recipient.Memo,
 					"ProvisionBucket": provisionBucket,
 					"ProviderID":      lockPaymentOrder.ProviderID,
-				}).Save(ctx)
+				}).
+			Save(ctx)
 
 		if err != nil {
 			return fmt.Errorf("%s - failed to create transaction Log : %w", lockPaymentOrder.GatewayID, err)
@@ -985,21 +986,43 @@ func (s *IndexerService) UpdateOrderStatusRefunded(ctx context.Context, log *typ
 		return fmt.Errorf("UpdateOrderStatusRefunded.dbtransaction %v", err)
 	}
 
-	// Create log
-	transactionLog, err := tx.TransactionLog.
-		Create().
-		SetStatus(transactionlog.StatusOrderRefunded).
+	// Attempt to update an existing log
+	var transactionLog *ent.TransactionLog
+	updatedRows, err := tx.TransactionLog.
+		Update().
+		Where(
+			transactionlog.StatusEQ(transactionlog.StatusOrderRefunded),
+			transactionlog.GatewayIDEQ(gatewayId),
+		).
 		SetTxHash(log.TxHash).
-		SetGatewayID(gatewayId).
 		SetMetadata(
 			map[string]interface{}{
 				"OrderId":         log.OrderId,
 				"GatewayID":       gatewayId,
-				"transactionData": log,
-			}).Save(ctx)
-
+				"TransactionData": log,
+			}).
+		Save(ctx)
 	if err != nil {
-		return fmt.Errorf("UpdateOrderStatusRefunded.aggregator: %v", err)
+		return fmt.Errorf("UpdateOrderStatusRefunded.update: %v", err)
+	}
+
+	// If no rows were updated, create a new log
+	if updatedRows == 0 {
+		transactionLog, err = tx.TransactionLog.
+			Create().
+			SetStatus(transactionlog.StatusOrderRefunded).
+			SetTxHash(log.TxHash).
+			SetGatewayID(gatewayId).
+			SetMetadata(
+				map[string]interface{}{
+					"OrderId":         log.OrderId,
+					"GatewayID":       gatewayId,
+					"TransactionData": log,
+				}).
+			Save(ctx)
+		if err != nil {
+			return fmt.Errorf("UpdateOrderStatusRefunded.create: %v", err)
+		}
 	}
 
 	// Aggregator side status update
@@ -1079,18 +1102,39 @@ func (s *IndexerService) UpdateOrderStatusSettled(ctx context.Context, event *ty
 		return fmt.Errorf("UpdateOrderStatusSettled.db: %v", err)
 	}
 
-	// Create log
-	transactionLog, err := tx.TransactionLog.
-		Create().
-		SetStatus(transactionlog.StatusOrderSettled).
+	// Attempt to update an existing log
+	var transactionLog *ent.TransactionLog
+	updatedRows, err := tx.TransactionLog.
+		Update().
+		Where(
+			transactionlog.StatusEQ(transactionlog.StatusOrderSettled),
+			transactionlog.GatewayIDEQ(gatewayId),
+		).
 		SetTxHash(event.TxHash).
-		SetGatewayID(gatewayId).SetMetadata(
-		map[string]interface{}{
+		SetMetadata(map[string]interface{}{
 			"GatewayID":       gatewayId,
-			"transactionData": event,
-		}).Save(ctx)
+			"TransactionData": event,
+		}).
+		Save(ctx)
 	if err != nil {
-		return fmt.Errorf("UpdateOrderStatusSettled.aggregator: %v", err)
+		return fmt.Errorf("UpdateOrderStatusSettled.update: %v", err)
+	}
+
+	// If no rows were updated, create a new log
+	if updatedRows == 0 {
+		transactionLog, err = tx.TransactionLog.
+			Create().
+			SetStatus(transactionlog.StatusOrderSettled).
+			SetTxHash(event.TxHash).
+			SetGatewayID(gatewayId).
+			SetMetadata(map[string]interface{}{
+				"GatewayID":       gatewayId,
+				"TransactionData": event,
+			}).
+			Save(ctx)
+		if err != nil {
+			return fmt.Errorf("UpdateOrderStatusSettled.create: %v", err)
+		}
 	}
 
 	// Aggregator side status update
