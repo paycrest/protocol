@@ -500,7 +500,7 @@ func (ctrl *ProviderController) CancelOrder(ctx *gin.Context) {
 	order.Status = lockpaymentorder.StatusCancelled
 	order.CancellationCount = cancellationCount
 
-	logger.Errorf("cancellation count, status", order.Status.String(), order.CancellationCount)
+	// logger.Errorf("cancellation count, status", order.Status.String(), order.CancellationCount)
 
 	// Check if order cancellation count is equal or greater than RefundCancellationCount in config,
 	// and the order has not been refunded, then trigger refund

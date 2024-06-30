@@ -330,16 +330,22 @@ func (ctrl *Controller) GetLockPaymentOrderStatus(ctx *gin.Context) {
 		return b.Timestamp.Compare(a.Timestamp)
 	})
 
+	if (len(orders) == 0) || (len(receipts) == 0) {
+		u.APIResponse(ctx, http.StatusNotFound, "error", "Order not found", nil)
+		return
+	}
+
 	response := &types.LockPaymentOrderStatusResponse{
 		OrderID:       orders[0].GatewayID,
 		Amount:        totalAmount,
 		Token:         orders[0].Edges.Token.Symbol,
 		Network:       orders[0].Edges.Token.Edges.Network.Identifier,
 		SettlePercent: settlePercent,
-		Status:        receipts[0].Status,
+		Status:        orders[0].Status,
 		TxHash:        receipts[0].TxHash,
 		Settlements:   settlements,
 		TxReceipts:    receipts,
+		UpdatedAt:     orders[0].UpdatedAt,
 	}
 
 	u.APIResponse(ctx, http.StatusOK, "success", "Order status fetched successfully", response)

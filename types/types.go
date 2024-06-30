@@ -391,6 +391,7 @@ type LockPaymentOrderStatusResponse struct {
 	TxHash        string                       `json:"txHash"`
 	Settlements   []LockPaymentOrderSplitOrder `json:"settlements"`
 	TxReceipts    []LockPaymentOrderTxReceipt  `json:"txReceipts"`
+	UpdatedAt     time.Time                    `json:"updatedAt"`
 }
 
 // PaymentOrderRecipient describes a payment order recipient
