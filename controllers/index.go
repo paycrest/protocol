@@ -102,12 +102,17 @@ func (ctrl *Controller) GetInstitutionsByCurrency(ctx *gin.Context) {
 // GetTokenRate controller fetches the current rate of the cryptocurrency token against the fiat currency
 func (ctrl *Controller) GetTokenRate(ctx *gin.Context) {
 	// Parse path parameters
-	_, err := storage.Client.Token.
+	token, err := storage.Client.Token.
 		Query().
 		Where(token.Symbol(strings.ToUpper(ctx.Param("token")))).
-		Only(ctx)
+		First(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch token rate", nil)
+		return
+	}
+
+	if token == nil {
 		u.APIResponse(ctx, http.StatusBadRequest, "error", "Token is not supported", nil)
 		return
 	}
