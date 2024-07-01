@@ -14,6 +14,9 @@ import (
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	"github.com/paycrest/protocol/ent/paymentorder"
 	"github.com/paycrest/protocol/ent/providerprofile"
+	"github.com/paycrest/protocol/ent/senderordertoken"
+	"github.com/paycrest/protocol/ent/senderprofile"
+	"github.com/paycrest/protocol/ent/token"
 	entToken "github.com/paycrest/protocol/ent/token"
 	db "github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
@@ -54,22 +57,87 @@ func CreateTestUser(overrides map[string]interface{}) (*ent.User, error) {
 
 // CreateERC20Token creates a test token with default or custom values
 func CreateERC20Token(client types.RPCClient, overrides map[string]interface{}) (*ent.Token, error) {
-	// Deploy ERC20 token contract
-	deployedTokenAddress, err := DeployERC20Contract(client)
-	if err != nil {
-		return nil, err
-	}
 
 	// Default payload
 	payload := map[string]interface{}{
-		"symbol":           "TST",
-		"contract_address": deployedTokenAddress.Hex(),
-		"decimals":         6,
-		"networkRPC":       "ws://localhost:8545",
-		"is_enabled":       true,
-		"identifier":       "localhost" + uuid.New().String(),
-		"chainID":          int64(1337),
+		"symbol":         "TST",
+		"decimals":       6,
+		"networkRPC":     "ws://localhost:8545",
+		"is_enabled":     true,
+		"identifier":     "localhost",
+		"chainID":        int64(1337),
+		"deployContract": true,
 	}
+
+	var contractAddress string
+
+	// Apply overrides
+	for key, value := range overrides {
+		payload[key] = value
+	}
+
+	if payload["deployContract"].(bool) {
+		// Deploy ERC20 token contract
+		deployedTokenAddress, err := DeployERC20Contract(client)
+		if err != nil {
+			return nil, err
+		}
+		contractAddress = deployedTokenAddress.Hex()
+	} else {
+		contractAddress = "0xd4E96eF8eee8678dBFf4d535E033Ed1a4F7605b7"
+	}
+
+	// Create Network
+	networkId, err := db.Client.Network.
+		Create().
+		SetIdentifier(payload["identifier"].(string)).
+		SetChainID(payload["chainID"].(int64)).
+		SetRPCEndpoint(payload["networkRPC"].(string)).
+		SetFee(decimal.NewFromFloat(0.1)).
+		SetIsTestnet(true).
+		OnConflict().
+		UpdateNewValues().
+		ID(context.Background())
+
+	if err != nil {
+		return nil, fmt.Errorf("CreateERC20Token.networkId: %w", err)
+	}
+	// Create token
+	tokenId := db.Client.Token.
+		Create().
+		SetSymbol(payload["symbol"].(string)).
+		SetContractAddress(contractAddress).
+		SetDecimals(int8(payload["decimals"].(int))).
+		SetNetworkID(networkId).
+		SetIsEnabled(payload["is_enabled"].(bool)).
+		OnConflict().
+		// Use the new values that were set on create.
+		UpdateNewValues().
+		IDX(context.Background())
+
+	token, err := db.Client.Token.
+		Query().
+		Where(entToken.IDEQ(tokenId)).
+		WithNetwork().
+		Only(context.Background())
+
+	return token, err
+}
+
+// CreateERC20Token creates a test token with default or custom values
+func CreateTRC20Token(client types.RPCClient, overrides map[string]interface{}) (*ent.Token, error) {
+
+	// Default payload
+	payload := map[string]interface{}{
+		"symbol":     "TRON_ST",
+		"decimals":   6,
+		"networkRPC": "ws://localhost:8544",
+		"is_enabled": true,
+		"identifier": "tron",
+		"chainID":    int64(13378),
+	}
+
+	contractAddress := "TFRKiHrHCeSyWL67CEwydFvUMYJ6CbYYX6"
 
 	// Apply overrides
 	for key, value := range overrides {
@@ -77,34 +145,35 @@ func CreateERC20Token(client types.RPCClient, overrides map[string]interface{}) 
 	}
 
 	// Create Network
-	network, err := db.Client.Network.
+	networkId, err := db.Client.Network.
 		Create().
-		SetIdentifier(payload["identifier"].(string)). // randomize the identifier to avoid conflicts
+		SetIdentifier(payload["identifier"].(string)).
 		SetChainID(payload["chainID"].(int64)).
 		SetRPCEndpoint(payload["networkRPC"].(string)).
 		SetFee(decimal.NewFromFloat(0.1)).
 		SetIsTestnet(true).
-		Save(context.Background())
+		OnConflict().
+		UpdateNewValues().
+		ID(context.Background())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("CreateERC20Token.networkId: %w", err)
 	}
-
+	
 	// Create token
-	token, err := db.Client.Token.
+	tokenId := db.Client.Token.
 		Create().
 		SetSymbol(payload["symbol"].(string)).
-		SetContractAddress(payload["contract_address"].(string)).
+		SetContractAddress(contractAddress).
 		SetDecimals(int8(payload["decimals"].(int))).
-		SetNetwork(network).
+		SetNetworkID(networkId).
 		SetIsEnabled(payload["is_enabled"].(bool)).
-		Save(context.Background())
-	if err != nil {
-		return nil, err
-	}
+		OnConflict().
+		UpdateNewValues().
+		IDX(context.Background())
 
-	token, err = db.Client.Token.
+	token, err := db.Client.Token.
 		Query().
-		Where(entToken.IDEQ(token.ID)).
+		Where(entToken.IDEQ(tokenId)).
 		WithNetwork().
 		Only(context.Background())
 
@@ -141,12 +210,12 @@ func CreateTestLockPaymentOrder(overrides map[string]interface{}) (*ent.LockPaym
 
 	// Create test token
 	backend, _ := SetUpTestBlockchain()
-	token, err := CreateERC20Token(backend, nil)
+	token, err := CreateERC20Token(backend, map[string]interface{}{
+		"deployContract": false,
+	})
 	if err != nil {
 		return nil, err
 	}
-
-	time.Sleep(time.Second)
 
 	// Create LockPaymentOrder
 	order, err := db.Client.LockPaymentOrder.
@@ -206,7 +275,7 @@ func CreateTestPaymentOrder(client types.RPCClient, token *ent.Token, overrides 
 		SetAmountReturned(decimal.NewFromInt(0)).
 		SetPercentSettled(decimal.NewFromInt(0)).
 		SetNetworkFee(token.Edges.Network.Fee).
-		SetProtocolFee(decimal.NewFromFloat(payload["amount"].(float64)).Mul(decimal.NewFromFloat(0.001))).
+		SetProtocolFee(decimal.NewFromFloat(payload["amount"].(float64)).Mul(decimal.NewFromFloat(0))).
 		SetSenderFee(decimal.NewFromFloat(payload["fee_per_token_unit"].(float64)).Mul(decimal.NewFromFloat(payload["amount"].(float64))).Div(decimal.NewFromFloat(payload["rate"].(float64))).Round(int32(token.Decimals))).
 		SetToken(token).
 		SetRate(decimal.NewFromFloat(payload["rate"].(float64))).
@@ -217,7 +286,6 @@ func CreateTestPaymentOrder(client types.RPCClient, token *ent.Token, overrides 
 		SetReturnAddress(payload["return_address"].(string)).
 		SetStatus(paymentorder.Status(payload["status"].(string))).
 		Save(context.Background())
-
 	if err != nil {
 		return nil, err
 	}
@@ -274,6 +342,7 @@ func CreateTestSenderProfile(overrides map[string]interface{}) (*ent.SenderProfi
 		"fee_address":        "0x1234567890123456789012345678901234567890",
 		"refund_address":     "0x0987654321098765432109876543210987654321",
 		"user_id":            nil,
+		"token":              "TST",
 	}
 
 	// Apply overrides
@@ -281,18 +350,55 @@ func CreateTestSenderProfile(overrides map[string]interface{}) (*ent.SenderProfi
 		payload[key] = value
 	}
 
-	// Create SenderProfile
+	_token, err := db.Client.Token.
+		Query().
+		Where(
+			token.SymbolEQ(payload["token"].(string)),
+		).
+		Only(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
 	feePerTokenUnit, _ := decimal.NewFromString(payload["fee_per_token_unit"].(string))
+
+	// Create SenderProfile
 	profile, err := db.Client.SenderProfile.
 		Create().
 		SetWebhookURL(payload["webhook_url"].(string)).
 		SetDomainWhitelist(payload["domain_whitelist"].([]string)).
-		SetFeePerTokenUnit(feePerTokenUnit).
-		SetFeeAddress(payload["fee_address"].(string)).
-		SetRefundAddress(payload["refund_address"].(string)).
 		SetUserID(payload["user_id"].(uuid.UUID)).
 		Save(context.Background())
+	if err != nil {
+		return nil, err
+	}
 
+	_, err = db.Client.SenderOrderToken.
+		Query().
+		Where(
+			senderordertoken.And(
+				senderordertoken.HasTokenWith(token.IDEQ(_token.ID)),
+				senderordertoken.HasSenderWith(senderprofile.IDEQ(profile.ID)),
+			),
+		).Only(context.Background())
+	if err != nil {
+		if ent.IsNotFound(err) {
+			_, err := db.Client.SenderOrderToken.
+				Create().
+				SetSenderID(profile.ID).
+				SetTokenID(_token.ID).
+				SetRefundAddress(payload["refund_address"].(string)).
+				SetFeePerTokenUnit(feePerTokenUnit).
+				SetFeeAddress(payload["fee_address"].(string)).
+				Save(context.Background())
+			if err != nil {
+				return nil, fmt.Errorf("CreateTestSenderProfile: %w", err)
+			}
+			return profile, nil
+		} else {
+			return nil, fmt.Errorf("CreateTestSenderProfile: %w", err)
+		}
+	}
 	return profile, err
 }
 

@@ -29,10 +29,14 @@ import (
 
 	"github.com/paycrest/protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
+	"github.com/paycrest/protocol/ent/network"
 	"github.com/paycrest/protocol/ent/paymentorder"
 	"github.com/paycrest/protocol/ent/providerordertoken"
 	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/receiveaddress"
+	"github.com/paycrest/protocol/ent/senderordertoken"
+	"github.com/paycrest/protocol/ent/senderprofile"
+	tokenEnt "github.com/paycrest/protocol/ent/token"
 	db "github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
 	"github.com/paycrest/protocol/utils"
@@ -53,7 +57,7 @@ func NewOrderTron() types.OrderService {
 
 // getNode returns the node to use based on the environment
 func (s *OrderTron) getNode() enums.Node {
-	if config.ServerConfig().Environment == "production" {
+	if serverConf.Environment == "production" {
 		return enums.MAIN_NODE
 	} else {
 		return enums.SHASTA_NODE
@@ -282,20 +286,9 @@ func (s *OrderTron) RefundOrder(ctx context.Context, orderID string) error {
 		ContractAddress: gatewayContractAddress.Bytes(),
 		Data:            calldata,
 	}
-	txHash, err := s.sendTransaction(wallet, ct, 50000000)
+	_, err = s.sendTransaction(wallet, ct, 50000000)
 	if err != nil {
 		return fmt.Errorf("%s - Tron.RefundOrder.sendTransaction: %w", orderIDPrefix, err)
-	}
-
-	// Update status of all lock orders with same order_id
-	_, err = db.Client.LockPaymentOrder.
-		Update().
-		Where(lockpaymentorder.GatewayIDEQ(lockOrder.GatewayID)).
-		SetTxHash(txHash).
-		SetStatus(lockpaymentorder.StatusRefunded).
-		Save(ctx)
-	if err != nil {
-		return fmt.Errorf("Tron.RefundOrder.updateTxHash(%v): %w", txHash, err)
 	}
 
 	return nil
@@ -481,18 +474,9 @@ func (s *OrderTron) SettleOrder(ctx context.Context, orderID uuid.UUID) error {
 		ContractAddress: gatewayContractAddress.Bytes(),
 		Data:            calldata,
 	}
-	txHash, err := s.sendTransaction(wallet, ct, 50000000)
+	_, err = s.sendTransaction(wallet, ct, 50000000)
 	if err != nil {
 		return fmt.Errorf("%s - Tron.SettleOrder.sendTransaction: %w", orderIDPrefix, err)
-	}
-
-	// Update status of lock order
-	_, err = order.Update().
-		SetTxHash(txHash).
-		SetStatus(lockpaymentorder.StatusSettled).
-		Save(ctx)
-	if err != nil {
-		return fmt.Errorf("%s - Tron.SettleOrder.updateTxHash: %w", orderIDPrefix, err)
 	}
 
 	return nil
@@ -523,31 +507,52 @@ func (s *OrderTron) createOrderCallData(order *ent.PaymentOrder) ([]byte, error)
 		return nil, fmt.Errorf("failed to encrypt recipient details: %w", err)
 	}
 
+	// Fetch token configuration
+	isTokenConfigured := true
+	var networkIdentifier string
+
+	if serverConf.Environment == "production" {
+		networkIdentifier = "tron"
+	} else {
+		networkIdentifier = "tron-shasta"
+	}
+
+	token, err := db.Client.SenderOrderToken.
+		Query().
+		Where(
+			senderordertoken.And(
+				senderordertoken.HasTokenWith(
+					tokenEnt.HasNetworkWith(network.IdentifierEQ(networkIdentifier)),
+				),
+				senderordertoken.HasSenderWith(
+					senderprofile.IDEQ(order.Edges.SenderProfile.ID),
+				),
+			)).
+		Only(context.Background())
+	if err != nil {
+		if ent.IsNotFound(err) {
+			isTokenConfigured = false
+		} else {
+			return nil, fmt.Errorf("failed to fetch order token: %w", err)
+		}
+	}
+
 	var refundAddress string
 	var refundAddressTron util.Address
 
-	// TODO: uncomment when there's a field in sender profile for tron refund address is implemented
-	// if order.Edges.SenderProfile.RefundAddress == "" {
-	// 	refundAddressTron, _ = util.Base58ToAddress(order.ReturnAddress)
-	// 	refundAddress = refundAddressTron.Hex()[4:]
-	// } else {
-	// 	refundAddressTron, _ = util.Base58ToAddress(order.Edges.SenderProfile.RefundAddress)
-	// 	refundAddress = refundAddressTron.Hex()[4:]
-	// }
-
-	refundAddressTron, _ = util.Base58ToAddress(order.ReturnAddress)
-	refundAddress = refundAddressTron.Hex()[4:]
+	if isTokenConfigured {
+		refundAddressTron, _ = util.Base58ToAddress(token.RefundAddress)
+		refundAddress = refundAddressTron.Hex()[4:]
+	} else {
+		refundAddressTron, _ = util.Base58ToAddress(order.ReturnAddress)
+		refundAddress = refundAddressTron.Hex()[4:]
+	}
 
 	amountWithProtocolFee := order.Amount.Add(order.ProtocolFee)
 	tokenContractAddressTron, _ := util.Base58ToAddress(order.Edges.Token.ContractAddress)
 
-	var senderFeeRecipient string
-	if order.FeeAddress != "" {
-		// TODO: uncomment when there's a field in sender profile for tron fee address is implemented
-		// senderFeeRecipientTron, _ := util.Base58ToAddress(order.FeeAddress)
-		// senderFeeRecipient = senderFeeRecipientTron.Hex()[4:]
-		senderFeeRecipient = ""
-	}
+	senderFeeRecipientTron, _ := util.Base58ToAddress(order.FeeAddress)
+	senderFeeRecipient := senderFeeRecipientTron.Hex()[4:]
 
 	// Define params
 	params := &types.CreateOrderParams{
@@ -683,7 +688,7 @@ func (s *OrderTron) encryptOrderRecipient(recipient *ent.PaymentOrderRecipient) 
 	}
 
 	// Encrypt with the public key of the aggregator
-	messageCipher, err := cryptoUtils.PublicKeyEncryptJSON(message, config.CryptoConfig().AggregatorPublicKey)
+	messageCipher, err := cryptoUtils.PublicKeyEncryptJSON(message, cryptoConf.AggregatorPublicKey)
 	if err != nil {
 		return "", fmt.Errorf("failed to encrypt message: %w", err)
 	}

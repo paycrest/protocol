@@ -144,7 +144,7 @@ func main() {
 	}
 }
 
-func initAPIKeyCreate(ctx context.Context, client *ent.Client) (*ent.APIKeyCreate, string, string, error) {
+func initAPIKeyCreate(client *ent.Client) (*ent.APIKeyCreate, string, string, error) {
 	secretKey, err := token.GeneratePrivateKey()
 	if err != nil {
 		return nil, "", "", fmt.Errorf("failed to generate API key: %s", err)
@@ -173,9 +173,6 @@ func seedSender(ctx context.Context, client *ent.Client, serial string) (string,
 		Create().
 		SetUser(user).
 		SetWebhookURL("https://example.com/webhook").
-		SetFeePerTokenUnit(decimal.NewFromFloat(10)).
-		SetFeeAddress("0x409689E3008d43a9eb439e7B275749D4a71D8E2D").
-		SetRefundAddress("0x409689E3008d43a9eb439e7B275749D4a71D8E2D").
 		SetDomainWhitelist([]string{"https://example.com"}).
 		SetIsActive(true).
 		Save(ctx)
@@ -183,7 +180,7 @@ func seedSender(ctx context.Context, client *ent.Client, serial string) (string,
 		return "", "", "", fmt.Errorf("failed creating sender profile: %s", err)
 	}
 
-	apiKeyCreate, secretKey, encodedSecret, err := initAPIKeyCreate(ctx, client)
+	apiKeyCreate, secretKey, encodedSecret, err := initAPIKeyCreate(client)
 	if err != nil {
 		return "", "", "", fmt.Errorf("failed to initialize sender API key: %s", err)
 	}
@@ -236,7 +233,7 @@ func seedProvider(ctx context.Context, client *ent.Client, bucket *ent.Provision
 		return "", "", "", fmt.Errorf("failed creating provider: %s", err)
 	}
 
-	apiKeyCreate, secretKey, encodedSecret, err := initAPIKeyCreate(ctx, client)
+	apiKeyCreate, secretKey, encodedSecret, err := initAPIKeyCreate(client)
 	if err != nil {
 		return "", "", "", fmt.Errorf("failed to initialize provider API key: %s", err)
 	}

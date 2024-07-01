@@ -200,7 +200,7 @@ func IndexBlockchainEvents() error {
 
 	// Index ERC20 transfer events
 	go func() {
-		_ = utils.Retry(3, 15*time.Second, func() error {
+		_ = utils.Retry(3, 5*time.Second, func() error {
 			for _, network := range networks {
 				orders, err := storage.Client.PaymentOrder.
 					Query().
@@ -250,8 +250,9 @@ func IndexBlockchainEvents() error {
 
 	// Index OrderCreated events
 	go func() {
-		_ = utils.Retry(3, 15*time.Second, func() error {
+		_ = utils.Retry(3, 2*time.Second, func() error {
 			for _, network := range networks {
+				// Index events triggered from API
 				orders, err := storage.Client.PaymentOrder.
 					Query().
 					Where(func(s *sql.Selector) {
@@ -297,6 +298,15 @@ func IndexBlockchainEvents() error {
 						}
 					}
 				}
+
+				// Index events triggered from Gateway contract
+				if !strings.HasPrefix(network.Identifier, "tron") {
+					indexerService := services.NewIndexerService(orderService.NewOrderEVM())
+					err = indexerService.IndexOrderCreated(ctx, nil, network, "")
+					if err != nil {
+						continue
+					}
+				}
 			}
 
 			return fmt.Errorf("trigger retry")
@@ -305,7 +315,7 @@ func IndexBlockchainEvents() error {
 
 	// Index OrderSettled events
 	go func() {
-		_ = utils.Retry(3, 15*time.Second, func() error {
+		_ = utils.Retry(3, 2*time.Second, func() error {
 			for _, network := range networks {
 				lockOrders, err := storage.Client.LockPaymentOrder.
 					Query().
@@ -355,7 +365,7 @@ func IndexBlockchainEvents() error {
 
 	// Index OrderRefunded events
 	go func() {
-		_ = utils.Retry(3, 15*time.Second, func() error {
+		_ = utils.Retry(3, 2*time.Second, func() error {
 			for _, network := range networks {
 				lockOrders, err := storage.Client.LockPaymentOrder.
 					Query().
@@ -519,7 +529,7 @@ func ComputeMarketRate() error {
 		// Fetch rates from token configs with fixed conversion rate
 		token := "USDT"
 		if serverConf.Environment != "production" {
-			token = "6TEST"
+			token = "TST"
 		}
 		tokenConfigs, err := storage.Client.ProviderOrderToken.
 			Query().

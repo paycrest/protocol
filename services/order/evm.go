@@ -24,6 +24,9 @@ import (
 	"github.com/paycrest/protocol/ent/providerordertoken"
 	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/receiveaddress"
+	"github.com/paycrest/protocol/ent/senderordertoken"
+	"github.com/paycrest/protocol/ent/senderprofile"
+	tokenEnt "github.com/paycrest/protocol/ent/token"
 	"github.com/paycrest/protocol/ent/transactionlog"
 	"github.com/paycrest/protocol/types"
 	"github.com/paycrest/protocol/utils"
@@ -37,6 +40,9 @@ type OrderEVM struct{}
 func NewOrderEVM() types.OrderService {
 	return &OrderEVM{}
 }
+
+var serverConf = config.ServerConfig()
+var cryptoConf = config.CryptoConfig()
 
 // CreateOrder creates a new payment order on-chain.
 func (s *OrderEVM) CreateOrder(ctx context.Context, orderID uuid.UUID) error {
@@ -80,7 +86,7 @@ func (s *OrderEVM) CreateOrder(ctx context.Context, orderID uuid.UUID) error {
 
 	// Sponsor user operation.
 	// This will populate the following fields in userOperation: PaymasterAndData, PreVerificationGas, VerificationGasLimit, CallGasLimit
-	if config.ServerConfig().Environment != "production" {
+	if serverConf.Environment != "production" {
 		err = utils.SponsorUserOperation(userOperation, "erc20", order.Edges.Token.ContractAddress, order.Edges.Token.Edges.Network.ChainID)
 	} else {
 		err = utils.SponsorUserOperation(userOperation, "sponsored", "", order.Edges.Token.Edges.Network.ChainID)
@@ -101,7 +107,8 @@ func (s *OrderEVM) CreateOrder(ctx context.Context, orderID uuid.UUID) error {
 		return fmt.Errorf("%s - CreateOrder.SendUserOperation: %w", orderIDPrefix, err)
 	}
 
-	transactionLog, err := db.Client.TransactionLog.Create().
+	transactionLog, err := db.Client.TransactionLog.
+		Create().
 		SetStatus(transactionlog.StatusOrderCreated).
 		SetTxHash(txHash).
 		SetNetwork(order.Edges.Token.Edges.Network.Identifier).
@@ -159,7 +166,7 @@ func (s *OrderEVM) RefundOrder(ctx context.Context, orderID string) error {
 
 	// Get default userOperation
 	userOperation, err := utils.InitializeUserOperation(
-		ctx, nil, lockOrder.Edges.Token.Edges.Network.RPCEndpoint, config.CryptoConfig().AggregatorSmartAccount, config.CryptoConfig().AggregatorSmartAccountSalt,
+		ctx, nil, lockOrder.Edges.Token.Edges.Network.RPCEndpoint, cryptoConf.AggregatorSmartAccount, cryptoConf.AggregatorSmartAccountSalt,
 	)
 	if err != nil {
 		return fmt.Errorf("RefundOrder.initializeUserOperation: %w", err)
@@ -174,7 +181,7 @@ func (s *OrderEVM) RefundOrder(ctx context.Context, orderID string) error {
 
 	// Sponsor user operation.
 	// This will populate the following fields in userOperation: PaymasterAndData, PreVerificationGas, VerificationGasLimit, CallGasLimit
-	if config.ServerConfig().Environment != "production" {
+	if serverConf.Environment != "production" {
 		err = utils.SponsorUserOperation(userOperation, "erc20", lockOrder.Edges.Token.ContractAddress, lockOrder.Edges.Token.Edges.Network.ChainID)
 	} else {
 		err = utils.SponsorUserOperation(userOperation, "sponsored", "", lockOrder.Edges.Token.Edges.Network.ChainID)
@@ -192,7 +199,9 @@ func (s *OrderEVM) RefundOrder(ctx context.Context, orderID string) error {
 		return fmt.Errorf("RefundOrder.sendUserOperation: %w", err)
 	}
 
-	transactionLog, err := db.Client.TransactionLog.Create().
+	// Create log
+	transactionLog, err := db.Client.TransactionLog.
+		Create().
 		SetStatus(transactionlog.StatusOrderRefunded).
 		SetTxHash(txHash).
 		SetNetwork(lockOrder.Edges.Token.Edges.Network.Identifier).
@@ -200,7 +209,8 @@ func (s *OrderEVM) RefundOrder(ctx context.Context, orderID string) error {
 		SetMetadata(
 			map[string]interface{}{
 				"BlockNumber": blockNumber,
-			}).Save(ctx)
+			}).
+		Save(ctx)
 	if err != nil {
 		return fmt.Errorf("RefundOrder.transactionLog(%v): %w", txHash, err)
 	}
@@ -295,7 +305,7 @@ func (s *OrderEVM) RevertOrder(ctx context.Context, order *ent.PaymentOrder) err
 
 	// Sponsor user operation.
 	// This will populate the following fields in userOperation: PaymasterAndData, PreVerificationGas, VerificationGasLimit, CallGasLimit
-	if config.ServerConfig().Environment != "production" {
+	if serverConf.Environment != "production" {
 		err = utils.SponsorUserOperation(userOperation, "erc20", order.Edges.Token.ContractAddress, order.Edges.Token.Edges.Network.ChainID)
 	} else {
 		err = utils.SponsorUserOperation(userOperation, "sponsored", "", order.Edges.Token.Edges.Network.ChainID)
@@ -315,7 +325,10 @@ func (s *OrderEVM) RevertOrder(ctx context.Context, order *ent.PaymentOrder) err
 	if err != nil {
 		return fmt.Errorf("%s - RevertOrder.sendUserOperation: %w", orderIDPrefix, err)
 	}
-	transactionLog, err := db.Client.TransactionLog.Create().
+
+	// Create log
+	transactionLog, err := db.Client.TransactionLog.
+		Create().
 		SetStatus(transactionlog.StatusOrderReverted).
 		SetTxHash(txHash).
 		SetNetwork(order.Edges.Token.Edges.Network.Identifier).
@@ -323,7 +336,8 @@ func (s *OrderEVM) RevertOrder(ctx context.Context, order *ent.PaymentOrder) err
 		SetMetadata(
 			map[string]interface{}{
 				"BlockNumber": blockNumber,
-			}).Save(ctx)
+			}).
+		Save(ctx)
 	if err != nil {
 		return fmt.Errorf("%s - RevertOrder.transactionLog: %w", orderIDPrefix, err)
 	}
@@ -377,7 +391,7 @@ func (s *OrderEVM) SettleOrder(ctx context.Context, orderID uuid.UUID) error {
 
 	// Get default userOperation
 	userOperation, err := utils.InitializeUserOperation(
-		ctx, nil, order.Edges.Token.Edges.Network.RPCEndpoint, config.CryptoConfig().AggregatorSmartAccount, config.CryptoConfig().AggregatorSmartAccountSalt,
+		ctx, nil, order.Edges.Token.Edges.Network.RPCEndpoint, cryptoConf.AggregatorSmartAccount, cryptoConf.AggregatorSmartAccountSalt,
 	)
 	if err != nil {
 		return fmt.Errorf("%s - SettleOrder.initializeUserOperation: %w", orderIDPrefix, err)
@@ -392,7 +406,7 @@ func (s *OrderEVM) SettleOrder(ctx context.Context, orderID uuid.UUID) error {
 
 	// Sponsor user operation.
 	// This will populate the following fields in userOperation: PaymasterAndData, PreVerificationGas, VerificationGasLimit, CallGasLimit
-	if config.ServerConfig().Environment != "production" {
+	if serverConf.Environment != "production" {
 		err = utils.SponsorUserOperation(userOperation, "erc20", order.Edges.Token.ContractAddress, order.Edges.Token.Edges.Network.ChainID)
 	} else {
 		err = utils.SponsorUserOperation(userOperation, "sponsored", "", order.Edges.Token.Edges.Network.ChainID)
@@ -409,7 +423,10 @@ func (s *OrderEVM) SettleOrder(ctx context.Context, orderID uuid.UUID) error {
 	if err != nil {
 		return fmt.Errorf("%s - SettleOrder.sendUserOperation: %w", orderIDPrefix, err)
 	}
-	transactionLog, err := db.Client.TransactionLog.Create().
+
+	// Create log
+	transactionLog, err := db.Client.TransactionLog.
+		Create().
 		SetStatus(transactionlog.StatusOrderSettled).
 		SetTxHash(txHash).
 		SetNetwork(order.Edges.Token.Edges.Network.Identifier).
@@ -417,7 +434,8 @@ func (s *OrderEVM) SettleOrder(ctx context.Context, orderID uuid.UUID) error {
 		SetMetadata(
 			map[string]interface{}{
 				"BlockNumber": blockNumber,
-			}).Save(ctx)
+			}).
+		Save(ctx)
 	if err != nil {
 		return fmt.Errorf("%s - SettleOrder.transactionLog: %w", orderIDPrefix, err)
 	}
@@ -444,7 +462,7 @@ func (s *OrderEVM) executeBatchTransferCallData(order *ent.PaymentOrder, to comm
 		return nil, fmt.Errorf("failed to get paymaster account: %w", err)
 	}
 
-	if config.ServerConfig().Environment != "staging" && config.ServerConfig().Environment != "production" {
+	if serverConf.Environment != "staging" && serverConf.Environment != "production" {
 		time.Sleep(5 * time.Second)
 	}
 
@@ -502,7 +520,7 @@ func (s *OrderEVM) executeBatchCreateOrderCallData(order *ent.PaymentOrder) ([]b
 		return nil, fmt.Errorf("failed to get paymaster account: %w", err)
 	}
 
-	if config.ServerConfig().Environment != "production" {
+	if serverConf.Environment != "production" {
 		time.Sleep(5 * time.Second)
 	}
 
@@ -604,11 +622,31 @@ func (s *OrderEVM) createOrderCallData(order *ent.PaymentOrder) ([]byte, error) 
 		return nil, fmt.Errorf("failed to encrypt recipient details: %w", err)
 	}
 
+	isTokenConfigured := true
+	token, err := db.Client.SenderOrderToken.
+		Query().
+		Where(
+			senderordertoken.And(
+				senderordertoken.HasTokenWith(tokenEnt.IDEQ(order.Edges.Token.ID)),
+				senderordertoken.HasSenderWith(
+					senderprofile.IDEQ(order.Edges.SenderProfile.ID),
+				),
+			)).
+		Only(context.Background())
+	if err != nil {
+		if ent.IsNotFound(err) {
+			isTokenConfigured = false
+		} else {
+			return nil, fmt.Errorf("failed to fetch order token: %w", err)
+		}
+	}
+
 	var refundAddress common.Address
-	if order.Edges.SenderProfile.RefundAddress == "" {
-		refundAddress = common.HexToAddress(order.ReturnAddress)
+
+	if isTokenConfigured {
+		refundAddress = common.HexToAddress(token.RefundAddress)
 	} else {
-		refundAddress = common.HexToAddress(order.Edges.SenderProfile.RefundAddress)
+		refundAddress = common.HexToAddress(order.ReturnAddress)
 	}
 
 	amountWithProtocolFee := order.Amount.Add(order.ProtocolFee)
@@ -689,7 +727,7 @@ func (s *OrderEVM) executeBatchRefundCallData(order *ent.LockPaymentOrder) ([]by
 
 	data := [][]byte{approveGatewayData, refundData}
 
-	if config.ServerConfig().Environment != "production" {
+	if serverConf.Environment != "production" {
 		paymasterAccount, err := utils.GetPaymasterAccount(order.Edges.Token.Edges.Network.ChainID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get paymaster account: %w", err)
@@ -772,7 +810,7 @@ func (s *OrderEVM) executeBatchSettleCallData(ctx context.Context, order *ent.Lo
 
 	data := [][]byte{approveGatewayData}
 
-	if config.ServerConfig().Environment != "production" {
+	if serverConf.Environment != "production" {
 		// Fetch paymaster account
 		paymasterAccount, err := utils.GetPaymasterAccount(order.Edges.Token.Edges.Network.ChainID)
 		if err != nil {
@@ -897,7 +935,7 @@ func (s *OrderEVM) encryptOrderRecipient(recipient *ent.PaymentOrderRecipient) (
 	}
 
 	// Encrypt with the public key of the aggregator
-	messageCipher, err := cryptoUtils.PublicKeyEncryptJSON(message, config.CryptoConfig().AggregatorPublicKey)
+	messageCipher, err := cryptoUtils.PublicKeyEncryptJSON(message, cryptoConf.AggregatorPublicKey)
 	if err != nil {
 		return "", fmt.Errorf("failed to encrypt message: %w", err)
 	}

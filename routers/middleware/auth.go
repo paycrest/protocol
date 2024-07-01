@@ -53,7 +53,7 @@ func JWTMiddleware(c *gin.Context) {
 	}
 	scope, ok := claims["scope"].(string)
 	if !ok {
-		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid or expired token", err.Error())
+		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid or expired token", "Invalid scope in token")
 		c.Abort()
 		return
 	}
@@ -70,6 +70,7 @@ func JWTMiddleware(c *gin.Context) {
 		senderProfile, err := storage.Client.SenderProfile.
 			Query().
 			Where(senderprofile.HasUserWith(user.IDEQ(userUUID))).
+			WithOrderTokens().
 			Only(c)
 		if err != nil {
 			c.Set("sender", nil)

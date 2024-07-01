@@ -1,7 +1,6 @@
 package provider
 
 import (
-	"encoding/base64"
 	"fmt"
 	"net/http"
 	"strings"
@@ -21,9 +20,7 @@ import (
 	"github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
 	u "github.com/paycrest/protocol/utils"
-	cryptoUtils "github.com/paycrest/protocol/utils/crypto"
 	"github.com/paycrest/protocol/utils/logger"
-	tokenUtils "github.com/paycrest/protocol/utils/token"
 	"github.com/shopspring/decimal"
 
 	"github.com/gin-gonic/gin"
@@ -480,24 +477,30 @@ func (ctrl *ProviderController) CancelOrder(ctx *gin.Context) {
 	// Get new cancellation count based on cancel reason
 	orderConf := config.OrderConfig()
 	orderUpdate := storage.Client.LockPaymentOrder.UpdateOneID(orderID)
-	CancellationCount := order.CancellationCount
+	cancellationCount := order.CancellationCount
 	if payload.Reason == "Invalid recipient bank details" || provider.VisibilityMode == providerprofile.VisibilityModePrivate {
-		CancellationCount += orderConf.RefundCancellationCount // Allows us refund immediately for invalid recipient
+		cancellationCount += orderConf.RefundCancellationCount // Allows us refund immediately for invalid recipient
 		orderUpdate.AppendCancellationReasons([]string{payload.Reason})
 	} else if payload.Reason != "Insufficient funds" {
-		CancellationCount += 1
+		cancellationCount += 1
 		orderUpdate.AppendCancellationReasons([]string{payload.Reason})
 	}
+
 	// Update lock order status to cancelled
-	orderUpdate.
+	_, err = orderUpdate.
 		SetStatus(lockpaymentorder.StatusCancelled).
-		SetCancellationCount(CancellationCount)
-	order, err = orderUpdate.Save(ctx)
+		SetCancellationCount(cancellationCount).
+		Save(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to cancel order", nil)
 		return
 	}
+
+	order.Status = lockpaymentorder.StatusCancelled
+	order.CancellationCount = cancellationCount
+
+	// logger.Errorf("cancellation count, status", order.Status.String(), order.CancellationCount)
 
 	// Check if order cancellation count is equal or greater than RefundCancellationCount in config,
 	// and the order has not been refunded, then trigger refund
@@ -646,25 +649,9 @@ func (ctrl *ProviderController) NodeInfo(ctx *gin.Context) {
 		return
 	}
 
-	// Compute HMAC
-	decodedSecret, err := base64.StdEncoding.DecodeString(provider.Edges.APIKey.Secret)
-	if err != nil {
-		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch node info", nil)
-		return
-	}
-	decryptedSecret, err := cryptoUtils.DecryptPlain(decodedSecret)
-	if err != nil {
-		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch node info", nil)
-		return
-	}
-	signature := tokenUtils.GenerateHMACSignature(map[string]interface{}{}, string(decryptedSecret))
-
 	// TODO: Get approval to install github.com/go-ping/ping to replace Get request
 	res, err := fastshot.NewClient(provider.HostIdentifier).
-		Config().SetTimeout(30*time.Second).
-		Header().Add("X-Request-Signature", signature).
+		Config().SetTimeout(30 * time.Second).
 		Build().GET("/health").
 		// Retry().Set(3, 5*time.Second).  // #329 - Remove retries for /provider/node-info endpoint
 		Send()
@@ -721,7 +708,6 @@ func (ctrl *ProviderController) GetLockPaymentOrderByID(ctx *gin.Context) {
 			lockpaymentorder.IDEQ(id),
 			lockpaymentorder.HasProviderWith(providerprofile.IDEQ(provider.ID)),
 		).
-		WithTransactions().
 		WithToken(func(tq *ent.TokenQuery) {
 			tq.WithNetwork()
 		}).

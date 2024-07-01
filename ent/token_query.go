@@ -15,6 +15,7 @@ import (
 	"github.com/paycrest/protocol/ent/network"
 	"github.com/paycrest/protocol/ent/paymentorder"
 	"github.com/paycrest/protocol/ent/predicate"
+	"github.com/paycrest/protocol/ent/senderordertoken"
 	"github.com/paycrest/protocol/ent/token"
 )
 
@@ -28,6 +29,7 @@ type TokenQuery struct {
 	withNetwork           *NetworkQuery
 	withPaymentOrders     *PaymentOrderQuery
 	withLockPaymentOrders *LockPaymentOrderQuery
+	withSenderSettings    *SenderOrderTokenQuery
 	withFKs               bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -124,6 +126,28 @@ func (tq *TokenQuery) QueryLockPaymentOrders() *LockPaymentOrderQuery {
 			sqlgraph.From(token.Table, token.FieldID, selector),
 			sqlgraph.To(lockpaymentorder.Table, lockpaymentorder.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, token.LockPaymentOrdersTable, token.LockPaymentOrdersColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(tq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QuerySenderSettings chains the current query on the "sender_settings" edge.
+func (tq *TokenQuery) QuerySenderSettings() *SenderOrderTokenQuery {
+	query := (&SenderOrderTokenClient{config: tq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := tq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := tq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(token.Table, token.FieldID, selector),
+			sqlgraph.To(senderordertoken.Table, senderordertoken.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, token.SenderSettingsTable, token.SenderSettingsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(tq.driver.Dialect(), step)
 		return fromU, nil
@@ -326,6 +350,7 @@ func (tq *TokenQuery) Clone() *TokenQuery {
 		withNetwork:           tq.withNetwork.Clone(),
 		withPaymentOrders:     tq.withPaymentOrders.Clone(),
 		withLockPaymentOrders: tq.withLockPaymentOrders.Clone(),
+		withSenderSettings:    tq.withSenderSettings.Clone(),
 		// clone intermediate query.
 		sql:  tq.sql.Clone(),
 		path: tq.path,
@@ -362,6 +387,17 @@ func (tq *TokenQuery) WithLockPaymentOrders(opts ...func(*LockPaymentOrderQuery)
 		opt(query)
 	}
 	tq.withLockPaymentOrders = query
+	return tq
+}
+
+// WithSenderSettings tells the query-builder to eager-load the nodes that are connected to
+// the "sender_settings" edge. The optional arguments are used to configure the query builder of the edge.
+func (tq *TokenQuery) WithSenderSettings(opts ...func(*SenderOrderTokenQuery)) *TokenQuery {
+	query := (&SenderOrderTokenClient{config: tq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	tq.withSenderSettings = query
 	return tq
 }
 
@@ -444,10 +480,11 @@ func (tq *TokenQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Token,
 		nodes       = []*Token{}
 		withFKs     = tq.withFKs
 		_spec       = tq.querySpec()
-		loadedTypes = [3]bool{
+		loadedTypes = [4]bool{
 			tq.withNetwork != nil,
 			tq.withPaymentOrders != nil,
 			tq.withLockPaymentOrders != nil,
+			tq.withSenderSettings != nil,
 		}
 	)
 	if tq.withNetwork != nil {
@@ -491,6 +528,13 @@ func (tq *TokenQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Token,
 		if err := tq.loadLockPaymentOrders(ctx, query, nodes,
 			func(n *Token) { n.Edges.LockPaymentOrders = []*LockPaymentOrder{} },
 			func(n *Token, e *LockPaymentOrder) { n.Edges.LockPaymentOrders = append(n.Edges.LockPaymentOrders, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := tq.withSenderSettings; query != nil {
+		if err := tq.loadSenderSettings(ctx, query, nodes,
+			func(n *Token) { n.Edges.SenderSettings = []*SenderOrderToken{} },
+			func(n *Token, e *SenderOrderToken) { n.Edges.SenderSettings = append(n.Edges.SenderSettings, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -586,6 +630,37 @@ func (tq *TokenQuery) loadLockPaymentOrders(ctx context.Context, query *LockPaym
 		node, ok := nodeids[*fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "token_lock_payment_orders" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (tq *TokenQuery) loadSenderSettings(ctx context.Context, query *SenderOrderTokenQuery, nodes []*Token, init func(*Token), assign func(*Token, *SenderOrderToken)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*Token)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.SenderOrderToken(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(token.SenderSettingsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.token_sender_settings
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "token_sender_settings" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "token_sender_settings" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}

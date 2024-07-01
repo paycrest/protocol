@@ -2,18 +2,23 @@ package controllers
 
 import (
 	"net/http"
+	"slices"
 	"strings"
+	"time"
 
+	fastshot "github.com/opus-domini/fast-shot"
 	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/fiatcurrency"
 	"github.com/paycrest/protocol/ent/institution"
+	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/token"
 	svc "github.com/paycrest/protocol/services"
 	orderSvc "github.com/paycrest/protocol/services/order"
 	"github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
+	"github.com/paycrest/protocol/utils"
 	u "github.com/paycrest/protocol/utils"
 	"github.com/paycrest/protocol/utils/logger"
 	"github.com/shopspring/decimal"
@@ -78,7 +83,7 @@ func (ctrl *Controller) GetInstitutionsByCurrency(ctx *gin.Context) {
 	if err != nil {
 		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusBadRequest, "error",
-			"Failed to fetch institutions", err.Error())
+			"Failed to fetch institutions", nil)
 		return
 	}
 
@@ -199,4 +204,149 @@ func (ctrl *Controller) GetTokenRate(ctx *gin.Context) {
 // GetAggregatorPublicKey controller expose Aggregator Public Key
 func (ctrl *Controller) GetAggregatorPublicKey(ctx *gin.Context) {
 	u.APIResponse(ctx, http.StatusOK, "success", "OK", config.CryptoConfig().AggregatorPublicKey)
+}
+
+// VerifyAccount controller verifies an account of a given institution
+func (ctrl *Controller) VerifyAccount(ctx *gin.Context) {
+	var payload types.VerifyAccountRequest
+
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusBadRequest, "error",
+			"Failed to validate payload", u.GetErrorData(err))
+		return
+	}
+
+	institution, err := storage.Client.Institution.
+		Query().
+		Where(institution.CodeEQ(payload.Institution)).
+		WithFiatCurrency().
+		Only(ctx)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", []types.ErrorData{{
+			Field:   "Institution",
+			Message: "Institution is not supported",
+		}})
+		return
+	}
+
+	provider, err := storage.Client.ProviderProfile.
+		Query().
+		Where(
+			providerprofile.HasCurrencyWith(
+				fiatcurrency.CodeEQ(institution.Edges.FiatCurrency.Code),
+			),
+			providerprofile.HostIdentifierNotNil(),
+			providerprofile.IsActiveEQ(true),
+			providerprofile.IsAvailableEQ(true),
+		).
+		First(ctx)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusBadRequest, "error",
+			"Failed to verify account", err.Error())
+		return
+	}
+
+	res, err := fastshot.NewClient(provider.HostIdentifier).
+		Config().SetTimeout(30 * time.Second).
+		Build().POST("/verify_account").
+		Body().AsJSON(payload).
+		Send()
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusServiceUnavailable, "error", "Failed to verify account", nil)
+		return
+	}
+
+	data, err := u.ParseJSONResponse(res.RawResponse)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusServiceUnavailable, "error", "Failed to fetch node info", nil)
+		return
+	}
+
+	u.APIResponse(ctx, http.StatusOK, "success", "Account name was fetched successfully", data["data"].(string))
+}
+
+// GetLockPaymentOrderStatus controller fetches a payment order status by ID
+func (ctrl *Controller) GetLockPaymentOrderStatus(ctx *gin.Context) {
+	// Get order ID from the URL
+	orderID := ctx.Param("id")
+
+	// Fetch related payment orders from the database
+	orders, err := storage.Client.LockPaymentOrder.
+		Query().
+		Where(
+			lockpaymentorder.GatewayIDEQ(orderID),
+		).
+		WithToken(func(tq *ent.TokenQuery) {
+			tq.WithNetwork()
+		}).
+		WithTransactions().
+		All(ctx)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch order status", nil)
+		return
+	}
+
+	var settlements []types.LockPaymentOrderSplitOrder
+	var receipts []types.LockPaymentOrderTxReceipt
+	var settlePercent decimal.Decimal
+	var totalAmount decimal.Decimal
+
+	for _, order := range orders {
+		for _, transaction := range order.Edges.Transactions {
+			if utils.ContainsString([]string{"order_settled", "order_created", "order_refunded"}, transaction.Status.String()) {
+				var status lockpaymentorder.Status
+				if transaction.Status.String() == "order_created" {
+					status = lockpaymentorder.StatusPending
+				} else {
+					status = lockpaymentorder.Status(strings.TrimPrefix(transaction.Status.String(), "order_"))
+				}
+				receipts = append(receipts, types.LockPaymentOrderTxReceipt{
+					Status:    status,
+					TxHash:    transaction.TxHash,
+					Timestamp: transaction.CreatedAt,
+				})
+			}
+		}
+
+		settlements = append(settlements, types.LockPaymentOrderSplitOrder{
+			SplitOrderID: order.ID,
+			Amount:       order.Amount,
+			Rate:         order.Rate,
+			OrderPercent: order.OrderPercent,
+		})
+
+		settlePercent = settlePercent.Add(order.OrderPercent)
+		totalAmount = totalAmount.Add(order.Amount)
+	}
+
+	// Sort receipts by latest timestamp
+	slices.SortStableFunc(receipts, func(a, b types.LockPaymentOrderTxReceipt) int {
+		return b.Timestamp.Compare(a.Timestamp)
+	})
+
+	if (len(orders) == 0) || (len(receipts) == 0) {
+		u.APIResponse(ctx, http.StatusNotFound, "error", "Order not found", nil)
+		return
+	}
+
+	response := &types.LockPaymentOrderStatusResponse{
+		OrderID:       orders[0].GatewayID,
+		Amount:        totalAmount,
+		Token:         orders[0].Edges.Token.Symbol,
+		Network:       orders[0].Edges.Token.Edges.Network.Identifier,
+		SettlePercent: settlePercent,
+		Status:        orders[0].Status,
+		TxHash:        receipts[0].TxHash,
+		Settlements:   settlements,
+		TxReceipts:    receipts,
+		UpdatedAt:     orders[0].UpdatedAt,
+	}
+
+	u.APIResponse(ctx, http.StatusOK, "success", "Order status fetched successfully", response)
 }

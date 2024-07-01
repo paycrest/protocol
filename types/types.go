@@ -192,13 +192,22 @@ type ValidatorProfilePayload struct {
 	HostIdentifier string `json:"hostIdentifier"`
 }
 
+type SenderOrderAddressPayload struct {
+	Network       string `json:"network" binding:"required"`
+	FeeAddress    string `json:"feeAddress" binding:"required"`
+	RefundAddress string `json:"refundAddress" binding:"required"`
+}
+type SenderOrderTokenPayload struct {
+	Symbol          string                      `json:"symbol" binding:"required"`
+	FeePerTokenUnit decimal.Decimal             `json:"feePerTokenUnit" binding:"required"`
+	Addresses       []SenderOrderAddressPayload `json:"addresses"`
+}
+
 // SenderProfilePayload is the payload for the sender profile endpoint
 type SenderProfilePayload struct {
-	WebhookURL      string          `json:"webhookURL"`
-	DomainWhitelist []string        `json:"domainWhitelist"`
-	FeePerTokenUnit decimal.Decimal `json:"feePerTokenUnit"`
-	FeeAddress      string          `json:"feeAddress"`
-	RefundAddress   string          `json:"refundAddress"`
+	WebhookURL      string                    `json:"webhookURL"`
+	DomainWhitelist []string                  `json:"domainWhitelist"`
+	Tokens          []SenderOrderTokenPayload `json:"tokens"`
 }
 
 // ProviderOrderTokenPayload defines the provider setting for a token
@@ -267,19 +276,29 @@ type ValidatorProfileResponse struct {
 	APIKey         APIKeyResponse `json:"apiKey"`
 }
 
+// SenderOrderTokenResponse defines the provider setting for a token
+type SenderOrderTokenResponse struct {
+	Symbol          string          `json:"symbol" binding:"required"`
+	FeePerTokenUnit decimal.Decimal `json:"feePerTokenUnit" binding:"required"`
+	Network         string          `json:"network" binding:"required"`
+	FeeAddress      string          `json:"feeAddress" binding:"required"`
+	RefundAddress   string          `json:"refundAddress" binding:"required"`
+}
+
 // SenderProfileResponse is the response for the sender profile endpoint
 type SenderProfileResponse struct {
-	ID              uuid.UUID       `json:"id"`
-	FirstName       string          `json:"firstName"`
-	LastName        string          `json:"lastName"`
-	Email           string          `json:"email"`
-	WebhookURL      string          `json:"webhookUrl"`
-	DomainWhitelist []string        `json:"domainWhitelist"`
-	FeePerTokenUnit decimal.Decimal `json:"feePerTokenUnit"`
-	FeeAddress      string          `json:"feeAddress"`
-	RefundAddress   string          `json:"refundAddress"`
-	APIKey          APIKeyResponse  `json:"apiKey"`
-	IsActive        bool            `json:"isActive"`
+	ID              uuid.UUID                  `json:"id"`
+	FirstName       string                     `json:"firstName"`
+	LastName        string                     `json:"lastName"`
+	Email           string                     `json:"email"`
+	WebhookURL      string                     `json:"webhookUrl"`
+	DomainWhitelist []string                   `json:"domainWhitelist"`
+	Tokens          []SenderOrderTokenResponse `json:"tokens"`
+	FeePerTokenUnit decimal.Decimal            `json:"feePerTokenUnit"`
+	FeeAddress      string                     `json:"feeAddress"`
+	RefundAddress   string                     `json:"refundAddress"`
+	APIKey          APIKeyResponse             `json:"apiKey"`
+	IsActive        bool                       `json:"isActive"`
 }
 
 // RefreshResponse is the response for the refresh endpoint
@@ -347,6 +366,32 @@ type LockPaymentOrderResponse struct {
 	UpdatedAt         time.Time               `json:"updatedAt"`
 	CreatedAt         time.Time               `json:"createdAt"`
 	Transactions      []TransactionLog        `json:"transactionLogs"`
+}
+
+type LockPaymentOrderTxReceipt struct {
+	Status    lockpaymentorder.Status `json:"status"`
+	TxHash    string                  `json:"txHash"`
+	Timestamp time.Time               `json:"timestamp"`
+}
+
+type LockPaymentOrderSplitOrder struct {
+	SplitOrderID uuid.UUID       `json:"splitOrderId"`
+	Amount       decimal.Decimal `json:"amount"`
+	Rate         decimal.Decimal `json:"rate"`
+	OrderPercent decimal.Decimal `json:"orderPercent"`
+}
+
+type LockPaymentOrderStatusResponse struct {
+	OrderID       string                       `json:"orderId"`
+	Amount        decimal.Decimal              `json:"amount"`
+	Token         string                       `json:"token"`
+	Network       string                       `json:"network"`
+	SettlePercent decimal.Decimal              `json:"settlePercent"`
+	Status        lockpaymentorder.Status      `json:"status"`
+	TxHash        string                       `json:"txHash"`
+	Settlements   []LockPaymentOrderSplitOrder `json:"settlements"`
+	TxReceipts    []LockPaymentOrderTxReceipt  `json:"txReceipts"`
+	UpdatedAt     time.Time                    `json:"updatedAt"`
 }
 
 // PaymentOrderRecipient describes a payment order recipient
@@ -541,4 +586,10 @@ type ProviderStatsResponse struct {
 	TotalOrders       int             `json:"totalOrders"`
 	TotalFiatVolume   decimal.Decimal `json:"totalFiatVolume"`
 	TotalCryptoVolume decimal.Decimal `json:"totalCryptoVolume"`
+}
+
+// VerifyAccountRequest is the request for account verification of an institution
+type VerifyAccountRequest struct {
+	Institution       string `json:"institution"`
+	AccountIdentifier string `json:"accountIdentifier"`
 }
