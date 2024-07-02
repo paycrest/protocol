@@ -2,8 +2,104 @@ package services
 
 import (
 	"testing"
+
+	"github.com/paycrest/protocol/ent"
+	"github.com/paycrest/protocol/ent/enttest"
+	db "github.com/paycrest/protocol/storage"
+	"github.com/paycrest/protocol/types"
+	"github.com/paycrest/protocol/utils/test"
+	"github.com/shopspring/decimal"
+	"github.com/stretchr/testify/assert"
 )
 
+var testCtxForPQ = struct {
+	user            *ent.User
+	providerProfile *ent.ProviderProfile
+	currency        *ent.FiatCurrency
+	client          types.RPCClient
+}{}
+
+func setupForPQ() error {
+	// Set up test data
+	user, err := test.CreateTestUser(map[string]interface{}{
+		"scope": "provider",
+		"email": "providerjohndoe@test.com",
+	})
+	if err != nil {
+		return err
+	}
+	testCtxForPQ.user = user
+
+	currency, err := test.CreateTestFiatCurrency(map[string]interface{}{
+		"code":        "KES",
+		"short_name":  "Shilling",
+		"decimals":    2,
+		"symbol":      "KSh",
+		"name":        "Kenyan Shilling",
+		"market_rate": 550.0,
+	})
+	if err != nil {
+		return err
+	}
+	testCtxForPQ.currency = currency
+
+	providerProfile, err := test.CreateTestProviderProfile(map[string]interface{}{
+		"user_id":     testCtxForPQ.user.ID,
+		"currency_id": currency.ID,
+	})
+	if err != nil {
+		return err
+	}
+	testCtxForPQ.providerProfile = providerProfile
+
+	_, err = test.CreateTestProvisionBucket(map[string]interface{}{
+		"provider_id": providerProfile.ID,
+		"min_amount":  decimal.NewFromFloat(0.1),
+		"max_amount":  decimal.NewFromFloat(10000.0),
+		"currency_id": currency.ID,
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+func TestPriorityQueueTest(t *testing.T) {
+	// Set up test database client
+	client := enttest.Open(t, "sqlite3", "file:ent?mode=memory&_fk=1")
+	defer client.Close()
+
+	db.Client = client
+
+	// Setup test data
+	err := setupForPQ()
+	assert.NoError(t, err)
+
+	t.Run("TestGetProvisionBuckets", func(t *testing.T) {
+
+	})
+
+	t.Run("TestAssignLockPaymentOrder", func(t *testing.T) {
+	})
+
+	t.Run("TestProcessBucketQueues", func(t *testing.T) {
+	})
+
+	t.Run("TestGetProviderRate", func(t *testing.T) {
+	})
+
+	t.Run("TestCreatePriorityQueueForBucket", func(t *testing.T) {
+	})
+	t.Run("TestReassignStaleOrderRequest", func(t *testing.T) {
+	})
+
+	t.Run("TestReassignUnfulfilledLockOrders", func(t *testing.T) {
+	})
+	t.Run("TestReassignUnValidatedLockOrders", func(t *testing.T) {
+	})
+	t.Run("TestReassignPendingOrders", func(t *testing.T) {
+	})
+}
 func TestProviderVisibilityMode(t *testing.T) {
 
 	// // Set up test Redis client
