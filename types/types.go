@@ -294,9 +294,6 @@ type SenderProfileResponse struct {
 	WebhookURL      string                     `json:"webhookUrl"`
 	DomainWhitelist []string                   `json:"domainWhitelist"`
 	Tokens          []SenderOrderTokenResponse `json:"tokens"`
-	FeePerTokenUnit decimal.Decimal            `json:"feePerTokenUnit"`
-	FeeAddress      string                     `json:"feeAddress"`
-	RefundAddress   string                     `json:"refundAddress"`
 	APIKey          APIKeyResponse             `json:"apiKey"`
 	IsActive        bool                       `json:"isActive"`
 }
