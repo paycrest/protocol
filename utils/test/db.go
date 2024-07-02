@@ -158,7 +158,7 @@ func CreateTRC20Token(client types.RPCClient, overrides map[string]interface{}) 
 	if err != nil {
 		return nil, fmt.Errorf("CreateERC20Token.networkId: %w", err)
 	}
-	
+
 	// Create token
 	tokenId := db.Client.Token.
 		Create().
@@ -435,6 +435,42 @@ func CreateTestProviderProfile(overrides map[string]interface{}) (*ent.ProviderP
 		Save(context.Background())
 
 	return profile, err
+}
+
+// CreateTestProviderProfile creates a test ProviderProfile with defaults or custom values
+func CreateTestProvisionBucket(overrides map[string]interface{}) (*ent.ProvisionBucket, error) {
+	// Default payload
+	payload := map[string]interface{}{
+		"max_amount":  decimal.NewFromFloat(1.0),
+		"currency_id": 1,
+		"min_amount":  decimal.NewFromFloat(1.0),
+		"provider_id": nil,
+	}
+
+	// Apply overrides
+	for key, value := range overrides {
+		payload[key] = value
+	}
+
+	bucket, err := db.Client.ProvisionBucket.Create().
+		SetMinAmount(payload["max_amount"].(decimal.Decimal)).
+		SetMaxAmount(payload["min_amount"].(decimal.Decimal)).
+		SetCurrencyID(payload["currency_id"].(uuid.UUID)).
+		Save(context.Background())
+
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = db.Client.ProviderProfile.
+		UpdateOneID(payload["provider_id"].(string)).
+		AddProvisionBucketIDs(bucket.ID).
+		Save(context.Background())
+
+	if err != nil {
+		return nil, err
+	}
+	return bucket, nil
 }
 
 // CreateTestFiatCurrency creates a test FiatCurrency with defaults or custom values
