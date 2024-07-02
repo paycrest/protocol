@@ -207,7 +207,7 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 	}
 
 	if payload.FeeAddress != "" {
-		if !sender.IsPartner {
+		if !sender.IsPartner && !strings.HasPrefix(payload.Recipient.Memo, "P#P") {
 			u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
 				Field:   "FeeAddress",
 				Message: "FeeAddress is not allowed",
