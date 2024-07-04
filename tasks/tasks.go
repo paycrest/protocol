@@ -187,7 +187,7 @@ func RetryStaleUserOperations() error {
 func IndexBlockchainEvents() error {
 	ctx := context.Background()
 
-	time.Sleep(500 * time.Millisecond) // to keep out of sync with other tasks
+	time.Sleep(100 * time.Millisecond) // to keep out of sync with other tasks
 
 	networks, err := storage.Client.Network.Query().All(ctx)
 	if err != nil {
@@ -198,7 +198,7 @@ func IndexBlockchainEvents() error {
 
 	// Index ERC20 transfer events
 	go func() {
-		_ = utils.Retry(3, 5*time.Second, func() error {
+		_ = utils.Retry(3, 2*time.Second, func() error {
 			for _, network := range networks {
 				orders, err := storage.Client.PaymentOrder.
 					Query().
@@ -248,8 +248,8 @@ func IndexBlockchainEvents() error {
 
 	// Index OrderCreated events
 	go func() {
-		time.Sleep(200 * time.Millisecond)
-		_ = utils.Retry(3, 5*time.Second, func() error {
+		time.Sleep(100 * time.Millisecond)
+		_ = utils.Retry(3, 2*time.Second, func() error {
 			for _, network := range networks {
 				// Index events triggered from API
 				orders, err := storage.Client.PaymentOrder.
@@ -314,8 +314,8 @@ func IndexBlockchainEvents() error {
 
 	// Index OrderSettled events
 	go func() {
-		time.Sleep(400 * time.Millisecond)
-		_ = utils.Retry(3, 5*time.Second, func() error {
+		time.Sleep(200 * time.Millisecond)
+		_ = utils.Retry(3, 2*time.Second, func() error {
 			for _, network := range networks {
 				lockOrders, err := storage.Client.LockPaymentOrder.
 					Query().
@@ -365,8 +365,8 @@ func IndexBlockchainEvents() error {
 
 	// Index OrderRefunded events
 	go func() {
-		time.Sleep(600 * time.Millisecond)
-		_ = utils.Retry(3, 5*time.Second, func() error {
+		time.Sleep(300 * time.Millisecond)
+		_ = utils.Retry(3, 2*time.Second, func() error {
 			for _, network := range networks {
 				lockOrders, err := storage.Client.LockPaymentOrder.
 					Query().
