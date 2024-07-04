@@ -936,7 +936,7 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 				logger.Errorf("checkAMLCompliance: %v", err)
 			}
 
-			if !ok {
+			if !ok && err == nil {
 				err := s.order.RefundOrder(ctx, lockPaymentOrder.GatewayID)
 				if err != nil {
 					logger.Errorf("checkAMLCompliance.RefundOrder: %v", err)
@@ -1551,7 +1551,7 @@ func (s *IndexerService) splitLockPaymentOrder(ctx context.Context, lockPaymentO
 				logger.Errorf("splitLockPaymentOrder.checkAMLCompliance: %v", err)
 			}
 
-			if !ok {
+			if !ok && err == nil {
 				isRefunded = true
 				err := s.order.RefundOrder(ctx, lockPaymentOrder.GatewayID)
 				if err != nil {
@@ -1617,7 +1617,7 @@ func (s *IndexerService) splitLockPaymentOrder(ctx context.Context, lockPaymentO
 }
 
 // checkAMLCompliance checks if a transaction is compliant with AML rules
-func (s *IndexerService) checkAMLCompliance(network string, txHash string) (bool, error) {
+func (s *IndexerService) checkAMLCompliance(rpcUrl string, txHash string) (bool, error) {
 	type Transaction struct {
 		Kind int         `json:"__kind"`
 		Data interface{} `json:"data"`
@@ -1629,9 +1629,16 @@ func (s *IndexerService) checkAMLCompliance(network string, txHash string) (bool
 	}
 
 	// Make RPC call to Shield3 here
-	client, err := rpc.Dial(network)
-	if err != nil {
-		return false, fmt.Errorf("failed to connect to RPC client: %v", err)
+	var err error
+	var client *rpc.Client
+	if client == nil {
+		retryErr := utils.Retry(3, 1*time.Second, func() error {
+			client, err = rpc.Dial(rpcUrl)
+			return err
+		})
+		if retryErr != nil {
+			return false, fmt.Errorf("failed to connect to RPC client: %v", err)
+		}
 	}
 
 	var result json.RawMessage
