@@ -149,18 +149,14 @@ func RetryStaleUserOperations() error {
 	// Refund order process
 	lockOrders, err = storage.Client.LockPaymentOrder.
 		Query().
-		Where(func(s *sql.Selector) {
-			po := sql.Table(paymentorder.Table)
-			s.LeftJoin(po).On(s.C(lockpaymentorder.FieldGatewayID), po.C(paymentorder.FieldGatewayID)).
-				Where(sql.And(
-					sql.EQ(po.C(paymentorder.FieldStatus), paymentorder.StatusPending),
-					sql.Or(
-						sql.EQ(s.C(lockpaymentorder.FieldStatus), lockpaymentorder.StatusPending),
-						sql.EQ(s.C(lockpaymentorder.FieldStatus), lockpaymentorder.StatusCancelled),
-					),
-					sql.LTE(s.C(lockpaymentorder.FieldCreatedAt), time.Now().Add(-30*time.Minute)),
-				))
-		}).
+		Where(
+			lockpaymentorder.GatewayIDNEQ(""),
+			lockpaymentorder.Or(
+				lockpaymentorder.StatusEQ(lockpaymentorder.StatusPending),
+				lockpaymentorder.StatusEQ(lockpaymentorder.StatusCancelled),
+			),
+			lockpaymentorder.CreatedAtLTE(time.Now().Add(-30*time.Minute)),
+		).
 		WithToken(func(tq *ent.TokenQuery) {
 			tq.WithNetwork()
 		}).
