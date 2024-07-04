@@ -268,7 +268,7 @@ func (ctrl *Controller) VerifyAccount(ctx *gin.Context) {
 	data, err := u.ParseJSONResponse(res.RawResponse)
 	if err != nil {
 		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusServiceUnavailable, "error", "Failed to fetch node info", nil)
+		u.APIResponse(ctx, http.StatusServiceUnavailable, "error", "Failed to verify account", nil)
 		return
 	}
 
