@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/uuid"
 	"github.com/paycrest/protocol/config"
@@ -175,7 +176,7 @@ func (s *OrderEVM) RefundOrder(ctx context.Context, orderID string) error {
 	// Create calldata
 	calldata, err := s.executeBatchRefundCallData(lockOrder)
 	if err != nil {
-		return fmt.Errorf("RefundOrder.refundCallData: %w", err)
+		return fmt.Errorf("RefundOrder.executeBatchRefundCallData: %w", err)
 	}
 	userOperation.CallData = calldata
 
@@ -688,21 +689,38 @@ func (s *OrderEVM) createOrderCallData(order *ent.PaymentOrder) ([]byte, error) 
 
 // executeBatchRefundCallData creates the refund calldata for the execute batch method in the smart account.
 func (s *OrderEVM) executeBatchRefundCallData(order *ent.LockPaymentOrder) ([]byte, error) {
-	sourceOrder, err := db.Client.PaymentOrder.
-		Query().
-		Where(paymentorder.GatewayIDEQ(order.GatewayID)).
-		WithToken(func(tq *ent.TokenQuery) {
-			tq.WithNetwork()
-		}).
-		Only(context.Background())
+	var err error
+	var client types.RPCClient
+
+	// Connect to RPC endpoint
+	retryErr := utils.Retry(3, 1*time.Second, func() error {
+		client, err = types.NewEthClient(order.Edges.Token.Edges.Network.RPCEndpoint)
+		return err
+	})
+	if retryErr != nil {
+		return nil, retryErr
+	}
+
+	// Fetch onchain order details
+	instance, err := contracts.NewGateway(common.HexToAddress(order.Edges.Token.Edges.Network.GatewayContractAddress), client.(bind.ContractBackend))
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch payment order: %w", err)
+		return nil, err
+	}
+
+	orderID, err := hex.DecodeString(order.GatewayID[2:])
+	if err != nil {
+		return nil, err
+	}
+
+	orderInfo, err := instance.GetOrderInfo(nil, utils.StringToByte32(string(orderID)))
+	if err != nil {
+		return nil, err
 	}
 
 	// Create approve data for gateway contract
 	approveGatewayData, err := s.approveCallData(
 		common.HexToAddress(order.Edges.Token.Edges.Network.GatewayContractAddress),
-		utils.ToSubunit(order.Amount.Add(sourceOrder.SenderFee).Add(sourceOrder.ProtocolFee), order.Edges.Token.Decimals),
+		orderInfo.Amount,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("executeBatchRefundCallData.approveOrderContract: %w", err)
@@ -734,7 +752,7 @@ func (s *OrderEVM) executeBatchRefundCallData(order *ent.LockPaymentOrder) ([]by
 		}
 		time.Sleep(5 * time.Second)
 
-		refundAmount := sourceOrder.Amount.Add(sourceOrder.SenderFee).Add(sourceOrder.ProtocolFee).Add(sourceOrder.Edges.Token.Edges.Network.Fee)
+		refundAmount := utils.FromSubunit(orderInfo.Amount, order.Edges.Token.Decimals).Add(order.Edges.Token.Edges.Network.Fee)
 
 		// Create approve data for paymaster contract
 		approvePaymasterData, err := s.approveCallData(
