@@ -88,6 +88,7 @@ func RetryStaleUserOperations() error {
 			paymentorder.UpdatedAtLT(time.Now().Add(-10*time.Minute)),
 		).
 		WithReceiveAddress().
+		WithRecipient().
 		WithToken(func(tq *ent.TokenQuery) {
 			tq.WithNetwork()
 		}).
