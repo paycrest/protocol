@@ -13,6 +13,7 @@ import (
 	"github.com/paycrest/protocol/ent/institution"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	"github.com/paycrest/protocol/ent/paymentorder"
+	"github.com/paycrest/protocol/ent/providerordertoken"
 	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/senderordertoken"
 	"github.com/paycrest/protocol/ent/senderprofile"
@@ -193,6 +194,7 @@ func CreateTestLockPaymentOrder(overrides map[string]interface{}) (*ent.LockPaym
 		"institution":        "ABNGNGLA",
 		"account_identifier": "1234567890",
 		"account_name":       "Test Account",
+		"tokenID":            0,
 	}
 
 	// Create provider profile
@@ -208,13 +210,16 @@ func CreateTestLockPaymentOrder(overrides map[string]interface{}) (*ent.LockPaym
 		payload[key] = value
 	}
 
-	// Create test token
-	backend, _ := SetUpTestBlockchain()
-	token, err := CreateERC20Token(backend, map[string]interface{}{
-		"deployContract": false,
-	})
-	if err != nil {
-		return nil, err
+	if payload["tokenID"].(int) == 0 {
+		// Create test token
+		backend, _ := SetUpTestBlockchain()
+		token, err := CreateERC20Token(backend, map[string]interface{}{
+			"deployContract": false,
+		})
+		if err != nil {
+			return nil, err
+		}
+		payload["tokenID"] = token.ID
 	}
 
 	// Create LockPaymentOrder
@@ -229,9 +234,20 @@ func CreateTestLockPaymentOrder(overrides map[string]interface{}) (*ent.LockPaym
 		SetInstitution(payload["institution"].(string)).
 		SetAccountIdentifier(payload["account_identifier"].(string)).
 		SetAccountName(payload["account_name"].(string)).
-		SetTokenID(token.ID).
+		SetTokenID(payload["tokenID"].(int)).
 		SetProvider(providerProfile).
 		Save(context.Background())
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Push provider ID to order exclude list
+	// orderKey := fmt.Sprintf("order_exclude_list_%s", order.ID)
+	// _, err = db.RedisClient.RPush(context.Background(), orderKey, providerProfile.ID).Result()
+	// if err != nil {
+	// 	return nil, fmt.Errorf("error pushing provider %s to order %s exclude_list on Redis: %v", providerProfile.ID, order.ID, err)
+	// }
 
 	return order, err
 }
@@ -437,6 +453,49 @@ func CreateTestProviderProfile(overrides map[string]interface{}) (*ent.ProviderP
 	return profile, err
 }
 
+func AddProvisionBucketToLockPaymentOrder(order *ent.LockPaymentOrder, bucketId int) (*ent.LockPaymentOrder, error) {
+	order, err := order.
+		Update().
+		SetProvisionBucketID(bucketId).
+		Save(context.Background())
+	return order, err
+}
+
+func AddProviderOrderTokenToProvider(overrides map[string]interface{}) (*ent.ProviderOrderToken, error) {
+	// Default payload
+	payload := map[string]interface{}{
+		"fixed_conversion_rate":    decimal.NewFromFloat(1.0),
+		"conversion_rate_type":     "fixed",
+		"floating_conversion_rate": decimal.NewFromFloat(1.0),
+		"max_order_amount":         decimal.NewFromFloat(1.0),
+		"min_order_amount":         decimal.NewFromFloat(1.0),
+		"tokenSymbol":              "",
+		"provider":                 nil,
+	}
+
+	// Apply overrides
+	for key, value := range overrides {
+		payload[key] = value
+	}
+
+	orderToken, err := db.Client.ProviderOrderToken.
+		Create().
+		SetSymbol(payload["tokenSymbol"].(string)).
+		SetProvider(payload["provider"].(*ent.ProviderProfile)).
+		SetMaxOrderAmount(payload["min_order_amount"].(decimal.Decimal)).
+		SetMinOrderAmount(payload["max_order_amount"].(decimal.Decimal)).
+		SetConversionRateType(providerordertoken.ConversionRateType(payload["conversion_rate_type"].(string))).
+		SetFixedConversionRate(payload["fixed_conversion_rate"].(decimal.Decimal)).
+		SetFloatingConversionRate(payload["floating_conversion_rate"].(decimal.Decimal)).
+		SetAddresses([]struct {
+			Address string `json:"address"`
+			Network string `json:"network"`
+		}{}).
+		Save(context.Background())
+
+	return orderToken, err
+}
+
 // CreateTestProviderProfile creates a test ProviderProfile with defaults or custom values
 func CreateTestProvisionBucket(overrides map[string]interface{}) (*ent.ProvisionBucket, error) {
 	// Default payload
@@ -453,8 +512,8 @@ func CreateTestProvisionBucket(overrides map[string]interface{}) (*ent.Provision
 	}
 
 	bucket, err := db.Client.ProvisionBucket.Create().
-		SetMinAmount(payload["max_amount"].(decimal.Decimal)).
-		SetMaxAmount(payload["min_amount"].(decimal.Decimal)).
+		SetMinAmount(payload["min_amount"].(decimal.Decimal)).
+		SetMaxAmount(payload["max_amount"].(decimal.Decimal)).
 		SetCurrencyID(payload["currency_id"].(uuid.UUID)).
 		Save(context.Background())
 
