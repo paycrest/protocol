@@ -153,6 +153,8 @@ func (s *OrderEVM) CreateOrder(ctx context.Context, orderID uuid.UUID) error {
 
 // RefundOrder refunds sender on canceled lock order
 func (s *OrderEVM) RefundOrder(ctx context.Context, orderID string) error {
+	orderIDPrefix := strings.Split(orderID, "-")[0]
+
 	// Fetch lock order from db
 	lockOrder, err := db.Client.LockPaymentOrder.
 		Query().
@@ -162,7 +164,7 @@ func (s *OrderEVM) RefundOrder(ctx context.Context, orderID string) error {
 		}).
 		First(ctx)
 	if err != nil {
-		return fmt.Errorf("RefundOrder.fetchLockOrder: %w", err)
+		return fmt.Errorf("%s - RefundOrder.fetchLockOrder: %w", orderIDPrefix, err)
 	}
 
 	// Get default userOperation
@@ -170,13 +172,13 @@ func (s *OrderEVM) RefundOrder(ctx context.Context, orderID string) error {
 		ctx, nil, lockOrder.Edges.Token.Edges.Network.RPCEndpoint, cryptoConf.AggregatorSmartAccount, cryptoConf.AggregatorSmartAccountSalt,
 	)
 	if err != nil {
-		return fmt.Errorf("RefundOrder.initializeUserOperation: %w", err)
+		return fmt.Errorf("%s - RefundOrder.initializeUserOperation: %w", orderIDPrefix, err)
 	}
 
 	// Create calldata
 	calldata, err := s.executeBatchRefundCallData(lockOrder)
 	if err != nil {
-		return fmt.Errorf("RefundOrder.executeBatchRefundCallData: %w", err)
+		return fmt.Errorf("%s - RefundOrder.executeBatchRefundCallData: %w", orderIDPrefix, err)
 	}
 	userOperation.CallData = calldata
 
@@ -188,7 +190,7 @@ func (s *OrderEVM) RefundOrder(ctx context.Context, orderID string) error {
 		err = utils.SponsorUserOperation(userOperation, "sponsored", "", lockOrder.Edges.Token.Edges.Network.ChainID)
 	}
 	if err != nil {
-		return fmt.Errorf("RefundOrder.sponsorUserOperation: %w", err)
+		return fmt.Errorf("%s - RefundOrder.sponsorUserOperation: %w", orderIDPrefix, err)
 	}
 
 	// Sign user operation
@@ -197,7 +199,7 @@ func (s *OrderEVM) RefundOrder(ctx context.Context, orderID string) error {
 	// Send user operation
 	txHash, blockNumber, err := utils.SendUserOperation(userOperation, lockOrder.Edges.Token.Edges.Network.ChainID)
 	if err != nil {
-		return fmt.Errorf("RefundOrder.sendUserOperation: %w", err)
+		return fmt.Errorf("%s - RefundOrder.sendUserOperation: %w", orderIDPrefix, err)
 	}
 
 	// Create log
@@ -213,7 +215,7 @@ func (s *OrderEVM) RefundOrder(ctx context.Context, orderID string) error {
 			}).
 		Save(ctx)
 	if err != nil {
-		return fmt.Errorf("RefundOrder.transactionLog(%v): %w", txHash, err)
+		return fmt.Errorf("%s - RefundOrder.transactionLog(%v): %w", orderIDPrefix, txHash, err)
 	}
 
 	// Update status of all lock orders with same order_id
@@ -226,7 +228,7 @@ func (s *OrderEVM) RefundOrder(ctx context.Context, orderID string) error {
 		AddTransactions(transactionLog).
 		Save(ctx)
 	if err != nil {
-		return fmt.Errorf("RefundOrder.updateTxHash(%v): %w", txHash, err)
+		return fmt.Errorf("%s - RefundOrder.updateTxHash(%v): %w", orderIDPrefix, txHash, err)
 	}
 
 	return nil
