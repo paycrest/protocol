@@ -823,6 +823,7 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 	// Create lock payment order fields
 	lockPaymentOrder := types.LockPaymentOrderFields{
 		Token:             token,
+		Network:           network,
 		GatewayID:         gatewayId,
 		Amount:            amountInDecimals,
 		Rate:              rate,
@@ -865,7 +866,7 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 
 		// Split lock payment order into multiple orders
 		err = s.splitLockPaymentOrder(
-			ctx, lockPaymentOrder, network, currency,
+			ctx, lockPaymentOrder, currency,
 		)
 		if err != nil {
 			return fmt.Errorf("%s - failed to split lock payment order: %w", lockPaymentOrder.GatewayID, err)
@@ -939,8 +940,9 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 			if !ok && err == nil {
 				err := s.order.RefundOrder(ctx, lockPaymentOrder.GatewayID)
 				if err != nil {
-					logger.Errorf("checkAMLCompliance.RefundOrder: %v", err)
+					return fmt.Errorf("checkAMLCompliance.RefundOrder: %w", err)
 				}
+				return nil
 			}
 		}
 
@@ -1467,7 +1469,7 @@ func (s *IndexerService) getInstitutionByCode(ctx context.Context, institutionCo
 }
 
 // splitLockPaymentOrder splits a lock payment order into multiple orders
-func (s *IndexerService) splitLockPaymentOrder(ctx context.Context, lockPaymentOrder types.LockPaymentOrderFields, network *ent.Network, currency *ent.FiatCurrency) error {
+func (s *IndexerService) splitLockPaymentOrder(ctx context.Context, lockPaymentOrder types.LockPaymentOrderFields, currency *ent.FiatCurrency) error {
 	buckets, err := db.Client.ProvisionBucket.
 		Query().
 		Where(provisionbucket.HasCurrencyWith(
@@ -1545,8 +1547,8 @@ func (s *IndexerService) splitLockPaymentOrder(ctx context.Context, lockPaymentO
 		}
 
 		// Check AML compliance
-		if serverConf.Environment == "production" && !strings.HasPrefix(network.Identifier, "tron") {
-			ok, err := s.checkAMLCompliance(network.RPCEndpoint, lockPaymentOrder.TxHash)
+		if serverConf.Environment == "production" && !strings.HasPrefix(lockPaymentOrder.Network.Identifier, "tron") {
+			ok, err := s.checkAMLCompliance(lockPaymentOrder.Network.RPCEndpoint, lockPaymentOrder.TxHash)
 			if err != nil {
 				logger.Errorf("splitLockPaymentOrder.checkAMLCompliance: %v", err)
 			}
@@ -1557,6 +1559,7 @@ func (s *IndexerService) splitLockPaymentOrder(ctx context.Context, lockPaymentO
 				if err != nil {
 					logger.Errorf("splitLockPaymentOrder.checkAMLCompliance.RefundOrder: %v", err)
 				}
+				break
 			}
 		}
 
@@ -1593,13 +1596,15 @@ func (s *IndexerService) splitLockPaymentOrder(ctx context.Context, lockPaymentO
 
 		if isRefunded {
 			orderCreatedUpdate = orderCreatedUpdate.SetStatus(lockpaymentorder.StatusRefunded)
-		} else {
-			orderCreated, err := orderCreatedUpdate.Save(ctx)
-			if err != nil {
-				logger.Errorf("failed to create lock payment order: %v", err)
-				return err
-			}
+		}
 
+		orderCreated, err := orderCreatedUpdate.Save(ctx)
+		if err != nil {
+			logger.Errorf("failed to create lock payment order: %v", err)
+			return err
+		}
+
+		if !isRefunded {
 			// Assign the lock payment order to a provider
 			lockPaymentOrder.ID = orderCreated.ID
 			_ = s.priorityQueue.AssignLockPaymentOrder(ctx, lockPaymentOrder)
@@ -1607,7 +1612,7 @@ func (s *IndexerService) splitLockPaymentOrder(ctx context.Context, lockPaymentO
 	} else {
 		// TODO: figure out how to handle this case, currently it recursively splits the amount
 		lockPaymentOrder.Amount = amountToSplit.Div(lockPaymentOrder.Rate)
-		err := s.splitLockPaymentOrder(ctx, lockPaymentOrder, network, currency)
+		err := s.splitLockPaymentOrder(ctx, lockPaymentOrder, currency)
 		if err != nil {
 			return err
 		}

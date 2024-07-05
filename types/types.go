@@ -320,6 +320,7 @@ type ERC20Transfer struct {
 type LockPaymentOrderFields struct {
 	ID                uuid.UUID
 	Token             *ent.Token
+	Network           *ent.Network
 	GatewayID         string
 	Amount            decimal.Decimal
 	Rate              decimal.Decimal
