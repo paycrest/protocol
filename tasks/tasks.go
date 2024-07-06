@@ -716,8 +716,8 @@ func StartCronJobs() {
 		logger.Errorf("StartCronJobs: %v", err)
 	}
 
-	// Reassign unvalidated order requests every 21 minutes
-	_, err = scheduler.Cron("*/21 * * * *").Do(priorityQueue.ReassignUnvalidatedLockOrders)
+	// Reassign unvalidated order requests every 11 minutes
+	_, err = scheduler.Cron("*/11 * * * *").Do(priorityQueue.ReassignUnvalidatedLockOrders)
 	if err != nil {
 		logger.Errorf("StartCronJobs: %v", err)
 	}
