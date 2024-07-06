@@ -505,8 +505,18 @@ func (s *PriorityQueueService) ReassignUnvalidatedLockOrders() {
 		Query().
 		Where(
 			lockpaymentorder.StatusEQ(lockpaymentorder.StatusFulfilled),
-			lockpaymentorder.HasFulfillmentWith(
-				lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusFailed),
+			lockpaymentorder.Or(
+				lockpaymentorder.HasFulfillmentWith(
+					lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusFailed),
+				),
+				lockpaymentorder.And(
+					lockpaymentorder.HasFulfillmentWith(
+						lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusPending),
+					),
+					lockpaymentorder.HasFulfillmentWith(
+						lockorderfulfillment.UpdatedAtLTE(time.Now().Add(-config.OrderConfig().OrderFulfillmentValidity*time.Minute)),
+					),
+				),
 			),
 		).
 		WithToken().

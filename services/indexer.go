@@ -328,8 +328,6 @@ func (s *IndexerService) IndexOrderCreatedTron(ctx context.Context, order *ent.P
 				return err
 			}
 
-			logger.Errorf("IndexOrderCreatedTron.gettransactioninfobyid: %v", data)
-
 			// Parse event data
 			for _, event := range data["log"].([]interface{}) {
 				eventData := event.(map[string]interface{})
@@ -339,8 +337,6 @@ func (s *IndexerService) IndexOrderCreatedTron(ctx context.Context, order *ent.P
 						logger.Errorf("IndexOrderCreatedTron.UnpackEventData: %v", err)
 						return err
 					}
-
-					logger.Errorf("IndexOrderCreatedTron.unpackedEventData: %v", unpackedEventData)
 
 					event := &types.OrderCreatedEvent{
 						BlockNumber: uint64(data["blockNumber"].(float64)),
@@ -352,8 +348,6 @@ func (s *IndexerService) IndexOrderCreatedTron(ctx context.Context, order *ent.P
 						Rate:        unpackedEventData[2].(*big.Int),
 						MessageHash: unpackedEventData[3].(string),
 					}
-
-					logger.Errorf("IndexOrderCreatedTron.parsedEvent: %v", event)
 
 					err = s.CreateLockPaymentOrder(ctx, nil, order.Edges.Token.Edges.Network, event)
 					if err != nil {
