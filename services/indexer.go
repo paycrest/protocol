@@ -199,7 +199,7 @@ func (s *IndexerService) IndexTRC20Transfer(ctx context.Context, order *ent.Paym
 				return err
 			}
 
-			logger.Errorf("gettransactioninfobyid: %v", data)
+			logger.Errorf("IndexTRC20Transfer.gettransactioninfobyid: %v", data)
 
 			if data["blockNumber"] != nil {
 				transferEvent := &types.TokenTransferEvent{
@@ -330,6 +330,8 @@ func (s *IndexerService) IndexOrderCreatedTron(ctx context.Context, order *ent.P
 				return err
 			}
 
+			logger.Errorf("IndexOrderCreatedTron.gettransactioninfobyid: %v", data)
+
 			// Parse event data
 			for _, event := range data["log"].([]interface{}) {
 				eventData := event.(map[string]interface{})
@@ -351,19 +353,9 @@ func (s *IndexerService) IndexOrderCreatedTron(ctx context.Context, order *ent.P
 						MessageHash: unpackedEventData[4].(string),
 					}
 
-					// Connect to RPC endpoint
-					// TODO: rewrite this piece of code to fetch from the Gateway contract on Tron when it has supported institutions added to it
-					var ethClient types.RPCClient
-					retryErr := utils.Retry(3, 1*time.Second, func() error {
-						ethClient, err = types.NewEthClient("https://polygon-mainnet.g.alchemy.com/v2/zfXjaatj2o5xKkqe0iSvnU9JkKZoiS54")
-						return err
-					})
-					if retryErr != nil {
-						logger.Errorf("IndexOrderCreatedTron.NewEthClient: %v", retryErr)
-						return retryErr
-					}
+					logger.Errorf("IndexOrderCreatedTron.parsedEvent: %v", event)
 
-					err = s.CreateLockPaymentOrder(ctx, ethClient, order.Edges.Token.Edges.Network, event)
+					err = s.CreateLockPaymentOrder(ctx, nil, order.Edges.Token.Edges.Network, event)
 					if err != nil {
 						logger.Errorf("IndexOrderCreatedTron.CreateLockPaymentOrder: %v", err)
 					}
