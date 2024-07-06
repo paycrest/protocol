@@ -252,7 +252,7 @@ func IndexERC20Transfer(ctx context.Context, client types.RPCClient, receiveAddr
 			To:          iter.Event.To.Hex(),
 			Value:       iter.Event.Value,
 		}
-		ok, err := testCtx.indexer.UpdateReceiveAddressStatus(ctx, receiveAddress, order, transferEvent)
+		ok, err := testCtx.indexer.UpdateReceiveAddressStatus(ctx, client, receiveAddress, order, transferEvent)
 		if err != nil {
 			return fmt.Errorf("IndexERC20Transfer.UpdateReceiveAddressStatus: %w", err)
 		}

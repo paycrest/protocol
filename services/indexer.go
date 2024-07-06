@@ -51,9 +51,9 @@ type Indexer interface {
 	IndexOrderSettledTron(ctx context.Context, order *ent.LockPaymentOrder) error
 	IndexOrderRefunded(ctx context.Context, client types.RPCClient, network *ent.Network, gatewayId string) error
 	IndexOrderRefundedTron(ctx context.Context, order *ent.LockPaymentOrder) error
-	HandleReceiveAddressValidity(ctx context.Context, receiveAddress *ent.ReceiveAddress, paymentOrder *ent.PaymentOrder) error
+	HandleReceiveAddressValidity(ctx context.Context, client types.RPCClient, receiveAddress *ent.ReceiveAddress, paymentOrder *ent.PaymentOrder) error
 	CreateLockPaymentOrder(ctx context.Context, client types.RPCClient, network *ent.Network, event *types.OrderCreatedEvent) error
-	UpdateReceiveAddressStatus(ctx context.Context, receiveAddress *ent.ReceiveAddress, paymentOrder *ent.PaymentOrder, event *types.TokenTransferEvent) (bool, error)
+	UpdateReceiveAddressStatus(ctx context.Context, client types.RPCClient, receiveAddress *ent.ReceiveAddress, paymentOrder *ent.PaymentOrder, event *types.TokenTransferEvent) (bool, error)
 	UpdateOrderStatusSettled(ctx context.Context, event *types.OrderSettledEvent) error
 	UpdateOrderStatusRefunded(ctx context.Context, event *types.OrderRefundedEvent) error
 }
@@ -126,7 +126,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 			Value:       iter.Event.Value,
 		}
 
-		ok, err := s.UpdateReceiveAddressStatus(ctx, order.Edges.ReceiveAddress, order, transferEvent)
+		ok, err := s.UpdateReceiveAddressStatus(ctx, client, order.Edges.ReceiveAddress, order, transferEvent)
 		if err != nil {
 			logger.Errorf("IndexERC20Transfer.UpdateReceiveAddressStatus: %v", err)
 			continue
@@ -211,7 +211,7 @@ func (s *IndexerService) IndexTRC20Transfer(ctx context.Context, order *ent.Paym
 				}
 
 				go func() {
-					_, err := s.UpdateReceiveAddressStatus(ctx, order.Edges.ReceiveAddress, order, transferEvent)
+					_, err := s.UpdateReceiveAddressStatus(ctx, nil, order.Edges.ReceiveAddress, order, transferEvent)
 					if err != nil {
 						logger.Errorf("IndexTRC20Transfer.UpdateReceiveAddressStatus: %v", err)
 					}
@@ -670,7 +670,7 @@ func (s *IndexerService) IndexOrderRefundedTron(ctx context.Context, order *ent.
 }
 
 // HandleReceiveAddressValidity checks the validity of a receive address
-func (s *IndexerService) HandleReceiveAddressValidity(ctx context.Context, receiveAddress *ent.ReceiveAddress, paymentOrder *ent.PaymentOrder) error {
+func (s *IndexerService) HandleReceiveAddressValidity(ctx context.Context, client types.RPCClient, receiveAddress *ent.ReceiveAddress, paymentOrder *ent.PaymentOrder) error {
 	if receiveAddress.ValidUntil.IsZero() {
 		return nil
 	}
@@ -708,14 +708,14 @@ func (s *IndexerService) HandleReceiveAddressValidity(ctx context.Context, recei
 			}
 
 			// Revert amount to the from address
-			err = s.order.RevertOrder(ctx, paymentOrder)
+			err = s.order.RevertOrder(ctx, client, paymentOrder)
 			if err != nil {
 				return fmt.Errorf("HandleReceiveAddressValidity.RevertOrder: %v", err)
 			}
 		}
 	} else {
 		// Revert excess amount to the from address
-		err := s.order.RevertOrder(ctx, paymentOrder)
+		err := s.order.RevertOrder(ctx, client, paymentOrder)
 		if err != nil {
 			return fmt.Errorf("HandleReceiveAddressValidity.RevertOrder: %v", err)
 		}
@@ -866,7 +866,7 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 
 		// Split lock payment order into multiple orders
 		err = s.splitLockPaymentOrder(
-			ctx, lockPaymentOrder, currency,
+			ctx, client, lockPaymentOrder, currency,
 		)
 		if err != nil {
 			return fmt.Errorf("%s - failed to split lock payment order: %w", lockPaymentOrder.GatewayID, err)
@@ -938,7 +938,7 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 			}
 
 			if !ok && err == nil {
-				err := s.order.RefundOrder(ctx, lockPaymentOrder.GatewayID)
+				err := s.order.RefundOrder(ctx, client, lockPaymentOrder.GatewayID)
 				if err != nil {
 					return fmt.Errorf("checkAMLCompliance.RefundOrder: %w", err)
 				}
@@ -948,7 +948,7 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 
 		// Assign the lock payment order to a provider
 		if isPrivate && lockPaymentOrder.Amount.GreaterThan(maxOrderAmount) {
-			err := s.order.RefundOrder(ctx, lockPaymentOrder.GatewayID)
+			err := s.order.RefundOrder(ctx, client, lockPaymentOrder.GatewayID)
 			if err != nil {
 				return fmt.Errorf("failed to refund order: %w", err)
 			}
@@ -1236,7 +1236,7 @@ func (s *IndexerService) getOrderRecipientFromMessageHash(messageHash string) (*
 
 // UpdateReceiveAddressStatus updates the status of a receive address. if `done` is true, the indexing process is complete for the given receive address
 func (s *IndexerService) UpdateReceiveAddressStatus(
-	ctx context.Context, receiveAddress *ent.ReceiveAddress, paymentOrder *ent.PaymentOrder, event *types.TokenTransferEvent,
+	ctx context.Context, client types.RPCClient, receiveAddress *ent.ReceiveAddress, paymentOrder *ent.PaymentOrder, event *types.TokenTransferEvent,
 ) (done bool, err error) {
 	if event.To == receiveAddress.Address {
 		// Check for existing address with txHash
@@ -1344,7 +1344,7 @@ func (s *IndexerService) UpdateReceiveAddressStatus(
 				return true, fmt.Errorf("UpdateReceiveAddressStatus.db: %v", err)
 			}
 
-			err = s.order.CreateOrder(ctx, paymentOrder.ID)
+			err = s.order.CreateOrder(ctx, client, paymentOrder.ID)
 			if err != nil {
 				return true, fmt.Errorf("UpdateReceiveAddressStatus.CreateOrder: %v", err)
 			}
@@ -1391,7 +1391,7 @@ func (s *IndexerService) UpdateReceiveAddressStatus(
 			}
 		}
 
-		err = s.HandleReceiveAddressValidity(ctx, receiveAddress, paymentOrder)
+		err = s.HandleReceiveAddressValidity(ctx, client, receiveAddress, paymentOrder)
 		if err != nil {
 			return true, fmt.Errorf("UpdateReceiveAddressStatus.HandleReceiveAddressValidity: %v", err)
 		}
@@ -1469,7 +1469,7 @@ func (s *IndexerService) getInstitutionByCode(ctx context.Context, institutionCo
 }
 
 // splitLockPaymentOrder splits a lock payment order into multiple orders
-func (s *IndexerService) splitLockPaymentOrder(ctx context.Context, lockPaymentOrder types.LockPaymentOrderFields, currency *ent.FiatCurrency) error {
+func (s *IndexerService) splitLockPaymentOrder(ctx context.Context, client types.RPCClient, lockPaymentOrder types.LockPaymentOrderFields, currency *ent.FiatCurrency) error {
 	buckets, err := db.Client.ProvisionBucket.
 		Query().
 		Where(provisionbucket.HasCurrencyWith(
@@ -1555,7 +1555,7 @@ func (s *IndexerService) splitLockPaymentOrder(ctx context.Context, lockPaymentO
 
 			if !ok && err == nil {
 				isRefunded = true
-				err := s.order.RefundOrder(ctx, lockPaymentOrder.GatewayID)
+				err := s.order.RefundOrder(ctx, client, lockPaymentOrder.GatewayID)
 				if err != nil {
 					logger.Errorf("splitLockPaymentOrder.checkAMLCompliance.RefundOrder: %v", err)
 				}
@@ -1612,7 +1612,7 @@ func (s *IndexerService) splitLockPaymentOrder(ctx context.Context, lockPaymentO
 	} else {
 		// TODO: figure out how to handle this case, currently it recursively splits the amount
 		lockPaymentOrder.Amount = amountToSplit.Div(lockPaymentOrder.Rate)
-		err := s.splitLockPaymentOrder(ctx, lockPaymentOrder, currency)
+		err := s.splitLockPaymentOrder(ctx, client, lockPaymentOrder, currency)
 		if err != nil {
 			return err
 		}

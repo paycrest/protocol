@@ -96,10 +96,10 @@ type OrderRefundedEvent struct {
 
 // OrderService provides an interface for the OrderService
 type OrderService interface {
-	CreateOrder(ctx context.Context, orderID uuid.UUID) error
-	RefundOrder(ctx context.Context, orderID string) error
-	RevertOrder(ctx context.Context, order *ent.PaymentOrder) error
-	SettleOrder(ctx context.Context, orderID uuid.UUID) error
+	CreateOrder(ctx context.Context, client RPCClient, orderID uuid.UUID) error
+	RefundOrder(ctx context.Context, client RPCClient, orderID string) error
+	RevertOrder(ctx context.Context, client RPCClient, order *ent.PaymentOrder) error
+	SettleOrder(ctx context.Context, client RPCClient, orderID uuid.UUID) error
 }
 
 // CreateOrderParams is the parameters for the create order payload

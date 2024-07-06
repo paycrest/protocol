@@ -65,7 +65,7 @@ func (s *OrderTron) getNode() enums.Node {
 }
 
 // CreateOrder creates a new payment order on-chain.
-func (s *OrderTron) CreateOrder(ctx context.Context, orderID uuid.UUID) error {
+func (s *OrderTron) CreateOrder(ctx context.Context, client types.RPCClient, orderID uuid.UUID) error {
 	var err error
 	orderIDPrefix := strings.Split(orderID.String(), "-")[0]
 
@@ -204,7 +204,7 @@ func (s *OrderTron) CreateOrder(ctx context.Context, orderID uuid.UUID) error {
 }
 
 // RefundOrder refunds sender on canceled lock order
-func (s *OrderTron) RefundOrder(ctx context.Context, orderID string) error {
+func (s *OrderTron) RefundOrder(ctx context.Context, client types.RPCClient, orderID string) error {
 	orderIDPrefix := strings.Split(orderID, "-")[0]
 
 	// Fetch lock order from db
@@ -295,7 +295,7 @@ func (s *OrderTron) RefundOrder(ctx context.Context, orderID string) error {
 }
 
 // RevertOrder reverts an initiated payment order on-chain.
-func (s *OrderTron) RevertOrder(ctx context.Context, order *ent.PaymentOrder) error {
+func (s *OrderTron) RevertOrder(ctx context.Context, client types.RPCClient, order *ent.PaymentOrder) error {
 	if !order.AmountReturned.Equal(decimal.Zero) || strings.HasPrefix(order.Edges.Recipient.Memo, "P#P") {
 		return nil
 	}
@@ -398,7 +398,7 @@ func (s *OrderTron) RevertOrder(ctx context.Context, order *ent.PaymentOrder) er
 }
 
 // SettleOrder settles a payment order on-chain.
-func (s *OrderTron) SettleOrder(ctx context.Context, orderID uuid.UUID) error {
+func (s *OrderTron) SettleOrder(ctx context.Context, client types.RPCClient, orderID uuid.UUID) error {
 	var err error
 
 	orderIDPrefix := strings.Split(orderID.String(), "-")[0]

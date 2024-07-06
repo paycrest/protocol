@@ -46,7 +46,7 @@ var serverConf = config.ServerConfig()
 var cryptoConf = config.CryptoConfig()
 
 // CreateOrder creates a new payment order on-chain.
-func (s *OrderEVM) CreateOrder(ctx context.Context, orderID uuid.UUID) error {
+func (s *OrderEVM) CreateOrder(ctx context.Context, client types.RPCClient, orderID uuid.UUID) error {
 	var err error
 	orderIDPrefix := strings.Split(orderID.String(), "-")[0]
 
@@ -152,7 +152,7 @@ func (s *OrderEVM) CreateOrder(ctx context.Context, orderID uuid.UUID) error {
 }
 
 // RefundOrder refunds sender on canceled lock order
-func (s *OrderEVM) RefundOrder(ctx context.Context, orderID string) error {
+func (s *OrderEVM) RefundOrder(ctx context.Context, client types.RPCClient, orderID string) error {
 	orderIDPrefix := strings.Split(orderID, "-")[0]
 
 	// Fetch lock order from db
@@ -235,7 +235,7 @@ func (s *OrderEVM) RefundOrder(ctx context.Context, orderID string) error {
 }
 
 // RevertOrder reverts an initiated payment order on-chain.
-func (s *OrderEVM) RevertOrder(ctx context.Context, order *ent.PaymentOrder) error {
+func (s *OrderEVM) RevertOrder(ctx context.Context, client types.RPCClient, order *ent.PaymentOrder) error {
 	if !order.AmountReturned.Equal(decimal.Zero) || strings.HasPrefix(order.Edges.Recipient.Memo, "P#P") {
 		return nil
 	}
@@ -368,7 +368,7 @@ func (s *OrderEVM) RevertOrder(ctx context.Context, order *ent.PaymentOrder) err
 }
 
 // SettleOrder settles a payment order on-chain.
-func (s *OrderEVM) SettleOrder(ctx context.Context, orderID uuid.UUID) error {
+func (s *OrderEVM) SettleOrder(ctx context.Context, client types.RPCClient, orderID uuid.UUID) error {
 	var err error
 
 	orderIDPrefix := strings.Split(orderID.String(), "-")[0]
