@@ -350,7 +350,7 @@ func (s *IndexerService) IndexOrderCreatedTron(ctx context.Context, order *ent.P
 						ProtocolFee: unpackedEventData[0].(*big.Int),
 						OrderId:     unpackedEventData[1].([32]byte),
 						Rate:        unpackedEventData[2].(*big.Int),
-						MessageHash: unpackedEventData[4].(string),
+						MessageHash: unpackedEventData[3].(string),
 					}
 
 					logger.Errorf("IndexOrderCreatedTron.parsedEvent: %v", event)
