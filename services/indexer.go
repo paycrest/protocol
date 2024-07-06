@@ -199,8 +199,6 @@ func (s *IndexerService) IndexTRC20Transfer(ctx context.Context, order *ent.Paym
 				return err
 			}
 
-			logger.Errorf("IndexTRC20Transfer.gettransactioninfobyid: %v", data)
-
 			if data["blockNumber"] != nil {
 				transferEvent := &types.TokenTransferEvent{
 					BlockNumber: uint64(data["blockNumber"].(float64)),
@@ -335,7 +333,7 @@ func (s *IndexerService) IndexOrderCreatedTron(ctx context.Context, order *ent.P
 			// Parse event data
 			for _, event := range data["log"].([]interface{}) {
 				eventData := event.(map[string]interface{})
-				if eventData["topics"].([]interface{})[0] == "3bdd0d86e09a22d7ce596118bd3ca5ec73ea47533a465be37621e913ed2bf333" {
+				if eventData["topics"].([]interface{})[0] == "40ccd1ceb111a3c186ef9911e1b876dc1f789ed331b86097b3b8851055b6a137" {
 					unpackedEventData, err := utils.UnpackEventData(eventData["data"].(string), contracts.GatewayMetaData.ABI, "OrderCreated")
 					if err != nil {
 						logger.Errorf("IndexOrderCreatedTron.UnpackEventData: %v", err)
@@ -484,6 +482,8 @@ func (s *IndexerService) IndexOrderSettledTron(ctx context.Context, order *ent.L
 				return err
 			}
 
+			logger.Errorf("IndexOrderSettledTron.gettransactioninfobyid: %v", data)
+
 			// Parse event data
 			for _, event := range data["log"].([]interface{}) {
 				eventData := event.(map[string]interface{})
@@ -627,6 +627,8 @@ func (s *IndexerService) IndexOrderRefundedTron(ctx context.Context, order *ent.
 				logger.Errorf("failed to parse JSON response: %v", err)
 				return err
 			}
+
+			logger.Errorf("IndexOrderRefundedTron.gettransactioninfobyid: %v", data)
 
 			// Parse event data
 			for _, event := range data["log"].([]interface{}) {
