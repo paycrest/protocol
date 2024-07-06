@@ -340,7 +340,7 @@ func (s *IndexerService) IndexOrderCreatedTron(ctx context.Context, order *ent.P
 						return err
 					}
 
-					logger.Errorf("IndexOrderCreatedTron.unpackedEventData: %v", event)
+					logger.Errorf("IndexOrderCreatedTron.unpackedEventData: %v", unpackedEventData)
 
 					event := &types.OrderCreatedEvent{
 						BlockNumber: uint64(data["blockNumber"].(float64)),
