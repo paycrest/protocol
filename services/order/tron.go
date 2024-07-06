@@ -106,8 +106,8 @@ func (s *OrderTron) CreateOrder(ctx context.Context, client types.RPCClient, ord
 		balance = 0
 	}
 
-	if balance < 160000000 {
-		_, err = masterWallet.Transfer(wallet.AddressBase58, 160000000)
+	if balance < 170000000 {
+		_, err = masterWallet.Transfer(wallet.AddressBase58, 170000000)
 		if err != nil {
 			return fmt.Errorf("%s - Tron.CreateOrder.Transfer: %w", orderIDPrefix, err)
 		}
@@ -263,7 +263,7 @@ func (s *OrderTron) RefundOrder(ctx context.Context, client types.RPCClient, ord
 		ContractAddress: tokenContractAddress.Bytes(),
 		Data:            calldata,
 	}
-	_, err = s.sendTransaction(wallet, ct, 50000000)
+	_, err = s.sendTransaction(wallet, ct, 30000000)
 	if err != nil {
 		return fmt.Errorf("%s - Tron.RefundOrder.sendTransaction: %w", orderIDPrefix, err)
 	}
@@ -454,7 +454,7 @@ func (s *OrderTron) SettleOrder(ctx context.Context, client types.RPCClient, ord
 		ContractAddress: tokenContractAddress.Bytes(),
 		Data:            calldata,
 	}
-	_, err = s.sendTransaction(wallet, ct, 50000000)
+	_, err = s.sendTransaction(wallet, ct, 30000000)
 	if err != nil {
 		return fmt.Errorf("%s - Tron.SettleOrder.sendTransaction: %w", orderIDPrefix, err)
 	}
@@ -472,7 +472,7 @@ func (s *OrderTron) SettleOrder(ctx context.Context, client types.RPCClient, ord
 		ContractAddress: gatewayContractAddress.Bytes(),
 		Data:            calldata,
 	}
-	_, err = s.sendTransaction(wallet, ct, 100000000)
+	_, err = s.sendTransaction(wallet, ct, 60000000)
 	if err != nil {
 		return fmt.Errorf("%s - Tron.SettleOrder.sendTransaction: %w", orderIDPrefix, err)
 	}

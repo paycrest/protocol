@@ -53,7 +53,7 @@ func setRPCClients(ctx context.Context) ([]*ent.Network, error) {
 	// Connect to RPC endpoint
 	var client types.RPCClient
 	for _, network := range networks {
-		if rpcClients[network.Identifier] == nil {
+		if rpcClients[network.Identifier] == nil && !strings.HasPrefix(network.Identifier, "tron") {
 			retryErr := utils.Retry(3, 1*time.Second, func() error {
 				client, err = types.NewEthClient(network.RPCEndpoint)
 				return err
