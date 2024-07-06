@@ -568,16 +568,13 @@ func ComputeMarketRate() error {
 		}
 
 		// Fetch rates from token configs with fixed conversion rate
-		token := "USDT"
-		if serverConf.Environment != "production" {
-			token = "TST"
-		}
 		tokenConfigs, err := storage.Client.ProviderOrderToken.
 			Query().
 			Where(
-				providerordertoken.SymbolEQ(token),
+				providerordertoken.SymbolIn("USDT", "USDC"),
 				providerordertoken.ConversionRateTypeEQ(providerordertoken.ConversionRateTypeFixed),
 			).
+			Select(providerordertoken.FieldFixedConversionRate).
 			All(ctx)
 		if err != nil {
 			return fmt.Errorf("ComputeMarketRate: %w", err)

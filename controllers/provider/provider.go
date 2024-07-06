@@ -372,9 +372,9 @@ func (ctrl *ProviderController) FulfillOrder(ctx *gin.Context) {
 
 		// Settle order or fail silently
 		if strings.HasPrefix(fulfillment.Edges.Order.Edges.Token.Edges.Network.Identifier, "tron") {
-			err = orderService.NewOrderTron().SettleOrder(ctx, orderID)
+			err = orderService.NewOrderTron().SettleOrder(ctx, nil, orderID)
 		} else {
-			err = orderService.NewOrderEVM().SettleOrder(ctx, orderID)
+			err = orderService.NewOrderEVM().SettleOrder(ctx, nil, orderID)
 		}
 		if err != nil {
 			logger.Errorf("FulfillOrder.SettleOrder: %v", err)
@@ -506,9 +506,9 @@ func (ctrl *ProviderController) CancelOrder(ctx *gin.Context) {
 	// and the order has not been refunded, then trigger refund
 	if order.CancellationCount >= orderConf.RefundCancellationCount && order.Status == lockpaymentorder.StatusCancelled {
 		if strings.HasPrefix(order.Edges.Token.Edges.Network.Identifier, "tron") {
-			err = orderService.NewOrderTron().RefundOrder(ctx, order.GatewayID)
+			err = orderService.NewOrderTron().RefundOrder(ctx, nil, order.GatewayID)
 		} else {
-			err = orderService.NewOrderEVM().RefundOrder(ctx, order.GatewayID)
+			err = orderService.NewOrderEVM().RefundOrder(ctx, nil, order.GatewayID)
 		}
 		if err != nil {
 			logger.Errorf("CancelOrder.RefundOrder(%v): %v", orderID, err)
