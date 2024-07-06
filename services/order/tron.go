@@ -106,8 +106,8 @@ func (s *OrderTron) CreateOrder(ctx context.Context, client types.RPCClient, ord
 		balance = 0
 	}
 
-	if balance < 150000000 {
-		_, err = masterWallet.Transfer(wallet.AddressBase58, 150000000)
+	if balance < 180000000 {
+		_, err = masterWallet.Transfer(wallet.AddressBase58, 180000000)
 		if err != nil {
 			return fmt.Errorf("%s - Tron.CreateOrder.Transfer: %w", orderIDPrefix, err)
 		}
