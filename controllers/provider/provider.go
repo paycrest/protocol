@@ -649,11 +649,9 @@ func (ctrl *ProviderController) NodeInfo(ctx *gin.Context) {
 		return
 	}
 
-	// TODO: Get approval to install github.com/go-ping/ping to replace Get request
 	res, err := fastshot.NewClient(provider.HostIdentifier).
 		Config().SetTimeout(30 * time.Second).
 		Build().GET("/health").
-		// Retry().Set(3, 5*time.Second).  // #329 - Remove retries for /provider/node-info endpoint
 		Send()
 	if err != nil {
 		logger.Errorf("error: %v", err)
