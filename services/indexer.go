@@ -251,10 +251,6 @@ func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPC
 	}
 	toBlock := header.Number.Uint64()
 
-	if network.Identifier == "bnb-smart-chain" {
-		toBlock = uint64(39813380)
-	}
-
 	// Fetch logs
 	var iter *contracts.GatewayOrderCreatedIterator
 	retryErr := utils.Retry(3, 1*time.Second, func() error {
@@ -290,9 +286,6 @@ func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPC
 			MessageHash: iter.Event.MessageHash,
 		}
 
-		if network.Identifier == "bnb-smart-chain" {
-			logger.Errorf("bnb event: %v", event)
-		}
 		err := s.CreateLockPaymentOrder(ctx, client, network, event)
 		if err != nil {
 			logger.Errorf("IndexOrderCreated.createOrder: %v", err)
