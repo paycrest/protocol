@@ -245,11 +245,13 @@ func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPC
 	}
 
 	// Fetch current block header
-	header, err := client.HeaderByNumber(ctx, nil)
-	if err != nil {
-		logger.Errorf("IndexOrderCreated.HeaderByNumber: %v", err)
-	}
-	toBlock := header.Number.Uint64()
+	// header, err := client.HeaderByNumber(ctx, nil)
+	// if err != nil {
+	// 	logger.Errorf("IndexOrderCreated.HeaderByNumber: %v", err)
+	// }
+	// toBlock := header.Number.Uint64()
+
+	toBlock := uint64(2270697230)
 
 	// Fetch logs
 	var iter *contracts.GatewayOrderCreatedIterator
