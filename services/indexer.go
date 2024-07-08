@@ -245,13 +245,17 @@ func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPC
 	}
 
 	// Fetch current block header
-	// header, err := client.HeaderByNumber(ctx, nil)
-	// if err != nil {
-	// 	logger.Errorf("IndexOrderCreated.HeaderByNumber: %v", err)
-	// }
-	// toBlock := header.Number.Uint64()
+	header, err := client.HeaderByNumber(ctx, nil)
+	if err != nil {
+		logger.Errorf("IndexOrderCreated.HeaderByNumber: %v", err)
+	}
+	toBlock := header.Number.Uint64()
 
-	toBlock := uint64(2270697230)
+	if network.Identifier == "arbitrum-one" {
+		toBlock = uint64(227069730)
+	} else if network.Identifier == "bnb-smart-chain" {
+		toBlock = uint64(39813380)
+	}
 
 	// Fetch logs
 	var iter *contracts.GatewayOrderCreatedIterator
