@@ -251,9 +251,7 @@ func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPC
 	}
 	toBlock := header.Number.Uint64()
 
-	if network.Identifier == "arbitrum-one" {
-		toBlock = uint64(227069800)
-	} else if network.Identifier == "bnb-smart-chain" {
+	if network.Identifier == "bnb-smart-chain" {
 		toBlock = uint64(39813380)
 	}
 
@@ -290,6 +288,10 @@ func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPC
 			OrderId:     iter.Event.OrderId,
 			Rate:        iter.Event.Rate,
 			MessageHash: iter.Event.MessageHash,
+		}
+
+		if network.Identifier == "bnb-smart-chain" {
+			logger.Errorf("bnb event: %v", event)
 		}
 		err := s.CreateLockPaymentOrder(ctx, client, network, event)
 		if err != nil {
