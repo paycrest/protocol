@@ -263,12 +263,12 @@ func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPC
 		var err error
 		if sender != "" {
 			iter, err = filterer.FilterOrderCreated(&bind.FilterOpts{
-				Start: uint64(int64(toBlock) - 5000),
+				Start: uint64(int64(toBlock) - 50),
 				End:   &toBlock,
 			}, []common.Address{common.HexToAddress(sender)}, nil, nil)
 		} else {
 			iter, err = filterer.FilterOrderCreated(&bind.FilterOpts{
-				Start: uint64(int64(toBlock) - 5000),
+				Start: uint64(int64(toBlock) - 50),
 				End:   &toBlock,
 			}, nil, nil, nil)
 		}
