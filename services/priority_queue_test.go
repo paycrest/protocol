@@ -2,24 +2,34 @@ package services
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"strings"
 	"testing"
 
+	"github.com/jarcoal/httpmock"
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/enttest"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	"github.com/paycrest/protocol/ent/provisionbucket"
 	db "github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
+	cryptoUtils "github.com/paycrest/protocol/utils/crypto"
 	"github.com/paycrest/protocol/utils/test"
+	tokenUtils "github.com/paycrest/protocol/utils/token"
 	"github.com/redis/go-redis/v9"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 )
 
 var testCtxForPQ = struct {
-	user                   *ent.User
-	providerProfile        *ent.ProviderProfile
+	user                     *ent.User
+	providerProfile          *ent.ProviderProfile
+	providerProfileAPIsecret string
+
 	privateProviderPrivate *ent.ProviderProfile
 	currency               *ent.FiatCurrency
 	client                 types.RPCClient
@@ -67,12 +77,24 @@ func setupForPQ() error {
 	testCtxForPQ.currency = currency
 
 	providerProfile, err := test.CreateTestProviderProfile(map[string]interface{}{
-		"user_id":     testCtxForPQ.user.ID,
-		"currency_id": currency.ID,
+		"user_id":         testCtxForPQ.user.ID,
+		"currency_id":     currency.ID,
+		"host_identifier": "https://example2.com",
 	})
 	if err != nil {
 		return err
 	}
+	apiKeyService := NewAPIKeyService()
+	secret, _, err := apiKeyService.GenerateAPIKey(
+		context.Background(),
+		nil,
+		nil,
+		providerProfile,
+	)
+	if err != nil {
+		return err
+	}
+	testCtxForPQ.providerProfileAPIsecret = secret.Secret
 	_, err = test.AddProviderOrderTokenToProvider(
 		map[string]interface{}{
 			"fixed_conversion_rate":    decimal.NewFromFloat(100),
@@ -270,14 +292,112 @@ func TestPriorityQueueTest(t *testing.T) {
 		assert.True(t, ok)
 		assert.Equal(t, _rate, float64(100))
 	})
-	t.Run("TestReassignStaleOrderRequest", func(t *testing.T) {
+
+	t.Run("TestSendOrderRequest", func(t *testing.T) {
+		bucket, err := test.CreateTestProvisionBucket(map[string]interface{}{
+			"provider_id": testCtxForPQ.privateProviderPrivate.ID,
+			"min_amount":  testCtxForPQ.minAmount,
+			"max_amount":  testCtxForPQ.maxAmount,
+			"currency_id": testCtxForPQ.currency.ID,
+		})
+		assert.NoError(t, err)
+		_order, err := test.CreateTestLockPaymentOrder(map[string]interface{}{"provider": testCtxForPQ.providerProfile, "tokenID": testCtxForPQ.token.ID})
+		assert.NoError(t, err)
+
+		_, err = test.AddProvisionBucketToLockPaymentOrder(_order, bucket.ID)
+		assert.NoError(t, err)
+
+		err = db.RedisClient.RPush(context.Background(), fmt.Sprintf("order_exclude_list_%s", _order.ID), testCtxForPQ.providerProfile.ID).Err()
+		assert.NoError(t, err)
+
+		order, err := db.Client.LockPaymentOrder.
+			Query().
+			Where(lockpaymentorder.IDEQ(_order.ID)).
+			WithProvisionBucket(func(pb *ent.ProvisionBucketQuery) {
+				pb.WithCurrency()
+			}).
+			WithToken().
+			Only(context.Background())
+
+		assert.NoError(t, err)
+
+		err = service.sendOrderRequest(context.Background(), types.LockPaymentOrderFields{
+			ID:                order.ID,
+			ProviderID:        testCtxForPQ.providerProfile.ID,
+			Token:             testCtxForPQ.token,
+			GatewayID:         order.GatewayID,
+			Amount:            order.Amount,
+			Rate:              order.Rate,
+			BlockNumber:       order.BlockNumber,
+			Institution:       order.Institution,
+			AccountIdentifier: order.AccountIdentifier,
+			AccountName:       order.AccountName,
+			Memo:              order.Memo,
+			ProvisionBucket:   order.Edges.ProvisionBucket,
+		})
+		assert.NoError(t, err)
+		t.Run("TestNotifyProvider", func(t *testing.T) {
+
+			// setup httpmock
+			httpmock.Activate()
+			defer httpmock.Deactivate()
+
+			httpmock.RegisterResponder("POST", testCtxForPQ.providerProfile.HostIdentifier+"/new_order",
+				func(r *http.Request) (*http.Response, error) {
+					bytes, err := io.ReadAll(r.Body)
+					if err != nil {
+						log.Fatal(err)
+					}
+					// Compute HMAC
+					decodedSecret, err := base64.StdEncoding.DecodeString(testCtxForPQ.providerProfileAPIsecret)
+					assert.NoError(t, err)
+					decryptedSecret, err := cryptoUtils.DecryptPlain(decodedSecret)
+					assert.NoError(t, err)
+					signature := tokenUtils.GenerateHMACSignature(map[string]interface{}{
+						"data": "test",
+					}, string(decryptedSecret))
+					assert.Equal(t, r.Header.Get("X-Request-Signature"), signature)
+					if strings.Contains(string(bytes), "data") && strings.Contains(string(bytes), "test") {
+						resp := httpmock.NewBytesResponse(200, nil)
+						return resp, nil
+					} else {
+						return nil, nil
+					}
+				},
+			)
+			err := service.notifyProvider(context.Background(), map[string]interface{}{
+				"providerId": testCtxForPQ.providerProfile.ID,
+				"data":       "test",
+			})
+			assert.NoError(t, err)
+		})
 	})
 
-	t.Run("TestReassignUnfulfilledLockOrders", func(t *testing.T) {
-	})
-	t.Run("TestReassignUnValidatedLockOrders", func(t *testing.T) {
-	})
-	t.Run("TestReassignPendingOrders", func(t *testing.T) {
+	t.Run("TestNoErrorFunctions", func(t *testing.T) {
+
+		t.Run("TestReassignUnfulfilledLockOrders", func(t *testing.T) {
+			// redisKey := fmt.Sprintf("bucket_%s_%s_%s", testCtxForPQ.currency.Code, testCtxForPQ.minAmount, testCtxForPQ.maxAmount)
+
+			// pubsub := db.RedisClient.Subscribe(context.Background(), redisKey)
+
+			// // Listen for messages
+			// go func() {
+			// 	for msg := range pubsub.Channel() {
+			// 		assert.Equal(t, msg, "")
+			// 	}
+			// }()
+
+			service.ReassignUnfulfilledLockOrders()
+			// Keep the main thread alive
+			// select {}
+		})
+		t.Run("TestReassignStaleOrderRequest", func(t *testing.T) {
+		})
+
+		t.Run("TestReassignUnValidatedLockOrders", func(t *testing.T) {
+		})
+		t.Run("TestReassignPendingOrders", func(t *testing.T) {
+		})
 	})
 }
 
