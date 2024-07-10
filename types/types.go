@@ -397,8 +397,9 @@ type PaymentOrderRecipient struct {
 	Institution       string `json:"institution" binding:"required"`
 	AccountIdentifier string `json:"accountIdentifier" binding:"required"`
 	AccountName       string `json:"accountName" binding:"required"`
-	ProviderID        string `json:"providerId"`
 	Memo              string `json:"memo" binding:"required"`
+	ProviderID        string `json:"providerId"`
+	Currency          string `json:"currency"`
 }
 
 // NewPaymentOrderPayload is the payload for the create payment order endpoint
