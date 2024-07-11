@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"strings"
+	"sync"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
@@ -73,6 +74,7 @@ func setRPCClients(ctx context.Context) ([]*ent.Network, error) {
 // RetryStaleUserOperations retries stale user operations
 func RetryStaleUserOperations() error {
 	ctx := context.Background()
+	var wg sync.WaitGroup
 
 	// Establish RPC connections
 	_, err := setRPCClients(ctx)
@@ -101,7 +103,9 @@ func RetryStaleUserOperations() error {
 		return fmt.Errorf("RetryStaleUserOperations: %w", err)
 	}
 
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		for _, order := range orders {
 			orderAmountWithFees := order.Amount.Add(order.NetworkFee).Add(order.SenderFee).Add(order.ProtocolFee)
 			if order.AmountPaid.GreaterThanOrEqual(orderAmountWithFees) {
@@ -140,7 +144,9 @@ func RetryStaleUserOperations() error {
 		return err
 	}
 
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		for _, order := range orders {
 			if order.Edges.ReceiveAddress.Status == receiveaddress.StatusExpired || order.Edges.ReceiveAddress.Status == receiveaddress.StatusUsed {
 				var service types.OrderService
@@ -175,7 +181,9 @@ func RetryStaleUserOperations() error {
 		return err
 	}
 
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		for _, order := range lockOrders {
 			var service types.OrderService
 			if strings.HasPrefix(order.Edges.Token.Edges.Network.Identifier, "tron") {
@@ -209,7 +217,9 @@ func RetryStaleUserOperations() error {
 		return err
 	}
 
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		for _, order := range lockOrders {
 			var service types.OrderService
 			if strings.HasPrefix(order.Edges.Token.Edges.Network.Identifier, "tron") {
@@ -230,6 +240,7 @@ func RetryStaleUserOperations() error {
 // IndexBlockchainEvents indexes missed blocks
 func IndexBlockchainEvents() error {
 	ctx := context.Background()
+	var wg sync.WaitGroup
 
 	time.Sleep(100 * time.Millisecond) // to keep out of sync with other tasks
 
@@ -240,7 +251,9 @@ func IndexBlockchainEvents() error {
 	}
 
 	// Index ERC20 transfer events
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		_ = utils.Retry(3, 2*time.Second, func() error {
 			orders, err := storage.Client.PaymentOrder.
 				Query().
@@ -287,7 +300,9 @@ func IndexBlockchainEvents() error {
 	}()
 
 	// Index OrderCreated events
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		time.Sleep(500 * time.Millisecond)
 		_ = utils.Retry(3, 2*time.Second, func() error {
 			for _, network := range networks {
@@ -353,7 +368,9 @@ func IndexBlockchainEvents() error {
 	}()
 
 	// Index OrderSettled events
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		time.Sleep(1000 * time.Millisecond)
 		_ = utils.Retry(3, 2*time.Second, func() error {
 			lockOrders, err := storage.Client.LockPaymentOrder.
@@ -401,7 +418,9 @@ func IndexBlockchainEvents() error {
 	}()
 
 	// Index OrderRefunded events
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		time.Sleep(1500 * time.Millisecond)
 		_ = utils.Retry(3, 2*time.Second, func() error {
 			lockOrders, err := storage.Client.LockPaymentOrder.

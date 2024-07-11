@@ -25,7 +25,16 @@ var (
 
 // DBConnection create database connection
 func DBConnection(DSN string) error {
-	db, err := sql.Open("pgx", DSN)
+	var db *sql.DB
+	var err error
+	for i := 0; i < 3; i++ { // Retry mechanism
+		db, err = sql.Open("pgx", DSN)
+		if err == nil {
+			break
+		}
+		time.Sleep(2 * time.Second) // Wait before retrying
+	}
+
 	if err != nil {
 		Err = err
 		log.Println("Database connection error")
