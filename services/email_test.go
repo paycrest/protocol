@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/jarcoal/httpmock"
+	"github.com/paycrest/protocol/types"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -67,5 +68,24 @@ func TestEmailService(t *testing.T) {
 			assert.NotEmpty(t, response.Id, "response ID should not be empty")
 			assert.Equal(t, "thisisatestid", response.Id, "response ID should be equal to thisisatestid")
 		})
+
+		t.Run("testMail service",
+			func(t *testing.T) {
+				srv := NewEmailService(SENDGRID_MAIL_PROVIDER)
+				_, err := srv.SendEmail(context.Background(), types.SendEmailPayload{
+					FromAddress: "no-reply@paycrest.io",
+					ToAddress:   "xlassixxx@gmail.com",
+					Subject:     "tryme",
+					Body:        "me",
+					HTMLBody:    "<h2>teseer<h2>",
+				})
+
+				assert.NoError(t, err)
+				t.Run("Fetch Templates", func(t *testing.T) {
+					templates := GetTemplateIds(context.Background())
+					assert.Greater(t, len(templates.Items), 0)
+
+				})
+			})
 	})
 }
