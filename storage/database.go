@@ -19,6 +19,8 @@ import (
 var (
 	// Client holds the database connection
 	Client *ent.Client
+	// DB holds the database connection
+	DB *sql.DB
 	// Err holds database connection error
 	Err error
 )
@@ -40,9 +42,12 @@ func DBConnection(DSN string) error {
 		log.Println("Database connection error")
 		return err
 	}
+
 	db.SetMaxIdleConns(10)
 	db.SetMaxOpenConns(100)
-	db.SetConnMaxLifetime(time.Hour)
+	db.SetConnMaxLifetime(2 * time.Minute)
+
+	DB = db
 
 	// Create an ent.Driver from `db`.
 	drv := entsql.OpenDB(dialect.Postgres, db)
