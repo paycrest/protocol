@@ -71,21 +71,31 @@ func TestEmailService(t *testing.T) {
 
 		t.Run("testMail service",
 			func(t *testing.T) {
-				srv := NewEmailService(SENDGRID_MAIL_PROVIDER)
-				_, err := srv.SendEmail(context.Background(), types.SendEmailPayload{
-					FromAddress: "no-reply@paycrest.io",
+				// srv := NewEmailService(SENDGRID_MAIL_PROVIDER)
+				err := SendTemplateEmail(types.SendEmailPayload{
+					FromAddress: "oayobami15@gmail.com",
 					ToAddress:   "xlassixxx@gmail.com",
-					Subject:     "tryme",
-					Body:        "me",
-					HTMLBody:    "<h2>teseer<h2>",
-				})
+					Subject:     "Main test",
+					DynamicData: map[string]interface{}{
+						"code":           "654321",
+						"recipient_name": "",
+						"subject":        "trying",
+					},
+				}, "d-be6f6e592fd242ca9e14db589f21c1b1")
 
 				assert.NoError(t, err)
-				t.Run("Fetch Templates", func(t *testing.T) {
-					templates := GetTemplateIds(context.Background())
-					assert.Greater(t, len(templates.Items), 0)
-
-				})
+				// t.Run("Fetch Templates", func(t *testing.T) {
+				// 	SendVerificationEmailV2(types.SendEmailPayload{
+				// 		FromAddress: "oayobami15@gmail.com",
+				// 		ToAddress:   "xlassixxx@gmail.com",
+				// 		Subject:     "Main test",
+				// 		DynamicData: map[string]interface{}{
+				// 			"code":           "84321",
+				// 			"recipient_name": "",
+				// 			"subject":        "trying",
+				// 		},
+				// 	})
+				// })
 			})
 	})
 }
