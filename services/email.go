@@ -3,19 +3,22 @@ package services
 import (
 	"context"
 	"fmt"
+	"time"
 
-	"github.com/mailgun/mailgun-go/v4"
+	mailgunv3 "github.com/mailgun/mailgun-go/v3"
+	fastshot "github.com/opus-domini/fast-shot"
 	"github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
 
 	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/types"
+	"github.com/paycrest/protocol/utils"
 )
 
 var (
 	notificationConf = config.NotificationConfig()
 
-	mailgunClient mailgun.Mailgun
+	mailgunClient mailgunv3.Mailgun
 )
 
 const (
@@ -41,14 +44,14 @@ func NewEmailService(mailProvider MailProvider) *EmailService {
 	return &EmailService{MailProvider: mailProvider}
 }
 
-// NewMailgun initialize mailgun.Mailgun and can be used to initialize a mocked Mailgun interface.
-func NewMailgun(m mailgun.Mailgun) {
+// NewMailgun initialize mailgunv3.Mailgun and can be used to initialize a mocked Mailgun interface.
+func NewMailgun(m mailgunv3.Mailgun) {
 	if m != nil {
 		mailgunClient = m
 		return
 	}
 
-	mailgunClient = mailgun.NewMailgun(notificationConf.EmailDomain, notificationConf.EmailAPIKey)
+	mailgunClient = mailgunv3.NewMailgun(notificationConf.EmailDomain, notificationConf.EmailAPIKey)
 }
 
 // SendEmail performs the action for sending an email.
@@ -140,55 +143,45 @@ func sendEmailViaSendGrid(ctx context.Context, content types.SendEmailPayload) (
 	return types.SendEmailResponse{Id: response.Headers["X-Message-Id"][0]}, nil
 }
 
-// sendEmailViaSendGrid performs the actions for sending an email.
-func sendEmailViaTemplates(ctx context.Context, content types.SendEmailPayload) (types.SendEmailResponse, error) {
-	// initialize
-	NewMailgun(mailgunClient)
+func SendTemplateEmail(content types.SendEmailPayload, templateId string) error {
+	client := fastshot.NewClient("https://api.sendgrid.com/").
+		Config().SetTimeout(30*time.Second).
+		Header().Set("Content-Type", "application/json").
+		Auth().BearerToken(notificationConf.EmailAPIKey)
 
-	// The message object allows you to add attachments and Bcc recipients
-	message := mailgunClient.NewMessage("<no-reply@paycrest.io>", content.Subject, "", content.ToAddress)
-	message.SetTemplate("No yet given")
-	err := message.AddTemplateVariable("c1", "value")
+	res, err := client.Build().POST("/v3/mail/send").
+		Body().AsJSON(map[string]interface{}{
+		"from": map[string]string{
+			"email": content.FromAddress,
+		},
+		"personalizations": []map[string]interface{}{
+			{
+				"to": []map[string]string{
+					{
+						"email": content.ToAddress,
+					},
+				},
+				"dynamic_template_data": content.DynamicData,
+				"subject":               content.Subject,
+			},
+		},
+		"subject":     content.Subject,
+		"template_id": templateId,
+	}).
+		Retry().Set(3, 1*time.Second).
+		Send()
 	if err != nil {
-		return types.SendEmailResponse{}, err
-	}
-	err = message.AddTemplateVariable("c2", "value2")
-	if err != nil {
-		return types.SendEmailResponse{}, err
-	}
-
-	err = message.AddTemplateVariable("c3", "value")
-	if err != nil {
-		return types.SendEmailResponse{}, err
-	}
-
-	err = message.AddTemplateVariable("c4", "value")
-	if err != nil {
-		return types.SendEmailResponse{}, err
-	}
-
-	err = message.AddTemplateVariable("c5", "value")
-	if err != nil {
-		return types.SendEmailResponse{}, err
-	}
-
-	err = message.AddTemplateVariable("c6", "value")
-	if err != nil {
-		return types.SendEmailResponse{}, err
+		return fmt.Errorf("fetch txn event logs: %v, %v", err, res.RawResponse)
 	}
 
-
-	// Send the message with a 10 second timeout
-	response, id, err := mailgunClient.Send(ctx, message)
-
+	_, err = utils.ParseJSONResponse(res.RawResponse)
 	if err != nil {
-		return types.SendEmailResponse{}, err
+		return fmt.Errorf("fetch: %v, %v", err, res.RawResponse)
 	}
 
-	return types.SendEmailResponse{Id: id, Response: response}, err
+	return nil
 }
-
-func GetTemplateIds(ctx context.Context) *mailgun.TemplatesIterator {
-	mailgunClient := mailgun.NewMailgun(notificationConf.EmailDomain, notificationConf.EmailAPIKey)
-	return mailgunClient.ListTemplates(&mailgun.ListTemplateOptions{Limit: 20, Active: true})
+func SendVerificationEmailV2(content types.SendEmailPayload) error {
+	// TODO: Not sure how you want the templateId added yet
+	return SendTemplateEmail(content, "d-be6f6e592fd242ca9e14db589f21c1b1")
 }

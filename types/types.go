@@ -491,6 +491,7 @@ type SendEmailPayload struct {
 	Subject     string
 	Body        string
 	HTMLBody    string
+	DynamicData map[string]interface{}
 }
 
 // SendEmailResponse is the response for a sent email
