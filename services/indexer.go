@@ -98,6 +98,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 	header, err := client.HeaderByNumber(ctx, nil)
 	if err != nil {
 		logger.Errorf("IndexERC20Transfer.HeaderByNumber: %v", err)
+		return err
 	}
 	toBlock := header.Number.Uint64()
 
@@ -248,6 +249,7 @@ func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPC
 	header, err := client.HeaderByNumber(ctx, nil)
 	if err != nil {
 		logger.Errorf("IndexOrderCreated.HeaderByNumber: %v", err)
+		return err
 	}
 	toBlock := header.Number.Uint64()
 
@@ -393,6 +395,7 @@ func (s *IndexerService) IndexOrderSettled(ctx context.Context, client types.RPC
 	header, err := client.HeaderByNumber(ctx, nil)
 	if err != nil {
 		logger.Errorf("IndexOrderSettled.HeaderByNumber: %v", err)
+		return err
 	}
 	toBlock := header.Number.Uint64()
 
@@ -407,14 +410,14 @@ func (s *IndexerService) IndexOrderSettled(ctx context.Context, client types.RPC
 			}
 
 			iter, err = filterer.FilterOrderSettled(&bind.FilterOpts{
-				Start: uint64(int64(toBlock) - 50000),
+				Start: uint64(int64(toBlock) - 5000),
 				End:   &toBlock,
 			}, [][32]byte{utils.StringToByte32(string(orderID))}, nil)
 
 			return err
 		} else {
 			iter, err = filterer.FilterOrderSettled(&bind.FilterOpts{
-				Start: uint64(int64(toBlock) - 50000),
+				Start: uint64(int64(toBlock) - 5000),
 				End:   &toBlock,
 			}, nil, nil)
 
@@ -543,6 +546,7 @@ func (s *IndexerService) IndexOrderRefunded(ctx context.Context, client types.RP
 	header, err := client.HeaderByNumber(ctx, nil)
 	if err != nil {
 		logger.Errorf("IndexOrderRefunded.HeaderByNumber: %v", err)
+		return err
 	}
 	toBlock := header.Number.Uint64()
 
@@ -557,13 +561,13 @@ func (s *IndexerService) IndexOrderRefunded(ctx context.Context, client types.RP
 			}
 
 			iter, err = filterer.FilterOrderRefunded(&bind.FilterOpts{
-				Start: uint64(int64(toBlock) - 50000),
+				Start: uint64(int64(toBlock) - 5000),
 				End:   &toBlock,
 			}, [][32]byte{utils.StringToByte32(string(orderID))})
 			return err
 		} else {
 			iter, err = filterer.FilterOrderRefunded(&bind.FilterOpts{
-				Start: uint64(int64(toBlock) - 50000),
+				Start: uint64(int64(toBlock) - 5000),
 				End:   &toBlock,
 			}, nil)
 			return err
