@@ -410,6 +410,7 @@ func TestPriorityQueueTest(t *testing.T) {
 			//validate the ReassignUnfulfilledLockOrders updated the UnfulfilledLockOrder
 			assert.True(t, _order.UpdatedAt.Before(order.UpdatedAt))
 		})
+		
 		t.Run("TestReassignStaleOrderRequest", func(t *testing.T) {
 			bucket, err := test.CreateTestProvisionBucket(map[string]interface{}{
 				"provider_id": testCtxForPQ.privateProviderPrivate.ID,
