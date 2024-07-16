@@ -196,7 +196,6 @@ func TestPriorityQueueTest(t *testing.T) {
 		buckets, err := service.GetProvisionBuckets(context.Background())
 		assert.NoError(t, err)
 		assert.Greater(t, len(buckets), 0)
-
 	})
 
 	t.Run("TestCreatePriorityQueueForBucket", func(t *testing.T) {
@@ -410,7 +409,7 @@ func TestPriorityQueueTest(t *testing.T) {
 			//validate the ReassignUnfulfilledLockOrders updated the UnfulfilledLockOrder
 			assert.True(t, _order.UpdatedAt.Before(order.UpdatedAt))
 		})
-		
+
 		t.Run("TestReassignStaleOrderRequest", func(t *testing.T) {
 			bucket, err := test.CreateTestProvisionBucket(map[string]interface{}{
 				"provider_id": testCtxForPQ.privateProviderPrivate.ID,
