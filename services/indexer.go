@@ -1165,19 +1165,19 @@ func (s *IndexerService) UpdateOrderStatusSettled(ctx context.Context, event *ty
 			Update().
 			Where(
 				paymentorder.GatewayIDEQ(gatewayId),
-			)
+			).
+			SetBlockNumber(int64(event.BlockNumber)).
+			SetTxHash(event.TxHash)
 
-		// Convert settled percent to BPS
-		settledPercent := decimal.NewFromBigInt(event.SettlePercent, 0).Div(decimal.NewFromInt(1000))
+		// Convert settled percent to BPS and update
+		settledPercent := paymentOrder.PercentSettled.Add(decimal.NewFromBigInt(event.SettlePercent, 0).Div(decimal.NewFromInt(1000)))
 
 		// If settled percent is 100%, mark order as settled
-		if settledPercent.Equal(decimal.NewFromInt(100)) {
+		if settledPercent.GreaterThanOrEqual(decimal.NewFromInt(100)) {
 			paymentOrderUpdate = paymentOrderUpdate.SetStatus(paymentorder.StatusSettled)
 		}
 
 		_, err = paymentOrderUpdate.
-			SetBlockNumber(int64(event.BlockNumber)).
-			SetTxHash(event.TxHash).
 			SetPercentSettled(settledPercent).
 			Save(ctx)
 		if err != nil {

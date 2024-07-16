@@ -397,6 +397,40 @@ func IndexBlockchainEvents() error {
 
 			if len(lockOrders) > 0 {
 				for _, order := range lockOrders {
+					// Fetch payment order
+					paymentOrderExists := true
+					paymentOrder, err := storage.Client.PaymentOrder.
+						Query().
+						Where(
+							paymentorder.GatewayIDEQ(order.GatewayID),
+							paymentorder.StatusEQ(paymentorder.StatusPending),
+						).
+						Only(ctx)
+					if err != nil {
+						if ent.IsNotFound(err) {
+							// Payment order does not exist, no need to update
+							paymentOrderExists = false
+						}
+					}
+
+					// Update payment order status for settled lock order
+					if paymentOrderExists {
+						settledPercent := paymentOrder.PercentSettled.Add(order.OrderPercent)
+
+						if settledPercent.GreaterThanOrEqual(decimal.NewFromInt(100)) {
+							_, err = storage.Client.PaymentOrder.
+								Update().
+								SetBlockNumber(order.BlockNumber).
+								SetTxHash(order.TxHash).
+								SetPercentSettled(settledPercent).
+								SetStatus(paymentorder.StatusSettled).
+								Save(ctx)
+							if err != nil {
+								logger.Errorf("IndexBlockchainEvents: %v", err)
+							}
+						}
+					}
+
 					if strings.HasPrefix(order.Edges.Token.Edges.Network.Identifier, "tron") {
 						indexerService := services.NewIndexerService(orderService.NewOrderTron())
 						err := indexerService.IndexOrderSettledTron(ctx, order)
