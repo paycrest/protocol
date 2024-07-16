@@ -223,6 +223,8 @@ func CreateTestLockPaymentOrder(overrides map[string]interface{}) (*ent.LockPaym
 		payload["tokenID"] = token.ID
 	}
 
+	time.Sleep(5 * time.Second)
+
 	// Create LockPaymentOrder
 	order, err := db.Client.LockPaymentOrder.
 		Create().
