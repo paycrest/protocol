@@ -249,7 +249,10 @@ func TestPriorityQueueTest(t *testing.T) {
 			"currency_id": testCtxForPQ.currency.ID,
 		})
 		assert.NoError(t, err)
-		_order, err := test.CreateTestLockPaymentOrder(map[string]interface{}{"provider": testCtxForPQ.providerProfile, "tokenID": testCtxForPQ.token.ID})
+		_order, err := test.CreateTestLockPaymentOrder(map[string]interface{}{
+			"provider": testCtxForPQ.providerProfile,
+			"tokenID":  testCtxForPQ.token.ID,
+		})
 		assert.NoError(t, err)
 
 		_, err = test.AddProvisionBucketToLockPaymentOrder(_order, bucket.ID)
@@ -301,7 +304,9 @@ func TestPriorityQueueTest(t *testing.T) {
 			"currency_id": testCtxForPQ.currency.ID,
 		})
 		assert.NoError(t, err)
-		_order, err := test.CreateTestLockPaymentOrder(map[string]interface{}{"provider": testCtxForPQ.providerProfile, "tokenID": testCtxForPQ.token.ID})
+		_order, err := test.CreateTestLockPaymentOrder(map[string]interface{}{
+			"provider": testCtxForPQ.providerProfile,
+			"tokenID":  testCtxForPQ.token.ID})
 		assert.NoError(t, err)
 
 		_, err = test.AddProvisionBucketToLockPaymentOrder(_order, bucket.ID)
@@ -376,27 +381,74 @@ func TestPriorityQueueTest(t *testing.T) {
 	t.Run("TestNoErrorFunctions", func(t *testing.T) {
 
 		t.Run("TestReassignUnfulfilledLockOrders", func(t *testing.T) {
-			// redisKey := fmt.Sprintf("bucket_%s_%s_%s", testCtxForPQ.currency.Code, testCtxForPQ.minAmount, testCtxForPQ.maxAmount)
 
-			// pubsub := db.RedisClient.Subscribe(context.Background(), redisKey)
+			bucket, err := test.CreateTestProvisionBucket(map[string]interface{}{
+				"provider_id": testCtxForPQ.privateProviderPrivate.ID,
+				"min_amount":  testCtxForPQ.minAmount,
+				"max_amount":  testCtxForPQ.maxAmount,
+				"currency_id": testCtxForPQ.currency.ID,
+			})
+			assert.NoError(t, err)
+			_order, err := test.CreateTestLockPaymentOrder(map[string]interface{}{
+				"provider":  testCtxForPQ.providerProfile,
+				"tokenID":   testCtxForPQ.token.ID,
+				"status":    lockpaymentorder.StatusProcessing.String(),
+				"updatedAt": 0.0,
+			})
+			assert.NoError(t, err)
 
-			// // Listen for messages
-			// go func() {
-			// 	for msg := range pubsub.Channel() {
-			// 		assert.Equal(t, msg, "")
-			// 	}
-			// }()
+			_, err = test.AddProvisionBucketToLockPaymentOrder(_order, bucket.ID)
+			assert.NoError(t, err)
 
 			service.ReassignUnfulfilledLockOrders()
-			// Keep the main thread alive
-			// select {}
+
+			order, err := db.Client.LockPaymentOrder.
+				Query().
+				Where(lockpaymentorder.IDEQ(_order.ID)).Only(context.Background())
+			assert.NoError(t, err)
+
+			//validate the ReassignUnfulfilledLockOrders updated the UnfulfilledLockOrder
+			assert.True(t, _order.UpdatedAt.Before(order.UpdatedAt))
 		})
 		t.Run("TestReassignStaleOrderRequest", func(t *testing.T) {
-		})
+			bucket, err := test.CreateTestProvisionBucket(map[string]interface{}{
+				"provider_id": testCtxForPQ.privateProviderPrivate.ID,
+				"min_amount":  testCtxForPQ.minAmount,
+				"max_amount":  testCtxForPQ.maxAmount,
+				"currency_id": testCtxForPQ.currency.ID,
+			})
+			assert.NoError(t, err)
+			_order, err := test.CreateTestLockPaymentOrder(map[string]interface{}{
+				"provider":  testCtxForPQ.privateProviderPrivate,
+				"tokenID":   testCtxForPQ.token.ID,
+				"status":    lockpaymentorder.StatusProcessing.String(),
+				"updatedAt": 0.0,
+			})
+			assert.NoError(t, err)
 
-		t.Run("TestReassignUnValidatedLockOrders", func(t *testing.T) {
-		})
-		t.Run("TestReassignPendingOrders", func(t *testing.T) {
+			orderKey := fmt.Sprintf("order_exclude_list_%s", _order.ID)
+			_, err = db.RedisClient.RPush(context.Background(), orderKey, testCtxForPQ.privateProviderPrivate.ID).Result()
+			assert.NoError(t, err)
+
+			_, err = test.AddProvisionBucketToLockPaymentOrder(_order, bucket.ID)
+			assert.NoError(t, err)
+
+			service.ReassignUnfulfilledLockOrders()
+
+			// Create Channel
+			orderRequestChan := make(chan *redis.Message, 1)
+			orderRequestChan <- &redis.Message{Payload: _order.ID.String() + "_" + "TEST"}
+			service.ReassignStaleOrderRequest(context.Background(), orderRequestChan)
+
+			order, err := db.Client.LockPaymentOrder.
+				Query().
+				Where(lockpaymentorder.IDEQ(_order.ID)).Only(context.Background())
+			assert.NoError(t, err)
+			// validate the StaleOrderRequest updated the StaleOrderRequest
+			assert.True(t, _order.UpdatedAt.Before(order.UpdatedAt))
+
+			// Close channel
+			close(orderRequestChan)
 		})
 	})
 }
