@@ -21,11 +21,11 @@ import (
 var (
 	notificationConf = config.NotificationConfig()
 
-	mailgunClient mailgunv3.Mailgun
+	mailgunClient       mailgunv3.Mailgun
+	_DefaultFromAddress = notificationConf.EmailSender //"Paycrest <no-reply@paycrest.io>"
 )
 
 const (
-	_DefaultFromAddress        = "oayobami15@gmail.com" //"Paycrest <no-reply@paycrest.io>"
 	_EmailVerificationSubject  = "Your Paycrest Email Verification Token"
 	_PasswordResetEmailSubject = "Reset Password confirmation"
 )

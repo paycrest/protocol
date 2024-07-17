@@ -18,8 +18,8 @@ import (
 )
 
 var testCtx = struct {
-	user  *ent.SenderProfile
-	order *ent.PaymentOrder
+	user    *ent.SenderProfile
+	webhook *ent.WebhookRetryAttempt
 }{}
 
 func setup() error {
@@ -39,7 +39,7 @@ func setup() error {
 
 	// Create a test token
 	token, err := test.CreateERC20Token(backend, map[string]interface{}{
-		"identifier": "localhost",
+		"identifier":     "localhost",
 		"deployContract": false,
 	})
 	if err != nil {
@@ -90,9 +90,8 @@ func setup() error {
 			Status:        paymentOrder.Status,
 		},
 	}
-	testCtx.order = paymentOrder
 	payload := utils.StructToMap(payloadStruct)
-	_, err = db.Client.WebhookRetryAttempt.
+	hook, err := db.Client.WebhookRetryAttempt.
 		Create().
 		SetAttemptNumber(3).
 		SetNextRetryTime(time.Now().Add(25 * time.Hour)).
@@ -104,6 +103,7 @@ func setup() error {
 		SetStatus(webhookretryattempt.StatusFailed).
 		Save(context.Background())
 
+	testCtx.webhook = hook
 	if err != nil {
 		return fmt.Errorf("CreateTestSenderProfile.WebhookRetryAttempt: %w", err)
 	}
@@ -132,8 +132,12 @@ func TestTask(t *testing.T) {
 	err := setup()
 	assert.NoError(t, err)
 	t.Run("RetryFailedWebhookNotifications", func(t *testing.T) {
-		// Activate httpmock
 		err := RetryFailedWebhookNotifications()
 		assert.NoError(t, err)
+		hook, err := db.Client.WebhookRetryAttempt.
+			Query().
+			Where(webhookretryattempt.IDEQ(testCtx.webhook.ID)).
+			Only(context.Background())
+		assert.Equal(t, hook.Status, webhookretryattempt.StatusExpired)
 	})
 }
