@@ -40,6 +40,7 @@ func setup() error {
 	// Create a test token
 	token, err := test.CreateERC20Token(backend, map[string]interface{}{
 		"identifier": "localhost",
+		"deployContract": false,
 	})
 	if err != nil {
 		return fmt.Errorf("CreateERC20Token.task_test: %w", err)
