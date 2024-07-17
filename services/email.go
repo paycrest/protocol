@@ -1,8 +1,11 @@
 package services
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"time"
 
 	mailgunv3 "github.com/mailgun/mailgun-go/v3"
@@ -22,7 +25,7 @@ var (
 )
 
 const (
-	_DefaultFromAddress        = "Paycrest <no-reply@paycrest.io>"
+	_DefaultFromAddress        = "oayobami15@gmail.com" //"Paycrest <no-reply@paycrest.io>"
 	_EmailVerificationSubject  = "Your Paycrest Email Verification Token"
 	_PasswordResetEmailSubject = "Reset Password confirmation"
 )
@@ -179,6 +182,115 @@ func SendTemplateEmail(content types.SendEmailPayload, templateId string) error 
 		return fmt.Errorf("fetch: %v, %v", err, res.RawResponse)
 	}
 
+	return nil
+}
+
+func SendTemplateEmailWithJsonAttachment(content types.SendEmailPayload, templateId string) error {
+	// client := fastshot.NewClient("https://api.sendgrid.com/v3/mail/send").
+	// 	Config().SetTimeout(30*time.Second).
+	// 	Header().Set("Content-Type", "application/json").
+	// 	Auth().BearerToken(notificationConf.EmailAPIKey)
+
+	// ok := utils.IsBase64(content.Body)
+	// if !ok {
+	// 	return fmt.Errorf("attachments is not Base64")
+	// }
+	// res, err := client.Build().POST("").
+	// 	Body().AsJSON(map[string]interface{}{
+	// 	"from": map[string]string{
+	// 		"email": _DefaultFromAddress,
+	// 	},
+	// 	"personalizations": []map[string]interface{}{
+	// 		{
+	// 			"to": []map[string]string{
+	// 				{
+	// 					"email": content.ToAddress,
+	// 				},
+	// 			},
+	// 			"dynamic_template_data": content.DynamicData,
+	// 		},
+	// 	},
+	// 	"template_id": templateId,
+	// 	// "attachments": []map[string]interface{}{
+	// 	// 	{
+	// 	// 		"content":     content.Body,
+	// 	// 		"type":        "text/json",
+	// 	// 		"disposition": "attachment",
+	// 	// 		"filename":    "payload.json",
+	// 	// 	},
+	// 	// },
+	// }).
+	// 	// Retry().Set(3, 1*time.Second).
+	// 	Send()
+	// if err != nil {
+	// 	return fmt.Errorf("sendEmail: %v,v", err, res.RawResponse)
+	// }
+
+	// _, err = utils.ParseJSONResponse(res.RawResponse)
+	// if err != nil {
+
+	// 	return fmt.Errorf("failed to Parse: %v, %v", err, res.RawResponse)
+	// }
+
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	url := "https://api.sendgrid.com/v3/mail/send"
+
+	reqBody := map[string]interface{}{
+		"from": map[string]string{
+			"email": _DefaultFromAddress,
+		},
+		"personalizations": []map[string]interface{}{
+			{
+				"to": []map[string]string{
+					{
+						"email": content.ToAddress,
+					},
+				},
+				"dynamic_template_data": content.DynamicData,
+			},
+		},
+		"template_id": templateId,
+		"attachments": []map[string]interface{}{
+			{
+				"content": content.Body,
+				"type":    "text/json", "disposition": "attachment",
+				"filename": "payload.json",
+			},
+		},
+	}
+
+	jsonBody, err := json.Marshal(reqBody)
+	if err != nil {
+		return fmt.Errorf("Error marshalling JSON: %w", err)
+
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return fmt.Errorf("Error creating request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+notificationConf.EmailAPIKey)
+
+	_, err = client.Do(req)
+	if err != nil {
+		return fmt.Errorf("Error sending request: %w", err)
+	}
+
+	// defer resp.Body.Close()
+	// body, err := ioutil.ReadAll(resp.Body)
+	// if err != nil {
+	// 	return fmt.Errorf("Error reading response body:", err)
+	// }
+
+	// return fmt.Errorf("Error reading response body: %v,\n %v \n %v", string(body), content.DynamicData, templateId)
+
+	// fmt.Println("Response status:", resp.Status)
+	// fmt.Println("Response body:", string(body))
 	return nil
 }
 func SendVerificationEmailV2(content types.SendEmailPayload) error {

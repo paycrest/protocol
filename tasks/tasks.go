@@ -2,6 +2,8 @@ package tasks
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"math"
 	"strings"
@@ -10,6 +12,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"github.com/go-co-op/gocron"
+	"github.com/google/uuid"
 	fastshot "github.com/opus-domini/fast-shot"
 	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/ent"
@@ -20,6 +23,7 @@ import (
 	"github.com/paycrest/protocol/ent/paymentorder"
 	"github.com/paycrest/protocol/ent/providerordertoken"
 	"github.com/paycrest/protocol/ent/receiveaddress"
+	"github.com/paycrest/protocol/ent/senderprofile"
 	"github.com/paycrest/protocol/ent/token"
 	"github.com/paycrest/protocol/ent/webhookretryattempt"
 	"github.com/paycrest/protocol/services"
@@ -759,13 +763,14 @@ func RetryFailedWebhookNotifications() error {
 
 	for _, attempt := range attempts {
 		// Send the webhook notification
-		_, err = fastshot.NewClient(attempt.WebhookURL).
+		body, err := fastshot.NewClient(attempt.WebhookURL).
 			Config().SetTimeout(30*time.Second).
 			Header().Add("X-Paycrest-Signature", attempt.Signature).
 			Build().POST("").
 			Body().AsJSON(attempt.Payload).
 			Send()
-		if err != nil {
+
+		if err != nil || (body.StatusCode() >= 205) {
 			// Webhook notification failed
 			// Update attempt with next retry time
 			attemptNumber := attempt.AttemptNumber + 1
@@ -782,6 +787,38 @@ func RetryFailedWebhookNotifications() error {
 			// Set status to expired if cumulative time is greater than 24 hours
 			if nextRetryTime.Sub(attempt.CreatedAt.Add(-baseDelay)) > maxCumulativeTime {
 				attemptUpdate.SetStatus(webhookretryattempt.StatusExpired)
+				uid, err := uuid.Parse(attempt.Payload["data"].(map[string]interface{})["senderId"].(string))
+				if err != nil {
+					return fmt.Errorf("RetryFailedWebhookNotifications.FailedExtraction: %w", err)
+				}
+				profile, err := storage.Client.SenderProfile.
+					Query().
+					Where(
+						senderprofile.IDEQ(uid),
+					).
+					WithUser().Only(ctx)
+				if err != nil {
+					return fmt.Errorf("RetryFailedWebhookNotifications.CouldNotFetchProfile: %w", err)
+				}
+				// Convert map[string]interface{} to JSON string
+				jsonData, err := json.Marshal(attempt.Payload)
+				if err != nil {
+					return fmt.Errorf("RetryFailedWebhookNotifications: %w", err)
+				}
+
+				// Encode JSON string to Base64
+				base64Encoded := base64.StdEncoding.EncodeToString(jsonData)
+				err = services.SendTemplateEmailWithJsonAttachment(types.SendEmailPayload{
+					ToAddress: profile.Edges.User.Email,
+					Body:      base64Encoded,
+					DynamicData: map[string]interface{}{
+						"firstname": profile.Edges.User.FirstName,
+					},
+				}, "d-f4f4ddca5a194b6bacc872007885557f")
+
+				if err != nil {
+					return fmt.Errorf("failed to send email: %w", err)
+				}
 			}
 
 			_, err := attemptUpdate.Save(ctx)
@@ -793,7 +830,7 @@ func RetryFailedWebhookNotifications() error {
 		}
 
 		// Webhook notification was successful
-		_, err := attempt.Update().
+		_, err = attempt.Update().
 			SetStatus(webhookretryattempt.StatusSuccess).
 			Save(ctx)
 		if err != nil {
