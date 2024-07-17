@@ -96,7 +96,7 @@ func setup() error {
 	testCtx.apiKeySecret = secretKey
 
 	for i := 0; i < 9; i++ {
-		time.Sleep(time.Duration(float64(rand.Intn(5))) * time.Second)
+		time.Sleep(time.Duration(float64(rand.Intn(10))) * time.Second)
 		_, err := test.CreateTestPaymentOrder(backend, token, map[string]interface{}{
 			"sender": senderProfile,
 		})
