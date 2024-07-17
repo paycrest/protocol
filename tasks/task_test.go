@@ -25,7 +25,7 @@ var testCtx = struct {
 func setup() error {
 	// Set up test data
 	user, err := test.CreateTestUser(map[string]interface{}{
-		"email": "chibie@paycrest.io",
+		"email": "vixigak278@sablecc.com",
 	})
 	if err != nil {
 		return err
