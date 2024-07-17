@@ -54,7 +54,8 @@ func setup() error {
 	// Create a test token
 	testCtx.networkIdentifier = "localhost"
 	token, err := test.CreateERC20Token(backend, map[string]interface{}{
-		"identifier": testCtx.networkIdentifier,
+		"identifier":     testCtx.networkIdentifier,
+		"deployContract": false,
 	})
 	if err != nil {
 		return fmt.Errorf("CreateERC20Token.sender_test: %w", err)
@@ -95,6 +96,7 @@ func setup() error {
 	testCtx.apiKeySecret = secretKey
 
 	for i := 0; i < 9; i++ {
+		time.Sleep(time.Duration(float64(rand.Intn(15))) * time.Second)
 		_, err := test.CreateTestPaymentOrder(backend, token, map[string]interface{}{
 			"sender": senderProfile,
 		})

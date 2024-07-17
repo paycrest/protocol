@@ -2,8 +2,6 @@ package tasks
 
 import (
 	"context"
-	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"math"
 	"strings"
@@ -723,17 +721,9 @@ func RetryFailedWebhookNotifications() error {
 				if err != nil {
 					return fmt.Errorf("RetryFailedWebhookNotifications.CouldNotFetchProfile: %w", err)
 				}
-				// Convert map[string]interface{} to JSON string
-				jsonData, err := json.Marshal(attempt.Payload)
-				if err != nil {
-					return fmt.Errorf("RetryFailedWebhookNotifications: %w", err)
-				}
 
-				// Encode JSON string to Base64
-				base64Encoded := base64.StdEncoding.EncodeToString(jsonData)
-				err = services.SendTemplateEmailWithJsonAttachment(types.SendEmailPayload{
+				_,err = services.SendTemplateEmail(types.SendEmailPayload{
 					ToAddress: profile.Edges.User.Email,
-					Body:      base64Encoded,
 					DynamicData: map[string]interface{}{
 						"firstname": profile.Edges.User.FirstName,
 					},

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/jarcoal/httpmock"
+	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/types"
 	"github.com/stretchr/testify/assert"
 )
@@ -72,30 +73,16 @@ func TestEmailService(t *testing.T) {
 		t.Run("testMail service",
 			func(t *testing.T) {
 				// srv := NewEmailService(SENDGRID_MAIL_PROVIDER)
-				err := SendTemplateEmail(types.SendEmailPayload{
-					FromAddress: "oayobami15@gmail.com",
-					ToAddress:   "xlassixxx@gmail.com",
-					Subject:     "Main test",
+				_, err := SendTemplateEmail(types.SendEmailPayload{
+					FromAddress: config.NotificationConfig().EmailSender,
+					ToAddress:   "johnDoe@gmail.com",
 					DynamicData: map[string]interface{}{
 						"code":           "654321",
 						"recipient_name": "",
 						"subject":        "trying",
 					},
-				}, "d-be6f6e592fd242ca9e14db589f21c1b1")
-
+				}, "d-f26d853bbb884c0c856f0bbda894032c")
 				assert.NoError(t, err)
-				// t.Run("Fetch Templates", func(t *testing.T) {
-				// 	SendVerificationEmailV2(types.SendEmailPayload{
-				// 		FromAddress: "oayobami15@gmail.com",
-				// 		ToAddress:   "xlassixxx@gmail.com",
-				// 		Subject:     "Main test",
-				// 		DynamicData: map[string]interface{}{
-				// 			"code":           "84321",
-				// 			"recipient_name": "",
-				// 			"subject":        "trying",
-				// 		},
-				// 	})
-				// })
 			})
 	})
 }
