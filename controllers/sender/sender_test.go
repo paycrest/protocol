@@ -60,6 +60,12 @@ func setup() error {
 		return fmt.Errorf("CreateERC20Token.sender_test: %w", err)
 	}
 
+	// Create test fiat currency and institutions
+	_, err = test.CreateTestFiatCurrency(nil)
+	if err != nil {
+		return fmt.Errorf("CreateTestFiatCurrency.sender_test: %w", err)
+	}
+
 	senderProfile, err := test.CreateTestSenderProfile(map[string]interface{}{
 		"user_id":            user.ID,
 		"fee_per_token_unit": "5",
