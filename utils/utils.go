@@ -334,6 +334,35 @@ func StructToMap(input interface{}) map[string]interface{} {
 	return result
 }
 
+func MapToStruct(m map[string]interface{}, s interface{}) error {
+	v := reflect.ValueOf(s).Elem() // Get the Value of the struct
+	t := v.Type()                  // Get the Type of the struct
+
+	for i := 0; i < t.NumField(); i++ {
+		f := t.Field(i) // Get the StructField
+		key := f.Name   // Get the Field Name
+
+		if val, ok := m[key]; ok { // Check if the map contains the key
+			valValue := reflect.ValueOf(val) // Get the Value of the map value
+			if !valValue.IsValid() || valValue.IsNil() {
+				return fmt.Errorf("value is invalid or nil")
+			}
+
+			// Correctly get the type of the struct field
+			fieldType := f.Type
+			if valValue.Kind() != fieldType.Kind() {
+				return fmt.Errorf("type mismatch: expected %v, got %v", fieldType.Kind(), valValue.Kind())
+			}
+
+			v.Field(i).Set(valValue) // Set the struct field value
+		} else {
+			return fmt.Errorf("missing key: %s", key)
+		}
+	}
+
+	return nil
+}
+
 // IsValidMobileNumber checks if a string is a valid Nigerian mobile number
 func IsValidMobileNumber(number string) bool {
 	// Pattern for Nigerian phone numbers (both mobile and landline)
@@ -445,4 +474,17 @@ func UnpackEventData(paddedHexString, contractABI, eventName string) ([]interfac
 	}
 
 	return data, nil
+}
+
+const base64Pattern = `^(?:[A-Za-z0-9+\/]{4})*(?:[A-Za-z0-9+\/]{2}==|[A-Za-z0-9+\/]{3}=|[A-Za-z0-9+\/]{4})$`
+
+func IsBase64(s string) bool {
+	// Check if the string matches the Base64 pattern
+	match, _ := regexp.MatchString(base64Pattern, s)
+	if match {
+		// Try to decode the string
+		_, err := base64.StdEncoding.DecodeString(s)
+		return err == nil
+	}
+	return false
 }
