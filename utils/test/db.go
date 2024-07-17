@@ -190,7 +190,7 @@ func CreateTestLockPaymentOrder(overrides map[string]interface{}) (*ent.LockPaym
 		"rate":               750.0,
 		"status":             "pending",
 		"block_number":       12345,
-		"institution":        "Test Bank",
+		"institution":        "ABNGNGLA",
 		"account_identifier": "1234567890",
 		"account_name":       "Test Account",
 	}
@@ -246,7 +246,7 @@ func CreateTestPaymentOrder(client types.RPCClient, token *ent.Token, overrides 
 		"fee_per_token_unit": 0.0,
 		"fee_address":        "0x1234567890123456789012345678901234567890",
 		"return_address":     "0x0987654321098765432109876543210987654321",
-		"institution":        "Test Bank",
+		"institution":        "ABNGNGLA",
 		"account_identifier": "1234567890",
 		"account_name":       "Test Account",
 		"memo":               "Shola Kehinde - rent for May 2021",
@@ -458,13 +458,13 @@ func CreateTestFiatCurrency(overrides map[string]interface{}) (*ent.FiatCurrency
 	institutions, err := db.Client.Institution.CreateBulk(
 		db.Client.Institution.
 			Create().
-			SetName("Kuda Microfinance Bank").
-			SetCode("KUDANGN").
+			SetName("MTN Momo").
+			SetCode("MOMONGPC").
 			SetType(institution.TypeMobileMoney),
 		db.Client.Institution.
 			Create().
-			SetName("FirstBank Bank").
-			SetCode("FBNNGN"),
+			SetName("Access Bank").
+			SetCode("ABNGNGLA"),
 	).Save(context.Background())
 
 	if err != nil {
