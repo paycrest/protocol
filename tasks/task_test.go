@@ -3,9 +3,13 @@ package tasks
 import (
 	"context"
 	"fmt"
+	"io"
+	"log"
+	"net/http"
 	"testing"
 	"time"
 
+	"github.com/jarcoal/httpmock"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/enttest"
@@ -18,18 +22,19 @@ import (
 )
 
 var testCtx = struct {
-	user    *ent.SenderProfile
+	sender  *ent.SenderProfile
+	user    *ent.User
 	webhook *ent.WebhookRetryAttempt
 }{}
 
 func setup() error {
 	// Set up test data
-	user, err := test.CreateTestUser(map[string]interface{}{
-		"email": "vixigak278@sablecc.com",
-	})
+	user, err := test.CreateTestUser(map[string]interface{}{})
 	if err != nil {
 		return err
 	}
+
+	testCtx.user = user
 
 	// Set up test blockchain client
 	backend, err := test.SetUpTestBlockchain()
@@ -54,11 +59,14 @@ func setup() error {
 	if err != nil {
 		return fmt.Errorf("CreateTestSenderProfile.task_test: %w", err)
 	}
-	testCtx.user = senderProfile
+	testCtx.sender = senderProfile
 
 	paymentOrder, err := test.CreateTestPaymentOrder(backend, token, map[string]interface{}{
 		"sender": senderProfile,
 	})
+	if err != nil {
+		return fmt.Errorf("CreateTestSenderProfile.task_test: %w", err)
+	}
 
 	// Create the payload
 	payloadStruct := types.PaymentOrderWebhookPayload{
@@ -116,28 +124,46 @@ func TestTask(t *testing.T) {
 	client := enttest.Open(t, "sqlite3", "file:ent?mode=memory&_fk=1")
 	defer client.Close()
 
-	// httpmock.Activate()
-	// httpmock.Deactivate()
-
-	// // Register mock response
-	// httpmock.RegisterResponder("POST", testCtx.user.WebhookURL,
-	// 	func(r *http.Request) (*http.Response, error) {
-	// 		return httpmock.NewBytesResponse(400, []byte(`{"id": "01", "message": "Sent"}`)), nil
-	// 	},
-	// )
-
 	db.Client = client
 
 	// Setup test data
 	err := setup()
 	assert.NoError(t, err)
 	t.Run("RetryFailedWebhookNotifications", func(t *testing.T) {
+		httpmock.Activate()
+		httpmock.Deactivate()
+
+		// Register mock failure response for Webhook
+		httpmock.RegisterResponder("POST", testCtx.sender.WebhookURL,
+			func(r *http.Request) (*http.Response, error) {
+				return httpmock.NewBytesResponse(400, []byte(`{"id": "01", "message": "Sent"}`)), nil
+			},
+		)
+
+		// Register mock email response
+		httpmock.RegisterResponder("POST", "https://api.sendgrid.com/v3/mail/send",
+			func(r *http.Request) (*http.Response, error) {
+				bytes, err := io.ReadAll(r.Body)
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				// Assert email response contains userEmail and Name
+				assert.Contains(t, string(bytes), testCtx.user.Email)
+				assert.Contains(t, string(bytes), testCtx.user.FirstName)
+
+				resp := httpmock.NewBytesResponse(202, nil)
+				return resp, nil
+			},
+		)
 		err := RetryFailedWebhookNotifications()
 		assert.NoError(t, err)
 		hook, err := db.Client.WebhookRetryAttempt.
 			Query().
 			Where(webhookretryattempt.IDEQ(testCtx.webhook.ID)).
 			Only(context.Background())
+		assert.NoError(t, err)
+
 		assert.Equal(t, hook.Status, webhookretryattempt.StatusExpired)
 	})
 }

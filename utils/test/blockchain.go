@@ -203,7 +203,6 @@ func CreateSmartAddress(ctx context.Context, client types.RPCClient) (*ent.Recei
 	if err != nil {
 		return nil, fmt.Errorf("failed to encrypt salt: %w", err)
 	}
-
 	// Save address in db
 	receiveAddress, err := db.Client.ReceiveAddress.
 		Create().
