@@ -386,6 +386,7 @@ func IndexBlockchainEvents() error {
 							)),
 						)
 				}).
+				Where(lockpaymentorder.GatewayIDNEQ("")). // Exclude orders without gateway ID
 				WithToken(func(tq *ent.TokenQuery) {
 					tq.WithNetwork()
 				}).
