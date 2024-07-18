@@ -85,7 +85,7 @@ func (m *EmailService) SendPasswordResetEmail(ctx context.Context, token, email 
 			"code": token,
 		},
 	}
-	return SendTemplateEmail(payload, "d-f26d853bbb884c0c856f0bbda894032c")
+	return SendTemplateEmail(payload, "d-8b689801cd9947748775ccd1c4cc932e")
 }
 
 // sendEmailViaMailgun performs the actions for sending an email.
