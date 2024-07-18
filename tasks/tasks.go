@@ -254,7 +254,7 @@ func IndexBlockchainEvents() error {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		_ = utils.Retry(8, 2*time.Second, func() error {
+		_ = utils.Retry(3, 2*time.Second, func() error {
 			orders, err := storage.Client.PaymentOrder.
 				Query().
 				Where(
@@ -304,7 +304,7 @@ func IndexBlockchainEvents() error {
 	go func() {
 		defer wg.Done()
 		time.Sleep(500 * time.Millisecond)
-		_ = utils.Retry(8, 2*time.Second, func() error {
+		_ = utils.Retry(3, 2*time.Second, func() error {
 			for _, network := range networks {
 				// Index events triggered from API
 				orders, err := storage.Client.PaymentOrder.
