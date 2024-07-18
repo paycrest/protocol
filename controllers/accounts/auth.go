@@ -115,7 +115,7 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 			Query().
 			Where(
 				fiatcurrency.IsEnabledEQ(true),
-				fiatcurrency.CodeEQ("NGN"),
+				fiatcurrency.CodeEQ(payload.Currency),
 			).
 			Only(ctx)
 		if err != nil {
