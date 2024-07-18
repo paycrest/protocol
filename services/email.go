@@ -20,7 +20,7 @@ var (
 	notificationConf = config.NotificationConfig()
 
 	mailgunClient       mailgunv3.Mailgun
-	_DefaultFromAddress = notificationConf.EmailSender //"Paycrest <no-reply@paycrest.io>"
+	_DefaultFromAddress = notificationConf.EmailFromAddress //"Paycrest <no-reply@paycrest.io>"
 )
 
 type MailProvider string
@@ -177,9 +177,9 @@ func SendTemplateEmail(content types.SendEmailPayload, templateId string) (types
 		return types.SendEmailResponse{}, fmt.Errorf("error sending request: %w", err)
 	}
 	return types.SendEmailResponse{
-		Response: body.Header.Get("X-Message-Id"), 
-		Id: body.Header.Get("X-Message-Id"),
-		}, nil
+		Response: body.Header.Get("X-Message-Id"),
+		Id:       body.Header.Get("X-Message-Id"),
+	}, nil
 }
 
 func SendTemplateEmailWithJsonAttachment(content types.SendEmailPayload, templateId string) error {
