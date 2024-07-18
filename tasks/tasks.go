@@ -804,7 +804,7 @@ func RetryFailedWebhookNotifications() error {
 					DynamicData: map[string]interface{}{
 						"firstname": profile.Edges.User.FirstName,
 					},
-				}, "d-f4f4ddca5a194b6bacc872007885557f")
+				}, "d-da75eee4966544ad92dcd060421d4e12")
 
 				if err != nil {
 					return fmt.Errorf("failed to send email: %w", err)
