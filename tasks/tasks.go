@@ -508,6 +508,82 @@ func IndexBlockchainEvents() error {
 	return nil
 }
 
+func FixDatabaseMisHap() error {
+	ctx := context.Background()
+
+	// Restore initiated orders
+	_, err := storage.Client.PaymentOrder.
+		Update().
+		Where(
+			paymentorder.AmountPaidEQ(decimal.Zero),
+		).
+		SetStatus(paymentorder.StatusInitiated).
+		SetBlockNumber(0).
+		SetPercentSettled(decimal.NewFromInt(0)).
+		SetTxHash("").
+		Save(ctx)
+	if err != nil {
+		logger.Errorf("FixDatabaseMisHap: %v", err)
+	}
+
+	// Restore pending orders
+	orders, err := storage.Client.PaymentOrder.
+		Query().
+		Where(
+			paymentorder.AmountPaidGT(decimal.Zero),
+		).
+		All(ctx)
+	if err != nil {
+		logger.Errorf("FixDatabaseMisHap: %v", err)
+	}
+
+	for _, order := range orders {
+		lockOrder, err := storage.Client.LockPaymentOrder.
+			Query().
+			Where(
+				lockpaymentorder.GatewayID(order.GatewayID),
+				lockpaymentorder.GatewayIDNEQ(""),
+			).
+			First(ctx)
+		if err != nil {
+			logger.Errorf("FixDatabaseMisHap: %v", err)
+			continue
+		}
+		if lockOrder != nil && order.AmountPaid.GreaterThanOrEqual(order.Amount.Add(order.NetworkFee).Add(order.SenderFee).Add(order.ProtocolFee)) {
+			var status paymentorder.Status
+			var blockNumber int64
+			var percentSettled decimal.Decimal
+			var txHash string
+
+			if lockOrder.Status == lockpaymentorder.StatusRefunded {
+				status = paymentorder.StatusRefunded
+				blockNumber = lockOrder.BlockNumber
+				percentSettled = decimal.NewFromInt(0)
+				txHash = lockOrder.TxHash
+			} else if lockOrder.Status == lockpaymentorder.StatusPending {
+				status = paymentorder.StatusPending
+				blockNumber = lockOrder.BlockNumber
+				percentSettled = decimal.NewFromInt(0)
+				txHash = lockOrder.TxHash
+			}
+
+			_, err := order.Update().
+				SetStatus(status).
+				SetBlockNumber(blockNumber).
+				SetPercentSettled(percentSettled).
+				SetTxHash(txHash).
+				Save(ctx)
+			if err != nil {
+				logger.Errorf("FixDatabaseMisHap: %v", err)
+				continue
+			}
+
+		}
+	}
+
+	return nil
+}
+
 // HandleReceiveAddressValidity handles receive address validity
 func HandleReceiveAddressValidity() error {
 	ctx := context.Background()
