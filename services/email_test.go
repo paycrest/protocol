@@ -72,9 +72,8 @@ func TestEmailService(t *testing.T) {
 
 		t.Run("testMail service",
 			func(t *testing.T) {
-				// srv := NewEmailService(SENDGRID_MAIL_PROVIDER)
 				_, err := SendTemplateEmail(types.SendEmailPayload{
-					FromAddress: config.NotificationConfig().EmailSender,
+					FromAddress: config.NotificationConfig().EmailFromAddress,
 					ToAddress:   "johnDoe@gmail.com",
 					DynamicData: map[string]interface{}{
 						"code":           "654321",

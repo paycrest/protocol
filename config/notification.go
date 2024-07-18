@@ -10,7 +10,7 @@ import (
 type NotificationConfiguration struct {
 	EmailDomain string
 	EmailAPIKey string
-	EmailSender string
+	EmailFromAddress string
 }
 
 // EmailConfig sets the email configurations
@@ -21,7 +21,7 @@ func NotificationConfig() (config *NotificationConfiguration) {
 	return &NotificationConfiguration{
 		EmailDomain: viper.GetString("EMAIL_DOMAIN"),
 		EmailAPIKey: viper.GetString("EMAIL_API_KEY"),
-		EmailSender: viper.GetString("EMAIL_FROM_ADDRESS"),
+		EmailFromAddress: viper.GetString("EMAIL_FROM_ADDRESS"),
 	}
 }
 
