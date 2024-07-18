@@ -664,9 +664,17 @@ func SubscribeToRedisKeyspaceEvents() {
 
 // fetchExternalRate fetches the external rate for a fiat currency
 func fetchExternalRate(currency string) (decimal.Decimal, error) {
-	// No currency check needed fetchExternalRate is only consumed by ComputeMarketRate with has 
-	// the currency check for isEnabled
-
+	supportedCurrencies := []string{"USD", "NGN", "GHS"}
+	isSupported := false
+	for _, supported := range supportedCurrencies {
+		if strings.ToUpper(currency) == supported {
+			isSupported = true
+			break
+		}
+	}
+	if !isSupported {
+		return decimal.Zero, fmt.Errorf("ComputeMarketRate: currency not support")
+	}
 	// Fetch stable coin rate from third-party API Quidax (USDT)
 	res, err := fastshot.NewClient("https://www.quidax.com").
 		Config().SetTimeout(30*time.Second).
