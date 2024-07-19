@@ -502,11 +502,11 @@ func FixDatabaseMisHap() error {
 					paymentorder.AmountPaidGT(decimal.Zero),
 					paymentorder.StatusEQ(paymentorder.StatusPending),
 				),
-				paymentorder.And(
-					paymentorder.AmountPaidGT(decimal.Zero),
-					paymentorder.StatusEQ(paymentorder.StatusSettled),
-					paymentorder.GatewayIDNEQ(""),
-				),
+				// paymentorder.And(
+				// 	paymentorder.AmountPaidGT(decimal.Zero),
+				// 	paymentorder.StatusEQ(paymentorder.StatusSettled),
+				// 	paymentorder.GatewayIDNEQ(""),
+				// ),
 			),
 		).
 		WithRecipient().
@@ -520,7 +520,11 @@ func FixDatabaseMisHap() error {
 			Query().
 			Where(
 				lockpaymentorder.MemoEQ(order.Edges.Recipient.Memo),
-				lockpaymentorder.StatusEQ(lockpaymentorder.StatusSettled),
+				lockpaymentorder.MemoHasPrefix("P#P"),
+				lockpaymentorder.Or(
+					lockpaymentorder.StatusEQ(lockpaymentorder.StatusSettled),
+					lockpaymentorder.StatusEQ(lockpaymentorder.StatusRefunded),
+				),
 			).
 			First(ctx)
 		if err != nil {
@@ -532,17 +536,32 @@ func FixDatabaseMisHap() error {
 			// var percentSettled decimal.Decimal
 			// var txHash string
 
-			// Fix settled orders without gatewayId
-			_, err := order.Update().
-				SetStatus(paymentorder.StatusSettled).
-				SetBlockNumber(lockOrder.BlockNumber).
-				SetPercentSettled(decimal.NewFromInt(100)).
-				SetTxHash(lockOrder.TxHash).
-				SetGatewayID(lockOrder.GatewayID).
-				Save(ctx)
-			if err != nil {
-				logger.Errorf("FixDatabaseMisHap: %v", err)
-				continue
+			if lockOrder.Status == lockpaymentorder.StatusSettled {
+				// Fix settled orders without gatewayId
+				_, err := order.Update().
+					SetStatus(paymentorder.StatusSettled).
+					SetBlockNumber(lockOrder.BlockNumber).
+					SetPercentSettled(decimal.NewFromInt(100)).
+					SetTxHash(lockOrder.TxHash).
+					SetGatewayID(lockOrder.GatewayID).
+					Save(ctx)
+				if err != nil {
+					logger.Errorf("FixDatabaseMisHap: %v", err)
+					continue
+				}
+			} else if lockOrder.Status == lockpaymentorder.StatusRefunded {
+				// Fix refunded orders without gatewayId
+				_, err := order.Update().
+					SetStatus(paymentorder.StatusRefunded).
+					SetBlockNumber(lockOrder.BlockNumber).
+					SetPercentSettled(decimal.NewFromInt(0)).
+					SetTxHash(lockOrder.TxHash).
+					SetGatewayID(lockOrder.GatewayID).
+					Save(ctx)
+				if err != nil {
+					logger.Errorf("FixDatabaseMisHap: %v", err)
+					continue
+				}
 			}
 
 			// if lockOrder.Status == lockpaymentorder.StatusRefunded {

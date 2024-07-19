@@ -742,33 +742,36 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 		return nil
 	}
 
-	// Update payment order with the gateway ID
-	paymentOrderExists := true
-	paymentOrder, err := db.Client.PaymentOrder.
-		Query().
-		Where(
-			paymentorder.TxHashEQ(event.TxHash),
-		).
-		Only(ctx)
-	if err != nil {
-		if ent.IsNotFound(err) {
-			// Payment order does not exist, no need to update
-			paymentOrderExists = false
-		} else {
-			return fmt.Errorf("CreateLockPaymentOrder.db: %v", err)
-		}
-	}
+	go func() {
+		_ = utils.Retry(5, 2*time.Second, func() error {
+			// Update payment order with the gateway ID
+			paymentOrder, err := db.Client.PaymentOrder.
+				Query().
+				Where(
+					paymentorder.TxHashEQ(event.TxHash),
+				).
+				Only(ctx)
+			if err != nil {
+				if ent.IsNotFound(err) {
+					// Payment order does not exist, retry
+					return fmt.Errorf("trigger retry")
+				} else {
+					return fmt.Errorf("CreateLockPaymentOrder.db: %v", err)
+				}
+			}
 
-	if paymentOrderExists {
-		_, err = paymentOrder.
-			Update().
-			SetBlockNumber(int64(event.BlockNumber)).
-			SetGatewayID(gatewayId).
-			Save(ctx)
-		if err != nil {
-			return fmt.Errorf("CreateLockPaymentOrder.db: %v", err)
-		}
-	}
+			_, err = paymentOrder.
+				Update().
+				SetBlockNumber(int64(event.BlockNumber)).
+				SetGatewayID(gatewayId).
+				Save(ctx)
+			if err != nil {
+				return fmt.Errorf("CreateLockPaymentOrder.db: %v", err)
+			}
+
+			return nil
+		})
+	}()
 
 	// Get token from db
 	token, err := db.Client.Token.
@@ -1174,6 +1177,7 @@ func (s *IndexerService) UpdateOrderStatusSettled(ctx context.Context, event *ty
 
 		// If settled percent is 100%, mark order as settled
 		if settledPercent.GreaterThanOrEqual(decimal.NewFromInt(100)) {
+			settledPercent = decimal.NewFromInt(100)
 			paymentOrderUpdate = paymentOrderUpdate.SetStatus(paymentorder.StatusSettled)
 		}
 
