@@ -497,7 +497,17 @@ func FixDatabaseMisHap() error {
 	orders, err := storage.Client.PaymentOrder.
 		Query().
 		Where(
-			paymentorder.AmountPaidGT(decimal.Zero),
+			paymentorder.Or(
+				paymentorder.And(
+					paymentorder.AmountPaidGT(decimal.Zero),
+					paymentorder.StatusEQ(paymentorder.StatusPending),
+				),
+				paymentorder.And(
+					paymentorder.AmountPaidGT(decimal.Zero),
+					paymentorder.StatusEQ(paymentorder.StatusSettled),
+					paymentorder.GatewayIDNEQ(""),
+				),
+			),
 		).
 		WithRecipient().
 		All(ctx)
@@ -509,11 +519,11 @@ func FixDatabaseMisHap() error {
 		lockOrder, err := storage.Client.LockPaymentOrder.
 			Query().
 			Where(
-				lockpaymentorder.GatewayID(order.GatewayID),
+				lockpaymentorder.MemoEQ(order.Edges.Recipient.Memo),
+				lockpaymentorder.StatusEQ(lockpaymentorder.StatusSettled),
 			).
 			First(ctx)
 		if err != nil {
-			logger.Errorf("FixDatabaseMisHap: %v", err)
 			continue
 		}
 		if lockOrder != nil && order.AmountPaid.GreaterThanOrEqual(order.Amount.Add(order.NetworkFee).Add(order.SenderFee).Add(order.ProtocolFee)) {
@@ -523,18 +533,16 @@ func FixDatabaseMisHap() error {
 			// var txHash string
 
 			// Fix settled orders without gatewayId
-			if strings.HasPrefix(lockOrder.Memo, "P#P") && lockOrder.Memo == order.Edges.Recipient.Memo && lockOrder.Status == lockpaymentorder.StatusSettled && order.Status == paymentorder.StatusPending {
-				_, err := order.Update().
-					SetStatus(paymentorder.StatusSettled).
-					SetBlockNumber(lockOrder.BlockNumber).
-					SetPercentSettled(decimal.NewFromInt(100)).
-					SetTxHash(lockOrder.TxHash).
-					SetGatewayID(lockOrder.GatewayID).
-					Save(ctx)
-				if err != nil {
-					logger.Errorf("FixDatabaseMisHap: %v", err)
-					continue
-				}
+			_, err := order.Update().
+				SetStatus(paymentorder.StatusSettled).
+				SetBlockNumber(lockOrder.BlockNumber).
+				SetPercentSettled(decimal.NewFromInt(100)).
+				SetTxHash(lockOrder.TxHash).
+				SetGatewayID(lockOrder.GatewayID).
+				Save(ctx)
+			if err != nil {
+				logger.Errorf("FixDatabaseMisHap: %v", err)
+				continue
 			}
 
 			// if lockOrder.Status == lockpaymentorder.StatusRefunded {
@@ -779,7 +787,7 @@ func RetryFailedWebhookNotifications() error {
 					return fmt.Errorf("RetryFailedWebhookNotifications.CouldNotFetchProfile: %w", err)
 				}
 
-				_,err = services.SendTemplateEmail(types.SendEmailPayload{
+				_, err = services.SendTemplateEmail(types.SendEmailPayload{
 					ToAddress: profile.Edges.User.Email,
 					DynamicData: map[string]interface{}{
 						"firstname": profile.Edges.User.FirstName,
