@@ -49,7 +49,7 @@ func setup() error {
 		"deployContract": false,
 	})
 	if err != nil {
-		return fmt.Errorf("CreateERC20Token.task_test: %w", err)
+		return fmt.Errorf("CreateERC20Token.tasks_test: %w", err)
 	}
 
 	senderProfile, err := test.CreateTestSenderProfile(map[string]interface{}{
@@ -58,7 +58,7 @@ func setup() error {
 	})
 
 	if err != nil {
-		return fmt.Errorf("CreateTestSenderProfile.task_test: %w", err)
+		return fmt.Errorf("CreateTestSenderProfile.tasks_test: %w", err)
 	}
 	testCtx.sender = senderProfile
 
@@ -66,7 +66,7 @@ func setup() error {
 		"sender": senderProfile,
 	})
 	if err != nil {
-		return fmt.Errorf("CreateTestSenderProfile.task_test: %w", err)
+		return fmt.Errorf("CreateTestSenderProfile.tasks_test: %w", err)
 	}
 
 	// Create the payload
@@ -119,7 +119,7 @@ func setup() error {
 
 	return nil
 }
-func TestTask(t *testing.T) {
+func TestTasks(t *testing.T) {
 
 	// Set up test database client
 	client := enttest.Open(t, "sqlite3", "file:ent?mode=memory&_fk=1")
