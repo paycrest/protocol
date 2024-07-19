@@ -19,6 +19,7 @@ import (
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	networkent "github.com/paycrest/protocol/ent/network"
 	"github.com/paycrest/protocol/ent/paymentorder"
+	"github.com/paycrest/protocol/ent/paymentorderrecipient"
 	"github.com/paycrest/protocol/ent/providerordertoken"
 	"github.com/paycrest/protocol/ent/receiveaddress"
 	"github.com/paycrest/protocol/ent/senderprofile"
@@ -93,10 +94,16 @@ func RetryStaleUserOperations() error {
 				Where(sql.And(
 					sql.EQ(s.C(paymentorder.FieldStatus), paymentorder.StatusInitiated),
 					sql.EQ(ra.C(receiveaddress.FieldStatus), receiveaddress.StatusUsed),
-					sql.GTE(s.C(paymentorder.FieldUpdatedAt), time.Now().Add(-10*time.Minute)),
 					sql.IsNull(s.C(paymentorder.FieldGatewayID)),
 				))
 		}).
+		Where(
+			paymentorder.Or(
+				paymentorder.UpdatedAtGTE(time.Now().Add(-10*time.Minute)),
+				paymentorder.HasRecipientWith(
+					paymentorderrecipient.MemoHasPrefix("P#P"),
+				),
+			)).
 		WithToken(func(tq *ent.TokenQuery) {
 			tq.WithNetwork()
 		}).
