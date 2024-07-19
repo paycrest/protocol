@@ -119,6 +119,7 @@ func setup() error {
 
 	return nil
 }
+
 func TestTasks(t *testing.T) {
 
 	// Set up test database client
@@ -130,6 +131,7 @@ func TestTasks(t *testing.T) {
 	// Setup test data
 	err := setup()
 	assert.NoError(t, err)
+	
 	t.Run("RetryFailedWebhookNotifications", func(t *testing.T) {
 		httpmock.Activate()
 		httpmock.Deactivate()
@@ -167,6 +169,7 @@ func TestTasks(t *testing.T) {
 
 		assert.Equal(t, hook.Status, webhookretryattempt.StatusExpired)
 	})
+
 	t.Run("fetchExternalRate", func(t *testing.T) {
 		value, err := fetchExternalRate("KSH")
 		assert.Error(t, err)
