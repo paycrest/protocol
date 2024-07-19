@@ -30,6 +30,8 @@ var testCtx = struct {
 	user         *ent.User
 	provider     *ent.ProviderProfile
 	apiKey       *ent.APIKey
+	currency     *ent.FiatCurrency
+	token        *ent.Token
 	apiKeySecret string
 	lockOrder    *ent.LockPaymentOrder
 }{}
@@ -43,10 +45,29 @@ func setup() error {
 	}
 	testCtx.user = user
 
-	currency, err := test.CreateTestFiatCurrency(nil)
+	currency, err := test.CreateTestFiatCurrency(map[string]interface{}{
+		"market_rate": 950.0,
+	})
 	if err != nil {
 		return err
 	}
+	testCtx.currency = currency
+
+	// Set up test blockchain client
+	backend, err := test.SetUpTestBlockchain()
+	if err != nil {
+		return err
+	}
+
+	// Create a test token
+	token, err := test.CreateERC20Token(backend, map[string]interface{}{
+		"identifier":     "localhost",
+		"deployContract": false,
+	})
+	if err != nil {
+		return fmt.Errorf("CreateERC20Token.sender_test: %w", err)
+	}
+	testCtx.token = token
 
 	providerProfile, err := test.CreateTestProviderProfile(map[string]interface{}{
 		"user_id":     testCtx.user.ID,
@@ -107,6 +128,11 @@ func TestProvider(t *testing.T) {
 	router.GET("/stats", ctrl.Stats)
 	router.GET("/node-info", ctrl.NodeInfo)
 	router.GET("/orders/:id", ctrl.GetLockPaymentOrderByID)
+	router.POST("/orders/:id/accept", ctrl.AcceptOrder)
+	router.POST("/orders/:id/decline", ctrl.DeclineOrder)
+	router.POST("/orders/:id/fulfill", ctrl.FulfillOrder)
+	router.POST("/orders/:id/cancel", ctrl.CancelOrder)
+	router.GET("/rates/:token/:fiat", ctrl.GetMarketRate)
 
 	t.Run("GetLockPaymentOrders", func(t *testing.T) {
 		t.Run("fetch default list", func(t *testing.T) {
@@ -539,4 +565,113 @@ func TestProvider(t *testing.T) {
 			assert.Equal(t, "Failed to fetch node info", response.Message)
 		})
 	})
+
+	t.Run("GetMarketRate", func(t *testing.T) {
+
+		t.Run("when token does not exist", func(t *testing.T) {
+
+			// Test default params
+			var payload = map[string]interface{}{
+				"timestamp": time.Now().Unix(),
+			}
+
+			signature := token.GenerateHMACSignature(payload, testCtx.apiKeySecret)
+
+			headers := map[string]string{
+				"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
+			}
+
+			res, err := test.PerformRequest(t, "GET", "/rates/XXXX/USD", payload, headers, router)
+			assert.NoError(t, err)
+
+			// Assert the response body
+			assert.Equal(t, http.StatusBadRequest, res.Code)
+
+			var response types.Response
+			err = json.Unmarshal(res.Body.Bytes(), &response)
+			assert.NoError(t, err)
+			assert.Equal(t, "Token is not supported", response.Message)
+		})
+
+		t.Run("when Fiat does not exist", func(t *testing.T) {
+
+			// Test default params
+			var payload = map[string]interface{}{
+				"timestamp": time.Now().Unix(),
+			}
+
+			signature := token.GenerateHMACSignature(payload, testCtx.apiKeySecret)
+
+			headers := map[string]string{
+				"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
+			}
+
+			res, err := test.PerformRequest(t, "GET", "/rates/"+testCtx.token.Symbol+"/USD", payload, headers, router)
+			assert.NoError(t, err)
+
+			// Assert the response body
+			assert.Equal(t, http.StatusBadRequest, res.Code)
+
+			var response types.Response
+			err = json.Unmarshal(res.Body.Bytes(), &response)
+			assert.NoError(t, err)
+			assert.Equal(t, "Fiat currency is not supported", response.Message)
+		})
+
+		t.Run("when Fiat does not exist", func(t *testing.T) {
+
+			// Test default params
+			var payload = map[string]interface{}{
+				"timestamp": time.Now().Unix(),
+			}
+
+			signature := token.GenerateHMACSignature(payload, testCtx.apiKeySecret)
+
+			headers := map[string]string{
+				"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
+			}
+
+			res, err := test.PerformRequest(t, "GET", "/rates/"+testCtx.token.Symbol+"/USD", payload, headers, router)
+			assert.NoError(t, err)
+
+			// Assert the response body
+			assert.Equal(t, http.StatusBadRequest, res.Code)
+
+			var response types.Response
+			err = json.Unmarshal(res.Body.Bytes(), &response)
+			assert.NoError(t, err)
+			assert.Equal(t, "Fiat currency is not supported", response.Message)
+		})
+
+		t.Run("when Fiat does not exist", func(t *testing.T) {
+
+			// Test default params
+			var payload = map[string]interface{}{
+				"timestamp": time.Now().Unix(),
+			}
+
+			signature := token.GenerateHMACSignature(payload, testCtx.apiKeySecret)
+
+			headers := map[string]string{
+				"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
+			}
+
+			res, err := test.PerformRequest(t, "GET", "/rates/"+testCtx.token.Symbol+"/"+testCtx.currency.Code, payload, headers, router)
+			assert.NoError(t, err)
+
+			// Assert the response body
+			assert.Equal(t, http.StatusOK, res.Code)
+
+			var response struct {
+				Status  string                   `json:"status"`
+				Message string                   `json:"message"`
+				Data    types.MarketRateResponse `json:"data"`
+			}
+			err = json.Unmarshal(res.Body.Bytes(), &response)
+			assert.NoError(t, err)
+			assert.Equal(t, "Rate fetched successfully", response.Message)
+			assert.Equal(t, "950.0", response.Data.MarketRate.StringFixed(1))
+		})
+	})
+
 }
