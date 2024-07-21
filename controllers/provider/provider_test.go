@@ -1603,7 +1603,7 @@ func TestProvider(t *testing.T) {
 			res, err := test.PerformRequest(t, "POST", "/orders/"+order.ID.String()+"/fulfill", payload, headers, router)
 			assert.NoError(t, err)
 
-			
+
 			// Assert the response body
 			assert.Equal(t, http.StatusOK, res.Code)
 
