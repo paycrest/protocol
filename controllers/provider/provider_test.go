@@ -1277,7 +1277,7 @@ func TestProvider(t *testing.T) {
 				orderKey := fmt.Sprintf("order_request_%s", order.ID)
 
 				user, err := test.CreateTestUser(map[string]interface{}{
-					"email": "order_not_found1@test.com",
+					"email": "order_not_found4@test.com",
 				})
 				assert.NoError(t, err)
 
@@ -1332,7 +1332,7 @@ func TestProvider(t *testing.T) {
 			orderKey := fmt.Sprintf("order_request_%s", order.ID)
 
 			user, err := test.CreateTestUser(map[string]interface{}{
-				"email": "no_providerId_user1@test.com",
+				"email": "no_providerId_user6@test.com",
 			})
 			assert.NoError(t, err)
 
@@ -1529,7 +1529,7 @@ func TestProvider(t *testing.T) {
 				orderKey := fmt.Sprintf("order_request_%s", order.ID)
 
 				user, err := test.CreateTestUser(map[string]interface{}{
-					"email": "order_not_found1@test.com",
+					"email": "order_not_found8@test.com",
 				})
 				assert.NoError(t, err)
 
