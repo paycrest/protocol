@@ -81,7 +81,7 @@ func setup() error {
 	testCtx.provider = providerProfile
 
 	for i := 0; i < 10; i++ {
-		time.Sleep(time.Duration(rand.Intn(5)) * time.Second)
+		time.Sleep(time.Duration(rand.Intn(10)) * time.Second)
 		_, err := test.CreateTestLockPaymentOrder(map[string]interface{}{
 			"gateway_id": uuid.New().String(),
 			"provider":   providerProfile,
@@ -1404,7 +1404,6 @@ func TestProvider(t *testing.T) {
 
 			headers := map[string]string{
 				"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
-				"reason":        "invalid",
 			}
 
 			res, err := test.PerformRequest(t, "POST", "/orders/"+order.ID.String()+"/cancel", payload, headers, router)
@@ -1419,6 +1418,199 @@ func TestProvider(t *testing.T) {
 			assert.Equal(t, "Order cancelled successfully", response.Message)
 		})
 
+	})
+
+	t.Run("FulfillOrder", func(t *testing.T) {
+
+		t.Run("Invalid Request", func(t *testing.T) {
+
+			t.Run("Invalid HMAC", func(t *testing.T) {
+
+				// Test default params
+				var payload = map[string]interface{}{
+					"timestamp": time.Now().Unix(),
+				}
+
+				headers := map[string]string{
+					"Authorization": "HMAC " + "testTest",
+				}
+
+				res, err := test.PerformRequest(t, "POST", "/orders/test/cancel", payload, headers, router)
+				assert.NoError(t, err)
+
+				// Assert the response body
+				assert.Equal(t, http.StatusUnauthorized, res.Code)
+
+				var response types.Response
+				err = json.Unmarshal(res.Body.Bytes(), &response)
+				assert.NoError(t, err)
+				assert.Equal(t, "Invalid Authorization header format", response.Message)
+			})
+
+			t.Run("Invalid API key or token", func(t *testing.T) {
+
+				// Test default params
+				var payload = map[string]interface{}{
+					"timestamp": time.Now().Unix(),
+				}
+
+				headers := map[string]string{
+					"Authorization": "HMAC " + "test:Test",
+				}
+
+				res, err := test.PerformRequest(t, "POST", "/orders/test/fulfill", payload, headers, router)
+				assert.NoError(t, err)
+
+				// Assert the response body
+				assert.Equal(t, http.StatusBadRequest, res.Code)
+
+				var response types.Response
+				err = json.Unmarshal(res.Body.Bytes(), &response)
+				assert.NoError(t, err)
+				assert.Equal(t, "Invalid API key ID", response.Message)
+			})
+
+			t.Run("Invalid Payload", func(t *testing.T) {
+				// Test default params
+				var payload = map[string]interface{}{
+					"timestamp": time.Now().Unix(),
+				}
+				signature := token.GenerateHMACSignature(payload, testCtx.apiKeySecret)
+
+				headers := map[string]string{
+					"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
+				}
+
+				res, err := test.PerformRequest(t, "POST", "/orders/test/fulfill", payload, headers, router)
+				assert.NoError(t, err)
+
+				// Assert the response body
+				assert.Equal(t, http.StatusBadRequest, res.Code)
+
+				var response types.Response
+				err = json.Unmarshal(res.Body.Bytes(), &response)
+				assert.NoError(t, err)
+				assert.Equal(t, "Failed to validate payload", response.Message)
+			})
+
+			t.Run("Invalid Order ID", func(t *testing.T) {
+
+				// Test default params
+				var payload = map[string]interface{}{
+					"timestamp": time.Now().Unix(),
+					"txId":      "0x1232",
+				}
+
+				signature := token.GenerateHMACSignature(payload, testCtx.apiKeySecret)
+
+				headers := map[string]string{
+					"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
+				}
+
+				res, err := test.PerformRequest(t, "POST", "/orders/test/fulfill", payload, headers, router)
+				assert.NoError(t, err)
+
+				// Assert the response body
+				assert.Equal(t, http.StatusBadRequest, res.Code)
+
+				var response types.Response
+				err = json.Unmarshal(res.Body.Bytes(), &response)
+				assert.NoError(t, err)
+				assert.Equal(t, "Invalid Order ID", response.Message)
+			})
+			t.Run("Order Id that doesn't Exist", func(t *testing.T) {
+
+				order, err := test.CreateTestLockPaymentOrder(map[string]interface{}{
+					"gateway_id": uuid.New().String(),
+					"provider":   testCtx.provider,
+				})
+				assert.NoError(t, err)
+
+				orderKey := fmt.Sprintf("order_request_%s", order.ID)
+
+				user, err := test.CreateTestUser(map[string]interface{}{
+					"email": "order_not_found1@test.com",
+				})
+				assert.NoError(t, err)
+
+				providerProfile, err := test.CreateTestProviderProfile(map[string]interface{}{
+					"user_id":     user.ID,
+					"currency_id": testCtx.currency.ID,
+				})
+				assert.NoError(t, err)
+
+				orderRequestData := map[string]interface{}{
+					"amount":      order.Amount.Mul(order.Rate).RoundBank(0).String(),
+					"institution": order.Institution,
+					"providerId":  providerProfile.ID,
+				}
+
+				err = db.RedisClient.HSet(context.Background(), orderKey, orderRequestData).Err()
+				assert.NoError(t, err, fmt.Errorf("failed to map order to a provider in Redis: %v", err))
+
+				// Test default params
+				var payload = map[string]interface{}{
+					"timestamp": time.Now().Unix(),
+					"txId":      "0x1232",
+				}
+
+				signature := token.GenerateHMACSignature(payload, testCtx.apiKeySecret)
+
+				headers := map[string]string{
+					"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
+				}
+
+				res, err := test.PerformRequest(t, "POST", "/orders/"+testCtx.currency.ID.String()+"/fulfill", payload, headers, router)
+				assert.NoError(t, err)
+
+				// Assert the response body
+				assert.Equal(t, http.StatusInternalServerError, res.Code)
+
+				var response types.Response
+				err = json.Unmarshal(res.Body.Bytes(), &response)
+				assert.NoError(t, err)
+				assert.Equal(t, "Failed to update lock order status", response.Message)
+			})
+		})
+
+		t.Run("when data is accurate", func(t *testing.T) {
+
+			order, err := test.CreateTestLockPaymentOrder(map[string]interface{}{
+				"gateway_id": uuid.New().String(),
+				"provider":   testCtx.provider,
+			})
+			assert.NoError(t, err)
+			tx_id := "0x123" + fmt.Sprint(rand.Intn(1000000))
+			test.CreateTestLockOrderFulfillment(map[string]interface{}{
+				"tx_id":             tx_id,
+				"validation_status": "success",
+				"orderId":           order.ID,
+			})
+
+			// Test default params
+			var payload = map[string]interface{}{
+				"timestamp":        time.Now().Unix(),
+				"validationStatus": "success",
+				"txId":             tx_id,
+			}
+
+			signature := token.GenerateHMACSignature(payload, testCtx.apiKeySecret)
+
+			headers := map[string]string{
+				"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
+			}
+
+			res, err := test.PerformRequest(t, "POST", "/orders/"+order.ID.String()+"/fulfill", payload, headers, router)
+			assert.NoError(t, err)
+
+			// Assert the response body
+			assert.Equal(t, http.StatusOK, res.Code)
+
+			var response types.Response
+			err = json.Unmarshal(res.Body.Bytes(), &response)
+			assert.NoError(t, err)
+			assert.Equal(t, "Order fulfilled successfully", response.Message)
+		})
 	})
 
 }
