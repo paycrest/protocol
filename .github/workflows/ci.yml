@@ -26,6 +26,12 @@ jobs:
 
       # - name: Go-linter
       #   uses: Jerome1337/golint-action@v1.0.3
+      - name: Set up Redis
+        uses: shogo82148/actions-setup-redis@v1.34.0
+        with:
+          redis-version: '6.0'
+
+      - run: redis-cli ping
 
       - name: Set up environment variables
         env:
