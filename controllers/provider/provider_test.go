@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"strconv"
 	"testing"
@@ -80,6 +81,7 @@ func setup() error {
 	testCtx.provider = providerProfile
 
 	for i := 0; i < 10; i++ {
+		time.Sleep(time.Duration(rand.Intn(5)) * time.Second)
 		_, err := test.CreateTestLockPaymentOrder(map[string]interface{}{
 			"gateway_id": uuid.New().String(),
 			"provider":   providerProfile,
@@ -1372,7 +1374,6 @@ func TestProvider(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Equal(t, "Order cancelled successfully", response.Message)
 		})
-
 
 		t.Run("when data is accurate", func(t *testing.T) {
 
