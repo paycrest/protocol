@@ -190,7 +190,6 @@ func CreateSmartAddress(ctx context.Context, client types.RPCClient) (*ent.Recei
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate address: %w", err)
 	}
-	time.Sleep(5 * time.Second)
 	// Deploy smart account
 	createTx, err := factoryInstance.CreateAccount(auth, *ownerAddress, salt)
 	if err != nil {

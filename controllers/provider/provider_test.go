@@ -81,7 +81,7 @@ func setup() error {
 	testCtx.provider = providerProfile
 
 	for i := 0; i < 10; i++ {
-		time.Sleep(time.Duration(15 * time.Second))
+		time.Sleep(time.Duration(time.Duration(rand.Intn(10)) * time.Second))
 		_, err := test.CreateTestLockPaymentOrder(map[string]interface{}{
 			"gateway_id": uuid.New().String(),
 			"provider":   providerProfile,
@@ -89,6 +89,8 @@ func setup() error {
 		if err != nil {
 			return err
 		}
+		time.Sleep(time.Duration(time.Duration(rand.Intn(10)) * time.Second))
+
 	}
 
 	apiKeyService := services.NewAPIKeyService()
