@@ -194,7 +194,7 @@ func CreateTestLockPaymentOrder(overrides map[string]interface{}) (*ent.LockPaym
 		"institution":        "ABNGNGLA",
 		"account_identifier": "1234567890",
 		"account_name":       "Test Account",
-		"updatedAt":          5.0,
+		"updatedAt":          time.Now(),
 		"tokenID":            0,
 	}
 
@@ -237,9 +237,8 @@ func CreateTestLockPaymentOrder(overrides map[string]interface{}) (*ent.LockPaym
 		SetAccountName(payload["account_name"].(string)).
 		SetTokenID(payload["tokenID"].(int)).
 		SetProvider(providerProfile).
-		SetUpdatedAt(time.Now().Add(time.Minute * time.Duration(payload["updatedAt"].(float64)))).
+		SetUpdatedAt(payload["updatedAt"].(time.Time)).
 		Save(context.Background())
-
 	if err != nil {
 		return nil, err
 	}
@@ -518,7 +517,6 @@ func CreateTestProvisionBucket(overrides map[string]interface{}) (*ent.Provision
 		SetMaxAmount(payload["max_amount"].(decimal.Decimal)).
 		SetCurrencyID(payload["currency_id"].(uuid.UUID)).
 		Save(context.Background())
-
 	if err != nil {
 		return nil, err
 	}
@@ -527,7 +525,6 @@ func CreateTestProvisionBucket(overrides map[string]interface{}) (*ent.Provision
 		UpdateOneID(payload["provider_id"].(string)).
 		AddProvisionBucketIDs(bucket.ID).
 		Save(context.Background())
-
 	if err != nil {
 		return nil, err
 	}
