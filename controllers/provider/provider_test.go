@@ -81,7 +81,7 @@ func setup() error {
 	testCtx.provider = providerProfile
 
 	for i := 0; i < 10; i++ {
-		time.Sleep(time.Duration(rand.Intn(10)) * time.Second)
+		time.Sleep(time.Duration(10 * time.Second))
 		_, err := test.CreateTestLockPaymentOrder(map[string]interface{}{
 			"gateway_id": uuid.New().String(),
 			"provider":   providerProfile,
@@ -1580,12 +1580,14 @@ func TestProvider(t *testing.T) {
 				"provider":   testCtx.provider,
 			})
 			assert.NoError(t, err)
+
 			tx_id := "0x123" + fmt.Sprint(rand.Intn(1000000))
-			test.CreateTestLockOrderFulfillment(map[string]interface{}{
+			_, err = test.CreateTestLockOrderFulfillment(map[string]interface{}{
 				"tx_id":             tx_id,
 				"validation_status": "success",
 				"orderId":           order.ID,
 			})
+			assert.NoError(t, err)
 
 			// Test default params
 			var payload = map[string]interface{}{
@@ -1602,7 +1604,6 @@ func TestProvider(t *testing.T) {
 
 			res, err := test.PerformRequest(t, "POST", "/orders/"+order.ID.String()+"/fulfill", payload, headers, router)
 			assert.NoError(t, err)
-
 
 			// Assert the response body
 			assert.Equal(t, http.StatusOK, res.Code)
