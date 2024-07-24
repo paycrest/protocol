@@ -127,6 +127,8 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 			Value:       iter.Event.Value,
 		}
 
+		logger.Errorf("IndexERC20Transfer.TransferEvent: %s %v", order.Edges.Token.Edges.Network.Identifier, transferEvent)
+
 		ok, err := s.UpdateReceiveAddressStatus(ctx, client, order.Edges.ReceiveAddress, order, transferEvent)
 		if err != nil {
 			logger.Errorf("IndexERC20Transfer.UpdateReceiveAddressStatus: %v", err)
