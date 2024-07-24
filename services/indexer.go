@@ -127,8 +127,6 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 			Value:       iter.Event.Value,
 		}
 
-		logger.Errorf("IndexERC20Transfer.TransferEvent: %s %v", order.Edges.Token.Edges.Network.Identifier, transferEvent)
-
 		ok, err := s.UpdateReceiveAddressStatus(ctx, client, order.Edges.ReceiveAddress, order, transferEvent)
 		if err != nil {
 			logger.Errorf("IndexERC20Transfer.UpdateReceiveAddressStatus: %v", err)
@@ -745,7 +743,13 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 	}
 
 	go func() {
-		_ = utils.Retry(5, 2*time.Second, func() error {
+		timeToWait := 2 * time.Second
+		if network.Identifier == "bnb-smart-chain" {
+			timeToWait = 5 * time.Second
+		}
+
+		time.Sleep(timeToWait)
+		_ = utils.Retry(10, timeToWait, func() error {
 			// Update payment order with the gateway ID
 			paymentOrder, err := db.Client.PaymentOrder.
 				Query().
