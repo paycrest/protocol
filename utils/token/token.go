@@ -12,6 +12,7 @@ import (
 
 	jwt "github.com/golang-jwt/jwt/v5"
 	"github.com/paycrest/protocol/config"
+	"github.com/paycrest/protocol/utils/logger"
 )
 
 var conf = config.AuthConfig()
@@ -92,8 +93,10 @@ func GeneratePrivateKey() (string, error) {
 // VerifyHMACSignature verifies the HMAC signature for the given payload using the private key
 // and returns true if the signature is valid.
 func VerifyHMACSignature(payload map[string]interface{}, privateKey string, signature string) bool {
+	logger.Errorf("VerifyHMACSignature: %v %v %v", payload, privateKey, signature)
 	expectedSignature := []byte(GenerateHMACSignature(payload, privateKey))
 	computedSignature := []byte(signature)
+	logger.Errorf("VerifyHMACSignature: %v %v", expectedSignature, computedSignature)
 	return hmac.Equal(expectedSignature, computedSignature)
 }
 
