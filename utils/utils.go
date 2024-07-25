@@ -79,17 +79,6 @@ func StringToByte32(s string) [32]byte {
 }
 
 // Byte32ToString converts [32]byte to string
-// func Byte32ToString(b [32]byte) string {
-
-// 	// Copy byte array into slice
-// 	buf := make([]byte, 32)
-// 	copy(buf, b[:])
-
-// 	// Truncate trailing zeros
-// 	buf = bytes.TrimRight(buf, "\x00")
-
-//		return string(buf)
-//	}
 func Byte32ToString(b [32]byte) string {
 
 	// Find first null index if any
@@ -487,4 +476,40 @@ func IsBase64(s string) bool {
 		return err == nil
 	}
 	return false
+}
+
+// SortMapRecursively sorts a map recursively by its keys
+func SortMapRecursively(m map[string]interface{}) map[string]interface{} {
+	result := make(map[string]interface{})
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	for _, k := range keys {
+		v := m[k]
+		switch v := v.(type) {
+		case map[string]interface{}:
+			result[k] = SortMapRecursively(v)
+		case []interface{}:
+			result[k] = SortSliceRecursively(v)
+		default:
+			result[k] = v
+		}
+	}
+	return result
+}
+
+// SortMapRecursively sorts a map recursively by its keys
+func SortSliceRecursively(s []interface{}) []interface{} {
+	for i, v := range s {
+		switch v := v.(type) {
+		case map[string]interface{}:
+			s[i] = SortMapRecursively(v)
+		case []interface{}:
+			s[i] = SortSliceRecursively(v)
+		}
+	}
+	return s
 }

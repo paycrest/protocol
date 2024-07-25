@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"hash/maphash"
 	"math/rand"
 	"net/http"
 	"strconv"
@@ -147,8 +146,6 @@ func TestSender(t *testing.T) {
 			Only(context.Background())
 		assert.NoError(t, err)
 
-		r := rand.New(rand.NewSource(int64(new(maphash.Hash).Sum64())))
-
 		payload := map[string]interface{}{
 			"amount":  "100",
 			"token":   testCtx.token.Symbol,
@@ -160,7 +157,6 @@ func TestSender(t *testing.T) {
 				"accountName":       "John Doe",
 				"memo":              "Shola Kehinde - rent for May 2021",
 			},
-			"label":     fmt.Sprintf("%d", r.Intn(100000)),
 			"timestamp": time.Now().Unix(),
 		}
 
