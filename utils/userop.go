@@ -361,6 +361,11 @@ func GetPaymasterAccount(chainId int64) (string, error) {
 	if orderConf.ActiveAAService == "biconomy" {
 		return "0x00000f79b7faf42eebadba19acc07cd08af44789", nil
 	}
+	environment := config.ServerConfig().Environment
+	if !(environment == "production" || environment == "staging") {
+		return "0x00000f79b7faf42eebadba19acc07cd08af44789", nil
+
+	}
 
 	_, paymasterUrl, err := getEndpoints(chainId)
 	if err != nil {
@@ -477,6 +482,9 @@ func getEndpoints(chainId int64) (bundlerUrl, paymasterUrl string, err error) {
 	case 137:
 		bundlerUrl = orderConf.BundlerUrlPolygon
 		paymasterUrl = orderConf.PaymasterUrlPolygon
+	case 1337:
+		bundlerUrl = "http://localhost:8545/rpc"
+		paymasterUrl = "http://localhost:8545/rpc"
 	case 56:
 		bundlerUrl = orderConf.BundlerUrlBSC
 		paymasterUrl = orderConf.PaymasterUrlBSC
@@ -504,13 +512,16 @@ func getEndpoints(chainId int64) (bundlerUrl, paymasterUrl string, err error) {
 func getNonce(client types.RPCClient, sender common.Address) (nonce *big.Int, err error) {
 	entrypoint, err := contracts.NewEntryPoint(orderConf.EntryPointContractAddress, client.(bind.ContractBackend))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("geNonce.NewEntryPoint %w", err)
 	}
 
 	key := big.NewInt(0)
-	nonce, err = entrypoint.GetNonce(nil, sender, key)
-	if err != nil {
-		return nil, err
+	environment := config.ServerConfig().Environment
+	if environment == "production" || environment == "staging" {
+		nonce, err = entrypoint.GetNonce(nil, sender, key)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return nonce, nil

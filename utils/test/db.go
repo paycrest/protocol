@@ -97,6 +97,9 @@ func CreateERC20Token(client types.RPCClient, overrides map[string]interface{}) 
 		SetIsTestnet(true).
 		OnConflict().
 		UpdateNewValues().
+		UpdateRPCEndpoint().
+		UpdateChainID().
+		UpdateIdentifier().
 		ID(context.Background())
 
 	if err != nil {
@@ -158,7 +161,7 @@ func CreateTRC20Token(client types.RPCClient, overrides map[string]interface{}) 
 	if err != nil {
 		return nil, fmt.Errorf("CreateERC20Token.networkId: %w", err)
 	}
-	
+
 	// Create token
 	tokenId := db.Client.Token.
 		Create().
@@ -209,7 +212,7 @@ func CreateTestLockPaymentOrder(overrides map[string]interface{}) (*ent.LockPaym
 	}
 
 	// Create test token
-	backend, _ := SetUpTestBlockchain()
+	backend, _ := SetUpTestBlockchain(nil)
 	token, err := CreateERC20Token(backend, map[string]interface{}{
 		"deployContract": false,
 	})

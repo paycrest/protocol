@@ -46,7 +46,7 @@ func setup() error {
 	}
 
 	// Set up test blockchain client
-	backend, err := test.SetUpTestBlockchain()
+	backend, err := test.SetUpTestBlockchain(map[string]interface{}{})
 	if err != nil {
 		return err
 	}
