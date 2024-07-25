@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"time"
 
 	jwt "github.com/golang-jwt/jwt/v5"
@@ -105,7 +106,21 @@ func VerifyHMACSignature(payload map[string]interface{}, privateKey string, sign
 func GenerateHMACSignature(payload map[string]interface{}, privateKey string) string {
 	key := []byte(privateKey)
 	h := hmac.New(sha256.New, key)
-	payloadBytes, _ := json.Marshal(payload)
+
+	// Sort the keys
+	keys := make([]string, 0, len(payload))
+	for k := range payload {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	// Create a new map with sorted keys
+	sortedPayload := make(map[string]interface{})
+	for _, k := range keys {
+		sortedPayload[k] = payload[k]
+	}
+
+	payloadBytes, _ := json.Marshal(sortedPayload)
 
 	h.Write(payloadBytes)
 	return hex.EncodeToString(h.Sum(nil))
