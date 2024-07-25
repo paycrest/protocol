@@ -476,10 +476,10 @@ func UnpackEventData(paddedHexString, contractABI, eventName string) ([]interfac
 	return data, nil
 }
 
-const base64Pattern = `^(?:[A-Za-z0-9+\/]{4})*(?:[A-Za-z0-9+\/]{2}==|[A-Za-z0-9+\/]{3}=|[A-Za-z0-9+\/]{4})$`
-
+// IsBase64 checks if a string is a valid Base64 encoded string
 func IsBase64(s string) bool {
 	// Check if the string matches the Base64 pattern
+	const base64Pattern = `^(?:[A-Za-z0-9+\/]{4})*(?:[A-Za-z0-9+\/]{2}==|[A-Za-z0-9+\/]{3}=|[A-Za-z0-9+\/]{4})$`
 	match, _ := regexp.MatchString(base64Pattern, s)
 	if match {
 		// Try to decode the string

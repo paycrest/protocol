@@ -97,31 +97,54 @@ func VerifyHMACSignature(payload map[string]interface{}, privateKey string, sign
 	logger.Errorf("VerifyHMACSignature: %v %v %v", payload, privateKey, signature)
 	expectedSignature := []byte(GenerateHMACSignature(payload, privateKey))
 	computedSignature := []byte(signature)
-	logger.Errorf("VerifyHMACSignature: %v %v", expectedSignature, computedSignature)
+	logger.Errorf("VerifyHMACSignature.computedSignature: %v", computedSignature)
 	return hmac.Equal(expectedSignature, computedSignature)
 }
 
 // GenerateHMACSignature generates the HMAC signature for the given payload using the private key.
 // The signature is returned as a hex-encoded string.
 func GenerateHMACSignature(payload map[string]interface{}, privateKey string) string {
+	sortedPayload := SortMapRecursively(payload)
 	key := []byte(privateKey)
 	h := hmac.New(sha256.New, key)
+	payloadBytes, _ := json.Marshal(sortedPayload)
+	h.Write(payloadBytes)
+	logger.Errorf("GenerateHMACSignature.expectedSignature: %v", hex.EncodeToString(h.Sum(nil)))
+	return hex.EncodeToString(h.Sum(nil))
+}
 
-	// Sort the keys
-	keys := make([]string, 0, len(payload))
-	for k := range payload {
+// SortMapRecursively sorts a map recursively by its keys
+func SortMapRecursively(m map[string]interface{}) map[string]interface{} {
+	result := make(map[string]interface{})
+	keys := make([]string, 0, len(m))
+	for k := range m {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
 
-	// Create a new map with sorted keys
-	sortedPayload := make(map[string]interface{})
 	for _, k := range keys {
-		sortedPayload[k] = payload[k]
+		v := m[k]
+		switch v := v.(type) {
+		case map[string]interface{}:
+			result[k] = SortMapRecursively(v)
+		case []interface{}:
+			result[k] = SortSliceRecursively(v)
+		default:
+			result[k] = v
+		}
 	}
+	return result
+}
 
-	payloadBytes, _ := json.Marshal(sortedPayload)
-
-	h.Write(payloadBytes)
-	return hex.EncodeToString(h.Sum(nil))
+// SortMapRecursively sorts a map recursively by its keys
+func SortSliceRecursively(s []interface{}) []interface{} {
+	for i, v := range s {
+		switch v := v.(type) {
+		case map[string]interface{}:
+			s[i] = SortMapRecursively(v)
+		case []interface{}:
+			s[i] = SortSliceRecursively(v)
+		}
+	}
+	return s
 }
