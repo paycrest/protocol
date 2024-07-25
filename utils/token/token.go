@@ -104,10 +104,10 @@ func VerifyHMACSignature(payload map[string]interface{}, privateKey string, sign
 // GenerateHMACSignature generates the HMAC signature for the given payload using the private key.
 // The signature is returned as a hex-encoded string.
 func GenerateHMACSignature(payload map[string]interface{}, privateKey string) string {
-	sortedPayload := SortMapRecursively(payload)
+	// sortedPayload := SortMapRecursively(payload)
 	key := []byte(privateKey)
 	h := hmac.New(sha256.New, key)
-	payloadBytes, _ := json.Marshal(sortedPayload)
+	payloadBytes, _ := json.Marshal(payload)
 	h.Write(payloadBytes)
 	logger.Errorf("GenerateHMACSignature.expectedSignature: %v", hex.EncodeToString(h.Sum(nil)))
 	return hex.EncodeToString(h.Sum(nil))
