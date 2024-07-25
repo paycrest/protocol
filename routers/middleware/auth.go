@@ -113,8 +113,7 @@ func HMACVerificationMiddleware(c *gin.Context) {
 		return
 	}
 
-	// Caught edge case that crashes the server when "HMAC xxxxxx" is sent that don't include ":" after the split by ":" addressing parts[1] causes a panic 
-	if !strings.Contains(parts[1], ":") {
+	if !strings.Contains(parts[1], ":") || len(parts[1]) < 4 {
 		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid Authorization header format", "Expected: HMAC <public_key>:<signature>")
 		c.Abort()
 		return

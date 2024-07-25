@@ -606,7 +606,7 @@ func TestProvider(t *testing.T) {
 			assert.Equal(t, "Token is not supported", response.Message)
 		})
 
-		t.Run("when Fiat does not exist", func(t *testing.T) {
+		t.Run("when fiat does not exist", func(t *testing.T) {
 
 			// Test default params
 			var payload = map[string]interface{}{
@@ -631,32 +631,7 @@ func TestProvider(t *testing.T) {
 			assert.Equal(t, "Fiat currency is not supported", response.Message)
 		})
 
-		t.Run("when Fiat does not exist", func(t *testing.T) {
-
-			// Test default params
-			var payload = map[string]interface{}{
-				"timestamp": time.Now().Unix(),
-			}
-
-			signature := token.GenerateHMACSignature(payload, testCtx.apiKeySecret)
-
-			headers := map[string]string{
-				"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
-			}
-
-			res, err := test.PerformRequest(t, "GET", "/rates/"+testCtx.token.Symbol+"/USD", payload, headers, router)
-			assert.NoError(t, err)
-
-			// Assert the response body
-			assert.Equal(t, http.StatusBadRequest, res.Code)
-
-			var response types.Response
-			err = json.Unmarshal(res.Body.Bytes(), &response)
-			assert.NoError(t, err)
-			assert.Equal(t, "Fiat currency is not supported", response.Message)
-		})
-
-		t.Run("when Fiat exist", func(t *testing.T) {
+		t.Run("when fiat exist", func(t *testing.T) {
 
 			// Test default params
 			var payload = map[string]interface{}{
@@ -760,6 +735,7 @@ func TestProvider(t *testing.T) {
 				assert.NoError(t, err)
 				assert.Equal(t, "Invalid Order ID", response.Message)
 			})
+
 			t.Run("Invalid Provider ID", func(t *testing.T) {
 
 				order, err := test.CreateTestLockPaymentOrder(map[string]interface{}{
@@ -985,6 +961,7 @@ func TestProvider(t *testing.T) {
 				assert.NoError(t, err)
 				assert.Equal(t, "Invalid Order ID", response.Message)
 			})
+
 			t.Run("Invalid Provider ID", func(t *testing.T) {
 
 				order, err := test.CreateTestLockPaymentOrder(map[string]interface{}{
@@ -1268,6 +1245,7 @@ func TestProvider(t *testing.T) {
 				assert.NoError(t, err)
 				assert.Equal(t, "Invalid Order ID", response.Message)
 			})
+
 			t.Run("Order Id that doesn't Exist", func(t *testing.T) {
 
 				order, err := test.CreateTestLockPaymentOrder(map[string]interface{}{
@@ -1520,6 +1498,7 @@ func TestProvider(t *testing.T) {
 				assert.NoError(t, err)
 				assert.Equal(t, "Invalid Order ID", response.Message)
 			})
+			
 			t.Run("Order Id that doesn't Exist", func(t *testing.T) {
 
 				order, err := test.CreateTestLockPaymentOrder(map[string]interface{}{
