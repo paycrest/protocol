@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"testing"
 	"time"
 
@@ -48,6 +49,7 @@ func setup() error {
 	if err != nil {
 		return err
 	}
+	time.Sleep(time.Duration(time.Duration(rand.Intn(5)) * time.Second))
 
 	receiveAddress, err := test.CreateSmartAddress(
 		context.Background(), client)
@@ -55,6 +57,8 @@ func setup() error {
 		return fmt.Errorf("CreateSmartAddress.setup.indexer_test: %w", err)
 	}
 	testCtx.receiveAddress = receiveAddress
+
+	time.Sleep(time.Duration(time.Duration(rand.Intn(10)) * time.Second))
 
 	// Create a test api key
 	user, err := test.CreateTestUser(nil)
