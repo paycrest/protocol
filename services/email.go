@@ -1,8 +1,12 @@
 package services
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"time"
 
 	mailgunv3 "github.com/mailgun/mailgun-go/v3"
 	"github.com/sendgrid/sendgrid-go"
@@ -15,13 +19,8 @@ import (
 var (
 	notificationConf = config.NotificationConfig()
 
-	mailgunClient mailgunv3.Mailgun
-)
-
-const (
-	_DefaultFromAddress        = "Paycrest <no-reply@paycrest.io>"
-	_EmailVerificationSubject  = "Your Paycrest Email Verification Token"
-	_PasswordResetEmailSubject = "Reset Password confirmation"
+	mailgunClient       mailgunv3.Mailgun
+	_DefaultFromAddress = notificationConf.EmailFromAddress //"Paycrest <no-reply@paycrest.io>"
 )
 
 type MailProvider string
@@ -65,33 +64,28 @@ func (m *EmailService) SendEmail(ctx context.Context, payload types.SendEmailPay
 
 // SendVerificationEmail performs the actions for sending a verification token to the user email.
 func (m *EmailService) SendVerificationEmail(ctx context.Context, token, email string) (types.SendEmailResponse, error) {
-	// TODO: add custom HTML email verification template.
-	bodyTemplate := fmt.Sprintf("Verification Token: %s", token)
-
 	payload := types.SendEmailPayload{
 		FromAddress: _DefaultFromAddress,
 		ToAddress:   email,
-		Subject:     _EmailVerificationSubject,
-		Body:        bodyTemplate,
-		HTMLBody:    fmt.Sprintf("<div> %s </div>", bodyTemplate),
+		DynamicData: map[string]interface{}{
+			"code": token,
+		},
 	}
-	return m.SendEmail(ctx, payload)
+	return SendTemplateEmail(payload, "d-f26d853bbb884c0c856f0bbda894032c")
+
 }
 
 // SendPasswordResetEmail performs the actions for sending a password reset token to the user email.
 func (m *EmailService) SendPasswordResetEmail(ctx context.Context, token, email string) (types.SendEmailResponse, error) {
-	// TODO: add custom HTML email verification template.
-	body := fmt.Sprintf("Please confirm your password reset request with this token: %s", token)
-	htmlBody := ""
 
 	payload := types.SendEmailPayload{
 		FromAddress: _DefaultFromAddress,
 		ToAddress:   email,
-		Subject:     _PasswordResetEmailSubject,
-		Body:        body,
-		HTMLBody:    htmlBody,
+		DynamicData: map[string]interface{}{
+			"code": token,
+		},
 	}
-	return m.SendEmail(ctx, payload)
+	return SendTemplateEmail(payload, "d-8b689801cd9947748775ccd1c4cc932e")
 }
 
 // sendEmailViaMailgun performs the actions for sending an email.
@@ -138,4 +132,104 @@ func sendEmailViaSendGrid(ctx context.Context, content types.SendEmailPayload) (
 	}
 
 	return types.SendEmailResponse{Id: response.Headers["X-Message-Id"][0]}, nil
+}
+
+func SendTemplateEmail(content types.SendEmailPayload, templateId string) (types.SendEmailResponse, error) {
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	url := "https://api.sendgrid.com/v3/mail/send"
+
+	reqBody := map[string]interface{}{
+		"from": map[string]string{
+			"email": _DefaultFromAddress,
+		},
+		"personalizations": []map[string]interface{}{
+			{
+				"to": []map[string]string{
+					{
+						"email": content.ToAddress,
+					},
+				},
+				"dynamic_template_data": content.DynamicData,
+			},
+		},
+		"template_id": templateId,
+	}
+
+	jsonBody, err := json.Marshal(reqBody)
+	if err != nil {
+		return types.SendEmailResponse{}, fmt.Errorf("error marshalling JSON: %w", err)
+
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return types.SendEmailResponse{}, fmt.Errorf("error creating request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+notificationConf.EmailAPIKey)
+
+	body, err := client.Do(req)
+	if err != nil {
+		return types.SendEmailResponse{}, fmt.Errorf("error sending request: %w", err)
+	}
+	return types.SendEmailResponse{
+		Response: body.Header.Get("X-Message-Id"),
+		Id:       body.Header.Get("X-Message-Id"),
+	}, nil
+}
+
+func SendTemplateEmailWithJsonAttachment(content types.SendEmailPayload, templateId string) error {
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	url := "https://api.sendgrid.com/v3/mail/send"
+
+	reqBody := map[string]interface{}{
+		"from": map[string]string{
+			"email": _DefaultFromAddress,
+		},
+		"personalizations": []map[string]interface{}{
+			{
+				"to": []map[string]string{
+					{
+						"email": content.ToAddress,
+					},
+				},
+				"dynamic_template_data": content.DynamicData,
+			},
+		},
+		"template_id": templateId,
+		"attachments": []map[string]interface{}{
+			{
+				"content": content.Body,
+				"type":    "text/json", "disposition": "attachment",
+				"filename": "payload.json",
+			},
+		},
+	}
+
+	jsonBody, err := json.Marshal(reqBody)
+	if err != nil {
+		return fmt.Errorf("error marshalling JSON: %w", err)
+
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return fmt.Errorf("error creating request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+notificationConf.EmailAPIKey)
+
+	_, err = client.Do(req)
+	if err != nil {
+		return fmt.Errorf("error sending request: %w", err)
+	}
+	return nil
 }

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/uuid"
 	"github.com/paycrest/protocol/config"
@@ -45,7 +46,7 @@ var serverConf = config.ServerConfig()
 var cryptoConf = config.CryptoConfig()
 
 // CreateOrder creates a new payment order on-chain.
-func (s *OrderEVM) CreateOrder(ctx context.Context, orderID uuid.UUID) error {
+func (s *OrderEVM) CreateOrder(ctx context.Context, client types.RPCClient, orderID uuid.UUID) error {
 	var err error
 	orderIDPrefix := strings.Split(orderID.String(), "-")[0]
 
@@ -151,7 +152,9 @@ func (s *OrderEVM) CreateOrder(ctx context.Context, orderID uuid.UUID) error {
 }
 
 // RefundOrder refunds sender on canceled lock order
-func (s *OrderEVM) RefundOrder(ctx context.Context, orderID string) error {
+func (s *OrderEVM) RefundOrder(ctx context.Context, client types.RPCClient, orderID string) error {
+	orderIDPrefix := strings.Split(orderID, "-")[0]
+
 	// Fetch lock order from db
 	lockOrder, err := db.Client.LockPaymentOrder.
 		Query().
@@ -161,7 +164,7 @@ func (s *OrderEVM) RefundOrder(ctx context.Context, orderID string) error {
 		}).
 		First(ctx)
 	if err != nil {
-		return fmt.Errorf("RefundOrder.fetchLockOrder: %w", err)
+		return fmt.Errorf("%s - RefundOrder.fetchLockOrder: %w", orderIDPrefix, err)
 	}
 
 	// Get default userOperation
@@ -169,13 +172,13 @@ func (s *OrderEVM) RefundOrder(ctx context.Context, orderID string) error {
 		ctx, nil, lockOrder.Edges.Token.Edges.Network.RPCEndpoint, cryptoConf.AggregatorSmartAccount, cryptoConf.AggregatorSmartAccountSalt,
 	)
 	if err != nil {
-		return fmt.Errorf("RefundOrder.initializeUserOperation: %w", err)
+		return fmt.Errorf("%s - RefundOrder.initializeUserOperation: %w", orderIDPrefix, err)
 	}
 
 	// Create calldata
 	calldata, err := s.executeBatchRefundCallData(lockOrder)
 	if err != nil {
-		return fmt.Errorf("RefundOrder.refundCallData: %w", err)
+		return fmt.Errorf("%s - RefundOrder.executeBatchRefundCallData: %w", orderIDPrefix, err)
 	}
 	userOperation.CallData = calldata
 
@@ -187,7 +190,7 @@ func (s *OrderEVM) RefundOrder(ctx context.Context, orderID string) error {
 		err = utils.SponsorUserOperation(userOperation, "sponsored", "", lockOrder.Edges.Token.Edges.Network.ChainID)
 	}
 	if err != nil {
-		return fmt.Errorf("RefundOrder.sponsorUserOperation: %w", err)
+		return fmt.Errorf("%s - RefundOrder.sponsorUserOperation: %w", orderIDPrefix, err)
 	}
 
 	// Sign user operation
@@ -196,7 +199,7 @@ func (s *OrderEVM) RefundOrder(ctx context.Context, orderID string) error {
 	// Send user operation
 	txHash, blockNumber, err := utils.SendUserOperation(userOperation, lockOrder.Edges.Token.Edges.Network.ChainID)
 	if err != nil {
-		return fmt.Errorf("RefundOrder.sendUserOperation: %w", err)
+		return fmt.Errorf("%s - RefundOrder.sendUserOperation: %w", orderIDPrefix, err)
 	}
 
 	// Create log
@@ -212,7 +215,7 @@ func (s *OrderEVM) RefundOrder(ctx context.Context, orderID string) error {
 			}).
 		Save(ctx)
 	if err != nil {
-		return fmt.Errorf("RefundOrder.transactionLog(%v): %w", txHash, err)
+		return fmt.Errorf("%s - RefundOrder.transactionLog(%v): %w", orderIDPrefix, txHash, err)
 	}
 
 	// Update status of all lock orders with same order_id
@@ -225,15 +228,15 @@ func (s *OrderEVM) RefundOrder(ctx context.Context, orderID string) error {
 		AddTransactions(transactionLog).
 		Save(ctx)
 	if err != nil {
-		return fmt.Errorf("RefundOrder.updateTxHash(%v): %w", txHash, err)
+		return fmt.Errorf("%s - RefundOrder.updateTxHash(%v): %w", orderIDPrefix, txHash, err)
 	}
 
 	return nil
 }
 
 // RevertOrder reverts an initiated payment order on-chain.
-func (s *OrderEVM) RevertOrder(ctx context.Context, order *ent.PaymentOrder) error {
-	if !order.AmountReturned.Equal(decimal.Zero) {
+func (s *OrderEVM) RevertOrder(ctx context.Context, client types.RPCClient, order *ent.PaymentOrder) error {
+	if !order.AmountReturned.Equal(decimal.Zero) || strings.HasPrefix(order.Edges.Recipient.Memo, "P#P") {
 		return nil
 	}
 
@@ -365,7 +368,7 @@ func (s *OrderEVM) RevertOrder(ctx context.Context, order *ent.PaymentOrder) err
 }
 
 // SettleOrder settles a payment order on-chain.
-func (s *OrderEVM) SettleOrder(ctx context.Context, orderID uuid.UUID) error {
+func (s *OrderEVM) SettleOrder(ctx context.Context, client types.RPCClient, orderID uuid.UUID) error {
 	var err error
 
 	orderIDPrefix := strings.Split(orderID.String(), "-")[0]
@@ -688,21 +691,38 @@ func (s *OrderEVM) createOrderCallData(order *ent.PaymentOrder) ([]byte, error) 
 
 // executeBatchRefundCallData creates the refund calldata for the execute batch method in the smart account.
 func (s *OrderEVM) executeBatchRefundCallData(order *ent.LockPaymentOrder) ([]byte, error) {
-	sourceOrder, err := db.Client.PaymentOrder.
-		Query().
-		Where(paymentorder.GatewayIDEQ(order.GatewayID)).
-		WithToken(func(tq *ent.TokenQuery) {
-			tq.WithNetwork()
-		}).
-		Only(context.Background())
+	var err error
+	var client types.RPCClient
+
+	// Connect to RPC endpoint
+	retryErr := utils.Retry(3, 1*time.Second, func() error {
+		client, err = types.NewEthClient(order.Edges.Token.Edges.Network.RPCEndpoint)
+		return err
+	})
+	if retryErr != nil {
+		return nil, retryErr
+	}
+
+	// Fetch onchain order details
+	instance, err := contracts.NewGateway(common.HexToAddress(order.Edges.Token.Edges.Network.GatewayContractAddress), client.(bind.ContractBackend))
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch payment order: %w", err)
+		return nil, err
+	}
+
+	orderID, err := hex.DecodeString(order.GatewayID[2:])
+	if err != nil {
+		return nil, err
+	}
+
+	orderInfo, err := instance.GetOrderInfo(nil, utils.StringToByte32(string(orderID)))
+	if err != nil {
+		return nil, err
 	}
 
 	// Create approve data for gateway contract
 	approveGatewayData, err := s.approveCallData(
 		common.HexToAddress(order.Edges.Token.Edges.Network.GatewayContractAddress),
-		utils.ToSubunit(order.Amount.Add(sourceOrder.SenderFee).Add(sourceOrder.ProtocolFee), order.Edges.Token.Decimals),
+		orderInfo.Amount,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("executeBatchRefundCallData.approveOrderContract: %w", err)
@@ -734,7 +754,7 @@ func (s *OrderEVM) executeBatchRefundCallData(order *ent.LockPaymentOrder) ([]by
 		}
 		time.Sleep(5 * time.Second)
 
-		refundAmount := sourceOrder.Amount.Add(sourceOrder.SenderFee).Add(sourceOrder.ProtocolFee).Add(sourceOrder.Edges.Token.Edges.Network.Fee)
+		refundAmount := utils.FromSubunit(orderInfo.Amount, order.Edges.Token.Decimals).Add(order.Edges.Token.Edges.Network.Fee)
 
 		// Create approve data for paymaster contract
 		approvePaymasterData, err := s.approveCallData(

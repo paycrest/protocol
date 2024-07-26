@@ -103,7 +103,6 @@ func GenerateHMACSignature(payload map[string]interface{}, privateKey string) st
 	key := []byte(privateKey)
 	h := hmac.New(sha256.New, key)
 	payloadBytes, _ := json.Marshal(payload)
-
 	h.Write(payloadBytes)
 	return hex.EncodeToString(h.Sum(nil))
 }

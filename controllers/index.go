@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"slices"
 	"strings"
-	"time"
 
 	fastshot "github.com/opus-domini/fast-shot"
 	"github.com/paycrest/protocol/config"
@@ -18,7 +17,6 @@ import (
 	orderSvc "github.com/paycrest/protocol/services/order"
 	"github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
-	"github.com/paycrest/protocol/utils"
 	u "github.com/paycrest/protocol/utils"
 	"github.com/paycrest/protocol/utils/logger"
 	"github.com/shopspring/decimal"
@@ -255,7 +253,6 @@ func (ctrl *Controller) VerifyAccount(ctx *gin.Context) {
 	}
 
 	res, err := fastshot.NewClient(provider.HostIdentifier).
-		Config().SetTimeout(30 * time.Second).
 		Build().POST("/verify_account").
 		Body().AsJSON(payload).
 		Send()
@@ -268,7 +265,7 @@ func (ctrl *Controller) VerifyAccount(ctx *gin.Context) {
 	data, err := u.ParseJSONResponse(res.RawResponse)
 	if err != nil {
 		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusServiceUnavailable, "error", "Failed to fetch node info", nil)
+		u.APIResponse(ctx, http.StatusServiceUnavailable, "error", "Failed to verify account", nil)
 		return
 	}
 
@@ -304,7 +301,7 @@ func (ctrl *Controller) GetLockPaymentOrderStatus(ctx *gin.Context) {
 
 	for _, order := range orders {
 		for _, transaction := range order.Edges.Transactions {
-			if utils.ContainsString([]string{"order_settled", "order_created", "order_refunded"}, transaction.Status.String()) {
+			if u.ContainsString([]string{"order_settled", "order_created", "order_refunded"}, transaction.Status.String()) {
 				var status lockpaymentorder.Status
 				if transaction.Status.String() == "order_created" {
 					status = lockpaymentorder.StatusPending

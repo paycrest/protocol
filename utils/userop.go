@@ -188,13 +188,11 @@ func SponsorUserOperation(userOp *userop.UserOperation, mode string, token strin
 		}
 	}
 
-	// op, _ := userOp.MarshalJSON()
-	// logger.Errorf(string(op))
-
 	var result json.RawMessage
 	err = client.Call(&result, "pm_sponsorUserOperation", requestParams...)
 	if err != nil {
-		return fmt.Errorf("RPC error: %w", err)
+		op, _ := userOp.MarshalJSON()
+		return fmt.Errorf("RPC error: %w\nUser Operation: %s", err, string(op))
 	}
 
 	if orderConf.ActiveAAService == "stackup" {
@@ -279,13 +277,11 @@ func SendUserOperation(userOp *userop.UserOperation, chainId int64) (string, int
 		}
 	}
 
-	// op, _ := userOp.MarshalJSON()
-	// logger.Errorf(string(op))
-
 	var result json.RawMessage
 	err = client.Call(&result, "eth_sendUserOperation", requestParams...)
 	if err != nil {
-		return "", 0, fmt.Errorf("RPC error: %w", err)
+		op, _ := userOp.MarshalJSON()
+		return "", 0, fmt.Errorf("RPC error: %w\nUser Operation: %s", err, string(op))
 	}
 
 	var userOpHash string

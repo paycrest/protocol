@@ -11,8 +11,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/institution"
+	"github.com/paycrest/protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	"github.com/paycrest/protocol/ent/paymentorder"
+	"github.com/paycrest/protocol/ent/providerordertoken"
 	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/senderordertoken"
 	"github.com/paycrest/protocol/ent/senderprofile"
@@ -193,9 +195,11 @@ func CreateTestLockPaymentOrder(overrides map[string]interface{}) (*ent.LockPaym
 		"rate":               750.0,
 		"status":             "pending",
 		"block_number":       12345,
-		"institution":        "Test Bank",
+		"institution":        "ABNGNGLA",
 		"account_identifier": "1234567890",
 		"account_name":       "Test Account",
+		"updatedAt":          time.Now(),
+		"tokenID":            0,
 	}
 
 	// Create provider profile
@@ -211,13 +215,16 @@ func CreateTestLockPaymentOrder(overrides map[string]interface{}) (*ent.LockPaym
 		payload[key] = value
 	}
 
-	// Create test token
-	backend, _ := SetUpTestBlockchain(nil)
-	token, err := CreateERC20Token(backend, map[string]interface{}{
-		"deployContract": false,
-	})
-	if err != nil {
-		return nil, err
+	if payload["tokenID"].(int) == 0 {
+		// Create test token
+		backend, _ := SetUpTestBlockchain()
+		token, err := CreateERC20Token(backend, map[string]interface{}{
+			"deployContract": false,
+		})
+		if err != nil {
+			return nil, err
+		}
+		payload["tokenID"] = token.ID
 	}
 
 	// Create LockPaymentOrder
@@ -232,9 +239,20 @@ func CreateTestLockPaymentOrder(overrides map[string]interface{}) (*ent.LockPaym
 		SetInstitution(payload["institution"].(string)).
 		SetAccountIdentifier(payload["account_identifier"].(string)).
 		SetAccountName(payload["account_name"].(string)).
-		SetTokenID(token.ID).
+		SetTokenID(payload["tokenID"].(int)).
 		SetProvider(providerProfile).
+		SetUpdatedAt(payload["updatedAt"].(time.Time)).
 		Save(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	// Push provider ID to order exclude list
+	// orderKey := fmt.Sprintf("order_exclude_list_%s", order.ID)
+	// _, err = db.RedisClient.RPush(context.Background(), orderKey, providerProfile.ID).Result()
+	// if err != nil {
+	// 	return nil, fmt.Errorf("error pushing provider %s to order %s exclude_list on Redis: %v", providerProfile.ID, order.ID, err)
+	// }
 
 	return order, err
 }
@@ -249,7 +267,7 @@ func CreateTestPaymentOrder(client types.RPCClient, token *ent.Token, overrides 
 		"fee_per_token_unit": 0.0,
 		"fee_address":        "0x1234567890123456789012345678901234567890",
 		"return_address":     "0x0987654321098765432109876543210987654321",
-		"institution":        "Test Bank",
+		"institution":        "ABNGNGLA",
 		"account_identifier": "1234567890",
 		"account_name":       "Test Account",
 		"memo":               "Shola Kehinde - rent for May 2021",
@@ -313,7 +331,9 @@ func CreateTestLockOrderFulfillment(overrides map[string]interface{}) (*ent.Lock
 	// Default payload
 	payload := map[string]interface{}{
 		"tx_id":             "0x123...",
+		"validation_status": "pending",
 		"validation_errors": []string{},
+		"orderId":           nil,
 	}
 
 	// Apply overrides
@@ -322,13 +342,17 @@ func CreateTestLockOrderFulfillment(overrides map[string]interface{}) (*ent.Lock
 	}
 
 	// Create lock order
-	order, _ := CreateTestLockPaymentOrder(nil)
+	if payload["orderId"] == nil {
+		order, _ := CreateTestLockPaymentOrder(nil)
+		payload["orderId"] = order.ID.String()
+	}
 
 	// Create LockOrderFulfillment
 	fulfillment, err := db.Client.LockOrderFulfillment.
 		Create().
 		SetTxID(payload["tx_id"].(string)).
-		SetOrderID(order.ID).
+		SetOrderID(payload["orderId"].(uuid.UUID)).
+		SetValidationStatus(lockorderfulfillment.ValidationStatus(payload["validation_status"].(string))).
 		Save(context.Background())
 
 	return fulfillment, err
@@ -440,6 +464,83 @@ func CreateTestProviderProfile(overrides map[string]interface{}) (*ent.ProviderP
 	return profile, err
 }
 
+func AddProvisionBucketToLockPaymentOrder(order *ent.LockPaymentOrder, bucketId int) (*ent.LockPaymentOrder, error) {
+	order, err := order.
+		Update().
+		SetProvisionBucketID(bucketId).
+		Save(context.Background())
+	return order, err
+}
+
+func AddProviderOrderTokenToProvider(overrides map[string]interface{}) (*ent.ProviderOrderToken, error) {
+	// Default payload
+	payload := map[string]interface{}{
+		"fixed_conversion_rate":    decimal.NewFromFloat(1.0),
+		"conversion_rate_type":     "fixed",
+		"floating_conversion_rate": decimal.NewFromFloat(1.0),
+		"max_order_amount":         decimal.NewFromFloat(1.0),
+		"min_order_amount":         decimal.NewFromFloat(1.0),
+		"tokenSymbol":              "",
+		"provider":                 nil,
+	}
+
+	// Apply overrides
+	for key, value := range overrides {
+		payload[key] = value
+	}
+
+	orderToken, err := db.Client.ProviderOrderToken.
+		Create().
+		SetSymbol(payload["tokenSymbol"].(string)).
+		SetProvider(payload["provider"].(*ent.ProviderProfile)).
+		SetMaxOrderAmount(payload["min_order_amount"].(decimal.Decimal)).
+		SetMinOrderAmount(payload["max_order_amount"].(decimal.Decimal)).
+		SetConversionRateType(providerordertoken.ConversionRateType(payload["conversion_rate_type"].(string))).
+		SetFixedConversionRate(payload["fixed_conversion_rate"].(decimal.Decimal)).
+		SetFloatingConversionRate(payload["floating_conversion_rate"].(decimal.Decimal)).
+		SetAddresses([]struct {
+			Address string `json:"address"`
+			Network string `json:"network"`
+		}{}).
+		Save(context.Background())
+
+	return orderToken, err
+}
+
+// CreateTestProviderProfile creates a test ProviderProfile with defaults or custom values
+func CreateTestProvisionBucket(overrides map[string]interface{}) (*ent.ProvisionBucket, error) {
+	// Default payload
+	payload := map[string]interface{}{
+		"max_amount":  decimal.NewFromFloat(1.0),
+		"currency_id": 1,
+		"min_amount":  decimal.NewFromFloat(1.0),
+		"provider_id": nil,
+	}
+
+	// Apply overrides
+	for key, value := range overrides {
+		payload[key] = value
+	}
+
+	bucket, err := db.Client.ProvisionBucket.Create().
+		SetMinAmount(payload["min_amount"].(decimal.Decimal)).
+		SetMaxAmount(payload["max_amount"].(decimal.Decimal)).
+		SetCurrencyID(payload["currency_id"].(uuid.UUID)).
+		Save(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = db.Client.ProviderProfile.
+		UpdateOneID(payload["provider_id"].(string)).
+		AddProvisionBucketIDs(bucket.ID).
+		Save(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	return bucket, nil
+}
+
 // CreateTestFiatCurrency creates a test FiatCurrency with defaults or custom values
 func CreateTestFiatCurrency(overrides map[string]interface{}) (*ent.FiatCurrency, error) {
 
@@ -461,13 +562,13 @@ func CreateTestFiatCurrency(overrides map[string]interface{}) (*ent.FiatCurrency
 	institutions, err := db.Client.Institution.CreateBulk(
 		db.Client.Institution.
 			Create().
-			SetName("Kuda Microfinance Bank").
-			SetCode("KUDANGN").
+			SetName("MTN Momo").
+			SetCode("MOMONGPC").
 			SetType(institution.TypeMobileMoney),
 		db.Client.Institution.
 			Create().
-			SetName("FirstBank Bank").
-			SetCode("FBNNGN"),
+			SetName("Access Bank").
+			SetCode("ABNGNGLA"),
 	).Save(context.Background())
 
 	if err != nil {

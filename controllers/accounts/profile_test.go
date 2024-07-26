@@ -583,16 +583,16 @@ func TestProfile(t *testing.T) {
 
 		// Assert the response body
 		assert.Equal(t, http.StatusOK, res.Code)
-		var response types.Response
+		var response struct {
+			Data    types.SenderProfileResponse
+			Message string
+		}
 		err = json.Unmarshal(res.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.Equal(t, "Profile retrieved successfully", response.Message)
-		data, ok := response.Data.(map[string]interface{})
-		assert.True(t, ok, "response.Data is not of type map[string]interface{}")
-		assert.NotNil(t, data, "response.Data is nil")
-		assert.Equal(t, data["feePerTokenUnit"], "0")
-
-		assert.Contains(t, data["domainWhitelist"], "mydomain.com")
+		assert.NotNil(t, response.Data, "response.Data is nil")
+		assert.Greater(t, len(response.Data.Tokens), 0)
+		assert.Contains(t, response.Data.WebhookURL, "https://example.com")
 
 	})
 

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"hash/maphash"
 	"math/rand"
 	"net/http"
 	"strconv"
@@ -54,10 +53,17 @@ func setup() error {
 	// Create a test token
 	testCtx.networkIdentifier = "localhost"
 	token, err := test.CreateERC20Token(backend, map[string]interface{}{
-		"identifier": testCtx.networkIdentifier,
+		"identifier":     testCtx.networkIdentifier,
+		"deployContract": false,
 	})
 	if err != nil {
 		return fmt.Errorf("CreateERC20Token.sender_test: %w", err)
+	}
+
+	// Create test fiat currency and institutions
+	_, err = test.CreateTestFiatCurrency(nil)
+	if err != nil {
+		return fmt.Errorf("CreateTestFiatCurrency.sender_test: %w", err)
 	}
 
 	senderProfile, err := test.CreateTestSenderProfile(map[string]interface{}{
@@ -89,6 +95,7 @@ func setup() error {
 	testCtx.apiKeySecret = secretKey
 
 	for i := 0; i < 9; i++ {
+		time.Sleep(time.Duration(float64(rand.Intn(12))) * time.Second)
 		_, err := test.CreateTestPaymentOrder(backend, token, map[string]interface{}{
 			"sender": senderProfile,
 		})
@@ -139,8 +146,6 @@ func TestSender(t *testing.T) {
 			Only(context.Background())
 		assert.NoError(t, err)
 
-		r := rand.New(rand.NewSource(int64(new(maphash.Hash).Sum64())))
-
 		payload := map[string]interface{}{
 			"amount":  "100",
 			"token":   testCtx.token.Symbol,
@@ -152,7 +157,6 @@ func TestSender(t *testing.T) {
 				"accountName":       "John Doe",
 				"memo":              "Shola Kehinde - rent for May 2021",
 			},
-			"label":     fmt.Sprintf("%d", r.Intn(100000)),
 			"timestamp": time.Now().Unix(),
 		}
 
