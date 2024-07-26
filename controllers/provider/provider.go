@@ -559,6 +559,7 @@ func (ctrl *ProviderController) GetMarketRate(ctx *gin.Context) {
 		u.APIResponse(ctx, http.StatusBadRequest, "error", "Token is not supported", nil)
 		return
 	}
+	// TODO: use token to get the token rate for that currency based on the USD/Token Ratio USD/USDC can be 1.005 and USD/USD can be 0.9995
 
 	currency, err := storage.Client.FiatCurrency.
 		Query().

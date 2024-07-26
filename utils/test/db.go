@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/institution"
+	"github.com/paycrest/protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	"github.com/paycrest/protocol/ent/paymentorder"
 	"github.com/paycrest/protocol/ent/providerordertoken"
@@ -327,7 +328,9 @@ func CreateTestLockOrderFulfillment(overrides map[string]interface{}) (*ent.Lock
 	// Default payload
 	payload := map[string]interface{}{
 		"tx_id":             "0x123...",
+		"validation_status": "pending",
 		"validation_errors": []string{},
+		"orderId":           nil,
 	}
 
 	// Apply overrides
@@ -336,13 +339,17 @@ func CreateTestLockOrderFulfillment(overrides map[string]interface{}) (*ent.Lock
 	}
 
 	// Create lock order
-	order, _ := CreateTestLockPaymentOrder(nil)
+	if payload["orderId"] == nil {
+		order, _ := CreateTestLockPaymentOrder(nil)
+		payload["orderId"] = order.ID.String()
+	}
 
 	// Create LockOrderFulfillment
 	fulfillment, err := db.Client.LockOrderFulfillment.
 		Create().
 		SetTxID(payload["tx_id"].(string)).
-		SetOrderID(order.ID).
+		SetOrderID(payload["orderId"].(uuid.UUID)).
+		SetValidationStatus(lockorderfulfillment.ValidationStatus(payload["validation_status"].(string))).
 		Save(context.Background())
 
 	return fulfillment, err
