@@ -132,7 +132,7 @@ func TestSender(t *testing.T) {
 	ctrl := NewSenderController()
 	router.POST("/orders", ctrl.InitiatePaymentOrder)
 	router.GET("/orders/:id", ctrl.GetPaymentOrderByID)
-	router.GET("/orders/", ctrl.GetPaymentOrders)
+	router.GET("/orders", ctrl.GetPaymentOrders)
 	router.GET("/stats", ctrl.Stats)
 
 	var paymentOrderUUID uuid.UUID
@@ -206,6 +206,7 @@ func TestSender(t *testing.T) {
 
 		t.Run("Check Transaction Logs", func(t *testing.T) {
 			payload = map[string]interface{}{
+				"id":        paymentOrderUUID.String(),
 				"timestamp": time.Now().Unix(),
 			}
 
@@ -215,7 +216,7 @@ func TestSender(t *testing.T) {
 				"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
 			}
 
-			res, err = test.PerformRequest(t, "GET", fmt.Sprintf("/orders/%s", paymentOrderUUID), payload, headers, router)
+			res, err = test.PerformRequest(t, "GET", fmt.Sprintf("/orders/%s?timestamp=%v", payload["id"], payload["timestamp"]), nil, headers, router)
 			assert.NoError(t, err)
 
 			type Response struct {
@@ -238,6 +239,7 @@ func TestSender(t *testing.T) {
 
 	t.Run("GetPaymentOrderByID", func(t *testing.T) {
 		var payload = map[string]interface{}{
+			"id":        paymentOrderUUID.String(),
 			"timestamp": time.Now().Unix(),
 		}
 
@@ -247,7 +249,7 @@ func TestSender(t *testing.T) {
 			"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
 		}
 
-		res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/orders/%s", paymentOrderUUID), payload, headers, router)
+		res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/orders/%s?timestamp=%v", paymentOrderUUID, payload["timestamp"]), nil, headers, router)
 		assert.NoError(t, err)
 
 		// Assert the response body
@@ -275,7 +277,7 @@ func TestSender(t *testing.T) {
 				"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
 			}
 
-			res, err := test.PerformRequest(t, "GET", "/orders/", payload, headers, router)
+			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/orders?timestamp=%v", payload["timestamp"]), nil, headers, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -298,6 +300,7 @@ func TestSender(t *testing.T) {
 		t.Run("when filtering is applied", func(t *testing.T) {
 			// Test different status filters
 			var payload = map[string]interface{}{
+				"status":    "initiated",
 				"timestamp": time.Now().Unix(),
 			}
 
@@ -307,10 +310,7 @@ func TestSender(t *testing.T) {
 				"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
 			}
 
-			//query params
-			status := "initiated"
-
-			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/orders/?status=%s", status), payload, headers, router)
+			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/orders?status=%s&timestamp=%v", payload["status"], payload["timestamp"]), nil, headers, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -332,7 +332,11 @@ func TestSender(t *testing.T) {
 
 		t.Run("with custom page and pageSize", func(t *testing.T) {
 			// Test different page and pageSize values
+			page := 1
+			pageSize := 10
 			var payload = map[string]interface{}{
+				"page":      strconv.Itoa(page),
+				"pageSize":  strconv.Itoa(pageSize),
 				"timestamp": time.Now().Unix(),
 			}
 
@@ -342,11 +346,7 @@ func TestSender(t *testing.T) {
 				"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
 			}
 
-			//query params
-			page := 1
-			pageSize := 10
-
-			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/orders/?page=%s&pageSize=%s", strconv.Itoa(page), strconv.Itoa(pageSize)), payload, headers, router)
+			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/orders?page=%s&pageSize=%s&timestamp=%v", strconv.Itoa(page), strconv.Itoa(pageSize), payload["timestamp"]), nil, headers, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -370,6 +370,7 @@ func TestSender(t *testing.T) {
 		t.Run("with ordering", func(t *testing.T) {
 			// Test ascending and descending ordering
 			var payload = map[string]interface{}{
+				"ordering":  "desc",
 				"timestamp": time.Now().Unix(),
 			}
 
@@ -379,10 +380,7 @@ func TestSender(t *testing.T) {
 				"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
 			}
 
-			//query params
-			ordering := "desc"
-
-			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/orders/?ordering=%s", ordering), payload, headers, router)
+			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/orders?ordering=%s&timestamp=%v", payload["ordering"], payload["timestamp"]), nil, headers, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -417,6 +415,7 @@ func TestSender(t *testing.T) {
 
 		t.Run("with filtering by network", func(t *testing.T) {
 			var payload = map[string]interface{}{
+				"network":   testCtx.networkIdentifier,
 				"timestamp": time.Now().Unix(),
 			}
 
@@ -426,10 +425,7 @@ func TestSender(t *testing.T) {
 				"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
 			}
 
-			//query params
-			network := testCtx.networkIdentifier
-
-			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/orders/?network=%s", network), payload, headers, router)
+			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/orders?network=%s&timestamp=%v", payload["network"], payload["timestamp"]), nil, headers, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -448,12 +444,13 @@ func TestSender(t *testing.T) {
 			assert.Greater(t, len(data["orders"].([]interface{})), 0)
 
 			for _, order := range data["orders"].([]interface{}) {
-				assert.Equal(t, order.(map[string]interface{})["network"], network)
+				assert.Equal(t, order.(map[string]interface{})["network"], payload["network"])
 			}
 		})
 
 		t.Run("with filtering by token", func(t *testing.T) {
 			var payload = map[string]interface{}{
+				"token":     testCtx.token.Symbol,
 				"timestamp": time.Now().Unix(),
 			}
 
@@ -463,10 +460,7 @@ func TestSender(t *testing.T) {
 				"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
 			}
 
-			//query params
-			token := testCtx.token.Symbol
-
-			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/orders/?token=%s", token), payload, headers, router)
+			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/orders?token=%s&timestamp=%v", payload["token"], payload["timestamp"]), nil, headers, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -485,7 +479,7 @@ func TestSender(t *testing.T) {
 			assert.Greater(t, len(data["orders"].([]interface{})), 0)
 
 			for _, order := range data["orders"].([]interface{}) {
-				assert.Equal(t, order.(map[string]interface{})["token"], token)
+				assert.Equal(t, order.(map[string]interface{})["token"], payload["token"])
 			}
 		})
 	})
@@ -529,7 +523,7 @@ func TestSender(t *testing.T) {
 				"Authorization": "HMAC " + apiKey.ID.String() + ":" + signature,
 			}
 
-			res, err := test.PerformRequest(t, "GET", "/stats", payload, headers, router)
+			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/stats?timestamp=%v", payload["timestamp"]), nil, headers, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -569,7 +563,7 @@ func TestSender(t *testing.T) {
 				"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
 			}
 
-			res, err := test.PerformRequest(t, "GET", "/stats", payload, headers, router)
+			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/stats?timestamp=%v", payload["timestamp"]), nil, headers, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -626,7 +620,7 @@ func TestSender(t *testing.T) {
 				"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
 			}
 
-			res, err := test.PerformRequest(t, "GET", "/stats", payload, headers, router)
+			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/stats?timestamp=%v", payload["timestamp"]), nil, headers, router)
 			assert.NoError(t, err)
 
 			// Assert the response body

@@ -122,7 +122,7 @@ func TestProvider(t *testing.T) {
 				"Client-Type":   "backend",
 			}
 
-			res, err := test.PerformRequest(t, "GET", "/orders", payload, headers, router)
+			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/orders?timestamp=%v", payload["timestamp"]), nil, headers, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -147,6 +147,7 @@ func TestProvider(t *testing.T) {
 		t.Run("when filtering is applied", func(t *testing.T) {
 			// Test different status filters
 			var payload = map[string]interface{}{
+				"status":    "pending",
 				"timestamp": time.Now().Unix(),
 			}
 
@@ -157,10 +158,7 @@ func TestProvider(t *testing.T) {
 				"Client-Type":   "backend",
 			}
 
-			//query params
-			status := "pending"
-
-			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/orders?status=%s", status), payload, headers, router)
+			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/orders?status=%s&timestamp=%v", "pending", payload["timestamp"]), nil, headers, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -184,7 +182,11 @@ func TestProvider(t *testing.T) {
 
 		t.Run("with custom page and pageSize", func(t *testing.T) {
 			// Test different page and pageSize values
+			page := 1
+			pageSize := 5
 			var payload = map[string]interface{}{
+				"page":      strconv.Itoa(page),
+				"pageSize":  strconv.Itoa(pageSize),
 				"timestamp": time.Now().Unix(),
 			}
 
@@ -195,11 +197,7 @@ func TestProvider(t *testing.T) {
 				"Client-Type":   "backend",
 			}
 
-			//query params
-			page := 1
-			pageSize := 5
-
-			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/orders?page=%s&pageSize=%s", strconv.Itoa(page), strconv.Itoa(pageSize)), payload, headers, router)
+			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/orders?page=%s&pageSize=%s&timestamp=%v", strconv.Itoa(page), strconv.Itoa(pageSize), payload["timestamp"]), nil, headers, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -225,6 +223,7 @@ func TestProvider(t *testing.T) {
 		t.Run("with ordering", func(t *testing.T) {
 			// Test ascending and descending ordering
 			var payload = map[string]interface{}{
+				"ordering":  "desc",
 				"timestamp": time.Now().Unix(),
 			}
 
@@ -235,10 +234,7 @@ func TestProvider(t *testing.T) {
 				"Client-Type":   "backend",
 			}
 
-			//query params
-			ordering := "desc"
-
-			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/orders?ordering=%s", ordering), payload, headers, router)
+			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/orders?ordering=%s&timestamp=%v", payload["ordering"], payload["timestamp"]), nil, headers, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -325,7 +321,7 @@ func TestProvider(t *testing.T) {
 				"Client-Type":   "backend",
 			}
 
-			res, err := test.PerformRequest(t, "GET", "/stats", payload, headers, router)
+			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/stats?timestamp=%v", payload["timestamp"]), nil, headers, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -367,7 +363,7 @@ func TestProvider(t *testing.T) {
 				"Client-Type":   "backend",
 			}
 
-			res, err := test.PerformRequest(t, "GET", "/stats", payload, headers, router)
+			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/stats?timestamp=%v", payload["timestamp"]), nil, headers, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -420,7 +416,7 @@ func TestProvider(t *testing.T) {
 				"Client-Type":   "backend",
 			}
 
-			res, err := test.PerformRequest(t, "GET", "/stats", payload, headers, router)
+			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/stats?timestamp=%v", payload["timestamp"]), nil, headers, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -492,7 +488,7 @@ func TestProvider(t *testing.T) {
 				"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
 			}
 
-			res, err := test.PerformRequest(t, "GET", "/node-info", payload, headers, router)
+			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/node-info?timestamp=%v", payload["timestamp"]), nil, headers, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -527,7 +523,7 @@ func TestProvider(t *testing.T) {
 				"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
 			}
 
-			res, err := test.PerformRequest(t, "GET", "/node-info", payload, headers, router)
+			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/node-info?timestamp=%v", payload["timestamp"]), nil, headers, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
