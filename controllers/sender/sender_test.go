@@ -206,7 +206,6 @@ func TestSender(t *testing.T) {
 
 		t.Run("Check Transaction Logs", func(t *testing.T) {
 			payload = map[string]interface{}{
-				"id":        paymentOrderUUID.String(),
 				"timestamp": time.Now().Unix(),
 			}
 
@@ -216,7 +215,7 @@ func TestSender(t *testing.T) {
 				"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
 			}
 
-			res, err = test.PerformRequest(t, "GET", fmt.Sprintf("/orders/%s?timestamp=%v", payload["id"], payload["timestamp"]), nil, headers, router)
+			res, err = test.PerformRequest(t, "GET", fmt.Sprintf("/orders/%s?timestamp=%v", paymentOrderUUID.String(), payload["timestamp"]), nil, headers, router)
 			assert.NoError(t, err)
 
 			type Response struct {
@@ -239,7 +238,6 @@ func TestSender(t *testing.T) {
 
 	t.Run("GetPaymentOrderByID", func(t *testing.T) {
 		var payload = map[string]interface{}{
-			"id":        paymentOrderUUID.String(),
 			"timestamp": time.Now().Unix(),
 		}
 
@@ -249,7 +247,7 @@ func TestSender(t *testing.T) {
 			"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
 		}
 
-		res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/orders/%s?timestamp=%v", paymentOrderUUID, payload["timestamp"]), nil, headers, router)
+		res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/orders/%s?timestamp=%v", paymentOrderUUID.String(), payload["timestamp"]), nil, headers, router)
 		assert.NoError(t, err)
 
 		// Assert the response body

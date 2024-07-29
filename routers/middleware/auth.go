@@ -115,13 +115,6 @@ func HMACVerificationMiddleware(c *gin.Context) {
 		return
 	}
 
-	// Avoid authorization header that  doesn't match criterial 
-	if !strings.Contains(parts[1], ":") || len(parts[1]) < 4 {
-		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid Authorization header format", "Expected: HMAC <public_key>:<signature>")
-		c.Abort()
-		return
-	}
-
 	// Extract the public key and signature
 	parts = strings.SplitN(parts[1], ":", 2)
 	publicKey, signature := parts[0], parts[1]
@@ -134,8 +127,23 @@ func HMACVerificationMiddleware(c *gin.Context) {
 	var payloadData map[string]interface{}
 	var err error
 
-	if c.Request.Method == "POST" {
-		// For non-GET/DELETE requests, read the payload from the body
+	// Handle GET and DELETE requests differently
+	if c.Request.Method == "GET" {
+		payloadData = make(map[string]interface{})
+
+		// // Extract the path parameters and include them in the payload
+		// for _, param := range c.Params {
+		// 	payloadData[param.Key] = param.Value
+		// }
+
+		// Extract the query parameters and include them in the payload
+		for key, values := range c.Request.URL.Query() {
+			if len(values) > 0 {
+				payloadData[key] = values[0]
+			}
+		}
+	} else {
+		// For non-GET/DELETE requests, read the payload from the bodydy
 		payload, err := c.GetRawData()
 		if err != nil {
 			u.APIResponse(c, http.StatusInternalServerError, "error", "Failed to read request payload", err.Error())
@@ -149,22 +157,6 @@ func HMACVerificationMiddleware(c *gin.Context) {
 			u.APIResponse(c, http.StatusBadRequest, "error", "Invalid payload format", err.Error())
 			c.Abort()
 			return
-		}
-	}
-
-	if payloadData == nil {
-		payloadData = make(map[string]interface{})
-	}
-
-	// Extract the path parameters and include them in the payload
-	for _, param := range c.Params {
-		payloadData[param.Key] = param.Value
-	}
-
-	// Extract the query parameters and include them in the payload
-	for key, values := range c.Request.URL.Query() {
-		if len(values) > 0 {
-			payloadData[key] = values[0]
 		}
 	}
 
