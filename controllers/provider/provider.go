@@ -291,7 +291,15 @@ func (ctrl *ProviderController) FulfillOrder(ctx *gin.Context) {
 		return
 	}
 
-	updateLockOrder := storage.Client.LockPaymentOrder.UpdateOneID(orderID)
+	updateLockOrder := storage.Client.LockPaymentOrder.
+		Update().
+		Where(
+			lockpaymentorder.IDEQ(orderID),
+			lockpaymentorder.Or(
+				lockpaymentorder.StatusEQ(lockpaymentorder.StatusProcessing),
+				lockpaymentorder.StatusEQ(lockpaymentorder.StatusFulfilled),
+			),
+		)
 
 	// Query or create lock order fulfillment
 	fulfillment, err := storage.Client.LockOrderFulfillment.
@@ -338,61 +346,46 @@ func (ctrl *ProviderController) FulfillOrder(ctx *gin.Context) {
 	}
 
 	if payload.ValidationStatus == lockorderfulfillment.ValidationStatusSuccess {
-		exists, err := storage.Client.LockPaymentOrder.
-			Query().
-			Where(
-				lockpaymentorder.IDEQ(orderID),
-				lockpaymentorder.StatusEQ(lockpaymentorder.StatusSettled),
-			).
-			Exist(ctx)
+		_, err := fulfillment.Update().
+			SetValidationStatus(lockorderfulfillment.ValidationStatusSuccess).
+			Save(ctx)
 		if err != nil {
 			logger.Errorf("error: %v", err)
 			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update lock order status", nil)
 			return
 		}
 
-		if !exists {
-			_, err := fulfillment.Update().
-				SetValidationStatus(lockorderfulfillment.ValidationStatusSuccess).
-				Save(ctx)
-			if err != nil {
-				logger.Errorf("error: %v", err)
-				u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update lock order status", nil)
-				return
-			}
+		transactionLog, err := storage.Client.TransactionLog.Create().
+			SetStatus(transactionlog.StatusOrderValidated).
+			SetNetwork(fulfillment.Edges.Order.Edges.Token.Edges.Network.Identifier).
+			SetMetadata(map[string]interface{}{
+				"TransactionID": payload.TxID,
+			}).
+			Save(ctx)
+		if err != nil {
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update lock order status", nil)
+			return
+		}
 
-			transactionLog, err := storage.Client.TransactionLog.Create().
-				SetStatus(transactionlog.StatusOrderValidated).
-				SetNetwork(fulfillment.Edges.Order.Edges.Token.Edges.Network.Identifier).
-				SetMetadata(map[string]interface{}{
-					"TransactionID": payload.TxID,
-				}).
-				Save(ctx)
-			if err != nil {
-				logger.Errorf("error: %v", err)
-				u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update lock order status", nil)
-				return
-			}
+		_, err = updateLockOrder.
+			SetStatus(lockpaymentorder.StatusValidated).
+			AddTransactions(transactionLog).
+			Save(ctx)
+		if err != nil {
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update lock order status", nil)
+			return
+		}
 
-			_, err = updateLockOrder.
-				SetStatus(lockpaymentorder.StatusValidated).
-				AddTransactions(transactionLog).
-				Save(ctx)
-			if err != nil {
-				logger.Errorf("error: %v", err)
-				u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update lock order status", nil)
-				return
-			}
-
-			// Settle order or fail silently
-			if strings.HasPrefix(fulfillment.Edges.Order.Edges.Token.Edges.Network.Identifier, "tron") {
-				err = orderService.NewOrderTron().SettleOrder(ctx, nil, orderID)
-			} else {
-				err = orderService.NewOrderEVM().SettleOrder(ctx, nil, orderID)
-			}
-			if err != nil {
-				logger.Errorf("FulfillOrder.SettleOrder: %v", err)
-			}
+		// Settle order or fail silently
+		if strings.HasPrefix(fulfillment.Edges.Order.Edges.Token.Edges.Network.Identifier, "tron") {
+			err = orderService.NewOrderTron().SettleOrder(ctx, nil, orderID)
+		} else {
+			err = orderService.NewOrderEVM().SettleOrder(ctx, nil, orderID)
+		}
+		if err != nil {
+			logger.Errorf("FulfillOrder.SettleOrder: %v", err)
 		}
 
 	} else if payload.ValidationStatus == lockorderfulfillment.ValidationStatusFailed {
