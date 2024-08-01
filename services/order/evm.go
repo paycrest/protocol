@@ -250,6 +250,7 @@ func (s *OrderEVM) RevertOrder(ctx context.Context, client types.RPCClient, orde
 			tq.WithNetwork()
 		}).
 		WithReceiveAddress().
+		WithSenderProfile().
 		Only(ctx)
 	if err != nil {
 		return fmt.Errorf("%s - RevertOrder.fetchOrder: %w", orderIDPrefix, err)
@@ -299,8 +300,36 @@ func (s *OrderEVM) RevertOrder(ctx context.Context, client types.RPCClient, orde
 		return fmt.Errorf("%s - RevertOrder.InitializeUserOperation: %w", orderIDPrefix, err)
 	}
 
+	// Check if token is configured for sender
+	isTokenConfigured := true
+	token, err := db.Client.SenderOrderToken.
+		Query().
+		Where(
+			senderordertoken.And(
+				senderordertoken.HasTokenWith(tokenEnt.IDEQ(order.Edges.Token.ID)),
+				senderordertoken.HasSenderWith(
+					senderprofile.IDEQ(order.Edges.SenderProfile.ID),
+				),
+			)).
+		Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			isTokenConfigured = false
+		} else {
+			return fmt.Errorf("%s - RevertOrder.FetchReturnAddress: %w", orderIDPrefix, err)
+		}
+	}
+
+	var returnAddress common.Address
+
+	if isTokenConfigured {
+		returnAddress = common.HexToAddress(token.RefundAddress)
+	} else {
+		returnAddress = common.HexToAddress(order.ReturnAddress)
+	}
+
 	// Create calldata
-	calldata, err := s.executeBatchTransferCallData(order, common.HexToAddress(order.ReturnAddress), amountMinusFeeBigInt)
+	calldata, err := s.executeBatchTransferCallData(order, returnAddress, amountMinusFeeBigInt)
 	if err != nil {
 		return fmt.Errorf("RevertOrder.executeBatchTransferCallData: %w", err)
 	}
