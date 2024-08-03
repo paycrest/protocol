@@ -314,6 +314,7 @@ func (s *OrderTron) RevertOrder(ctx context.Context, client types.RPCClient, ord
 			tq.WithNetwork()
 		}).
 		WithReceiveAddress().
+		WithSenderProfile().
 		Only(ctx)
 	if err != nil {
 		return fmt.Errorf("%s - Tron.RevertOrder.fetchOrder: %w", orderIDPrefix, err)
@@ -371,12 +372,44 @@ func (s *OrderTron) RevertOrder(ctx context.Context, client types.RPCClient, ord
 		time.Sleep(5 * time.Second) // wait for wallet to be pre-funded with gas
 	}
 
+	// Fetch token configuration
+	isTokenConfigured := true
+	orderToken, err := db.Client.SenderOrderToken.
+		Query().
+		Where(
+			senderordertoken.And(
+				senderordertoken.HasTokenWith(tokenEnt.IDEQ(order.Edges.Token.ID)),
+				senderordertoken.HasSenderWith(
+					senderprofile.IDEQ(order.Edges.SenderProfile.ID),
+				),
+			)).
+		Only(context.Background())
+	if err != nil {
+		if ent.IsNotFound(err) {
+			isTokenConfigured = false
+		} else {
+			return fmt.Errorf("%s - Tron.RevertOrder.FetchReturnAddress: %w", orderIDPrefix, err)
+		}
+	}
+
+	// Check if token is configured for sender
+	var refundAddress string
+	var refundAddressTron util.Address
+
+	if isTokenConfigured {
+		refundAddressTron, _ = util.Base58ToAddress(orderToken.RefundAddress)
+		refundAddress = refundAddressTron.Hex()[4:]
+	} else {
+		refundAddressTron, _ = util.Base58ToAddress(order.ReturnAddress)
+		refundAddress = refundAddressTron.Hex()[4:]
+	}
+
 	// Transfer TRC20 token
 	token := &tronWallet.Token{
 		ContractAddress: enums.ContractAddress(order.Edges.Token.ContractAddress),
 	}
 
-	txHash, err := wallet.TransferTRC20(token, order.ReturnAddress, amountMinusFeeBigInt.Int64(), 50000000)
+	txHash, err := wallet.TransferTRC20(token, refundAddress, amountMinusFeeBigInt.Int64(), 50000000)
 	if err != nil {
 		return fmt.Errorf("%s - Tron.RevertOrder.TransferTRC20: %w", orderIDPrefix, err)
 	}
