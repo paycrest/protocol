@@ -256,8 +256,12 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 		}
 	}
 
-	senderFee := feePerTokenUnit.Mul(payload.Amount).Div(payload.Rate).Round(int32(token.Decimals))
+	senderFee := decimal.NewFromFloat(0)
 	protocolFee := decimal.NewFromFloat(0)
+
+	if !strings.HasPrefix(payload.Recipient.Memo, "P#P") {
+		senderFee = feePerTokenUnit.Mul(payload.Amount).Div(payload.Rate).Round(int32(token.Decimals))
+	}
 
 	// Create transaction Log
 	transactionLog, err := tx.TransactionLog.
