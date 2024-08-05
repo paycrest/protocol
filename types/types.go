@@ -96,10 +96,10 @@ type OrderRefundedEvent struct {
 
 // OrderService provides an interface for the OrderService
 type OrderService interface {
-	CreateOrder(ctx context.Context, orderID uuid.UUID) error
-	RefundOrder(ctx context.Context, orderID string) error
-	RevertOrder(ctx context.Context, order *ent.PaymentOrder) error
-	SettleOrder(ctx context.Context, orderID uuid.UUID) error
+	CreateOrder(ctx context.Context, client RPCClient, orderID uuid.UUID) error
+	RefundOrder(ctx context.Context, client RPCClient, orderID string) error
+	RevertOrder(ctx context.Context, client RPCClient, order *ent.PaymentOrder) error
+	SettleOrder(ctx context.Context, client RPCClient, orderID uuid.UUID) error
 }
 
 // CreateOrderParams is the parameters for the create order payload
@@ -320,6 +320,7 @@ type ERC20Transfer struct {
 type LockPaymentOrderFields struct {
 	ID                uuid.UUID
 	Token             *ent.Token
+	Network           *ent.Network
 	GatewayID         string
 	Amount            decimal.Decimal
 	Rate              decimal.Decimal
@@ -396,8 +397,9 @@ type PaymentOrderRecipient struct {
 	Institution       string `json:"institution" binding:"required"`
 	AccountIdentifier string `json:"accountIdentifier" binding:"required"`
 	AccountName       string `json:"accountName" binding:"required"`
-	ProviderID        string `json:"providerId"`
 	Memo              string `json:"memo" binding:"required"`
+	ProviderID        string `json:"providerId"`
+	Currency          string `json:"currency"`
 }
 
 // NewPaymentOrderPayload is the payload for the create payment order endpoint
@@ -489,6 +491,7 @@ type SendEmailPayload struct {
 	Subject     string
 	Body        string
 	HTMLBody    string
+	DynamicData map[string]interface{}
 }
 
 // SendEmailResponse is the response for a sent email

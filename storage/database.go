@@ -2,33 +2,58 @@ package storage
 
 import (
 	"context"
+	"database/sql"
 	"log"
+	"time"
 
 	"entgo.io/ent/dialect"
+	entsql "entgo.io/ent/dialect/sql"
 	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/migrate"
 	_ "github.com/paycrest/protocol/ent/runtime" // ent runtime
 
-	_ "github.com/lib/pq" // postgres driver
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 var (
 	// Client holds the database connection
 	Client *ent.Client
+	// DB holds the database connection
+	DB *sql.DB
 	// Err holds database connection error
 	Err error
 )
 
 // DBConnection create database connection
 func DBConnection(DSN string) error {
-	// Create an ent.Client for postgresql database.
-	client, err := ent.Open(dialect.Postgres, DSN)
+	var db *sql.DB
+	var err error
+	for i := 0; i < 3; i++ { // Retry mechanism
+		db, err = sql.Open("pgx", DSN)
+		if err == nil {
+			break
+		}
+		time.Sleep(2 * time.Second) // Wait before retrying
+	}
+
 	if err != nil {
 		Err = err
 		log.Println("Database connection error")
 		return err
 	}
+
+	db.SetMaxIdleConns(10)
+	db.SetMaxOpenConns(100)
+	db.SetConnMaxLifetime(2 * time.Minute)
+
+	DB = db
+
+	// Create an ent.Driver from `db`.
+	drv := entsql.OpenDB(dialect.Postgres, db)
+
+	// Integrate sql.DB to ent.Client.
+	client := ent.NewClient(ent.Driver(drv))
 
 	conf := config.ServerConfig()
 

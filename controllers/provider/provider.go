@@ -291,7 +291,15 @@ func (ctrl *ProviderController) FulfillOrder(ctx *gin.Context) {
 		return
 	}
 
-	updateLockOrder := storage.Client.LockPaymentOrder.UpdateOneID(orderID)
+	updateLockOrder := storage.Client.LockPaymentOrder.
+		Update().
+		Where(
+			lockpaymentorder.IDEQ(orderID),
+			lockpaymentorder.Or(
+				lockpaymentorder.StatusEQ(lockpaymentorder.StatusProcessing),
+				lockpaymentorder.StatusEQ(lockpaymentorder.StatusFulfilled),
+			),
+		)
 
 	// Query or create lock order fulfillment
 	fulfillment, err := storage.Client.LockOrderFulfillment.
@@ -372,9 +380,9 @@ func (ctrl *ProviderController) FulfillOrder(ctx *gin.Context) {
 
 		// Settle order or fail silently
 		if strings.HasPrefix(fulfillment.Edges.Order.Edges.Token.Edges.Network.Identifier, "tron") {
-			err = orderService.NewOrderTron().SettleOrder(ctx, orderID)
+			err = orderService.NewOrderTron().SettleOrder(ctx, nil, orderID)
 		} else {
-			err = orderService.NewOrderEVM().SettleOrder(ctx, orderID)
+			err = orderService.NewOrderEVM().SettleOrder(ctx, nil, orderID)
 		}
 		if err != nil {
 			logger.Errorf("FulfillOrder.SettleOrder: %v", err)
@@ -506,9 +514,9 @@ func (ctrl *ProviderController) CancelOrder(ctx *gin.Context) {
 	// and the order has not been refunded, then trigger refund
 	if order.CancellationCount >= orderConf.RefundCancellationCount && order.Status == lockpaymentorder.StatusCancelled {
 		if strings.HasPrefix(order.Edges.Token.Edges.Network.Identifier, "tron") {
-			err = orderService.NewOrderTron().RefundOrder(ctx, order.GatewayID)
+			err = orderService.NewOrderTron().RefundOrder(ctx, nil, order.GatewayID)
 		} else {
-			err = orderService.NewOrderEVM().RefundOrder(ctx, order.GatewayID)
+			err = orderService.NewOrderEVM().RefundOrder(ctx, nil, order.GatewayID)
 		}
 		if err != nil {
 			logger.Errorf("CancelOrder.RefundOrder(%v): %v", orderID, err)
@@ -544,6 +552,7 @@ func (ctrl *ProviderController) GetMarketRate(ctx *gin.Context) {
 		u.APIResponse(ctx, http.StatusBadRequest, "error", "Token is not supported", nil)
 		return
 	}
+	// TODO: use token to get the token rate for that currency based on the USD/Token Ratio USD/USDC can be 1.005 and USD/USD can be 0.9995
 
 	currency, err := storage.Client.FiatCurrency.
 		Query().
@@ -649,11 +658,9 @@ func (ctrl *ProviderController) NodeInfo(ctx *gin.Context) {
 		return
 	}
 
-	// TODO: Get approval to install github.com/go-ping/ping to replace Get request
 	res, err := fastshot.NewClient(provider.HostIdentifier).
 		Config().SetTimeout(30 * time.Second).
 		Build().GET("/health").
-		// Retry().Set(3, 5*time.Second).  // #329 - Remove retries for /provider/node-info endpoint
 		Send()
 	if err != nil {
 		logger.Errorf("error: %v", err)

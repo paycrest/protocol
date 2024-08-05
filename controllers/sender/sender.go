@@ -10,6 +10,7 @@ import (
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/storage"
 
+	"github.com/paycrest/protocol/ent/institution"
 	"github.com/paycrest/protocol/ent/network"
 	"github.com/paycrest/protocol/ent/paymentorder"
 	providerprofile "github.com/paycrest/protocol/ent/providerprofile"
@@ -255,8 +256,12 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 		}
 	}
 
-	senderFee := feePerTokenUnit.Mul(payload.Amount).Div(payload.Rate).Round(int32(token.Decimals))
+	senderFee := decimal.NewFromFloat(0)
 	protocolFee := decimal.NewFromFloat(0)
+
+	if !strings.HasPrefix(payload.Recipient.Memo, "P#P") {
+		senderFee = feePerTokenUnit.Mul(payload.Amount).Div(payload.Rate).Round(int32(token.Decimals))
+	}
 
 	// Create transaction Log
 	transactionLog, err := tx.TransactionLog.
@@ -394,6 +399,17 @@ func (ctrl *SenderController) GetPaymentOrderByID(ctx *gin.Context) {
 
 	}
 
+	institution, err := storage.Client.Institution.
+		Query().
+		Where(institution.CodeEQ(paymentOrder.Edges.Recipient.Institution)).
+		WithFiatCurrency().
+		Only(ctx)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch payment order", nil)
+		return
+	}
+
 	u.APIResponse(ctx, http.StatusOK, "success", "The order has been successfully retrieved", &types.PaymentOrderResponse{
 		ID:             paymentOrder.ID,
 		Amount:         paymentOrder.Amount,
@@ -405,7 +421,8 @@ func (ctrl *SenderController) GetPaymentOrderByID(ctx *gin.Context) {
 		Rate:           paymentOrder.Rate,
 		Network:        paymentOrder.Edges.Token.Edges.Network.Identifier,
 		Recipient: types.PaymentOrderRecipient{
-			Institution:       paymentOrder.Edges.Recipient.Institution,
+			Currency:          institution.Edges.FiatCurrency.Code,
+			Institution:       institution.Name,
 			AccountIdentifier: paymentOrder.Edges.Recipient.AccountIdentifier,
 			AccountName:       paymentOrder.Edges.Recipient.AccountName,
 			ProviderID:        paymentOrder.Edges.Recipient.ProviderID,
@@ -549,6 +566,17 @@ func (ctrl *SenderController) GetPaymentOrders(ctx *gin.Context) {
 	var orders []types.PaymentOrderResponse
 
 	for _, paymentOrder := range paymentOrders {
+		institution, err := storage.Client.Institution.
+			Query().
+			Where(institution.CodeEQ(paymentOrder.Edges.Recipient.Institution)).
+			WithFiatCurrency().
+			Only(ctx)
+		if err != nil {
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch payment orders", nil)
+			return
+		}
+
 		orders = append(orders, types.PaymentOrderResponse{
 			ID:             paymentOrder.ID,
 			Amount:         paymentOrder.Amount,
@@ -560,7 +588,8 @@ func (ctrl *SenderController) GetPaymentOrders(ctx *gin.Context) {
 			Rate:           paymentOrder.Rate,
 			Network:        paymentOrder.Edges.Token.Edges.Network.Identifier,
 			Recipient: types.PaymentOrderRecipient{
-				Institution:       paymentOrder.Edges.Recipient.Institution,
+				Currency:          institution.Edges.FiatCurrency.Code,
+				Institution:       institution.Name,
 				AccountIdentifier: paymentOrder.Edges.Recipient.AccountIdentifier,
 				AccountName:       paymentOrder.Edges.Recipient.AccountName,
 				ProviderID:        paymentOrder.Edges.Recipient.ProviderID,

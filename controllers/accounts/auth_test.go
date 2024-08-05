@@ -269,6 +269,29 @@ func TestAuth(t *testing.T) {
 			assert.NotNil(t, user)
 			assert.NotNil(t, user.Edges.ProviderProfile.Edges.APIKey)
 			assert.Nil(t, user.Edges.SenderProfile)
+
+			t.Run("test unsupported fiat", func(t *testing.T) {
+				// Test register with valid payload
+				payload := types.RegisterPayload{
+					FirstName:   "john",
+					LastName:    "doe",
+					Email:       "john@example.com",
+					Password:    "password",
+					TradingName: "Asian LP",
+					Currency:    "GHS",
+					Scopes:      []string{"provider"},
+				}
+
+				headers := map[string]string{
+					"Client-Type": "mobile",
+				}
+
+				res, err := test.PerformRequest(t, "POST", "/register", payload, headers, router)
+				assert.NoError(t, err)
+
+				// Assert the response body
+				assert.Equal(t, http.StatusInternalServerError, res.Code)
+			})
 		})
 		t.Run("from the provider app", func(t *testing.T) {
 			// Test register with valid payload

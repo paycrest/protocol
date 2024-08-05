@@ -190,6 +190,7 @@ func CreateSmartAddress(ctx context.Context, client types.RPCClient) (*ent.Recei
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate address: %w", err)
 	}
+	
 	// Deploy smart account
 	createTx, err := factoryInstance.CreateAccount(auth, *ownerAddress, salt)
 	if err != nil {
@@ -203,7 +204,6 @@ func CreateSmartAddress(ctx context.Context, client types.RPCClient) (*ent.Recei
 	if err != nil {
 		return nil, fmt.Errorf("failed to encrypt salt: %w", err)
 	}
-
 	// Save address in db
 	receiveAddress, err := db.Client.ReceiveAddress.
 		Create().

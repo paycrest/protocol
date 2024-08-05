@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"testing"
 	"time"
 
@@ -48,6 +49,7 @@ func setup() error {
 	if err != nil {
 		return err
 	}
+	time.Sleep(time.Duration(time.Duration(rand.Intn(5)) * time.Second))
 
 	receiveAddress, err := test.CreateSmartAddress(
 		context.Background(), client)
@@ -55,6 +57,8 @@ func setup() error {
 		return fmt.Errorf("CreateSmartAddress.setup.indexer_test: %w", err)
 	}
 	testCtx.receiveAddress = receiveAddress
+
+	time.Sleep(time.Duration(time.Duration(rand.Intn(10)) * time.Second))
 
 	// Create a test api key
 	user, err := test.CreateTestUser(nil)
@@ -252,7 +256,7 @@ func IndexERC20Transfer(ctx context.Context, client types.RPCClient, receiveAddr
 			To:          iter.Event.To.Hex(),
 			Value:       iter.Event.Value,
 		}
-		ok, err := testCtx.indexer.UpdateReceiveAddressStatus(ctx, receiveAddress, order, transferEvent)
+		ok, err := testCtx.indexer.UpdateReceiveAddressStatus(ctx, client, receiveAddress, order, transferEvent)
 		if err != nil {
 			return fmt.Errorf("IndexERC20Transfer.UpdateReceiveAddressStatus: %w", err)
 		}

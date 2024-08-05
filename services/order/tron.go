@@ -65,7 +65,7 @@ func (s *OrderTron) getNode() enums.Node {
 }
 
 // CreateOrder creates a new payment order on-chain.
-func (s *OrderTron) CreateOrder(ctx context.Context, orderID uuid.UUID) error {
+func (s *OrderTron) CreateOrder(ctx context.Context, client types.RPCClient, orderID uuid.UUID) error {
 	var err error
 	orderIDPrefix := strings.Split(orderID.String(), "-")[0]
 
@@ -106,8 +106,8 @@ func (s *OrderTron) CreateOrder(ctx context.Context, orderID uuid.UUID) error {
 		balance = 0
 	}
 
-	if balance < 150000000 {
-		_, err = masterWallet.Transfer(wallet.AddressBase58, 150000000)
+	if balance < 160000000 {
+		_, err = masterWallet.Transfer(wallet.AddressBase58, 160000000)
 		if err != nil {
 			return fmt.Errorf("%s - Tron.CreateOrder.Transfer: %w", orderIDPrefix, err)
 		}
@@ -145,6 +145,8 @@ func (s *OrderTron) CreateOrder(ctx context.Context, orderID uuid.UUID) error {
 	if err != nil {
 		return fmt.Errorf("%s - Tron.CreateOrder.sendTransaction: %w", orderIDPrefix, err)
 	}
+
+	time.Sleep(5 * time.Second)
 
 	// Create order in gateway contract
 	calldata, err = s.createOrderCallData(order)
@@ -204,7 +206,7 @@ func (s *OrderTron) CreateOrder(ctx context.Context, orderID uuid.UUID) error {
 }
 
 // RefundOrder refunds sender on canceled lock order
-func (s *OrderTron) RefundOrder(ctx context.Context, orderID string) error {
+func (s *OrderTron) RefundOrder(ctx context.Context, client types.RPCClient, orderID string) error {
 	orderIDPrefix := strings.Split(orderID, "-")[0]
 
 	// Fetch lock order from db
@@ -241,24 +243,16 @@ func (s *OrderTron) RefundOrder(ctx context.Context, orderID string) error {
 		return fmt.Errorf("%s - Tron.RefundOrder.Base58ToAddress: %w", orderIDPrefix, err)
 	}
 
-	// Approve gateway contract to spend token
-	sourceOrder, err := db.Client.PaymentOrder.
-		Query().
-		Where(paymentorder.GatewayIDEQ(lockOrder.GatewayID)).
-		WithToken(func(tq *ent.TokenQuery) {
-			tq.WithNetwork()
-		}).
-		Only(context.Background())
+	// Fetch onchain order details
+	orderInfo, err := s.getOrderInfo(gatewayContractAddress, lockOrder.GatewayID)
 	if err != nil {
-		return fmt.Errorf("Tron.RefundOrder.fetchPaymentOrder: %w", err)
+		return fmt.Errorf("%s - Tron.RefundOrder.GetOrderInfo: %w", orderIDPrefix, err)
 	}
 
+	// Approve gateway contract to spend token
 	calldata, err := s.approveCallData(
 		gatewayContractAddress,
-		utils.ToSubunit(
-			lockOrder.Amount.Add(sourceOrder.SenderFee).Add(sourceOrder.ProtocolFee),
-			lockOrder.Edges.Token.Decimals,
-		),
+		orderInfo.Amount,
 	)
 	if err != nil {
 		return fmt.Errorf("%s - Tron.RefundOrder.approveCallData: %w", orderIDPrefix, err)
@@ -269,10 +263,12 @@ func (s *OrderTron) RefundOrder(ctx context.Context, orderID string) error {
 		ContractAddress: tokenContractAddress.Bytes(),
 		Data:            calldata,
 	}
-	_, err = s.sendTransaction(wallet, ct, 50000000)
+	_, err = s.sendTransaction(wallet, ct, 30000000)
 	if err != nil {
 		return fmt.Errorf("%s - Tron.RefundOrder.sendTransaction: %w", orderIDPrefix, err)
 	}
+
+	time.Sleep(5 * time.Second)
 
 	// Refund order in gateway contract
 	fee := utils.ToSubunit(decimal.NewFromInt(0), lockOrder.Edges.Token.Decimals)
@@ -286,16 +282,24 @@ func (s *OrderTron) RefundOrder(ctx context.Context, orderID string) error {
 		ContractAddress: gatewayContractAddress.Bytes(),
 		Data:            calldata,
 	}
-	_, err = s.sendTransaction(wallet, ct, 50000000)
+	txHash, err := s.sendTransaction(wallet, ct, 50000000)
 	if err != nil {
 		return fmt.Errorf("%s - Tron.RefundOrder.sendTransaction: %w", orderIDPrefix, err)
+	}
+
+	// Update lock order
+	_, err = lockOrder.Update().
+		SetTxHash(txHash).
+		Save(ctx)
+	if err != nil {
+		return fmt.Errorf("%s - Tron.RefundOrder.updateTxHash: %w", orderIDPrefix, err)
 	}
 
 	return nil
 }
 
 // RevertOrder reverts an initiated payment order on-chain.
-func (s *OrderTron) RevertOrder(ctx context.Context, order *ent.PaymentOrder) error {
+func (s *OrderTron) RevertOrder(ctx context.Context, client types.RPCClient, order *ent.PaymentOrder) error {
 	if !order.AmountReturned.Equal(decimal.Zero) || strings.HasPrefix(order.Edges.Recipient.Memo, "P#P") {
 		return nil
 	}
@@ -310,6 +314,7 @@ func (s *OrderTron) RevertOrder(ctx context.Context, order *ent.PaymentOrder) er
 			tq.WithNetwork()
 		}).
 		WithReceiveAddress().
+		WithSenderProfile().
 		Only(ctx)
 	if err != nil {
 		return fmt.Errorf("%s - Tron.RevertOrder.fetchOrder: %w", orderIDPrefix, err)
@@ -367,12 +372,44 @@ func (s *OrderTron) RevertOrder(ctx context.Context, order *ent.PaymentOrder) er
 		time.Sleep(5 * time.Second) // wait for wallet to be pre-funded with gas
 	}
 
+	// Fetch token configuration
+	isTokenConfigured := true
+	orderToken, err := db.Client.SenderOrderToken.
+		Query().
+		Where(
+			senderordertoken.And(
+				senderordertoken.HasTokenWith(tokenEnt.IDEQ(order.Edges.Token.ID)),
+				senderordertoken.HasSenderWith(
+					senderprofile.IDEQ(order.Edges.SenderProfile.ID),
+				),
+			)).
+		Only(context.Background())
+	if err != nil {
+		if ent.IsNotFound(err) {
+			isTokenConfigured = false
+		} else {
+			return fmt.Errorf("%s - Tron.RevertOrder.FetchReturnAddress: %w", orderIDPrefix, err)
+		}
+	}
+
+	// Check if token is configured for sender
+	var refundAddress string
+	var refundAddressTron util.Address
+
+	if isTokenConfigured {
+		refundAddressTron, _ = util.Base58ToAddress(orderToken.RefundAddress)
+		refundAddress = refundAddressTron.Hex()[4:]
+	} else {
+		refundAddressTron, _ = util.Base58ToAddress(order.ReturnAddress)
+		refundAddress = refundAddressTron.Hex()[4:]
+	}
+
 	// Transfer TRC20 token
 	token := &tronWallet.Token{
 		ContractAddress: enums.ContractAddress(order.Edges.Token.ContractAddress),
 	}
 
-	txHash, err := wallet.TransferTRC20(token, order.ReturnAddress, amountMinusFeeBigInt.Int64(), 50000000)
+	txHash, err := wallet.TransferTRC20(token, refundAddress, amountMinusFeeBigInt.Int64(), 50000000)
 	if err != nil {
 		return fmt.Errorf("%s - Tron.RevertOrder.TransferTRC20: %w", orderIDPrefix, err)
 	}
@@ -398,7 +435,7 @@ func (s *OrderTron) RevertOrder(ctx context.Context, order *ent.PaymentOrder) er
 }
 
 // SettleOrder settles a payment order on-chain.
-func (s *OrderTron) SettleOrder(ctx context.Context, orderID uuid.UUID) error {
+func (s *OrderTron) SettleOrder(ctx context.Context, client types.RPCClient, orderID uuid.UUID) error {
 	var err error
 
 	orderIDPrefix := strings.Split(orderID.String(), "-")[0]
@@ -458,10 +495,12 @@ func (s *OrderTron) SettleOrder(ctx context.Context, orderID uuid.UUID) error {
 		ContractAddress: tokenContractAddress.Bytes(),
 		Data:            calldata,
 	}
-	_, err = s.sendTransaction(wallet, ct, 50000000)
+	_, err = s.sendTransaction(wallet, ct, 30000000)
 	if err != nil {
 		return fmt.Errorf("%s - Tron.SettleOrder.sendTransaction: %w", orderIDPrefix, err)
 	}
+
+	time.Sleep(5 * time.Second)
 
 	// Settle order in gateway contract
 	calldata, err = s.settleCallData(ctx, order)
@@ -474,9 +513,17 @@ func (s *OrderTron) SettleOrder(ctx context.Context, orderID uuid.UUID) error {
 		ContractAddress: gatewayContractAddress.Bytes(),
 		Data:            calldata,
 	}
-	_, err = s.sendTransaction(wallet, ct, 50000000)
+	txHash, err := s.sendTransaction(wallet, ct, 60000000)
 	if err != nil {
 		return fmt.Errorf("%s - Tron.SettleOrder.sendTransaction: %w", orderIDPrefix, err)
+	}
+
+	// Update lock order
+	_, err = order.Update().
+		SetTxHash(txHash).
+		Save(ctx)
+	if err != nil {
+		return fmt.Errorf("%s - Tron.SettleOrder.updateTxHash: %w", orderIDPrefix, err)
 	}
 
 	return nil
@@ -613,6 +660,63 @@ func (s *OrderTron) refundCallData(fee *big.Int, orderId string) ([]byte, error)
 	}
 
 	return data, nil
+}
+
+// getOrderInfo gets the order info onchain
+func (s *OrderTron) getOrderInfo(gatewayContractAddress util.Address, gatewayId string) (*contracts.IGatewayOrder, error) {
+	gatewayABI, err := abi.JSON(strings.NewReader(contracts.GatewayMetaData.ABI))
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse GatewayOrder ABI: %w", err)
+	}
+
+	orderID, err := hex.DecodeString(gatewayId[2:])
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode orderID: %w", err)
+	}
+
+	calldata, err := gatewayABI.Pack("getOrderInfo", utils.StringToByte32(string(orderID)))
+	if err != nil {
+		return nil, fmt.Errorf("failed to pack calldata: %w", err)
+	}
+
+	tx, err := s.callMethod(&core.TriggerSmartContract{
+		ContractAddress: gatewayContractAddress.Bytes(),
+		Data:            calldata,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to call method: %w", err)
+	}
+
+	result, err := gatewayABI.Unpack("getOrderInfo", tx.GetConstantResult()[0])
+	if err != nil {
+		return nil, fmt.Errorf("failed to get order info: %w", err)
+	}
+
+	resultData := result[0].(struct {
+		Sender             common.Address "json:\"sender\""
+		Token              common.Address "json:\"token\""
+		SenderFeeRecipient common.Address "json:\"senderFeeRecipient\""
+		SenderFee          *big.Int       "json:\"senderFee\""
+		ProtocolFee        *big.Int       "json:\"protocolFee\""
+		IsFulfilled        bool           "json:\"isFulfilled\""
+		IsRefunded         bool           "json:\"isRefunded\""
+		RefundAddress      common.Address "json:\"refundAddress\""
+		CurrentBPS         *big.Int       "json:\"currentBPS\""
+		Amount             *big.Int       "json:\"amount\""
+	})
+
+	return &contracts.IGatewayOrder{
+		Sender:             resultData.Sender,
+		Token:              resultData.Token,
+		SenderFeeRecipient: resultData.SenderFeeRecipient,
+		SenderFee:          resultData.SenderFee,
+		ProtocolFee:        resultData.ProtocolFee,
+		IsFulfilled:        resultData.IsFulfilled,
+		IsRefunded:         resultData.IsRefunded,
+		RefundAddress:      resultData.RefundAddress,
+		CurrentBPS:         resultData.CurrentBPS,
+		Amount:             resultData.Amount,
+	}, nil
 }
 
 // settleCallData creates the data for the settle method in the gateway contract

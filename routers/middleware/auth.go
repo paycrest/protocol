@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"reflect"
+	"strconv"
 	"strings"
 	"time"
 
@@ -122,21 +124,50 @@ func HMACVerificationMiddleware(c *gin.Context) {
 		return
 	}
 
-	// Get the request payload
-	payload, err := c.GetRawData()
-	if err != nil {
-		u.APIResponse(c, http.StatusInternalServerError, "error", "Failed to read request payload", err.Error())
-		c.Abort()
-		return
+	var payloadData map[string]interface{}
+	var err error
+
+	// Handle GET and DELETE requests differently
+	if c.Request.Method == "GET" {
+		payloadData = make(map[string]interface{})
+
+		// // Extract the path parameters and include them in the payload
+		// for _, param := range c.Params {
+		// 	payloadData[param.Key] = param.Value
+		// }
+
+		// Extract the query parameters and include them in the payload
+		for key, values := range c.Request.URL.Query() {
+			if len(values) > 0 {
+				payloadData[key] = values[0]
+			}
+		}
+	} else {
+		// For non-GET/DELETE requests, read the payload from the bodydy
+		payload, err := c.GetRawData()
+		if err != nil {
+			u.APIResponse(c, http.StatusInternalServerError, "error", "Failed to read request payload", err.Error())
+			c.Abort()
+			return
+		}
+
+		// Parse the payload to retrieve timestamp
+		err = json.Unmarshal(payload, &payloadData)
+		if err != nil {
+			u.APIResponse(c, http.StatusBadRequest, "error", "Invalid payload format", err.Error())
+			c.Abort()
+			return
+		}
 	}
 
-	// Parse the payload to retrieve timestamp
-	var payloadData map[string]interface{}
-	err = json.Unmarshal(payload, &payloadData)
-	if err != nil {
-		u.APIResponse(c, http.StatusBadRequest, "error", "Invalid payload format", err.Error())
-		c.Abort()
-		return
+	// Convert the timestamp to float64 if it's a string
+	if payloadData["timestamp"] != nil && reflect.TypeOf(payloadData["timestamp"]).String() == "string" {
+		payloadData["timestamp"], err = strconv.ParseFloat(payloadData["timestamp"].(string), 64)
+		if err != nil {
+			u.APIResponse(c, http.StatusUnauthorized, "error", "Missing or invalid timestamp in payload", nil)
+			c.Abort()
+			return
+		}
 	}
 
 	// Get the timestamp from the payload

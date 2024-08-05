@@ -26,10 +26,7 @@ func DBConfig() (DSN string) {
 	DbPort := viper.GetString("DB_PORT")
 	DbSslMode := viper.GetString("SSL_MODE")
 
-	DSN = fmt.Sprintf(
-		"host=%s user=%s password=%s dbname=%s port=%s sslmode=%s",
-		DbHost, DbUser, DbPassword, DbName, DbPort, DbSslMode,
-	)
+	DSN = fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=%s", DbUser, DbPassword, DbHost, DbPort, DbName, DbSslMode)
 
 	return
 }

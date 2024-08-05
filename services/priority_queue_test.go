@@ -1,250 +1,454 @@
 package services
 
 import (
+	"context"
+	"encoding/base64"
+	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"strings"
 	"testing"
+	"time"
+
+	"github.com/jarcoal/httpmock"
+	"github.com/paycrest/protocol/ent"
+	"github.com/paycrest/protocol/ent/enttest"
+	"github.com/paycrest/protocol/ent/lockpaymentorder"
+	"github.com/paycrest/protocol/ent/provisionbucket"
+	db "github.com/paycrest/protocol/storage"
+	"github.com/paycrest/protocol/types"
+	cryptoUtils "github.com/paycrest/protocol/utils/crypto"
+	"github.com/paycrest/protocol/utils/test"
+	tokenUtils "github.com/paycrest/protocol/utils/token"
+	"github.com/redis/go-redis/v9"
+	"github.com/shopspring/decimal"
+	"github.com/stretchr/testify/assert"
 )
 
-func TestProviderVisibilityMode(t *testing.T) {
+var testCtxForPQ = struct {
+	user                     *ent.User
+	providerProfile          *ent.ProviderProfile
+	providerProfileAPIsecret string
 
-	// // Set up test Redis client
-	// redisClient := redis.NewClient(&redis.Options{
-	// 	Addr: "localhost:6379",
-	// })
-	// defer redisClient.Close()
+	privateProviderPrivate *ent.ProviderProfile
+	currency               *ent.FiatCurrency
+	client                 types.RPCClient
+	token                  *ent.Token
+	minAmount              decimal.Decimal
+	maxAmount              decimal.Decimal
+	bucket                 *ent.ProvisionBucket
+}{}
 
-	// // Set up test database client
-	// client := enttest.Open(t, "sqlite3", "file:ent?mode=memory&_fk=1")
-	// defer client.Close()
-	// db.Client = client
+func setupForPQ() error {
+	// Set up test data
+	testCtxForPQ.maxAmount = decimal.NewFromFloat(10000)
+	testCtxForPQ.minAmount = decimal.NewFromFloat(1)
 
-	// // Run the auto migration tool.
-	// err := client.Schema.Create(context.Background(), migrate.WithGlobalUniqueID(true))
-	// assert.NoError(t, err)
+	backend, err := test.SetUpTestBlockchain()
+	if err != nil {
+		return err
+	}
+	token, err := test.CreateERC20Token(backend, map[string]interface{}{})
+	if err != nil {
+		return err
+	}
+	testCtxForPQ.token = token
 
-	// // Seed the database
-	// err = storage.SeedAll()
-	// assert.NoError(t, err)
+	user, err := test.CreateTestUser(map[string]interface{}{
+		"scope": "provider",
+		"email": "providerjohndoe@test.com",
+	})
+	if err != nil {
+		return err
+	}
+	testCtxForPQ.user = user
 
-	// // Initialize Redis
-	// err = storage.InitializeRedis()
-	// assert.NoError(t, err)
+	currency, err := test.CreateTestFiatCurrency(map[string]interface{}{
+		"code":        "KES",
+		"short_name":  "Shilling",
+		"decimals":    2,
+		"symbol":      "KSh",
+		"name":        "Kenyan Shilling",
+		"market_rate": 550.0,
+	})
+	if err != nil {
+		return err
+	}
+	testCtxForPQ.currency = currency
 
-	// // Set up test service
-	// pqService := NewPriorityQueueService()
+	providerProfile, err := test.CreateTestProviderProfile(map[string]interface{}{
+		"user_id":         testCtxForPQ.user.ID,
+		"currency_id":     currency.ID,
+		"host_identifier": "https://example2.com",
+	})
+	if err != nil {
+		return err
+	}
+	apiKeyService := NewAPIKeyService()
+	secret, _, err := apiKeyService.GenerateAPIKey(
+		context.Background(),
+		nil,
+		nil,
+		providerProfile,
+	)
+	if err != nil {
+		return err
+	}
+	testCtxForPQ.providerProfileAPIsecret = secret.Secret
+	_, err = test.AddProviderOrderTokenToProvider(
+		map[string]interface{}{
+			"fixed_conversion_rate":    decimal.NewFromFloat(100),
+			"conversion_rate_type":     "fixed",
+			"floating_conversion_rate": decimal.NewFromFloat(1.0),
+			"max_order_amount":         decimal.NewFromFloat(1000),
+			"min_order_amount":         decimal.NewFromFloat(1.0),
+			"tokenSymbol":              token.Symbol,
+			"provider":                 providerProfile,
+		},
+	)
+	if err != nil {
+		return err
+	}
+	testCtxForPQ.providerProfile = providerProfile
 
-	// // Set up test order
-	// // order := types.LockPaymentOrderFields{
-	// // 	ID: 1,
-	// // 	ProvisionBucket: &types.Provi{
-	// // 		Edges: types.ProvisionBucketEdges{
-	// // 			Currency: &types.Currency{
-	// // 				Code: "USD",
-	// // 			},
-	// // 		},
-	// // 		MinAmount: decimal.NewFromFloat(100),
-	// // 		MaxAmount: decimal.NewFromFloat(1000),
-	// // 	},
-	// // 	Rate:        decimal.NewFromFloat(1.5),
-	// // 	Amount:      decimal.NewFromFloat(500),
-	// // 	Token:       &types.Token{Symbol: "USDT"},
-	// // 	Institution: "Test Institution",
-	// // 	ProviderID:  "",
-	// // }
+	bucket, err := test.CreateTestProvisionBucket(map[string]interface{}{
+		"provider_id": providerProfile.ID,
+		"min_amount":  decimal.NewFromFloat(1),
+		"max_amount":  decimal.NewFromFloat(10000.0),
+		"currency_id": currency.ID,
+	})
+	if err != nil {
+		return err
+	}
+	testCtxForPQ.bucket = bucket
 
-	// // Set up test provider user
-	// ProviderPublic, err := test.CreateTestUser(map[string]string{
-	// 	"scope": "provider",
-	// 	"email": "public@test.com",
-	// })
-	// assert.NoError(t, err)
+	providerPrivate, err := test.CreateTestUser(map[string]interface{}{
+		"scope": "provider",
+		"email": "private@test.com",
+	})
+	if err != nil {
+		return err
+	}
 
-	// providerPrivate, err := test.CreateTestUser(map[string]string{
-	// 	"scope": "provider",
-	// 	"email": "private@test.com",
-	// })
-	// assert.NoError(t, err)
+	privateProviderPrivate, err := test.CreateTestProviderProfile(map[string]interface{}{
+		"currency_id":     currency.ID,
+		"visibility_mode": "private",
+		"user_id":         providerPrivate.ID,
+	})
+	if err != nil {
+		return err
+	}
+	testCtxForPQ.privateProviderPrivate = privateProviderPrivate
 
-	// // Set up test provider currency
-	// currency, err := test.CreateTestFiatCurrency(nil)
-	// assert.NoError(t, err)
+	_, err = test.CreateTestProvisionBucket(map[string]interface{}{
+		"provider_id": privateProviderPrivate.ID,
+		"min_amount":  testCtxForPQ.minAmount,
+		"max_amount":  testCtxForPQ.maxAmount,
+		"currency_id": currency.ID,
+	})
+	if err != nil {
+		return err
+	}
 
-	// publicProviderPrivate, err := test.CreateTestProviderProfile(nil, ProviderPublic, currency)
-	// assert.NoError(t, err)
-	// privateProviderPrivate, err := test.CreateTestProviderProfile(map[string]interface{}{"visibility_mode": "private"}, providerPrivate, currency)
-	// assert.NoError(t, err)
+	// Set up payment order
+	_, err = test.CreateTestLockPaymentOrder(map[string]interface{}{
+		"provider": privateProviderPrivate,
+		"tokenID":  testCtxForPQ.token.ID})
+	if err != nil {
+		return err
+	}
+	_, err = test.CreateTestLockPaymentOrder(map[string]interface{}{
+		"provider": providerProfile,
+		"tokenID":  testCtxForPQ.token.ID,
+	})
+	if err != nil {
+		return err
+	}
 
-	// // Set up payment order
-	// _, err = test.CreateTestLockPaymentOrder(map[string]interface{}{"provider": privateProviderPrivate})
-	// assert.NoError(t, err)
-	// _, err = test.CreateTestLockPaymentOrder(map[string]interface{}{"provider": publicProviderPrivate, "order_id": "order_1234"})
-	// assert.NoError(t, err)
+	return nil
+}
 
-	// t.Run("GetProvidersByBucket", func(t *testing.T) {
-	// 	t.Run("Return only providers with visibility mode public", func(t *testing.T) {
-	// 		buckets, err := pqService.GetProvidersByBucket(context.Background())
-	// 		assert.NoError(t, err)
-	// 		fmt.Printf("!!!buckets >> %v", buckets)
+func TestPriorityQueueTest(t *testing.T) {
+	// Set up test database client
+	client := enttest.Open(t, "sqlite3", "file:ent?mode=memory&_fk=1")
+	defer client.Close()
 
-	// 	})
-	// })
+	redisClient := redis.NewClient(&redis.Options{
+		Addr: "localhost:6379",
+	})
 
-	// service.GetProvidersByBucket(ctx context.Context)
+	defer redisClient.Close()
 
-	// Test case 1: no exclude list, no specified provider, circular queue has a match
-	// err := redisClient.Del(ctx, "bucket_USD_100_1000").Err()
-	// assert.NoError(t, err)
+	db.RedisClient = redisClient
+	{
 
-	// err = redisClient.RPush(ctx, "bucket_USD_100_1000", "p1:1.5", "p2:1.6", "p3:1.4").Err()
-	// assert.NoError(t, err)
+		err := redisClient.FlushAll(context.Background()).Err()
+		assert.NoError(t, err)
+	}
 
-	// err = service.AssignLockPaymentOrder(ctx, order)
-	// assert.NoError(t, err)
+	db.Client = client
 
-	// orderKey := fmt.Sprintf("order_request_%d", order.ID)
-	// orderRequestData, err := redisClient.HGetAll(ctx, orderKey).Result()
-	// assert.NoError(t, err)
+	// Setup test data
+	err := setupForPQ()
+	assert.NoError(t, err)
 
-	// assert.Equal(t, "750", orderRequestData["amount"])
-	// assert.Equal(t, "USDT", orderRequestData["token"])
-	// assert.Equal(t, "Test Institution", orderRequestData["institution"])
-	// assert.Equal(t, "p1", orderRequestData["providerId"])
+	service := NewPriorityQueueService()
+	t.Run("TestGetProvisionBuckets", func(t *testing.T) {
+		buckets, err := service.GetProvisionBuckets(context.Background())
+		assert.NoError(t, err)
+		assert.Greater(t, len(buckets), 0)
+	})
 
-	// Test case 2: no exclude list, no specified provider, circular queue has no match
-	// 	err = redisClient.Del(ctx, "bucket_USD_100_1000").Err()
-	// 	assert.NoError(t, err)
+	t.Run("TestCreatePriorityQueueForBucket", func(t *testing.T) {
+		ctx := context.Background()
+		bucket, err := test.CreateTestProvisionBucket(map[string]interface{}{
+			"provider_id": testCtxForPQ.privateProviderPrivate.ID,
+			"min_amount":  testCtxForPQ.minAmount,
+			"max_amount":  testCtxForPQ.maxAmount,
+			"currency_id": testCtxForPQ.currency.ID,
+		})
+		assert.NoError(t, err)
 
-	// 	err = redisClient.RPush(ctx, "bucket_USD_100_1000", "p1:1.6", "p2:1.7", "p3:1.8").Err()
-	// 	assert.NoError(t, err)
+		_bucket, err := db.Client.ProvisionBucket.
+			Query().
+			Where(provisionbucket.IDEQ(bucket.ID)).
+			WithCurrency().
+			WithProviderProfiles().
+			Only(ctx)
+		assert.NoError(t, err)
 
-	// 	err = service.AssignLockPaymentOrder(ctx, order)
-	// 	assert.NoError(t, err)
+		service.CreatePriorityQueueForBucket(ctx, _bucket)
 
-	// 	orderRequestData, err = redisClient.HGetAll(ctx, orderKey).Result()
-	// 	assert.NoError(t, err)
+		redisKey := fmt.Sprintf("bucket_%s_%s_%s", _bucket.Edges.Currency.Code, testCtxForPQ.minAmount, testCtxForPQ.maxAmount)
 
-	// 	assert.Equal(t, "750", orderRequestData["amount"])
-	// 	assert.Equal(t, "USDT", orderRequestData["token"])
-	// 	assert.Equal(t, "Test Institution", orderRequestData["institution"])
-	// 	assert.Equal(t, "p1", orderRequestData["providerId"])
+		data, err := db.RedisClient.LRange(ctx, redisKey, 0, -1).Result()
+		assert.NoError(t, err)
+		assert.Equal(t, len(data), 1)
+		assert.Contains(t, data[0], testCtxForPQ.privateProviderPrivate.ID)
+	})
 
-	// 	// Test case 3: no exclude list, specified provider has no match
-	// 	err = redisClient.Del(ctx, "bucket_USD_100_1000").Err()
-	// 	assert.NoError(t, err)
+	t.Run("TestProcessBucketQueues", func(t *testing.T) {
+		err = service.ProcessBucketQueues()
+		assert.NoError(t, err)
 
-	// 	err = redisClient.RPush(ctx, "bucket_USD_100_1000", "p1:1.6", "p2:1.7", "p3:1.8").Err()
-	// 	assert.NoError(t, err)
+		redisKey := fmt.Sprintf("bucket_%s_%s_%s", testCtxForPQ.currency.Code, testCtxForPQ.minAmount, testCtxForPQ.maxAmount)
 
-	// 	order.ProviderID = "p4"
+		data, err := db.RedisClient.LRange(context.Background(), redisKey, 0, -1).Result()
+		assert.NoError(t, err)
+		assert.Equal(t, len(data), 1)
+	})
 
-	// 	err = service.AssignLockPaymentOrder(ctx, order)
-	// 	assert.NoError(t, err)
+	t.Run("TestAssignLockPaymentOrder", func(t *testing.T) {
 
-	// 	orderRequestData, err = redisClient.HGetAll(ctx, orderKey).Result()
-	// 	assert.NoError(t, err)
+		bucket, err := test.CreateTestProvisionBucket(map[string]interface{}{
+			"provider_id": testCtxForPQ.privateProviderPrivate.ID,
+			"min_amount":  testCtxForPQ.minAmount,
+			"max_amount":  testCtxForPQ.maxAmount,
+			"currency_id": testCtxForPQ.currency.ID,
+		})
+		assert.NoError(t, err)
+		_order, err := test.CreateTestLockPaymentOrder(map[string]interface{}{
+			"provider": testCtxForPQ.providerProfile,
+			"tokenID":  testCtxForPQ.token.ID,
+		})
+		assert.NoError(t, err)
 
-	// 	assert.Equal(t, "750", orderRequestData["amount"])
-	// 	assert.Equal(t, "USDT", orderRequestData["token"])
-	// 	assert.Equal(t, "Test Institution", orderRequestData["institution"])
-	// 	assert.Equal(t, "p4", orderRequestData["providerId"])
+		_, err = test.AddProvisionBucketToLockPaymentOrder(_order, bucket.ID)
+		assert.NoError(t, err)
 
-	// 	// Test case 4: exclude list, specified provider has no match
-	// 	err = redisClient.Del(ctx, "bucket_USD_100_1000").Err()
-	// 	assert.NoError(t, err)
+		err = db.RedisClient.RPush(context.Background(), fmt.Sprintf("order_exclude_list_%s", _order.ID), testCtxForPQ.providerProfile.ID).Err()
+		assert.NoError(t, err)
 
-	// 	err = redisClient.RPush(ctx, "bucket_USD_100_1000", "p1:1.6", "p2:1.7", "p3:1.8").Err()
-	// 	assert.NoError(t, err)
+		order, err := db.Client.LockPaymentOrder.
+			Query().
+			Where(lockpaymentorder.IDEQ(_order.ID)).
+			WithProvisionBucket(func(pb *ent.ProvisionBucketQuery) {
+				pb.WithCurrency()
+			}).
+			WithToken().
+			Only(context.Background())
 
-	// 	err = redisClient.RPush(ctx, "order_exclude_list_1", "p4").Err()
-	// 	assert.NoError(t, err)
+		assert.NoError(t, err)
 
-	// 	order.ProviderID = "p4"
+		err = service.AssignLockPaymentOrder(context.Background(), types.LockPaymentOrderFields{
+			ID:                order.ID,
+			Token:             testCtxForPQ.token,
+			GatewayID:         order.GatewayID,
+			Amount:            order.Amount,
+			Rate:              order.Rate,
+			BlockNumber:       order.BlockNumber,
+			Institution:       order.Institution,
+			AccountIdentifier: order.AccountIdentifier,
+			AccountName:       order.AccountName,
+			Memo:              order.Memo,
+			ProvisionBucket:   order.Edges.ProvisionBucket,
+		})
+		assert.NoError(t, err)
+	})
 
-	// 	err = service.AssignLockPaymentOrder(ctx, order)
-	// 	assert.NoError(t, err)
+	t.Run("TestGetProviderRate", func(t *testing.T) {
+		rate, err := service.GetProviderRate(context.Background(), testCtxForPQ.providerProfile)
+		assert.NoError(t, err)
+		_rate, ok := rate.Float64()
+		assert.True(t, ok)
+		assert.Equal(t, _rate, float64(100))
+	})
 
-	// 	orderRequestData, err = redisClient.HGetAll(ctx, orderKey).Result()
-	// 	assert.NoError(t, err)
+	t.Run("TestSendOrderRequest", func(t *testing.T) {
+		bucket, err := test.CreateTestProvisionBucket(map[string]interface{}{
+			"provider_id": testCtxForPQ.privateProviderPrivate.ID,
+			"min_amount":  testCtxForPQ.minAmount,
+			"max_amount":  testCtxForPQ.maxAmount,
+			"currency_id": testCtxForPQ.currency.ID,
+		})
+		assert.NoError(t, err)
+		_order, err := test.CreateTestLockPaymentOrder(map[string]interface{}{
+			"provider": testCtxForPQ.providerProfile,
+			"tokenID":  testCtxForPQ.token.ID})
+		assert.NoError(t, err)
 
-	// 	assert.Equal(t, "750", orderRequestData["amount"])
-	// 	assert.Equal(t, "USDT", orderRequestData["token"])
-	// 	assert.Equal(t, "Test Institution", orderRequestData["institution"])
-	// 	assert.Equal(t, "p1", orderRequestData["providerId"])
+		_, err = test.AddProvisionBucketToLockPaymentOrder(_order, bucket.ID)
+		assert.NoError(t, err)
 
-	// 	// Test case 5: exclude list, specified provider has a match
-	// 	err = redisClient.Del(ctx, "bucket_USD_100_1000").Err()
-	// 	assert.NoError(t, err)
+		err = db.RedisClient.RPush(context.Background(), fmt.Sprintf("order_exclude_list_%s", _order.ID), testCtxForPQ.providerProfile.ID).Err()
+		assert.NoError(t, err)
 
-	// 	err = redisClient.RPush(ctx, "bucket_USD_100_1000", "p1:1.5", "p2:1.6", "p3:1.4").Err()
-	// 	assert.NoError(t, err)
+		order, err := db.Client.LockPaymentOrder.
+			Query().
+			Where(lockpaymentorder.IDEQ(_order.ID)).
+			WithProvisionBucket(func(pb *ent.ProvisionBucketQuery) {
+				pb.WithCurrency()
+			}).
+			WithToken().
+			Only(context.Background())
 
-	// 	err = redisClient.RPush(ctx, "order_exclude_list_1", "p2").Err()
-	// 	assert.NoError(t, err)
+		assert.NoError(t, err)
 
-	// 	order.ProviderID = "p2"
+		err = service.sendOrderRequest(context.Background(), types.LockPaymentOrderFields{
+			ID:                order.ID,
+			ProviderID:        testCtxForPQ.providerProfile.ID,
+			Token:             testCtxForPQ.token,
+			GatewayID:         order.GatewayID,
+			Amount:            order.Amount,
+			Rate:              order.Rate,
+			BlockNumber:       order.BlockNumber,
+			Institution:       order.Institution,
+			AccountIdentifier: order.AccountIdentifier,
+			AccountName:       order.AccountName,
+			Memo:              order.Memo,
+			ProvisionBucket:   order.Edges.ProvisionBucket,
+		})
+		assert.NoError(t, err)
+		
+		t.Run("TestNotifyProvider", func(t *testing.T) {
 
-	// 	err = service.AssignLockPaymentOrder(ctx, order)
-	// 	assert.NoError(t, err)
+			// setup httpmock
+			httpmock.Activate()
+			defer httpmock.Deactivate()
 
-	// 	orderRequestData, err = redisClient.HGetAll(ctx, orderKey).Result()
-	// 	assert.NoError(t, err)
+			httpmock.RegisterResponder("POST", testCtxForPQ.providerProfile.HostIdentifier+"/new_order",
+				func(r *http.Request) (*http.Response, error) {
+					bytes, err := io.ReadAll(r.Body)
+					if err != nil {
+						log.Fatal(err)
+					}
+					// Compute HMAC
+					decodedSecret, err := base64.StdEncoding.DecodeString(testCtxForPQ.providerProfileAPIsecret)
+					assert.NoError(t, err)
+					decryptedSecret, err := cryptoUtils.DecryptPlain(decodedSecret)
+					assert.NoError(t, err)
+					signature := tokenUtils.GenerateHMACSignature(map[string]interface{}{
+						"data": "test",
+					}, string(decryptedSecret))
+					assert.Equal(t, r.Header.Get("X-Request-Signature"), signature)
+					if strings.Contains(string(bytes), "data") && strings.Contains(string(bytes), "test") {
+						resp := httpmock.NewBytesResponse(200, nil)
+						return resp, nil
+					} else {
+						return nil, nil
+					}
+				},
+			)
+			err := service.notifyProvider(context.Background(), map[string]interface{}{
+				"providerId": testCtxForPQ.providerProfile.ID,
+				"data":       "test",
+			})
+			assert.NoError(t, err)
+		})
+	})
 
-	// 	assert.Equal(t, "750", orderRequestData["amount"])
-	// 	assert.Equal(t, "USDT", orderRequestData["token"])
-	// 	assert.Equal(t, "Test Institution", orderRequestData["institution"])
-	// 	assert.Equal(t, "p1", orderRequestData["providerId"])
+	t.Run("TestNoErrorFunctions", func(t *testing.T) {
 
-	// 	// Test case 6: invalid provider data format
-	// 	err = redisClient.Del(ctx, "bucket_USD_100_1000").Err()
-	// 	assert.NoError(t, err)
+		t.Run("TestReassignUnfulfilledLockOrders", func(t *testing.T) {
 
-	// 	err = redisClient.RPush(ctx, "bucket_USD_100_1000", "p1:1.5", "invalid_data", "p3:1.4").Err()
-	// 	assert.NoError(t, err)
+			bucket, err := test.CreateTestProvisionBucket(map[string]interface{}{
+				"provider_id": testCtxForPQ.privateProviderPrivate.ID,
+				"min_amount":  testCtxForPQ.minAmount,
+				"max_amount":  testCtxForPQ.maxAmount,
+				"currency_id": testCtxForPQ.currency.ID,
+			})
+			assert.NoError(t, err)
+			_order, err := test.CreateTestLockPaymentOrder(map[string]interface{}{
+				"provider": testCtxForPQ.providerProfile,
+				"tokenID":  testCtxForPQ.token.ID,
+				"status":   lockpaymentorder.StatusProcessing.String(),
+			})
+			assert.NoError(t, err)
 
-	// 	err = service.AssignLockPaymentOrder(ctx, order)
-	// 	assert.NoError(t, err)
+			_, err = test.AddProvisionBucketToLockPaymentOrder(_order, bucket.ID)
+			assert.NoError(t, err)
 
-	// 	orderRequestData, err = redisClient.HGetAll(ctx, orderKey).Result()
-	// 	assert.NoError(t, err)
+			service.ReassignUnfulfilledLockOrders()
 
-	// 	assert.Equal(t, "750", orderRequestData["amount"])
-	// 	assert.Equal(t, "USDT", orderRequestData["token"])
-	// 	assert.Equal(t, "Test Institution", orderRequestData["institution"])
-	// 	assert.Equal(t, "p1", orderRequestData["providerId"])
+			order, err := db.Client.LockPaymentOrder.
+				Query().
+				Where(lockpaymentorder.IDEQ(_order.ID)).Only(context.Background())
+			assert.NoError(t, err)
 
-	// 	// Test case 7: Redis error
-	// 	err = redisClient.Del(ctx, "bucket_USD_100_1000").Err()
-	// 	assert.NoError(t, err)
+			//validate the ReassignUnfulfilledLockOrders updated the UnfulfilledLockOrder
+			assert.True(t, _order.UpdatedAt.Before(order.UpdatedAt))
+		})
 
-	// 	err = redisClient.RPush(ctx, "bucket_USD_100_1000", "p1:1.5", "p2:1.6", "p3:1.4").Err()
-	// 	assert.NoError(t, err)
+		t.Run("TestReassignStaleOrderRequest", func(t *testing.T) {
+			bucket, err := test.CreateTestProvisionBucket(map[string]interface{}{
+				"provider_id": testCtxForPQ.privateProviderPrivate.ID,
+				"min_amount":  testCtxForPQ.minAmount,
+				"max_amount":  testCtxForPQ.maxAmount,
+				"currency_id": testCtxForPQ.currency.ID,
+			})
+			assert.NoError(t, err)
+			_order, err := test.CreateTestLockPaymentOrder(map[string]interface{}{
+				"provider":  testCtxForPQ.privateProviderPrivate,
+				"tokenID":   testCtxForPQ.token.ID,
+				"status":    lockpaymentorder.StatusProcessing.String(),
+				"updatedAt": time.Now().Add(-5 * time.Minute),
+			})
+			assert.NoError(t, err)
 
-	// 	// Force a Redis error by deleting the Redis key
-	// 	err = redisClient.Del(ctx, orderKey).Err()
-	// 	assert.NoError(t, err)
+			orderKey := fmt.Sprintf("order_exclude_list_%s", _order.ID)
+			_, err = db.RedisClient.RPush(context.Background(), orderKey, testCtxForPQ.privateProviderPrivate.ID).Result()
+			assert.NoError(t, err)
 
-	// 	err = service.AssignLockPaymentOrder(ctx, order)
-	// 	assert.Error(t, err)
-	// 	assert.True(t, strings.HasPrefix(err.Error(), "failed to map order to a provider in Redis: "))
+			_, err = test.AddProvisionBucketToLockPaymentOrder(_order, bucket.ID)
+			assert.NoError(t, err)
 
-	// 	// Test case 8: provider notification error
-	// 	err = redisClient.Del(ctx, "bucket_USD_100_1000").Err()
-	// 	assert.NoError(t, err)
+			service.ReassignUnfulfilledLockOrders()
 
-	// 	err = redisClient.RPush(ctx, "bucket_USD_100_1000", "p1:1.5", "p2:1.6", "p3:1.4").Err()
-	// 	assert.NoError(t, err)
+			// Create Channel
+			orderRequestChan := make(chan *redis.Message, 1)
+			orderRequestChan <- &redis.Message{Payload: _order.ID.String() + "_" + "TEST"}
+			service.ReassignStaleOrderRequest(context.Background(), orderRequestChan)
 
-	// 	// Force a provider notification error by using an invalid provider ID
-	// 	order.ProviderID = "invalid_provider_id"
+			order, err := db.Client.LockPaymentOrder.
+				Query().
+				Where(lockpaymentorder.IDEQ(_order.ID)).Only(context.Background())
+			assert.NoError(t, err)
+			// validate the StaleOrderRequest updated the StaleOrderRequest
+			assert.True(t, _order.UpdatedAt.Before(order.UpdatedAt))
 
-	// 	err = service.AssignLockPaymentOrder(ctx, order)
-	// 	assert.NoError(t, err)
-
-	// 	orderRequestData, err = redisClient.HGetAll(ctx, orderKey).Result()
-	// 	assert.NoError(t, err)
-
-	// 	assert.Equal(t, "750", orderRequestData["amount"])
-	// 	assert.Equal(t, "USDT", orderRequestData["token"])
-	// 	assert.Equal(t, "Test Institution", orderRequestData["institution"])
-	// 	assert.Equal(t, "p1", orderRequestData["providerId"])
-
+			// Close channel
+			close(orderRequestChan)
+		})
+	})
 }

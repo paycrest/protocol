@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"math"
 	"strings"
+	"sync"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"github.com/go-co-op/gocron"
+	"github.com/google/uuid"
 	fastshot "github.com/opus-domini/fast-shot"
 	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/ent"
@@ -17,8 +19,10 @@ import (
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	networkent "github.com/paycrest/protocol/ent/network"
 	"github.com/paycrest/protocol/ent/paymentorder"
+	"github.com/paycrest/protocol/ent/paymentorderrecipient"
 	"github.com/paycrest/protocol/ent/providerordertoken"
 	"github.com/paycrest/protocol/ent/receiveaddress"
+	"github.com/paycrest/protocol/ent/senderprofile"
 	"github.com/paycrest/protocol/ent/token"
 	"github.com/paycrest/protocol/ent/webhookretryattempt"
 	"github.com/paycrest/protocol/services"
@@ -33,9 +37,53 @@ import (
 var orderConf = config.OrderConfig()
 var serverConf = config.ServerConfig()
 
+var rpcClients = map[string]types.RPCClient{}
+
+// setRPCClients connects to the RPC endpoints of all networks
+func setRPCClients(ctx context.Context) ([]*ent.Network, error) {
+	isTestnet := false
+	if serverConf.Environment != "production" {
+		isTestnet = true
+	}
+
+	networks, err := storage.Client.Network.
+		Query().
+		Where(networkent.IsTestnetEQ(isTestnet)).
+		All(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("setRPCClients.fetchNetworks: %w", err)
+	}
+
+	// Connect to RPC endpoint
+	var client types.RPCClient
+	for _, network := range networks {
+		if rpcClients[network.Identifier] == nil && !strings.HasPrefix(network.Identifier, "tron") {
+			retryErr := utils.Retry(3, 1*time.Second, func() error {
+				client, err = types.NewEthClient(network.RPCEndpoint)
+				return err
+			})
+			if retryErr != nil {
+				logger.Errorf("failed to connect to %s RPC %v", network.Identifier, retryErr)
+				continue
+			}
+
+			rpcClients[network.Identifier] = client
+		}
+	}
+
+	return networks, nil
+}
+
 // RetryStaleUserOperations retries stale user operations
 func RetryStaleUserOperations() error {
 	ctx := context.Background()
+	var wg sync.WaitGroup
+
+	// Establish RPC connections
+	_, err := setRPCClients(ctx)
+	if err != nil {
+		return fmt.Errorf("RetryStaleUserOperations: %w", err)
+	}
 
 	// Process initiated orders
 	orders, err := storage.Client.PaymentOrder.
@@ -46,19 +94,27 @@ func RetryStaleUserOperations() error {
 				Where(sql.And(
 					sql.EQ(s.C(paymentorder.FieldStatus), paymentorder.StatusInitiated),
 					sql.EQ(ra.C(receiveaddress.FieldStatus), receiveaddress.StatusUsed),
-					sql.GTE(s.C(paymentorder.FieldUpdatedAt), time.Now().Add(-10*time.Minute)),
 					sql.IsNull(s.C(paymentorder.FieldGatewayID)),
 				))
 		}).
+		Where(
+			paymentorder.Or(
+				paymentorder.UpdatedAtGTE(time.Now().Add(-10*time.Minute)),
+				paymentorder.HasRecipientWith(
+					paymentorderrecipient.MemoHasPrefix("P#P"),
+				),
+			)).
 		WithToken(func(tq *ent.TokenQuery) {
 			tq.WithNetwork()
 		}).
 		All(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("RetryStaleUserOperations: %w", err)
 	}
 
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		for _, order := range orders {
 			orderAmountWithFees := order.Amount.Add(order.NetworkFee).Add(order.SenderFee).Add(order.ProtocolFee)
 			if order.AmountPaid.GreaterThanOrEqual(orderAmountWithFees) {
@@ -68,7 +124,7 @@ func RetryStaleUserOperations() error {
 				} else {
 					service = orderService.NewOrderEVM()
 				}
-				err := service.CreateOrder(ctx, order.ID)
+				err := service.CreateOrder(ctx, rpcClients[order.Edges.Token.Edges.Network.Identifier], order.ID)
 				if err != nil {
 					logger.Errorf("process task to create orders => %v", err)
 				}
@@ -97,7 +153,9 @@ func RetryStaleUserOperations() error {
 		return err
 	}
 
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		for _, order := range orders {
 			if order.Edges.ReceiveAddress.Status == receiveaddress.StatusExpired || order.Edges.ReceiveAddress.Status == receiveaddress.StatusUsed {
 				var service types.OrderService
@@ -106,7 +164,7 @@ func RetryStaleUserOperations() error {
 				} else {
 					service = orderService.NewOrderEVM()
 				}
-				err := service.RevertOrder(ctx, order)
+				err := service.RevertOrder(ctx, rpcClients[order.Edges.Token.Edges.Network.Identifier], order)
 				if err != nil {
 					logger.Errorf("process task to revert orders => %v", err)
 				}
@@ -132,7 +190,9 @@ func RetryStaleUserOperations() error {
 		return err
 	}
 
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		for _, order := range lockOrders {
 			var service types.OrderService
 			if strings.HasPrefix(order.Edges.Token.Edges.Network.Identifier, "tron") {
@@ -140,7 +200,7 @@ func RetryStaleUserOperations() error {
 			} else {
 				service = orderService.NewOrderEVM()
 			}
-			err := service.SettleOrder(ctx, order.ID)
+			err := service.SettleOrder(ctx, rpcClients[order.Edges.Token.Edges.Network.Identifier], order.ID)
 			if err != nil {
 				logger.Errorf("process order settlements task => %v", err)
 			}
@@ -166,7 +226,9 @@ func RetryStaleUserOperations() error {
 		return err
 	}
 
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		for _, order := range lockOrders {
 			var service types.OrderService
 			if strings.HasPrefix(order.Edges.Token.Edges.Network.Identifier, "tron") {
@@ -174,7 +236,7 @@ func RetryStaleUserOperations() error {
 			} else {
 				service = orderService.NewOrderEVM()
 			}
-			err := service.RefundOrder(ctx, order.GatewayID)
+			err := service.RefundOrder(ctx, rpcClients[order.Edges.Token.Edges.Network.Identifier], order.GatewayID)
 			if err != nil {
 				logger.Errorf("process order refunds task => %v", err)
 			}
@@ -187,57 +249,56 @@ func RetryStaleUserOperations() error {
 // IndexBlockchainEvents indexes missed blocks
 func IndexBlockchainEvents() error {
 	ctx := context.Background()
+	var wg sync.WaitGroup
 
 	time.Sleep(100 * time.Millisecond) // to keep out of sync with other tasks
 
-	networks, err := storage.Client.Network.Query().All(ctx)
+	// Establish RPC connections
+	networks, err := setRPCClients(ctx)
 	if err != nil {
 		return fmt.Errorf("IndexBlockchainEvents: %w", err)
 	}
 
-	var client types.RPCClient
-
 	// Index ERC20 transfer events
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		_ = utils.Retry(3, 2*time.Second, func() error {
-			for _, network := range networks {
-				orders, err := storage.Client.PaymentOrder.
-					Query().
-					Where(
-						paymentorder.StatusEQ(paymentorder.StatusInitiated),
-						paymentorder.HasReceiveAddressWith(
-							receiveaddress.Or(
-								receiveaddress.StatusEQ(receiveaddress.StatusUnused),
-								receiveaddress.StatusEQ(receiveaddress.StatusPartial),
-							),
-							receiveaddress.ValidUntilGT(time.Now()),
+			orders, err := storage.Client.PaymentOrder.
+				Query().
+				Where(
+					paymentorder.StatusEQ(paymentorder.StatusInitiated),
+					paymentorder.HasReceiveAddressWith(
+						receiveaddress.Or(
+							receiveaddress.StatusEQ(receiveaddress.StatusUnused),
+							receiveaddress.StatusEQ(receiveaddress.StatusPartial),
 						),
-						paymentorder.HasTokenWith(token.HasNetworkWith(networkent.IDEQ(network.ID))),
-					).
-					WithToken(func(tq *ent.TokenQuery) {
-						tq.WithNetwork()
-					}).
-					WithReceiveAddress().
-					WithRecipient().
-					All(ctx)
-				if err != nil {
-					continue
-				}
+						receiveaddress.ValidUntilGT(time.Now()),
+					),
+				).
+				WithToken(func(tq *ent.TokenQuery) {
+					tq.WithNetwork()
+				}).
+				WithReceiveAddress().
+				WithRecipient().
+				All(ctx)
+			if err != nil {
+				logger.Errorf("IndexBlockchainEvents: %v", err)
+			}
 
-				if len(orders) > 0 {
-					for _, order := range orders {
-						if strings.HasPrefix(network.Identifier, "tron") {
-							indexerService := services.NewIndexerService(orderService.NewOrderTron())
-							err := indexerService.IndexTRC20Transfer(ctx, order)
-							if err != nil {
-								continue
-							}
-						} else {
-							indexerService := services.NewIndexerService(orderService.NewOrderEVM())
-							err := indexerService.IndexERC20Transfer(ctx, client, order)
-							if err != nil {
-								continue
-							}
+			if len(orders) > 0 {
+				for _, order := range orders {
+					if strings.HasPrefix(order.Edges.Token.Edges.Network.Identifier, "tron") {
+						indexerService := services.NewIndexerService(orderService.NewOrderTron())
+						err := indexerService.IndexTRC20Transfer(ctx, order)
+						if err != nil {
+							continue
+						}
+					} else {
+						indexerService := services.NewIndexerService(orderService.NewOrderEVM())
+						err := indexerService.IndexERC20Transfer(ctx, rpcClients[order.Edges.Token.Edges.Network.Identifier], order)
+						if err != nil {
+							continue
 						}
 					}
 				}
@@ -248,7 +309,9 @@ func IndexBlockchainEvents() error {
 	}()
 
 	// Index OrderCreated events
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		time.Sleep(500 * time.Millisecond)
 		_ = utils.Retry(3, 2*time.Second, func() error {
 			for _, network := range networks {
@@ -291,7 +354,7 @@ func IndexBlockchainEvents() error {
 							}
 						} else {
 							indexerService := services.NewIndexerService(orderService.NewOrderEVM())
-							err := indexerService.IndexOrderCreated(ctx, nil, network, order.Edges.ReceiveAddress.Address)
+							err := indexerService.IndexOrderCreated(ctx, rpcClients[network.Identifier], network, order.Edges.ReceiveAddress.Address)
 							if err != nil {
 								continue
 							}
@@ -302,7 +365,7 @@ func IndexBlockchainEvents() error {
 				// Index events triggered from Gateway contract
 				if !strings.HasPrefix(network.Identifier, "tron") {
 					indexerService := services.NewIndexerService(orderService.NewOrderEVM())
-					err = indexerService.IndexOrderCreated(ctx, nil, network, "")
+					err = indexerService.IndexOrderCreated(ctx, rpcClients[network.Identifier], network, "")
 					if err != nil {
 						continue
 					}
@@ -314,47 +377,46 @@ func IndexBlockchainEvents() error {
 	}()
 
 	// Index OrderSettled events
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		time.Sleep(1000 * time.Millisecond)
 		_ = utils.Retry(3, 2*time.Second, func() error {
-			for _, network := range networks {
-				lockOrders, err := storage.Client.LockPaymentOrder.
-					Query().
-					Where(func(s *sql.Selector) {
-						po := sql.Table(paymentorder.Table)
-						s.LeftJoin(po).On(s.C(lockpaymentorder.FieldGatewayID), po.C(paymentorder.FieldGatewayID)).
-							Where(sql.Or(
-								sql.EQ(s.C(lockpaymentorder.FieldStatus), lockpaymentorder.StatusValidated),
-								sql.And(
-									sql.EQ(po.C(paymentorder.FieldStatus), paymentorder.StatusPending),
-									sql.EQ(s.C(lockpaymentorder.FieldStatus), lockpaymentorder.StatusSettled),
-								)),
-							)
-					}).
-					Where(lockpaymentorder.HasTokenWith(token.HasNetworkWith(networkent.IDEQ(network.ID)))).
-					WithToken(func(tq *ent.TokenQuery) {
-						tq.WithNetwork()
-					}).
-					Order(ent.Asc(lockpaymentorder.FieldBlockNumber)).
-					All(ctx)
-				if err != nil {
-					continue
-				}
+			lockOrders, err := storage.Client.LockPaymentOrder.
+				Query().
+				Where(func(s *sql.Selector) {
+					po := sql.Table(paymentorder.Table)
+					s.LeftJoin(po).On(s.C(lockpaymentorder.FieldGatewayID), po.C(paymentorder.FieldGatewayID)).
+						Where(sql.Or(
+							sql.EQ(s.C(lockpaymentorder.FieldStatus), lockpaymentorder.StatusValidated),
+							sql.And(
+								sql.EQ(po.C(paymentorder.FieldStatus), paymentorder.StatusPending),
+								sql.EQ(s.C(lockpaymentorder.FieldStatus), lockpaymentorder.StatusSettled),
+							)),
+						)
+				}).
+				WithToken(func(tq *ent.TokenQuery) {
+					tq.WithNetwork()
+				}).
+				Order(ent.Asc(lockpaymentorder.FieldBlockNumber)).
+				All(ctx)
+			if err != nil {
+				logger.Errorf("IndexBlockchainEvents: %v", err)
+			}
 
-				if len(lockOrders) > 0 {
-					for _, order := range lockOrders {
-						if strings.HasPrefix(network.Identifier, "tron") {
-							indexerService := services.NewIndexerService(orderService.NewOrderTron())
-							err := indexerService.IndexOrderSettledTron(ctx, order)
-							if err != nil {
-								continue
-							}
-						} else {
-							indexerService := services.NewIndexerService(orderService.NewOrderEVM())
-							err := indexerService.IndexOrderSettled(ctx, nil, network, order.GatewayID)
-							if err != nil {
-								continue
-							}
+			if len(lockOrders) > 0 {
+				for _, order := range lockOrders {
+					if strings.HasPrefix(order.Edges.Token.Edges.Network.Identifier, "tron") {
+						indexerService := services.NewIndexerService(orderService.NewOrderTron())
+						err := indexerService.IndexOrderSettledTron(ctx, order)
+						if err != nil {
+							continue
+						}
+					} else {
+						indexerService := services.NewIndexerService(orderService.NewOrderEVM())
+						err := indexerService.IndexOrderSettled(ctx, rpcClients[order.Edges.Token.Edges.Network.Identifier], order.Edges.Token.Edges.Network, order.GatewayID)
+						if err != nil {
+							continue
 						}
 					}
 				}
@@ -365,50 +427,49 @@ func IndexBlockchainEvents() error {
 	}()
 
 	// Index OrderRefunded events
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		time.Sleep(1500 * time.Millisecond)
 		_ = utils.Retry(3, 2*time.Second, func() error {
-			for _, network := range networks {
-				lockOrders, err := storage.Client.LockPaymentOrder.
-					Query().
-					Where(func(s *sql.Selector) {
-						po := sql.Table(paymentorder.Table)
-						s.LeftJoin(po).On(s.C(lockpaymentorder.FieldGatewayID), po.C(paymentorder.FieldGatewayID)).
-							Where(sql.Or(
-								sql.And(
-									sql.EQ(s.C(lockpaymentorder.FieldStatus), lockpaymentorder.StatusPending),
-									sql.LT(s.C(lockpaymentorder.FieldCreatedAt), time.Now().Add(-35*time.Minute)),
-								),
-								sql.And(
-									sql.EQ(po.C(paymentorder.FieldStatus), paymentorder.StatusPending),
-									sql.EQ(s.C(lockpaymentorder.FieldStatus), lockpaymentorder.StatusRefunded),
-								),
-							))
-					}).
-					Where(lockpaymentorder.HasTokenWith(token.HasNetworkWith(networkent.IDEQ(network.ID)))).
-					WithToken(func(tq *ent.TokenQuery) {
-						tq.WithNetwork()
-					}).
-					Order(ent.Asc(lockpaymentorder.FieldBlockNumber)).
-					All(ctx)
-				if err != nil {
-					continue
-				}
+			lockOrders, err := storage.Client.LockPaymentOrder.
+				Query().
+				Where(func(s *sql.Selector) {
+					po := sql.Table(paymentorder.Table)
+					s.LeftJoin(po).On(s.C(lockpaymentorder.FieldGatewayID), po.C(paymentorder.FieldGatewayID)).
+						Where(sql.Or(
+							sql.And(
+								sql.EQ(s.C(lockpaymentorder.FieldStatus), lockpaymentorder.StatusPending),
+								sql.LT(s.C(lockpaymentorder.FieldCreatedAt), time.Now().Add(-35*time.Minute)),
+							),
+							sql.And(
+								sql.EQ(po.C(paymentorder.FieldStatus), paymentorder.StatusPending),
+								sql.EQ(s.C(lockpaymentorder.FieldStatus), lockpaymentorder.StatusRefunded),
+							),
+						))
+				}).
+				WithToken(func(tq *ent.TokenQuery) {
+					tq.WithNetwork()
+				}).
+				Order(ent.Asc(lockpaymentorder.FieldBlockNumber)).
+				All(ctx)
+			if err != nil {
+				logger.Errorf("IndexBlockchainEvents: %v", err)
+			}
 
-				if len(lockOrders) > 0 {
-					for _, order := range lockOrders {
-						if strings.HasPrefix(network.Identifier, "tron") {
-							indexerService := services.NewIndexerService(orderService.NewOrderTron())
-							err := indexerService.IndexOrderRefundedTron(ctx, order)
-							if err != nil {
-								continue
-							}
-						} else {
-							indexerService := services.NewIndexerService(orderService.NewOrderEVM())
-							err := indexerService.IndexOrderRefunded(ctx, nil, network, order.GatewayID)
-							if err != nil {
-								continue
-							}
+			if len(lockOrders) > 0 {
+				for _, order := range lockOrders {
+					if strings.HasPrefix(order.Edges.Token.Edges.Network.Identifier, "tron") {
+						indexerService := services.NewIndexerService(orderService.NewOrderTron())
+						err := indexerService.IndexOrderRefundedTron(ctx, order)
+						if err != nil {
+							continue
+						}
+					} else {
+						indexerService := services.NewIndexerService(orderService.NewOrderEVM())
+						err := indexerService.IndexOrderRefunded(ctx, rpcClients[order.Edges.Token.Edges.Network.Identifier], order.Edges.Token.Edges.Network, order.GatewayID)
+						if err != nil {
+							continue
 						}
 					}
 				}
@@ -421,9 +482,133 @@ func IndexBlockchainEvents() error {
 	return nil
 }
 
+func FixDatabaseMisHap() error {
+	ctx := context.Background()
+
+	// Restore initiated orders
+	// _, err := storage.Client.PaymentOrder.
+	// 	Update().
+	// 	Where(
+	// 		paymentorder.AmountPaidEQ(decimal.Zero),
+	// 	).
+	// 	SetStatus(paymentorder.StatusInitiated).
+	// 	SetBlockNumber(0).
+	// 	SetPercentSettled(decimal.NewFromInt(0)).
+	// 	SetTxHash("").
+	// 	Save(ctx)
+	// if err != nil {
+	// 	logger.Errorf("FixDatabaseMisHap: %v", err)
+	// }
+
+	// Restore pending orders
+	orders, err := storage.Client.PaymentOrder.
+		Query().
+		Where(
+			paymentorder.Or(
+				paymentorder.And(
+					paymentorder.AmountPaidGT(decimal.Zero),
+					paymentorder.StatusEQ(paymentorder.StatusPending),
+				),
+				// paymentorder.And(
+				// 	paymentorder.AmountPaidGT(decimal.Zero),
+				// 	paymentorder.StatusEQ(paymentorder.StatusSettled),
+				// 	paymentorder.GatewayIDNEQ(""),
+				// ),
+			),
+		).
+		WithRecipient().
+		All(ctx)
+	if err != nil {
+		logger.Errorf("FixDatabaseMisHap: %v", err)
+	}
+
+	for _, order := range orders {
+		lockOrder, err := storage.Client.LockPaymentOrder.
+			Query().
+			Where(
+				lockpaymentorder.MemoEQ(order.Edges.Recipient.Memo),
+				lockpaymentorder.MemoHasPrefix("P#P"),
+				lockpaymentorder.Or(
+					lockpaymentorder.StatusEQ(lockpaymentorder.StatusSettled),
+					lockpaymentorder.StatusEQ(lockpaymentorder.StatusRefunded),
+				),
+			).
+			First(ctx)
+		if err != nil {
+			continue
+		}
+		if lockOrder != nil && order.AmountPaid.GreaterThanOrEqual(order.Amount.Add(order.NetworkFee).Add(order.SenderFee).Add(order.ProtocolFee)) {
+			// var status paymentorder.Status
+			// var blockNumber int64
+			// var percentSettled decimal.Decimal
+			// var txHash string
+
+			if lockOrder.Status == lockpaymentorder.StatusSettled {
+				// Fix settled orders without gatewayId
+				_, err := order.Update().
+					SetStatus(paymentorder.StatusSettled).
+					SetBlockNumber(lockOrder.BlockNumber).
+					SetPercentSettled(decimal.NewFromInt(100)).
+					SetTxHash(lockOrder.TxHash).
+					SetGatewayID(lockOrder.GatewayID).
+					Save(ctx)
+				if err != nil {
+					logger.Errorf("FixDatabaseMisHap: %v", err)
+					continue
+				}
+			} else if lockOrder.Status == lockpaymentorder.StatusRefunded {
+				// Fix refunded orders without gatewayId
+				_, err := order.Update().
+					SetStatus(paymentorder.StatusRefunded).
+					SetBlockNumber(lockOrder.BlockNumber).
+					SetPercentSettled(decimal.NewFromInt(0)).
+					SetTxHash(lockOrder.TxHash).
+					SetGatewayID(lockOrder.GatewayID).
+					Save(ctx)
+				if err != nil {
+					logger.Errorf("FixDatabaseMisHap: %v", err)
+					continue
+				}
+			}
+
+			// if lockOrder.Status == lockpaymentorder.StatusRefunded {
+			// 	status = paymentorder.StatusRefunded
+			// 	blockNumber = lockOrder.BlockNumber
+			// 	percentSettled = decimal.NewFromInt(0)
+			// 	txHash = lockOrder.TxHash
+			// } else if lockOrder.Status == lockpaymentorder.StatusPending {
+			// 	status = paymentorder.StatusPending
+			// 	blockNumber = lockOrder.BlockNumber
+			// 	percentSettled = decimal.NewFromInt(0)
+			// 	txHash = lockOrder.TxHash
+			// }
+
+			// _, err := order.Update().
+			// 	SetStatus(status).
+			// 	SetBlockNumber(blockNumber).
+			// 	SetPercentSettled(percentSettled).
+			// 	SetTxHash(txHash).
+			// 	Save(ctx)
+			// if err != nil {
+			// 	logger.Errorf("FixDatabaseMisHap: %v", err)
+			// 	continue
+			// }
+
+		}
+	}
+
+	return nil
+}
+
 // HandleReceiveAddressValidity handles receive address validity
 func HandleReceiveAddressValidity() error {
 	ctx := context.Background()
+
+	// Establish RPC connections
+	_, err := setRPCClients(ctx)
+	if err != nil {
+		return fmt.Errorf("HandleReceiveAddressValidity: %w", err)
+	}
 
 	// Fetch expired receive addresses that are due for validity check
 	addresses, err := storage.Client.ReceiveAddress.
@@ -445,10 +630,11 @@ func HandleReceiveAddressValidity() error {
 			po.WithToken(func(tq *ent.TokenQuery) {
 				tq.WithNetwork()
 			})
+			po.WithRecipient()
 		}).
 		All(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("HandleReceiveAddressValidity: %w", err)
 	}
 
 	var indexerService services.Indexer
@@ -459,7 +645,7 @@ func HandleReceiveAddressValidity() error {
 			indexerService = services.NewIndexerService(orderService.NewOrderEVM())
 		}
 
-		err := indexerService.HandleReceiveAddressValidity(ctx, address, address.Edges.PaymentOrder)
+		err := indexerService.HandleReceiveAddressValidity(ctx, rpcClients[address.Edges.PaymentOrder.Edges.Token.Edges.Network.Identifier], address, address.Edges.PaymentOrder)
 		if err != nil {
 			continue
 		}
@@ -485,6 +671,17 @@ func SubscribeToRedisKeyspaceEvents() {
 
 // fetchExternalRate fetches the external rate for a fiat currency
 func fetchExternalRate(currency string) (decimal.Decimal, error) {
+	supportedCurrencies := []string{"USD", "NGN", "GHS"}
+	isSupported := false
+	for _, supported := range supportedCurrencies {
+		if strings.ToUpper(currency) == supported {
+			isSupported = true
+			break
+		}
+	}
+	if !isSupported {
+		return decimal.Zero, fmt.Errorf("ComputeMarketRate: currency not support")
+	}
 	// Fetch stable coin rate from third-party API Quidax (USDT)
 	res, err := fastshot.NewClient("https://www.quidax.com").
 		Config().SetTimeout(30*time.Second).
@@ -529,16 +726,13 @@ func ComputeMarketRate() error {
 		}
 
 		// Fetch rates from token configs with fixed conversion rate
-		token := "USDT"
-		if serverConf.Environment != "production" {
-			token = "TST"
-		}
 		tokenConfigs, err := storage.Client.ProviderOrderToken.
 			Query().
 			Where(
-				providerordertoken.SymbolEQ(token),
+				providerordertoken.SymbolIn("USDT", "USDC"),
 				providerordertoken.ConversionRateTypeEQ(providerordertoken.ConversionRateTypeFixed),
 			).
+			Select(providerordertoken.FieldFixedConversionRate).
 			All(ctx)
 		if err != nil {
 			return fmt.Errorf("ComputeMarketRate: %w", err)
@@ -592,13 +786,14 @@ func RetryFailedWebhookNotifications() error {
 
 	for _, attempt := range attempts {
 		// Send the webhook notification
-		_, err = fastshot.NewClient(attempt.WebhookURL).
+		body, err := fastshot.NewClient(attempt.WebhookURL).
 			Config().SetTimeout(30*time.Second).
 			Header().Add("X-Paycrest-Signature", attempt.Signature).
 			Build().POST("").
 			Body().AsJSON(attempt.Payload).
 			Send()
-		if err != nil {
+
+		if err != nil || (body.StatusCode() >= 205) {
 			// Webhook notification failed
 			// Update attempt with next retry time
 			attemptNumber := attempt.AttemptNumber + 1
@@ -615,6 +810,30 @@ func RetryFailedWebhookNotifications() error {
 			// Set status to expired if cumulative time is greater than 24 hours
 			if nextRetryTime.Sub(attempt.CreatedAt.Add(-baseDelay)) > maxCumulativeTime {
 				attemptUpdate.SetStatus(webhookretryattempt.StatusExpired)
+				uid, err := uuid.Parse(attempt.Payload["data"].(map[string]interface{})["senderId"].(string))
+				if err != nil {
+					return fmt.Errorf("RetryFailedWebhookNotifications.FailedExtraction: %w", err)
+				}
+				profile, err := storage.Client.SenderProfile.
+					Query().
+					Where(
+						senderprofile.IDEQ(uid),
+					).
+					WithUser().Only(ctx)
+				if err != nil {
+					return fmt.Errorf("RetryFailedWebhookNotifications.CouldNotFetchProfile: %w", err)
+				}
+
+				_, err = services.SendTemplateEmail(types.SendEmailPayload{
+					ToAddress: profile.Edges.User.Email,
+					DynamicData: map[string]interface{}{
+						"firstname": profile.Edges.User.FirstName,
+					},
+				}, "d-da75eee4966544ad92dcd060421d4e12")
+
+				if err != nil {
+					return fmt.Errorf("failed to send email: %w", err)
+				}
 			}
 
 			_, err := attemptUpdate.Save(ctx)
@@ -626,7 +845,7 @@ func RetryFailedWebhookNotifications() error {
 		}
 
 		// Webhook notification was successful
-		_, err := attempt.Update().
+		_, err = attempt.Update().
 			SetStatus(webhookretryattempt.StatusSuccess).
 			Save(ctx)
 		if err != nil {
@@ -680,8 +899,8 @@ func StartCronJobs() {
 		logger.Errorf("StartCronJobs: %v", err)
 	}
 
-	// Reassign unvalidated order requests every 21 minutes
-	_, err = scheduler.Cron("*/21 * * * *").Do(priorityQueue.ReassignUnvalidatedLockOrders)
+	// Reassign unvalidated order requests every 11 minutes
+	_, err = scheduler.Cron("*/11 * * * *").Do(priorityQueue.ReassignUnvalidatedLockOrders)
 	if err != nil {
 		logger.Errorf("StartCronJobs: %v", err)
 	}
