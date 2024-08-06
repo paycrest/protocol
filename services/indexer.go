@@ -995,7 +995,7 @@ func (s *IndexerService) UpdateOrderStatusRefunded(ctx context.Context, log *typ
 
 	// Attempt to update an existing log
 	var transactionLog *ent.TransactionLog
-	updatedRows, err := tx.TransactionLog.
+	updatedLogRows, err := tx.TransactionLog.
 		Update().
 		Where(
 			transactionlog.StatusEQ(transactionlog.StatusOrderRefunded),
@@ -1014,7 +1014,7 @@ func (s *IndexerService) UpdateOrderStatusRefunded(ctx context.Context, log *typ
 	}
 
 	// If no rows were updated, create a new log
-	if updatedRows == 0 {
+	if updatedLogRows == 0 {
 		transactionLog, err = tx.TransactionLog.
 			Create().
 			SetStatus(transactionlog.StatusOrderRefunded).
@@ -1053,15 +1053,19 @@ func (s *IndexerService) UpdateOrderStatusRefunded(ctx context.Context, log *typ
 
 	// Sender side status update
 	if paymentOrderExists {
-		_, err = tx.PaymentOrder.
+		paymentOrderUpdate := tx.PaymentOrder.
 			Update().
 			Where(
 				paymentorder.GatewayIDEQ(gatewayId),
 			).
 			SetTxHash(log.TxHash).
-			SetStatus(paymentorder.StatusRefunded).
-			AddTransactions(transactionLog).
-			Save(ctx)
+			SetStatus(paymentorder.StatusRefunded)
+
+		if transactionLog != nil {
+			paymentOrderUpdate = paymentOrderUpdate.AddTransactions(transactionLog)
+		}
+
+		_, err = paymentOrderUpdate.Save(ctx)
 		if err != nil {
 			return fmt.Errorf("UpdateOrderStatusRefunded.sender: %v", err)
 		}
@@ -1115,7 +1119,7 @@ func (s *IndexerService) UpdateOrderStatusSettled(ctx context.Context, event *ty
 
 	// Attempt to update an existing log
 	var transactionLog *ent.TransactionLog
-	updatedRows, err := tx.TransactionLog.
+	updatedLogRows, err := tx.TransactionLog.
 		Update().
 		Where(
 			transactionlog.StatusEQ(transactionlog.StatusOrderSettled),
@@ -1132,11 +1136,12 @@ func (s *IndexerService) UpdateOrderStatusSettled(ctx context.Context, event *ty
 	}
 
 	// If no rows were updated, create a new log
-	if updatedRows == 0 {
+	if updatedLogRows == 0 {
 		transactionLog, err = tx.TransactionLog.
 			Create().
 			SetStatus(transactionlog.StatusOrderSettled).
 			SetTxHash(event.TxHash).
+			SetNetwork(paymentOrder.Edges.Token.Edges.Network.Identifier).
 			SetGatewayID(gatewayId).
 			SetMetadata(map[string]interface{}{
 				"GatewayID":       gatewayId,
@@ -1185,6 +1190,10 @@ func (s *IndexerService) UpdateOrderStatusSettled(ctx context.Context, event *ty
 		if settledPercent.GreaterThanOrEqual(decimal.NewFromInt(100)) {
 			settledPercent = decimal.NewFromInt(100)
 			paymentOrderUpdate = paymentOrderUpdate.SetStatus(paymentorder.StatusSettled)
+		}
+
+		if transactionLog != nil {
+			paymentOrderUpdate = paymentOrderUpdate.AddTransactions(transactionLog)
 		}
 
 		_, err = paymentOrderUpdate.
