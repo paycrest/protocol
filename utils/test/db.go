@@ -64,7 +64,7 @@ func CreateERC20Token(client types.RPCClient, overrides map[string]interface{}) 
 	payload := map[string]interface{}{
 		"symbol":         "TST",
 		"decimals":       6,
-		"networkRPC":     "ws://localhost:8545",
+		"networkRPC":     "http://localhost:8545",
 		"is_enabled":     true,
 		"identifier":     "localhost",
 		"chainID":        int64(1337),
@@ -99,6 +99,9 @@ func CreateERC20Token(client types.RPCClient, overrides map[string]interface{}) 
 		SetIsTestnet(true).
 		OnConflict().
 		UpdateNewValues().
+		UpdateRPCEndpoint().
+		UpdateChainID().
+		UpdateIdentifier().
 		ID(context.Background())
 
 	if err != nil {

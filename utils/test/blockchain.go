@@ -22,9 +22,19 @@ import (
 )
 
 // SetUpTestBlockchain sets up a connection to a local Ethereum blockchain.
-func SetUpTestBlockchain() (types.RPCClient, error) {
+func SetUpTestBlockchain(overrides map[string]interface{}) (types.RPCClient, error) {
+	// Default payload
+	payload := map[string]interface{}{
+		"networkRPC": "http://localhost:8545",
+	}
+
+	// Apply overrides
+	for key, value := range overrides {
+		payload[key] = value
+	}
+
 	// Connect to local ethereum client
-	client, err := types.NewEthClient("http://localhost:8545")
+	client, err := types.NewEthClient(payload["networkRPC"].(string))
 	if err != nil {
 		log.Fatalf("Failed to connect to the Ethereum client: %v", err)
 	}
@@ -159,7 +169,7 @@ func CreateSmartAddress(ctx context.Context, client types.RPCClient) (*ent.Recei
 	// Initialize contract factory
 	factory, err := DeployEIP4337FactoryContract(client)
 	if err != nil {
-		return nil, err
+		return nil,  fmt.Errorf("failed to deploy factory contract: %w", err)
 	}
 
 	factoryInstance, err := contracts.NewSimpleAccountFactory(factory, client.(bind.ContractBackend))

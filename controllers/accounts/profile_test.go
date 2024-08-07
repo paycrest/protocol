@@ -37,7 +37,7 @@ var testCtx = struct {
 
 func setup() error {
 	// Set up test blockchain client
-	client, err := test.SetUpTestBlockchain()
+	client, err := test.SetUpTestBlockchain(map[string]interface{}{})
 	if err != nil {
 		return err
 	}
