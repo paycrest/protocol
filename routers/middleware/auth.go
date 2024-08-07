@@ -128,7 +128,7 @@ func HMACVerificationMiddleware(c *gin.Context) {
 	var err error
 
 	// Handle GET and DELETE requests differently
-	if c.Request.Method == "GET" {
+	if c.Request.Method == "GET" || c.Request.Method == "DELETE" {
 		payloadData = make(map[string]interface{})
 
 		// // Extract the path parameters and include them in the payload
@@ -143,7 +143,7 @@ func HMACVerificationMiddleware(c *gin.Context) {
 			}
 		}
 	} else {
-		// For non-GET/DELETE requests, read the payload from the bodydy
+		// For non-GET/non-DELETE requests, read the payload from the body
 		payload, err := c.GetRawData()
 		if err != nil {
 			u.APIResponse(c, http.StatusInternalServerError, "error", "Failed to read request payload", err.Error())

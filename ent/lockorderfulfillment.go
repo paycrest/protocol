@@ -25,6 +25,8 @@ type LockOrderFulfillment struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// TxID holds the value of the "tx_id" field.
 	TxID string `json:"tx_id,omitempty"`
+	// Psp holds the value of the "psp" field.
+	Psp string `json:"psp,omitempty"`
 	// ValidationStatus holds the value of the "validation_status" field.
 	ValidationStatus lockorderfulfillment.ValidationStatus `json:"validation_status,omitempty"`
 	// ValidationError holds the value of the "validation_error" field.
@@ -63,7 +65,7 @@ func (*LockOrderFulfillment) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case lockorderfulfillment.FieldTxID, lockorderfulfillment.FieldValidationStatus, lockorderfulfillment.FieldValidationError:
+		case lockorderfulfillment.FieldTxID, lockorderfulfillment.FieldPsp, lockorderfulfillment.FieldValidationStatus, lockorderfulfillment.FieldValidationError:
 			values[i] = new(sql.NullString)
 		case lockorderfulfillment.FieldCreatedAt, lockorderfulfillment.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -109,6 +111,12 @@ func (lof *LockOrderFulfillment) assignValues(columns []string, values []any) er
 				return fmt.Errorf("unexpected type %T for field tx_id", values[i])
 			} else if value.Valid {
 				lof.TxID = value.String
+			}
+		case lockorderfulfillment.FieldPsp:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field psp", values[i])
+			} else if value.Valid {
+				lof.Psp = value.String
 			}
 		case lockorderfulfillment.FieldValidationStatus:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -178,6 +186,9 @@ func (lof *LockOrderFulfillment) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("tx_id=")
 	builder.WriteString(lof.TxID)
+	builder.WriteString(", ")
+	builder.WriteString("psp=")
+	builder.WriteString(lof.Psp)
 	builder.WriteString(", ")
 	builder.WriteString("validation_status=")
 	builder.WriteString(fmt.Sprintf("%v", lof.ValidationStatus))
