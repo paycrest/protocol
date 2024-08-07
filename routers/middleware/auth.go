@@ -115,6 +115,13 @@ func HMACVerificationMiddleware(c *gin.Context) {
 		return
 	}
 
+	// Avoid authorization header that doesn't match criterial 
+	if !strings.Contains(parts[1], ":") || len(parts[1]) < 4 {
+		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid Authorization header format", "Expected: HMAC <public_key>:<signature>")
+		c.Abort()
+		return
+	}
+
 	// Extract the public key and signature
 	parts = strings.SplitN(parts[1], ":", 2)
 	publicKey, signature := parts[0], parts[1]
@@ -128,7 +135,7 @@ func HMACVerificationMiddleware(c *gin.Context) {
 	var err error
 
 	// Handle GET and DELETE requests differently
-	if c.Request.Method == "GET" || c.Request.Method == "DELETE" {
+	if c.Request.Method == "GET" {
 		payloadData = make(map[string]interface{})
 
 		// // Extract the path parameters and include them in the payload
