@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"slices"
 	"strings"
+	"time"
 
 	fastshot "github.com/opus-domini/fast-shot"
 	"github.com/paycrest/protocol/config"
@@ -253,6 +254,7 @@ func (ctrl *Controller) VerifyAccount(ctx *gin.Context) {
 	}
 
 	res, err := fastshot.NewClient(provider.HostIdentifier).
+		Config().SetTimeout(30 * time.Second).
 		Build().POST("/verify_account").
 		Body().AsJSON(payload).
 		Send()

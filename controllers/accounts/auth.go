@@ -475,7 +475,7 @@ func (ctrl *AuthController) ResetPasswordToken(ctx *gin.Context) {
 		return
 	}
 
-	if _, err := ctrl.emailService.SendPasswordResetEmail(ctx, passwordResetToken.Token, user.Email); err != nil {
+	if _, err := ctrl.emailService.SendPasswordResetEmail(ctx, passwordResetToken.Token, user.Email, user.FirstName); err != nil {
 		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to send reset password token", nil)
 		return
 	}
