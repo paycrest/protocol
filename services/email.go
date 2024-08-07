@@ -167,9 +167,9 @@ func SendTemplateEmail(content types.SendEmailPayload, templateId string) (types
 		return types.SendEmailResponse{}, fmt.Errorf("error sending request: %w", err)
 	}
 
-	_, err = utils.ParseJSONResponse(res.RawResponse)
+	data, err := utils.ParseJSONResponse(res.RawResponse)
 	if err != nil {
-		logger.Errorf("error parsing response: %v", err)
+		logger.Errorf("error parsing response: %v %v", err, data)
 		return types.SendEmailResponse{}, fmt.Errorf("error parsing response: %w", err)
 	}
 
