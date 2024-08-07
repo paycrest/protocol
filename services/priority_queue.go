@@ -362,12 +362,14 @@ func (s *PriorityQueueService) notifyProvider(ctx context.Context, orderRequestD
 	if err != nil {
 		return err
 	}
+
+	orderRequestData["timestamp"] = time.Now().Unix()
 	signature := tokenUtils.GenerateHMACSignature(orderRequestData, string(decryptedSecret))
 
 	// Send POST request to the provider's node
 	_, err = fastshot.NewClient(provider.HostIdentifier).
 		Config().SetTimeout(30*time.Second).
-		Header().Add("X-Request-Signature", signature).
+		Header().Add("Authorization", fmt.Sprintf("HMAC %s:%s", provider.Edges.APIKey.ID.String(), signature)).
 		Build().POST("/new_order").
 		Body().AsJSON(orderRequestData).
 		Send()
@@ -505,22 +507,23 @@ func (s *PriorityQueueService) ReassignUnvalidatedLockOrders() {
 		Query().
 		Where(
 			lockpaymentorder.StatusEQ(lockpaymentorder.StatusFulfilled),
-			// lockpaymentorder.Or(
-			lockpaymentorder.HasFulfillmentWith(
-				lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusFailed),
+			lockpaymentorder.Or(
+				lockpaymentorder.HasFulfillmentWith(
+					lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusFailed),
+				),
+				lockpaymentorder.And(
+					lockpaymentorder.HasFulfillmentWith(
+						lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusPending),
+					),
+					lockpaymentorder.HasFulfillmentWith(
+						lockorderfulfillment.UpdatedAtLTE(time.Now().Add(-config.OrderConfig().OrderFulfillmentValidity*time.Minute)),
+					),
+				),
 			),
-			// lockpaymentorder.And(
-			// 	lockpaymentorder.HasFulfillmentWith(
-			// 		lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusPending),
-			// 	),
-			// 	lockpaymentorder.HasFulfillmentWith(
-			// 		lockorderfulfillment.UpdatedAtLTE(time.Now().Add(-config.OrderConfig().OrderFulfillmentValidity*time.Minute)),
-			// 	),
-			// ),
-			// ),
 		).
 		WithToken().
 		WithProvider().
+		WithFulfillment().
 		WithProvisionBucket(
 			func(pbq *ent.ProvisionBucketQuery) {
 				pbq.WithCurrency()
@@ -533,24 +536,84 @@ func (s *PriorityQueueService) ReassignUnvalidatedLockOrders() {
 	}
 
 	for _, order := range lockOrders {
-		lockPaymentOrder := types.LockPaymentOrderFields{
-			ID:                order.ID,
-			Token:             order.Edges.Token,
-			GatewayID:         order.GatewayID,
-			Amount:            order.Amount,
-			Rate:              order.Rate,
-			BlockNumber:       order.BlockNumber,
-			Institution:       order.Institution,
-			AccountIdentifier: order.AccountIdentifier,
-			AccountName:       order.AccountName,
-			ProviderID:        order.Edges.Provider.ID,
-			Memo:              order.Memo,
-			ProvisionBucket:   order.Edges.ProvisionBucket,
-		}
+		if order.Edges.Fulfillment.ValidationStatus == lockorderfulfillment.ValidationStatusPending {
+			// Compute HMAC
+			decodedSecret, err := base64.StdEncoding.DecodeString(order.Edges.Provider.Edges.APIKey.Secret)
+			if err != nil {
+				logger.Errorf("ReassignUnvalidatedLockOrders: %v", err)
+				return
+			}
+			decryptedSecret, err := cryptoUtils.DecryptPlain(decodedSecret)
+			if err != nil {
+				logger.Errorf("ReassignUnvalidatedLockOrders: %v", err)
+				return
+			}
 
-		err := s.AssignLockPaymentOrder(ctx, lockPaymentOrder)
-		if err != nil {
-			logger.Errorf("failed to reassign unvalidated order request: %v", err)
+			payload := map[string]interface{}{
+				"timestamp": time.Now().Unix(),
+			}
+
+			signature := tokenUtils.GenerateHMACSignature(payload, string(decryptedSecret))
+
+			// Send GET request to the provider's node
+			res, err := fastshot.NewClient(order.Edges.Provider.HostIdentifier).
+				Config().SetTimeout(30*time.Second).
+				Header().Add("Authorization", fmt.Sprintf("HMAC %s:%s", order.Edges.Provider.Edges.APIKey.ID.String(), signature)).
+				Build().GET(fmt.Sprintf("/%s/%s?timestamp=%v", order.Edges.Fulfillment.Psp, order.Edges.Fulfillment.TxID, payload["timestamp"])).
+				Send()
+			if err != nil {
+				logger.Errorf("ReassignUnvalidatedLockOrders: %v", err)
+				return
+			}
+
+			data, err := utils.ParseJSONResponse(res.RawResponse)
+			if err != nil {
+				logger.Errorf("ReassignUnvalidatedLockOrders: %v", err)
+				return
+			}
+
+			status := data["data"].(map[string]interface{})["status"].(string)
+
+			if status == "failed" {
+				_, err = storage.Client.LockOrderFulfillment.
+					UpdateOneID(order.Edges.Fulfillment.ID).
+					SetValidationStatus(lockorderfulfillment.ValidationStatusFailed).
+					Save(ctx)
+				if err != nil {
+					logger.Errorf("ReassignUnvalidatedLockOrders.UpdateFulfillmentStatusFailed: %v", err)
+					return
+				}
+			} else if status == "success" {
+				_, err = storage.Client.LockOrderFulfillment.
+					UpdateOneID(order.Edges.Fulfillment.ID).
+					SetValidationStatus(lockorderfulfillment.ValidationStatusSuccess).
+					Save(ctx)
+				if err != nil {
+					logger.Errorf("ReassignUnvalidatedLockOrders.UpdateFulfillmentStatusSuccess: %v", err)
+					return
+				}
+			}
+
+		} else {
+			lockPaymentOrder := types.LockPaymentOrderFields{
+				ID:                order.ID,
+				Token:             order.Edges.Token,
+				GatewayID:         order.GatewayID,
+				Amount:            order.Amount,
+				Rate:              order.Rate,
+				BlockNumber:       order.BlockNumber,
+				Institution:       order.Institution,
+				AccountIdentifier: order.AccountIdentifier,
+				AccountName:       order.AccountName,
+				ProviderID:        order.Edges.Provider.ID,
+				Memo:              order.Memo,
+				ProvisionBucket:   order.Edges.ProvisionBucket,
+			}
+
+			err := s.AssignLockPaymentOrder(ctx, lockPaymentOrder)
+			if err != nil {
+				logger.Errorf("failed to reassign unvalidated order request: %v", err)
+			}
 		}
 	}
 }

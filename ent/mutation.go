@@ -2320,6 +2320,7 @@ type LockOrderFulfillmentMutation struct {
 	created_at        *time.Time
 	updated_at        *time.Time
 	tx_id             *string
+	psp               *string
 	validation_status *lockorderfulfillment.ValidationStatus
 	validation_error  *string
 	clearedFields     map[string]struct{}
@@ -2542,6 +2543,55 @@ func (m *LockOrderFulfillmentMutation) ResetTxID() {
 	m.tx_id = nil
 }
 
+// SetPsp sets the "psp" field.
+func (m *LockOrderFulfillmentMutation) SetPsp(s string) {
+	m.psp = &s
+}
+
+// Psp returns the value of the "psp" field in the mutation.
+func (m *LockOrderFulfillmentMutation) Psp() (r string, exists bool) {
+	v := m.psp
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPsp returns the old "psp" field's value of the LockOrderFulfillment entity.
+// If the LockOrderFulfillment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LockOrderFulfillmentMutation) OldPsp(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPsp is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPsp requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPsp: %w", err)
+	}
+	return oldValue.Psp, nil
+}
+
+// ClearPsp clears the value of the "psp" field.
+func (m *LockOrderFulfillmentMutation) ClearPsp() {
+	m.psp = nil
+	m.clearedFields[lockorderfulfillment.FieldPsp] = struct{}{}
+}
+
+// PspCleared returns if the "psp" field was cleared in this mutation.
+func (m *LockOrderFulfillmentMutation) PspCleared() bool {
+	_, ok := m.clearedFields[lockorderfulfillment.FieldPsp]
+	return ok
+}
+
+// ResetPsp resets all changes to the "psp" field.
+func (m *LockOrderFulfillmentMutation) ResetPsp() {
+	m.psp = nil
+	delete(m.clearedFields, lockorderfulfillment.FieldPsp)
+}
+
 // SetValidationStatus sets the "validation_status" field.
 func (m *LockOrderFulfillmentMutation) SetValidationStatus(ls lockorderfulfillment.ValidationStatus) {
 	m.validation_status = &ls
@@ -2700,7 +2750,7 @@ func (m *LockOrderFulfillmentMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *LockOrderFulfillmentMutation) Fields() []string {
-	fields := make([]string, 0, 5)
+	fields := make([]string, 0, 6)
 	if m.created_at != nil {
 		fields = append(fields, lockorderfulfillment.FieldCreatedAt)
 	}
@@ -2709,6 +2759,9 @@ func (m *LockOrderFulfillmentMutation) Fields() []string {
 	}
 	if m.tx_id != nil {
 		fields = append(fields, lockorderfulfillment.FieldTxID)
+	}
+	if m.psp != nil {
+		fields = append(fields, lockorderfulfillment.FieldPsp)
 	}
 	if m.validation_status != nil {
 		fields = append(fields, lockorderfulfillment.FieldValidationStatus)
@@ -2730,6 +2783,8 @@ func (m *LockOrderFulfillmentMutation) Field(name string) (ent.Value, bool) {
 		return m.UpdatedAt()
 	case lockorderfulfillment.FieldTxID:
 		return m.TxID()
+	case lockorderfulfillment.FieldPsp:
+		return m.Psp()
 	case lockorderfulfillment.FieldValidationStatus:
 		return m.ValidationStatus()
 	case lockorderfulfillment.FieldValidationError:
@@ -2749,6 +2804,8 @@ func (m *LockOrderFulfillmentMutation) OldField(ctx context.Context, name string
 		return m.OldUpdatedAt(ctx)
 	case lockorderfulfillment.FieldTxID:
 		return m.OldTxID(ctx)
+	case lockorderfulfillment.FieldPsp:
+		return m.OldPsp(ctx)
 	case lockorderfulfillment.FieldValidationStatus:
 		return m.OldValidationStatus(ctx)
 	case lockorderfulfillment.FieldValidationError:
@@ -2782,6 +2839,13 @@ func (m *LockOrderFulfillmentMutation) SetField(name string, value ent.Value) er
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetTxID(v)
+		return nil
+	case lockorderfulfillment.FieldPsp:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPsp(v)
 		return nil
 	case lockorderfulfillment.FieldValidationStatus:
 		v, ok := value.(lockorderfulfillment.ValidationStatus)
@@ -2827,6 +2891,9 @@ func (m *LockOrderFulfillmentMutation) AddField(name string, value ent.Value) er
 // mutation.
 func (m *LockOrderFulfillmentMutation) ClearedFields() []string {
 	var fields []string
+	if m.FieldCleared(lockorderfulfillment.FieldPsp) {
+		fields = append(fields, lockorderfulfillment.FieldPsp)
+	}
 	if m.FieldCleared(lockorderfulfillment.FieldValidationError) {
 		fields = append(fields, lockorderfulfillment.FieldValidationError)
 	}
@@ -2844,6 +2911,9 @@ func (m *LockOrderFulfillmentMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *LockOrderFulfillmentMutation) ClearField(name string) error {
 	switch name {
+	case lockorderfulfillment.FieldPsp:
+		m.ClearPsp()
+		return nil
 	case lockorderfulfillment.FieldValidationError:
 		m.ClearValidationError()
 		return nil
@@ -2863,6 +2933,9 @@ func (m *LockOrderFulfillmentMutation) ResetField(name string) error {
 		return nil
 	case lockorderfulfillment.FieldTxID:
 		m.ResetTxID()
+		return nil
+	case lockorderfulfillment.FieldPsp:
+		m.ResetPsp()
 		return nil
 	case lockorderfulfillment.FieldValidationStatus:
 		m.ResetValidationStatus()

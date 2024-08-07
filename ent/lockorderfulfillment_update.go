@@ -42,6 +42,26 @@ func (lofu *LockOrderFulfillmentUpdate) SetTxID(s string) *LockOrderFulfillmentU
 	return lofu
 }
 
+// SetPsp sets the "psp" field.
+func (lofu *LockOrderFulfillmentUpdate) SetPsp(s string) *LockOrderFulfillmentUpdate {
+	lofu.mutation.SetPsp(s)
+	return lofu
+}
+
+// SetNillablePsp sets the "psp" field if the given value is not nil.
+func (lofu *LockOrderFulfillmentUpdate) SetNillablePsp(s *string) *LockOrderFulfillmentUpdate {
+	if s != nil {
+		lofu.SetPsp(*s)
+	}
+	return lofu
+}
+
+// ClearPsp clears the value of the "psp" field.
+func (lofu *LockOrderFulfillmentUpdate) ClearPsp() *LockOrderFulfillmentUpdate {
+	lofu.mutation.ClearPsp()
+	return lofu
+}
+
 // SetValidationStatus sets the "validation_status" field.
 func (lofu *LockOrderFulfillmentUpdate) SetValidationStatus(ls lockorderfulfillment.ValidationStatus) *LockOrderFulfillmentUpdate {
 	lofu.mutation.SetValidationStatus(ls)
@@ -165,6 +185,12 @@ func (lofu *LockOrderFulfillmentUpdate) sqlSave(ctx context.Context) (n int, err
 	if value, ok := lofu.mutation.TxID(); ok {
 		_spec.SetField(lockorderfulfillment.FieldTxID, field.TypeString, value)
 	}
+	if value, ok := lofu.mutation.Psp(); ok {
+		_spec.SetField(lockorderfulfillment.FieldPsp, field.TypeString, value)
+	}
+	if lofu.mutation.PspCleared() {
+		_spec.ClearField(lockorderfulfillment.FieldPsp, field.TypeString)
+	}
 	if value, ok := lofu.mutation.ValidationStatus(); ok {
 		_spec.SetField(lockorderfulfillment.FieldValidationStatus, field.TypeEnum, value)
 	}
@@ -232,6 +258,26 @@ func (lofuo *LockOrderFulfillmentUpdateOne) SetUpdatedAt(t time.Time) *LockOrder
 // SetTxID sets the "tx_id" field.
 func (lofuo *LockOrderFulfillmentUpdateOne) SetTxID(s string) *LockOrderFulfillmentUpdateOne {
 	lofuo.mutation.SetTxID(s)
+	return lofuo
+}
+
+// SetPsp sets the "psp" field.
+func (lofuo *LockOrderFulfillmentUpdateOne) SetPsp(s string) *LockOrderFulfillmentUpdateOne {
+	lofuo.mutation.SetPsp(s)
+	return lofuo
+}
+
+// SetNillablePsp sets the "psp" field if the given value is not nil.
+func (lofuo *LockOrderFulfillmentUpdateOne) SetNillablePsp(s *string) *LockOrderFulfillmentUpdateOne {
+	if s != nil {
+		lofuo.SetPsp(*s)
+	}
+	return lofuo
+}
+
+// ClearPsp clears the value of the "psp" field.
+func (lofuo *LockOrderFulfillmentUpdateOne) ClearPsp() *LockOrderFulfillmentUpdateOne {
+	lofuo.mutation.ClearPsp()
 	return lofuo
 }
 
@@ -387,6 +433,12 @@ func (lofuo *LockOrderFulfillmentUpdateOne) sqlSave(ctx context.Context) (_node 
 	}
 	if value, ok := lofuo.mutation.TxID(); ok {
 		_spec.SetField(lockorderfulfillment.FieldTxID, field.TypeString, value)
+	}
+	if value, ok := lofuo.mutation.Psp(); ok {
+		_spec.SetField(lockorderfulfillment.FieldPsp, field.TypeString, value)
+	}
+	if lofuo.mutation.PspCleared() {
+		_spec.ClearField(lockorderfulfillment.FieldPsp, field.TypeString)
 	}
 	if value, ok := lofuo.mutation.ValidationStatus(); ok {
 		_spec.SetField(lockorderfulfillment.FieldValidationStatus, field.TypeEnum, value)

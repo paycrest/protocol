@@ -59,6 +59,20 @@ func (lofc *LockOrderFulfillmentCreate) SetTxID(s string) *LockOrderFulfillmentC
 	return lofc
 }
 
+// SetPsp sets the "psp" field.
+func (lofc *LockOrderFulfillmentCreate) SetPsp(s string) *LockOrderFulfillmentCreate {
+	lofc.mutation.SetPsp(s)
+	return lofc
+}
+
+// SetNillablePsp sets the "psp" field if the given value is not nil.
+func (lofc *LockOrderFulfillmentCreate) SetNillablePsp(s *string) *LockOrderFulfillmentCreate {
+	if s != nil {
+		lofc.SetPsp(*s)
+	}
+	return lofc
+}
+
 // SetValidationStatus sets the "validation_status" field.
 func (lofc *LockOrderFulfillmentCreate) SetValidationStatus(ls lockorderfulfillment.ValidationStatus) *LockOrderFulfillmentCreate {
 	lofc.mutation.SetValidationStatus(ls)
@@ -235,6 +249,10 @@ func (lofc *LockOrderFulfillmentCreate) createSpec() (*LockOrderFulfillment, *sq
 		_spec.SetField(lockorderfulfillment.FieldTxID, field.TypeString, value)
 		_node.TxID = value
 	}
+	if value, ok := lofc.mutation.Psp(); ok {
+		_spec.SetField(lockorderfulfillment.FieldPsp, field.TypeString, value)
+		_node.Psp = value
+	}
 	if value, ok := lofc.mutation.ValidationStatus(); ok {
 		_spec.SetField(lockorderfulfillment.FieldValidationStatus, field.TypeEnum, value)
 		_node.ValidationStatus = value
@@ -333,6 +351,24 @@ func (u *LockOrderFulfillmentUpsert) SetTxID(v string) *LockOrderFulfillmentUpse
 // UpdateTxID sets the "tx_id" field to the value that was provided on create.
 func (u *LockOrderFulfillmentUpsert) UpdateTxID() *LockOrderFulfillmentUpsert {
 	u.SetExcluded(lockorderfulfillment.FieldTxID)
+	return u
+}
+
+// SetPsp sets the "psp" field.
+func (u *LockOrderFulfillmentUpsert) SetPsp(v string) *LockOrderFulfillmentUpsert {
+	u.Set(lockorderfulfillment.FieldPsp, v)
+	return u
+}
+
+// UpdatePsp sets the "psp" field to the value that was provided on create.
+func (u *LockOrderFulfillmentUpsert) UpdatePsp() *LockOrderFulfillmentUpsert {
+	u.SetExcluded(lockorderfulfillment.FieldPsp)
+	return u
+}
+
+// ClearPsp clears the value of the "psp" field.
+func (u *LockOrderFulfillmentUpsert) ClearPsp() *LockOrderFulfillmentUpsert {
+	u.SetNull(lockorderfulfillment.FieldPsp)
 	return u
 }
 
@@ -442,6 +478,27 @@ func (u *LockOrderFulfillmentUpsertOne) SetTxID(v string) *LockOrderFulfillmentU
 func (u *LockOrderFulfillmentUpsertOne) UpdateTxID() *LockOrderFulfillmentUpsertOne {
 	return u.Update(func(s *LockOrderFulfillmentUpsert) {
 		s.UpdateTxID()
+	})
+}
+
+// SetPsp sets the "psp" field.
+func (u *LockOrderFulfillmentUpsertOne) SetPsp(v string) *LockOrderFulfillmentUpsertOne {
+	return u.Update(func(s *LockOrderFulfillmentUpsert) {
+		s.SetPsp(v)
+	})
+}
+
+// UpdatePsp sets the "psp" field to the value that was provided on create.
+func (u *LockOrderFulfillmentUpsertOne) UpdatePsp() *LockOrderFulfillmentUpsertOne {
+	return u.Update(func(s *LockOrderFulfillmentUpsert) {
+		s.UpdatePsp()
+	})
+}
+
+// ClearPsp clears the value of the "psp" field.
+func (u *LockOrderFulfillmentUpsertOne) ClearPsp() *LockOrderFulfillmentUpsertOne {
+	return u.Update(func(s *LockOrderFulfillmentUpsert) {
+		s.ClearPsp()
 	})
 }
 
@@ -719,6 +776,27 @@ func (u *LockOrderFulfillmentUpsertBulk) SetTxID(v string) *LockOrderFulfillment
 func (u *LockOrderFulfillmentUpsertBulk) UpdateTxID() *LockOrderFulfillmentUpsertBulk {
 	return u.Update(func(s *LockOrderFulfillmentUpsert) {
 		s.UpdateTxID()
+	})
+}
+
+// SetPsp sets the "psp" field.
+func (u *LockOrderFulfillmentUpsertBulk) SetPsp(v string) *LockOrderFulfillmentUpsertBulk {
+	return u.Update(func(s *LockOrderFulfillmentUpsert) {
+		s.SetPsp(v)
+	})
+}
+
+// UpdatePsp sets the "psp" field to the value that was provided on create.
+func (u *LockOrderFulfillmentUpsertBulk) UpdatePsp() *LockOrderFulfillmentUpsertBulk {
+	return u.Update(func(s *LockOrderFulfillmentUpsert) {
+		s.UpdatePsp()
+	})
+}
+
+// ClearPsp clears the value of the "psp" field.
+func (u *LockOrderFulfillmentUpsertBulk) ClearPsp() *LockOrderFulfillmentUpsertBulk {
+	return u.Update(func(s *LockOrderFulfillmentUpsert) {
+		s.ClearPsp()
 	})
 }
 

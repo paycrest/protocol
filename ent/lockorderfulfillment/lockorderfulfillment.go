@@ -22,6 +22,8 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// FieldTxID holds the string denoting the tx_id field in the database.
 	FieldTxID = "tx_id"
+	// FieldPsp holds the string denoting the psp field in the database.
+	FieldPsp = "psp"
 	// FieldValidationStatus holds the string denoting the validation_status field in the database.
 	FieldValidationStatus = "validation_status"
 	// FieldValidationError holds the string denoting the validation_error field in the database.
@@ -45,6 +47,7 @@ var Columns = []string{
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldTxID,
+	FieldPsp,
 	FieldValidationStatus,
 	FieldValidationError,
 }
@@ -129,6 +132,11 @@ func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByTxID orders the results by the tx_id field.
 func ByTxID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldTxID, opts...).ToFunc()
+}
+
+// ByPsp orders the results by the psp field.
+func ByPsp(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPsp, opts...).ToFunc()
 }
 
 // ByValidationStatus orders the results by the validation_status field.

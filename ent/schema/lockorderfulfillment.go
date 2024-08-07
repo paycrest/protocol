@@ -26,6 +26,8 @@ func (LockOrderFulfillment) Fields() []ent.Field {
 			Default(uuid.New),
 		field.String("tx_id").
 			Unique(),
+		field.String("psp").
+			Optional(),
 		field.Enum("validation_status").
 			Values("pending", "success", "failed").
 			Default("pending"),
