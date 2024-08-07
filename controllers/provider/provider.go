@@ -317,6 +317,7 @@ func (ctrl *ProviderController) FulfillOrder(ctx *gin.Context) {
 				Create().
 				SetOrderID(orderID).
 				SetTxID(payload.TxID).
+				SetPsp(payload.PSP).
 				Save(ctx)
 			if err != nil {
 				logger.Errorf("error: %v", err)
@@ -360,6 +361,7 @@ func (ctrl *ProviderController) FulfillOrder(ctx *gin.Context) {
 			SetNetwork(fulfillment.Edges.Order.Edges.Token.Edges.Network.Identifier).
 			SetMetadata(map[string]interface{}{
 				"TransactionID": payload.TxID,
+				"PSP":           payload.PSP,
 			}).
 			Save(ctx)
 		if err != nil {
@@ -414,6 +416,7 @@ func (ctrl *ProviderController) FulfillOrder(ctx *gin.Context) {
 			SetNetwork(fulfillment.Edges.Order.Edges.Token.Edges.Network.Identifier).
 			SetMetadata(map[string]interface{}{
 				"TransactionID": payload.TxID,
+				"PSP":           payload.PSP,
 			}).
 			Save(ctx)
 		if err != nil {
