@@ -95,13 +95,14 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 		Create().
 		SetOwner(user).
 		SetScope(verificationtoken.ScopeEmailVerification).
+		SetExpiryAt(time.Now().Add(conf.PasswordResetLifespan)).
 		Save(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
 	}
 
 	if verificationToken != nil {
-		if _, err := ctrl.emailService.SendVerificationEmail(ctx, verificationToken.Token, user.Email); err != nil {
+		if _, err := ctrl.emailService.SendVerificationEmail(ctx, verificationToken.Token, user.Email, user.FirstName); err != nil {
 			logger.Errorf("error: %v", err)
 		}
 	}
@@ -321,13 +322,14 @@ func (ctrl *AuthController) ConfirmEmail(ctx *gin.Context) {
 		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid verification token", vtErr.Error())
 		return
 	}
+
 	if time.Now().After(verificationToken.ExpiryAt) {
 		err := db.Client.VerificationToken.
 			DeleteOneID(verificationToken.ID).Exec(ctx)
 		if err != nil {
 			logger.Errorf("ConfirmEmailError.VerificationToken.Delete: %v", err)
 		}
-		u.APIResponse(ctx, http.StatusBadRequest, "error", "token Expired", nil)
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Token is expired", nil)
 		return
 	}
 
@@ -343,10 +345,10 @@ func (ctrl *AuthController) ConfirmEmail(ctx *gin.Context) {
 
 	err := db.Client.VerificationToken.
 		DeleteOneID(verificationToken.ID).Exec(ctx)
-
 	if err != nil {
 		logger.Errorf("ConfirmEmailError.VerificationToken.Delete: %v", err)
 	}
+
 	// Return a success response
 	u.APIResponse(ctx, http.StatusOK, "success", "User email verified successfully", nil)
 }
@@ -372,13 +374,14 @@ func (ctrl *AuthController) ResendVerificationToken(ctx *gin.Context) {
 		Create().
 		SetOwner(user).
 		SetScope(verificationtoken.Scope(payload.Scope)).
+		SetExpiryAt(time.Now().Add(conf.PasswordResetLifespan)).
 		Save(ctx)
 	if vtErr != nil {
 		u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to generate verification token", vtErr.Error())
 		return
 	}
 
-	if _, err := ctrl.emailService.SendVerificationEmail(ctx, verificationtoken.Token, user.Email); err != nil {
+	if _, err := ctrl.emailService.SendVerificationEmail(ctx, verificationtoken.Token, user.Email, user.FirstName); err != nil {
 		u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to send verification email", err.Error())
 		return
 	}
@@ -400,22 +403,24 @@ func (ctrl *AuthController) ResetPassword(ctx *gin.Context) {
 	// Verify reset token
 	token, err := db.Client.VerificationToken.
 		Query().
-		Where(verificationtoken.TokenEQ(payload.ResetToken)).
-		Where(verificationtoken.ScopeEQ(verificationtoken.ScopeResetPassword)).
-		Where(verificationtoken.ExpiryAtGTE(time.Now())).
+		Where(
+			verificationtoken.TokenEQ(payload.ResetToken),
+			verificationtoken.ScopeEQ(verificationtoken.ScopeResetPassword),
+		).
 		WithOwner().
 		Only(ctx)
 	if err != nil || token == nil || token.Edges.Owner == nil {
 		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid password reset token", nil)
 		return
 	}
+
 	if time.Now().After(token.ExpiryAt) {
 		err := db.Client.VerificationToken.
 			DeleteOneID(token.ID).Exec(ctx)
 		if err != nil {
 			logger.Errorf("ResetPasswordError.VerificationToken.Delete: %v", err)
 		}
-		u.APIResponse(ctx, http.StatusBadRequest, "error", "token Expired", nil)
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Token is expired", nil)
 		return
 	}
 
@@ -434,6 +439,7 @@ func (ctrl *AuthController) ResetPassword(ctx *gin.Context) {
 	if verificationErr != nil {
 		logger.Errorf("ResetPasswordError.VerificationToken.Delete: %v", verificationErr)
 	}
+
 	// Return a success response
 	u.APIResponse(ctx, http.StatusOK, "success", "Password reset was successful", nil)
 }

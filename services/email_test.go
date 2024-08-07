@@ -18,6 +18,7 @@ var (
 
 	testToken = "test-token"
 	testEmail = "test@paycrest.io"
+	testFirstName = "John"
 )
 
 func TestEmailService(t *testing.T) {
@@ -60,7 +61,7 @@ func TestEmailService(t *testing.T) {
 		t.Run("SendVerificationEmail should work properly and return a response payload", func(t *testing.T) {
 			srv := NewEmailService(SENDGRID_MAIL_PROVIDER)
 
-			response, err := srv.SendVerificationEmail(context.Background(), testToken, testEmail)
+			response, err := srv.SendVerificationEmail(context.Background(), testToken, testEmail, testFirstName)
 
 			// error checker.
 			assert.NoError(t, err, "unexpected error")
@@ -77,8 +78,7 @@ func TestEmailService(t *testing.T) {
 					ToAddress:   "johnDoe@gmail.com",
 					DynamicData: map[string]interface{}{
 						"code":           "654321",
-						"recipient_name": "",
-						"subject":        "trying",
+						"first_name": testFirstName,
 					},
 				}, "d-f26d853bbb884c0c856f0bbda894032c")
 				assert.NoError(t, err)

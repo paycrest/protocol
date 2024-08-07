@@ -63,11 +63,12 @@ func (m *EmailService) SendEmail(ctx context.Context, payload types.SendEmailPay
 }
 
 // SendVerificationEmail performs the actions for sending a verification token to the user email.
-func (m *EmailService) SendVerificationEmail(ctx context.Context, token, email string) (types.SendEmailResponse, error) {
+func (m *EmailService) SendVerificationEmail(ctx context.Context, token, email, firstName string) (types.SendEmailResponse, error) {
 	payload := types.SendEmailPayload{
 		FromAddress: _DefaultFromAddress,
 		ToAddress:   email,
 		DynamicData: map[string]interface{}{
+			"first_name": firstName,
 			"code": token,
 		},
 	}
