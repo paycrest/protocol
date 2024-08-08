@@ -153,6 +153,8 @@ func RetryStaleUserOperations() error {
 		return err
 	}
 
+	logger.Errorf("RetryStaleUserOperations: %v", orders)
+
 	wg.Add(1)
 	go func() {
 		defer wg.Done()

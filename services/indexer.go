@@ -1338,6 +1338,7 @@ func (s *IndexerService) UpdateReceiveAddressStatus(
 		_, err = paymentOrderUpdate.
 			SetFromAddress(event.From).
 			SetTxHash(event.TxHash).
+			SetBlockNumber(int64(event.BlockNumber)).
 			AddAmountPaid(utils.FromSubunit(event.Value, paymentOrder.Edges.Token.Decimals)).
 			AddTransactions(transactionLog).
 			Save(ctx)

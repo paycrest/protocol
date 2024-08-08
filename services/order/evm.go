@@ -32,6 +32,7 @@ import (
 	"github.com/paycrest/protocol/types"
 	"github.com/paycrest/protocol/utils"
 	cryptoUtils "github.com/paycrest/protocol/utils/crypto"
+	"github.com/paycrest/protocol/utils/logger"
 )
 
 // OrderEVM provides functionality related to on-chain interactions for payment orders
@@ -283,6 +284,8 @@ func (s *OrderEVM) RevertOrder(ctx context.Context, client types.RPCClient, orde
 		return nil
 	}
 
+	logger.Errorf("Reverting order %s with amount %s", order.ID, amountMinusFee.String())
+
 	// Convert amountMinusFee to big.Int
 	amountMinusFeeBigInt := utils.ToSubunit(amountMinusFee, order.Edges.Token.Decimals)
 
@@ -327,6 +330,8 @@ func (s *OrderEVM) RevertOrder(ctx context.Context, client types.RPCClient, orde
 	} else {
 		returnAddress = common.HexToAddress(order.ReturnAddress)
 	}
+
+	logger.Errorf("Reverting order %s with amount %s to address %s", order.ID, amountMinusFee.String(), returnAddress.String())
 
 	// Create calldata
 	calldata, err := s.executeBatchTransferCallData(order, returnAddress, amountMinusFeeBigInt)
@@ -689,7 +694,7 @@ func (s *OrderEVM) createOrderCallData(order *ent.PaymentOrder) ([]byte, error) 
 		Amount:             utils.ToSubunit(amountWithProtocolFee, order.Edges.Token.Decimals),
 		Rate:               order.Rate.BigInt(),
 		SenderFeeRecipient: common.HexToAddress(order.FeeAddress),
-		SenderFee:          utils.ToSubunit(order.SenderFee, order.Edges.Token.Decimals),
+		SenderFee:          order.SenderFee.BigInt(),
 		RefundAddress:      refundAddress,
 		MessageHash:        encryptedOrderRecipient,
 	}
