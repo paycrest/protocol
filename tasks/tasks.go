@@ -153,13 +153,12 @@ func RetryStaleUserOperations() error {
 		return err
 	}
 
-	logger.Errorf("RetryStaleUserOperations: %v", orders)
-
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		for _, order := range orders {
 			if order.Edges.ReceiveAddress.Status == receiveaddress.StatusExpired || order.Edges.ReceiveAddress.Status == receiveaddress.StatusUsed {
+				logger.Errorf("RetryStaleUserOperations: %v", order)
 				var service types.OrderService
 				if strings.HasPrefix(order.Edges.Token.Edges.Network.Identifier, "tron") {
 					service = orderService.NewOrderTron()

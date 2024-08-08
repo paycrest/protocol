@@ -257,6 +257,8 @@ func (s *OrderEVM) RevertOrder(ctx context.Context, client types.RPCClient, orde
 		return fmt.Errorf("%s - RevertOrder.fetchOrder: %w", orderIDPrefix, err)
 	}
 
+	logger.Errorf("Reverting order %s with amount paid %s", order.ID, order.AmountPaid.String())
+
 	fees := order.NetworkFee.Add(order.SenderFee).Add(order.ProtocolFee)
 	orderAmountWithFees := order.Amount.Add(fees)
 
@@ -272,6 +274,8 @@ func (s *OrderEVM) RevertOrder(ctx context.Context, client types.RPCClient, orde
 		return nil
 	}
 
+	logger.Errorf("Reverting order %s with amount to revert %s", order.ID, amountToRevert.String())
+
 	if amountToRevert.Equal(decimal.Zero) {
 		return nil
 	}
@@ -284,7 +288,7 @@ func (s *OrderEVM) RevertOrder(ctx context.Context, client types.RPCClient, orde
 		return nil
 	}
 
-	logger.Errorf("Reverting order %s with amount %s", order.ID, amountMinusFee.String())
+	logger.Errorf("Reverting order %s with amount minus fee %s", order.ID, amountMinusFee.String())
 
 	// Convert amountMinusFee to big.Int
 	amountMinusFeeBigInt := utils.ToSubunit(amountMinusFee, order.Edges.Token.Decimals)
