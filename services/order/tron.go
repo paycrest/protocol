@@ -607,7 +607,7 @@ func (s *OrderTron) createOrderCallData(order *ent.PaymentOrder) ([]byte, error)
 		Amount:             utils.ToSubunit(amountWithProtocolFee, order.Edges.Token.Decimals),
 		Rate:               order.Rate.BigInt(),
 		SenderFeeRecipient: common.HexToAddress(senderFeeRecipient),
-		SenderFee:          order.SenderFee.BigInt(),
+		SenderFee:          utils.ToSubunit(order.SenderFee, order.Edges.Token.Decimals),
 		RefundAddress:      common.HexToAddress(refundAddress),
 		MessageHash:        encryptedOrderRecipient,
 	}

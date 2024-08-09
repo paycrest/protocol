@@ -689,7 +689,7 @@ func (s *OrderEVM) createOrderCallData(order *ent.PaymentOrder) ([]byte, error) 
 		Amount:             utils.ToSubunit(amountWithProtocolFee, order.Edges.Token.Decimals),
 		Rate:               order.Rate.BigInt(),
 		SenderFeeRecipient: common.HexToAddress(order.FeeAddress),
-		SenderFee:          order.SenderFee.BigInt(),
+		SenderFee:          utils.ToSubunit(order.SenderFee, order.Edges.Token.Decimals),
 		RefundAddress:      refundAddress,
 		MessageHash:        encryptedOrderRecipient,
 	}
