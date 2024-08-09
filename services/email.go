@@ -69,7 +69,7 @@ func (m *EmailService) SendVerificationEmail(ctx context.Context, token, email, 
 		ToAddress:   email,
 		DynamicData: map[string]interface{}{
 			"first_name": firstName,
-			"code":       token,
+			"token":       token,
 		},
 	}
 	return SendTemplateEmail(payload, "d-f26d853bbb884c0c856f0bbda894032c")
@@ -84,7 +84,7 @@ func (m *EmailService) SendPasswordResetEmail(ctx context.Context, token, email,
 		ToAddress:   email,
 		DynamicData: map[string]interface{}{
 			"first_name": firstName,
-			"code":       token,
+			"token":       token,
 		},
 	}
 	return SendTemplateEmail(payload, "d-8b689801cd9947748775ccd1c4cc932e")
@@ -147,6 +147,7 @@ func SendTemplateEmail(content types.SendEmailPayload, templateId string) (types
 				"to": []map[string]string{
 					{
 						"email": content.ToAddress,
+						"name":  "Paycrest",
 					},
 				},
 				"dynamic_template_data": content.DynamicData,
@@ -190,6 +191,7 @@ func SendTemplateEmailWithJsonAttachment(content types.SendEmailPayload, templat
 				"to": []map[string]string{
 					{
 						"email": content.ToAddress,
+						"name":  "Paycrest",
 					},
 				},
 				"dynamic_template_data": content.DynamicData,
