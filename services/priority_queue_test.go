@@ -27,17 +27,16 @@ import (
 )
 
 var testCtxForPQ = struct {
-	user                     *ent.User
-	providerProfile          *ent.ProviderProfile
-	providerProfileAPIsecret string
-
-	privateProviderPrivate *ent.ProviderProfile
-	currency               *ent.FiatCurrency
-	client                 types.RPCClient
-	token                  *ent.Token
-	minAmount              decimal.Decimal
-	maxAmount              decimal.Decimal
-	bucket                 *ent.ProvisionBucket
+	user                    *ent.User
+	providerProfile         *ent.ProviderProfile
+	providerProfileAPIKey   *ent.APIKey
+	providerProviderProfile *ent.ProviderProfile
+	currency                *ent.FiatCurrency
+	client                  types.RPCClient
+	token                   *ent.Token
+	minAmount               decimal.Decimal
+	maxAmount               decimal.Decimal
+	bucket                  *ent.ProvisionBucket
 }{}
 
 func setupForPQ() error {
@@ -86,7 +85,7 @@ func setupForPQ() error {
 		return err
 	}
 	apiKeyService := NewAPIKeyService()
-	secret, _, err := apiKeyService.GenerateAPIKey(
+	apiKey, _, err := apiKeyService.GenerateAPIKey(
 		context.Background(),
 		nil,
 		nil,
@@ -95,7 +94,7 @@ func setupForPQ() error {
 	if err != nil {
 		return err
 	}
-	testCtxForPQ.providerProfileAPIsecret = secret.Secret
+	testCtxForPQ.providerProfileAPIKey = apiKey
 	_, err = test.AddProviderOrderTokenToProvider(
 		map[string]interface{}{
 			"fixed_conversion_rate":    decimal.NewFromFloat(100),
@@ -131,7 +130,7 @@ func setupForPQ() error {
 		return err
 	}
 
-	privateProviderPrivate, err := test.CreateTestProviderProfile(map[string]interface{}{
+	providerProviderProfile, err := test.CreateTestProviderProfile(map[string]interface{}{
 		"currency_id":     currency.ID,
 		"visibility_mode": "private",
 		"user_id":         providerPrivate.ID,
@@ -139,10 +138,10 @@ func setupForPQ() error {
 	if err != nil {
 		return err
 	}
-	testCtxForPQ.privateProviderPrivate = privateProviderPrivate
+	testCtxForPQ.providerProviderProfile = providerProviderProfile
 
 	_, err = test.CreateTestProvisionBucket(map[string]interface{}{
-		"provider_id": privateProviderPrivate.ID,
+		"provider_id": providerProviderProfile.ID,
 		"min_amount":  testCtxForPQ.minAmount,
 		"max_amount":  testCtxForPQ.maxAmount,
 		"currency_id": currency.ID,
@@ -153,7 +152,7 @@ func setupForPQ() error {
 
 	// Set up payment order
 	_, err = test.CreateTestLockPaymentOrder(map[string]interface{}{
-		"provider": privateProviderPrivate,
+		"provider": providerProviderProfile,
 		"tokenID":  testCtxForPQ.token.ID})
 	if err != nil {
 		return err
@@ -203,7 +202,7 @@ func TestPriorityQueueTest(t *testing.T) {
 	t.Run("TestCreatePriorityQueueForBucket", func(t *testing.T) {
 		ctx := context.Background()
 		bucket, err := test.CreateTestProvisionBucket(map[string]interface{}{
-			"provider_id": testCtxForPQ.privateProviderPrivate.ID,
+			"provider_id": testCtxForPQ.providerProviderProfile.ID,
 			"min_amount":  testCtxForPQ.minAmount,
 			"max_amount":  testCtxForPQ.maxAmount,
 			"currency_id": testCtxForPQ.currency.ID,
@@ -225,7 +224,7 @@ func TestPriorityQueueTest(t *testing.T) {
 		data, err := db.RedisClient.LRange(ctx, redisKey, 0, -1).Result()
 		assert.NoError(t, err)
 		assert.Equal(t, len(data), 1)
-		assert.Contains(t, data[0], testCtxForPQ.privateProviderPrivate.ID)
+		assert.Contains(t, data[0], testCtxForPQ.providerProviderProfile.ID)
 	})
 
 	t.Run("TestProcessBucketQueues", func(t *testing.T) {
@@ -242,7 +241,7 @@ func TestPriorityQueueTest(t *testing.T) {
 	t.Run("TestAssignLockPaymentOrder", func(t *testing.T) {
 
 		bucket, err := test.CreateTestProvisionBucket(map[string]interface{}{
-			"provider_id": testCtxForPQ.privateProviderPrivate.ID,
+			"provider_id": testCtxForPQ.providerProviderProfile.ID,
 			"min_amount":  testCtxForPQ.minAmount,
 			"max_amount":  testCtxForPQ.maxAmount,
 			"currency_id": testCtxForPQ.currency.ID,
@@ -297,7 +296,7 @@ func TestPriorityQueueTest(t *testing.T) {
 
 	t.Run("TestSendOrderRequest", func(t *testing.T) {
 		bucket, err := test.CreateTestProvisionBucket(map[string]interface{}{
-			"provider_id": testCtxForPQ.privateProviderPrivate.ID,
+			"provider_id": testCtxForPQ.providerProviderProfile.ID,
 			"min_amount":  testCtxForPQ.minAmount,
 			"max_amount":  testCtxForPQ.maxAmount,
 			"currency_id": testCtxForPQ.currency.ID,
@@ -340,7 +339,7 @@ func TestPriorityQueueTest(t *testing.T) {
 			ProvisionBucket:   order.Edges.ProvisionBucket,
 		})
 		assert.NoError(t, err)
-		
+
 		t.Run("TestNotifyProvider", func(t *testing.T) {
 
 			// setup httpmock
@@ -354,14 +353,15 @@ func TestPriorityQueueTest(t *testing.T) {
 						log.Fatal(err)
 					}
 					// Compute HMAC
-					decodedSecret, err := base64.StdEncoding.DecodeString(testCtxForPQ.providerProfileAPIsecret)
+					decodedSecret, err := base64.StdEncoding.DecodeString(testCtxForPQ.providerProfileAPIKey.Secret)
 					assert.NoError(t, err)
 					decryptedSecret, err := cryptoUtils.DecryptPlain(decodedSecret)
 					assert.NoError(t, err)
 					signature := tokenUtils.GenerateHMACSignature(map[string]interface{}{
-						"data": "test",
+						"data":      "test",
+						"timestamp": time.Now().Unix(),
 					}, string(decryptedSecret))
-					assert.Equal(t, r.Header.Get("X-Request-Signature"), signature)
+					assert.Equal(t, r.Header.Get("Authorization"), fmt.Sprintf("HMAC %s:%s", testCtxForPQ.providerProfileAPIKey.ID.String(), signature))
 					if strings.Contains(string(bytes), "data") && strings.Contains(string(bytes), "test") {
 						resp := httpmock.NewBytesResponse(200, nil)
 						return resp, nil
@@ -383,7 +383,7 @@ func TestPriorityQueueTest(t *testing.T) {
 		t.Run("TestReassignUnfulfilledLockOrders", func(t *testing.T) {
 
 			bucket, err := test.CreateTestProvisionBucket(map[string]interface{}{
-				"provider_id": testCtxForPQ.privateProviderPrivate.ID,
+				"provider_id": testCtxForPQ.providerProviderProfile.ID,
 				"min_amount":  testCtxForPQ.minAmount,
 				"max_amount":  testCtxForPQ.maxAmount,
 				"currency_id": testCtxForPQ.currency.ID,
@@ -412,14 +412,14 @@ func TestPriorityQueueTest(t *testing.T) {
 
 		t.Run("TestReassignStaleOrderRequest", func(t *testing.T) {
 			bucket, err := test.CreateTestProvisionBucket(map[string]interface{}{
-				"provider_id": testCtxForPQ.privateProviderPrivate.ID,
+				"provider_id": testCtxForPQ.providerProviderProfile.ID,
 				"min_amount":  testCtxForPQ.minAmount,
 				"max_amount":  testCtxForPQ.maxAmount,
 				"currency_id": testCtxForPQ.currency.ID,
 			})
 			assert.NoError(t, err)
 			_order, err := test.CreateTestLockPaymentOrder(map[string]interface{}{
-				"provider":  testCtxForPQ.privateProviderPrivate,
+				"provider":  testCtxForPQ.providerProviderProfile,
 				"tokenID":   testCtxForPQ.token.ID,
 				"status":    lockpaymentorder.StatusProcessing.String(),
 				"updatedAt": time.Now().Add(-5 * time.Minute),
@@ -427,7 +427,7 @@ func TestPriorityQueueTest(t *testing.T) {
 			assert.NoError(t, err)
 
 			orderKey := fmt.Sprintf("order_exclude_list_%s", _order.ID)
-			_, err = db.RedisClient.RPush(context.Background(), orderKey, testCtxForPQ.privateProviderPrivate.ID).Result()
+			_, err = db.RedisClient.RPush(context.Background(), orderKey, testCtxForPQ.providerProviderProfile.ID).Result()
 			assert.NoError(t, err)
 
 			_, err = test.AddProvisionBucketToLockPaymentOrder(_order, bucket.ID)
