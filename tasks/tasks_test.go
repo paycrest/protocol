@@ -134,7 +134,7 @@ func TestTasks(t *testing.T) {
 	
 	t.Run("RetryFailedWebhookNotifications", func(t *testing.T) {
 		httpmock.Activate()
-		httpmock.Deactivate()
+		defer httpmock.Deactivate()
 
 		// Register mock failure response for Webhook
 		httpmock.RegisterResponder("POST", testCtx.sender.WebhookURL,

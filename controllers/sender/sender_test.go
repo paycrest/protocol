@@ -201,7 +201,7 @@ func TestSender(t *testing.T) {
 		assert.Equal(t, paymentOrder.Edges.Recipient.Memo, payload["recipient"].(map[string]interface{})["memo"])
 		assert.Equal(t, paymentOrder.Edges.Recipient.AccountName, payload["recipient"].(map[string]interface{})["accountName"])
 		assert.Equal(t, paymentOrder.Edges.Recipient.Institution, payload["recipient"].(map[string]interface{})["institution"])
-		assert.Equal(t, data["senderFee"], "0.666667")
+		assert.Equal(t, data["senderFee"], "0.6667")
 		assert.Equal(t, data["transactionFee"], network.Fee.String())
 
 		t.Run("Check Transaction Logs", func(t *testing.T) {
