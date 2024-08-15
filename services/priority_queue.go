@@ -363,13 +363,12 @@ func (s *PriorityQueueService) notifyProvider(ctx context.Context, orderRequestD
 		return err
 	}
 
-	orderRequestData["timestamp"] = time.Now().Unix()
 	signature := tokenUtils.GenerateHMACSignature(orderRequestData, string(decryptedSecret))
 
 	// Send POST request to the provider's node
 	_, err = fastshot.NewClient(provider.HostIdentifier).
 		Config().SetTimeout(30*time.Second).
-		Header().Add("Authorization", fmt.Sprintf("HMAC %s:%s", provider.Edges.APIKey.ID.String(), signature)).
+		Header().Add("X-Request-Signature", signature).
 		Build().POST("/new_order").
 		Body().AsJSON(orderRequestData).
 		Send()
@@ -546,29 +545,27 @@ func (s *PriorityQueueService) ReassignUnvalidatedLockOrders() {
 
 	for _, order := range lockOrders {
 		if order.Edges.Fulfillment.ValidationStatus == lockorderfulfillment.ValidationStatusPending {
-			// Compute HMAC
-			decodedSecret, err := base64.StdEncoding.DecodeString(order.Edges.Provider.Edges.APIKey.Secret)
-			if err != nil {
-				logger.Errorf("ReassignUnvalidatedLockOrders: %v", err)
-				return
-			}
-			decryptedSecret, err := cryptoUtils.DecryptPlain(decodedSecret)
-			if err != nil {
-				logger.Errorf("ReassignUnvalidatedLockOrders: %v", err)
-				return
-			}
+			// // Compute HMAC
+			// decodedSecret, err := base64.StdEncoding.DecodeString(order.Edges.Provider.Edges.APIKey.Secret)
+			// if err != nil {
+			// 	logger.Errorf("ReassignUnvalidatedLockOrders: %v", err)
+			// 	return
+			// }
+			// decryptedSecret, err := cryptoUtils.DecryptPlain(decodedSecret)
+			// if err != nil {
+			// 	logger.Errorf("ReassignUnvalidatedLockOrders: %v", err)
+			// 	return
+			// }
 
-			payload := map[string]interface{}{
-				"timestamp": time.Now().Unix(),
-			}
+			// payload := map[string]interface{}{}
 
-			signature := tokenUtils.GenerateHMACSignature(payload, string(decryptedSecret))
+			// signature := tokenUtils.GenerateHMACSignature(payload, string(decryptedSecret))
 
 			// Send GET request to the provider's node
 			res, err := fastshot.NewClient(order.Edges.Provider.HostIdentifier).
-				Config().SetTimeout(30*time.Second).
-				Header().Add("Authorization", fmt.Sprintf("HMAC %s:%s", order.Edges.Provider.Edges.APIKey.ID.String(), signature)).
-				Build().GET(fmt.Sprintf("/tx_status/%s/%s?timestamp=%v", order.Edges.Fulfillment.Psp, order.Edges.Fulfillment.TxID, payload["timestamp"])).
+				Config().SetTimeout(30 * time.Second).
+				// Header().Add("X-Request-Signature", signature).
+				Build().GET(fmt.Sprintf("/tx_status/%s/%s", order.Edges.Fulfillment.Psp, order.Edges.Fulfillment.TxID)).
 				Send()
 			if err != nil {
 				logger.Errorf("ReassignUnvalidatedLockOrders: %v", err)

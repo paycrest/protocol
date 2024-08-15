@@ -135,7 +135,7 @@ func HMACVerificationMiddleware(c *gin.Context) {
 	var err error
 
 	// Handle GET and DELETE requests differently
-	if c.Request.Method == "GET" {
+	if c.Request.Method == "GET" || c.Request.Method == "DELETE" {
 		payloadData = make(map[string]interface{})
 
 		// // Extract the path parameters and include them in the payload

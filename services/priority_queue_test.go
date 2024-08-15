@@ -358,10 +358,9 @@ func TestPriorityQueueTest(t *testing.T) {
 					decryptedSecret, err := cryptoUtils.DecryptPlain(decodedSecret)
 					assert.NoError(t, err)
 					signature := tokenUtils.GenerateHMACSignature(map[string]interface{}{
-						"data":      "test",
-						"timestamp": time.Now().Unix(),
+						"data": "test",
 					}, string(decryptedSecret))
-					assert.Equal(t, r.Header.Get("Authorization"), fmt.Sprintf("HMAC %s:%s", testCtxForPQ.providerProfileAPIKey.ID.String(), signature))
+					assert.Equal(t, r.Header.Get("X-Request-Signature"), signature)
 					if strings.Contains(string(bytes), "data") && strings.Contains(string(bytes), "test") {
 						resp := httpmock.NewBytesResponse(200, nil)
 						return resp, nil
