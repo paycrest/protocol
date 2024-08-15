@@ -522,7 +522,11 @@ func (s *PriorityQueueService) ReassignUnvalidatedLockOrders() {
 			),
 		).
 		WithToken().
-		WithProvider().
+		WithProvider(
+			func(pq *ent.ProviderProfileQuery) {
+				pq.WithAPIKey()
+			},
+		).
 		WithFulfillment().
 		WithProvisionBucket(
 			func(pbq *ent.ProvisionBucketQuery) {
