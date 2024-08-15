@@ -442,7 +442,12 @@ func (s *PriorityQueueService) ReassignUnfulfilledLockOrders() {
 				),
 			),
 			lockpaymentorder.StatusEQ(lockpaymentorder.StatusProcessing),
-			lockpaymentorder.UpdatedAtLTE(time.Now().Add(-config.OrderConfig().OrderFulfillmentValidity*time.Minute)),
+			lockpaymentorder.Or(
+				lockpaymentorder.UpdatedAtLTE(time.Now().Add(-config.OrderConfig().OrderFulfillmentValidity*time.Minute)),
+				lockpaymentorder.HasFulfillmentWith(
+					lockorderfulfillment.CreatedAtLTE(time.Now().Add(-config.OrderConfig().OrderFulfillmentValidity*time.Minute)),
+				),
+			),
 		).
 		WithToken().
 		WithProvider().
@@ -585,6 +590,14 @@ func (s *PriorityQueueService) ReassignUnvalidatedLockOrders() {
 					Save(ctx)
 				if err != nil {
 					logger.Errorf("ReassignUnvalidatedLockOrders.UpdateFulfillmentStatusFailed: %v", err)
+					return
+				}
+
+				_, err = order.Update().
+					SetStatus(lockpaymentorder.StatusProcessing).
+					Save(ctx)
+				if err != nil {
+					logger.Errorf("ReassignUnvalidatedLockOrders.UpdateOrderStatusProcessing: %v", err)
 					return
 				}
 			} else if status == "success" {
