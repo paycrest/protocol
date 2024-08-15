@@ -559,7 +559,7 @@ func (s *PriorityQueueService) ReassignUnvalidatedLockOrders() {
 			res, err := fastshot.NewClient(order.Edges.Provider.HostIdentifier).
 				Config().SetTimeout(30*time.Second).
 				Header().Add("Authorization", fmt.Sprintf("HMAC %s:%s", order.Edges.Provider.Edges.APIKey.ID.String(), signature)).
-				Build().GET(fmt.Sprintf("/%s/%s?timestamp=%v", order.Edges.Fulfillment.Psp, order.Edges.Fulfillment.TxID, payload["timestamp"])).
+				Build().GET(fmt.Sprintf("/tx_status/%s/%s?timestamp=%v", order.Edges.Fulfillment.Psp, order.Edges.Fulfillment.TxID, payload["timestamp"])).
 				Send()
 			if err != nil {
 				logger.Errorf("ReassignUnvalidatedLockOrders: %v", err)
