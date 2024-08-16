@@ -581,14 +581,24 @@ func (s *PriorityQueueService) ReassignUnvalidatedLockOrders() {
 			status := data["data"].(map[string]interface{})["status"].(string)
 
 			if status == "failed" {
-				_, err = storage.Client.LockOrderFulfillment.
-					UpdateOneID(order.Edges.Fulfillment.ID).
-					SetValidationStatus(lockorderfulfillment.ValidationStatusFailed).
-					Save(ctx)
+				// TODO: change this when one lock order can have multiple fulfillments
+				err = storage.Client.LockOrderFulfillment.
+					DeleteOneID(order.Edges.Fulfillment.ID).
+					Exec(ctx)
 				if err != nil {
-					logger.Errorf("ReassignUnvalidatedLockOrders.UpdateFulfillmentStatusFailed: %v", err)
+					logger.Errorf("ReassignUnvalidatedLockOrders.DeleteFulfillment: %v", err)
 					return
 				}
+
+				// _, err = storage.Client.LockOrderFulfillment.
+				// 	UpdateOneID(order.Edges.Fulfillment.ID).
+				// 	SetValidationStatus(lockorderfulfillment.ValidationStatusFailed).
+				// 	SetValidationError(data["data"].(map[string]interface{})["error"].(string)).
+				// 	Save(ctx)
+				// if err != nil {
+				// 	logger.Errorf("ReassignUnvalidatedLockOrders.UpdateFulfillmentStatusFailed: %v", err)
+				// 	return
+				// }
 
 				_, err = order.Update().
 					SetStatus(lockpaymentorder.StatusProcessing).
