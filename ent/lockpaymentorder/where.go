@@ -901,21 +901,21 @@ func HasProviderWith(preds ...predicate.ProviderProfile) predicate.LockPaymentOr
 	})
 }
 
-// HasFulfillment applies the HasEdge predicate on the "fulfillment" edge.
-func HasFulfillment() predicate.LockPaymentOrder {
+// HasFulfillments applies the HasEdge predicate on the "fulfillments" edge.
+func HasFulfillments() predicate.LockPaymentOrder {
 	return predicate.LockPaymentOrder(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, FulfillmentTable, FulfillmentColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, FulfillmentsTable, FulfillmentsColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasFulfillmentWith applies the HasEdge predicate on the "fulfillment" edge with a given conditions (other predicates).
-func HasFulfillmentWith(preds ...predicate.LockOrderFulfillment) predicate.LockPaymentOrder {
+// HasFulfillmentsWith applies the HasEdge predicate on the "fulfillments" edge with a given conditions (other predicates).
+func HasFulfillmentsWith(preds ...predicate.LockOrderFulfillment) predicate.LockPaymentOrder {
 	return predicate.LockPaymentOrder(func(s *sql.Selector) {
-		step := newFulfillmentStep()
+		step := newFulfillmentsStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

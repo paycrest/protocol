@@ -177,7 +177,7 @@ func RetryStaleUserOperations() error {
 		Query().
 		Where(
 			lockpaymentorder.StatusEQ(lockpaymentorder.StatusValidated),
-			lockpaymentorder.HasFulfillmentWith(
+			lockpaymentorder.HasFulfillmentsWith(
 				lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusSuccess),
 			),
 			lockpaymentorder.UpdatedAtLT(time.Now().Add(-5*time.Minute)),

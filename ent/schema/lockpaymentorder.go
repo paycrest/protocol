@@ -66,8 +66,7 @@ func (LockPaymentOrder) Edges() []ent.Edge {
 		edge.From("provider", ProviderProfile.Type).
 			Ref("assigned_orders").
 			Unique(),
-		edge.To("fulfillment", LockOrderFulfillment.Type).
-			Unique().
+		edge.To("fulfillments", LockOrderFulfillment.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("transactions", TransactionLog.Type),
 	}

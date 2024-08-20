@@ -924,7 +924,7 @@ func (c *LockOrderFulfillmentClient) QueryOrder(lof *LockOrderFulfillment) *Lock
 		step := sqlgraph.NewStep(
 			sqlgraph.From(lockorderfulfillment.Table, lockorderfulfillment.FieldID, id),
 			sqlgraph.To(lockpaymentorder.Table, lockpaymentorder.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, lockorderfulfillment.OrderTable, lockorderfulfillment.OrderColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, lockorderfulfillment.OrderTable, lockorderfulfillment.OrderColumn),
 		)
 		fromV = sqlgraph.Neighbors(lof.driver.Dialect(), step)
 		return fromV, nil
@@ -1098,15 +1098,15 @@ func (c *LockPaymentOrderClient) QueryProvider(lpo *LockPaymentOrder) *ProviderP
 	return query
 }
 
-// QueryFulfillment queries the fulfillment edge of a LockPaymentOrder.
-func (c *LockPaymentOrderClient) QueryFulfillment(lpo *LockPaymentOrder) *LockOrderFulfillmentQuery {
+// QueryFulfillments queries the fulfillments edge of a LockPaymentOrder.
+func (c *LockPaymentOrderClient) QueryFulfillments(lpo *LockPaymentOrder) *LockOrderFulfillmentQuery {
 	query := (&LockOrderFulfillmentClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := lpo.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(lockpaymentorder.Table, lockpaymentorder.FieldID, id),
 			sqlgraph.To(lockorderfulfillment.Table, lockorderfulfillment.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, lockpaymentorder.FulfillmentTable, lockpaymentorder.FulfillmentColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, lockpaymentorder.FulfillmentsTable, lockpaymentorder.FulfillmentsColumn),
 		)
 		fromV = sqlgraph.Neighbors(lpo.driver.Dialect(), step)
 		return fromV, nil

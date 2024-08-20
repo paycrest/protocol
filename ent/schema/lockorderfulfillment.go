@@ -29,7 +29,7 @@ func (LockOrderFulfillment) Fields() []ent.Field {
 		field.String("psp").
 			Optional(),
 		field.Enum("validation_status").
-			Values("pending", "success", "failed").
+			Values("pending", "success", "reversed", "failed").
 			Default("pending"),
 		field.String("validation_error").
 			Optional(),
@@ -40,7 +40,7 @@ func (LockOrderFulfillment) Fields() []ent.Field {
 func (LockOrderFulfillment) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("order", LockPaymentOrder.Type).
-			Ref("fulfillment").
+			Ref("fulfillments").
 			Unique().
 			Required(),
 	}
