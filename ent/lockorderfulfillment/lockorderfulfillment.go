@@ -38,7 +38,7 @@ const (
 	// It exists in this package in order to avoid circular dependency with the "lockpaymentorder" package.
 	OrderInverseTable = "lock_payment_orders"
 	// OrderColumn is the table column denoting the order relation/edge.
-	OrderColumn = "lock_payment_order_fulfillment"
+	OrderColumn = "lock_payment_order_fulfillments"
 )
 
 // Columns holds all SQL columns for lockorderfulfillment fields.
@@ -55,7 +55,7 @@ var Columns = []string{
 // ForeignKeys holds the SQL foreign-keys that are owned by the "lock_order_fulfillments"
 // table and are not defined as standalone fields in the schema.
 var ForeignKeys = []string{
-	"lock_payment_order_fulfillment",
+	"lock_payment_order_fulfillments",
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -92,9 +92,10 @@ const DefaultValidationStatus = ValidationStatusPending
 
 // ValidationStatus values.
 const (
-	ValidationStatusPending ValidationStatus = "pending"
-	ValidationStatusSuccess ValidationStatus = "success"
-	ValidationStatusFailed  ValidationStatus = "failed"
+	ValidationStatusPending  ValidationStatus = "pending"
+	ValidationStatusSuccess  ValidationStatus = "success"
+	ValidationStatusReversed ValidationStatus = "reversed"
+	ValidationStatusFailed   ValidationStatus = "failed"
 )
 
 func (vs ValidationStatus) String() string {
@@ -104,7 +105,7 @@ func (vs ValidationStatus) String() string {
 // ValidationStatusValidator is a validator for the "validation_status" field enum values. It is called by the builders before save.
 func ValidationStatusValidator(vs ValidationStatus) error {
 	switch vs {
-	case ValidationStatusPending, ValidationStatusSuccess, ValidationStatusFailed:
+	case ValidationStatusPending, ValidationStatusSuccess, ValidationStatusReversed, ValidationStatusFailed:
 		return nil
 	default:
 		return fmt.Errorf("lockorderfulfillment: invalid enum value for validation_status field: %q", vs)
@@ -159,6 +160,6 @@ func newOrderStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(OrderInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2O, true, OrderTable, OrderColumn),
+		sqlgraph.Edge(sqlgraph.M2O, true, OrderTable, OrderColumn),
 	)
 }

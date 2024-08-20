@@ -446,7 +446,7 @@ func (s *OrderTron) SettleOrder(ctx context.Context, client types.RPCClient, ord
 		Where(
 			lockpaymentorder.IDEQ(orderID),
 			lockpaymentorder.StatusEQ(lockpaymentorder.StatusValidated),
-			lockpaymentorder.HasFulfillmentWith(
+			lockpaymentorder.HasFulfillmentsWith(
 				lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusSuccess),
 			),
 		).

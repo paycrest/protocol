@@ -231,23 +231,19 @@ func (lpoc *LockPaymentOrderCreate) SetProvider(p *ProviderProfile) *LockPayment
 	return lpoc.SetProviderID(p.ID)
 }
 
-// SetFulfillmentID sets the "fulfillment" edge to the LockOrderFulfillment entity by ID.
-func (lpoc *LockPaymentOrderCreate) SetFulfillmentID(id uuid.UUID) *LockPaymentOrderCreate {
-	lpoc.mutation.SetFulfillmentID(id)
+// AddFulfillmentIDs adds the "fulfillments" edge to the LockOrderFulfillment entity by IDs.
+func (lpoc *LockPaymentOrderCreate) AddFulfillmentIDs(ids ...uuid.UUID) *LockPaymentOrderCreate {
+	lpoc.mutation.AddFulfillmentIDs(ids...)
 	return lpoc
 }
 
-// SetNillableFulfillmentID sets the "fulfillment" edge to the LockOrderFulfillment entity by ID if the given value is not nil.
-func (lpoc *LockPaymentOrderCreate) SetNillableFulfillmentID(id *uuid.UUID) *LockPaymentOrderCreate {
-	if id != nil {
-		lpoc = lpoc.SetFulfillmentID(*id)
+// AddFulfillments adds the "fulfillments" edges to the LockOrderFulfillment entity.
+func (lpoc *LockPaymentOrderCreate) AddFulfillments(l ...*LockOrderFulfillment) *LockPaymentOrderCreate {
+	ids := make([]uuid.UUID, len(l))
+	for i := range l {
+		ids[i] = l[i].ID
 	}
-	return lpoc
-}
-
-// SetFulfillment sets the "fulfillment" edge to the LockOrderFulfillment entity.
-func (lpoc *LockPaymentOrderCreate) SetFulfillment(l *LockOrderFulfillment) *LockPaymentOrderCreate {
-	return lpoc.SetFulfillmentID(l.ID)
+	return lpoc.AddFulfillmentIDs(ids...)
 }
 
 // AddTransactionIDs adds the "transactions" edge to the TransactionLog entity by IDs.
@@ -527,12 +523,12 @@ func (lpoc *LockPaymentOrderCreate) createSpec() (*LockPaymentOrder, *sqlgraph.C
 		_node.provider_profile_assigned_orders = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := lpoc.mutation.FulfillmentIDs(); len(nodes) > 0 {
+	if nodes := lpoc.mutation.FulfillmentsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   lockpaymentorder.FulfillmentTable,
-			Columns: []string{lockpaymentorder.FulfillmentColumn},
+			Table:   lockpaymentorder.FulfillmentsTable,
+			Columns: []string{lockpaymentorder.FulfillmentsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(lockorderfulfillment.FieldID, field.TypeUUID),

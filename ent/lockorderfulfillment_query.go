@@ -75,7 +75,7 @@ func (lofq *LockOrderFulfillmentQuery) QueryOrder() *LockPaymentOrderQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(lockorderfulfillment.Table, lockorderfulfillment.FieldID, selector),
 			sqlgraph.To(lockpaymentorder.Table, lockpaymentorder.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, lockorderfulfillment.OrderTable, lockorderfulfillment.OrderColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, lockorderfulfillment.OrderTable, lockorderfulfillment.OrderColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(lofq.driver.Dialect(), step)
 		return fromU, nil
@@ -413,10 +413,10 @@ func (lofq *LockOrderFulfillmentQuery) loadOrder(ctx context.Context, query *Loc
 	ids := make([]uuid.UUID, 0, len(nodes))
 	nodeids := make(map[uuid.UUID][]*LockOrderFulfillment)
 	for i := range nodes {
-		if nodes[i].lock_payment_order_fulfillment == nil {
+		if nodes[i].lock_payment_order_fulfillments == nil {
 			continue
 		}
-		fk := *nodes[i].lock_payment_order_fulfillment
+		fk := *nodes[i].lock_payment_order_fulfillments
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}
@@ -433,7 +433,7 @@ func (lofq *LockOrderFulfillmentQuery) loadOrder(ctx context.Context, query *Loc
 	for _, n := range neighbors {
 		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "lock_payment_order_fulfillment" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "lock_payment_order_fulfillments" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)

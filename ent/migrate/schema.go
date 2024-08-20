@@ -85,9 +85,9 @@ var (
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "tx_id", Type: field.TypeString, Unique: true},
 		{Name: "psp", Type: field.TypeString, Nullable: true},
-		{Name: "validation_status", Type: field.TypeEnum, Enums: []string{"pending", "success", "failed"}, Default: "pending"},
+		{Name: "validation_status", Type: field.TypeEnum, Enums: []string{"pending", "success", "reversed", "failed"}, Default: "pending"},
 		{Name: "validation_error", Type: field.TypeString, Nullable: true},
-		{Name: "lock_payment_order_fulfillment", Type: field.TypeUUID, Unique: true},
+		{Name: "lock_payment_order_fulfillments", Type: field.TypeUUID},
 	}
 	// LockOrderFulfillmentsTable holds the schema information for the "lock_order_fulfillments" table.
 	LockOrderFulfillmentsTable = &schema.Table{
@@ -96,7 +96,7 @@ var (
 		PrimaryKey: []*schema.Column{LockOrderFulfillmentsColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "lock_order_fulfillments_lock_payment_orders_fulfillment",
+				Symbol:     "lock_order_fulfillments_lock_payment_orders_fulfillments",
 				Columns:    []*schema.Column{LockOrderFulfillmentsColumns[7]},
 				RefColumns: []*schema.Column{LockPaymentOrdersColumns[0]},
 				OnDelete:   schema.Cascade,

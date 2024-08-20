@@ -52,8 +52,8 @@ const (
 	EdgeProvisionBucket = "provision_bucket"
 	// EdgeProvider holds the string denoting the provider edge name in mutations.
 	EdgeProvider = "provider"
-	// EdgeFulfillment holds the string denoting the fulfillment edge name in mutations.
-	EdgeFulfillment = "fulfillment"
+	// EdgeFulfillments holds the string denoting the fulfillments edge name in mutations.
+	EdgeFulfillments = "fulfillments"
 	// EdgeTransactions holds the string denoting the transactions edge name in mutations.
 	EdgeTransactions = "transactions"
 	// Table holds the table name of the lockpaymentorder in the database.
@@ -79,13 +79,13 @@ const (
 	ProviderInverseTable = "provider_profiles"
 	// ProviderColumn is the table column denoting the provider relation/edge.
 	ProviderColumn = "provider_profile_assigned_orders"
-	// FulfillmentTable is the table that holds the fulfillment relation/edge.
-	FulfillmentTable = "lock_order_fulfillments"
-	// FulfillmentInverseTable is the table name for the LockOrderFulfillment entity.
+	// FulfillmentsTable is the table that holds the fulfillments relation/edge.
+	FulfillmentsTable = "lock_order_fulfillments"
+	// FulfillmentsInverseTable is the table name for the LockOrderFulfillment entity.
 	// It exists in this package in order to avoid circular dependency with the "lockorderfulfillment" package.
-	FulfillmentInverseTable = "lock_order_fulfillments"
-	// FulfillmentColumn is the table column denoting the fulfillment relation/edge.
-	FulfillmentColumn = "lock_payment_order_fulfillment"
+	FulfillmentsInverseTable = "lock_order_fulfillments"
+	// FulfillmentsColumn is the table column denoting the fulfillments relation/edge.
+	FulfillmentsColumn = "lock_payment_order_fulfillments"
 	// TransactionsTable is the table that holds the transactions relation/edge.
 	TransactionsTable = "transaction_logs"
 	// TransactionsInverseTable is the table name for the TransactionLog entity.
@@ -285,10 +285,17 @@ func ByProviderField(field string, opts ...sql.OrderTermOption) OrderOption {
 	}
 }
 
-// ByFulfillmentField orders the results by fulfillment field.
-func ByFulfillmentField(field string, opts ...sql.OrderTermOption) OrderOption {
+// ByFulfillmentsCount orders the results by fulfillments count.
+func ByFulfillmentsCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newFulfillmentStep(), sql.OrderByField(field, opts...))
+		sqlgraph.OrderByNeighborsCount(s, newFulfillmentsStep(), opts...)
+	}
+}
+
+// ByFulfillments orders the results by fulfillments terms.
+func ByFulfillments(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newFulfillmentsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
 
@@ -326,11 +333,11 @@ func newProviderStep() *sqlgraph.Step {
 		sqlgraph.Edge(sqlgraph.M2O, true, ProviderTable, ProviderColumn),
 	)
 }
-func newFulfillmentStep() *sqlgraph.Step {
+func newFulfillmentsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(FulfillmentInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2O, false, FulfillmentTable, FulfillmentColumn),
+		sqlgraph.To(FulfillmentsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, FulfillmentsTable, FulfillmentsColumn),
 	)
 }
 func newTransactionsStep() *sqlgraph.Step {

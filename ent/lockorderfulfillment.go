@@ -33,9 +33,9 @@ type LockOrderFulfillment struct {
 	ValidationError string `json:"validation_error,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the LockOrderFulfillmentQuery when eager-loading is set.
-	Edges                          LockOrderFulfillmentEdges `json:"edges"`
-	lock_payment_order_fulfillment *uuid.UUID
-	selectValues                   sql.SelectValues
+	Edges                           LockOrderFulfillmentEdges `json:"edges"`
+	lock_payment_order_fulfillments *uuid.UUID
+	selectValues                    sql.SelectValues
 }
 
 // LockOrderFulfillmentEdges holds the relations/edges for other nodes in the graph.
@@ -71,7 +71,7 @@ func (*LockOrderFulfillment) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullTime)
 		case lockorderfulfillment.FieldID:
 			values[i] = new(uuid.UUID)
-		case lockorderfulfillment.ForeignKeys[0]: // lock_payment_order_fulfillment
+		case lockorderfulfillment.ForeignKeys[0]: // lock_payment_order_fulfillments
 			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		default:
 			values[i] = new(sql.UnknownType)
@@ -132,10 +132,10 @@ func (lof *LockOrderFulfillment) assignValues(columns []string, values []any) er
 			}
 		case lockorderfulfillment.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullScanner); !ok {
-				return fmt.Errorf("unexpected type %T for field lock_payment_order_fulfillment", values[i])
+				return fmt.Errorf("unexpected type %T for field lock_payment_order_fulfillments", values[i])
 			} else if value.Valid {
-				lof.lock_payment_order_fulfillment = new(uuid.UUID)
-				*lof.lock_payment_order_fulfillment = *value.S.(*uuid.UUID)
+				lof.lock_payment_order_fulfillments = new(uuid.UUID)
+				*lof.lock_payment_order_fulfillments = *value.S.(*uuid.UUID)
 			}
 		default:
 			lof.selectValues.Set(columns[i], values[i])

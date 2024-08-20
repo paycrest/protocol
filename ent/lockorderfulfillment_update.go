@@ -202,7 +202,7 @@ func (lofu *LockOrderFulfillmentUpdate) sqlSave(ctx context.Context) (n int, err
 	}
 	if lofu.mutation.OrderCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
+			Rel:     sqlgraph.M2O,
 			Inverse: true,
 			Table:   lockorderfulfillment.OrderTable,
 			Columns: []string{lockorderfulfillment.OrderColumn},
@@ -215,7 +215,7 @@ func (lofu *LockOrderFulfillmentUpdate) sqlSave(ctx context.Context) (n int, err
 	}
 	if nodes := lofu.mutation.OrderIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
+			Rel:     sqlgraph.M2O,
 			Inverse: true,
 			Table:   lockorderfulfillment.OrderTable,
 			Columns: []string{lockorderfulfillment.OrderColumn},
@@ -451,7 +451,7 @@ func (lofuo *LockOrderFulfillmentUpdateOne) sqlSave(ctx context.Context) (_node 
 	}
 	if lofuo.mutation.OrderCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
+			Rel:     sqlgraph.M2O,
 			Inverse: true,
 			Table:   lockorderfulfillment.OrderTable,
 			Columns: []string{lockorderfulfillment.OrderColumn},
@@ -464,7 +464,7 @@ func (lofuo *LockOrderFulfillmentUpdateOne) sqlSave(ctx context.Context) (_node 
 	}
 	if nodes := lofuo.mutation.OrderIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
+			Rel:     sqlgraph.M2O,
 			Inverse: true,
 			Table:   lockorderfulfillment.OrderTable,
 			Columns: []string{lockorderfulfillment.OrderColumn},

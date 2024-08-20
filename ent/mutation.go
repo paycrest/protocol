@@ -3055,8 +3055,9 @@ type LockPaymentOrderMutation struct {
 	clearedprovision_bucket    bool
 	provider                   *string
 	clearedprovider            bool
-	fulfillment                *uuid.UUID
-	clearedfulfillment         bool
+	fulfillments               map[uuid.UUID]struct{}
+	removedfulfillments        map[uuid.UUID]struct{}
+	clearedfulfillments        bool
 	transactions               map[uuid.UUID]struct{}
 	removedtransactions        map[uuid.UUID]struct{}
 	clearedtransactions        bool
@@ -3967,43 +3968,58 @@ func (m *LockPaymentOrderMutation) ResetProvider() {
 	m.clearedprovider = false
 }
 
-// SetFulfillmentID sets the "fulfillment" edge to the LockOrderFulfillment entity by id.
-func (m *LockPaymentOrderMutation) SetFulfillmentID(id uuid.UUID) {
-	m.fulfillment = &id
+// AddFulfillmentIDs adds the "fulfillments" edge to the LockOrderFulfillment entity by ids.
+func (m *LockPaymentOrderMutation) AddFulfillmentIDs(ids ...uuid.UUID) {
+	if m.fulfillments == nil {
+		m.fulfillments = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		m.fulfillments[ids[i]] = struct{}{}
+	}
 }
 
-// ClearFulfillment clears the "fulfillment" edge to the LockOrderFulfillment entity.
-func (m *LockPaymentOrderMutation) ClearFulfillment() {
-	m.clearedfulfillment = true
+// ClearFulfillments clears the "fulfillments" edge to the LockOrderFulfillment entity.
+func (m *LockPaymentOrderMutation) ClearFulfillments() {
+	m.clearedfulfillments = true
 }
 
-// FulfillmentCleared reports if the "fulfillment" edge to the LockOrderFulfillment entity was cleared.
-func (m *LockPaymentOrderMutation) FulfillmentCleared() bool {
-	return m.clearedfulfillment
+// FulfillmentsCleared reports if the "fulfillments" edge to the LockOrderFulfillment entity was cleared.
+func (m *LockPaymentOrderMutation) FulfillmentsCleared() bool {
+	return m.clearedfulfillments
 }
 
-// FulfillmentID returns the "fulfillment" edge ID in the mutation.
-func (m *LockPaymentOrderMutation) FulfillmentID() (id uuid.UUID, exists bool) {
-	if m.fulfillment != nil {
-		return *m.fulfillment, true
+// RemoveFulfillmentIDs removes the "fulfillments" edge to the LockOrderFulfillment entity by IDs.
+func (m *LockPaymentOrderMutation) RemoveFulfillmentIDs(ids ...uuid.UUID) {
+	if m.removedfulfillments == nil {
+		m.removedfulfillments = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		delete(m.fulfillments, ids[i])
+		m.removedfulfillments[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedFulfillments returns the removed IDs of the "fulfillments" edge to the LockOrderFulfillment entity.
+func (m *LockPaymentOrderMutation) RemovedFulfillmentsIDs() (ids []uuid.UUID) {
+	for id := range m.removedfulfillments {
+		ids = append(ids, id)
 	}
 	return
 }
 
-// FulfillmentIDs returns the "fulfillment" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// FulfillmentID instead. It exists only for internal usage by the builders.
-func (m *LockPaymentOrderMutation) FulfillmentIDs() (ids []uuid.UUID) {
-	if id := m.fulfillment; id != nil {
-		ids = append(ids, *id)
+// FulfillmentsIDs returns the "fulfillments" edge IDs in the mutation.
+func (m *LockPaymentOrderMutation) FulfillmentsIDs() (ids []uuid.UUID) {
+	for id := range m.fulfillments {
+		ids = append(ids, id)
 	}
 	return
 }
 
-// ResetFulfillment resets all changes to the "fulfillment" edge.
-func (m *LockPaymentOrderMutation) ResetFulfillment() {
-	m.fulfillment = nil
-	m.clearedfulfillment = false
+// ResetFulfillments resets all changes to the "fulfillments" edge.
+func (m *LockPaymentOrderMutation) ResetFulfillments() {
+	m.fulfillments = nil
+	m.clearedfulfillments = false
+	m.removedfulfillments = nil
 }
 
 // AddTransactionIDs adds the "transactions" edge to the TransactionLog entity by ids.
@@ -4519,8 +4535,8 @@ func (m *LockPaymentOrderMutation) AddedEdges() []string {
 	if m.provider != nil {
 		edges = append(edges, lockpaymentorder.EdgeProvider)
 	}
-	if m.fulfillment != nil {
-		edges = append(edges, lockpaymentorder.EdgeFulfillment)
+	if m.fulfillments != nil {
+		edges = append(edges, lockpaymentorder.EdgeFulfillments)
 	}
 	if m.transactions != nil {
 		edges = append(edges, lockpaymentorder.EdgeTransactions)
@@ -4544,10 +4560,12 @@ func (m *LockPaymentOrderMutation) AddedIDs(name string) []ent.Value {
 		if id := m.provider; id != nil {
 			return []ent.Value{*id}
 		}
-	case lockpaymentorder.EdgeFulfillment:
-		if id := m.fulfillment; id != nil {
-			return []ent.Value{*id}
+	case lockpaymentorder.EdgeFulfillments:
+		ids := make([]ent.Value, 0, len(m.fulfillments))
+		for id := range m.fulfillments {
+			ids = append(ids, id)
 		}
+		return ids
 	case lockpaymentorder.EdgeTransactions:
 		ids := make([]ent.Value, 0, len(m.transactions))
 		for id := range m.transactions {
@@ -4561,6 +4579,9 @@ func (m *LockPaymentOrderMutation) AddedIDs(name string) []ent.Value {
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *LockPaymentOrderMutation) RemovedEdges() []string {
 	edges := make([]string, 0, 5)
+	if m.removedfulfillments != nil {
+		edges = append(edges, lockpaymentorder.EdgeFulfillments)
+	}
 	if m.removedtransactions != nil {
 		edges = append(edges, lockpaymentorder.EdgeTransactions)
 	}
@@ -4571,6 +4592,12 @@ func (m *LockPaymentOrderMutation) RemovedEdges() []string {
 // the given name in this mutation.
 func (m *LockPaymentOrderMutation) RemovedIDs(name string) []ent.Value {
 	switch name {
+	case lockpaymentorder.EdgeFulfillments:
+		ids := make([]ent.Value, 0, len(m.removedfulfillments))
+		for id := range m.removedfulfillments {
+			ids = append(ids, id)
+		}
+		return ids
 	case lockpaymentorder.EdgeTransactions:
 		ids := make([]ent.Value, 0, len(m.removedtransactions))
 		for id := range m.removedtransactions {
@@ -4593,8 +4620,8 @@ func (m *LockPaymentOrderMutation) ClearedEdges() []string {
 	if m.clearedprovider {
 		edges = append(edges, lockpaymentorder.EdgeProvider)
 	}
-	if m.clearedfulfillment {
-		edges = append(edges, lockpaymentorder.EdgeFulfillment)
+	if m.clearedfulfillments {
+		edges = append(edges, lockpaymentorder.EdgeFulfillments)
 	}
 	if m.clearedtransactions {
 		edges = append(edges, lockpaymentorder.EdgeTransactions)
@@ -4612,8 +4639,8 @@ func (m *LockPaymentOrderMutation) EdgeCleared(name string) bool {
 		return m.clearedprovision_bucket
 	case lockpaymentorder.EdgeProvider:
 		return m.clearedprovider
-	case lockpaymentorder.EdgeFulfillment:
-		return m.clearedfulfillment
+	case lockpaymentorder.EdgeFulfillments:
+		return m.clearedfulfillments
 	case lockpaymentorder.EdgeTransactions:
 		return m.clearedtransactions
 	}
@@ -4633,9 +4660,6 @@ func (m *LockPaymentOrderMutation) ClearEdge(name string) error {
 	case lockpaymentorder.EdgeProvider:
 		m.ClearProvider()
 		return nil
-	case lockpaymentorder.EdgeFulfillment:
-		m.ClearFulfillment()
-		return nil
 	}
 	return fmt.Errorf("unknown LockPaymentOrder unique edge %s", name)
 }
@@ -4653,8 +4677,8 @@ func (m *LockPaymentOrderMutation) ResetEdge(name string) error {
 	case lockpaymentorder.EdgeProvider:
 		m.ResetProvider()
 		return nil
-	case lockpaymentorder.EdgeFulfillment:
-		m.ResetFulfillment()
+	case lockpaymentorder.EdgeFulfillments:
+		m.ResetFulfillments()
 		return nil
 	case lockpaymentorder.EdgeTransactions:
 		m.ResetTransactions()
