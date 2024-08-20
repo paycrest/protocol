@@ -899,10 +899,10 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 					"ProviderID":      lockPaymentOrder.ProviderID,
 				}).
 			Save(ctx)
-
 		if err != nil {
 			return fmt.Errorf("%s - failed to create transaction Log : %w", lockPaymentOrder.GatewayID, err)
 		}
+
 		// Create lock payment order in db
 		orderBuilder := tx.LockPaymentOrder.
 			Create().

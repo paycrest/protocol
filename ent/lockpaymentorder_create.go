@@ -64,14 +64,6 @@ func (lpoc *LockPaymentOrderCreate) SetGatewayID(s string) *LockPaymentOrderCrea
 	return lpoc
 }
 
-// SetNillableGatewayID sets the "gateway_id" field if the given value is not nil.
-func (lpoc *LockPaymentOrderCreate) SetNillableGatewayID(s *string) *LockPaymentOrderCreate {
-	if s != nil {
-		lpoc.SetGatewayID(*s)
-	}
-	return lpoc
-}
-
 // SetAmount sets the "amount" field.
 func (lpoc *LockPaymentOrderCreate) SetAmount(d decimal.Decimal) *LockPaymentOrderCreate {
 	lpoc.mutation.SetAmount(d)
@@ -315,10 +307,6 @@ func (lpoc *LockPaymentOrderCreate) defaults() {
 	if _, ok := lpoc.mutation.UpdatedAt(); !ok {
 		v := lockpaymentorder.DefaultUpdatedAt()
 		lpoc.mutation.SetUpdatedAt(v)
-	}
-	if _, ok := lpoc.mutation.GatewayID(); !ok {
-		v := lockpaymentorder.DefaultGatewayID
-		lpoc.mutation.SetGatewayID(v)
 	}
 	if _, ok := lpoc.mutation.Status(); !ok {
 		v := lockpaymentorder.DefaultStatus

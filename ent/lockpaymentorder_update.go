@@ -48,14 +48,6 @@ func (lpou *LockPaymentOrderUpdate) SetGatewayID(s string) *LockPaymentOrderUpda
 	return lpou
 }
 
-// SetNillableGatewayID sets the "gateway_id" field if the given value is not nil.
-func (lpou *LockPaymentOrderUpdate) SetNillableGatewayID(s *string) *LockPaymentOrderUpdate {
-	if s != nil {
-		lpou.SetGatewayID(*s)
-	}
-	return lpou
-}
-
 // SetAmount sets the "amount" field.
 func (lpou *LockPaymentOrderUpdate) SetAmount(d decimal.Decimal) *LockPaymentOrderUpdate {
 	lpou.mutation.ResetAmount()
@@ -670,14 +662,6 @@ func (lpouo *LockPaymentOrderUpdateOne) SetUpdatedAt(t time.Time) *LockPaymentOr
 // SetGatewayID sets the "gateway_id" field.
 func (lpouo *LockPaymentOrderUpdateOne) SetGatewayID(s string) *LockPaymentOrderUpdateOne {
 	lpouo.mutation.SetGatewayID(s)
-	return lpouo
-}
-
-// SetNillableGatewayID sets the "gateway_id" field if the given value is not nil.
-func (lpouo *LockPaymentOrderUpdateOne) SetNillableGatewayID(s *string) *LockPaymentOrderUpdateOne {
-	if s != nil {
-		lpouo.SetGatewayID(*s)
-	}
 	return lpouo
 }
 
