@@ -21,9 +21,11 @@ import (
 	"github.com/paycrest/protocol/ent/paymentorder"
 	"github.com/paycrest/protocol/ent/paymentorderrecipient"
 	"github.com/paycrest/protocol/ent/providerordertoken"
+	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/receiveaddress"
 	"github.com/paycrest/protocol/ent/senderprofile"
 	"github.com/paycrest/protocol/ent/token"
+	"github.com/paycrest/protocol/ent/transactionlog"
 	"github.com/paycrest/protocol/ent/webhookretryattempt"
 	"github.com/paycrest/protocol/services"
 	orderService "github.com/paycrest/protocol/services/order"
@@ -31,6 +33,7 @@ import (
 	"github.com/paycrest/protocol/types"
 	"github.com/paycrest/protocol/utils"
 	"github.com/paycrest/protocol/utils/logger"
+	"github.com/redis/go-redis/v9"
 	"github.com/shopspring/decimal"
 )
 
@@ -126,7 +129,7 @@ func RetryStaleUserOperations() error {
 				}
 				err := service.CreateOrder(ctx, rpcClients[order.Edges.Token.Edges.Network.Identifier], order.ID)
 				if err != nil {
-					logger.Errorf("process task to create orders => %v", err)
+					logger.Errorf("RetryStaleUserOperations.CreateOrder %v", err)
 				}
 			}
 		}
@@ -166,7 +169,7 @@ func RetryStaleUserOperations() error {
 				}
 				err := service.RevertOrder(ctx, rpcClients[order.Edges.Token.Edges.Network.Identifier], order)
 				if err != nil {
-					logger.Errorf("process task to revert orders => %v", err)
+					logger.Errorf("RetryStaleUserOperations.RevertOrder: %v", err)
 				}
 			}
 		}
@@ -202,7 +205,7 @@ func RetryStaleUserOperations() error {
 			}
 			err := service.SettleOrder(ctx, rpcClients[order.Edges.Token.Edges.Network.Identifier], order.ID)
 			if err != nil {
-				logger.Errorf("process order settlements task => %v", err)
+				logger.Errorf("RetryStaleUserOperations.SettleOrder: %v", err)
 			}
 		}
 	}()
@@ -238,7 +241,7 @@ func RetryStaleUserOperations() error {
 			}
 			err := service.RefundOrder(ctx, rpcClients[order.Edges.Token.Edges.Network.Identifier], order.GatewayID)
 			if err != nil {
-				logger.Errorf("process order refunds task => %v", err)
+				logger.Errorf("RetryStaleUserOperations.RefundOrder: %v", err)
 			}
 		}
 	}()
@@ -482,6 +485,376 @@ func IndexBlockchainEvents() error {
 	return nil
 }
 
+// ReassignPendingOrders reassigns declined order requests to providers
+func ReassignPendingOrders() {
+	ctx := context.Background()
+
+	// Query pending lock orders
+	lockOrders, err := storage.Client.LockPaymentOrder.
+		Query().
+		Where(
+			lockpaymentorder.StatusEQ(lockpaymentorder.StatusPending),
+			lockpaymentorder.Not(lockpaymentorder.HasFulfillments()),
+		).
+		WithToken().
+		WithProvider().
+		WithProvisionBucket(
+			func(pbq *ent.ProvisionBucketQuery) {
+				pbq.WithCurrency()
+			},
+		).
+		All(ctx)
+	if err != nil {
+		logger.Errorf("ReassignPendingOrders.db: %v", err)
+		return
+	}
+
+	// Check if order_request_<order_id> exists in Redis
+	for _, order := range lockOrders {
+		orderKey := fmt.Sprintf("order_request_%s", order.ID)
+		exists, err := storage.RedisClient.Exists(ctx, orderKey).Result()
+		if err != nil {
+			logger.Errorf("ReassignPendingOrders.redis: %v", err)
+			continue
+		}
+
+		if exists == 0 {
+			// Order request doesn't exist in Redis, reassign the order
+			lockPaymentOrder := types.LockPaymentOrderFields{
+				ID:                order.ID,
+				Token:             order.Edges.Token,
+				GatewayID:         order.GatewayID,
+				Amount:            order.Amount,
+				Rate:              order.Rate,
+				BlockNumber:       order.BlockNumber,
+				Institution:       order.Institution,
+				AccountIdentifier: order.AccountIdentifier,
+				AccountName:       order.AccountName,
+				Memo:              order.Memo,
+				ProvisionBucket:   order.Edges.ProvisionBucket,
+			}
+
+			if order.Edges.Provider != nil {
+				lockPaymentOrder.ProviderID = order.Edges.Provider.ID
+			}
+
+			err := services.NewPriorityQueueService().AssignLockPaymentOrder(ctx, lockPaymentOrder)
+			if err != nil {
+				logger.Errorf("failed to reassign declined order request: %v", err)
+			}
+		}
+	}
+}
+
+// ReassignUnfulfilledLockOrders reassigns lockOrder unfulfilled within a time frame.
+func ReassignUnfulfilledLockOrders() {
+	ctx := context.Background()
+
+	// Query unfulfilled lock orders.
+	lockOrders, err := storage.Client.LockPaymentOrder.
+		Query().
+		Where(
+			lockpaymentorder.Or(
+				lockpaymentorder.Not(lockpaymentorder.HasFulfillments()),
+				lockpaymentorder.HasFulfillmentsWith(
+					lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusFailed),
+					lockorderfulfillment.Not(lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusSuccess)),
+					lockorderfulfillment.Not(lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusPending)),
+				),
+			),
+			lockpaymentorder.StatusEQ(lockpaymentorder.StatusProcessing),
+			lockpaymentorder.Or(
+				lockpaymentorder.UpdatedAtLTE(time.Now().Add(-orderConf.OrderFulfillmentValidity*time.Minute)),
+				lockpaymentorder.HasFulfillmentsWith(
+					lockorderfulfillment.CreatedAtLTE(time.Now().Add(-orderConf.OrderFulfillmentValidity*time.Minute)),
+				),
+			),
+		).
+		WithToken().
+		WithProvider().
+		WithProvisionBucket(func(pbq *ent.ProvisionBucketQuery) {
+			pbq.WithCurrency()
+		}).
+		All(ctx)
+	if err != nil {
+		logger.Errorf("ReassignUnfulfilledLockOrders: %v", err)
+		return
+	}
+
+	// Unassign unfulfilled lock orders.
+	_, err = storage.Client.LockPaymentOrder.
+		Update().
+		Where(
+			lockpaymentorder.StatusEQ(lockpaymentorder.StatusProcessing),
+			lockpaymentorder.UpdatedAtLTE(time.Now().Add(-orderConf.OrderFulfillmentValidity*time.Minute)),
+			lockpaymentorder.Or(
+				lockpaymentorder.Not(lockpaymentorder.HasFulfillments()),
+				lockpaymentorder.HasFulfillmentsWith(
+					lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusFailed),
+					lockorderfulfillment.Not(lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusSuccess)),
+					lockorderfulfillment.Not(lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusPending)),
+				),
+			),
+		).
+		SetStatus(lockpaymentorder.StatusPending).
+		Save(ctx)
+	if err != nil {
+		logger.Errorf("ReassignUnfulfilledLockOrders: %v", err)
+		return
+	}
+
+	for _, order := range lockOrders {
+		lockPaymentOrder := types.LockPaymentOrderFields{
+			ID:                order.ID,
+			Token:             order.Edges.Token,
+			GatewayID:         order.GatewayID,
+			Amount:            order.Amount,
+			Rate:              order.Rate,
+			BlockNumber:       order.BlockNumber,
+			Institution:       order.Institution,
+			AccountIdentifier: order.AccountIdentifier,
+			AccountName:       order.AccountName,
+			ProviderID:        order.Edges.Provider.ID,
+			Memo:              order.Memo,
+			ProvisionBucket:   order.Edges.ProvisionBucket,
+		}
+
+		err := services.NewPriorityQueueService().AssignLockPaymentOrder(ctx, lockPaymentOrder)
+		if err != nil {
+			logger.Errorf("ReassignUnfulfilledLockOrders.AssignLockPaymentOrder: %s => %v", order.GatewayID, err)
+		}
+	}
+}
+
+// ReassignUnvalidatedLockOrders reassigns or refunds unvalidated lock orders to providers
+func ReassignUnvalidatedLockOrders() {
+	ctx := context.Background()
+
+	// Query unvalidated lock orders.
+	lockOrders, err := storage.Client.LockPaymentOrder.
+		Query().
+		Where(
+			lockpaymentorder.StatusEQ(lockpaymentorder.StatusFulfilled),
+			lockpaymentorder.Or(
+				lockpaymentorder.HasFulfillmentsWith(
+					lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusFailed),
+					lockorderfulfillment.Not(lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusSuccess)),
+					lockorderfulfillment.Not(lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusPending)),
+				),
+				lockpaymentorder.And(
+					lockpaymentorder.HasFulfillmentsWith(
+						lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusPending),
+					),
+					lockpaymentorder.HasFulfillmentsWith(
+						lockorderfulfillment.UpdatedAtLTE(time.Now().Add(-orderConf.OrderFulfillmentValidity*time.Minute)),
+						lockorderfulfillment.Not(lockorderfulfillment.UpdatedAtGT(time.Now().Add(-orderConf.OrderFulfillmentValidity*time.Minute))),
+					),
+				),
+			),
+		).
+		WithToken(func(tq *ent.TokenQuery) {
+			tq.WithNetwork()
+		}).
+		WithProvider(
+			func(pq *ent.ProviderProfileQuery) {
+				pq.WithAPIKey()
+			},
+		).
+		WithFulfillments().
+		WithProvisionBucket(
+			func(pbq *ent.ProvisionBucketQuery) {
+				pbq.WithCurrency()
+			},
+		).
+		All(ctx)
+	if err != nil {
+		logger.Errorf("ReassignUnvalidatedLockOrders.db: %v", err)
+		return
+	}
+
+	for _, order := range lockOrders {
+		for _, fulfillment := range order.Edges.Fulfillments {
+			var service types.OrderService
+			if strings.HasPrefix(order.Edges.Token.Edges.Network.Identifier, "tron") {
+				service = orderService.NewOrderTron()
+			} else {
+				service = orderService.NewOrderEVM()
+			}
+			if fulfillment.ValidationStatus == lockorderfulfillment.ValidationStatusPending {
+				// TODO: use auth
+				// // Compute HMAC
+				// decodedSecret, err := base64.StdEncoding.DecodeString(order.Edges.Provider.Edges.APIKey.Secret)
+				// if err != nil {
+				// 	logger.Errorf("ReassignUnvalidatedLockOrders: %v", err)
+				// 	return
+				// }
+				// decryptedSecret, err := cryptoUtils.DecryptPlain(decodedSecret)
+				// if err != nil {
+				// 	logger.Errorf("ReassignUnvalidatedLockOrders: %v", err)
+				// 	return
+				// }
+
+				// payload := map[string]interface{}{}
+
+				// signature := tokenUtils.GenerateHMACSignature(payload, string(decryptedSecret))
+
+				// Send GET request to the provider's node
+				res, err := fastshot.NewClient(order.Edges.Provider.HostIdentifier).
+					Config().SetTimeout(30 * time.Second).
+					// Header().Add("X-Request-Signature", signature).
+					Build().GET(fmt.Sprintf("/tx_status/%s/%s", fulfillment.Psp, fulfillment.TxID)).
+					Send()
+				if err != nil {
+					logger.Errorf("ReassignUnvalidatedLockOrders: %v", err)
+					continue
+				}
+
+				data, err := utils.ParseJSONResponse(res.RawResponse)
+				if err != nil {
+					logger.Errorf("ReassignUnvalidatedLockOrders: %v", err)
+					continue
+				}
+
+				status := data["data"].(map[string]interface{})["status"].(string)
+
+				if status == "failed" {
+					_, err = storage.Client.LockOrderFulfillment.
+						UpdateOneID(fulfillment.ID).
+						SetValidationStatus(lockorderfulfillment.ValidationStatusFailed).
+						SetValidationError(data["data"].(map[string]interface{})["error"].(string)).
+						Save(ctx)
+					if err != nil {
+						logger.Errorf("ReassignUnvalidatedLockOrders.UpdateFulfillmentStatusFailed: %v", err)
+						continue
+					}
+
+					_, err = order.Update().
+						SetStatus(lockpaymentorder.StatusFulfilled).
+						Save(ctx)
+					if err != nil {
+						logger.Errorf("ReassignUnvalidatedLockOrders.UpdateOrderStatusFulfilled: %v", err)
+						continue
+					}
+
+					// If order is a private order, refund the order
+					if order.Edges.Provider.VisibilityMode == providerprofile.VisibilityModePrivate {
+						err := service.RefundOrder(ctx, rpcClients[order.Edges.Token.Edges.Network.Identifier], order.GatewayID)
+						if err != nil {
+							logger.Errorf("ReassignUnvalidatedLockOrders.RefundOrder: %v", err)
+						}
+					}
+
+				} else if status == "success" {
+					_, err = storage.Client.LockOrderFulfillment.
+						UpdateOneID(fulfillment.ID).
+						SetValidationStatus(lockorderfulfillment.ValidationStatusSuccess).
+						Save(ctx)
+					if err != nil {
+						logger.Errorf("ReassignUnvalidatedLockOrders.UpdateFulfillmentStatusSuccess: %v", err)
+						continue
+					}
+
+					transactionLog, err := storage.Client.TransactionLog.Create().
+						SetStatus(transactionlog.StatusOrderValidated).
+						SetNetwork(fulfillment.Edges.Order.Edges.Token.Edges.Network.Identifier).
+						SetMetadata(map[string]interface{}{
+							"TransactionID": fulfillment.TxID,
+							"PSP":           fulfillment.Psp,
+						}).
+						Save(ctx)
+					if err != nil {
+						logger.Errorf("ReassignUnvalidatedLockOrders.CreateTransactionLog: %v", err)
+						continue
+					}
+
+					_, err = order.Update().
+						SetStatus(lockpaymentorder.StatusValidated).
+						AddTransactions(transactionLog).
+						Save(ctx)
+					if err != nil {
+						logger.Errorf("ReassignUnvalidatedLockOrders.UpdateOrderStatusValidated: %v", err)
+						continue
+					}
+
+					err = service.SettleOrder(ctx, rpcClients[order.Edges.Token.Edges.Network.Identifier], order.ID)
+					if err != nil {
+						logger.Errorf("ReassignUnvalidatedLockOrders.SettleOrder: %v", err)
+					}
+				}
+
+			} else {
+				if order.Edges.Provider.VisibilityMode != providerprofile.VisibilityModePrivate {
+					lockPaymentOrder := types.LockPaymentOrderFields{
+						ID:                order.ID,
+						Token:             order.Edges.Token,
+						GatewayID:         order.GatewayID,
+						Amount:            order.Amount,
+						Rate:              order.Rate,
+						BlockNumber:       order.BlockNumber,
+						Institution:       order.Institution,
+						AccountIdentifier: order.AccountIdentifier,
+						AccountName:       order.AccountName,
+						ProviderID:        "",
+						Memo:              order.Memo,
+						ProvisionBucket:   order.Edges.ProvisionBucket,
+					}
+
+					err := services.NewPriorityQueueService().AssignLockPaymentOrder(ctx, lockPaymentOrder)
+					if err != nil {
+						logger.Errorf("ReassignUnvalidatedLockOrders.AssignLockPaymentOrder: %v", err)
+					}
+				}
+			}
+		}
+	}
+}
+
+// ReassignStaleOrderRequest reassigns expired order requests to providers
+func ReassignStaleOrderRequest(ctx context.Context, orderRequestChan <-chan *redis.Message) {
+	for msg := range orderRequestChan {
+		key := strings.Split(msg.Payload, "_")
+		orderID := key[len(key)-1]
+
+		orderUUID, err := uuid.Parse(orderID)
+		if err != nil {
+			logger.Errorf("ReassignStaleOrderRequest: %v", err)
+			continue
+		}
+
+		// Get the order from the database
+		order, err := storage.Client.LockPaymentOrder.
+			Query().
+			Where(
+				lockpaymentorder.IDEQ(orderUUID),
+			).
+			WithProvisionBucket().
+			Only(ctx)
+		if err != nil {
+			logger.Errorf("ReassignStaleOrderRequest: %v", err)
+			continue
+		}
+
+		orderFields := types.LockPaymentOrderFields{
+			ID:                order.ID,
+			GatewayID:         order.GatewayID,
+			Amount:            order.Amount,
+			Rate:              order.Rate,
+			BlockNumber:       order.BlockNumber,
+			Institution:       order.Institution,
+			AccountIdentifier: order.AccountIdentifier,
+			AccountName:       order.AccountName,
+			Memo:              order.Memo,
+			ProvisionBucket:   order.Edges.ProvisionBucket,
+		}
+
+		// Assign the order to a provider
+		err = services.NewPriorityQueueService().AssignLockPaymentOrder(ctx, orderFields)
+		if err != nil {
+			logger.Errorf("ReassignStaleOrderRequest.AssignLockPaymentOrder: %v", err)
+		}
+	}
+}
+
 func FixDatabaseMisHap() error {
 	ctx := context.Background()
 
@@ -666,7 +1039,7 @@ func SubscribeToRedisKeyspaceEvents() {
 	)
 	orderRequestChan := orderRequest.Channel()
 
-	go services.NewPriorityQueueService().ReassignStaleOrderRequest(ctx, orderRequestChan)
+	go ReassignStaleOrderRequest(ctx, orderRequestChan)
 }
 
 // fetchExternalRate fetches the external rate for a fiat currency
@@ -832,7 +1205,7 @@ func RetryFailedWebhookNotifications() error {
 				}, "d-da75eee4966544ad92dcd060421d4e12")
 
 				if err != nil {
-					return fmt.Errorf("failed to send email: %w", err)
+					return fmt.Errorf("RetryFailedWebhookNotifications.SendTemplateEmail: %w", err)
 				}
 			}
 
@@ -858,7 +1231,6 @@ func RetryFailedWebhookNotifications() error {
 
 // StartCronJobs starts cron jobs
 func StartCronJobs() {
-	serverConf := config.ServerConfig()
 	scheduler := gocron.NewScheduler(time.UTC)
 	priorityQueue := services.NewPriorityQueueService()
 
@@ -874,8 +1246,8 @@ func StartCronJobs() {
 		}
 	}
 
-	// Compute market rate every 4 minutes
-	_, err := scheduler.Cron("*/4 * * * *").Do(ComputeMarketRate)
+	// Compute market rate every 3 minutes
+	_, err := scheduler.Cron("*/3 * * * *").Do(ComputeMarketRate)
 	if err != nil {
 		logger.Errorf("StartCronJobs: %v", err)
 	}
@@ -887,26 +1259,26 @@ func StartCronJobs() {
 		logger.Errorf("StartCronJobs: %v", err)
 	}
 
-	// Retry failed webhook notifications every 60 minutes
-	_, err = scheduler.Cron("*/60 * * * *").Do(RetryFailedWebhookNotifications)
+	// Retry failed webhook notifications every 59 minutes
+	_, err = scheduler.Cron("*/59 * * * *").Do(RetryFailedWebhookNotifications)
 	if err != nil {
 		logger.Errorf("StartCronJobs: %v", err)
 	}
 
 	// Reassign pending order requests every 13 minutes
-	_, err = scheduler.Cron("*/13 * * * *").Do(priorityQueue.ReassignPendingOrders)
+	_, err = scheduler.Cron("*/13 * * * *").Do(ReassignPendingOrders)
 	if err != nil {
 		logger.Errorf("StartCronJobs: %v", err)
 	}
 
-	// Reassign unvalidated order requests every 11 minutes
-	_, err = scheduler.Cron("*/11 * * * *").Do(priorityQueue.ReassignUnvalidatedLockOrders)
+	// Reassign unvalidated order requests every 2 minutes
+	_, err = scheduler.Cron("*/2 * * * *").Do(ReassignUnvalidatedLockOrders)
 	if err != nil {
 		logger.Errorf("StartCronJobs: %v", err)
 	}
 
-	// Reassign unfulfilled order requests every 10 minutes
-	_, err = scheduler.Cron("*/10 * * * *").Do(priorityQueue.ReassignUnfulfilledLockOrders)
+	// Reassign unfulfilled order requests every 3 minutes
+	_, err = scheduler.Cron("*/3 * * * *").Do(ReassignUnfulfilledLockOrders)
 	if err != nil {
 		logger.Errorf("StartCronJobs: %v", err)
 	}

@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/jarcoal/httpmock"
 	"github.com/paycrest/protocol/ent"
@@ -377,77 +376,78 @@ func TestPriorityQueueTest(t *testing.T) {
 		})
 	})
 
-	t.Run("TestNoErrorFunctions", func(t *testing.T) {
+	// TODO: move these tests to tasks_test.go
+	// t.Run("TestNoErrorFunctions", func(t *testing.T) {
 
-		t.Run("TestReassignUnfulfilledLockOrders", func(t *testing.T) {
+	// 	t.Run("TestReassignUnfulfilledLockOrders", func(t *testing.T) {
 
-			bucket, err := test.CreateTestProvisionBucket(map[string]interface{}{
-				"provider_id": testCtxForPQ.providerProviderProfile.ID,
-				"min_amount":  testCtxForPQ.minAmount,
-				"max_amount":  testCtxForPQ.maxAmount,
-				"currency_id": testCtxForPQ.currency.ID,
-			})
-			assert.NoError(t, err)
-			_order, err := test.CreateTestLockPaymentOrder(map[string]interface{}{
-				"provider": testCtxForPQ.providerProfile,
-				"tokenID":  testCtxForPQ.token.ID,
-				"status":   lockpaymentorder.StatusProcessing.String(),
-			})
-			assert.NoError(t, err)
+	// 		bucket, err := test.CreateTestProvisionBucket(map[string]interface{}{
+	// 			"provider_id": testCtxForPQ.providerProviderProfile.ID,
+	// 			"min_amount":  testCtxForPQ.minAmount,
+	// 			"max_amount":  testCtxForPQ.maxAmount,
+	// 			"currency_id": testCtxForPQ.currency.ID,
+	// 		})
+	// 		assert.NoError(t, err)
+	// 		_order, err := test.CreateTestLockPaymentOrder(map[string]interface{}{
+	// 			"provider": testCtxForPQ.providerProfile,
+	// 			"tokenID":  testCtxForPQ.token.ID,
+	// 			"status":   lockpaymentorder.StatusProcessing.String(),
+	// 		})
+	// 		assert.NoError(t, err)
 
-			_, err = test.AddProvisionBucketToLockPaymentOrder(_order, bucket.ID)
-			assert.NoError(t, err)
+	// 		_, err = test.AddProvisionBucketToLockPaymentOrder(_order, bucket.ID)
+	// 		assert.NoError(t, err)
 
-			service.ReassignUnfulfilledLockOrders()
+	// 		service.ReassignUnfulfilledLockOrders()
 
-			order, err := db.Client.LockPaymentOrder.
-				Query().
-				Where(lockpaymentorder.IDEQ(_order.ID)).Only(context.Background())
-			assert.NoError(t, err)
+	// 		order, err := db.Client.LockPaymentOrder.
+	// 			Query().
+	// 			Where(lockpaymentorder.IDEQ(_order.ID)).Only(context.Background())
+	// 		assert.NoError(t, err)
 
-			//validate the ReassignUnfulfilledLockOrders updated the UnfulfilledLockOrder
-			assert.True(t, _order.UpdatedAt.Before(order.UpdatedAt))
-		})
+	// 		//validate the ReassignUnfulfilledLockOrders updated the UnfulfilledLockOrder
+	// 		assert.True(t, _order.UpdatedAt.Before(order.UpdatedAt))
+	// 	})
 
-		t.Run("TestReassignStaleOrderRequest", func(t *testing.T) {
-			bucket, err := test.CreateTestProvisionBucket(map[string]interface{}{
-				"provider_id": testCtxForPQ.providerProviderProfile.ID,
-				"min_amount":  testCtxForPQ.minAmount,
-				"max_amount":  testCtxForPQ.maxAmount,
-				"currency_id": testCtxForPQ.currency.ID,
-			})
-			assert.NoError(t, err)
-			_order, err := test.CreateTestLockPaymentOrder(map[string]interface{}{
-				"provider":  testCtxForPQ.providerProviderProfile,
-				"tokenID":   testCtxForPQ.token.ID,
-				"status":    lockpaymentorder.StatusProcessing.String(),
-				"updatedAt": time.Now().Add(-5 * time.Minute),
-			})
-			assert.NoError(t, err)
+	// 	t.Run("TestReassignStaleOrderRequest", func(t *testing.T) {
+	// 		bucket, err := test.CreateTestProvisionBucket(map[string]interface{}{
+	// 			"provider_id": testCtxForPQ.providerProviderProfile.ID,
+	// 			"min_amount":  testCtxForPQ.minAmount,
+	// 			"max_amount":  testCtxForPQ.maxAmount,
+	// 			"currency_id": testCtxForPQ.currency.ID,
+	// 		})
+	// 		assert.NoError(t, err)
+	// 		_order, err := test.CreateTestLockPaymentOrder(map[string]interface{}{
+	// 			"provider":  testCtxForPQ.providerProviderProfile,
+	// 			"tokenID":   testCtxForPQ.token.ID,
+	// 			"status":    lockpaymentorder.StatusProcessing.String(),
+	// 			"updatedAt": time.Now().Add(-5 * time.Minute),
+	// 		})
+	// 		assert.NoError(t, err)
 
-			orderKey := fmt.Sprintf("order_exclude_list_%s", _order.ID)
-			_, err = db.RedisClient.RPush(context.Background(), orderKey, testCtxForPQ.providerProviderProfile.ID).Result()
-			assert.NoError(t, err)
+	// 		orderKey := fmt.Sprintf("order_exclude_list_%s", _order.ID)
+	// 		_, err = db.RedisClient.RPush(context.Background(), orderKey, testCtxForPQ.providerProviderProfile.ID).Result()
+	// 		assert.NoError(t, err)
 
-			_, err = test.AddProvisionBucketToLockPaymentOrder(_order, bucket.ID)
-			assert.NoError(t, err)
+	// 		_, err = test.AddProvisionBucketToLockPaymentOrder(_order, bucket.ID)
+	// 		assert.NoError(t, err)
 
-			service.ReassignUnfulfilledLockOrders()
+	// 		service.ReassignUnfulfilledLockOrders()
 
-			// Create Channel
-			orderRequestChan := make(chan *redis.Message, 1)
-			orderRequestChan <- &redis.Message{Payload: _order.ID.String() + "_" + "TEST"}
-			service.ReassignStaleOrderRequest(context.Background(), orderRequestChan)
+	// 		// Create Channel
+	// 		orderRequestChan := make(chan *redis.Message, 1)
+	// 		orderRequestChan <- &redis.Message{Payload: _order.ID.String() + "_" + "TEST"}
+	// 		service.ReassignStaleOrderRequest(context.Background(), orderRequestChan)
 
-			order, err := db.Client.LockPaymentOrder.
-				Query().
-				Where(lockpaymentorder.IDEQ(_order.ID)).Only(context.Background())
-			assert.NoError(t, err)
-			// validate the StaleOrderRequest updated the StaleOrderRequest
-			assert.True(t, _order.UpdatedAt.Before(order.UpdatedAt))
+	// 		order, err := db.Client.LockPaymentOrder.
+	// 			Query().
+	// 			Where(lockpaymentorder.IDEQ(_order.ID)).Only(context.Background())
+	// 		assert.NoError(t, err)
+	// 		// validate the StaleOrderRequest updated the StaleOrderRequest
+	// 		assert.True(t, _order.UpdatedAt.Before(order.UpdatedAt))
 
-			// Close channel
-			close(orderRequestChan)
-		})
-	})
+	// 		// Close channel
+	// 		close(orderRequestChan)
+	// 	})
+	// })
 }

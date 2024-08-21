@@ -190,6 +190,7 @@ func (ctrl *ProfileController) UpdateSenderProfile(ctx *gin.Context) {
 			}
 		}
 	}
+
 	// Commit the transaction
 	if err := tx.Commit(); err != nil {
 		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update profile commit", nil)
@@ -412,14 +413,12 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 		} else {
 			// Token exists, update it
 			_, err = orderToken.Update().
-				SetSymbol(tokenPayload.Symbol).
 				SetConversionRateType(tokenPayload.ConversionRateType).
 				SetFixedConversionRate(tokenPayload.FixedConversionRate).
 				SetFloatingConversionRate(tokenPayload.FloatingConversionRate).
 				SetMaxOrderAmount(tokenPayload.MaxOrderAmount).
 				SetMinOrderAmount(tokenPayload.MinOrderAmount).
 				SetAddresses(tokenPayload.Addresses).
-				SetProviderID(provider.ID).
 				Save(ctx)
 			if err != nil {
 				u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to set token - "+tokenPayload.Symbol, nil)
@@ -442,6 +441,24 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 			update.AddProvisionBuckets(buckets...)
 		}
 	}
+
+	// // Update rate and order amount range
+	// // TODO: remove this when rate and range is handled per token in dashboard
+	// _, err := storage.Client.ProviderOrderToken.
+	// 	Update().
+	// 	Where(
+	// 		providerordertoken.HasProviderWith(providerprofile.IDEQ(provider.ID)),
+	// 	).
+	// 	SetConversionRateType(payload.Tokens[0].ConversionRateType).
+	// 	SetFixedConversionRate(payload.Tokens[0].FixedConversionRate).
+	// 	SetFloatingConversionRate(payload.Tokens[0].FloatingConversionRate).
+	// 	SetMaxOrderAmount(payload.Tokens[0].MaxOrderAmount).
+	// 	SetMinOrderAmount(payload.Tokens[0].MinOrderAmount).
+	// 	Save(ctx)
+	// if err != nil {
+	// 	u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to set token - "+payload.Tokens[0].Symbol, nil)
+	// 	return
+	// }
 
 	// Activate profile
 	if payload.BusinessDocument != "" && payload.IdentityDocument != "" {
@@ -517,7 +534,7 @@ func (ctrl *ProfileController) GetSenderProfile(ctx *gin.Context) {
 		Email:           user.Email,
 		WebhookURL:      sender.WebhookURL,
 		DomainWhitelist: sender.DomainWhitelist,
-		Tokens:           tokensPayload,
+		Tokens:          tokensPayload,
 		APIKey:          *apiKey,
 		IsActive:        sender.IsActive,
 	})

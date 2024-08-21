@@ -29,7 +29,7 @@ func (LockOrderFulfillment) Fields() []ent.Field {
 		field.String("psp").
 			Optional(),
 		field.Enum("validation_status").
-			Values("pending", "success", "reversed", "failed").
+			Values("pending", "success", "failed").
 			Default("pending"),
 		field.String("validation_error").
 			Optional(),
