@@ -152,7 +152,9 @@ func setupForPQ() error {
 	// Set up payment order
 	_, err = test.CreateTestLockPaymentOrder(map[string]interface{}{
 		"provider": providerProviderProfile,
-		"tokenID":  testCtxForPQ.token.ID})
+		"tokenID":  testCtxForPQ.token.ID,
+		"gateway_id": "order-12345",
+	})
 	if err != nil {
 		return err
 	}
@@ -249,6 +251,7 @@ func TestPriorityQueueTest(t *testing.T) {
 		_order, err := test.CreateTestLockPaymentOrder(map[string]interface{}{
 			"provider": testCtxForPQ.providerProfile,
 			"tokenID":  testCtxForPQ.token.ID,
+			"gateway_id": "order-1",
 		})
 		assert.NoError(t, err)
 
@@ -302,8 +305,10 @@ func TestPriorityQueueTest(t *testing.T) {
 		})
 		assert.NoError(t, err)
 		_order, err := test.CreateTestLockPaymentOrder(map[string]interface{}{
-			"provider": testCtxForPQ.providerProfile,
-			"tokenID":  testCtxForPQ.token.ID})
+			"provider":   testCtxForPQ.providerProfile,
+			"tokenID":    testCtxForPQ.token.ID,
+			"gateway_id": "order-1234",
+		})
 		assert.NoError(t, err)
 
 		_, err = test.AddProvisionBucketToLockPaymentOrder(_order, bucket.ID)
