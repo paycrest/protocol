@@ -469,12 +469,16 @@ func (u *InstitutionUpsertOne) IDX(ctx context.Context) int {
 // InstitutionCreateBulk is the builder for creating many Institution entities in bulk.
 type InstitutionCreateBulk struct {
 	config
+	err      error
 	builders []*InstitutionCreate
 	conflict []sql.ConflictOption
 }
 
 // Save creates the Institution entities in the database.
 func (icb *InstitutionCreateBulk) Save(ctx context.Context) ([]*Institution, error) {
+	if icb.err != nil {
+		return nil, icb.err
+	}
 	specs := make([]*sqlgraph.CreateSpec, len(icb.builders))
 	nodes := make([]*Institution, len(icb.builders))
 	mutators := make([]Mutator, len(icb.builders))
@@ -698,6 +702,9 @@ func (u *InstitutionUpsertBulk) UpdateType() *InstitutionUpsertBulk {
 
 // Exec executes the query.
 func (u *InstitutionUpsertBulk) Exec(ctx context.Context) error {
+	if u.create.err != nil {
+		return u.create.err
+	}
 	for i, b := range u.create.builders {
 		if len(b.conflict) != 0 {
 			return fmt.Errorf("ent: OnConflict was set for builder %d. Set it on the InstitutionCreateBulk instead", i)

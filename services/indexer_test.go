@@ -116,7 +116,7 @@ func setup() error {
 		SetToken(token).
 		SetReceiveAddress(receiveAddress).
 		SetReceiveAddressText(receiveAddress.Address).
-		SetFeePerTokenUnit(senderToken.FeePerTokenUnit).
+		SetFeePercent(senderToken.FeePercent).
 		SetFeeAddress(senderToken.FeeAddress).
 		Save(context.Background())
 	if err != nil {

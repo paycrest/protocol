@@ -591,12 +591,16 @@ func (u *WebhookRetryAttemptUpsertOne) IDX(ctx context.Context) int {
 // WebhookRetryAttemptCreateBulk is the builder for creating many WebhookRetryAttempt entities in bulk.
 type WebhookRetryAttemptCreateBulk struct {
 	config
+	err      error
 	builders []*WebhookRetryAttemptCreate
 	conflict []sql.ConflictOption
 }
 
 // Save creates the WebhookRetryAttempt entities in the database.
 func (wracb *WebhookRetryAttemptCreateBulk) Save(ctx context.Context) ([]*WebhookRetryAttempt, error) {
+	if wracb.err != nil {
+		return nil, wracb.err
+	}
 	specs := make([]*sqlgraph.CreateSpec, len(wracb.builders))
 	nodes := make([]*WebhookRetryAttempt, len(wracb.builders))
 	mutators := make([]Mutator, len(wracb.builders))
@@ -876,6 +880,9 @@ func (u *WebhookRetryAttemptUpsertBulk) UpdateStatus() *WebhookRetryAttemptUpser
 
 // Exec executes the query.
 func (u *WebhookRetryAttemptUpsertBulk) Exec(ctx context.Context) error {
+	if u.create.err != nil {
+		return u.create.err
+	}
 	for i, b := range u.create.builders {
 		if len(b.conflict) != 0 {
 			return fmt.Errorf("ent: OnConflict was set for builder %d. Set it on the WebhookRetryAttemptCreateBulk instead", i)

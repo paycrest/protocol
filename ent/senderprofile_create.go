@@ -235,7 +235,7 @@ func (spc *SenderProfileCreate) check() error {
 	if _, ok := spc.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "SenderProfile.updated_at"`)}
 	}
-	if _, ok := spc.mutation.UserID(); !ok {
+	if len(spc.mutation.UserIDs()) == 0 {
 		return &ValidationError{Name: "user", err: errors.New(`ent: missing required edge "SenderProfile.user"`)}
 	}
 	return nil
@@ -643,12 +643,16 @@ func (u *SenderProfileUpsertOne) IDX(ctx context.Context) uuid.UUID {
 // SenderProfileCreateBulk is the builder for creating many SenderProfile entities in bulk.
 type SenderProfileCreateBulk struct {
 	config
+	err      error
 	builders []*SenderProfileCreate
 	conflict []sql.ConflictOption
 }
 
 // Save creates the SenderProfile entities in the database.
 func (spcb *SenderProfileCreateBulk) Save(ctx context.Context) ([]*SenderProfile, error) {
+	if spcb.err != nil {
+		return nil, spcb.err
+	}
 	specs := make([]*sqlgraph.CreateSpec, len(spcb.builders))
 	nodes := make([]*SenderProfile, len(spcb.builders))
 	mutators := make([]Mutator, len(spcb.builders))
@@ -892,6 +896,9 @@ func (u *SenderProfileUpsertBulk) UpdateUpdatedAt() *SenderProfileUpsertBulk {
 
 // Exec executes the query.
 func (u *SenderProfileUpsertBulk) Exec(ctx context.Context) error {
+	if u.create.err != nil {
+		return u.create.err
+	}
 	for i, b := range u.create.builders {
 		if len(b.conflict) != 0 {
 			return fmt.Errorf("ent: OnConflict was set for builder %d. Set it on the SenderProfileCreateBulk instead", i)

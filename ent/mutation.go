@@ -5659,8 +5659,8 @@ type PaymentOrderMutation struct {
 	from_address           *string
 	return_address         *string
 	receive_address_text   *string
-	fee_per_token_unit     *decimal.Decimal
-	addfee_per_token_unit  *decimal.Decimal
+	fee_percent     *decimal.Decimal
+	addfee_percent  *decimal.Decimal
 	fee_address            *string
 	gateway_id             *string
 	status                 *paymentorder.Status
@@ -6544,60 +6544,60 @@ func (m *PaymentOrderMutation) ResetReceiveAddressText() {
 	m.receive_address_text = nil
 }
 
-// SetFeePerTokenUnit sets the "fee_per_token_unit" field.
-func (m *PaymentOrderMutation) SetFeePerTokenUnit(d decimal.Decimal) {
-	m.fee_per_token_unit = &d
-	m.addfee_per_token_unit = nil
+// SetFeePercent sets the "fee_percent" field.
+func (m *PaymentOrderMutation) SetFeePercent(d decimal.Decimal) {
+	m.fee_percent = &d
+	m.addfee_percent = nil
 }
 
-// FeePerTokenUnit returns the value of the "fee_per_token_unit" field in the mutation.
-func (m *PaymentOrderMutation) FeePerTokenUnit() (r decimal.Decimal, exists bool) {
-	v := m.fee_per_token_unit
+// FeePercent returns the value of the "fee_percent" field in the mutation.
+func (m *PaymentOrderMutation) FeePercent() (r decimal.Decimal, exists bool) {
+	v := m.fee_percent
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldFeePerTokenUnit returns the old "fee_per_token_unit" field's value of the PaymentOrder entity.
+// OldFeePercent returns the old "fee_percent" field's value of the PaymentOrder entity.
 // If the PaymentOrder object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *PaymentOrderMutation) OldFeePerTokenUnit(ctx context.Context) (v decimal.Decimal, err error) {
+func (m *PaymentOrderMutation) OldFeePercent(ctx context.Context) (v decimal.Decimal, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldFeePerTokenUnit is only allowed on UpdateOne operations")
+		return v, errors.New("OldFeePercent is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldFeePerTokenUnit requires an ID field in the mutation")
+		return v, errors.New("OldFeePercent requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldFeePerTokenUnit: %w", err)
+		return v, fmt.Errorf("querying old value for OldFeePercent: %w", err)
 	}
-	return oldValue.FeePerTokenUnit, nil
+	return oldValue.FeePercent, nil
 }
 
-// AddFeePerTokenUnit adds d to the "fee_per_token_unit" field.
-func (m *PaymentOrderMutation) AddFeePerTokenUnit(d decimal.Decimal) {
-	if m.addfee_per_token_unit != nil {
-		*m.addfee_per_token_unit = m.addfee_per_token_unit.Add(d)
+// AddFeePercent adds d to the "fee_percent" field.
+func (m *PaymentOrderMutation) AddFeePercent(d decimal.Decimal) {
+	if m.addfee_percent != nil {
+		*m.addfee_percent = m.addfee_percent.Add(d)
 	} else {
-		m.addfee_per_token_unit = &d
+		m.addfee_percent = &d
 	}
 }
 
-// AddedFeePerTokenUnit returns the value that was added to the "fee_per_token_unit" field in this mutation.
-func (m *PaymentOrderMutation) AddedFeePerTokenUnit() (r decimal.Decimal, exists bool) {
-	v := m.addfee_per_token_unit
+// AddedFeePercent returns the value that was added to the "fee_percent" field in this mutation.
+func (m *PaymentOrderMutation) AddedFeePercent() (r decimal.Decimal, exists bool) {
+	v := m.addfee_percent
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// ResetFeePerTokenUnit resets all changes to the "fee_per_token_unit" field.
-func (m *PaymentOrderMutation) ResetFeePerTokenUnit() {
-	m.fee_per_token_unit = nil
-	m.addfee_per_token_unit = nil
+// ResetFeePercent resets all changes to the "fee_percent" field.
+func (m *PaymentOrderMutation) ResetFeePercent() {
+	m.fee_percent = nil
+	m.addfee_percent = nil
 }
 
 // SetFeeAddress sets the "fee_address" field.
@@ -7024,8 +7024,8 @@ func (m *PaymentOrderMutation) Fields() []string {
 	if m.receive_address_text != nil {
 		fields = append(fields, paymentorder.FieldReceiveAddressText)
 	}
-	if m.fee_per_token_unit != nil {
-		fields = append(fields, paymentorder.FieldFeePerTokenUnit)
+	if m.fee_percent != nil {
+		fields = append(fields, paymentorder.FieldFeePercent)
 	}
 	if m.fee_address != nil {
 		fields = append(fields, paymentorder.FieldFeeAddress)
@@ -7074,8 +7074,8 @@ func (m *PaymentOrderMutation) Field(name string) (ent.Value, bool) {
 		return m.ReturnAddress()
 	case paymentorder.FieldReceiveAddressText:
 		return m.ReceiveAddressText()
-	case paymentorder.FieldFeePerTokenUnit:
-		return m.FeePerTokenUnit()
+	case paymentorder.FieldFeePercent:
+		return m.FeePercent()
 	case paymentorder.FieldFeeAddress:
 		return m.FeeAddress()
 	case paymentorder.FieldGatewayID:
@@ -7121,8 +7121,8 @@ func (m *PaymentOrderMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldReturnAddress(ctx)
 	case paymentorder.FieldReceiveAddressText:
 		return m.OldReceiveAddressText(ctx)
-	case paymentorder.FieldFeePerTokenUnit:
-		return m.OldFeePerTokenUnit(ctx)
+	case paymentorder.FieldFeePercent:
+		return m.OldFeePercent(ctx)
 	case paymentorder.FieldFeeAddress:
 		return m.OldFeeAddress(ctx)
 	case paymentorder.FieldGatewayID:
@@ -7243,12 +7243,12 @@ func (m *PaymentOrderMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetReceiveAddressText(v)
 		return nil
-	case paymentorder.FieldFeePerTokenUnit:
+	case paymentorder.FieldFeePercent:
 		v, ok := value.(decimal.Decimal)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetFeePerTokenUnit(v)
+		m.SetFeePercent(v)
 		return nil
 	case paymentorder.FieldFeeAddress:
 		v, ok := value.(string)
@@ -7306,8 +7306,8 @@ func (m *PaymentOrderMutation) AddedFields() []string {
 	if m.addblock_number != nil {
 		fields = append(fields, paymentorder.FieldBlockNumber)
 	}
-	if m.addfee_per_token_unit != nil {
-		fields = append(fields, paymentorder.FieldFeePerTokenUnit)
+	if m.addfee_percent != nil {
+		fields = append(fields, paymentorder.FieldFeePercent)
 	}
 	return fields
 }
@@ -7335,8 +7335,8 @@ func (m *PaymentOrderMutation) AddedField(name string) (ent.Value, bool) {
 		return m.AddedRate()
 	case paymentorder.FieldBlockNumber:
 		return m.AddedBlockNumber()
-	case paymentorder.FieldFeePerTokenUnit:
-		return m.AddedFeePerTokenUnit()
+	case paymentorder.FieldFeePercent:
+		return m.AddedFeePercent()
 	}
 	return nil, false
 }
@@ -7409,12 +7409,12 @@ func (m *PaymentOrderMutation) AddField(name string, value ent.Value) error {
 		}
 		m.AddBlockNumber(v)
 		return nil
-	case paymentorder.FieldFeePerTokenUnit:
+	case paymentorder.FieldFeePercent:
 		v, ok := value.(decimal.Decimal)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.AddFeePerTokenUnit(v)
+		m.AddFeePercent(v)
 		return nil
 	}
 	return fmt.Errorf("unknown PaymentOrder numeric field %s", name)
@@ -7521,8 +7521,8 @@ func (m *PaymentOrderMutation) ResetField(name string) error {
 	case paymentorder.FieldReceiveAddressText:
 		m.ResetReceiveAddressText()
 		return nil
-	case paymentorder.FieldFeePerTokenUnit:
-		m.ResetFeePerTokenUnit()
+	case paymentorder.FieldFeePercent:
+		m.ResetFeePercent()
 		return nil
 	case paymentorder.FieldFeeAddress:
 		m.ResetFeeAddress()
@@ -13373,23 +13373,23 @@ func (m *ReceiveAddressMutation) ResetEdge(name string) error {
 // SenderOrderTokenMutation represents an operation that mutates the SenderOrderToken nodes in the graph.
 type SenderOrderTokenMutation struct {
 	config
-	op                    Op
-	typ                   string
-	id                    *int
-	created_at            *time.Time
-	updated_at            *time.Time
-	fee_per_token_unit    *decimal.Decimal
-	addfee_per_token_unit *decimal.Decimal
-	fee_address           *string
-	refund_address        *string
-	clearedFields         map[string]struct{}
-	sender                *uuid.UUID
-	clearedsender         bool
-	token                 *int
-	clearedtoken          bool
-	done                  bool
-	oldValue              func(context.Context) (*SenderOrderToken, error)
-	predicates            []predicate.SenderOrderToken
+	op             Op
+	typ            string
+	id             *int
+	created_at     *time.Time
+	updated_at     *time.Time
+	fee_percent    *decimal.Decimal
+	addfee_percent *decimal.Decimal
+	fee_address    *string
+	refund_address *string
+	clearedFields  map[string]struct{}
+	sender         *uuid.UUID
+	clearedsender  bool
+	token          *int
+	clearedtoken   bool
+	done           bool
+	oldValue       func(context.Context) (*SenderOrderToken, error)
+	predicates     []predicate.SenderOrderToken
 }
 
 var _ ent.Mutation = (*SenderOrderTokenMutation)(nil)
@@ -13562,60 +13562,60 @@ func (m *SenderOrderTokenMutation) ResetUpdatedAt() {
 	m.updated_at = nil
 }
 
-// SetFeePerTokenUnit sets the "fee_per_token_unit" field.
-func (m *SenderOrderTokenMutation) SetFeePerTokenUnit(d decimal.Decimal) {
-	m.fee_per_token_unit = &d
-	m.addfee_per_token_unit = nil
+// SetFeePercent sets the "fee_percent" field.
+func (m *SenderOrderTokenMutation) SetFeePercent(d decimal.Decimal) {
+	m.fee_percent = &d
+	m.addfee_percent = nil
 }
 
-// FeePerTokenUnit returns the value of the "fee_per_token_unit" field in the mutation.
-func (m *SenderOrderTokenMutation) FeePerTokenUnit() (r decimal.Decimal, exists bool) {
-	v := m.fee_per_token_unit
+// FeePercent returns the value of the "fee_percent" field in the mutation.
+func (m *SenderOrderTokenMutation) FeePercent() (r decimal.Decimal, exists bool) {
+	v := m.fee_percent
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldFeePerTokenUnit returns the old "fee_per_token_unit" field's value of the SenderOrderToken entity.
+// OldFeePercent returns the old "fee_percent" field's value of the SenderOrderToken entity.
 // If the SenderOrderToken object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SenderOrderTokenMutation) OldFeePerTokenUnit(ctx context.Context) (v decimal.Decimal, err error) {
+func (m *SenderOrderTokenMutation) OldFeePercent(ctx context.Context) (v decimal.Decimal, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldFeePerTokenUnit is only allowed on UpdateOne operations")
+		return v, errors.New("OldFeePercent is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldFeePerTokenUnit requires an ID field in the mutation")
+		return v, errors.New("OldFeePercent requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldFeePerTokenUnit: %w", err)
+		return v, fmt.Errorf("querying old value for OldFeePercent: %w", err)
 	}
-	return oldValue.FeePerTokenUnit, nil
+	return oldValue.FeePercent, nil
 }
 
-// AddFeePerTokenUnit adds d to the "fee_per_token_unit" field.
-func (m *SenderOrderTokenMutation) AddFeePerTokenUnit(d decimal.Decimal) {
-	if m.addfee_per_token_unit != nil {
-		*m.addfee_per_token_unit = m.addfee_per_token_unit.Add(d)
+// AddFeePercent adds d to the "fee_percent" field.
+func (m *SenderOrderTokenMutation) AddFeePercent(d decimal.Decimal) {
+	if m.addfee_percent != nil {
+		*m.addfee_percent = m.addfee_percent.Add(d)
 	} else {
-		m.addfee_per_token_unit = &d
+		m.addfee_percent = &d
 	}
 }
 
-// AddedFeePerTokenUnit returns the value that was added to the "fee_per_token_unit" field in this mutation.
-func (m *SenderOrderTokenMutation) AddedFeePerTokenUnit() (r decimal.Decimal, exists bool) {
-	v := m.addfee_per_token_unit
+// AddedFeePercent returns the value that was added to the "fee_percent" field in this mutation.
+func (m *SenderOrderTokenMutation) AddedFeePercent() (r decimal.Decimal, exists bool) {
+	v := m.addfee_percent
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// ResetFeePerTokenUnit resets all changes to the "fee_per_token_unit" field.
-func (m *SenderOrderTokenMutation) ResetFeePerTokenUnit() {
-	m.fee_per_token_unit = nil
-	m.addfee_per_token_unit = nil
+// ResetFeePercent resets all changes to the "fee_percent" field.
+func (m *SenderOrderTokenMutation) ResetFeePercent() {
+	m.fee_percent = nil
+	m.addfee_percent = nil
 }
 
 // SetFeeAddress sets the "fee_address" field.
@@ -13809,8 +13809,8 @@ func (m *SenderOrderTokenMutation) Fields() []string {
 	if m.updated_at != nil {
 		fields = append(fields, senderordertoken.FieldUpdatedAt)
 	}
-	if m.fee_per_token_unit != nil {
-		fields = append(fields, senderordertoken.FieldFeePerTokenUnit)
+	if m.fee_percent != nil {
+		fields = append(fields, senderordertoken.FieldFeePercent)
 	}
 	if m.fee_address != nil {
 		fields = append(fields, senderordertoken.FieldFeeAddress)
@@ -13830,8 +13830,8 @@ func (m *SenderOrderTokenMutation) Field(name string) (ent.Value, bool) {
 		return m.CreatedAt()
 	case senderordertoken.FieldUpdatedAt:
 		return m.UpdatedAt()
-	case senderordertoken.FieldFeePerTokenUnit:
-		return m.FeePerTokenUnit()
+	case senderordertoken.FieldFeePercent:
+		return m.FeePercent()
 	case senderordertoken.FieldFeeAddress:
 		return m.FeeAddress()
 	case senderordertoken.FieldRefundAddress:
@@ -13849,8 +13849,8 @@ func (m *SenderOrderTokenMutation) OldField(ctx context.Context, name string) (e
 		return m.OldCreatedAt(ctx)
 	case senderordertoken.FieldUpdatedAt:
 		return m.OldUpdatedAt(ctx)
-	case senderordertoken.FieldFeePerTokenUnit:
-		return m.OldFeePerTokenUnit(ctx)
+	case senderordertoken.FieldFeePercent:
+		return m.OldFeePercent(ctx)
 	case senderordertoken.FieldFeeAddress:
 		return m.OldFeeAddress(ctx)
 	case senderordertoken.FieldRefundAddress:
@@ -13878,12 +13878,12 @@ func (m *SenderOrderTokenMutation) SetField(name string, value ent.Value) error 
 		}
 		m.SetUpdatedAt(v)
 		return nil
-	case senderordertoken.FieldFeePerTokenUnit:
+	case senderordertoken.FieldFeePercent:
 		v, ok := value.(decimal.Decimal)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetFeePerTokenUnit(v)
+		m.SetFeePercent(v)
 		return nil
 	case senderordertoken.FieldFeeAddress:
 		v, ok := value.(string)
@@ -13907,8 +13907,8 @@ func (m *SenderOrderTokenMutation) SetField(name string, value ent.Value) error 
 // this mutation.
 func (m *SenderOrderTokenMutation) AddedFields() []string {
 	var fields []string
-	if m.addfee_per_token_unit != nil {
-		fields = append(fields, senderordertoken.FieldFeePerTokenUnit)
+	if m.addfee_percent != nil {
+		fields = append(fields, senderordertoken.FieldFeePercent)
 	}
 	return fields
 }
@@ -13918,8 +13918,8 @@ func (m *SenderOrderTokenMutation) AddedFields() []string {
 // was not set, or was not defined in the schema.
 func (m *SenderOrderTokenMutation) AddedField(name string) (ent.Value, bool) {
 	switch name {
-	case senderordertoken.FieldFeePerTokenUnit:
-		return m.AddedFeePerTokenUnit()
+	case senderordertoken.FieldFeePercent:
+		return m.AddedFeePercent()
 	}
 	return nil, false
 }
@@ -13929,12 +13929,12 @@ func (m *SenderOrderTokenMutation) AddedField(name string) (ent.Value, bool) {
 // type.
 func (m *SenderOrderTokenMutation) AddField(name string, value ent.Value) error {
 	switch name {
-	case senderordertoken.FieldFeePerTokenUnit:
+	case senderordertoken.FieldFeePercent:
 		v, ok := value.(decimal.Decimal)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.AddFeePerTokenUnit(v)
+		m.AddFeePercent(v)
 		return nil
 	}
 	return fmt.Errorf("unknown SenderOrderToken numeric field %s", name)
@@ -13969,8 +13969,8 @@ func (m *SenderOrderTokenMutation) ResetField(name string) error {
 	case senderordertoken.FieldUpdatedAt:
 		m.ResetUpdatedAt()
 		return nil
-	case senderordertoken.FieldFeePerTokenUnit:
-		m.ResetFeePerTokenUnit()
+	case senderordertoken.FieldFeePercent:
+		m.ResetFeePercent()
 		return nil
 	case senderordertoken.FieldFeeAddress:
 		m.ResetFeeAddress()

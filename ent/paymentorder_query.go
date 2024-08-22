@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math"
 
+	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
@@ -183,7 +184,7 @@ func (poq *PaymentOrderQuery) QueryTransactions() *TransactionLogQuery {
 // First returns the first PaymentOrder entity from the query.
 // Returns a *NotFoundError when no PaymentOrder was found.
 func (poq *PaymentOrderQuery) First(ctx context.Context) (*PaymentOrder, error) {
-	nodes, err := poq.Limit(1).All(setContextOp(ctx, poq.ctx, "First"))
+	nodes, err := poq.Limit(1).All(setContextOp(ctx, poq.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
@@ -206,7 +207,7 @@ func (poq *PaymentOrderQuery) FirstX(ctx context.Context) *PaymentOrder {
 // Returns a *NotFoundError when no PaymentOrder ID was found.
 func (poq *PaymentOrderQuery) FirstID(ctx context.Context) (id uuid.UUID, err error) {
 	var ids []uuid.UUID
-	if ids, err = poq.Limit(1).IDs(setContextOp(ctx, poq.ctx, "FirstID")); err != nil {
+	if ids, err = poq.Limit(1).IDs(setContextOp(ctx, poq.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -229,7 +230,7 @@ func (poq *PaymentOrderQuery) FirstIDX(ctx context.Context) uuid.UUID {
 // Returns a *NotSingularError when more than one PaymentOrder entity is found.
 // Returns a *NotFoundError when no PaymentOrder entities are found.
 func (poq *PaymentOrderQuery) Only(ctx context.Context) (*PaymentOrder, error) {
-	nodes, err := poq.Limit(2).All(setContextOp(ctx, poq.ctx, "Only"))
+	nodes, err := poq.Limit(2).All(setContextOp(ctx, poq.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
 	}
@@ -257,7 +258,7 @@ func (poq *PaymentOrderQuery) OnlyX(ctx context.Context) *PaymentOrder {
 // Returns a *NotFoundError when no entities are found.
 func (poq *PaymentOrderQuery) OnlyID(ctx context.Context) (id uuid.UUID, err error) {
 	var ids []uuid.UUID
-	if ids, err = poq.Limit(2).IDs(setContextOp(ctx, poq.ctx, "OnlyID")); err != nil {
+	if ids, err = poq.Limit(2).IDs(setContextOp(ctx, poq.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -282,7 +283,7 @@ func (poq *PaymentOrderQuery) OnlyIDX(ctx context.Context) uuid.UUID {
 
 // All executes the query and returns a list of PaymentOrders.
 func (poq *PaymentOrderQuery) All(ctx context.Context) ([]*PaymentOrder, error) {
-	ctx = setContextOp(ctx, poq.ctx, "All")
+	ctx = setContextOp(ctx, poq.ctx, ent.OpQueryAll)
 	if err := poq.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
@@ -304,7 +305,7 @@ func (poq *PaymentOrderQuery) IDs(ctx context.Context) (ids []uuid.UUID, err err
 	if poq.ctx.Unique == nil && poq.path != nil {
 		poq.Unique(true)
 	}
-	ctx = setContextOp(ctx, poq.ctx, "IDs")
+	ctx = setContextOp(ctx, poq.ctx, ent.OpQueryIDs)
 	if err = poq.Select(paymentorder.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
@@ -322,7 +323,7 @@ func (poq *PaymentOrderQuery) IDsX(ctx context.Context) []uuid.UUID {
 
 // Count returns the count of the given query.
 func (poq *PaymentOrderQuery) Count(ctx context.Context) (int, error) {
-	ctx = setContextOp(ctx, poq.ctx, "Count")
+	ctx = setContextOp(ctx, poq.ctx, ent.OpQueryCount)
 	if err := poq.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
@@ -340,7 +341,7 @@ func (poq *PaymentOrderQuery) CountX(ctx context.Context) int {
 
 // Exist returns true if the query has elements in the graph.
 func (poq *PaymentOrderQuery) Exist(ctx context.Context) (bool, error) {
-	ctx = setContextOp(ctx, poq.ctx, "Exist")
+	ctx = setContextOp(ctx, poq.ctx, ent.OpQueryExist)
 	switch _, err := poq.FirstID(ctx); {
 	case IsNotFound(err):
 		return false, nil
@@ -830,7 +831,7 @@ func (pogb *PaymentOrderGroupBy) Aggregate(fns ...AggregateFunc) *PaymentOrderGr
 
 // Scan applies the selector query and scans the result into the given value.
 func (pogb *PaymentOrderGroupBy) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, pogb.build.ctx, "GroupBy")
+	ctx = setContextOp(ctx, pogb.build.ctx, ent.OpQueryGroupBy)
 	if err := pogb.build.prepareQuery(ctx); err != nil {
 		return err
 	}
@@ -878,7 +879,7 @@ func (pos *PaymentOrderSelect) Aggregate(fns ...AggregateFunc) *PaymentOrderSele
 
 // Scan applies the selector query and scans the result into the given value.
 func (pos *PaymentOrderSelect) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, pos.ctx, "Select")
+	ctx = setContextOp(ctx, pos.ctx, ent.OpQuerySelect)
 	if err := pos.prepareQuery(ctx); err != nil {
 		return err
 	}

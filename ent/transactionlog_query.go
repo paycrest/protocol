@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 
+	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
@@ -62,7 +63,7 @@ func (tlq *TransactionLogQuery) Order(o ...transactionlog.OrderOption) *Transact
 // First returns the first TransactionLog entity from the query.
 // Returns a *NotFoundError when no TransactionLog was found.
 func (tlq *TransactionLogQuery) First(ctx context.Context) (*TransactionLog, error) {
-	nodes, err := tlq.Limit(1).All(setContextOp(ctx, tlq.ctx, "First"))
+	nodes, err := tlq.Limit(1).All(setContextOp(ctx, tlq.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +86,7 @@ func (tlq *TransactionLogQuery) FirstX(ctx context.Context) *TransactionLog {
 // Returns a *NotFoundError when no TransactionLog ID was found.
 func (tlq *TransactionLogQuery) FirstID(ctx context.Context) (id uuid.UUID, err error) {
 	var ids []uuid.UUID
-	if ids, err = tlq.Limit(1).IDs(setContextOp(ctx, tlq.ctx, "FirstID")); err != nil {
+	if ids, err = tlq.Limit(1).IDs(setContextOp(ctx, tlq.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -108,7 +109,7 @@ func (tlq *TransactionLogQuery) FirstIDX(ctx context.Context) uuid.UUID {
 // Returns a *NotSingularError when more than one TransactionLog entity is found.
 // Returns a *NotFoundError when no TransactionLog entities are found.
 func (tlq *TransactionLogQuery) Only(ctx context.Context) (*TransactionLog, error) {
-	nodes, err := tlq.Limit(2).All(setContextOp(ctx, tlq.ctx, "Only"))
+	nodes, err := tlq.Limit(2).All(setContextOp(ctx, tlq.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +137,7 @@ func (tlq *TransactionLogQuery) OnlyX(ctx context.Context) *TransactionLog {
 // Returns a *NotFoundError when no entities are found.
 func (tlq *TransactionLogQuery) OnlyID(ctx context.Context) (id uuid.UUID, err error) {
 	var ids []uuid.UUID
-	if ids, err = tlq.Limit(2).IDs(setContextOp(ctx, tlq.ctx, "OnlyID")); err != nil {
+	if ids, err = tlq.Limit(2).IDs(setContextOp(ctx, tlq.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -161,7 +162,7 @@ func (tlq *TransactionLogQuery) OnlyIDX(ctx context.Context) uuid.UUID {
 
 // All executes the query and returns a list of TransactionLogs.
 func (tlq *TransactionLogQuery) All(ctx context.Context) ([]*TransactionLog, error) {
-	ctx = setContextOp(ctx, tlq.ctx, "All")
+	ctx = setContextOp(ctx, tlq.ctx, ent.OpQueryAll)
 	if err := tlq.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
@@ -183,7 +184,7 @@ func (tlq *TransactionLogQuery) IDs(ctx context.Context) (ids []uuid.UUID, err e
 	if tlq.ctx.Unique == nil && tlq.path != nil {
 		tlq.Unique(true)
 	}
-	ctx = setContextOp(ctx, tlq.ctx, "IDs")
+	ctx = setContextOp(ctx, tlq.ctx, ent.OpQueryIDs)
 	if err = tlq.Select(transactionlog.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
@@ -201,7 +202,7 @@ func (tlq *TransactionLogQuery) IDsX(ctx context.Context) []uuid.UUID {
 
 // Count returns the count of the given query.
 func (tlq *TransactionLogQuery) Count(ctx context.Context) (int, error) {
-	ctx = setContextOp(ctx, tlq.ctx, "Count")
+	ctx = setContextOp(ctx, tlq.ctx, ent.OpQueryCount)
 	if err := tlq.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
@@ -219,7 +220,7 @@ func (tlq *TransactionLogQuery) CountX(ctx context.Context) int {
 
 // Exist returns true if the query has elements in the graph.
 func (tlq *TransactionLogQuery) Exist(ctx context.Context) (bool, error) {
-	ctx = setContextOp(ctx, tlq.ctx, "Exist")
+	ctx = setContextOp(ctx, tlq.ctx, ent.OpQueryExist)
 	switch _, err := tlq.FirstID(ctx); {
 	case IsNotFound(err):
 		return false, nil
@@ -455,7 +456,7 @@ func (tlgb *TransactionLogGroupBy) Aggregate(fns ...AggregateFunc) *TransactionL
 
 // Scan applies the selector query and scans the result into the given value.
 func (tlgb *TransactionLogGroupBy) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, tlgb.build.ctx, "GroupBy")
+	ctx = setContextOp(ctx, tlgb.build.ctx, ent.OpQueryGroupBy)
 	if err := tlgb.build.prepareQuery(ctx); err != nil {
 		return err
 	}
@@ -503,7 +504,7 @@ func (tls *TransactionLogSelect) Aggregate(fns ...AggregateFunc) *TransactionLog
 
 // Scan applies the selector query and scans the result into the given value.
 func (tls *TransactionLogSelect) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, tls.ctx, "Select")
+	ctx = setContextOp(ctx, tls.ctx, ent.OpQuerySelect)
 	if err := tls.prepareQuery(ctx); err != nil {
 		return err
 	}

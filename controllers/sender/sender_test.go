@@ -67,9 +67,9 @@ func setup() error {
 	}
 
 	senderProfile, err := test.CreateTestSenderProfile(map[string]interface{}{
-		"user_id":            user.ID,
-		"fee_per_token_unit": "5",
-		"token":              token.Symbol,
+		"user_id":     user.ID,
+		"fee_percent": "5",
+		"token":       token.Symbol,
 	})
 
 	if err != nil {
@@ -201,7 +201,7 @@ func TestSender(t *testing.T) {
 		assert.Equal(t, paymentOrder.Edges.Recipient.Memo, payload["recipient"].(map[string]interface{})["memo"])
 		assert.Equal(t, paymentOrder.Edges.Recipient.AccountName, payload["recipient"].(map[string]interface{})["accountName"])
 		assert.Equal(t, paymentOrder.Edges.Recipient.Institution, payload["recipient"].(map[string]interface{})["institution"])
-		assert.Equal(t, data["senderFee"], "0.6667")
+		assert.Equal(t, data["senderFee"], "5")
 		assert.Equal(t, data["transactionFee"], network.Fee.String())
 
 		t.Run("Check Transaction Logs", func(t *testing.T) {
@@ -493,8 +493,8 @@ func TestSender(t *testing.T) {
 			}
 
 			senderProfile, err := test.CreateTestSenderProfile(map[string]interface{}{
-				"user_id":            user.ID,
-				"fee_per_token_unit": "5",
+				"user_id":     user.ID,
+				"fee_percent": "5",
 			})
 			if err != nil {
 				return
@@ -600,12 +600,12 @@ func TestSender(t *testing.T) {
 
 			// create settled Order
 			_, err = test.CreateTestPaymentOrder(testCtx.client, testCtx.token, map[string]interface{}{
-				"sender":             testCtx.user,
-				"amount":             100.0,
-				"token":              testCtx.token.Symbol,
-				"rate":               750.0,
-				"status":             "settled",
-				"fee_per_token_unit": 5.0,
+				"sender":      testCtx.user,
+				"amount":      100.0,
+				"token":       testCtx.token.Symbol,
+				"rate":        750.0,
+				"status":      "settled",
+				"fee_percent": 5.0,
 			})
 			assert.NoError(t, err)
 			var payload = map[string]interface{}{

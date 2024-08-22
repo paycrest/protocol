@@ -43,6 +43,14 @@ func (nu *NetworkUpdate) SetChainID(i int64) *NetworkUpdate {
 	return nu
 }
 
+// SetNillableChainID sets the "chain_id" field if the given value is not nil.
+func (nu *NetworkUpdate) SetNillableChainID(i *int64) *NetworkUpdate {
+	if i != nil {
+		nu.SetChainID(*i)
+	}
+	return nu
+}
+
 // AddChainID adds i to the "chain_id" field.
 func (nu *NetworkUpdate) AddChainID(i int64) *NetworkUpdate {
 	nu.mutation.AddChainID(i)
@@ -75,9 +83,25 @@ func (nu *NetworkUpdate) SetIdentifier(s string) *NetworkUpdate {
 	return nu
 }
 
+// SetNillableIdentifier sets the "identifier" field if the given value is not nil.
+func (nu *NetworkUpdate) SetNillableIdentifier(s *string) *NetworkUpdate {
+	if s != nil {
+		nu.SetIdentifier(*s)
+	}
+	return nu
+}
+
 // SetRPCEndpoint sets the "rpc_endpoint" field.
 func (nu *NetworkUpdate) SetRPCEndpoint(s string) *NetworkUpdate {
 	nu.mutation.SetRPCEndpoint(s)
+	return nu
+}
+
+// SetNillableRPCEndpoint sets the "rpc_endpoint" field if the given value is not nil.
+func (nu *NetworkUpdate) SetNillableRPCEndpoint(s *string) *NetworkUpdate {
+	if s != nil {
+		nu.SetRPCEndpoint(*s)
+	}
 	return nu
 }
 
@@ -101,10 +125,26 @@ func (nu *NetworkUpdate) SetIsTestnet(b bool) *NetworkUpdate {
 	return nu
 }
 
+// SetNillableIsTestnet sets the "is_testnet" field if the given value is not nil.
+func (nu *NetworkUpdate) SetNillableIsTestnet(b *bool) *NetworkUpdate {
+	if b != nil {
+		nu.SetIsTestnet(*b)
+	}
+	return nu
+}
+
 // SetFee sets the "fee" field.
 func (nu *NetworkUpdate) SetFee(d decimal.Decimal) *NetworkUpdate {
 	nu.mutation.ResetFee()
 	nu.mutation.SetFee(d)
+	return nu
+}
+
+// SetNillableFee sets the "fee" field if the given value is not nil.
+func (nu *NetworkUpdate) SetNillableFee(d *decimal.Decimal) *NetworkUpdate {
+	if d != nil {
+		nu.SetFee(*d)
+	}
 	return nu
 }
 
@@ -311,6 +351,14 @@ func (nuo *NetworkUpdateOne) SetChainID(i int64) *NetworkUpdateOne {
 	return nuo
 }
 
+// SetNillableChainID sets the "chain_id" field if the given value is not nil.
+func (nuo *NetworkUpdateOne) SetNillableChainID(i *int64) *NetworkUpdateOne {
+	if i != nil {
+		nuo.SetChainID(*i)
+	}
+	return nuo
+}
+
 // AddChainID adds i to the "chain_id" field.
 func (nuo *NetworkUpdateOne) AddChainID(i int64) *NetworkUpdateOne {
 	nuo.mutation.AddChainID(i)
@@ -343,9 +391,25 @@ func (nuo *NetworkUpdateOne) SetIdentifier(s string) *NetworkUpdateOne {
 	return nuo
 }
 
+// SetNillableIdentifier sets the "identifier" field if the given value is not nil.
+func (nuo *NetworkUpdateOne) SetNillableIdentifier(s *string) *NetworkUpdateOne {
+	if s != nil {
+		nuo.SetIdentifier(*s)
+	}
+	return nuo
+}
+
 // SetRPCEndpoint sets the "rpc_endpoint" field.
 func (nuo *NetworkUpdateOne) SetRPCEndpoint(s string) *NetworkUpdateOne {
 	nuo.mutation.SetRPCEndpoint(s)
+	return nuo
+}
+
+// SetNillableRPCEndpoint sets the "rpc_endpoint" field if the given value is not nil.
+func (nuo *NetworkUpdateOne) SetNillableRPCEndpoint(s *string) *NetworkUpdateOne {
+	if s != nil {
+		nuo.SetRPCEndpoint(*s)
+	}
 	return nuo
 }
 
@@ -369,10 +433,26 @@ func (nuo *NetworkUpdateOne) SetIsTestnet(b bool) *NetworkUpdateOne {
 	return nuo
 }
 
+// SetNillableIsTestnet sets the "is_testnet" field if the given value is not nil.
+func (nuo *NetworkUpdateOne) SetNillableIsTestnet(b *bool) *NetworkUpdateOne {
+	if b != nil {
+		nuo.SetIsTestnet(*b)
+	}
+	return nuo
+}
+
 // SetFee sets the "fee" field.
 func (nuo *NetworkUpdateOne) SetFee(d decimal.Decimal) *NetworkUpdateOne {
 	nuo.mutation.ResetFee()
 	nuo.mutation.SetFee(d)
+	return nuo
+}
+
+// SetNillableFee sets the "fee" field if the given value is not nil.
+func (nuo *NetworkUpdateOne) SetNillableFee(d *decimal.Decimal) *NetworkUpdateOne {
+	if d != nil {
+		nuo.SetFee(*d)
+	}
 	return nuo
 }
 

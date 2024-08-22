@@ -53,8 +53,8 @@ func setup() error {
 	}
 
 	senderProfile, err := test.CreateTestSenderProfile(map[string]interface{}{
-		"user_id":            user.ID,
-		"fee_per_token_unit": "5",
+		"user_id":     user.ID,
+		"fee_percent": "5",
 	})
 
 	if err != nil {
@@ -131,7 +131,7 @@ func TestTasks(t *testing.T) {
 	// Setup test data
 	err := setup()
 	assert.NoError(t, err)
-	
+
 	t.Run("RetryFailedWebhookNotifications", func(t *testing.T) {
 		httpmock.Activate()
 		defer httpmock.Deactivate()

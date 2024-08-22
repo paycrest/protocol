@@ -92,10 +92,9 @@ const DefaultValidationStatus = ValidationStatusPending
 
 // ValidationStatus values.
 const (
-	ValidationStatusPending  ValidationStatus = "pending"
-	ValidationStatusSuccess  ValidationStatus = "success"
-	ValidationStatusReversed ValidationStatus = "reversed"
-	ValidationStatusFailed   ValidationStatus = "failed"
+	ValidationStatusPending ValidationStatus = "pending"
+	ValidationStatusSuccess ValidationStatus = "success"
+	ValidationStatusFailed  ValidationStatus = "failed"
 )
 
 func (vs ValidationStatus) String() string {
@@ -105,7 +104,7 @@ func (vs ValidationStatus) String() string {
 // ValidationStatusValidator is a validator for the "validation_status" field enum values. It is called by the builders before save.
 func ValidationStatusValidator(vs ValidationStatus) error {
 	switch vs {
-	case ValidationStatusPending, ValidationStatusSuccess, ValidationStatusReversed, ValidationStatusFailed:
+	case ValidationStatusPending, ValidationStatusSuccess, ValidationStatusFailed:
 		return nil
 	default:
 		return fmt.Errorf("lockorderfulfillment: invalid enum value for validation_status field: %q", vs)

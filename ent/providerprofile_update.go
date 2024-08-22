@@ -543,10 +543,10 @@ func (ppu *ProviderProfileUpdate) check() error {
 			return &ValidationError{Name: "identity_document_type", err: fmt.Errorf(`ent: validator failed for field "ProviderProfile.identity_document_type": %w`, err)}
 		}
 	}
-	if _, ok := ppu.mutation.UserID(); ppu.mutation.UserCleared() && !ok {
+	if ppu.mutation.UserCleared() && len(ppu.mutation.UserIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "ProviderProfile.user"`)
 	}
-	if _, ok := ppu.mutation.CurrencyID(); ppu.mutation.CurrencyCleared() && !ok {
+	if ppu.mutation.CurrencyCleared() && len(ppu.mutation.CurrencyIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "ProviderProfile.currency"`)
 	}
 	return nil
@@ -1402,10 +1402,10 @@ func (ppuo *ProviderProfileUpdateOne) check() error {
 			return &ValidationError{Name: "identity_document_type", err: fmt.Errorf(`ent: validator failed for field "ProviderProfile.identity_document_type": %w`, err)}
 		}
 	}
-	if _, ok := ppuo.mutation.UserID(); ppuo.mutation.UserCleared() && !ok {
+	if ppuo.mutation.UserCleared() && len(ppuo.mutation.UserIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "ProviderProfile.user"`)
 	}
-	if _, ok := ppuo.mutation.CurrencyID(); ppuo.mutation.CurrencyCleared() && !ok {
+	if ppuo.mutation.CurrencyCleared() && len(ppuo.mutation.CurrencyIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "ProviderProfile.currency"`)
 	}
 	return nil

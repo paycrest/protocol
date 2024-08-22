@@ -46,8 +46,8 @@ const (
 	FieldReturnAddress = "return_address"
 	// FieldReceiveAddressText holds the string denoting the receive_address_text field in the database.
 	FieldReceiveAddressText = "receive_address_text"
-	// FieldFeePerTokenUnit holds the string denoting the fee_per_token_unit field in the database.
-	FieldFeePerTokenUnit = "fee_per_token_unit"
+	// FieldFeePercent holds the string denoting the fee_percent field in the database.
+	FieldFeePercent = "fee_percent"
 	// FieldFeeAddress holds the string denoting the fee_address field in the database.
 	FieldFeeAddress = "fee_address"
 	// FieldGatewayID holds the string denoting the gateway_id field in the database.
@@ -121,7 +121,7 @@ var Columns = []string{
 	FieldFromAddress,
 	FieldReturnAddress,
 	FieldReceiveAddressText,
-	FieldFeePerTokenUnit,
+	FieldFeePercent,
 	FieldFeeAddress,
 	FieldGatewayID,
 	FieldStatus,
@@ -284,9 +284,9 @@ func ByReceiveAddressText(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldReceiveAddressText, opts...).ToFunc()
 }
 
-// ByFeePerTokenUnit orders the results by the fee_per_token_unit field.
-func ByFeePerTokenUnit(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldFeePerTokenUnit, opts...).ToFunc()
+// ByFeePercent orders the results by the fee_percent field.
+func ByFeePercent(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFeePercent, opts...).ToFunc()
 }
 
 // ByFeeAddress orders the results by the fee_address field.

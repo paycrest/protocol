@@ -38,16 +38,24 @@ func (sotu *SenderOrderTokenUpdate) SetUpdatedAt(t time.Time) *SenderOrderTokenU
 	return sotu
 }
 
-// SetFeePerTokenUnit sets the "fee_per_token_unit" field.
-func (sotu *SenderOrderTokenUpdate) SetFeePerTokenUnit(d decimal.Decimal) *SenderOrderTokenUpdate {
-	sotu.mutation.ResetFeePerTokenUnit()
-	sotu.mutation.SetFeePerTokenUnit(d)
+// SetFeePercent sets the "fee_percent" field.
+func (sotu *SenderOrderTokenUpdate) SetFeePercent(d decimal.Decimal) *SenderOrderTokenUpdate {
+	sotu.mutation.ResetFeePercent()
+	sotu.mutation.SetFeePercent(d)
 	return sotu
 }
 
-// AddFeePerTokenUnit adds d to the "fee_per_token_unit" field.
-func (sotu *SenderOrderTokenUpdate) AddFeePerTokenUnit(d decimal.Decimal) *SenderOrderTokenUpdate {
-	sotu.mutation.AddFeePerTokenUnit(d)
+// SetNillableFeePercent sets the "fee_percent" field if the given value is not nil.
+func (sotu *SenderOrderTokenUpdate) SetNillableFeePercent(d *decimal.Decimal) *SenderOrderTokenUpdate {
+	if d != nil {
+		sotu.SetFeePercent(*d)
+	}
+	return sotu
+}
+
+// AddFeePercent adds d to the "fee_percent" field.
+func (sotu *SenderOrderTokenUpdate) AddFeePercent(d decimal.Decimal) *SenderOrderTokenUpdate {
+	sotu.mutation.AddFeePercent(d)
 	return sotu
 }
 
@@ -57,9 +65,25 @@ func (sotu *SenderOrderTokenUpdate) SetFeeAddress(s string) *SenderOrderTokenUpd
 	return sotu
 }
 
+// SetNillableFeeAddress sets the "fee_address" field if the given value is not nil.
+func (sotu *SenderOrderTokenUpdate) SetNillableFeeAddress(s *string) *SenderOrderTokenUpdate {
+	if s != nil {
+		sotu.SetFeeAddress(*s)
+	}
+	return sotu
+}
+
 // SetRefundAddress sets the "refund_address" field.
 func (sotu *SenderOrderTokenUpdate) SetRefundAddress(s string) *SenderOrderTokenUpdate {
 	sotu.mutation.SetRefundAddress(s)
+	return sotu
+}
+
+// SetNillableRefundAddress sets the "refund_address" field if the given value is not nil.
+func (sotu *SenderOrderTokenUpdate) SetNillableRefundAddress(s *string) *SenderOrderTokenUpdate {
+	if s != nil {
+		sotu.SetRefundAddress(*s)
+	}
 	return sotu
 }
 
@@ -150,10 +174,10 @@ func (sotu *SenderOrderTokenUpdate) check() error {
 			return &ValidationError{Name: "refund_address", err: fmt.Errorf(`ent: validator failed for field "SenderOrderToken.refund_address": %w`, err)}
 		}
 	}
-	if _, ok := sotu.mutation.SenderID(); sotu.mutation.SenderCleared() && !ok {
+	if sotu.mutation.SenderCleared() && len(sotu.mutation.SenderIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "SenderOrderToken.sender"`)
 	}
-	if _, ok := sotu.mutation.TokenID(); sotu.mutation.TokenCleared() && !ok {
+	if sotu.mutation.TokenCleared() && len(sotu.mutation.TokenIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "SenderOrderToken.token"`)
 	}
 	return nil
@@ -174,11 +198,11 @@ func (sotu *SenderOrderTokenUpdate) sqlSave(ctx context.Context) (n int, err err
 	if value, ok := sotu.mutation.UpdatedAt(); ok {
 		_spec.SetField(senderordertoken.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := sotu.mutation.FeePerTokenUnit(); ok {
-		_spec.SetField(senderordertoken.FieldFeePerTokenUnit, field.TypeFloat64, value)
+	if value, ok := sotu.mutation.FeePercent(); ok {
+		_spec.SetField(senderordertoken.FieldFeePercent, field.TypeFloat64, value)
 	}
-	if value, ok := sotu.mutation.AddedFeePerTokenUnit(); ok {
-		_spec.AddField(senderordertoken.FieldFeePerTokenUnit, field.TypeFloat64, value)
+	if value, ok := sotu.mutation.AddedFeePercent(); ok {
+		_spec.AddField(senderordertoken.FieldFeePercent, field.TypeFloat64, value)
 	}
 	if value, ok := sotu.mutation.FeeAddress(); ok {
 		_spec.SetField(senderordertoken.FieldFeeAddress, field.TypeString, value)
@@ -270,16 +294,24 @@ func (sotuo *SenderOrderTokenUpdateOne) SetUpdatedAt(t time.Time) *SenderOrderTo
 	return sotuo
 }
 
-// SetFeePerTokenUnit sets the "fee_per_token_unit" field.
-func (sotuo *SenderOrderTokenUpdateOne) SetFeePerTokenUnit(d decimal.Decimal) *SenderOrderTokenUpdateOne {
-	sotuo.mutation.ResetFeePerTokenUnit()
-	sotuo.mutation.SetFeePerTokenUnit(d)
+// SetFeePercent sets the "fee_percent" field.
+func (sotuo *SenderOrderTokenUpdateOne) SetFeePercent(d decimal.Decimal) *SenderOrderTokenUpdateOne {
+	sotuo.mutation.ResetFeePercent()
+	sotuo.mutation.SetFeePercent(d)
 	return sotuo
 }
 
-// AddFeePerTokenUnit adds d to the "fee_per_token_unit" field.
-func (sotuo *SenderOrderTokenUpdateOne) AddFeePerTokenUnit(d decimal.Decimal) *SenderOrderTokenUpdateOne {
-	sotuo.mutation.AddFeePerTokenUnit(d)
+// SetNillableFeePercent sets the "fee_percent" field if the given value is not nil.
+func (sotuo *SenderOrderTokenUpdateOne) SetNillableFeePercent(d *decimal.Decimal) *SenderOrderTokenUpdateOne {
+	if d != nil {
+		sotuo.SetFeePercent(*d)
+	}
+	return sotuo
+}
+
+// AddFeePercent adds d to the "fee_percent" field.
+func (sotuo *SenderOrderTokenUpdateOne) AddFeePercent(d decimal.Decimal) *SenderOrderTokenUpdateOne {
+	sotuo.mutation.AddFeePercent(d)
 	return sotuo
 }
 
@@ -289,9 +321,25 @@ func (sotuo *SenderOrderTokenUpdateOne) SetFeeAddress(s string) *SenderOrderToke
 	return sotuo
 }
 
+// SetNillableFeeAddress sets the "fee_address" field if the given value is not nil.
+func (sotuo *SenderOrderTokenUpdateOne) SetNillableFeeAddress(s *string) *SenderOrderTokenUpdateOne {
+	if s != nil {
+		sotuo.SetFeeAddress(*s)
+	}
+	return sotuo
+}
+
 // SetRefundAddress sets the "refund_address" field.
 func (sotuo *SenderOrderTokenUpdateOne) SetRefundAddress(s string) *SenderOrderTokenUpdateOne {
 	sotuo.mutation.SetRefundAddress(s)
+	return sotuo
+}
+
+// SetNillableRefundAddress sets the "refund_address" field if the given value is not nil.
+func (sotuo *SenderOrderTokenUpdateOne) SetNillableRefundAddress(s *string) *SenderOrderTokenUpdateOne {
+	if s != nil {
+		sotuo.SetRefundAddress(*s)
+	}
 	return sotuo
 }
 
@@ -395,10 +443,10 @@ func (sotuo *SenderOrderTokenUpdateOne) check() error {
 			return &ValidationError{Name: "refund_address", err: fmt.Errorf(`ent: validator failed for field "SenderOrderToken.refund_address": %w`, err)}
 		}
 	}
-	if _, ok := sotuo.mutation.SenderID(); sotuo.mutation.SenderCleared() && !ok {
+	if sotuo.mutation.SenderCleared() && len(sotuo.mutation.SenderIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "SenderOrderToken.sender"`)
 	}
-	if _, ok := sotuo.mutation.TokenID(); sotuo.mutation.TokenCleared() && !ok {
+	if sotuo.mutation.TokenCleared() && len(sotuo.mutation.TokenIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "SenderOrderToken.token"`)
 	}
 	return nil
@@ -436,11 +484,11 @@ func (sotuo *SenderOrderTokenUpdateOne) sqlSave(ctx context.Context) (_node *Sen
 	if value, ok := sotuo.mutation.UpdatedAt(); ok {
 		_spec.SetField(senderordertoken.FieldUpdatedAt, field.TypeTime, value)
 	}
-	if value, ok := sotuo.mutation.FeePerTokenUnit(); ok {
-		_spec.SetField(senderordertoken.FieldFeePerTokenUnit, field.TypeFloat64, value)
+	if value, ok := sotuo.mutation.FeePercent(); ok {
+		_spec.SetField(senderordertoken.FieldFeePercent, field.TypeFloat64, value)
 	}
-	if value, ok := sotuo.mutation.AddedFeePerTokenUnit(); ok {
-		_spec.AddField(senderordertoken.FieldFeePerTokenUnit, field.TypeFloat64, value)
+	if value, ok := sotuo.mutation.AddedFeePercent(); ok {
+		_spec.AddField(senderordertoken.FieldFeePercent, field.TypeFloat64, value)
 	}
 	if value, ok := sotuo.mutation.FeeAddress(); ok {
 		_spec.SetField(senderordertoken.FieldFeeAddress, field.TypeString, value)

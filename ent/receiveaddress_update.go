@@ -42,6 +42,14 @@ func (rau *ReceiveAddressUpdate) SetAddress(s string) *ReceiveAddressUpdate {
 	return rau
 }
 
+// SetNillableAddress sets the "address" field if the given value is not nil.
+func (rau *ReceiveAddressUpdate) SetNillableAddress(s *string) *ReceiveAddressUpdate {
+	if s != nil {
+		rau.SetAddress(*s)
+	}
+	return rau
+}
+
 // SetStatus sets the "status" field.
 func (rau *ReceiveAddressUpdate) SetStatus(r receiveaddress.Status) *ReceiveAddressUpdate {
 	rau.mutation.SetStatus(r)
@@ -330,6 +338,14 @@ func (rauo *ReceiveAddressUpdateOne) SetUpdatedAt(t time.Time) *ReceiveAddressUp
 // SetAddress sets the "address" field.
 func (rauo *ReceiveAddressUpdateOne) SetAddress(s string) *ReceiveAddressUpdateOne {
 	rauo.mutation.SetAddress(s)
+	return rauo
+}
+
+// SetNillableAddress sets the "address" field if the given value is not nil.
+func (rauo *ReceiveAddressUpdateOne) SetNillableAddress(s *string) *ReceiveAddressUpdateOne {
+	if s != nil {
+		rauo.SetAddress(*s)
+	}
 	return rauo
 }
 

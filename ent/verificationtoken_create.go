@@ -191,7 +191,7 @@ func (vtc *VerificationTokenCreate) check() error {
 	if _, ok := vtc.mutation.ExpiryAt(); !ok {
 		return &ValidationError{Name: "expiry_at", err: errors.New(`ent: missing required field "VerificationToken.expiry_at"`)}
 	}
-	if _, ok := vtc.mutation.OwnerID(); !ok {
+	if len(vtc.mutation.OwnerIDs()) == 0 {
 		return &ValidationError{Name: "owner", err: errors.New(`ent: missing required edge "VerificationToken.owner"`)}
 	}
 	return nil
@@ -469,12 +469,16 @@ func (u *VerificationTokenUpsertOne) IDX(ctx context.Context) uuid.UUID {
 // VerificationTokenCreateBulk is the builder for creating many VerificationToken entities in bulk.
 type VerificationTokenCreateBulk struct {
 	config
+	err      error
 	builders []*VerificationTokenCreate
 	conflict []sql.ConflictOption
 }
 
 // Save creates the VerificationToken entities in the database.
 func (vtcb *VerificationTokenCreateBulk) Save(ctx context.Context) ([]*VerificationToken, error) {
+	if vtcb.err != nil {
+		return nil, vtcb.err
+	}
 	specs := make([]*sqlgraph.CreateSpec, len(vtcb.builders))
 	nodes := make([]*VerificationToken, len(vtcb.builders))
 	mutators := make([]Mutator, len(vtcb.builders))
@@ -678,6 +682,9 @@ func (u *VerificationTokenUpsertBulk) UpdateScope() *VerificationTokenUpsertBulk
 
 // Exec executes the query.
 func (u *VerificationTokenUpsertBulk) Exec(ctx context.Context) error {
+	if u.create.err != nil {
+		return u.create.err
+	}
 	for i, b := range u.create.builders {
 		if len(b.conflict) != 0 {
 			return fmt.Errorf("ent: OnConflict was set for builder %d. Set it on the VerificationTokenCreateBulk instead", i)

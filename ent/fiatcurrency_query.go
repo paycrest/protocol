@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math"
 
+	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
@@ -134,7 +135,7 @@ func (fcq *FiatCurrencyQuery) QueryInstitutions() *InstitutionQuery {
 // First returns the first FiatCurrency entity from the query.
 // Returns a *NotFoundError when no FiatCurrency was found.
 func (fcq *FiatCurrencyQuery) First(ctx context.Context) (*FiatCurrency, error) {
-	nodes, err := fcq.Limit(1).All(setContextOp(ctx, fcq.ctx, "First"))
+	nodes, err := fcq.Limit(1).All(setContextOp(ctx, fcq.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
@@ -157,7 +158,7 @@ func (fcq *FiatCurrencyQuery) FirstX(ctx context.Context) *FiatCurrency {
 // Returns a *NotFoundError when no FiatCurrency ID was found.
 func (fcq *FiatCurrencyQuery) FirstID(ctx context.Context) (id uuid.UUID, err error) {
 	var ids []uuid.UUID
-	if ids, err = fcq.Limit(1).IDs(setContextOp(ctx, fcq.ctx, "FirstID")); err != nil {
+	if ids, err = fcq.Limit(1).IDs(setContextOp(ctx, fcq.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -180,7 +181,7 @@ func (fcq *FiatCurrencyQuery) FirstIDX(ctx context.Context) uuid.UUID {
 // Returns a *NotSingularError when more than one FiatCurrency entity is found.
 // Returns a *NotFoundError when no FiatCurrency entities are found.
 func (fcq *FiatCurrencyQuery) Only(ctx context.Context) (*FiatCurrency, error) {
-	nodes, err := fcq.Limit(2).All(setContextOp(ctx, fcq.ctx, "Only"))
+	nodes, err := fcq.Limit(2).All(setContextOp(ctx, fcq.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
 	}
@@ -208,7 +209,7 @@ func (fcq *FiatCurrencyQuery) OnlyX(ctx context.Context) *FiatCurrency {
 // Returns a *NotFoundError when no entities are found.
 func (fcq *FiatCurrencyQuery) OnlyID(ctx context.Context) (id uuid.UUID, err error) {
 	var ids []uuid.UUID
-	if ids, err = fcq.Limit(2).IDs(setContextOp(ctx, fcq.ctx, "OnlyID")); err != nil {
+	if ids, err = fcq.Limit(2).IDs(setContextOp(ctx, fcq.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -233,7 +234,7 @@ func (fcq *FiatCurrencyQuery) OnlyIDX(ctx context.Context) uuid.UUID {
 
 // All executes the query and returns a list of FiatCurrencies.
 func (fcq *FiatCurrencyQuery) All(ctx context.Context) ([]*FiatCurrency, error) {
-	ctx = setContextOp(ctx, fcq.ctx, "All")
+	ctx = setContextOp(ctx, fcq.ctx, ent.OpQueryAll)
 	if err := fcq.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
@@ -255,7 +256,7 @@ func (fcq *FiatCurrencyQuery) IDs(ctx context.Context) (ids []uuid.UUID, err err
 	if fcq.ctx.Unique == nil && fcq.path != nil {
 		fcq.Unique(true)
 	}
-	ctx = setContextOp(ctx, fcq.ctx, "IDs")
+	ctx = setContextOp(ctx, fcq.ctx, ent.OpQueryIDs)
 	if err = fcq.Select(fiatcurrency.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
@@ -273,7 +274,7 @@ func (fcq *FiatCurrencyQuery) IDsX(ctx context.Context) []uuid.UUID {
 
 // Count returns the count of the given query.
 func (fcq *FiatCurrencyQuery) Count(ctx context.Context) (int, error) {
-	ctx = setContextOp(ctx, fcq.ctx, "Count")
+	ctx = setContextOp(ctx, fcq.ctx, ent.OpQueryCount)
 	if err := fcq.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
@@ -291,7 +292,7 @@ func (fcq *FiatCurrencyQuery) CountX(ctx context.Context) int {
 
 // Exist returns true if the query has elements in the graph.
 func (fcq *FiatCurrencyQuery) Exist(ctx context.Context) (bool, error) {
-	ctx = setContextOp(ctx, fcq.ctx, "Exist")
+	ctx = setContextOp(ctx, fcq.ctx, ent.OpQueryExist)
 	switch _, err := fcq.FirstID(ctx); {
 	case IsNotFound(err):
 		return false, nil
@@ -682,7 +683,7 @@ func (fcgb *FiatCurrencyGroupBy) Aggregate(fns ...AggregateFunc) *FiatCurrencyGr
 
 // Scan applies the selector query and scans the result into the given value.
 func (fcgb *FiatCurrencyGroupBy) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, fcgb.build.ctx, "GroupBy")
+	ctx = setContextOp(ctx, fcgb.build.ctx, ent.OpQueryGroupBy)
 	if err := fcgb.build.prepareQuery(ctx); err != nil {
 		return err
 	}
@@ -730,7 +731,7 @@ func (fcs *FiatCurrencySelect) Aggregate(fns ...AggregateFunc) *FiatCurrencySele
 
 // Scan applies the selector query and scans the result into the given value.
 func (fcs *FiatCurrencySelect) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, fcs.ctx, "Select")
+	ctx = setContextOp(ctx, fcs.ctx, ent.OpQuerySelect)
 	if err := fcs.prepareQuery(ctx); err != nil {
 		return err
 	}

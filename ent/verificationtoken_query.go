@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 
+	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
@@ -86,7 +87,7 @@ func (vtq *VerificationTokenQuery) QueryOwner() *UserQuery {
 // First returns the first VerificationToken entity from the query.
 // Returns a *NotFoundError when no VerificationToken was found.
 func (vtq *VerificationTokenQuery) First(ctx context.Context) (*VerificationToken, error) {
-	nodes, err := vtq.Limit(1).All(setContextOp(ctx, vtq.ctx, "First"))
+	nodes, err := vtq.Limit(1).All(setContextOp(ctx, vtq.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +110,7 @@ func (vtq *VerificationTokenQuery) FirstX(ctx context.Context) *VerificationToke
 // Returns a *NotFoundError when no VerificationToken ID was found.
 func (vtq *VerificationTokenQuery) FirstID(ctx context.Context) (id uuid.UUID, err error) {
 	var ids []uuid.UUID
-	if ids, err = vtq.Limit(1).IDs(setContextOp(ctx, vtq.ctx, "FirstID")); err != nil {
+	if ids, err = vtq.Limit(1).IDs(setContextOp(ctx, vtq.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -132,7 +133,7 @@ func (vtq *VerificationTokenQuery) FirstIDX(ctx context.Context) uuid.UUID {
 // Returns a *NotSingularError when more than one VerificationToken entity is found.
 // Returns a *NotFoundError when no VerificationToken entities are found.
 func (vtq *VerificationTokenQuery) Only(ctx context.Context) (*VerificationToken, error) {
-	nodes, err := vtq.Limit(2).All(setContextOp(ctx, vtq.ctx, "Only"))
+	nodes, err := vtq.Limit(2).All(setContextOp(ctx, vtq.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
 	}
@@ -160,7 +161,7 @@ func (vtq *VerificationTokenQuery) OnlyX(ctx context.Context) *VerificationToken
 // Returns a *NotFoundError when no entities are found.
 func (vtq *VerificationTokenQuery) OnlyID(ctx context.Context) (id uuid.UUID, err error) {
 	var ids []uuid.UUID
-	if ids, err = vtq.Limit(2).IDs(setContextOp(ctx, vtq.ctx, "OnlyID")); err != nil {
+	if ids, err = vtq.Limit(2).IDs(setContextOp(ctx, vtq.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -185,7 +186,7 @@ func (vtq *VerificationTokenQuery) OnlyIDX(ctx context.Context) uuid.UUID {
 
 // All executes the query and returns a list of VerificationTokens.
 func (vtq *VerificationTokenQuery) All(ctx context.Context) ([]*VerificationToken, error) {
-	ctx = setContextOp(ctx, vtq.ctx, "All")
+	ctx = setContextOp(ctx, vtq.ctx, ent.OpQueryAll)
 	if err := vtq.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
@@ -207,7 +208,7 @@ func (vtq *VerificationTokenQuery) IDs(ctx context.Context) (ids []uuid.UUID, er
 	if vtq.ctx.Unique == nil && vtq.path != nil {
 		vtq.Unique(true)
 	}
-	ctx = setContextOp(ctx, vtq.ctx, "IDs")
+	ctx = setContextOp(ctx, vtq.ctx, ent.OpQueryIDs)
 	if err = vtq.Select(verificationtoken.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
@@ -225,7 +226,7 @@ func (vtq *VerificationTokenQuery) IDsX(ctx context.Context) []uuid.UUID {
 
 // Count returns the count of the given query.
 func (vtq *VerificationTokenQuery) Count(ctx context.Context) (int, error) {
-	ctx = setContextOp(ctx, vtq.ctx, "Count")
+	ctx = setContextOp(ctx, vtq.ctx, ent.OpQueryCount)
 	if err := vtq.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
@@ -243,7 +244,7 @@ func (vtq *VerificationTokenQuery) CountX(ctx context.Context) int {
 
 // Exist returns true if the query has elements in the graph.
 func (vtq *VerificationTokenQuery) Exist(ctx context.Context) (bool, error) {
-	ctx = setContextOp(ctx, vtq.ctx, "Exist")
+	ctx = setContextOp(ctx, vtq.ctx, ent.OpQueryExist)
 	switch _, err := vtq.FirstID(ctx); {
 	case IsNotFound(err):
 		return false, nil
@@ -537,7 +538,7 @@ func (vtgb *VerificationTokenGroupBy) Aggregate(fns ...AggregateFunc) *Verificat
 
 // Scan applies the selector query and scans the result into the given value.
 func (vtgb *VerificationTokenGroupBy) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, vtgb.build.ctx, "GroupBy")
+	ctx = setContextOp(ctx, vtgb.build.ctx, ent.OpQueryGroupBy)
 	if err := vtgb.build.prepareQuery(ctx); err != nil {
 		return err
 	}
@@ -585,7 +586,7 @@ func (vts *VerificationTokenSelect) Aggregate(fns ...AggregateFunc) *Verificatio
 
 // Scan applies the selector query and scans the result into the given value.
 func (vts *VerificationTokenSelect) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, vts.ctx, "Select")
+	ctx = setContextOp(ctx, vts.ctx, ent.OpQuerySelect)
 	if err := vts.prepareQuery(ctx); err != nil {
 		return err
 	}

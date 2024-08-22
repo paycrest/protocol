@@ -23,7 +23,7 @@ func (SenderOrderToken) Mixin() []ent.Mixin {
 // Fields of the SenderOrderToken.
 func (SenderOrderToken) Fields() []ent.Field {
 	return []ent.Field{
-		field.Float("fee_per_token_unit").
+		field.Float("fee_percent").
 			GoType(decimal.Decimal{}),
 		field.String("fee_address").MaxLen(60),
 		field.String("refund_address").MaxLen(60),

@@ -35,15 +35,39 @@ func (poru *PaymentOrderRecipientUpdate) SetInstitution(s string) *PaymentOrderR
 	return poru
 }
 
+// SetNillableInstitution sets the "institution" field if the given value is not nil.
+func (poru *PaymentOrderRecipientUpdate) SetNillableInstitution(s *string) *PaymentOrderRecipientUpdate {
+	if s != nil {
+		poru.SetInstitution(*s)
+	}
+	return poru
+}
+
 // SetAccountIdentifier sets the "account_identifier" field.
 func (poru *PaymentOrderRecipientUpdate) SetAccountIdentifier(s string) *PaymentOrderRecipientUpdate {
 	poru.mutation.SetAccountIdentifier(s)
 	return poru
 }
 
+// SetNillableAccountIdentifier sets the "account_identifier" field if the given value is not nil.
+func (poru *PaymentOrderRecipientUpdate) SetNillableAccountIdentifier(s *string) *PaymentOrderRecipientUpdate {
+	if s != nil {
+		poru.SetAccountIdentifier(*s)
+	}
+	return poru
+}
+
 // SetAccountName sets the "account_name" field.
 func (poru *PaymentOrderRecipientUpdate) SetAccountName(s string) *PaymentOrderRecipientUpdate {
 	poru.mutation.SetAccountName(s)
+	return poru
+}
+
+// SetNillableAccountName sets the "account_name" field if the given value is not nil.
+func (poru *PaymentOrderRecipientUpdate) SetNillableAccountName(s *string) *PaymentOrderRecipientUpdate {
+	if s != nil {
+		poru.SetAccountName(*s)
+	}
 	return poru
 }
 
@@ -138,7 +162,7 @@ func (poru *PaymentOrderRecipientUpdate) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (poru *PaymentOrderRecipientUpdate) check() error {
-	if _, ok := poru.mutation.PaymentOrderID(); poru.mutation.PaymentOrderCleared() && !ok {
+	if poru.mutation.PaymentOrderCleared() && len(poru.mutation.PaymentOrderIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "PaymentOrderRecipient.payment_order"`)
 	}
 	return nil
@@ -232,15 +256,39 @@ func (poruo *PaymentOrderRecipientUpdateOne) SetInstitution(s string) *PaymentOr
 	return poruo
 }
 
+// SetNillableInstitution sets the "institution" field if the given value is not nil.
+func (poruo *PaymentOrderRecipientUpdateOne) SetNillableInstitution(s *string) *PaymentOrderRecipientUpdateOne {
+	if s != nil {
+		poruo.SetInstitution(*s)
+	}
+	return poruo
+}
+
 // SetAccountIdentifier sets the "account_identifier" field.
 func (poruo *PaymentOrderRecipientUpdateOne) SetAccountIdentifier(s string) *PaymentOrderRecipientUpdateOne {
 	poruo.mutation.SetAccountIdentifier(s)
 	return poruo
 }
 
+// SetNillableAccountIdentifier sets the "account_identifier" field if the given value is not nil.
+func (poruo *PaymentOrderRecipientUpdateOne) SetNillableAccountIdentifier(s *string) *PaymentOrderRecipientUpdateOne {
+	if s != nil {
+		poruo.SetAccountIdentifier(*s)
+	}
+	return poruo
+}
+
 // SetAccountName sets the "account_name" field.
 func (poruo *PaymentOrderRecipientUpdateOne) SetAccountName(s string) *PaymentOrderRecipientUpdateOne {
 	poruo.mutation.SetAccountName(s)
+	return poruo
+}
+
+// SetNillableAccountName sets the "account_name" field if the given value is not nil.
+func (poruo *PaymentOrderRecipientUpdateOne) SetNillableAccountName(s *string) *PaymentOrderRecipientUpdateOne {
+	if s != nil {
+		poruo.SetAccountName(*s)
+	}
 	return poruo
 }
 
@@ -348,7 +396,7 @@ func (poruo *PaymentOrderRecipientUpdateOne) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (poruo *PaymentOrderRecipientUpdateOne) check() error {
-	if _, ok := poruo.mutation.PaymentOrderID(); poruo.mutation.PaymentOrderCleared() && !ok {
+	if poruo.mutation.PaymentOrderCleared() && len(poruo.mutation.PaymentOrderIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "PaymentOrderRecipient.payment_order"`)
 	}
 	return nil

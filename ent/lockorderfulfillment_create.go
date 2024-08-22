@@ -198,7 +198,7 @@ func (lofc *LockOrderFulfillmentCreate) check() error {
 			return &ValidationError{Name: "validation_status", err: fmt.Errorf(`ent: validator failed for field "LockOrderFulfillment.validation_status": %w`, err)}
 		}
 	}
-	if _, ok := lofc.mutation.OrderID(); !ok {
+	if len(lofc.mutation.OrderIDs()) == 0 {
 		return &ValidationError{Name: "order", err: errors.New(`ent: missing required edge "LockOrderFulfillment.order"`)}
 	}
 	return nil
@@ -578,12 +578,16 @@ func (u *LockOrderFulfillmentUpsertOne) IDX(ctx context.Context) uuid.UUID {
 // LockOrderFulfillmentCreateBulk is the builder for creating many LockOrderFulfillment entities in bulk.
 type LockOrderFulfillmentCreateBulk struct {
 	config
+	err      error
 	builders []*LockOrderFulfillmentCreate
 	conflict []sql.ConflictOption
 }
 
 // Save creates the LockOrderFulfillment entities in the database.
 func (lofcb *LockOrderFulfillmentCreateBulk) Save(ctx context.Context) ([]*LockOrderFulfillment, error) {
+	if lofcb.err != nil {
+		return nil, lofcb.err
+	}
 	specs := make([]*sqlgraph.CreateSpec, len(lofcb.builders))
 	nodes := make([]*LockOrderFulfillment, len(lofcb.builders))
 	mutators := make([]Mutator, len(lofcb.builders))
@@ -837,6 +841,9 @@ func (u *LockOrderFulfillmentUpsertBulk) ClearValidationError() *LockOrderFulfil
 
 // Exec executes the query.
 func (u *LockOrderFulfillmentUpsertBulk) Exec(ctx context.Context) error {
+	if u.create.err != nil {
+		return u.create.err
+	}
 	for i, b := range u.create.builders {
 		if len(b.conflict) != 0 {
 			return fmt.Errorf("ent: OnConflict was set for builder %d. Set it on the LockOrderFulfillmentCreateBulk instead", i)

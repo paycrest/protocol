@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math"
 
+	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
@@ -183,7 +184,7 @@ func (lpoq *LockPaymentOrderQuery) QueryTransactions() *TransactionLogQuery {
 // First returns the first LockPaymentOrder entity from the query.
 // Returns a *NotFoundError when no LockPaymentOrder was found.
 func (lpoq *LockPaymentOrderQuery) First(ctx context.Context) (*LockPaymentOrder, error) {
-	nodes, err := lpoq.Limit(1).All(setContextOp(ctx, lpoq.ctx, "First"))
+	nodes, err := lpoq.Limit(1).All(setContextOp(ctx, lpoq.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
@@ -206,7 +207,7 @@ func (lpoq *LockPaymentOrderQuery) FirstX(ctx context.Context) *LockPaymentOrder
 // Returns a *NotFoundError when no LockPaymentOrder ID was found.
 func (lpoq *LockPaymentOrderQuery) FirstID(ctx context.Context) (id uuid.UUID, err error) {
 	var ids []uuid.UUID
-	if ids, err = lpoq.Limit(1).IDs(setContextOp(ctx, lpoq.ctx, "FirstID")); err != nil {
+	if ids, err = lpoq.Limit(1).IDs(setContextOp(ctx, lpoq.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -229,7 +230,7 @@ func (lpoq *LockPaymentOrderQuery) FirstIDX(ctx context.Context) uuid.UUID {
 // Returns a *NotSingularError when more than one LockPaymentOrder entity is found.
 // Returns a *NotFoundError when no LockPaymentOrder entities are found.
 func (lpoq *LockPaymentOrderQuery) Only(ctx context.Context) (*LockPaymentOrder, error) {
-	nodes, err := lpoq.Limit(2).All(setContextOp(ctx, lpoq.ctx, "Only"))
+	nodes, err := lpoq.Limit(2).All(setContextOp(ctx, lpoq.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
 	}
@@ -257,7 +258,7 @@ func (lpoq *LockPaymentOrderQuery) OnlyX(ctx context.Context) *LockPaymentOrder 
 // Returns a *NotFoundError when no entities are found.
 func (lpoq *LockPaymentOrderQuery) OnlyID(ctx context.Context) (id uuid.UUID, err error) {
 	var ids []uuid.UUID
-	if ids, err = lpoq.Limit(2).IDs(setContextOp(ctx, lpoq.ctx, "OnlyID")); err != nil {
+	if ids, err = lpoq.Limit(2).IDs(setContextOp(ctx, lpoq.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -282,7 +283,7 @@ func (lpoq *LockPaymentOrderQuery) OnlyIDX(ctx context.Context) uuid.UUID {
 
 // All executes the query and returns a list of LockPaymentOrders.
 func (lpoq *LockPaymentOrderQuery) All(ctx context.Context) ([]*LockPaymentOrder, error) {
-	ctx = setContextOp(ctx, lpoq.ctx, "All")
+	ctx = setContextOp(ctx, lpoq.ctx, ent.OpQueryAll)
 	if err := lpoq.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
@@ -304,7 +305,7 @@ func (lpoq *LockPaymentOrderQuery) IDs(ctx context.Context) (ids []uuid.UUID, er
 	if lpoq.ctx.Unique == nil && lpoq.path != nil {
 		lpoq.Unique(true)
 	}
-	ctx = setContextOp(ctx, lpoq.ctx, "IDs")
+	ctx = setContextOp(ctx, lpoq.ctx, ent.OpQueryIDs)
 	if err = lpoq.Select(lockpaymentorder.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
@@ -322,7 +323,7 @@ func (lpoq *LockPaymentOrderQuery) IDsX(ctx context.Context) []uuid.UUID {
 
 // Count returns the count of the given query.
 func (lpoq *LockPaymentOrderQuery) Count(ctx context.Context) (int, error) {
-	ctx = setContextOp(ctx, lpoq.ctx, "Count")
+	ctx = setContextOp(ctx, lpoq.ctx, ent.OpQueryCount)
 	if err := lpoq.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
@@ -340,7 +341,7 @@ func (lpoq *LockPaymentOrderQuery) CountX(ctx context.Context) int {
 
 // Exist returns true if the query has elements in the graph.
 func (lpoq *LockPaymentOrderQuery) Exist(ctx context.Context) (bool, error) {
-	ctx = setContextOp(ctx, lpoq.ctx, "Exist")
+	ctx = setContextOp(ctx, lpoq.ctx, ent.OpQueryExist)
 	switch _, err := lpoq.FirstID(ctx); {
 	case IsNotFound(err):
 		return false, nil
@@ -840,7 +841,7 @@ func (lpogb *LockPaymentOrderGroupBy) Aggregate(fns ...AggregateFunc) *LockPayme
 
 // Scan applies the selector query and scans the result into the given value.
 func (lpogb *LockPaymentOrderGroupBy) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, lpogb.build.ctx, "GroupBy")
+	ctx = setContextOp(ctx, lpogb.build.ctx, ent.OpQueryGroupBy)
 	if err := lpogb.build.prepareQuery(ctx); err != nil {
 		return err
 	}
@@ -888,7 +889,7 @@ func (lpos *LockPaymentOrderSelect) Aggregate(fns ...AggregateFunc) *LockPayment
 
 // Scan applies the selector query and scans the result into the given value.
 func (lpos *LockPaymentOrderSelect) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, lpos.ctx, "Select")
+	ctx = setContextOp(ctx, lpos.ctx, ent.OpQuerySelect)
 	if err := lpos.prepareQuery(ctx); err != nil {
 		return err
 	}

@@ -239,7 +239,7 @@ func (spu *SenderProfileUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (spu *SenderProfileUpdate) check() error {
-	if _, ok := spu.mutation.UserID(); spu.mutation.UserCleared() && !ok {
+	if spu.mutation.UserCleared() && len(spu.mutation.UserIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "SenderProfile.user"`)
 	}
 	return nil
@@ -638,7 +638,7 @@ func (spuo *SenderProfileUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (spuo *SenderProfileUpdateOne) check() error {
-	if _, ok := spuo.mutation.UserID(); spuo.mutation.UserCleared() && !ok {
+	if spuo.mutation.UserCleared() && len(spuo.mutation.UserIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "SenderProfile.user"`)
 	}
 	return nil

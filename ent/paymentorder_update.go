@@ -48,6 +48,14 @@ func (pou *PaymentOrderUpdate) SetAmount(d decimal.Decimal) *PaymentOrderUpdate 
 	return pou
 }
 
+// SetNillableAmount sets the "amount" field if the given value is not nil.
+func (pou *PaymentOrderUpdate) SetNillableAmount(d *decimal.Decimal) *PaymentOrderUpdate {
+	if d != nil {
+		pou.SetAmount(*d)
+	}
+	return pou
+}
+
 // AddAmount adds d to the "amount" field.
 func (pou *PaymentOrderUpdate) AddAmount(d decimal.Decimal) *PaymentOrderUpdate {
 	pou.mutation.AddAmount(d)
@@ -58,6 +66,14 @@ func (pou *PaymentOrderUpdate) AddAmount(d decimal.Decimal) *PaymentOrderUpdate 
 func (pou *PaymentOrderUpdate) SetAmountPaid(d decimal.Decimal) *PaymentOrderUpdate {
 	pou.mutation.ResetAmountPaid()
 	pou.mutation.SetAmountPaid(d)
+	return pou
+}
+
+// SetNillableAmountPaid sets the "amount_paid" field if the given value is not nil.
+func (pou *PaymentOrderUpdate) SetNillableAmountPaid(d *decimal.Decimal) *PaymentOrderUpdate {
+	if d != nil {
+		pou.SetAmountPaid(*d)
+	}
 	return pou
 }
 
@@ -74,6 +90,14 @@ func (pou *PaymentOrderUpdate) SetAmountReturned(d decimal.Decimal) *PaymentOrde
 	return pou
 }
 
+// SetNillableAmountReturned sets the "amount_returned" field if the given value is not nil.
+func (pou *PaymentOrderUpdate) SetNillableAmountReturned(d *decimal.Decimal) *PaymentOrderUpdate {
+	if d != nil {
+		pou.SetAmountReturned(*d)
+	}
+	return pou
+}
+
 // AddAmountReturned adds d to the "amount_returned" field.
 func (pou *PaymentOrderUpdate) AddAmountReturned(d decimal.Decimal) *PaymentOrderUpdate {
 	pou.mutation.AddAmountReturned(d)
@@ -84,6 +108,14 @@ func (pou *PaymentOrderUpdate) AddAmountReturned(d decimal.Decimal) *PaymentOrde
 func (pou *PaymentOrderUpdate) SetPercentSettled(d decimal.Decimal) *PaymentOrderUpdate {
 	pou.mutation.ResetPercentSettled()
 	pou.mutation.SetPercentSettled(d)
+	return pou
+}
+
+// SetNillablePercentSettled sets the "percent_settled" field if the given value is not nil.
+func (pou *PaymentOrderUpdate) SetNillablePercentSettled(d *decimal.Decimal) *PaymentOrderUpdate {
+	if d != nil {
+		pou.SetPercentSettled(*d)
+	}
 	return pou
 }
 
@@ -100,6 +132,14 @@ func (pou *PaymentOrderUpdate) SetSenderFee(d decimal.Decimal) *PaymentOrderUpda
 	return pou
 }
 
+// SetNillableSenderFee sets the "sender_fee" field if the given value is not nil.
+func (pou *PaymentOrderUpdate) SetNillableSenderFee(d *decimal.Decimal) *PaymentOrderUpdate {
+	if d != nil {
+		pou.SetSenderFee(*d)
+	}
+	return pou
+}
+
 // AddSenderFee adds d to the "sender_fee" field.
 func (pou *PaymentOrderUpdate) AddSenderFee(d decimal.Decimal) *PaymentOrderUpdate {
 	pou.mutation.AddSenderFee(d)
@@ -110,6 +150,14 @@ func (pou *PaymentOrderUpdate) AddSenderFee(d decimal.Decimal) *PaymentOrderUpda
 func (pou *PaymentOrderUpdate) SetNetworkFee(d decimal.Decimal) *PaymentOrderUpdate {
 	pou.mutation.ResetNetworkFee()
 	pou.mutation.SetNetworkFee(d)
+	return pou
+}
+
+// SetNillableNetworkFee sets the "network_fee" field if the given value is not nil.
+func (pou *PaymentOrderUpdate) SetNillableNetworkFee(d *decimal.Decimal) *PaymentOrderUpdate {
+	if d != nil {
+		pou.SetNetworkFee(*d)
+	}
 	return pou
 }
 
@@ -126,6 +174,14 @@ func (pou *PaymentOrderUpdate) SetProtocolFee(d decimal.Decimal) *PaymentOrderUp
 	return pou
 }
 
+// SetNillableProtocolFee sets the "protocol_fee" field if the given value is not nil.
+func (pou *PaymentOrderUpdate) SetNillableProtocolFee(d *decimal.Decimal) *PaymentOrderUpdate {
+	if d != nil {
+		pou.SetProtocolFee(*d)
+	}
+	return pou
+}
+
 // AddProtocolFee adds d to the "protocol_fee" field.
 func (pou *PaymentOrderUpdate) AddProtocolFee(d decimal.Decimal) *PaymentOrderUpdate {
 	pou.mutation.AddProtocolFee(d)
@@ -136,6 +192,14 @@ func (pou *PaymentOrderUpdate) AddProtocolFee(d decimal.Decimal) *PaymentOrderUp
 func (pou *PaymentOrderUpdate) SetRate(d decimal.Decimal) *PaymentOrderUpdate {
 	pou.mutation.ResetRate()
 	pou.mutation.SetRate(d)
+	return pou
+}
+
+// SetNillableRate sets the "rate" field if the given value is not nil.
+func (pou *PaymentOrderUpdate) SetNillableRate(d *decimal.Decimal) *PaymentOrderUpdate {
+	if d != nil {
+		pou.SetRate(*d)
+	}
 	return pou
 }
 
@@ -232,16 +296,32 @@ func (pou *PaymentOrderUpdate) SetReceiveAddressText(s string) *PaymentOrderUpda
 	return pou
 }
 
-// SetFeePerTokenUnit sets the "fee_per_token_unit" field.
-func (pou *PaymentOrderUpdate) SetFeePerTokenUnit(d decimal.Decimal) *PaymentOrderUpdate {
-	pou.mutation.ResetFeePerTokenUnit()
-	pou.mutation.SetFeePerTokenUnit(d)
+// SetNillableReceiveAddressText sets the "receive_address_text" field if the given value is not nil.
+func (pou *PaymentOrderUpdate) SetNillableReceiveAddressText(s *string) *PaymentOrderUpdate {
+	if s != nil {
+		pou.SetReceiveAddressText(*s)
+	}
 	return pou
 }
 
-// AddFeePerTokenUnit adds d to the "fee_per_token_unit" field.
-func (pou *PaymentOrderUpdate) AddFeePerTokenUnit(d decimal.Decimal) *PaymentOrderUpdate {
-	pou.mutation.AddFeePerTokenUnit(d)
+// SetFeePercent sets the "fee_percent" field.
+func (pou *PaymentOrderUpdate) SetFeePercent(d decimal.Decimal) *PaymentOrderUpdate {
+	pou.mutation.ResetFeePercent()
+	pou.mutation.SetFeePercent(d)
+	return pou
+}
+
+// SetNillableFeePercent sets the "fee_percent" field if the given value is not nil.
+func (pou *PaymentOrderUpdate) SetNillableFeePercent(d *decimal.Decimal) *PaymentOrderUpdate {
+	if d != nil {
+		pou.SetFeePercent(*d)
+	}
+	return pou
+}
+
+// AddFeePercent adds d to the "fee_percent" field.
+func (pou *PaymentOrderUpdate) AddFeePercent(d decimal.Decimal) *PaymentOrderUpdate {
+	pou.mutation.AddFeePercent(d)
 	return pou
 }
 
@@ -487,10 +567,10 @@ func (pou *PaymentOrderUpdate) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.status": %w`, err)}
 		}
 	}
-	if _, ok := pou.mutation.SenderProfileID(); pou.mutation.SenderProfileCleared() && !ok {
+	if pou.mutation.SenderProfileCleared() && len(pou.mutation.SenderProfileIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "PaymentOrder.sender_profile"`)
 	}
-	if _, ok := pou.mutation.TokenID(); pou.mutation.TokenCleared() && !ok {
+	if pou.mutation.TokenCleared() && len(pou.mutation.TokenIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "PaymentOrder.token"`)
 	}
 	return nil
@@ -586,11 +666,11 @@ func (pou *PaymentOrderUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if value, ok := pou.mutation.ReceiveAddressText(); ok {
 		_spec.SetField(paymentorder.FieldReceiveAddressText, field.TypeString, value)
 	}
-	if value, ok := pou.mutation.FeePerTokenUnit(); ok {
-		_spec.SetField(paymentorder.FieldFeePerTokenUnit, field.TypeFloat64, value)
+	if value, ok := pou.mutation.FeePercent(); ok {
+		_spec.SetField(paymentorder.FieldFeePercent, field.TypeFloat64, value)
 	}
-	if value, ok := pou.mutation.AddedFeePerTokenUnit(); ok {
-		_spec.AddField(paymentorder.FieldFeePerTokenUnit, field.TypeFloat64, value)
+	if value, ok := pou.mutation.AddedFeePercent(); ok {
+		_spec.AddField(paymentorder.FieldFeePercent, field.TypeFloat64, value)
 	}
 	if value, ok := pou.mutation.FeeAddress(); ok {
 		_spec.SetField(paymentorder.FieldFeeAddress, field.TypeString, value)
@@ -801,6 +881,14 @@ func (pouo *PaymentOrderUpdateOne) SetAmount(d decimal.Decimal) *PaymentOrderUpd
 	return pouo
 }
 
+// SetNillableAmount sets the "amount" field if the given value is not nil.
+func (pouo *PaymentOrderUpdateOne) SetNillableAmount(d *decimal.Decimal) *PaymentOrderUpdateOne {
+	if d != nil {
+		pouo.SetAmount(*d)
+	}
+	return pouo
+}
+
 // AddAmount adds d to the "amount" field.
 func (pouo *PaymentOrderUpdateOne) AddAmount(d decimal.Decimal) *PaymentOrderUpdateOne {
 	pouo.mutation.AddAmount(d)
@@ -811,6 +899,14 @@ func (pouo *PaymentOrderUpdateOne) AddAmount(d decimal.Decimal) *PaymentOrderUpd
 func (pouo *PaymentOrderUpdateOne) SetAmountPaid(d decimal.Decimal) *PaymentOrderUpdateOne {
 	pouo.mutation.ResetAmountPaid()
 	pouo.mutation.SetAmountPaid(d)
+	return pouo
+}
+
+// SetNillableAmountPaid sets the "amount_paid" field if the given value is not nil.
+func (pouo *PaymentOrderUpdateOne) SetNillableAmountPaid(d *decimal.Decimal) *PaymentOrderUpdateOne {
+	if d != nil {
+		pouo.SetAmountPaid(*d)
+	}
 	return pouo
 }
 
@@ -827,6 +923,14 @@ func (pouo *PaymentOrderUpdateOne) SetAmountReturned(d decimal.Decimal) *Payment
 	return pouo
 }
 
+// SetNillableAmountReturned sets the "amount_returned" field if the given value is not nil.
+func (pouo *PaymentOrderUpdateOne) SetNillableAmountReturned(d *decimal.Decimal) *PaymentOrderUpdateOne {
+	if d != nil {
+		pouo.SetAmountReturned(*d)
+	}
+	return pouo
+}
+
 // AddAmountReturned adds d to the "amount_returned" field.
 func (pouo *PaymentOrderUpdateOne) AddAmountReturned(d decimal.Decimal) *PaymentOrderUpdateOne {
 	pouo.mutation.AddAmountReturned(d)
@@ -837,6 +941,14 @@ func (pouo *PaymentOrderUpdateOne) AddAmountReturned(d decimal.Decimal) *Payment
 func (pouo *PaymentOrderUpdateOne) SetPercentSettled(d decimal.Decimal) *PaymentOrderUpdateOne {
 	pouo.mutation.ResetPercentSettled()
 	pouo.mutation.SetPercentSettled(d)
+	return pouo
+}
+
+// SetNillablePercentSettled sets the "percent_settled" field if the given value is not nil.
+func (pouo *PaymentOrderUpdateOne) SetNillablePercentSettled(d *decimal.Decimal) *PaymentOrderUpdateOne {
+	if d != nil {
+		pouo.SetPercentSettled(*d)
+	}
 	return pouo
 }
 
@@ -853,6 +965,14 @@ func (pouo *PaymentOrderUpdateOne) SetSenderFee(d decimal.Decimal) *PaymentOrder
 	return pouo
 }
 
+// SetNillableSenderFee sets the "sender_fee" field if the given value is not nil.
+func (pouo *PaymentOrderUpdateOne) SetNillableSenderFee(d *decimal.Decimal) *PaymentOrderUpdateOne {
+	if d != nil {
+		pouo.SetSenderFee(*d)
+	}
+	return pouo
+}
+
 // AddSenderFee adds d to the "sender_fee" field.
 func (pouo *PaymentOrderUpdateOne) AddSenderFee(d decimal.Decimal) *PaymentOrderUpdateOne {
 	pouo.mutation.AddSenderFee(d)
@@ -863,6 +983,14 @@ func (pouo *PaymentOrderUpdateOne) AddSenderFee(d decimal.Decimal) *PaymentOrder
 func (pouo *PaymentOrderUpdateOne) SetNetworkFee(d decimal.Decimal) *PaymentOrderUpdateOne {
 	pouo.mutation.ResetNetworkFee()
 	pouo.mutation.SetNetworkFee(d)
+	return pouo
+}
+
+// SetNillableNetworkFee sets the "network_fee" field if the given value is not nil.
+func (pouo *PaymentOrderUpdateOne) SetNillableNetworkFee(d *decimal.Decimal) *PaymentOrderUpdateOne {
+	if d != nil {
+		pouo.SetNetworkFee(*d)
+	}
 	return pouo
 }
 
@@ -879,6 +1007,14 @@ func (pouo *PaymentOrderUpdateOne) SetProtocolFee(d decimal.Decimal) *PaymentOrd
 	return pouo
 }
 
+// SetNillableProtocolFee sets the "protocol_fee" field if the given value is not nil.
+func (pouo *PaymentOrderUpdateOne) SetNillableProtocolFee(d *decimal.Decimal) *PaymentOrderUpdateOne {
+	if d != nil {
+		pouo.SetProtocolFee(*d)
+	}
+	return pouo
+}
+
 // AddProtocolFee adds d to the "protocol_fee" field.
 func (pouo *PaymentOrderUpdateOne) AddProtocolFee(d decimal.Decimal) *PaymentOrderUpdateOne {
 	pouo.mutation.AddProtocolFee(d)
@@ -889,6 +1025,14 @@ func (pouo *PaymentOrderUpdateOne) AddProtocolFee(d decimal.Decimal) *PaymentOrd
 func (pouo *PaymentOrderUpdateOne) SetRate(d decimal.Decimal) *PaymentOrderUpdateOne {
 	pouo.mutation.ResetRate()
 	pouo.mutation.SetRate(d)
+	return pouo
+}
+
+// SetNillableRate sets the "rate" field if the given value is not nil.
+func (pouo *PaymentOrderUpdateOne) SetNillableRate(d *decimal.Decimal) *PaymentOrderUpdateOne {
+	if d != nil {
+		pouo.SetRate(*d)
+	}
 	return pouo
 }
 
@@ -985,16 +1129,32 @@ func (pouo *PaymentOrderUpdateOne) SetReceiveAddressText(s string) *PaymentOrder
 	return pouo
 }
 
-// SetFeePerTokenUnit sets the "fee_per_token_unit" field.
-func (pouo *PaymentOrderUpdateOne) SetFeePerTokenUnit(d decimal.Decimal) *PaymentOrderUpdateOne {
-	pouo.mutation.ResetFeePerTokenUnit()
-	pouo.mutation.SetFeePerTokenUnit(d)
+// SetNillableReceiveAddressText sets the "receive_address_text" field if the given value is not nil.
+func (pouo *PaymentOrderUpdateOne) SetNillableReceiveAddressText(s *string) *PaymentOrderUpdateOne {
+	if s != nil {
+		pouo.SetReceiveAddressText(*s)
+	}
 	return pouo
 }
 
-// AddFeePerTokenUnit adds d to the "fee_per_token_unit" field.
-func (pouo *PaymentOrderUpdateOne) AddFeePerTokenUnit(d decimal.Decimal) *PaymentOrderUpdateOne {
-	pouo.mutation.AddFeePerTokenUnit(d)
+// SetFeePercent sets the "fee_percent" field.
+func (pouo *PaymentOrderUpdateOne) SetFeePercent(d decimal.Decimal) *PaymentOrderUpdateOne {
+	pouo.mutation.ResetFeePercent()
+	pouo.mutation.SetFeePercent(d)
+	return pouo
+}
+
+// SetNillableFeePercent sets the "fee_percent" field if the given value is not nil.
+func (pouo *PaymentOrderUpdateOne) SetNillableFeePercent(d *decimal.Decimal) *PaymentOrderUpdateOne {
+	if d != nil {
+		pouo.SetFeePercent(*d)
+	}
+	return pouo
+}
+
+// AddFeePercent adds d to the "fee_percent" field.
+func (pouo *PaymentOrderUpdateOne) AddFeePercent(d decimal.Decimal) *PaymentOrderUpdateOne {
+	pouo.mutation.AddFeePercent(d)
 	return pouo
 }
 
@@ -1253,10 +1413,10 @@ func (pouo *PaymentOrderUpdateOne) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.status": %w`, err)}
 		}
 	}
-	if _, ok := pouo.mutation.SenderProfileID(); pouo.mutation.SenderProfileCleared() && !ok {
+	if pouo.mutation.SenderProfileCleared() && len(pouo.mutation.SenderProfileIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "PaymentOrder.sender_profile"`)
 	}
-	if _, ok := pouo.mutation.TokenID(); pouo.mutation.TokenCleared() && !ok {
+	if pouo.mutation.TokenCleared() && len(pouo.mutation.TokenIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "PaymentOrder.token"`)
 	}
 	return nil
@@ -1369,11 +1529,11 @@ func (pouo *PaymentOrderUpdateOne) sqlSave(ctx context.Context) (_node *PaymentO
 	if value, ok := pouo.mutation.ReceiveAddressText(); ok {
 		_spec.SetField(paymentorder.FieldReceiveAddressText, field.TypeString, value)
 	}
-	if value, ok := pouo.mutation.FeePerTokenUnit(); ok {
-		_spec.SetField(paymentorder.FieldFeePerTokenUnit, field.TypeFloat64, value)
+	if value, ok := pouo.mutation.FeePercent(); ok {
+		_spec.SetField(paymentorder.FieldFeePercent, field.TypeFloat64, value)
 	}
-	if value, ok := pouo.mutation.AddedFeePerTokenUnit(); ok {
-		_spec.AddField(paymentorder.FieldFeePerTokenUnit, field.TypeFloat64, value)
+	if value, ok := pouo.mutation.AddedFeePercent(); ok {
+		_spec.AddField(paymentorder.FieldFeePercent, field.TypeFloat64, value)
 	}
 	if value, ok := pouo.mutation.FeeAddress(); ok {
 		_spec.SetField(paymentorder.FieldFeeAddress, field.TypeString, value)

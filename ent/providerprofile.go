@@ -86,12 +86,10 @@ type ProviderProfileEdges struct {
 // UserOrErr returns the User value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e ProviderProfileEdges) UserOrErr() (*User, error) {
-	if e.loadedTypes[0] {
-		if e.User == nil {
-			// Edge was loaded but was not found.
-			return nil, &NotFoundError{label: user.Label}
-		}
+	if e.User != nil {
 		return e.User, nil
+	} else if e.loadedTypes[0] {
+		return nil, &NotFoundError{label: user.Label}
 	}
 	return nil, &NotLoadedError{edge: "user"}
 }
@@ -99,12 +97,10 @@ func (e ProviderProfileEdges) UserOrErr() (*User, error) {
 // APIKeyOrErr returns the APIKey value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e ProviderProfileEdges) APIKeyOrErr() (*APIKey, error) {
-	if e.loadedTypes[1] {
-		if e.APIKey == nil {
-			// Edge was loaded but was not found.
-			return nil, &NotFoundError{label: apikey.Label}
-		}
+	if e.APIKey != nil {
 		return e.APIKey, nil
+	} else if e.loadedTypes[1] {
+		return nil, &NotFoundError{label: apikey.Label}
 	}
 	return nil, &NotLoadedError{edge: "api_key"}
 }
@@ -112,12 +108,10 @@ func (e ProviderProfileEdges) APIKeyOrErr() (*APIKey, error) {
 // CurrencyOrErr returns the Currency value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e ProviderProfileEdges) CurrencyOrErr() (*FiatCurrency, error) {
-	if e.loadedTypes[2] {
-		if e.Currency == nil {
-			// Edge was loaded but was not found.
-			return nil, &NotFoundError{label: fiatcurrency.Label}
-		}
+	if e.Currency != nil {
 		return e.Currency, nil
+	} else if e.loadedTypes[2] {
+		return nil, &NotFoundError{label: fiatcurrency.Label}
 	}
 	return nil, &NotLoadedError{edge: "currency"}
 }
@@ -143,12 +137,10 @@ func (e ProviderProfileEdges) OrderTokensOrErr() ([]*ProviderOrderToken, error) 
 // ProviderRatingOrErr returns the ProviderRating value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e ProviderProfileEdges) ProviderRatingOrErr() (*ProviderRating, error) {
-	if e.loadedTypes[5] {
-		if e.ProviderRating == nil {
-			// Edge was loaded but was not found.
-			return nil, &NotFoundError{label: providerrating.Label}
-		}
+	if e.ProviderRating != nil {
 		return e.ProviderRating, nil
+	} else if e.loadedTypes[5] {
+		return nil, &NotFoundError{label: providerrating.Label}
 	}
 	return nil, &NotLoadedError{edge: "provider_rating"}
 }

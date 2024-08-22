@@ -373,7 +373,7 @@ func (lpoc *LockPaymentOrderCreate) check() error {
 	if _, ok := lpoc.mutation.CancellationReasons(); !ok {
 		return &ValidationError{Name: "cancellation_reasons", err: errors.New(`ent: missing required field "LockPaymentOrder.cancellation_reasons"`)}
 	}
-	if _, ok := lpoc.mutation.TokenID(); !ok {
+	if len(lpoc.mutation.TokenIDs()) == 0 {
 		return &ValidationError{Name: "token", err: errors.New(`ent: missing required edge "LockPaymentOrder.token"`)}
 	}
 	return nil
@@ -1154,12 +1154,16 @@ func (u *LockPaymentOrderUpsertOne) IDX(ctx context.Context) uuid.UUID {
 // LockPaymentOrderCreateBulk is the builder for creating many LockPaymentOrder entities in bulk.
 type LockPaymentOrderCreateBulk struct {
 	config
+	err      error
 	builders []*LockPaymentOrderCreate
 	conflict []sql.ConflictOption
 }
 
 // Save creates the LockPaymentOrder entities in the database.
 func (lpocb *LockPaymentOrderCreateBulk) Save(ctx context.Context) ([]*LockPaymentOrder, error) {
+	if lpocb.err != nil {
+		return nil, lpocb.err
+	}
 	specs := make([]*sqlgraph.CreateSpec, len(lpocb.builders))
 	nodes := make([]*LockPaymentOrder, len(lpocb.builders))
 	mutators := make([]Mutator, len(lpocb.builders))
@@ -1574,6 +1578,9 @@ func (u *LockPaymentOrderUpsertBulk) UpdateCancellationReasons() *LockPaymentOrd
 
 // Exec executes the query.
 func (u *LockPaymentOrderUpsertBulk) Exec(ctx context.Context) error {
+	if u.create.err != nil {
+		return u.create.err
+	}
 	for i, b := range u.create.builders {
 		if len(b.conflict) != 0 {
 			return fmt.Errorf("ent: OnConflict was set for builder %d. Set it on the LockPaymentOrderCreateBulk instead", i)

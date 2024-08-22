@@ -42,6 +42,14 @@ func (lofu *LockOrderFulfillmentUpdate) SetTxID(s string) *LockOrderFulfillmentU
 	return lofu
 }
 
+// SetNillableTxID sets the "tx_id" field if the given value is not nil.
+func (lofu *LockOrderFulfillmentUpdate) SetNillableTxID(s *string) *LockOrderFulfillmentUpdate {
+	if s != nil {
+		lofu.SetTxID(*s)
+	}
+	return lofu
+}
+
 // SetPsp sets the "psp" field.
 func (lofu *LockOrderFulfillmentUpdate) SetPsp(s string) *LockOrderFulfillmentUpdate {
 	lofu.mutation.SetPsp(s)
@@ -161,7 +169,7 @@ func (lofu *LockOrderFulfillmentUpdate) check() error {
 			return &ValidationError{Name: "validation_status", err: fmt.Errorf(`ent: validator failed for field "LockOrderFulfillment.validation_status": %w`, err)}
 		}
 	}
-	if _, ok := lofu.mutation.OrderID(); lofu.mutation.OrderCleared() && !ok {
+	if lofu.mutation.OrderCleared() && len(lofu.mutation.OrderIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "LockOrderFulfillment.order"`)
 	}
 	return nil
@@ -258,6 +266,14 @@ func (lofuo *LockOrderFulfillmentUpdateOne) SetUpdatedAt(t time.Time) *LockOrder
 // SetTxID sets the "tx_id" field.
 func (lofuo *LockOrderFulfillmentUpdateOne) SetTxID(s string) *LockOrderFulfillmentUpdateOne {
 	lofuo.mutation.SetTxID(s)
+	return lofuo
+}
+
+// SetNillableTxID sets the "tx_id" field if the given value is not nil.
+func (lofuo *LockOrderFulfillmentUpdateOne) SetNillableTxID(s *string) *LockOrderFulfillmentUpdateOne {
+	if s != nil {
+		lofuo.SetTxID(*s)
+	}
 	return lofuo
 }
 
@@ -393,7 +409,7 @@ func (lofuo *LockOrderFulfillmentUpdateOne) check() error {
 			return &ValidationError{Name: "validation_status", err: fmt.Errorf(`ent: validator failed for field "LockOrderFulfillment.validation_status": %w`, err)}
 		}
 	}
-	if _, ok := lofuo.mutation.OrderID(); lofuo.mutation.OrderCleared() && !ok {
+	if lofuo.mutation.OrderCleared() && len(lofuo.mutation.OrderIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "LockOrderFulfillment.order"`)
 	}
 	return nil
