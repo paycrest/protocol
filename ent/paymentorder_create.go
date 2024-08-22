@@ -168,9 +168,9 @@ func (poc *PaymentOrderCreate) SetReceiveAddressText(s string) *PaymentOrderCrea
 	return poc
 }
 
-// SetFeePerTokenUnit sets the "fee_per_token_unit" field.
-func (poc *PaymentOrderCreate) SetFeePerTokenUnit(d decimal.Decimal) *PaymentOrderCreate {
-	poc.mutation.SetFeePerTokenUnit(d)
+// SetFeePercent sets the "fee_percent" field.
+func (poc *PaymentOrderCreate) SetFeePercent(d decimal.Decimal) *PaymentOrderCreate {
+	poc.mutation.SetFeePercent(d)
 	return poc
 }
 
@@ -420,8 +420,8 @@ func (poc *PaymentOrderCreate) check() error {
 			return &ValidationError{Name: "receive_address_text", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.receive_address_text": %w`, err)}
 		}
 	}
-	if _, ok := poc.mutation.FeePerTokenUnit(); !ok {
-		return &ValidationError{Name: "fee_per_token_unit", err: errors.New(`ent: missing required field "PaymentOrder.fee_per_token_unit"`)}
+	if _, ok := poc.mutation.FeePercent(); !ok {
+		return &ValidationError{Name: "fee_percent", err: errors.New(`ent: missing required field "PaymentOrder.fee_percent"`)}
 	}
 	if _, ok := poc.mutation.Status(); !ok {
 		return &ValidationError{Name: "status", err: errors.New(`ent: missing required field "PaymentOrder.status"`)}
@@ -431,10 +431,10 @@ func (poc *PaymentOrderCreate) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.status": %w`, err)}
 		}
 	}
-	if _, ok := poc.mutation.SenderProfileID(); !ok {
+	if len(poc.mutation.SenderProfileIDs()) == 0 {
 		return &ValidationError{Name: "sender_profile", err: errors.New(`ent: missing required edge "PaymentOrder.sender_profile"`)}
 	}
-	if _, ok := poc.mutation.TokenID(); !ok {
+	if len(poc.mutation.TokenIDs()) == 0 {
 		return &ValidationError{Name: "token", err: errors.New(`ent: missing required edge "PaymentOrder.token"`)}
 	}
 	return nil
@@ -533,9 +533,9 @@ func (poc *PaymentOrderCreate) createSpec() (*PaymentOrder, *sqlgraph.CreateSpec
 		_spec.SetField(paymentorder.FieldReceiveAddressText, field.TypeString, value)
 		_node.ReceiveAddressText = value
 	}
-	if value, ok := poc.mutation.FeePerTokenUnit(); ok {
-		_spec.SetField(paymentorder.FieldFeePerTokenUnit, field.TypeFloat64, value)
-		_node.FeePerTokenUnit = value
+	if value, ok := poc.mutation.FeePercent(); ok {
+		_spec.SetField(paymentorder.FieldFeePercent, field.TypeFloat64, value)
+		_node.FeePercent = value
 	}
 	if value, ok := poc.mutation.FeeAddress(); ok {
 		_spec.SetField(paymentorder.FieldFeeAddress, field.TypeString, value)
@@ -923,21 +923,21 @@ func (u *PaymentOrderUpsert) UpdateReceiveAddressText() *PaymentOrderUpsert {
 	return u
 }
 
-// SetFeePerTokenUnit sets the "fee_per_token_unit" field.
-func (u *PaymentOrderUpsert) SetFeePerTokenUnit(v decimal.Decimal) *PaymentOrderUpsert {
-	u.Set(paymentorder.FieldFeePerTokenUnit, v)
+// SetFeePercent sets the "fee_percent" field.
+func (u *PaymentOrderUpsert) SetFeePercent(v decimal.Decimal) *PaymentOrderUpsert {
+	u.Set(paymentorder.FieldFeePercent, v)
 	return u
 }
 
-// UpdateFeePerTokenUnit sets the "fee_per_token_unit" field to the value that was provided on create.
-func (u *PaymentOrderUpsert) UpdateFeePerTokenUnit() *PaymentOrderUpsert {
-	u.SetExcluded(paymentorder.FieldFeePerTokenUnit)
+// UpdateFeePercent sets the "fee_percent" field to the value that was provided on create.
+func (u *PaymentOrderUpsert) UpdateFeePercent() *PaymentOrderUpsert {
+	u.SetExcluded(paymentorder.FieldFeePercent)
 	return u
 }
 
-// AddFeePerTokenUnit adds v to the "fee_per_token_unit" field.
-func (u *PaymentOrderUpsert) AddFeePerTokenUnit(v decimal.Decimal) *PaymentOrderUpsert {
-	u.Add(paymentorder.FieldFeePerTokenUnit, v)
+// AddFeePercent adds v to the "fee_percent" field.
+func (u *PaymentOrderUpsert) AddFeePercent(v decimal.Decimal) *PaymentOrderUpsert {
+	u.Add(paymentorder.FieldFeePercent, v)
 	return u
 }
 
@@ -1320,24 +1320,24 @@ func (u *PaymentOrderUpsertOne) UpdateReceiveAddressText() *PaymentOrderUpsertOn
 	})
 }
 
-// SetFeePerTokenUnit sets the "fee_per_token_unit" field.
-func (u *PaymentOrderUpsertOne) SetFeePerTokenUnit(v decimal.Decimal) *PaymentOrderUpsertOne {
+// SetFeePercent sets the "fee_percent" field.
+func (u *PaymentOrderUpsertOne) SetFeePercent(v decimal.Decimal) *PaymentOrderUpsertOne {
 	return u.Update(func(s *PaymentOrderUpsert) {
-		s.SetFeePerTokenUnit(v)
+		s.SetFeePercent(v)
 	})
 }
 
-// AddFeePerTokenUnit adds v to the "fee_per_token_unit" field.
-func (u *PaymentOrderUpsertOne) AddFeePerTokenUnit(v decimal.Decimal) *PaymentOrderUpsertOne {
+// AddFeePercent adds v to the "fee_percent" field.
+func (u *PaymentOrderUpsertOne) AddFeePercent(v decimal.Decimal) *PaymentOrderUpsertOne {
 	return u.Update(func(s *PaymentOrderUpsert) {
-		s.AddFeePerTokenUnit(v)
+		s.AddFeePercent(v)
 	})
 }
 
-// UpdateFeePerTokenUnit sets the "fee_per_token_unit" field to the value that was provided on create.
-func (u *PaymentOrderUpsertOne) UpdateFeePerTokenUnit() *PaymentOrderUpsertOne {
+// UpdateFeePercent sets the "fee_percent" field to the value that was provided on create.
+func (u *PaymentOrderUpsertOne) UpdateFeePercent() *PaymentOrderUpsertOne {
 	return u.Update(func(s *PaymentOrderUpsert) {
-		s.UpdateFeePerTokenUnit()
+		s.UpdateFeePercent()
 	})
 }
 
@@ -1438,12 +1438,16 @@ func (u *PaymentOrderUpsertOne) IDX(ctx context.Context) uuid.UUID {
 // PaymentOrderCreateBulk is the builder for creating many PaymentOrder entities in bulk.
 type PaymentOrderCreateBulk struct {
 	config
+	err      error
 	builders []*PaymentOrderCreate
 	conflict []sql.ConflictOption
 }
 
 // Save creates the PaymentOrder entities in the database.
 func (pocb *PaymentOrderCreateBulk) Save(ctx context.Context) ([]*PaymentOrder, error) {
+	if pocb.err != nil {
+		return nil, pocb.err
+	}
 	specs := make([]*sqlgraph.CreateSpec, len(pocb.builders))
 	nodes := make([]*PaymentOrder, len(pocb.builders))
 	mutators := make([]Mutator, len(pocb.builders))
@@ -1891,24 +1895,24 @@ func (u *PaymentOrderUpsertBulk) UpdateReceiveAddressText() *PaymentOrderUpsertB
 	})
 }
 
-// SetFeePerTokenUnit sets the "fee_per_token_unit" field.
-func (u *PaymentOrderUpsertBulk) SetFeePerTokenUnit(v decimal.Decimal) *PaymentOrderUpsertBulk {
+// SetFeePercent sets the "fee_percent" field.
+func (u *PaymentOrderUpsertBulk) SetFeePercent(v decimal.Decimal) *PaymentOrderUpsertBulk {
 	return u.Update(func(s *PaymentOrderUpsert) {
-		s.SetFeePerTokenUnit(v)
+		s.SetFeePercent(v)
 	})
 }
 
-// AddFeePerTokenUnit adds v to the "fee_per_token_unit" field.
-func (u *PaymentOrderUpsertBulk) AddFeePerTokenUnit(v decimal.Decimal) *PaymentOrderUpsertBulk {
+// AddFeePercent adds v to the "fee_percent" field.
+func (u *PaymentOrderUpsertBulk) AddFeePercent(v decimal.Decimal) *PaymentOrderUpsertBulk {
 	return u.Update(func(s *PaymentOrderUpsert) {
-		s.AddFeePerTokenUnit(v)
+		s.AddFeePercent(v)
 	})
 }
 
-// UpdateFeePerTokenUnit sets the "fee_per_token_unit" field to the value that was provided on create.
-func (u *PaymentOrderUpsertBulk) UpdateFeePerTokenUnit() *PaymentOrderUpsertBulk {
+// UpdateFeePercent sets the "fee_percent" field to the value that was provided on create.
+func (u *PaymentOrderUpsertBulk) UpdateFeePercent() *PaymentOrderUpsertBulk {
 	return u.Update(func(s *PaymentOrderUpsert) {
-		s.UpdateFeePerTokenUnit()
+		s.UpdateFeePercent()
 	})
 }
 
@@ -1970,6 +1974,9 @@ func (u *PaymentOrderUpsertBulk) UpdateStatus() *PaymentOrderUpsertBulk {
 
 // Exec executes the query.
 func (u *PaymentOrderUpsertBulk) Exec(ctx context.Context) error {
+	if u.create.err != nil {
+		return u.create.err
+	}
 	for i, b := range u.create.builders {
 		if len(b.conflict) != 0 {
 			return fmt.Errorf("ent: OnConflict was set for builder %d. Set it on the PaymentOrderCreateBulk instead", i)

@@ -486,10 +486,10 @@ func (ppc *ProviderProfileCreate) check() error {
 	if _, ok := ppc.mutation.IsKybVerified(); !ok {
 		return &ValidationError{Name: "is_kyb_verified", err: errors.New(`ent: missing required field "ProviderProfile.is_kyb_verified"`)}
 	}
-	if _, ok := ppc.mutation.UserID(); !ok {
+	if len(ppc.mutation.UserIDs()) == 0 {
 		return &ValidationError{Name: "user", err: errors.New(`ent: missing required edge "ProviderProfile.user"`)}
 	}
-	if _, ok := ppc.mutation.CurrencyID(); !ok {
+	if len(ppc.mutation.CurrencyIDs()) == 0 {
 		return &ValidationError{Name: "currency", err: errors.New(`ent: missing required edge "ProviderProfile.currency"`)}
 	}
 	return nil
@@ -1380,12 +1380,16 @@ func (u *ProviderProfileUpsertOne) IDX(ctx context.Context) string {
 // ProviderProfileCreateBulk is the builder for creating many ProviderProfile entities in bulk.
 type ProviderProfileCreateBulk struct {
 	config
+	err      error
 	builders []*ProviderProfileCreate
 	conflict []sql.ConflictOption
 }
 
 // Save creates the ProviderProfile entities in the database.
 func (ppcb *ProviderProfileCreateBulk) Save(ctx context.Context) ([]*ProviderProfile, error) {
+	if ppcb.err != nil {
+		return nil, ppcb.err
+	}
 	specs := make([]*sqlgraph.CreateSpec, len(ppcb.builders))
 	nodes := make([]*ProviderProfile, len(ppcb.builders))
 	mutators := make([]Mutator, len(ppcb.builders))
@@ -1839,6 +1843,9 @@ func (u *ProviderProfileUpsertBulk) UpdateIsKybVerified() *ProviderProfileUpsert
 
 // Exec executes the query.
 func (u *ProviderProfileUpsertBulk) Exec(ctx context.Context) error {
+	if u.create.err != nil {
+		return u.create.err
+	}
 	for i, b := range u.create.builders {
 		if len(b.conflict) != 0 {
 			return fmt.Errorf("ent: OnConflict was set for builder %d. Set it on the ProviderProfileCreateBulk instead", i)

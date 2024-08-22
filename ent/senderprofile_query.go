@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math"
 
+	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
@@ -159,7 +160,7 @@ func (spq *SenderProfileQuery) QueryOrderTokens() *SenderOrderTokenQuery {
 // First returns the first SenderProfile entity from the query.
 // Returns a *NotFoundError when no SenderProfile was found.
 func (spq *SenderProfileQuery) First(ctx context.Context) (*SenderProfile, error) {
-	nodes, err := spq.Limit(1).All(setContextOp(ctx, spq.ctx, "First"))
+	nodes, err := spq.Limit(1).All(setContextOp(ctx, spq.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
@@ -182,7 +183,7 @@ func (spq *SenderProfileQuery) FirstX(ctx context.Context) *SenderProfile {
 // Returns a *NotFoundError when no SenderProfile ID was found.
 func (spq *SenderProfileQuery) FirstID(ctx context.Context) (id uuid.UUID, err error) {
 	var ids []uuid.UUID
-	if ids, err = spq.Limit(1).IDs(setContextOp(ctx, spq.ctx, "FirstID")); err != nil {
+	if ids, err = spq.Limit(1).IDs(setContextOp(ctx, spq.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -205,7 +206,7 @@ func (spq *SenderProfileQuery) FirstIDX(ctx context.Context) uuid.UUID {
 // Returns a *NotSingularError when more than one SenderProfile entity is found.
 // Returns a *NotFoundError when no SenderProfile entities are found.
 func (spq *SenderProfileQuery) Only(ctx context.Context) (*SenderProfile, error) {
-	nodes, err := spq.Limit(2).All(setContextOp(ctx, spq.ctx, "Only"))
+	nodes, err := spq.Limit(2).All(setContextOp(ctx, spq.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
 	}
@@ -233,7 +234,7 @@ func (spq *SenderProfileQuery) OnlyX(ctx context.Context) *SenderProfile {
 // Returns a *NotFoundError when no entities are found.
 func (spq *SenderProfileQuery) OnlyID(ctx context.Context) (id uuid.UUID, err error) {
 	var ids []uuid.UUID
-	if ids, err = spq.Limit(2).IDs(setContextOp(ctx, spq.ctx, "OnlyID")); err != nil {
+	if ids, err = spq.Limit(2).IDs(setContextOp(ctx, spq.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -258,7 +259,7 @@ func (spq *SenderProfileQuery) OnlyIDX(ctx context.Context) uuid.UUID {
 
 // All executes the query and returns a list of SenderProfiles.
 func (spq *SenderProfileQuery) All(ctx context.Context) ([]*SenderProfile, error) {
-	ctx = setContextOp(ctx, spq.ctx, "All")
+	ctx = setContextOp(ctx, spq.ctx, ent.OpQueryAll)
 	if err := spq.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
@@ -280,7 +281,7 @@ func (spq *SenderProfileQuery) IDs(ctx context.Context) (ids []uuid.UUID, err er
 	if spq.ctx.Unique == nil && spq.path != nil {
 		spq.Unique(true)
 	}
-	ctx = setContextOp(ctx, spq.ctx, "IDs")
+	ctx = setContextOp(ctx, spq.ctx, ent.OpQueryIDs)
 	if err = spq.Select(senderprofile.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
@@ -298,7 +299,7 @@ func (spq *SenderProfileQuery) IDsX(ctx context.Context) []uuid.UUID {
 
 // Count returns the count of the given query.
 func (spq *SenderProfileQuery) Count(ctx context.Context) (int, error) {
-	ctx = setContextOp(ctx, spq.ctx, "Count")
+	ctx = setContextOp(ctx, spq.ctx, ent.OpQueryCount)
 	if err := spq.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
@@ -316,7 +317,7 @@ func (spq *SenderProfileQuery) CountX(ctx context.Context) int {
 
 // Exist returns true if the query has elements in the graph.
 func (spq *SenderProfileQuery) Exist(ctx context.Context) (bool, error) {
-	ctx = setContextOp(ctx, spq.ctx, "Exist")
+	ctx = setContextOp(ctx, spq.ctx, ent.OpQueryExist)
 	switch _, err := spq.FirstID(ctx); {
 	case IsNotFound(err):
 		return false, nil
@@ -759,7 +760,7 @@ func (spgb *SenderProfileGroupBy) Aggregate(fns ...AggregateFunc) *SenderProfile
 
 // Scan applies the selector query and scans the result into the given value.
 func (spgb *SenderProfileGroupBy) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, spgb.build.ctx, "GroupBy")
+	ctx = setContextOp(ctx, spgb.build.ctx, ent.OpQueryGroupBy)
 	if err := spgb.build.prepareQuery(ctx); err != nil {
 		return err
 	}
@@ -807,7 +808,7 @@ func (sps *SenderProfileSelect) Aggregate(fns ...AggregateFunc) *SenderProfileSe
 
 // Scan applies the selector query and scans the result into the given value.
 func (sps *SenderProfileSelect) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, sps.ctx, "Select")
+	ctx = setContextOp(ctx, sps.ctx, ent.OpQuerySelect)
 	if err := sps.prepareQuery(ctx); err != nil {
 		return err
 	}

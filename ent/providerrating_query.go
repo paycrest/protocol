@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 
+	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
@@ -85,7 +86,7 @@ func (prq *ProviderRatingQuery) QueryProviderProfile() *ProviderProfileQuery {
 // First returns the first ProviderRating entity from the query.
 // Returns a *NotFoundError when no ProviderRating was found.
 func (prq *ProviderRatingQuery) First(ctx context.Context) (*ProviderRating, error) {
-	nodes, err := prq.Limit(1).All(setContextOp(ctx, prq.ctx, "First"))
+	nodes, err := prq.Limit(1).All(setContextOp(ctx, prq.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +109,7 @@ func (prq *ProviderRatingQuery) FirstX(ctx context.Context) *ProviderRating {
 // Returns a *NotFoundError when no ProviderRating ID was found.
 func (prq *ProviderRatingQuery) FirstID(ctx context.Context) (id int, err error) {
 	var ids []int
-	if ids, err = prq.Limit(1).IDs(setContextOp(ctx, prq.ctx, "FirstID")); err != nil {
+	if ids, err = prq.Limit(1).IDs(setContextOp(ctx, prq.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -131,7 +132,7 @@ func (prq *ProviderRatingQuery) FirstIDX(ctx context.Context) int {
 // Returns a *NotSingularError when more than one ProviderRating entity is found.
 // Returns a *NotFoundError when no ProviderRating entities are found.
 func (prq *ProviderRatingQuery) Only(ctx context.Context) (*ProviderRating, error) {
-	nodes, err := prq.Limit(2).All(setContextOp(ctx, prq.ctx, "Only"))
+	nodes, err := prq.Limit(2).All(setContextOp(ctx, prq.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
 	}
@@ -159,7 +160,7 @@ func (prq *ProviderRatingQuery) OnlyX(ctx context.Context) *ProviderRating {
 // Returns a *NotFoundError when no entities are found.
 func (prq *ProviderRatingQuery) OnlyID(ctx context.Context) (id int, err error) {
 	var ids []int
-	if ids, err = prq.Limit(2).IDs(setContextOp(ctx, prq.ctx, "OnlyID")); err != nil {
+	if ids, err = prq.Limit(2).IDs(setContextOp(ctx, prq.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -184,7 +185,7 @@ func (prq *ProviderRatingQuery) OnlyIDX(ctx context.Context) int {
 
 // All executes the query and returns a list of ProviderRatings.
 func (prq *ProviderRatingQuery) All(ctx context.Context) ([]*ProviderRating, error) {
-	ctx = setContextOp(ctx, prq.ctx, "All")
+	ctx = setContextOp(ctx, prq.ctx, ent.OpQueryAll)
 	if err := prq.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
@@ -206,7 +207,7 @@ func (prq *ProviderRatingQuery) IDs(ctx context.Context) (ids []int, err error) 
 	if prq.ctx.Unique == nil && prq.path != nil {
 		prq.Unique(true)
 	}
-	ctx = setContextOp(ctx, prq.ctx, "IDs")
+	ctx = setContextOp(ctx, prq.ctx, ent.OpQueryIDs)
 	if err = prq.Select(providerrating.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
@@ -224,7 +225,7 @@ func (prq *ProviderRatingQuery) IDsX(ctx context.Context) []int {
 
 // Count returns the count of the given query.
 func (prq *ProviderRatingQuery) Count(ctx context.Context) (int, error) {
-	ctx = setContextOp(ctx, prq.ctx, "Count")
+	ctx = setContextOp(ctx, prq.ctx, ent.OpQueryCount)
 	if err := prq.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
@@ -242,7 +243,7 @@ func (prq *ProviderRatingQuery) CountX(ctx context.Context) int {
 
 // Exist returns true if the query has elements in the graph.
 func (prq *ProviderRatingQuery) Exist(ctx context.Context) (bool, error) {
-	ctx = setContextOp(ctx, prq.ctx, "Exist")
+	ctx = setContextOp(ctx, prq.ctx, ent.OpQueryExist)
 	switch _, err := prq.FirstID(ctx); {
 	case IsNotFound(err):
 		return false, nil
@@ -536,7 +537,7 @@ func (prgb *ProviderRatingGroupBy) Aggregate(fns ...AggregateFunc) *ProviderRati
 
 // Scan applies the selector query and scans the result into the given value.
 func (prgb *ProviderRatingGroupBy) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, prgb.build.ctx, "GroupBy")
+	ctx = setContextOp(ctx, prgb.build.ctx, ent.OpQueryGroupBy)
 	if err := prgb.build.prepareQuery(ctx); err != nil {
 		return err
 	}
@@ -584,7 +585,7 @@ func (prs *ProviderRatingSelect) Aggregate(fns ...AggregateFunc) *ProviderRating
 
 // Scan applies the selector query and scans the result into the given value.
 func (prs *ProviderRatingSelect) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, prs.ctx, "Select")
+	ctx = setContextOp(ctx, prs.ctx, ent.OpQuerySelect)
 	if err := prs.prepareQuery(ctx); err != nil {
 		return err
 	}

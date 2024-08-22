@@ -887,7 +887,7 @@ func (s *OrderTron) sendTransaction(wallet *tronWallet.TronWallet, ct *core.Trig
 	}
 	if feeLimit > 0 {
 		tx.Transaction.RawData.FeeLimit = feeLimit
-		g.UpdateHash(tx)
+		_ = g.UpdateHash(tx)
 	}
 
 	if tx.Result.Code > 0 {

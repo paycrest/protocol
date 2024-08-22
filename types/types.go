@@ -199,9 +199,9 @@ type SenderOrderAddressPayload struct {
 	RefundAddress string `json:"refundAddress" binding:"required"`
 }
 type SenderOrderTokenPayload struct {
-	Symbol          string                      `json:"symbol" binding:"required"`
-	FeePerTokenUnit decimal.Decimal             `json:"feePerTokenUnit" binding:"required"`
-	Addresses       []SenderOrderAddressPayload `json:"addresses"`
+	Symbol     string                      `json:"symbol" binding:"required"`
+	FeePercent decimal.Decimal             `json:"feePercent" binding:"required"`
+	Addresses  []SenderOrderAddressPayload `json:"addresses"`
 }
 
 // SenderProfilePayload is the payload for the sender profile endpoint
@@ -279,11 +279,11 @@ type ValidatorProfileResponse struct {
 
 // SenderOrderTokenResponse defines the provider setting for a token
 type SenderOrderTokenResponse struct {
-	Symbol          string          `json:"symbol" binding:"required"`
-	FeePerTokenUnit decimal.Decimal `json:"feePerTokenUnit" binding:"required"`
-	Network         string          `json:"network" binding:"required"`
-	FeeAddress      string          `json:"feeAddress" binding:"required"`
-	RefundAddress   string          `json:"refundAddress" binding:"required"`
+	Symbol        string          `json:"symbol" binding:"required"`
+	FeePercent    decimal.Decimal `json:"feePercent" binding:"required"`
+	Network       string          `json:"network" binding:"required"`
+	FeeAddress    string          `json:"feeAddress" binding:"required"`
+	RefundAddress string          `json:"refundAddress" binding:"required"`
 }
 
 // SenderProfileResponse is the response for the sender profile endpoint
@@ -405,14 +405,14 @@ type PaymentOrderRecipient struct {
 
 // NewPaymentOrderPayload is the payload for the create payment order endpoint
 type NewPaymentOrderPayload struct {
-	Amount          decimal.Decimal       `json:"amount" binding:"required"`
-	Token           string                `json:"token" binding:"required"`
-	Rate            decimal.Decimal       `json:"rate" binding:"required"`
-	Network         string                `json:"network" binding:"required"`
-	Recipient       PaymentOrderRecipient `json:"recipient" binding:"required"`
-	ReturnAddress   string                `json:"returnAddress"`
-	FeePerTokenUnit decimal.Decimal       `json:"feePerTokenUnit"`
-	FeeAddress      string                `json:"feeAddress"`
+	Amount        decimal.Decimal       `json:"amount" binding:"required"`
+	Token         string                `json:"token" binding:"required"`
+	Rate          decimal.Decimal       `json:"rate" binding:"required"`
+	Network       string                `json:"network" binding:"required"`
+	Recipient     PaymentOrderRecipient `json:"recipient" binding:"required"`
+	ReturnAddress string                `json:"returnAddress"`
+	FeePercent    decimal.Decimal       `json:"feePercent"`
+	FeeAddress    string                `json:"feeAddress"`
 }
 
 // ReceiveAddressResponse is the response type for a receive address

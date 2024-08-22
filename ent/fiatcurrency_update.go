@@ -44,9 +44,25 @@ func (fcu *FiatCurrencyUpdate) SetCode(s string) *FiatCurrencyUpdate {
 	return fcu
 }
 
+// SetNillableCode sets the "code" field if the given value is not nil.
+func (fcu *FiatCurrencyUpdate) SetNillableCode(s *string) *FiatCurrencyUpdate {
+	if s != nil {
+		fcu.SetCode(*s)
+	}
+	return fcu
+}
+
 // SetShortName sets the "short_name" field.
 func (fcu *FiatCurrencyUpdate) SetShortName(s string) *FiatCurrencyUpdate {
 	fcu.mutation.SetShortName(s)
+	return fcu
+}
+
+// SetNillableShortName sets the "short_name" field if the given value is not nil.
+func (fcu *FiatCurrencyUpdate) SetNillableShortName(s *string) *FiatCurrencyUpdate {
+	if s != nil {
+		fcu.SetShortName(*s)
+	}
 	return fcu
 }
 
@@ -77,9 +93,25 @@ func (fcu *FiatCurrencyUpdate) SetSymbol(s string) *FiatCurrencyUpdate {
 	return fcu
 }
 
+// SetNillableSymbol sets the "symbol" field if the given value is not nil.
+func (fcu *FiatCurrencyUpdate) SetNillableSymbol(s *string) *FiatCurrencyUpdate {
+	if s != nil {
+		fcu.SetSymbol(*s)
+	}
+	return fcu
+}
+
 // SetName sets the "name" field.
 func (fcu *FiatCurrencyUpdate) SetName(s string) *FiatCurrencyUpdate {
 	fcu.mutation.SetName(s)
+	return fcu
+}
+
+// SetNillableName sets the "name" field if the given value is not nil.
+func (fcu *FiatCurrencyUpdate) SetNillableName(s *string) *FiatCurrencyUpdate {
+	if s != nil {
+		fcu.SetName(*s)
+	}
 	return fcu
 }
 
@@ -87,6 +119,14 @@ func (fcu *FiatCurrencyUpdate) SetName(s string) *FiatCurrencyUpdate {
 func (fcu *FiatCurrencyUpdate) SetMarketRate(d decimal.Decimal) *FiatCurrencyUpdate {
 	fcu.mutation.ResetMarketRate()
 	fcu.mutation.SetMarketRate(d)
+	return fcu
+}
+
+// SetNillableMarketRate sets the "market_rate" field if the given value is not nil.
+func (fcu *FiatCurrencyUpdate) SetNillableMarketRate(d *decimal.Decimal) *FiatCurrencyUpdate {
+	if d != nil {
+		fcu.SetMarketRate(*d)
+	}
 	return fcu
 }
 
@@ -465,9 +505,25 @@ func (fcuo *FiatCurrencyUpdateOne) SetCode(s string) *FiatCurrencyUpdateOne {
 	return fcuo
 }
 
+// SetNillableCode sets the "code" field if the given value is not nil.
+func (fcuo *FiatCurrencyUpdateOne) SetNillableCode(s *string) *FiatCurrencyUpdateOne {
+	if s != nil {
+		fcuo.SetCode(*s)
+	}
+	return fcuo
+}
+
 // SetShortName sets the "short_name" field.
 func (fcuo *FiatCurrencyUpdateOne) SetShortName(s string) *FiatCurrencyUpdateOne {
 	fcuo.mutation.SetShortName(s)
+	return fcuo
+}
+
+// SetNillableShortName sets the "short_name" field if the given value is not nil.
+func (fcuo *FiatCurrencyUpdateOne) SetNillableShortName(s *string) *FiatCurrencyUpdateOne {
+	if s != nil {
+		fcuo.SetShortName(*s)
+	}
 	return fcuo
 }
 
@@ -498,9 +554,25 @@ func (fcuo *FiatCurrencyUpdateOne) SetSymbol(s string) *FiatCurrencyUpdateOne {
 	return fcuo
 }
 
+// SetNillableSymbol sets the "symbol" field if the given value is not nil.
+func (fcuo *FiatCurrencyUpdateOne) SetNillableSymbol(s *string) *FiatCurrencyUpdateOne {
+	if s != nil {
+		fcuo.SetSymbol(*s)
+	}
+	return fcuo
+}
+
 // SetName sets the "name" field.
 func (fcuo *FiatCurrencyUpdateOne) SetName(s string) *FiatCurrencyUpdateOne {
 	fcuo.mutation.SetName(s)
+	return fcuo
+}
+
+// SetNillableName sets the "name" field if the given value is not nil.
+func (fcuo *FiatCurrencyUpdateOne) SetNillableName(s *string) *FiatCurrencyUpdateOne {
+	if s != nil {
+		fcuo.SetName(*s)
+	}
 	return fcuo
 }
 
@@ -508,6 +580,14 @@ func (fcuo *FiatCurrencyUpdateOne) SetName(s string) *FiatCurrencyUpdateOne {
 func (fcuo *FiatCurrencyUpdateOne) SetMarketRate(d decimal.Decimal) *FiatCurrencyUpdateOne {
 	fcuo.mutation.ResetMarketRate()
 	fcuo.mutation.SetMarketRate(d)
+	return fcuo
+}
+
+// SetNillableMarketRate sets the "market_rate" field if the given value is not nil.
+func (fcuo *FiatCurrencyUpdateOne) SetNillableMarketRate(d *decimal.Decimal) *FiatCurrencyUpdateOne {
+	if d != nil {
+		fcuo.SetMarketRate(*d)
+	}
 	return fcuo
 }
 

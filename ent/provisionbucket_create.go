@@ -146,7 +146,7 @@ func (pbc *ProvisionBucketCreate) check() error {
 	if _, ok := pbc.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "ProvisionBucket.created_at"`)}
 	}
-	if _, ok := pbc.mutation.CurrencyID(); !ok {
+	if len(pbc.mutation.CurrencyIDs()) == 0 {
 		return &ValidationError{Name: "currency", err: errors.New(`ent: missing required edge "ProvisionBucket.currency"`)}
 	}
 	return nil
@@ -448,12 +448,16 @@ func (u *ProvisionBucketUpsertOne) IDX(ctx context.Context) int {
 // ProvisionBucketCreateBulk is the builder for creating many ProvisionBucket entities in bulk.
 type ProvisionBucketCreateBulk struct {
 	config
+	err      error
 	builders []*ProvisionBucketCreate
 	conflict []sql.ConflictOption
 }
 
 // Save creates the ProvisionBucket entities in the database.
 func (pbcb *ProvisionBucketCreateBulk) Save(ctx context.Context) ([]*ProvisionBucket, error) {
+	if pbcb.err != nil {
+		return nil, pbcb.err
+	}
 	specs := make([]*sqlgraph.CreateSpec, len(pbcb.builders))
 	nodes := make([]*ProvisionBucket, len(pbcb.builders))
 	mutators := make([]Mutator, len(pbcb.builders))
@@ -663,6 +667,9 @@ func (u *ProvisionBucketUpsertBulk) UpdateMaxAmount() *ProvisionBucketUpsertBulk
 
 // Exec executes the query.
 func (u *ProvisionBucketUpsertBulk) Exec(ctx context.Context) error {
+	if u.create.err != nil {
+		return u.create.err
+	}
 	for i, b := range u.create.builders {
 		if len(b.conflict) != 0 {
 			return fmt.Errorf("ent: OnConflict was set for builder %d. Set it on the ProvisionBucketCreateBulk instead", i)

@@ -222,7 +222,7 @@ func (tc *TokenCreate) check() error {
 	if _, ok := tc.mutation.IsEnabled(); !ok {
 		return &ValidationError{Name: "is_enabled", err: errors.New(`ent: missing required field "Token.is_enabled"`)}
 	}
-	if _, ok := tc.mutation.NetworkID(); !ok {
+	if len(tc.mutation.NetworkIDs()) == 0 {
 		return &ValidationError{Name: "network", err: errors.New(`ent: missing required edge "Token.network"`)}
 	}
 	return nil
@@ -617,12 +617,16 @@ func (u *TokenUpsertOne) IDX(ctx context.Context) int {
 // TokenCreateBulk is the builder for creating many Token entities in bulk.
 type TokenCreateBulk struct {
 	config
+	err      error
 	builders []*TokenCreate
 	conflict []sql.ConflictOption
 }
 
 // Save creates the Token entities in the database.
 func (tcb *TokenCreateBulk) Save(ctx context.Context) ([]*Token, error) {
+	if tcb.err != nil {
+		return nil, tcb.err
+	}
 	specs := make([]*sqlgraph.CreateSpec, len(tcb.builders))
 	nodes := make([]*Token, len(tcb.builders))
 	mutators := make([]Mutator, len(tcb.builders))
@@ -867,6 +871,9 @@ func (u *TokenUpsertBulk) UpdateIsEnabled() *TokenUpsertBulk {
 
 // Exec executes the query.
 func (u *TokenUpsertBulk) Exec(ctx context.Context) error {
+	if u.create.err != nil {
+		return u.create.err
+	}
 	for i, b := range u.create.builders {
 		if len(b.conflict) != 0 {
 			return fmt.Errorf("ent: OnConflict was set for builder %d. Set it on the TokenCreateBulk instead", i)

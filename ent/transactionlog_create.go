@@ -529,12 +529,16 @@ func (u *TransactionLogUpsertOne) IDX(ctx context.Context) uuid.UUID {
 // TransactionLogCreateBulk is the builder for creating many TransactionLog entities in bulk.
 type TransactionLogCreateBulk struct {
 	config
+	err      error
 	builders []*TransactionLogCreate
 	conflict []sql.ConflictOption
 }
 
 // Save creates the TransactionLog entities in the database.
 func (tlcb *TransactionLogCreateBulk) Save(ctx context.Context) ([]*TransactionLog, error) {
+	if tlcb.err != nil {
+		return nil, tlcb.err
+	}
 	specs := make([]*sqlgraph.CreateSpec, len(tlcb.builders))
 	nodes := make([]*TransactionLog, len(tlcb.builders))
 	mutators := make([]Mutator, len(tlcb.builders))
@@ -784,6 +788,9 @@ func (u *TransactionLogUpsertBulk) UpdateMetadata() *TransactionLogUpsertBulk {
 
 // Exec executes the query.
 func (u *TransactionLogUpsertBulk) Exec(ctx context.Context) error {
+	if u.create.err != nil {
+		return u.create.err
+	}
 	for i, b := range u.create.builders {
 		if len(b.conflict) != 0 {
 			return fmt.Errorf("ent: OnConflict was set for builder %d. Set it on the TransactionLogCreateBulk instead", i)

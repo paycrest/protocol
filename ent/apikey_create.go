@@ -407,12 +407,16 @@ func (u *APIKeyUpsertOne) IDX(ctx context.Context) uuid.UUID {
 // APIKeyCreateBulk is the builder for creating many APIKey entities in bulk.
 type APIKeyCreateBulk struct {
 	config
+	err      error
 	builders []*APIKeyCreate
 	conflict []sql.ConflictOption
 }
 
 // Save creates the APIKey entities in the database.
 func (akcb *APIKeyCreateBulk) Save(ctx context.Context) ([]*APIKey, error) {
+	if akcb.err != nil {
+		return nil, akcb.err
+	}
 	specs := make([]*sqlgraph.CreateSpec, len(akcb.builders))
 	nodes := make([]*APIKey, len(akcb.builders))
 	mutators := make([]Mutator, len(akcb.builders))
@@ -593,6 +597,9 @@ func (u *APIKeyUpsertBulk) UpdateSecret() *APIKeyUpsertBulk {
 
 // Exec executes the query.
 func (u *APIKeyUpsertBulk) Exec(ctx context.Context) error {
+	if u.create.err != nil {
+		return u.create.err
+	}
 	for i, b := range u.create.builders {
 		if len(b.conflict) != 0 {
 			return fmt.Errorf("ent: OnConflict was set for builder %d. Set it on the APIKeyCreateBulk instead", i)

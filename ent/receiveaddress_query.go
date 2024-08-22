@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 
+	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
@@ -86,7 +87,7 @@ func (raq *ReceiveAddressQuery) QueryPaymentOrder() *PaymentOrderQuery {
 // First returns the first ReceiveAddress entity from the query.
 // Returns a *NotFoundError when no ReceiveAddress was found.
 func (raq *ReceiveAddressQuery) First(ctx context.Context) (*ReceiveAddress, error) {
-	nodes, err := raq.Limit(1).All(setContextOp(ctx, raq.ctx, "First"))
+	nodes, err := raq.Limit(1).All(setContextOp(ctx, raq.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +110,7 @@ func (raq *ReceiveAddressQuery) FirstX(ctx context.Context) *ReceiveAddress {
 // Returns a *NotFoundError when no ReceiveAddress ID was found.
 func (raq *ReceiveAddressQuery) FirstID(ctx context.Context) (id int, err error) {
 	var ids []int
-	if ids, err = raq.Limit(1).IDs(setContextOp(ctx, raq.ctx, "FirstID")); err != nil {
+	if ids, err = raq.Limit(1).IDs(setContextOp(ctx, raq.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -132,7 +133,7 @@ func (raq *ReceiveAddressQuery) FirstIDX(ctx context.Context) int {
 // Returns a *NotSingularError when more than one ReceiveAddress entity is found.
 // Returns a *NotFoundError when no ReceiveAddress entities are found.
 func (raq *ReceiveAddressQuery) Only(ctx context.Context) (*ReceiveAddress, error) {
-	nodes, err := raq.Limit(2).All(setContextOp(ctx, raq.ctx, "Only"))
+	nodes, err := raq.Limit(2).All(setContextOp(ctx, raq.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
 	}
@@ -160,7 +161,7 @@ func (raq *ReceiveAddressQuery) OnlyX(ctx context.Context) *ReceiveAddress {
 // Returns a *NotFoundError when no entities are found.
 func (raq *ReceiveAddressQuery) OnlyID(ctx context.Context) (id int, err error) {
 	var ids []int
-	if ids, err = raq.Limit(2).IDs(setContextOp(ctx, raq.ctx, "OnlyID")); err != nil {
+	if ids, err = raq.Limit(2).IDs(setContextOp(ctx, raq.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -185,7 +186,7 @@ func (raq *ReceiveAddressQuery) OnlyIDX(ctx context.Context) int {
 
 // All executes the query and returns a list of ReceiveAddresses.
 func (raq *ReceiveAddressQuery) All(ctx context.Context) ([]*ReceiveAddress, error) {
-	ctx = setContextOp(ctx, raq.ctx, "All")
+	ctx = setContextOp(ctx, raq.ctx, ent.OpQueryAll)
 	if err := raq.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
@@ -207,7 +208,7 @@ func (raq *ReceiveAddressQuery) IDs(ctx context.Context) (ids []int, err error) 
 	if raq.ctx.Unique == nil && raq.path != nil {
 		raq.Unique(true)
 	}
-	ctx = setContextOp(ctx, raq.ctx, "IDs")
+	ctx = setContextOp(ctx, raq.ctx, ent.OpQueryIDs)
 	if err = raq.Select(receiveaddress.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
@@ -225,7 +226,7 @@ func (raq *ReceiveAddressQuery) IDsX(ctx context.Context) []int {
 
 // Count returns the count of the given query.
 func (raq *ReceiveAddressQuery) Count(ctx context.Context) (int, error) {
-	ctx = setContextOp(ctx, raq.ctx, "Count")
+	ctx = setContextOp(ctx, raq.ctx, ent.OpQueryCount)
 	if err := raq.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
@@ -243,7 +244,7 @@ func (raq *ReceiveAddressQuery) CountX(ctx context.Context) int {
 
 // Exist returns true if the query has elements in the graph.
 func (raq *ReceiveAddressQuery) Exist(ctx context.Context) (bool, error) {
-	ctx = setContextOp(ctx, raq.ctx, "Exist")
+	ctx = setContextOp(ctx, raq.ctx, ent.OpQueryExist)
 	switch _, err := raq.FirstID(ctx); {
 	case IsNotFound(err):
 		return false, nil
@@ -537,7 +538,7 @@ func (ragb *ReceiveAddressGroupBy) Aggregate(fns ...AggregateFunc) *ReceiveAddre
 
 // Scan applies the selector query and scans the result into the given value.
 func (ragb *ReceiveAddressGroupBy) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, ragb.build.ctx, "GroupBy")
+	ctx = setContextOp(ctx, ragb.build.ctx, ent.OpQueryGroupBy)
 	if err := ragb.build.prepareQuery(ctx); err != nil {
 		return err
 	}
@@ -585,7 +586,7 @@ func (ras *ReceiveAddressSelect) Aggregate(fns ...AggregateFunc) *ReceiveAddress
 
 // Scan applies the selector query and scans the result into the given value.
 func (ras *ReceiveAddressSelect) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, ras.ctx, "Select")
+	ctx = setContextOp(ctx, ras.ctx, ent.OpQuerySelect)
 	if err := ras.prepareQuery(ctx); err != nil {
 		return err
 	}

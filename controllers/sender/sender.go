@@ -173,11 +173,11 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 	}
 
 	// Handle sender profile overrides
-	var feePerTokenUnit decimal.Decimal
+	var feePercent decimal.Decimal
 	var feeAddress string
 	var senderOrderToken *ent.SenderOrderToken
 
-	if (payload.FeePerTokenUnit.IsZero() && !strings.HasPrefix(payload.Recipient.Memo, "P#P")) || payload.FeeAddress == "" {
+	if (payload.FeePercent.IsZero() && !strings.HasPrefix(payload.Recipient.Memo, "P#P")) || payload.FeeAddress == "" {
 		senderOrderToken, err = tx.SenderOrderToken.
 			Query().
 			Where(
@@ -197,10 +197,10 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 		}
 	}
 
-	if payload.FeePerTokenUnit.IsZero() && !strings.HasPrefix(payload.Recipient.Memo, "P#P") {
-		feePerTokenUnit = senderOrderToken.FeePerTokenUnit
+	if payload.FeePercent.IsZero() && !strings.HasPrefix(payload.Recipient.Memo, "P#P") {
+		feePercent = senderOrderToken.FeePercent
 	} else {
-		feePerTokenUnit = payload.FeePerTokenUnit
+		feePercent = payload.FeePercent
 	}
 
 	if payload.FeeAddress == "" {
@@ -260,7 +260,7 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 	protocolFee := decimal.NewFromFloat(0)
 
 	if !strings.HasPrefix(payload.Recipient.Memo, "P#P") {
-		senderFee = feePerTokenUnit.Mul(payload.Amount).Div(payload.Rate).Round(4)
+		senderFee = feePercent.Mul(payload.Amount).Div(decimal.NewFromInt(100)).Round(4)
 	}
 
 	// Create transaction Log
@@ -296,7 +296,7 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 		SetRate(payload.Rate).
 		SetReceiveAddress(receiveAddress).
 		SetReceiveAddressText(receiveAddress.Address).
-		SetFeePerTokenUnit(feePerTokenUnit).
+		SetFeePercent(feePercent).
 		SetFeeAddress(feeAddress).
 		SetReturnAddress(payload.ReturnAddress).
 		AddTransactions(transactionLog).

@@ -39,6 +39,14 @@ func (pbu *ProvisionBucketUpdate) SetMinAmount(d decimal.Decimal) *ProvisionBuck
 	return pbu
 }
 
+// SetNillableMinAmount sets the "min_amount" field if the given value is not nil.
+func (pbu *ProvisionBucketUpdate) SetNillableMinAmount(d *decimal.Decimal) *ProvisionBucketUpdate {
+	if d != nil {
+		pbu.SetMinAmount(*d)
+	}
+	return pbu
+}
+
 // AddMinAmount adds d to the "min_amount" field.
 func (pbu *ProvisionBucketUpdate) AddMinAmount(d decimal.Decimal) *ProvisionBucketUpdate {
 	pbu.mutation.AddMinAmount(d)
@@ -49,6 +57,14 @@ func (pbu *ProvisionBucketUpdate) AddMinAmount(d decimal.Decimal) *ProvisionBuck
 func (pbu *ProvisionBucketUpdate) SetMaxAmount(d decimal.Decimal) *ProvisionBucketUpdate {
 	pbu.mutation.ResetMaxAmount()
 	pbu.mutation.SetMaxAmount(d)
+	return pbu
+}
+
+// SetNillableMaxAmount sets the "max_amount" field if the given value is not nil.
+func (pbu *ProvisionBucketUpdate) SetNillableMaxAmount(d *decimal.Decimal) *ProvisionBucketUpdate {
+	if d != nil {
+		pbu.SetMaxAmount(*d)
+	}
 	return pbu
 }
 
@@ -181,7 +197,7 @@ func (pbu *ProvisionBucketUpdate) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (pbu *ProvisionBucketUpdate) check() error {
-	if _, ok := pbu.mutation.CurrencyID(); pbu.mutation.CurrencyCleared() && !ok {
+	if pbu.mutation.CurrencyCleared() && len(pbu.mutation.CurrencyIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "ProvisionBucket.currency"`)
 	}
 	return nil
@@ -357,6 +373,14 @@ func (pbuo *ProvisionBucketUpdateOne) SetMinAmount(d decimal.Decimal) *Provision
 	return pbuo
 }
 
+// SetNillableMinAmount sets the "min_amount" field if the given value is not nil.
+func (pbuo *ProvisionBucketUpdateOne) SetNillableMinAmount(d *decimal.Decimal) *ProvisionBucketUpdateOne {
+	if d != nil {
+		pbuo.SetMinAmount(*d)
+	}
+	return pbuo
+}
+
 // AddMinAmount adds d to the "min_amount" field.
 func (pbuo *ProvisionBucketUpdateOne) AddMinAmount(d decimal.Decimal) *ProvisionBucketUpdateOne {
 	pbuo.mutation.AddMinAmount(d)
@@ -367,6 +391,14 @@ func (pbuo *ProvisionBucketUpdateOne) AddMinAmount(d decimal.Decimal) *Provision
 func (pbuo *ProvisionBucketUpdateOne) SetMaxAmount(d decimal.Decimal) *ProvisionBucketUpdateOne {
 	pbuo.mutation.ResetMaxAmount()
 	pbuo.mutation.SetMaxAmount(d)
+	return pbuo
+}
+
+// SetNillableMaxAmount sets the "max_amount" field if the given value is not nil.
+func (pbuo *ProvisionBucketUpdateOne) SetNillableMaxAmount(d *decimal.Decimal) *ProvisionBucketUpdateOne {
+	if d != nil {
+		pbuo.SetMaxAmount(*d)
+	}
 	return pbuo
 }
 
@@ -512,7 +544,7 @@ func (pbuo *ProvisionBucketUpdateOne) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (pbuo *ProvisionBucketUpdateOne) check() error {
-	if _, ok := pbuo.mutation.CurrencyID(); pbuo.mutation.CurrencyCleared() && !ok {
+	if pbuo.mutation.CurrencyCleared() && len(pbuo.mutation.CurrencyIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "ProvisionBucket.currency"`)
 	}
 	return nil

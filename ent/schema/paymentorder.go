@@ -45,7 +45,7 @@ func (PaymentOrder) Fields() []ent.Field {
 			Optional(),
 		field.String("receive_address_text").
 			MaxLen(60),
-		field.Float("fee_per_token_unit").GoType(decimal.Decimal{}),
+		field.Float("fee_percent").GoType(decimal.Decimal{}),
 		field.String("fee_address").Optional(),
 		field.String("gateway_id").Optional(),
 		field.Enum("status").

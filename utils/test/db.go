@@ -261,7 +261,7 @@ func CreateTestPaymentOrder(client types.RPCClient, token *ent.Token, overrides 
 		"amount":             100.50,
 		"rate":               750.0,
 		"status":             "pending",
-		"fee_per_token_unit": 0.0,
+		"fee_percent":        0.0,
 		"fee_address":        "0x1234567890123456789012345678901234567890",
 		"return_address":     "0x0987654321098765432109876543210987654321",
 		"institution":        "ABNGNGLA",
@@ -294,12 +294,12 @@ func CreateTestPaymentOrder(client types.RPCClient, token *ent.Token, overrides 
 		SetPercentSettled(decimal.NewFromInt(0)).
 		SetNetworkFee(token.Edges.Network.Fee).
 		SetProtocolFee(decimal.NewFromFloat(payload["amount"].(float64)).Mul(decimal.NewFromFloat(0))).
-		SetSenderFee(decimal.NewFromFloat(payload["fee_per_token_unit"].(float64)).Mul(decimal.NewFromFloat(payload["amount"].(float64))).Div(decimal.NewFromFloat(payload["rate"].(float64))).Round(int32(token.Decimals))).
+		SetSenderFee(decimal.NewFromFloat(payload["fee_percent"].(float64)).Mul(decimal.NewFromFloat(payload["amount"].(float64))).Div(decimal.NewFromFloat(payload["rate"].(float64))).Round(int32(token.Decimals))).
 		SetToken(token).
 		SetRate(decimal.NewFromFloat(payload["rate"].(float64))).
 		SetReceiveAddress(receiveAddress).
 		SetReceiveAddressText(receiveAddress.Address).
-		SetFeePerTokenUnit(decimal.NewFromFloat(payload["fee_per_token_unit"].(float64))).
+		SetFeePercent(decimal.NewFromFloat(payload["fee_percent"].(float64))).
 		SetFeeAddress(payload["fee_address"].(string)).
 		SetReturnAddress(payload["return_address"].(string)).
 		SetStatus(paymentorder.Status(payload["status"].(string))).
@@ -360,13 +360,13 @@ func CreateTestSenderProfile(overrides map[string]interface{}) (*ent.SenderProfi
 
 	// Default payload
 	payload := map[string]interface{}{
-		"fee_per_token_unit": "0.0",
-		"webhook_url":        "https://example.com/hook",
-		"domain_whitelist":   []string{"example.com"},
-		"fee_address":        "0x1234567890123456789012345678901234567890",
-		"refund_address":     "0x0987654321098765432109876543210987654321",
-		"user_id":            nil,
-		"token":              "TST",
+		"fee_percent":      "0.0",
+		"webhook_url":      "https://example.com/hook",
+		"domain_whitelist": []string{"example.com"},
+		"fee_address":      "0x1234567890123456789012345678901234567890",
+		"refund_address":   "0x0987654321098765432109876543210987654321",
+		"user_id":          nil,
+		"token":            "TST",
 	}
 
 	// Apply overrides
@@ -384,7 +384,7 @@ func CreateTestSenderProfile(overrides map[string]interface{}) (*ent.SenderProfi
 		return nil, err
 	}
 
-	feePerTokenUnit, _ := decimal.NewFromString(payload["fee_per_token_unit"].(string))
+	feePercent, _ := decimal.NewFromString(payload["fee_percent"].(string))
 
 	// Create SenderProfile
 	profile, err := db.Client.SenderProfile.
@@ -412,7 +412,7 @@ func CreateTestSenderProfile(overrides map[string]interface{}) (*ent.SenderProfi
 				SetSenderID(profile.ID).
 				SetTokenID(_token.ID).
 				SetRefundAddress(payload["refund_address"].(string)).
-				SetFeePerTokenUnit(feePerTokenUnit).
+				SetFeePercent(feePercent).
 				SetFeeAddress(payload["fee_address"].(string)).
 				Save(context.Background())
 			if err != nil {

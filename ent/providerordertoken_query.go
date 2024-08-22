@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 
+	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
@@ -85,7 +86,7 @@ func (potq *ProviderOrderTokenQuery) QueryProvider() *ProviderProfileQuery {
 // First returns the first ProviderOrderToken entity from the query.
 // Returns a *NotFoundError when no ProviderOrderToken was found.
 func (potq *ProviderOrderTokenQuery) First(ctx context.Context) (*ProviderOrderToken, error) {
-	nodes, err := potq.Limit(1).All(setContextOp(ctx, potq.ctx, "First"))
+	nodes, err := potq.Limit(1).All(setContextOp(ctx, potq.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +109,7 @@ func (potq *ProviderOrderTokenQuery) FirstX(ctx context.Context) *ProviderOrderT
 // Returns a *NotFoundError when no ProviderOrderToken ID was found.
 func (potq *ProviderOrderTokenQuery) FirstID(ctx context.Context) (id int, err error) {
 	var ids []int
-	if ids, err = potq.Limit(1).IDs(setContextOp(ctx, potq.ctx, "FirstID")); err != nil {
+	if ids, err = potq.Limit(1).IDs(setContextOp(ctx, potq.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -131,7 +132,7 @@ func (potq *ProviderOrderTokenQuery) FirstIDX(ctx context.Context) int {
 // Returns a *NotSingularError when more than one ProviderOrderToken entity is found.
 // Returns a *NotFoundError when no ProviderOrderToken entities are found.
 func (potq *ProviderOrderTokenQuery) Only(ctx context.Context) (*ProviderOrderToken, error) {
-	nodes, err := potq.Limit(2).All(setContextOp(ctx, potq.ctx, "Only"))
+	nodes, err := potq.Limit(2).All(setContextOp(ctx, potq.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
 	}
@@ -159,7 +160,7 @@ func (potq *ProviderOrderTokenQuery) OnlyX(ctx context.Context) *ProviderOrderTo
 // Returns a *NotFoundError when no entities are found.
 func (potq *ProviderOrderTokenQuery) OnlyID(ctx context.Context) (id int, err error) {
 	var ids []int
-	if ids, err = potq.Limit(2).IDs(setContextOp(ctx, potq.ctx, "OnlyID")); err != nil {
+	if ids, err = potq.Limit(2).IDs(setContextOp(ctx, potq.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -184,7 +185,7 @@ func (potq *ProviderOrderTokenQuery) OnlyIDX(ctx context.Context) int {
 
 // All executes the query and returns a list of ProviderOrderTokens.
 func (potq *ProviderOrderTokenQuery) All(ctx context.Context) ([]*ProviderOrderToken, error) {
-	ctx = setContextOp(ctx, potq.ctx, "All")
+	ctx = setContextOp(ctx, potq.ctx, ent.OpQueryAll)
 	if err := potq.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
@@ -206,7 +207,7 @@ func (potq *ProviderOrderTokenQuery) IDs(ctx context.Context) (ids []int, err er
 	if potq.ctx.Unique == nil && potq.path != nil {
 		potq.Unique(true)
 	}
-	ctx = setContextOp(ctx, potq.ctx, "IDs")
+	ctx = setContextOp(ctx, potq.ctx, ent.OpQueryIDs)
 	if err = potq.Select(providerordertoken.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
@@ -224,7 +225,7 @@ func (potq *ProviderOrderTokenQuery) IDsX(ctx context.Context) []int {
 
 // Count returns the count of the given query.
 func (potq *ProviderOrderTokenQuery) Count(ctx context.Context) (int, error) {
-	ctx = setContextOp(ctx, potq.ctx, "Count")
+	ctx = setContextOp(ctx, potq.ctx, ent.OpQueryCount)
 	if err := potq.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
@@ -242,7 +243,7 @@ func (potq *ProviderOrderTokenQuery) CountX(ctx context.Context) int {
 
 // Exist returns true if the query has elements in the graph.
 func (potq *ProviderOrderTokenQuery) Exist(ctx context.Context) (bool, error) {
-	ctx = setContextOp(ctx, potq.ctx, "Exist")
+	ctx = setContextOp(ctx, potq.ctx, ent.OpQueryExist)
 	switch _, err := potq.FirstID(ctx); {
 	case IsNotFound(err):
 		return false, nil
@@ -536,7 +537,7 @@ func (potgb *ProviderOrderTokenGroupBy) Aggregate(fns ...AggregateFunc) *Provide
 
 // Scan applies the selector query and scans the result into the given value.
 func (potgb *ProviderOrderTokenGroupBy) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, potgb.build.ctx, "GroupBy")
+	ctx = setContextOp(ctx, potgb.build.ctx, ent.OpQueryGroupBy)
 	if err := potgb.build.prepareQuery(ctx); err != nil {
 		return err
 	}
@@ -584,7 +585,7 @@ func (pots *ProviderOrderTokenSelect) Aggregate(fns ...AggregateFunc) *ProviderO
 
 // Scan applies the selector query and scans the result into the given value.
 func (pots *ProviderOrderTokenSelect) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, pots.ctx, "Select")
+	ctx = setContextOp(ctx, pots.ctx, ent.OpQuerySelect)
 	if err := pots.prepareQuery(ctx); err != nil {
 		return err
 	}

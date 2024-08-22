@@ -49,12 +49,10 @@ type ProvisionBucketEdges struct {
 // CurrencyOrErr returns the Currency value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e ProvisionBucketEdges) CurrencyOrErr() (*FiatCurrency, error) {
-	if e.loadedTypes[0] {
-		if e.Currency == nil {
-			// Edge was loaded but was not found.
-			return nil, &NotFoundError{label: fiatcurrency.Label}
-		}
+	if e.Currency != nil {
 		return e.Currency, nil
+	} else if e.loadedTypes[0] {
+		return nil, &NotFoundError{label: fiatcurrency.Label}
 	}
 	return nil, &NotLoadedError{edge: "currency"}
 }

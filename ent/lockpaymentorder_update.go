@@ -48,10 +48,26 @@ func (lpou *LockPaymentOrderUpdate) SetGatewayID(s string) *LockPaymentOrderUpda
 	return lpou
 }
 
+// SetNillableGatewayID sets the "gateway_id" field if the given value is not nil.
+func (lpou *LockPaymentOrderUpdate) SetNillableGatewayID(s *string) *LockPaymentOrderUpdate {
+	if s != nil {
+		lpou.SetGatewayID(*s)
+	}
+	return lpou
+}
+
 // SetAmount sets the "amount" field.
 func (lpou *LockPaymentOrderUpdate) SetAmount(d decimal.Decimal) *LockPaymentOrderUpdate {
 	lpou.mutation.ResetAmount()
 	lpou.mutation.SetAmount(d)
+	return lpou
+}
+
+// SetNillableAmount sets the "amount" field if the given value is not nil.
+func (lpou *LockPaymentOrderUpdate) SetNillableAmount(d *decimal.Decimal) *LockPaymentOrderUpdate {
+	if d != nil {
+		lpou.SetAmount(*d)
+	}
 	return lpou
 }
 
@@ -68,6 +84,14 @@ func (lpou *LockPaymentOrderUpdate) SetRate(d decimal.Decimal) *LockPaymentOrder
 	return lpou
 }
 
+// SetNillableRate sets the "rate" field if the given value is not nil.
+func (lpou *LockPaymentOrderUpdate) SetNillableRate(d *decimal.Decimal) *LockPaymentOrderUpdate {
+	if d != nil {
+		lpou.SetRate(*d)
+	}
+	return lpou
+}
+
 // AddRate adds d to the "rate" field.
 func (lpou *LockPaymentOrderUpdate) AddRate(d decimal.Decimal) *LockPaymentOrderUpdate {
 	lpou.mutation.AddRate(d)
@@ -78,6 +102,14 @@ func (lpou *LockPaymentOrderUpdate) AddRate(d decimal.Decimal) *LockPaymentOrder
 func (lpou *LockPaymentOrderUpdate) SetOrderPercent(d decimal.Decimal) *LockPaymentOrderUpdate {
 	lpou.mutation.ResetOrderPercent()
 	lpou.mutation.SetOrderPercent(d)
+	return lpou
+}
+
+// SetNillableOrderPercent sets the "order_percent" field if the given value is not nil.
+func (lpou *LockPaymentOrderUpdate) SetNillableOrderPercent(d *decimal.Decimal) *LockPaymentOrderUpdate {
+	if d != nil {
+		lpou.SetOrderPercent(*d)
+	}
 	return lpou
 }
 
@@ -128,6 +160,14 @@ func (lpou *LockPaymentOrderUpdate) SetBlockNumber(i int64) *LockPaymentOrderUpd
 	return lpou
 }
 
+// SetNillableBlockNumber sets the "block_number" field if the given value is not nil.
+func (lpou *LockPaymentOrderUpdate) SetNillableBlockNumber(i *int64) *LockPaymentOrderUpdate {
+	if i != nil {
+		lpou.SetBlockNumber(*i)
+	}
+	return lpou
+}
+
 // AddBlockNumber adds i to the "block_number" field.
 func (lpou *LockPaymentOrderUpdate) AddBlockNumber(i int64) *LockPaymentOrderUpdate {
 	lpou.mutation.AddBlockNumber(i)
@@ -140,15 +180,39 @@ func (lpou *LockPaymentOrderUpdate) SetInstitution(s string) *LockPaymentOrderUp
 	return lpou
 }
 
+// SetNillableInstitution sets the "institution" field if the given value is not nil.
+func (lpou *LockPaymentOrderUpdate) SetNillableInstitution(s *string) *LockPaymentOrderUpdate {
+	if s != nil {
+		lpou.SetInstitution(*s)
+	}
+	return lpou
+}
+
 // SetAccountIdentifier sets the "account_identifier" field.
 func (lpou *LockPaymentOrderUpdate) SetAccountIdentifier(s string) *LockPaymentOrderUpdate {
 	lpou.mutation.SetAccountIdentifier(s)
 	return lpou
 }
 
+// SetNillableAccountIdentifier sets the "account_identifier" field if the given value is not nil.
+func (lpou *LockPaymentOrderUpdate) SetNillableAccountIdentifier(s *string) *LockPaymentOrderUpdate {
+	if s != nil {
+		lpou.SetAccountIdentifier(*s)
+	}
+	return lpou
+}
+
 // SetAccountName sets the "account_name" field.
 func (lpou *LockPaymentOrderUpdate) SetAccountName(s string) *LockPaymentOrderUpdate {
 	lpou.mutation.SetAccountName(s)
+	return lpou
+}
+
+// SetNillableAccountName sets the "account_name" field if the given value is not nil.
+func (lpou *LockPaymentOrderUpdate) SetNillableAccountName(s *string) *LockPaymentOrderUpdate {
+	if s != nil {
+		lpou.SetAccountName(*s)
+	}
 	return lpou
 }
 
@@ -397,7 +461,7 @@ func (lpou *LockPaymentOrderUpdate) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "LockPaymentOrder.status": %w`, err)}
 		}
 	}
-	if _, ok := lpou.mutation.TokenID(); lpou.mutation.TokenCleared() && !ok {
+	if lpou.mutation.TokenCleared() && len(lpou.mutation.TokenIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "LockPaymentOrder.token"`)
 	}
 	return nil
@@ -692,10 +756,26 @@ func (lpouo *LockPaymentOrderUpdateOne) SetGatewayID(s string) *LockPaymentOrder
 	return lpouo
 }
 
+// SetNillableGatewayID sets the "gateway_id" field if the given value is not nil.
+func (lpouo *LockPaymentOrderUpdateOne) SetNillableGatewayID(s *string) *LockPaymentOrderUpdateOne {
+	if s != nil {
+		lpouo.SetGatewayID(*s)
+	}
+	return lpouo
+}
+
 // SetAmount sets the "amount" field.
 func (lpouo *LockPaymentOrderUpdateOne) SetAmount(d decimal.Decimal) *LockPaymentOrderUpdateOne {
 	lpouo.mutation.ResetAmount()
 	lpouo.mutation.SetAmount(d)
+	return lpouo
+}
+
+// SetNillableAmount sets the "amount" field if the given value is not nil.
+func (lpouo *LockPaymentOrderUpdateOne) SetNillableAmount(d *decimal.Decimal) *LockPaymentOrderUpdateOne {
+	if d != nil {
+		lpouo.SetAmount(*d)
+	}
 	return lpouo
 }
 
@@ -712,6 +792,14 @@ func (lpouo *LockPaymentOrderUpdateOne) SetRate(d decimal.Decimal) *LockPaymentO
 	return lpouo
 }
 
+// SetNillableRate sets the "rate" field if the given value is not nil.
+func (lpouo *LockPaymentOrderUpdateOne) SetNillableRate(d *decimal.Decimal) *LockPaymentOrderUpdateOne {
+	if d != nil {
+		lpouo.SetRate(*d)
+	}
+	return lpouo
+}
+
 // AddRate adds d to the "rate" field.
 func (lpouo *LockPaymentOrderUpdateOne) AddRate(d decimal.Decimal) *LockPaymentOrderUpdateOne {
 	lpouo.mutation.AddRate(d)
@@ -722,6 +810,14 @@ func (lpouo *LockPaymentOrderUpdateOne) AddRate(d decimal.Decimal) *LockPaymentO
 func (lpouo *LockPaymentOrderUpdateOne) SetOrderPercent(d decimal.Decimal) *LockPaymentOrderUpdateOne {
 	lpouo.mutation.ResetOrderPercent()
 	lpouo.mutation.SetOrderPercent(d)
+	return lpouo
+}
+
+// SetNillableOrderPercent sets the "order_percent" field if the given value is not nil.
+func (lpouo *LockPaymentOrderUpdateOne) SetNillableOrderPercent(d *decimal.Decimal) *LockPaymentOrderUpdateOne {
+	if d != nil {
+		lpouo.SetOrderPercent(*d)
+	}
 	return lpouo
 }
 
@@ -772,6 +868,14 @@ func (lpouo *LockPaymentOrderUpdateOne) SetBlockNumber(i int64) *LockPaymentOrde
 	return lpouo
 }
 
+// SetNillableBlockNumber sets the "block_number" field if the given value is not nil.
+func (lpouo *LockPaymentOrderUpdateOne) SetNillableBlockNumber(i *int64) *LockPaymentOrderUpdateOne {
+	if i != nil {
+		lpouo.SetBlockNumber(*i)
+	}
+	return lpouo
+}
+
 // AddBlockNumber adds i to the "block_number" field.
 func (lpouo *LockPaymentOrderUpdateOne) AddBlockNumber(i int64) *LockPaymentOrderUpdateOne {
 	lpouo.mutation.AddBlockNumber(i)
@@ -784,15 +888,39 @@ func (lpouo *LockPaymentOrderUpdateOne) SetInstitution(s string) *LockPaymentOrd
 	return lpouo
 }
 
+// SetNillableInstitution sets the "institution" field if the given value is not nil.
+func (lpouo *LockPaymentOrderUpdateOne) SetNillableInstitution(s *string) *LockPaymentOrderUpdateOne {
+	if s != nil {
+		lpouo.SetInstitution(*s)
+	}
+	return lpouo
+}
+
 // SetAccountIdentifier sets the "account_identifier" field.
 func (lpouo *LockPaymentOrderUpdateOne) SetAccountIdentifier(s string) *LockPaymentOrderUpdateOne {
 	lpouo.mutation.SetAccountIdentifier(s)
 	return lpouo
 }
 
+// SetNillableAccountIdentifier sets the "account_identifier" field if the given value is not nil.
+func (lpouo *LockPaymentOrderUpdateOne) SetNillableAccountIdentifier(s *string) *LockPaymentOrderUpdateOne {
+	if s != nil {
+		lpouo.SetAccountIdentifier(*s)
+	}
+	return lpouo
+}
+
 // SetAccountName sets the "account_name" field.
 func (lpouo *LockPaymentOrderUpdateOne) SetAccountName(s string) *LockPaymentOrderUpdateOne {
 	lpouo.mutation.SetAccountName(s)
+	return lpouo
+}
+
+// SetNillableAccountName sets the "account_name" field if the given value is not nil.
+func (lpouo *LockPaymentOrderUpdateOne) SetNillableAccountName(s *string) *LockPaymentOrderUpdateOne {
+	if s != nil {
+		lpouo.SetAccountName(*s)
+	}
 	return lpouo
 }
 
@@ -1054,7 +1182,7 @@ func (lpouo *LockPaymentOrderUpdateOne) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "LockPaymentOrder.status": %w`, err)}
 		}
 	}
-	if _, ok := lpouo.mutation.TokenID(); lpouo.mutation.TokenCleared() && !ok {
+	if lpouo.mutation.TokenCleared() && len(lpouo.mutation.TokenIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "LockPaymentOrder.token"`)
 	}
 	return nil

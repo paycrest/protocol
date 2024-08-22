@@ -757,12 +757,16 @@ func (u *FiatCurrencyUpsertOne) IDX(ctx context.Context) uuid.UUID {
 // FiatCurrencyCreateBulk is the builder for creating many FiatCurrency entities in bulk.
 type FiatCurrencyCreateBulk struct {
 	config
+	err      error
 	builders []*FiatCurrencyCreate
 	conflict []sql.ConflictOption
 }
 
 // Save creates the FiatCurrency entities in the database.
 func (fccb *FiatCurrencyCreateBulk) Save(ctx context.Context) ([]*FiatCurrency, error) {
+	if fccb.err != nil {
+		return nil, fccb.err
+	}
 	specs := make([]*sqlgraph.CreateSpec, len(fccb.builders))
 	nodes := make([]*FiatCurrency, len(fccb.builders))
 	mutators := make([]Mutator, len(fccb.builders))
@@ -1058,6 +1062,9 @@ func (u *FiatCurrencyUpsertBulk) UpdateIsEnabled() *FiatCurrencyUpsertBulk {
 
 // Exec executes the query.
 func (u *FiatCurrencyUpsertBulk) Exec(ctx context.Context) error {
+	if u.create.err != nil {
+		return u.create.err
+	}
 	for i, b := range u.create.builders {
 		if len(b.conflict) != 0 {
 			return fmt.Errorf("ent: OnConflict was set for builder %d. Set it on the FiatCurrencyCreateBulk instead", i)

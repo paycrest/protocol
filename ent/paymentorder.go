@@ -53,8 +53,8 @@ type PaymentOrder struct {
 	ReturnAddress string `json:"return_address,omitempty"`
 	// ReceiveAddressText holds the value of the "receive_address_text" field.
 	ReceiveAddressText string `json:"receive_address_text,omitempty"`
-	// FeePerTokenUnit holds the value of the "fee_per_token_unit" field.
-	FeePerTokenUnit decimal.Decimal `json:"fee_per_token_unit,omitempty"`
+	// FeePercent holds the value of the "fee_percent" field.
+	FeePercent decimal.Decimal `json:"fee_percent,omitempty"`
 	// FeeAddress holds the value of the "fee_address" field.
 	FeeAddress string `json:"fee_address,omitempty"`
 	// GatewayID holds the value of the "gateway_id" field.
@@ -90,12 +90,10 @@ type PaymentOrderEdges struct {
 // SenderProfileOrErr returns the SenderProfile value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e PaymentOrderEdges) SenderProfileOrErr() (*SenderProfile, error) {
-	if e.loadedTypes[0] {
-		if e.SenderProfile == nil {
-			// Edge was loaded but was not found.
-			return nil, &NotFoundError{label: senderprofile.Label}
-		}
+	if e.SenderProfile != nil {
 		return e.SenderProfile, nil
+	} else if e.loadedTypes[0] {
+		return nil, &NotFoundError{label: senderprofile.Label}
 	}
 	return nil, &NotLoadedError{edge: "sender_profile"}
 }
@@ -103,12 +101,10 @@ func (e PaymentOrderEdges) SenderProfileOrErr() (*SenderProfile, error) {
 // TokenOrErr returns the Token value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e PaymentOrderEdges) TokenOrErr() (*Token, error) {
-	if e.loadedTypes[1] {
-		if e.Token == nil {
-			// Edge was loaded but was not found.
-			return nil, &NotFoundError{label: token.Label}
-		}
+	if e.Token != nil {
 		return e.Token, nil
+	} else if e.loadedTypes[1] {
+		return nil, &NotFoundError{label: token.Label}
 	}
 	return nil, &NotLoadedError{edge: "token"}
 }
@@ -116,12 +112,10 @@ func (e PaymentOrderEdges) TokenOrErr() (*Token, error) {
 // ReceiveAddressOrErr returns the ReceiveAddress value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e PaymentOrderEdges) ReceiveAddressOrErr() (*ReceiveAddress, error) {
-	if e.loadedTypes[2] {
-		if e.ReceiveAddress == nil {
-			// Edge was loaded but was not found.
-			return nil, &NotFoundError{label: receiveaddress.Label}
-		}
+	if e.ReceiveAddress != nil {
 		return e.ReceiveAddress, nil
+	} else if e.loadedTypes[2] {
+		return nil, &NotFoundError{label: receiveaddress.Label}
 	}
 	return nil, &NotLoadedError{edge: "receive_address"}
 }
@@ -129,12 +123,10 @@ func (e PaymentOrderEdges) ReceiveAddressOrErr() (*ReceiveAddress, error) {
 // RecipientOrErr returns the Recipient value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e PaymentOrderEdges) RecipientOrErr() (*PaymentOrderRecipient, error) {
-	if e.loadedTypes[3] {
-		if e.Recipient == nil {
-			// Edge was loaded but was not found.
-			return nil, &NotFoundError{label: paymentorderrecipient.Label}
-		}
+	if e.Recipient != nil {
 		return e.Recipient, nil
+	} else if e.loadedTypes[3] {
+		return nil, &NotFoundError{label: paymentorderrecipient.Label}
 	}
 	return nil, &NotLoadedError{edge: "recipient"}
 }
@@ -153,7 +145,7 @@ func (*PaymentOrder) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case paymentorder.FieldAmount, paymentorder.FieldAmountPaid, paymentorder.FieldAmountReturned, paymentorder.FieldPercentSettled, paymentorder.FieldSenderFee, paymentorder.FieldNetworkFee, paymentorder.FieldProtocolFee, paymentorder.FieldRate, paymentorder.FieldFeePerTokenUnit:
+		case paymentorder.FieldAmount, paymentorder.FieldAmountPaid, paymentorder.FieldAmountReturned, paymentorder.FieldPercentSettled, paymentorder.FieldSenderFee, paymentorder.FieldNetworkFee, paymentorder.FieldProtocolFee, paymentorder.FieldRate, paymentorder.FieldFeePercent:
 			values[i] = new(decimal.Decimal)
 		case paymentorder.FieldBlockNumber:
 			values[i] = new(sql.NullInt64)
@@ -280,11 +272,11 @@ func (po *PaymentOrder) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				po.ReceiveAddressText = value.String
 			}
-		case paymentorder.FieldFeePerTokenUnit:
+		case paymentorder.FieldFeePercent:
 			if value, ok := values[i].(*decimal.Decimal); !ok {
-				return fmt.Errorf("unexpected type %T for field fee_per_token_unit", values[i])
+				return fmt.Errorf("unexpected type %T for field fee_percent", values[i])
 			} else if value != nil {
-				po.FeePerTokenUnit = *value
+				po.FeePercent = *value
 			}
 		case paymentorder.FieldFeeAddress:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -431,8 +423,8 @@ func (po *PaymentOrder) String() string {
 	builder.WriteString("receive_address_text=")
 	builder.WriteString(po.ReceiveAddressText)
 	builder.WriteString(", ")
-	builder.WriteString("fee_per_token_unit=")
-	builder.WriteString(fmt.Sprintf("%v", po.FeePerTokenUnit))
+	builder.WriteString("fee_percent=")
+	builder.WriteString(fmt.Sprintf("%v", po.FeePercent))
 	builder.WriteString(", ")
 	builder.WriteString("fee_address=")
 	builder.WriteString(po.FeeAddress)

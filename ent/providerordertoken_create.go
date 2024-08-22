@@ -674,12 +674,16 @@ func (u *ProviderOrderTokenUpsertOne) IDX(ctx context.Context) int {
 // ProviderOrderTokenCreateBulk is the builder for creating many ProviderOrderToken entities in bulk.
 type ProviderOrderTokenCreateBulk struct {
 	config
+	err      error
 	builders []*ProviderOrderTokenCreate
 	conflict []sql.ConflictOption
 }
 
 // Save creates the ProviderOrderToken entities in the database.
 func (potcb *ProviderOrderTokenCreateBulk) Save(ctx context.Context) ([]*ProviderOrderToken, error) {
+	if potcb.err != nil {
+		return nil, potcb.err
+	}
 	specs := make([]*sqlgraph.CreateSpec, len(potcb.builders))
 	nodes := make([]*ProviderOrderToken, len(potcb.builders))
 	mutators := make([]Mutator, len(potcb.builders))
@@ -990,6 +994,9 @@ func (u *ProviderOrderTokenUpsertBulk) UpdateAddresses() *ProviderOrderTokenUpse
 
 // Exec executes the query.
 func (u *ProviderOrderTokenUpsertBulk) Exec(ctx context.Context) error {
+	if u.create.err != nil {
+		return u.create.err
+	}
 	for i, b := range u.create.builders {
 		if len(b.conflict) != 0 {
 			return fmt.Errorf("ent: OnConflict was set for builder %d. Set it on the ProviderOrderTokenCreateBulk instead", i)

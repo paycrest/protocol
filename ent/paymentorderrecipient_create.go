@@ -123,7 +123,7 @@ func (porc *PaymentOrderRecipientCreate) check() error {
 	if _, ok := porc.mutation.AccountName(); !ok {
 		return &ValidationError{Name: "account_name", err: errors.New(`ent: missing required field "PaymentOrderRecipient.account_name"`)}
 	}
-	if _, ok := porc.mutation.PaymentOrderID(); !ok {
+	if len(porc.mutation.PaymentOrderIDs()) == 0 {
 		return &ValidationError{Name: "payment_order", err: errors.New(`ent: missing required edge "PaymentOrderRecipient.payment_order"`)}
 	}
 	return nil
@@ -474,12 +474,16 @@ func (u *PaymentOrderRecipientUpsertOne) IDX(ctx context.Context) int {
 // PaymentOrderRecipientCreateBulk is the builder for creating many PaymentOrderRecipient entities in bulk.
 type PaymentOrderRecipientCreateBulk struct {
 	config
+	err      error
 	builders []*PaymentOrderRecipientCreate
 	conflict []sql.ConflictOption
 }
 
 // Save creates the PaymentOrderRecipient entities in the database.
 func (porcb *PaymentOrderRecipientCreateBulk) Save(ctx context.Context) ([]*PaymentOrderRecipient, error) {
+	if porcb.err != nil {
+		return nil, porcb.err
+	}
 	specs := make([]*sqlgraph.CreateSpec, len(porcb.builders))
 	nodes := make([]*PaymentOrderRecipient, len(porcb.builders))
 	mutators := make([]Mutator, len(porcb.builders))
@@ -723,6 +727,9 @@ func (u *PaymentOrderRecipientUpsertBulk) ClearProviderID() *PaymentOrderRecipie
 
 // Exec executes the query.
 func (u *PaymentOrderRecipientUpsertBulk) Exec(ctx context.Context) error {
+	if u.create.err != nil {
+		return u.create.err
+	}
 	for i, b := range u.create.builders {
 		if len(b.conflict) != 0 {
 			return fmt.Errorf("ent: OnConflict was set for builder %d. Set it on the PaymentOrderRecipientCreateBulk instead", i)

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math"
 
+	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
@@ -135,7 +136,7 @@ func (akq *APIKeyQuery) QueryPaymentOrders() *PaymentOrderQuery {
 // First returns the first APIKey entity from the query.
 // Returns a *NotFoundError when no APIKey was found.
 func (akq *APIKeyQuery) First(ctx context.Context) (*APIKey, error) {
-	nodes, err := akq.Limit(1).All(setContextOp(ctx, akq.ctx, "First"))
+	nodes, err := akq.Limit(1).All(setContextOp(ctx, akq.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +159,7 @@ func (akq *APIKeyQuery) FirstX(ctx context.Context) *APIKey {
 // Returns a *NotFoundError when no APIKey ID was found.
 func (akq *APIKeyQuery) FirstID(ctx context.Context) (id uuid.UUID, err error) {
 	var ids []uuid.UUID
-	if ids, err = akq.Limit(1).IDs(setContextOp(ctx, akq.ctx, "FirstID")); err != nil {
+	if ids, err = akq.Limit(1).IDs(setContextOp(ctx, akq.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -181,7 +182,7 @@ func (akq *APIKeyQuery) FirstIDX(ctx context.Context) uuid.UUID {
 // Returns a *NotSingularError when more than one APIKey entity is found.
 // Returns a *NotFoundError when no APIKey entities are found.
 func (akq *APIKeyQuery) Only(ctx context.Context) (*APIKey, error) {
-	nodes, err := akq.Limit(2).All(setContextOp(ctx, akq.ctx, "Only"))
+	nodes, err := akq.Limit(2).All(setContextOp(ctx, akq.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
 	}
@@ -209,7 +210,7 @@ func (akq *APIKeyQuery) OnlyX(ctx context.Context) *APIKey {
 // Returns a *NotFoundError when no entities are found.
 func (akq *APIKeyQuery) OnlyID(ctx context.Context) (id uuid.UUID, err error) {
 	var ids []uuid.UUID
-	if ids, err = akq.Limit(2).IDs(setContextOp(ctx, akq.ctx, "OnlyID")); err != nil {
+	if ids, err = akq.Limit(2).IDs(setContextOp(ctx, akq.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -234,7 +235,7 @@ func (akq *APIKeyQuery) OnlyIDX(ctx context.Context) uuid.UUID {
 
 // All executes the query and returns a list of APIKeys.
 func (akq *APIKeyQuery) All(ctx context.Context) ([]*APIKey, error) {
-	ctx = setContextOp(ctx, akq.ctx, "All")
+	ctx = setContextOp(ctx, akq.ctx, ent.OpQueryAll)
 	if err := akq.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
@@ -256,7 +257,7 @@ func (akq *APIKeyQuery) IDs(ctx context.Context) (ids []uuid.UUID, err error) {
 	if akq.ctx.Unique == nil && akq.path != nil {
 		akq.Unique(true)
 	}
-	ctx = setContextOp(ctx, akq.ctx, "IDs")
+	ctx = setContextOp(ctx, akq.ctx, ent.OpQueryIDs)
 	if err = akq.Select(apikey.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
@@ -274,7 +275,7 @@ func (akq *APIKeyQuery) IDsX(ctx context.Context) []uuid.UUID {
 
 // Count returns the count of the given query.
 func (akq *APIKeyQuery) Count(ctx context.Context) (int, error) {
-	ctx = setContextOp(ctx, akq.ctx, "Count")
+	ctx = setContextOp(ctx, akq.ctx, ent.OpQueryCount)
 	if err := akq.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
@@ -292,7 +293,7 @@ func (akq *APIKeyQuery) CountX(ctx context.Context) int {
 
 // Exist returns true if the query has elements in the graph.
 func (akq *APIKeyQuery) Exist(ctx context.Context) (bool, error) {
-	ctx = setContextOp(ctx, akq.ctx, "Exist")
+	ctx = setContextOp(ctx, akq.ctx, ent.OpQueryExist)
 	switch _, err := akq.FirstID(ctx); {
 	case IsNotFound(err):
 		return false, nil
@@ -688,7 +689,7 @@ func (akgb *APIKeyGroupBy) Aggregate(fns ...AggregateFunc) *APIKeyGroupBy {
 
 // Scan applies the selector query and scans the result into the given value.
 func (akgb *APIKeyGroupBy) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, akgb.build.ctx, "GroupBy")
+	ctx = setContextOp(ctx, akgb.build.ctx, ent.OpQueryGroupBy)
 	if err := akgb.build.prepareQuery(ctx); err != nil {
 		return err
 	}
@@ -736,7 +737,7 @@ func (aks *APIKeySelect) Aggregate(fns ...AggregateFunc) *APIKeySelect {
 
 // Scan applies the selector query and scans the result into the given value.
 func (aks *APIKeySelect) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, aks.ctx, "Select")
+	ctx = setContextOp(ctx, aks.ctx, ent.OpQuerySelect)
 	if err := aks.prepareQuery(ctx); err != nil {
 		return err
 	}
