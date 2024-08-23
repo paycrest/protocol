@@ -744,12 +744,12 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 
 	go func() {
 		timeToWait := 2 * time.Second
-		if network.Identifier == "bnb-smart-chain" {
-			timeToWait = 5 * time.Second
-		}
+		// if network.Identifier == "bnb-smart-chain" {
+		// 	timeToWait = 5 * time.Second
+		// }
 
 		time.Sleep(timeToWait)
-		_ = utils.Retry(10, timeToWait, func() error {
+		_ = utils.Retry(25, timeToWait, func() error {
 			// Update payment order with the gateway ID
 			paymentOrder, err := db.Client.PaymentOrder.
 				Query().
