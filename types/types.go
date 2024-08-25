@@ -186,17 +186,14 @@ type RefreshJWTPayload struct {
 	RefreshToken string `json:"refreshToken" binding:"required"`
 }
 
-// ValidatorProfilePayload is the payload for the validator profile endpoint
-type ValidatorProfilePayload struct {
-	WalletAddress  string `json:"walletAddress"`
-	HostIdentifier string `json:"hostIdentifier"`
-}
-
+// SenderOrderAddressPayload defines the sender setting for an address
 type SenderOrderAddressPayload struct {
 	Network       string `json:"network" binding:"required"`
 	FeeAddress    string `json:"feeAddress" binding:"required"`
 	RefundAddress string `json:"refundAddress" binding:"required"`
 }
+
+// SenderOrderTokenPayload defines the sender setting for a token
 type SenderOrderTokenPayload struct {
 	Symbol     string                      `json:"symbol" binding:"required"`
 	FeePercent decimal.Decimal             `json:"feePercent" binding:"required"`
@@ -263,14 +260,6 @@ type ProviderProfileResponse struct {
 	IdentityDocument     string                               `json:"identityDocument"`
 	BusinessDocument     string                               `json:"businessDocument"`
 	IsKybVerified        bool                                 `json:"isKybVerified"`
-}
-
-// ValidatorProfileResponse is the response for the validator profile endpoint
-type ValidatorProfileResponse struct {
-	ID             uuid.UUID      `json:"id"`
-	WalletAddress  string         `json:"walletAddress"`
-	HostIdentifier string         `json:"hostIdentifier"`
-	APIKey         APIKeyResponse `json:"apiKey"`
 }
 
 // SenderOrderTokenResponse defines the provider setting for a token
@@ -543,12 +532,12 @@ type ErrorData struct {
 // Payload for reset password request
 type ResetPasswordPayload struct {
 	Password   string `json:"password" binding:"required,min=6,max=20"`
-	ResetToken string `json:"resetToken"`
+	ResetToken string `json:"resetToken" binding:"required"`
 }
 
 // Payload for reset password token endpoint
 type ResetPasswordTokenPayload struct {
-	Email string `json:"email"`
+	Email string `json:"email" binding:"required,email"`
 }
 
 // ProviderLockOrderList is the struct for a list of provider lock orders
@@ -589,6 +578,19 @@ type ProviderStatsResponse struct {
 
 // VerifyAccountRequest is the request for account verification of an institution
 type VerifyAccountRequest struct {
-	Institution       string `json:"institution"`
-	AccountIdentifier string `json:"accountIdentifier"`
+	Institution       string `json:"institution" binding:"required"`
+	AccountIdentifier string `json:"accountIdentifier" binding:"required"`
+}
+
+// NewKYCRequest is the request for a new KYC request
+type NewKYCRequest struct {
+	Signature     string `json:"signature" binding:"required"`
+	WalletAddress string `json:"walletAddress" binding:"required"`
+}
+
+// NewKYCResponse is the response for a new KYC request
+type NewKYCResponse struct {
+	URL         string `json:"url"`
+	Platform    string `json:"platform"`
+	PlatformRef string `json:"platformRef"`
 }

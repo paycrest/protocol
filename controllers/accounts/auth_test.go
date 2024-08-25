@@ -494,7 +494,7 @@ func TestAuth(t *testing.T) {
 			Create().
 			SetOwner(user).
 			SetScope(verificationtoken.ScopeResetPassword).
-			SetExpiryAt(time.Now().Add(conf.PasswordResetLifespan)).
+			SetExpiryAt(time.Now().Add(authConf.PasswordResetLifespan)).
 			Save(context.Background())
 		assert.NoError(t, vtErr)
 		t.Run("try to use expired token", func(t *testing.T) {

@@ -6,14 +6,14 @@ import (
 	"github.com/spf13/viper"
 )
 
-// EmailConfiguration defines the email service configurations
+// NotificationConfiguration defines the email service configurations
 type NotificationConfiguration struct {
 	EmailDomain string
 	EmailAPIKey string
 	EmailFromAddress string
 }
 
-// EmailConfig sets the email configurations
+// NotificationConfig sets the email configurations
 func NotificationConfig() (config *NotificationConfiguration) {
 	viper.SetDefault("EMAIL_DOMAIN", "sandbox9c66b379b78d43d2b1533bf2a09a5325.mailgun.org")
 	viper.SetDefault("EMAIL_FROM_ADDRESS", "Paycrest <no-reply@paycrest.io>")

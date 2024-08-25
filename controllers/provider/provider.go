@@ -26,6 +26,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+var orderConf = config.OrderConfig()
+
 // ProviderController is a controller type for provider endpoints
 type ProviderController struct{}
 
@@ -529,7 +531,6 @@ func (ctrl *ProviderController) CancelOrder(ctx *gin.Context) {
 	}
 
 	// Get new cancellation count based on cancel reason
-	orderConf := config.OrderConfig()
 	orderUpdate := storage.Client.LockPaymentOrder.UpdateOneID(orderID)
 	cancellationCount := order.CancellationCount
 	if payload.Reason == "Invalid recipient bank details" || provider.VisibilityMode == providerprofile.VisibilityModePrivate {
@@ -617,7 +618,6 @@ func (ctrl *ProviderController) GetMarketRate(ctx *gin.Context) {
 		return
 	}
 
-	orderConf := config.OrderConfig()
 	deviation := currency.MarketRate.Mul(orderConf.PercentDeviationFromMarketRate.Div(decimal.NewFromInt(100)))
 
 	u.APIResponse(ctx, http.StatusOK, "success", "Rate fetched successfully", &types.MarketRateResponse{
