@@ -26,6 +26,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+var orderConf = config.OrderConfig() 
+
 // ProfileController is a controller type for profile settings
 type ProfileController struct {
 	apiKeyService        *svc.APIKeyService
@@ -213,8 +215,6 @@ func (ctrl *ProfileController) UpdateSenderProfile(ctx *gin.Context) {
 // UpdateProviderProfile controller updates the provider profile
 func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 	var payload types.ProviderProfilePayload
-
-	orderConf := config.OrderConfig()
 
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		u.APIResponse(ctx, http.StatusBadRequest, "error",

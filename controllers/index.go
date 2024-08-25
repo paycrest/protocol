@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 	"slices"
 	"strings"
@@ -24,6 +25,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 )
+
+var cryptoConf = config.CryptoConfig()
+var serverConf = config.ServerConfig()
+var identityConf = config.IdentityConfig()
 
 // Controller is the default controller for other endpoints
 type Controller struct {
@@ -210,7 +215,7 @@ func (ctrl *Controller) GetTokenRate(ctx *gin.Context) {
 
 // GetAggregatorPublicKey controller expose Aggregator Public Key
 func (ctrl *Controller) GetAggregatorPublicKey(ctx *gin.Context) {
-	u.APIResponse(ctx, http.StatusOK, "success", "OK", config.CryptoConfig().AggregatorPublicKey)
+	u.APIResponse(ctx, http.StatusOK, "success", "OK", cryptoConf.AggregatorPublicKey)
 }
 
 // VerifyAccount controller verifies an account of a given institution
@@ -368,4 +373,62 @@ func (ctrl *Controller) GetLockPaymentOrderStatus(ctx *gin.Context) {
 	}
 
 	u.APIResponse(ctx, http.StatusOK, "success", "Order status fetched successfully", response)
+}
+
+// InitiateKYC controller initiates a KYC verification process
+func (ctrl *Controller) InitiateKYC(ctx *gin.Context) {
+	var payload types.NewKYCRequest
+
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusBadRequest, "error",
+			"Failed to validate payload", u.GetErrorData(err))
+		return
+	}
+
+	// Generate signature
+
+	// Initiate KYC verification
+	res, err := fastshot.NewClient(identityConf.SmileIdentityBaseUrl).
+		Config().SetTimeout(30 * time.Second).
+		Build().POST("/v1/smile_links").
+		Body().AsJSON(map[string]interface{}{
+		"partner_id":   identityConf.SmileIdentityPartnerId,
+		"signature":    "",
+		"timestamp":    "",
+		"name":         "Aggregator KYC",
+		"company_name": "Paycrest, Inc.",
+		"id_types": []map[string]interface{}{
+			{
+				"country":             "NG",
+				"id_type":             "PASSPORT",
+				"verification_method": "doc_verification",
+			},
+		},
+		"callback_url":            fmt.Sprintf("%s/kyc/webhook", serverConf.HostDomain),
+		"data_privacy_policy_url": "https://www.paycrest.io/privacy-policy",
+		"logo_url":                "https://drive.google.com/file/d/1o6x2Yo80qR68HjQb3bQKvz9UVT0oUXIK/view?usp=drive_link",
+		"is_single_use":           true,
+		"user_id":                 "",
+		"expires_at":              time.Now().Add(24 * time.Hour).Format(time.RFC3339Nano),
+	}).
+		Send()
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusServiceUnavailable, "error", "Failed to initiate KYC verification", nil)
+		return
+	}
+
+	data, err := u.ParseJSONResponse(res.RawResponse)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusServiceUnavailable, "error", "Failed to initiate KYC verification", nil)
+		return
+	}
+
+	u.APIResponse(ctx, http.StatusOK, "success", "KYC verification initiated successfully", &types.NewKYCResponse{
+		URL:         data["link"].(string),
+		Platform:    "smile_identity",
+		PlatformRef: data["ref_id"].(string),
+	})
 }

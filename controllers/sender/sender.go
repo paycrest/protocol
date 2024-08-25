@@ -40,6 +40,8 @@ func NewSenderController() *SenderController {
 	}
 }
 
+var serverConf = config.ServerConfig()
+
 // InitiatePaymentOrder controller creates a payment order
 func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 	var payload types.NewPaymentOrderPayload
@@ -59,9 +61,7 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 	}
 	sender := senderCtx.(*ent.SenderProfile)
 
-	conf := config.ServerConfig()
-
-	if !sender.IsActive && !conf.Debug {
+	if !sender.IsActive && !serverConf.Debug {
 		u.APIResponse(ctx, http.StatusForbidden, "error", "Your account is not active", nil)
 		return
 	}

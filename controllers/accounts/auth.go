@@ -22,7 +22,8 @@ import (
 	"github.com/paycrest/protocol/utils/token"
 )
 
-var conf = config.AuthConfig()
+var authConf = config.AuthConfig()
+var serverConf = config.ServerConfig()
 
 // AuthController is the controller type for the auth endpoints
 type AuthController struct {
@@ -104,7 +105,7 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 		Create().
 		SetOwner(user).
 		SetScope(verificationtoken.ScopeEmailVerification).
-		SetExpiryAt(time.Now().Add(conf.PasswordResetLifespan)).
+		SetExpiryAt(time.Now().Add(authConf.PasswordResetLifespan)).
 		Save(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
@@ -258,7 +259,7 @@ func (ctrl *AuthController) Login(ctx *gin.Context) {
 	}
 
 	// Check if user has early access
-	environment := config.ServerConfig().Environment
+	environment := serverConf.Environment
 	if !user.HasEarlyAccess && (environment == "production" || environment == "staging") {
 		u.APIResponse(ctx, http.StatusUnauthorized, "error",
 			"Your early access request is still pending", nil,
@@ -403,7 +404,7 @@ func (ctrl *AuthController) ResendVerificationToken(ctx *gin.Context) {
 		Create().
 		SetOwner(user).
 		SetScope(verificationtoken.Scope(payload.Scope)).
-		SetExpiryAt(time.Now().Add(conf.PasswordResetLifespan)).
+		SetExpiryAt(time.Now().Add(authConf.PasswordResetLifespan)).
 		Save(ctx)
 	if vtErr != nil {
 		u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to generate verification token", vtErr.Error())
@@ -497,7 +498,7 @@ func (ctrl *AuthController) ResetPasswordToken(ctx *gin.Context) {
 		Create().
 		SetOwner(user).
 		SetScope(verificationtoken.ScopeResetPassword).
-		SetExpiryAt(time.Now().Add(conf.PasswordResetLifespan)).
+		SetExpiryAt(time.Now().Add(authConf.PasswordResetLifespan)).
 		Save(ctx)
 	if rtErr != nil || passwordResetToken == nil {
 		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to generate reset password token", nil)
