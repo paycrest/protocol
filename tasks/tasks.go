@@ -559,6 +559,8 @@ func ReassignPendingOrders() {
 			}
 		}
 	}
+
+	FixDatabaseMisHap()
 }
 
 // ReassignUnfulfilledLockOrders reassigns lockOrder unfulfilled within a time frame.
@@ -873,17 +875,8 @@ func FixDatabaseMisHap() error {
 	orders, err := storage.Client.PaymentOrder.
 		Query().
 		Where(
-			paymentorder.Or(
-				paymentorder.And(
-					paymentorder.AmountPaidGT(decimal.Zero),
-					paymentorder.StatusEQ(paymentorder.StatusPending),
-				),
-				// paymentorder.And(
-				// 	paymentorder.AmountPaidGT(decimal.Zero),
-				// 	paymentorder.StatusEQ(paymentorder.StatusSettled),
-				// 	paymentorder.GatewayIDNEQ(""),
-				// ),
-			),
+			paymentorder.AmountPaidGT(decimal.Zero),
+			paymentorder.StatusEQ(paymentorder.StatusPending),
 		).
 		WithRecipient().
 		All(ctx)
@@ -892,77 +885,81 @@ func FixDatabaseMisHap() error {
 	}
 
 	for _, order := range orders {
-		lockOrder, err := storage.Client.LockPaymentOrder.
-			Query().
-			Where(
-				lockpaymentorder.MemoEQ(order.Edges.Recipient.Memo),
-				lockpaymentorder.MemoHasPrefix("P#P"),
-				lockpaymentorder.Or(
-					lockpaymentorder.StatusEQ(lockpaymentorder.StatusSettled),
-					lockpaymentorder.StatusEQ(lockpaymentorder.StatusRefunded),
-				),
-			).
-			First(ctx)
-		if err != nil {
-			continue
-		}
-		if lockOrder != nil && order.AmountPaid.GreaterThanOrEqual(order.Amount.Add(order.NetworkFee).Add(order.SenderFee).Add(order.ProtocolFee)) {
-			// var status paymentorder.Status
-			// var blockNumber int64
-			// var percentSettled decimal.Decimal
-			// var txHash string
-
-			if lockOrder.Status == lockpaymentorder.StatusSettled {
-				// Fix settled orders without gatewayId
-				_, err := order.Update().
-					SetStatus(paymentorder.StatusSettled).
-					SetBlockNumber(lockOrder.BlockNumber).
-					SetPercentSettled(decimal.NewFromInt(100)).
-					SetTxHash(lockOrder.TxHash).
-					SetGatewayID(lockOrder.GatewayID).
-					Save(ctx)
-				if err != nil {
-					logger.Errorf("FixDatabaseMisHap: %v", err)
-					continue
-				}
-			} else if lockOrder.Status == lockpaymentorder.StatusRefunded {
-				// Fix refunded orders without gatewayId
-				_, err := order.Update().
-					SetStatus(paymentorder.StatusRefunded).
-					SetBlockNumber(lockOrder.BlockNumber).
-					SetPercentSettled(decimal.NewFromInt(0)).
-					SetTxHash(lockOrder.TxHash).
-					SetGatewayID(lockOrder.GatewayID).
-					Save(ctx)
-				if err != nil {
-					logger.Errorf("FixDatabaseMisHap: %v", err)
-					continue
-				}
+		if order.AmountPaid.GreaterThanOrEqual(order.Amount.Add(order.NetworkFee).Add(order.SenderFee).Add(order.ProtocolFee)) {
+			lockOrders, err := storage.Client.LockPaymentOrder.
+				Query().
+				Where(
+					lockpaymentorder.MemoEQ(order.Edges.Recipient.Memo),
+					// lockpaymentorder.MemoHasPrefix("P#P"),
+					lockpaymentorder.GatewayIDEQ(order.GatewayID),
+					lockpaymentorder.Or(
+						lockpaymentorder.StatusEQ(lockpaymentorder.StatusSettled),
+						lockpaymentorder.StatusEQ(lockpaymentorder.StatusRefunded),
+					),
+				).
+				All(ctx)
+			if err != nil {
+				continue
 			}
 
-			// if lockOrder.Status == lockpaymentorder.StatusRefunded {
-			// 	status = paymentorder.StatusRefunded
-			// 	blockNumber = lockOrder.BlockNumber
-			// 	percentSettled = decimal.NewFromInt(0)
-			// 	txHash = lockOrder.TxHash
-			// } else if lockOrder.Status == lockpaymentorder.StatusPending {
-			// 	status = paymentorder.StatusPending
-			// 	blockNumber = lockOrder.BlockNumber
-			// 	percentSettled = decimal.NewFromInt(0)
-			// 	txHash = lockOrder.TxHash
-			// }
+			for _, lockOrder := range lockOrders {
+				// var status paymentorder.Status
+				// var blockNumber int64
+				// var percentSettled decimal.Decimal
+				// var txHash string
 
-			// _, err := order.Update().
-			// 	SetStatus(status).
-			// 	SetBlockNumber(blockNumber).
-			// 	SetPercentSettled(percentSettled).
-			// 	SetTxHash(txHash).
-			// 	Save(ctx)
-			// if err != nil {
-			// 	logger.Errorf("FixDatabaseMisHap: %v", err)
-			// 	continue
-			// }
+				if lockOrder.Status == lockpaymentorder.StatusSettled {
+					// Fix settled orders without gatewayId
+					_, err := order.Update().
+						SetStatus(paymentorder.StatusSettled).
+						SetBlockNumber(lockOrder.BlockNumber).
+						AddPercentSettled(lockOrder.OrderPercent).
+						SetTxHash(lockOrder.TxHash).
+						SetGatewayID(lockOrder.GatewayID).
+						Save(ctx)
+					if err != nil {
+						logger.Errorf("FixDatabaseMisHap: %v", err)
+						continue
+					}
+				} else if lockOrder.Status == lockpaymentorder.StatusRefunded {
+					// Fix refunded orders without gatewayId
+					_, err := order.Update().
+						SetStatus(paymentorder.StatusRefunded).
+						SetBlockNumber(lockOrder.BlockNumber).
+						SetPercentSettled(decimal.NewFromInt(0)).
+						SetTxHash(lockOrder.TxHash).
+						SetGatewayID(lockOrder.GatewayID).
+						Save(ctx)
+					if err != nil {
+						logger.Errorf("FixDatabaseMisHap: %v", err)
+						continue
+					}
+				}
 
+				// if lockOrder.Status == lockpaymentorder.StatusRefunded {
+				// 	status = paymentorder.StatusRefunded
+				// 	blockNumber = lockOrder.BlockNumber
+				// 	percentSettled = decimal.NewFromInt(0)
+				// 	txHash = lockOrder.TxHash
+				// } else if lockOrder.Status == lockpaymentorder.StatusPending {
+				// 	status = paymentorder.StatusPending
+				// 	blockNumber = lockOrder.BlockNumber
+				// 	percentSettled = decimal.NewFromInt(0)
+				// 	txHash = lockOrder.TxHash
+				// }
+
+				// _, err := order.Update().
+				// 	SetStatus(status).
+				// 	SetBlockNumber(blockNumber).
+				// 	SetPercentSettled(percentSettled).
+				// 	SetTxHash(txHash).
+				// 	Save(ctx)
+				// if err != nil {
+				// 	logger.Errorf("FixDatabaseMisHap: %v", err)
+				// 	continue
+				// }
+
+			}
 		}
 	}
 

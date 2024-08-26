@@ -113,7 +113,6 @@ func (s *OrderEVM) CreateOrder(ctx context.Context, client types.RPCClient, orde
 		SetStatus(transactionlog.StatusOrderCreated).
 		SetTxHash(txHash).
 		SetNetwork(order.Edges.Token.Edges.Network.Identifier).
-		SetGatewayID(order.GatewayID).
 		SetMetadata(
 			map[string]interface{}{
 				"BlockNumber": blockNumber,

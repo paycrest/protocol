@@ -749,7 +749,7 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 		// }
 
 		time.Sleep(timeToWait)
-		_ = utils.Retry(25, timeToWait, func() error {
+		_ = utils.Retry(50, timeToWait, func() error {
 			// Update payment order with the gateway ID
 			paymentOrder, err := db.Client.PaymentOrder.
 				Query().
