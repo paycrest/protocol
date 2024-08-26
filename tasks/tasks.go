@@ -216,10 +216,25 @@ func RetryStaleUserOperations() error {
 		Where(
 			lockpaymentorder.GatewayIDNEQ(""),
 			lockpaymentorder.Or(
-				lockpaymentorder.StatusEQ(lockpaymentorder.StatusPending),
-				lockpaymentorder.StatusEQ(lockpaymentorder.StatusCancelled),
+				lockpaymentorder.And(
+					lockpaymentorder.Or(
+						lockpaymentorder.StatusEQ(lockpaymentorder.StatusPending),
+						lockpaymentorder.StatusEQ(lockpaymentorder.StatusCancelled),
+					),
+					lockpaymentorder.CreatedAtLTE(time.Now().Add(-30*time.Minute)),
+				),
+				lockpaymentorder.And(
+					lockpaymentorder.HasProviderWith(
+						providerprofile.VisibilityModeEQ(providerprofile.VisibilityModePrivate),
+					),
+					lockpaymentorder.StatusEQ(lockpaymentorder.StatusFulfilled),
+					lockpaymentorder.HasFulfillmentsWith(
+						lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusFailed),
+						lockorderfulfillment.Not(lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusSuccess)),
+						lockorderfulfillment.Not(lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusPending)),
+					),
+				),
 			),
-			lockpaymentorder.CreatedAtLTE(time.Now().Add(-30*time.Minute)),
 		).
 		WithToken(func(tq *ent.TokenQuery) {
 			tq.WithNetwork()
@@ -674,12 +689,6 @@ func ReassignUnvalidatedLockOrders() {
 
 	for _, order := range lockOrders {
 		for _, fulfillment := range order.Edges.Fulfillments {
-			var service types.OrderService
-			if strings.HasPrefix(order.Edges.Token.Edges.Network.Identifier, "tron") {
-				service = orderService.NewOrderTron()
-			} else {
-				service = orderService.NewOrderEVM()
-			}
 			if fulfillment.ValidationStatus == lockorderfulfillment.ValidationStatusPending {
 				// TODO: use auth
 				// // Compute HMAC
@@ -736,14 +745,6 @@ func ReassignUnvalidatedLockOrders() {
 						continue
 					}
 
-					// If order is a private order, refund the order
-					if order.Edges.Provider.VisibilityMode == providerprofile.VisibilityModePrivate {
-						err := service.RefundOrder(ctx, rpcClients[order.Edges.Token.Edges.Network.Identifier], order.GatewayID)
-						if err != nil {
-							logger.Errorf("ReassignUnvalidatedLockOrders.RefundOrder: %v", err)
-						}
-					}
-
 				} else if status == "success" {
 					_, err = storage.Client.LockOrderFulfillment.
 						UpdateOneID(fulfillment.ID).
@@ -774,11 +775,6 @@ func ReassignUnvalidatedLockOrders() {
 					if err != nil {
 						logger.Errorf("ReassignUnvalidatedLockOrders.UpdateOrderStatusValidated: %v", err)
 						continue
-					}
-
-					err = service.SettleOrder(ctx, rpcClients[order.Edges.Token.Edges.Network.Identifier], order.ID)
-					if err != nil {
-						logger.Errorf("ReassignUnvalidatedLockOrders.SettleOrder: %v", err)
 					}
 				}
 
