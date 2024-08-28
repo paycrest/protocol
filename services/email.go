@@ -219,9 +219,9 @@ func SendTemplateEmailWithJsonAttachment(content types.SendEmailPayload, templat
 		return fmt.Errorf("error sending request: %w", err)
 	}
 
-	_, err = utils.ParseJSONResponse(res.RawResponse)
+	data, err := utils.ParseJSONResponse(res.RawResponse)
 	if err != nil {
-		logger.Errorf("error parsing response: %v", err)
+		logger.Errorf("error parsing response: %v %v", err, data)
 		return fmt.Errorf("error parsing response: %w", err)
 	}
 

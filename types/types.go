@@ -584,8 +584,11 @@ type VerifyAccountRequest struct {
 
 // NewKYCRequest is the request for a new KYC request
 type NewKYCRequest struct {
-	Signature     string `json:"signature" binding:"required"`
-	WalletAddress string `json:"walletAddress" binding:"required"`
+	Signature        string `json:"signature" binding:"required"`
+	WalletAddress    string `json:"walletAddress" binding:"required"`
+	AppDomain        string `json:"appDomain" binding:"required"`
+	LogoURL          string `json:"logoUrl" binding:"required"`
+	PrivacyPolicyURL string `json:"privacyPolicyUrl"`
 }
 
 // NewKYCResponse is the response for a new KYC request
