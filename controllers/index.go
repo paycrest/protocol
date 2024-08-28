@@ -235,7 +235,7 @@ func (ctrl *Controller) VerifyAccount(ctx *gin.Context) {
 		return
 	}
 
-	provider, err := storage.Client.ProviderProfile.
+	providers, err := storage.Client.ProviderProfile.
 		Query().
 		Where(
 			providerprofile.HasCurrencyWith(
@@ -245,7 +245,7 @@ func (ctrl *Controller) VerifyAccount(ctx *gin.Context) {
 			providerprofile.IsActiveEQ(true),
 			providerprofile.IsAvailableEQ(true),
 		).
-		First(ctx)
+		All(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusBadRequest, "error",
@@ -253,18 +253,24 @@ func (ctrl *Controller) VerifyAccount(ctx *gin.Context) {
 		return
 	}
 
-	res, err := fastshot.NewClient(provider.HostIdentifier).
-		Config().SetTimeout(30 * time.Second).
-		Build().POST("/verify_account").
-		Body().AsJSON(payload).
-		Send()
-	if err != nil {
-		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusServiceUnavailable, "error", "Failed to verify account", nil)
-		return
+	var res fastshot.Response
+	var data map[string]interface{}
+	for _, provider := range providers {
+		res, err = fastshot.NewClient(provider.HostIdentifier).
+			Config().SetTimeout(30 * time.Second).
+			Build().POST("/verify_account").
+			Body().AsJSON(payload).
+			Send()
+		if err != nil {
+			continue
+		}
+
+		data, err = u.ParseJSONResponse(res.RawResponse)
+		if err != nil {
+			continue
+		}
 	}
 
-	data, err := u.ParseJSONResponse(res.RawResponse)
 	if err != nil {
 		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusServiceUnavailable, "error", "Failed to verify account", nil)
