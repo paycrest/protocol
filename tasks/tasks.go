@@ -730,7 +730,7 @@ func ReassignUnvalidatedLockOrders() {
 
 				data, err := utils.ParseJSONResponse(res.RawResponse)
 				if err != nil {
-					logger.Errorf("ReassignUnvalidatedLockOrders: %v", err)
+					logger.Errorf("ReassignUnvalidatedLockOrders: %v %v", err, data)
 					continue
 				}
 
@@ -1098,7 +1098,7 @@ func fetchExternalRate(currency string) (decimal.Decimal, error) {
 
 		data, err := utils.ParseJSONResponse(res.RawResponse)
 		if err != nil {
-			return decimal.Zero, fmt.Errorf("ComputeMarketRate: %w", err)
+			return decimal.Zero, fmt.Errorf("ComputeMarketRate: %w %v", err, data)
 		}
 
 		price, err = decimal.NewFromString(data["data"].(map[string]interface{})["ticker"].(map[string]interface{})["buy"].(string))

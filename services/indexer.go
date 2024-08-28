@@ -166,7 +166,7 @@ func (s *IndexerService) IndexTRC20Transfer(ctx context.Context, order *ent.Paym
 
 	data, err := utils.ParseJSONResponse(res.RawResponse)
 	if err != nil {
-		logger.Errorf("IndexTRC20Transfer.ParseJSONResponse: %v", err)
+		logger.Errorf("IndexTRC20Transfer.ParseJSONResponse: %v %v", err, data)
 		return err
 	}
 
@@ -198,7 +198,7 @@ func (s *IndexerService) IndexTRC20Transfer(ctx context.Context, order *ent.Paym
 
 			data, err = utils.ParseJSONResponse(res.RawResponse)
 			if err != nil {
-				logger.Errorf("IndexTRC20Transfer.ParseJSONResponse: %v", err)
+				logger.Errorf("IndexTRC20Transfer.ParseJSONResponse: %v %v", err, data)
 				return err
 			}
 
@@ -324,7 +324,7 @@ func (s *IndexerService) IndexOrderCreatedTron(ctx context.Context, order *ent.P
 
 			data, err := utils.ParseJSONResponse(res.RawResponse)
 			if err != nil {
-				logger.Errorf("failed to parse JSON response: %v", err)
+				logger.Errorf("failed to parse JSON response: %v %v", err, data)
 				return err
 			}
 
@@ -461,7 +461,7 @@ func (s *IndexerService) IndexOrderSettledTron(ctx context.Context, order *ent.L
 
 			data, err := utils.ParseJSONResponse(res.RawResponse)
 			if err != nil {
-				logger.Errorf("failed to parse JSON response: %v", err)
+				logger.Errorf("failed to parse JSON response: %v %v", err, data)
 				return err
 			}
 
@@ -595,7 +595,7 @@ func (s *IndexerService) IndexOrderRefundedTron(ctx context.Context, order *ent.
 
 			data, err := utils.ParseJSONResponse(res.RawResponse)
 			if err != nil {
-				logger.Errorf("failed to parse JSON response: %v", err)
+				logger.Errorf("failed to parse JSON response: %v %v", err, data)
 				return err
 			}
 
@@ -1544,7 +1544,7 @@ func (s *IndexerService) fetchLatestOrderEvents(rpcEndpoint, network, txHash str
 
 	data, err := utils.ParseJSONResponse(res.RawResponse)
 	if err != nil {
-		logger.Errorf("failed to parse JSON response: %v", err)
+		logger.Errorf("failed to parse JSON response: %v %v", err, data)
 		return nil, err
 	}
 

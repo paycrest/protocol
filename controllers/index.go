@@ -1,12 +1,17 @@
 package controllers
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"net/http"
 	"slices"
 	"strings"
 	"time"
 
+	"github.com/ethereum/go-ethereum/crypto"
 	fastshot "github.com/opus-domini/fast-shot"
 	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/ent"
@@ -286,7 +291,7 @@ func (ctrl *Controller) VerifyAccount(ctx *gin.Context) {
 	}
 
 	if err != nil {
-		logger.Errorf("error: %v", err)
+		logger.Errorf("error: %v %v", err, data)
 		u.APIResponse(ctx, http.StatusServiceUnavailable, "error", "Failed to verify account", nil)
 		return
 	}
@@ -386,30 +391,173 @@ func (ctrl *Controller) InitiateKYC(ctx *gin.Context) {
 		return
 	}
 
-	// Generate signature
+	// Validate wallet signature
+	signature, err := hex.DecodeString(payload.Signature)
+	if err != nil {
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid signature", "Signature is not in the correct format")
+		return
+	}
+
+	if len(signature) != 65 {
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid signature", "Signature length is not correct")
+		return
+	}
+
+	if signature[64] != 27 && signature[64] != 28 {
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid signature", "Invalid recovery ID")
+		return
+	}
+	signature[64] -= 27
+
+	// Verify wallet signature
+	message := fmt.Sprintf("I am initiating a KYC verification for %s on %s", payload.WalletAddress, payload.AppDomain)
+
+	prefix := "\x19Ethereum Signed Message:\n" + fmt.Sprint(len(message))
+	hash := crypto.Keccak256Hash([]byte(prefix + message))
+
+	sigPublicKeyECDSA, err := crypto.SigToPub(hash.Bytes(), signature)
+	if err != nil {
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid signature", nil)
+		return
+	}
+
+	recoveredAddress := crypto.PubkeyToAddress(*sigPublicKeyECDSA)
+	if !strings.EqualFold(recoveredAddress.Hex(), payload.WalletAddress) {
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid signature", nil)
+		return
+	}
+
+	// Generate Smile Identity signature
+	timestamp := time.Now().UTC().Format(time.RFC3339)
+	h := hmac.New(sha256.New, []byte(identityConf.SmileIdentityApiKey))
+	h.Write([]byte(timestamp))
+	h.Write([]byte(identityConf.SmileIdentityPartnerId))
+	h.Write([]byte("sid_request"))
 
 	// Initiate KYC verification
+	privacyPolicy := payload.PrivacyPolicyURL
+	if privacyPolicy == "" {
+		privacyPolicy = "https://www.paycrest.io/privacy-policy"
+	}
+
 	res, err := fastshot.NewClient(identityConf.SmileIdentityBaseUrl).
 		Config().SetTimeout(30 * time.Second).
 		Build().POST("/v1/smile_links").
 		Body().AsJSON(map[string]interface{}{
 		"partner_id":   identityConf.SmileIdentityPartnerId,
-		"signature":    "",
-		"timestamp":    "",
+		"signature":    base64.StdEncoding.EncodeToString(h.Sum(nil)),
+		"timestamp":    timestamp,
 		"name":         "Aggregator KYC",
-		"company_name": "Paycrest, Inc.",
+		"company_name": payload.AppDomain,
 		"id_types": []map[string]interface{}{
+			// Nigeria
 			{
 				"country":             "NG",
 				"id_type":             "PASSPORT",
 				"verification_method": "doc_verification",
 			},
+			{
+				"country":             "NG",
+				"id_type":             "DRIVERS_LICENSE",
+				"verification_method": "doc_verification",
+			},
+			{
+				"country":             "NG",
+				"id_type":             "V_NIN",
+				"verification_method": "biometric_kyc",
+			},
+			{
+				"country":             "NG",
+				"id_type":             "VOTER_ID",
+				"verification_method": "biometric_kyc",
+			},
+			{
+				"country":             "NG",
+				"id_type":             "RESIDENT_ID",
+				"verification_method": "doc_verification",
+			},
+			{
+				"country":             "NG",
+				"id_type":             "IDENTITY_CARD",
+				"verification_method": "doc_verification",
+			},
+
+			// Ghana
+			{
+				"country":             "GH",
+				"id_type":             "PASSPORT",
+				"verification_method": "enhanced_document_verification",
+			},
+			{
+				"country":             "GH",
+				"id_type":             "VOTER_ID",
+				"verification_method": "enhanced_document_verification",
+			},
+			{
+				"country":             "GH",
+				"id_type":             "NEW_VOTER_ID",
+				"verification_method": "biometric_kyc",
+			},
+			{
+				"country":             "GH",
+				"id_type":             "DRIVERS_LICENSE",
+				"verification_method": "doc_verification",
+			},
+			{
+				"country":             "GH",
+				"id_type":             "SSNIT",
+				"verification_method": "biometric_kyc",
+			},
+
+			// Kenya
+			{
+				"country":             "KE",
+				"id_type":             "PASSPORT",
+				"verification_method": "enhanced_document_verification",
+			},
+			{
+				"country":             "KE",
+				"id_type":             "DRIVERS_LICENSE",
+				"verification_method": "doc_verification",
+			},
+			{
+				"country":             "KE",
+				"id_type":             "ALIEN_CARD",
+				"verification_method": "biometric_kyc",
+			},
+			{
+				"country":             "KE",
+				"id_type":             "NATIONAL_ID",
+				"verification_method": "biometric_kyc",
+			},
+
+			// South Africa
+			// {
+			// 	"country":             "ZA",
+			// 	"id_type":             "PASSPORT",
+			// 	"verification_method": "doc_verification",
+			// },
+			// {
+			// 	"country":             "ZA",
+			// 	"id_type":             "DRIVERS_LICENSE",
+			// 	"verification_method": "doc_verification",
+			// },
+			// {
+			// 	"country":             "ZA",
+			// 	"id_type":             "RESIDENT_ID",
+			// 	"verification_method": "doc_verification",
+			// },
+			// {
+			// 	"country":             "ZA",
+			// 	"id_type":             "NATIONAL_ID",
+			// 	"verification_method": "biometric_kyc",
+			// },
 		},
-		"callback_url":            fmt.Sprintf("%s/kyc/webhook", serverConf.HostDomain),
-		"data_privacy_policy_url": "https://www.paycrest.io/privacy-policy",
-		"logo_url":                "https://drive.google.com/file/d/1o6x2Yo80qR68HjQb3bQKvz9UVT0oUXIK/view?usp=drive_link",
+		"callback_url":            fmt.Sprintf("%s/v1/kyc/webhook", serverConf.HostDomain),
+		"data_privacy_policy_url": privacyPolicy,
+		"logo_url":                payload.LogoURL,
 		"is_single_use":           true,
-		"user_id":                 "",
+		"user_id":                 payload.WalletAddress,
 		"expires_at":              time.Now().Add(24 * time.Hour).Format(time.RFC3339Nano),
 	}).
 		Send()
@@ -421,10 +569,12 @@ func (ctrl *Controller) InitiateKYC(ctx *gin.Context) {
 
 	data, err := u.ParseJSONResponse(res.RawResponse)
 	if err != nil {
-		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusServiceUnavailable, "error", "Failed to initiate KYC verification", nil)
+		logger.Errorf("error: %v %v", err, data)
+		u.APIResponse(ctx, http.StatusServiceUnavailable, "error", "Failed to initiate KYC verification", data)
 		return
 	}
+
+	// TODO: Save the KYC verification details to the database
 
 	u.APIResponse(ctx, http.StatusOK, "success", "KYC verification initiated successfully", &types.NewKYCResponse{
 		URL:         data["link"].(string),
