@@ -681,11 +681,7 @@ func ReassignUnvalidatedLockOrders() {
 			},
 		).
 		WithFulfillments().
-		WithProvisionBucket(
-			func(pbq *ent.ProvisionBucketQuery) {
-				pbq.WithCurrency()
-			},
-		).
+		WithProvisionBucket().
 		All(ctx)
 	if err != nil {
 		logger.Errorf("ReassignUnvalidatedLockOrders.db: %v", err)
@@ -760,9 +756,10 @@ func ReassignUnvalidatedLockOrders() {
 						continue
 					}
 
-					transactionLog, err := storage.Client.TransactionLog.Create().
+					transactionLog, err := storage.Client.TransactionLog.
+						Create().
 						SetStatus(transactionlog.StatusOrderValidated).
-						SetNetwork(fulfillment.Edges.Order.Edges.Token.Edges.Network.Identifier).
+						SetNetwork(order.Edges.Token.Edges.Network.Identifier).
 						SetMetadata(map[string]interface{}{
 							"TransactionID": fulfillment.TxID,
 							"PSP":           fulfillment.Psp,
@@ -773,7 +770,8 @@ func ReassignUnvalidatedLockOrders() {
 						continue
 					}
 
-					_, err = order.Update().
+					_, err = storage.Client.LockPaymentOrder.
+						UpdateOneID(order.ID).
 						SetStatus(lockpaymentorder.StatusValidated).
 						AddTransactions(transactionLog).
 						Save(ctx)
@@ -806,9 +804,10 @@ func ReassignUnvalidatedLockOrders() {
 					}
 				}
 			} else if fulfillment.ValidationStatus == lockorderfulfillment.ValidationStatusSuccess {
-				transactionLog, err := storage.Client.TransactionLog.Create().
+				transactionLog, err := storage.Client.TransactionLog.
+					Create().
 					SetStatus(transactionlog.StatusOrderValidated).
-					SetNetwork(fulfillment.Edges.Order.Edges.Token.Edges.Network.Identifier).
+					SetNetwork(order.Edges.Token.Edges.Network.Identifier).
 					SetMetadata(map[string]interface{}{
 						"TransactionID": fulfillment.TxID,
 						"PSP":           fulfillment.Psp,
@@ -819,7 +818,8 @@ func ReassignUnvalidatedLockOrders() {
 					continue
 				}
 
-				_, err = order.Update().
+				_, err = storage.Client.LockPaymentOrder.
+					UpdateOneID(order.ID).
 					SetStatus(lockpaymentorder.StatusValidated).
 					AddTransactions(transactionLog).
 					Save(ctx)
