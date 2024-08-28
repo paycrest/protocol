@@ -667,6 +667,9 @@ func ReassignUnvalidatedLockOrders() {
 						lockorderfulfillment.Not(lockorderfulfillment.UpdatedAtGT(time.Now().Add(-orderConf.OrderFulfillmentValidity*time.Minute))),
 					),
 				),
+				lockpaymentorder.HasFulfillmentsWith(
+					lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusSuccess),
+				),
 			),
 		).
 		WithToken(func(tq *ent.TokenQuery) {
@@ -780,7 +783,7 @@ func ReassignUnvalidatedLockOrders() {
 					}
 				}
 
-			} else {
+			} else if fulfillment.ValidationStatus == lockorderfulfillment.ValidationStatusFailed {
 				if order.Edges.Provider.VisibilityMode != providerprofile.VisibilityModePrivate {
 					lockPaymentOrder := types.LockPaymentOrderFields{
 						ID:                order.ID,
@@ -801,6 +804,28 @@ func ReassignUnvalidatedLockOrders() {
 					if err != nil {
 						logger.Errorf("ReassignUnvalidatedLockOrders.AssignLockPaymentOrder: %v", err)
 					}
+				}
+			} else if fulfillment.ValidationStatus == lockorderfulfillment.ValidationStatusSuccess {
+				transactionLog, err := storage.Client.TransactionLog.Create().
+					SetStatus(transactionlog.StatusOrderValidated).
+					SetNetwork(fulfillment.Edges.Order.Edges.Token.Edges.Network.Identifier).
+					SetMetadata(map[string]interface{}{
+						"TransactionID": fulfillment.TxID,
+						"PSP":           fulfillment.Psp,
+					}).
+					Save(ctx)
+				if err != nil {
+					logger.Errorf("ReassignUnvalidatedLockOrders.CreateTransactionLog: %v", err)
+					continue
+				}
+
+				_, err = order.Update().
+					SetStatus(lockpaymentorder.StatusValidated).
+					AddTransactions(transactionLog).
+					Save(ctx)
+				if err != nil {
+					logger.Errorf("ReassignUnvalidatedLockOrders.UpdateOrderStatusValidated: %v", err)
+					continue
 				}
 			}
 		}
