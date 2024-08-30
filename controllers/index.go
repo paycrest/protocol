@@ -16,6 +16,7 @@ import (
 	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/fiatcurrency"
+	"github.com/paycrest/protocol/ent/identityverificationrequest"
 	"github.com/paycrest/protocol/ent/institution"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	"github.com/paycrest/protocol/ent/providerprofile"
@@ -380,9 +381,9 @@ func (ctrl *Controller) GetLockPaymentOrderStatus(ctx *gin.Context) {
 	u.APIResponse(ctx, http.StatusOK, "success", "Order status fetched successfully", response)
 }
 
-// InitiateKYC controller initiates a KYC verification process
-func (ctrl *Controller) InitiateKYC(ctx *gin.Context) {
-	var payload types.NewKYCRequest
+// RequestIDVerification controller requests identity verification details
+func (ctrl *Controller) RequestIDVerification(ctx *gin.Context) {
+	var payload types.NewIDVerificationRequest
 
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		logger.Errorf("error: %v", err)
@@ -410,7 +411,7 @@ func (ctrl *Controller) InitiateKYC(ctx *gin.Context) {
 	signature[64] -= 27
 
 	// Verify wallet signature
-	message := fmt.Sprintf("I am initiating a KYC verification for %s on %s", payload.WalletAddress, payload.AppDomain)
+	message := fmt.Sprintf("I accept the AML and Data Privacy Policies and hereby request an identity verification check for %s", payload.WalletAddress)
 
 	prefix := "\x19Ethereum Signed Message:\n" + fmt.Sprint(len(message))
 	hash := crypto.Keccak256Hash([]byte(prefix + message))
@@ -427,19 +428,57 @@ func (ctrl *Controller) InitiateKYC(ctx *gin.Context) {
 		return
 	}
 
+	// Check if there is an existing verification request
+	ivr, err := storage.Client.IdentityVerificationRequest.
+		Query().
+		Where(
+			identityverificationrequest.WalletAddressEQ(payload.WalletAddress),
+		).
+		Only(ctx)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		if !ent.IsNotFound(err) {
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to request identity verification", nil)
+			return
+		}
+	}
+
+	timestamp := time.Now()
+	if ivr.Status == "pending" && ivr.Timestamp.Add(24*7*time.Hour).Before(timestamp) {
+		// Request is expired, delete db entry
+		_, err := storage.Client.IdentityVerificationRequest.
+			Delete().
+			Where(
+				identityverificationrequest.WalletAddressEQ(payload.WalletAddress),
+			).
+			Exec(ctx)
+		if err != nil {
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to request identity verification", nil)
+			return
+		}
+
+	} else if ivr.Status == "pending" && (ivr.Timestamp.Add(24*7*time.Hour).Equal(timestamp) || ivr.Timestamp.Add(24*7*time.Hour).After(timestamp)) {
+		u.APIResponse(ctx, http.StatusOK, "success", "This account has a pending identity verification", &types.NewIDVerificationResponse{
+			URL:       ivr.VerificationURL,
+			ExpiresAt: ivr.Timestamp,
+		})
+		return
+	}
+
+	if ivr.Status == "success" {
+		u.APIResponse(ctx, http.StatusBadRequest, "success", "Failed to request identity verification", "This account has already been successfully verified")
+		return
+	}
+
 	// Generate Smile Identity signature
-	timestamp := time.Now().UTC().Format(time.RFC3339)
 	h := hmac.New(sha256.New, []byte(identityConf.SmileIdentityApiKey))
-	h.Write([]byte(timestamp))
+	h.Write([]byte(timestamp.Format(time.RFC3339)))
 	h.Write([]byte(identityConf.SmileIdentityPartnerId))
 	h.Write([]byte("sid_request"))
 
 	// Initiate KYC verification
-	privacyPolicy := payload.PrivacyPolicyURL
-	if privacyPolicy == "" {
-		privacyPolicy = "https://www.paycrest.io/privacy-policy"
-	}
-
 	res, err := fastshot.NewClient(identityConf.SmileIdentityBaseUrl).
 		Config().SetTimeout(30 * time.Second).
 		Build().POST("/v1/smile_links").
@@ -448,7 +487,7 @@ func (ctrl *Controller) InitiateKYC(ctx *gin.Context) {
 		"signature":    base64.StdEncoding.EncodeToString(h.Sum(nil)),
 		"timestamp":    timestamp,
 		"name":         "Aggregator KYC",
-		"company_name": payload.AppDomain,
+		"company_name": "Paycrest Aggregator",
 		"id_types": []map[string]interface{}{
 			// Nigeria
 			{
@@ -554,31 +593,43 @@ func (ctrl *Controller) InitiateKYC(ctx *gin.Context) {
 			// },
 		},
 		"callback_url":            fmt.Sprintf("%s/v1/kyc/webhook", serverConf.HostDomain),
-		"data_privacy_policy_url": privacyPolicy,
-		"logo_url":                payload.LogoURL,
+		"data_privacy_policy_url": "https://www.paycrest.io/privacy-policy",
+		"logo_url":                "https://i.ibb.co/LRkh8Ld/mark-2x-2.png",
 		"is_single_use":           true,
 		"user_id":                 payload.WalletAddress,
-		"expires_at":              time.Now().Add(24 * time.Hour).Format(time.RFC3339Nano),
+		"expires_at":              timestamp.Add(24 * time.Hour).Format(time.RFC3339Nano),
 	}).
 		Send()
 	if err != nil {
 		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusServiceUnavailable, "error", "Failed to initiate KYC verification", nil)
+		u.APIResponse(ctx, http.StatusServiceUnavailable, "error", "Failed to request identity verification", "Couldn't reach identity provider")
 		return
 	}
 
 	data, err := u.ParseJSONResponse(res.RawResponse)
 	if err != nil {
 		logger.Errorf("error: %v %v", err, data)
-		u.APIResponse(ctx, http.StatusServiceUnavailable, "error", "Failed to initiate KYC verification", data)
+		u.APIResponse(ctx, http.StatusServiceUnavailable, "error", "Failed to request identity verification", data)
 		return
 	}
 
-	// TODO: Save the KYC verification details to the database
+	// Save the verification details to the database
+	ivr, err = storage.Client.IdentityVerificationRequest.
+		Create().
+		SetWalletAddress(payload.WalletAddress).
+		SetPlatform("smile_id").
+		SetPlatformRef(data["ref_id"].(string)).
+		SetVerificationURL(data["link"].(string)).
+		SetTimestamp(timestamp.Add(24 * time.Hour)).
+		Save(ctx)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to request identity verification", nil)
+		return
+	}
 
-	u.APIResponse(ctx, http.StatusOK, "success", "KYC verification initiated successfully", &types.NewKYCResponse{
-		URL:         data["link"].(string),
-		Platform:    "smile_identity",
-		PlatformRef: data["ref_id"].(string),
+	u.APIResponse(ctx, http.StatusOK, "success", "Identity verification requested successfully", &types.NewIDVerificationResponse{
+		URL:       ivr.VerificationURL,
+		ExpiresAt: ivr.Timestamp,
 	})
 }

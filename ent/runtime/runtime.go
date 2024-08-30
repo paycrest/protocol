@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/paycrest/protocol/ent/apikey"
 	"github.com/paycrest/protocol/ent/fiatcurrency"
+	"github.com/paycrest/protocol/ent/identityverificationrequest"
 	"github.com/paycrest/protocol/ent/institution"
 	"github.com/paycrest/protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
@@ -69,6 +70,20 @@ func init() {
 	fiatcurrencyDescID := fiatcurrencyFields[0].Descriptor()
 	// fiatcurrency.DefaultID holds the default value on creation for the id field.
 	fiatcurrency.DefaultID = fiatcurrencyDescID.Default.(func() uuid.UUID)
+	identityverificationrequestFields := schema.IdentityVerificationRequest{}.Fields()
+	_ = identityverificationrequestFields
+	// identityverificationrequestDescFeeReclaimed is the schema descriptor for fee_reclaimed field.
+	identityverificationrequestDescFeeReclaimed := identityverificationrequestFields[6].Descriptor()
+	// identityverificationrequest.DefaultFeeReclaimed holds the default value on creation for the fee_reclaimed field.
+	identityverificationrequest.DefaultFeeReclaimed = identityverificationrequestDescFeeReclaimed.Default.(bool)
+	// identityverificationrequestDescTimestamp is the schema descriptor for timestamp field.
+	identityverificationrequestDescTimestamp := identityverificationrequestFields[7].Descriptor()
+	// identityverificationrequest.DefaultTimestamp holds the default value on creation for the timestamp field.
+	identityverificationrequest.DefaultTimestamp = identityverificationrequestDescTimestamp.Default.(func() time.Time)
+	// identityverificationrequestDescID is the schema descriptor for id field.
+	identityverificationrequestDescID := identityverificationrequestFields[0].Descriptor()
+	// identityverificationrequest.DefaultID holds the default value on creation for the id field.
+	identityverificationrequest.DefaultID = identityverificationrequestDescID.Default.(func() uuid.UUID)
 	institutionMixin := schema.Institution{}.Mixin()
 	institutionMixinFields0 := institutionMixin[0].Fields()
 	_ = institutionMixinFields0

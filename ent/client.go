@@ -18,6 +18,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/paycrest/protocol/ent/apikey"
 	"github.com/paycrest/protocol/ent/fiatcurrency"
+	"github.com/paycrest/protocol/ent/identityverificationrequest"
 	"github.com/paycrest/protocol/ent/institution"
 	"github.com/paycrest/protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
@@ -47,6 +48,8 @@ type Client struct {
 	APIKey *APIKeyClient
 	// FiatCurrency is the client for interacting with the FiatCurrency builders.
 	FiatCurrency *FiatCurrencyClient
+	// IdentityVerificationRequest is the client for interacting with the IdentityVerificationRequest builders.
+	IdentityVerificationRequest *IdentityVerificationRequestClient
 	// Institution is the client for interacting with the Institution builders.
 	Institution *InstitutionClient
 	// LockOrderFulfillment is the client for interacting with the LockOrderFulfillment builders.
@@ -96,6 +99,7 @@ func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
 	c.APIKey = NewAPIKeyClient(c.config)
 	c.FiatCurrency = NewFiatCurrencyClient(c.config)
+	c.IdentityVerificationRequest = NewIdentityVerificationRequestClient(c.config)
 	c.Institution = NewInstitutionClient(c.config)
 	c.LockOrderFulfillment = NewLockOrderFulfillmentClient(c.config)
 	c.LockPaymentOrder = NewLockPaymentOrderClient(c.config)
@@ -204,28 +208,29 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:                   ctx,
-		config:                cfg,
-		APIKey:                NewAPIKeyClient(cfg),
-		FiatCurrency:          NewFiatCurrencyClient(cfg),
-		Institution:           NewInstitutionClient(cfg),
-		LockOrderFulfillment:  NewLockOrderFulfillmentClient(cfg),
-		LockPaymentOrder:      NewLockPaymentOrderClient(cfg),
-		Network:               NewNetworkClient(cfg),
-		PaymentOrder:          NewPaymentOrderClient(cfg),
-		PaymentOrderRecipient: NewPaymentOrderRecipientClient(cfg),
-		ProviderOrderToken:    NewProviderOrderTokenClient(cfg),
-		ProviderProfile:       NewProviderProfileClient(cfg),
-		ProviderRating:        NewProviderRatingClient(cfg),
-		ProvisionBucket:       NewProvisionBucketClient(cfg),
-		ReceiveAddress:        NewReceiveAddressClient(cfg),
-		SenderOrderToken:      NewSenderOrderTokenClient(cfg),
-		SenderProfile:         NewSenderProfileClient(cfg),
-		Token:                 NewTokenClient(cfg),
-		TransactionLog:        NewTransactionLogClient(cfg),
-		User:                  NewUserClient(cfg),
-		VerificationToken:     NewVerificationTokenClient(cfg),
-		WebhookRetryAttempt:   NewWebhookRetryAttemptClient(cfg),
+		ctx:                         ctx,
+		config:                      cfg,
+		APIKey:                      NewAPIKeyClient(cfg),
+		FiatCurrency:                NewFiatCurrencyClient(cfg),
+		IdentityVerificationRequest: NewIdentityVerificationRequestClient(cfg),
+		Institution:                 NewInstitutionClient(cfg),
+		LockOrderFulfillment:        NewLockOrderFulfillmentClient(cfg),
+		LockPaymentOrder:            NewLockPaymentOrderClient(cfg),
+		Network:                     NewNetworkClient(cfg),
+		PaymentOrder:                NewPaymentOrderClient(cfg),
+		PaymentOrderRecipient:       NewPaymentOrderRecipientClient(cfg),
+		ProviderOrderToken:          NewProviderOrderTokenClient(cfg),
+		ProviderProfile:             NewProviderProfileClient(cfg),
+		ProviderRating:              NewProviderRatingClient(cfg),
+		ProvisionBucket:             NewProvisionBucketClient(cfg),
+		ReceiveAddress:              NewReceiveAddressClient(cfg),
+		SenderOrderToken:            NewSenderOrderTokenClient(cfg),
+		SenderProfile:               NewSenderProfileClient(cfg),
+		Token:                       NewTokenClient(cfg),
+		TransactionLog:              NewTransactionLogClient(cfg),
+		User:                        NewUserClient(cfg),
+		VerificationToken:           NewVerificationTokenClient(cfg),
+		WebhookRetryAttempt:         NewWebhookRetryAttemptClient(cfg),
 	}, nil
 }
 
@@ -243,28 +248,29 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:                   ctx,
-		config:                cfg,
-		APIKey:                NewAPIKeyClient(cfg),
-		FiatCurrency:          NewFiatCurrencyClient(cfg),
-		Institution:           NewInstitutionClient(cfg),
-		LockOrderFulfillment:  NewLockOrderFulfillmentClient(cfg),
-		LockPaymentOrder:      NewLockPaymentOrderClient(cfg),
-		Network:               NewNetworkClient(cfg),
-		PaymentOrder:          NewPaymentOrderClient(cfg),
-		PaymentOrderRecipient: NewPaymentOrderRecipientClient(cfg),
-		ProviderOrderToken:    NewProviderOrderTokenClient(cfg),
-		ProviderProfile:       NewProviderProfileClient(cfg),
-		ProviderRating:        NewProviderRatingClient(cfg),
-		ProvisionBucket:       NewProvisionBucketClient(cfg),
-		ReceiveAddress:        NewReceiveAddressClient(cfg),
-		SenderOrderToken:      NewSenderOrderTokenClient(cfg),
-		SenderProfile:         NewSenderProfileClient(cfg),
-		Token:                 NewTokenClient(cfg),
-		TransactionLog:        NewTransactionLogClient(cfg),
-		User:                  NewUserClient(cfg),
-		VerificationToken:     NewVerificationTokenClient(cfg),
-		WebhookRetryAttempt:   NewWebhookRetryAttemptClient(cfg),
+		ctx:                         ctx,
+		config:                      cfg,
+		APIKey:                      NewAPIKeyClient(cfg),
+		FiatCurrency:                NewFiatCurrencyClient(cfg),
+		IdentityVerificationRequest: NewIdentityVerificationRequestClient(cfg),
+		Institution:                 NewInstitutionClient(cfg),
+		LockOrderFulfillment:        NewLockOrderFulfillmentClient(cfg),
+		LockPaymentOrder:            NewLockPaymentOrderClient(cfg),
+		Network:                     NewNetworkClient(cfg),
+		PaymentOrder:                NewPaymentOrderClient(cfg),
+		PaymentOrderRecipient:       NewPaymentOrderRecipientClient(cfg),
+		ProviderOrderToken:          NewProviderOrderTokenClient(cfg),
+		ProviderProfile:             NewProviderProfileClient(cfg),
+		ProviderRating:              NewProviderRatingClient(cfg),
+		ProvisionBucket:             NewProvisionBucketClient(cfg),
+		ReceiveAddress:              NewReceiveAddressClient(cfg),
+		SenderOrderToken:            NewSenderOrderTokenClient(cfg),
+		SenderProfile:               NewSenderProfileClient(cfg),
+		Token:                       NewTokenClient(cfg),
+		TransactionLog:              NewTransactionLogClient(cfg),
+		User:                        NewUserClient(cfg),
+		VerificationToken:           NewVerificationTokenClient(cfg),
+		WebhookRetryAttempt:         NewWebhookRetryAttemptClient(cfg),
 	}, nil
 }
 
@@ -294,11 +300,12 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.APIKey, c.FiatCurrency, c.Institution, c.LockOrderFulfillment,
-		c.LockPaymentOrder, c.Network, c.PaymentOrder, c.PaymentOrderRecipient,
-		c.ProviderOrderToken, c.ProviderProfile, c.ProviderRating, c.ProvisionBucket,
-		c.ReceiveAddress, c.SenderOrderToken, c.SenderProfile, c.Token,
-		c.TransactionLog, c.User, c.VerificationToken, c.WebhookRetryAttempt,
+		c.APIKey, c.FiatCurrency, c.IdentityVerificationRequest, c.Institution,
+		c.LockOrderFulfillment, c.LockPaymentOrder, c.Network, c.PaymentOrder,
+		c.PaymentOrderRecipient, c.ProviderOrderToken, c.ProviderProfile,
+		c.ProviderRating, c.ProvisionBucket, c.ReceiveAddress, c.SenderOrderToken,
+		c.SenderProfile, c.Token, c.TransactionLog, c.User, c.VerificationToken,
+		c.WebhookRetryAttempt,
 	} {
 		n.Use(hooks...)
 	}
@@ -308,11 +315,12 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.APIKey, c.FiatCurrency, c.Institution, c.LockOrderFulfillment,
-		c.LockPaymentOrder, c.Network, c.PaymentOrder, c.PaymentOrderRecipient,
-		c.ProviderOrderToken, c.ProviderProfile, c.ProviderRating, c.ProvisionBucket,
-		c.ReceiveAddress, c.SenderOrderToken, c.SenderProfile, c.Token,
-		c.TransactionLog, c.User, c.VerificationToken, c.WebhookRetryAttempt,
+		c.APIKey, c.FiatCurrency, c.IdentityVerificationRequest, c.Institution,
+		c.LockOrderFulfillment, c.LockPaymentOrder, c.Network, c.PaymentOrder,
+		c.PaymentOrderRecipient, c.ProviderOrderToken, c.ProviderProfile,
+		c.ProviderRating, c.ProvisionBucket, c.ReceiveAddress, c.SenderOrderToken,
+		c.SenderProfile, c.Token, c.TransactionLog, c.User, c.VerificationToken,
+		c.WebhookRetryAttempt,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -325,6 +333,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.APIKey.mutate(ctx, m)
 	case *FiatCurrencyMutation:
 		return c.FiatCurrency.mutate(ctx, m)
+	case *IdentityVerificationRequestMutation:
+		return c.IdentityVerificationRequest.mutate(ctx, m)
 	case *InstitutionMutation:
 		return c.Institution.mutate(ctx, m)
 	case *LockOrderFulfillmentMutation:
@@ -725,6 +735,139 @@ func (c *FiatCurrencyClient) mutate(ctx context.Context, m *FiatCurrencyMutation
 		return (&FiatCurrencyDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown FiatCurrency mutation op: %q", m.Op())
+	}
+}
+
+// IdentityVerificationRequestClient is a client for the IdentityVerificationRequest schema.
+type IdentityVerificationRequestClient struct {
+	config
+}
+
+// NewIdentityVerificationRequestClient returns a client for the IdentityVerificationRequest from the given config.
+func NewIdentityVerificationRequestClient(c config) *IdentityVerificationRequestClient {
+	return &IdentityVerificationRequestClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `identityverificationrequest.Hooks(f(g(h())))`.
+func (c *IdentityVerificationRequestClient) Use(hooks ...Hook) {
+	c.hooks.IdentityVerificationRequest = append(c.hooks.IdentityVerificationRequest, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `identityverificationrequest.Intercept(f(g(h())))`.
+func (c *IdentityVerificationRequestClient) Intercept(interceptors ...Interceptor) {
+	c.inters.IdentityVerificationRequest = append(c.inters.IdentityVerificationRequest, interceptors...)
+}
+
+// Create returns a builder for creating a IdentityVerificationRequest entity.
+func (c *IdentityVerificationRequestClient) Create() *IdentityVerificationRequestCreate {
+	mutation := newIdentityVerificationRequestMutation(c.config, OpCreate)
+	return &IdentityVerificationRequestCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of IdentityVerificationRequest entities.
+func (c *IdentityVerificationRequestClient) CreateBulk(builders ...*IdentityVerificationRequestCreate) *IdentityVerificationRequestCreateBulk {
+	return &IdentityVerificationRequestCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *IdentityVerificationRequestClient) MapCreateBulk(slice any, setFunc func(*IdentityVerificationRequestCreate, int)) *IdentityVerificationRequestCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &IdentityVerificationRequestCreateBulk{err: fmt.Errorf("calling to IdentityVerificationRequestClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*IdentityVerificationRequestCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &IdentityVerificationRequestCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for IdentityVerificationRequest.
+func (c *IdentityVerificationRequestClient) Update() *IdentityVerificationRequestUpdate {
+	mutation := newIdentityVerificationRequestMutation(c.config, OpUpdate)
+	return &IdentityVerificationRequestUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *IdentityVerificationRequestClient) UpdateOne(ivr *IdentityVerificationRequest) *IdentityVerificationRequestUpdateOne {
+	mutation := newIdentityVerificationRequestMutation(c.config, OpUpdateOne, withIdentityVerificationRequest(ivr))
+	return &IdentityVerificationRequestUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *IdentityVerificationRequestClient) UpdateOneID(id uuid.UUID) *IdentityVerificationRequestUpdateOne {
+	mutation := newIdentityVerificationRequestMutation(c.config, OpUpdateOne, withIdentityVerificationRequestID(id))
+	return &IdentityVerificationRequestUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for IdentityVerificationRequest.
+func (c *IdentityVerificationRequestClient) Delete() *IdentityVerificationRequestDelete {
+	mutation := newIdentityVerificationRequestMutation(c.config, OpDelete)
+	return &IdentityVerificationRequestDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *IdentityVerificationRequestClient) DeleteOne(ivr *IdentityVerificationRequest) *IdentityVerificationRequestDeleteOne {
+	return c.DeleteOneID(ivr.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *IdentityVerificationRequestClient) DeleteOneID(id uuid.UUID) *IdentityVerificationRequestDeleteOne {
+	builder := c.Delete().Where(identityverificationrequest.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &IdentityVerificationRequestDeleteOne{builder}
+}
+
+// Query returns a query builder for IdentityVerificationRequest.
+func (c *IdentityVerificationRequestClient) Query() *IdentityVerificationRequestQuery {
+	return &IdentityVerificationRequestQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeIdentityVerificationRequest},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a IdentityVerificationRequest entity by its id.
+func (c *IdentityVerificationRequestClient) Get(ctx context.Context, id uuid.UUID) (*IdentityVerificationRequest, error) {
+	return c.Query().Where(identityverificationrequest.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *IdentityVerificationRequestClient) GetX(ctx context.Context, id uuid.UUID) *IdentityVerificationRequest {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *IdentityVerificationRequestClient) Hooks() []Hook {
+	return c.hooks.IdentityVerificationRequest
+}
+
+// Interceptors returns the client interceptors.
+func (c *IdentityVerificationRequestClient) Interceptors() []Interceptor {
+	return c.inters.IdentityVerificationRequest
+}
+
+func (c *IdentityVerificationRequestClient) mutate(ctx context.Context, m *IdentityVerificationRequestMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&IdentityVerificationRequestCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&IdentityVerificationRequestUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&IdentityVerificationRequestUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&IdentityVerificationRequestDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown IdentityVerificationRequest mutation op: %q", m.Op())
 	}
 }
 
@@ -3783,17 +3926,17 @@ func (c *WebhookRetryAttemptClient) mutate(ctx context.Context, m *WebhookRetryA
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		APIKey, FiatCurrency, Institution, LockOrderFulfillment, LockPaymentOrder,
-		Network, PaymentOrder, PaymentOrderRecipient, ProviderOrderToken,
-		ProviderProfile, ProviderRating, ProvisionBucket, ReceiveAddress,
-		SenderOrderToken, SenderProfile, Token, TransactionLog, User,
-		VerificationToken, WebhookRetryAttempt []ent.Hook
+		APIKey, FiatCurrency, IdentityVerificationRequest, Institution,
+		LockOrderFulfillment, LockPaymentOrder, Network, PaymentOrder,
+		PaymentOrderRecipient, ProviderOrderToken, ProviderProfile, ProviderRating,
+		ProvisionBucket, ReceiveAddress, SenderOrderToken, SenderProfile, Token,
+		TransactionLog, User, VerificationToken, WebhookRetryAttempt []ent.Hook
 	}
 	inters struct {
-		APIKey, FiatCurrency, Institution, LockOrderFulfillment, LockPaymentOrder,
-		Network, PaymentOrder, PaymentOrderRecipient, ProviderOrderToken,
-		ProviderProfile, ProviderRating, ProvisionBucket, ReceiveAddress,
-		SenderOrderToken, SenderProfile, Token, TransactionLog, User,
-		VerificationToken, WebhookRetryAttempt []ent.Interceptor
+		APIKey, FiatCurrency, IdentityVerificationRequest, Institution,
+		LockOrderFulfillment, LockPaymentOrder, Network, PaymentOrder,
+		PaymentOrderRecipient, ProviderOrderToken, ProviderProfile, ProviderRating,
+		ProvisionBucket, ReceiveAddress, SenderOrderToken, SenderProfile, Token,
+		TransactionLog, User, VerificationToken, WebhookRetryAttempt []ent.Interceptor
 	}
 )

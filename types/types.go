@@ -582,18 +582,14 @@ type VerifyAccountRequest struct {
 	AccountIdentifier string `json:"accountIdentifier" binding:"required"`
 }
 
-// NewKYCRequest is the request for a new KYC request
-type NewKYCRequest struct {
-	Signature        string `json:"signature" binding:"required"`
-	WalletAddress    string `json:"walletAddress" binding:"required"`
-	AppDomain        string `json:"appDomain" binding:"required"`
-	LogoURL          string `json:"logoUrl" binding:"required"`
-	PrivacyPolicyURL string `json:"privacyPolicyUrl"`
+// NewIDVerificationRequest is the request for a new identity verification request
+type NewIDVerificationRequest struct {
+	Signature     string `json:"signature" binding:"required"`
+	WalletAddress string `json:"walletAddress" binding:"required"`
 }
 
-// NewKYCResponse is the response for a new KYC request
-type NewKYCResponse struct {
-	URL         string `json:"url"`
-	Platform    string `json:"platform"`
-	PlatformRef string `json:"platformRef"`
+// NewIDVerificationResponse is the response for a new identity verification request
+type NewIDVerificationResponse struct {
+	URL       string    `json:"url"`
+	ExpiresAt time.Time `json:"expiresAt"`
 }
