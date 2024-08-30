@@ -33,6 +33,18 @@ func (f FiatCurrencyFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.FiatCurrencyMutation", m)
 }
 
+// The IdentityVerificationRequestFunc type is an adapter to allow the use of ordinary
+// function as IdentityVerificationRequest mutator.
+type IdentityVerificationRequestFunc func(context.Context, *ent.IdentityVerificationRequestMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f IdentityVerificationRequestFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.IdentityVerificationRequestMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.IdentityVerificationRequestMutation", m)
+}
+
 // The InstitutionFunc type is an adapter to allow the use of ordinary
 // function as Institution mutator.
 type InstitutionFunc func(context.Context, *ent.InstitutionMutation) (ent.Value, error)

@@ -54,6 +54,23 @@ var (
 		Columns:    FiatCurrenciesColumns,
 		PrimaryKey: []*schema.Column{FiatCurrenciesColumns[0]},
 	}
+	// IdentityVerificationRequestsColumns holds the columns for the "identity_verification_requests" table.
+	IdentityVerificationRequestsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "wallet_address", Type: field.TypeString, Unique: true},
+		{Name: "platform", Type: field.TypeEnum, Enums: []string{"smile_id", "metamap", "sumsub", "synaps"}},
+		{Name: "platform_ref", Type: field.TypeString},
+		{Name: "verification_url", Type: field.TypeString},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"pending", "success"}, Default: "pending"},
+		{Name: "fee_reclaimed", Type: field.TypeBool, Default: false},
+		{Name: "timestamp", Type: field.TypeTime},
+	}
+	// IdentityVerificationRequestsTable holds the schema information for the "identity_verification_requests" table.
+	IdentityVerificationRequestsTable = &schema.Table{
+		Name:       "identity_verification_requests",
+		Columns:    IdentityVerificationRequestsColumns,
+		PrimaryKey: []*schema.Column{IdentityVerificationRequestsColumns[0]},
+	}
 	// InstitutionsColumns holds the columns for the "institutions" table.
 	InstitutionsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -611,6 +628,7 @@ var (
 	Tables = []*schema.Table{
 		APIKeysTable,
 		FiatCurrenciesTable,
+		IdentityVerificationRequestsTable,
 		InstitutionsTable,
 		LockOrderFulfillmentsTable,
 		LockPaymentOrdersTable,

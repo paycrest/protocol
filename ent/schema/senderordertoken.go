@@ -44,6 +44,7 @@ func (SenderOrderToken) Edges() []ent.Edge {
 	}
 }
 
+// Indexes of the SenderOrderToken.
 func (SenderOrderToken) Indexes() []ent.Index {
 	return []ent.Index{
 		// Define a unique index across multiple fields.

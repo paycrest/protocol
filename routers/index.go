@@ -43,8 +43,8 @@ func RegisterRoutes(route *gin.Engine) {
 	v1.GET("orders/:id", ctrl.GetLockPaymentOrderStatus)
 
 	// KYC routes
-	v1.POST("kyc", ctrl.InitiateKYC)
-	// v1.GET("kyc/:wallet_address", ctrl.GetKYC)
+	v1.POST("kyc", ctrl.RequestIDVerification)
+	// v1.GET("kyc/:wallet_address", ctrl.GetIDVerificationRequest)
 	// v1.POST("kyc/webhook", ctrl.KYCWebhook)
 }
 
