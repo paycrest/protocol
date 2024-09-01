@@ -87,7 +87,6 @@ func TestAuth(t *testing.T) {
 				LastName:    "Ayo",
 				Email:       "ikeayo@example.com",
 				Password:    "password",
-				TradingName: "Africana LP",
 				Currency:    "NGN",
 				Scopes:      []string{"sender", "provider"},
 			}
@@ -214,7 +213,6 @@ func TestAuth(t *testing.T) {
 				LastName:    "Ayo",
 				Email:       "ikeayo2@example.com",
 				Password:    "password2",
-				TradingName: "Americana LP",
 				Currency:    "NGN",
 				Scopes:      []string{"provider"},
 			}
@@ -277,7 +275,6 @@ func TestAuth(t *testing.T) {
 			// 		LastName:    "doe",
 			// 		Email:       "john@example.com",
 			// 		Password:    "password",
-			// 		TradingName: "Asian LP",
 			// 		Currency:    "GHS",
 			// 		Scopes:      []string{"provider"},
 			// 	}
@@ -300,7 +297,6 @@ func TestAuth(t *testing.T) {
 				LastName:    "Ayo",
 				Email:       "ikeayoprovider@example.com",
 				Password:    "password",
-				TradingName: "Asian LP",
 				Currency:    "NGN",
 				Scopes:      []string{"provider"},
 			}

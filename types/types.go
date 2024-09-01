@@ -119,7 +119,6 @@ type RegisterPayload struct {
 	LastName    string   `json:"lastName" binding:"required"`
 	Email       string   `json:"email" binding:"required,email"`
 	Password    string   `json:"password" binding:"required,min=6,max=20"`
-	TradingName string   `json:"tradingName"`
 	Currency    string   `json:"currency"`
 	Scopes      []string `json:"scopes" binding:"required,dive,oneof=sender provider"`
 }

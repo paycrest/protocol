@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/paycrest/protocol/config"
+	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/fiatcurrency"
 	"github.com/paycrest/protocol/ent/providerprofile"
 	userEnt "github.com/paycrest/protocol/ent/user"
@@ -43,6 +44,8 @@ func NewAuthController() *AuthController {
 func (ctrl *AuthController) Register(ctx *gin.Context) {
 	var payload types.RegisterPayload
 
+	serverConf := config.ServerConfig()
+
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		u.APIResponse(ctx, http.StatusBadRequest, "error",
 			"Failed to validate payload", u.GetErrorData(err))
@@ -74,14 +77,20 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 
 	// Save the user
 	scope := strings.Join(payload.Scopes, " ")
-	user, err := tx.User.
+	userCreate := tx.User.
 		Create().
 		SetFirstName(payload.FirstName).
 		SetLastName(payload.LastName).
 		SetEmail(strings.ToLower(payload.Email)).
 		SetPassword(payload.Password).
-		SetScope(scope).
-		Save(ctx)
+		SetScope(scope)
+
+	if serverConf.Environment != "production" {
+		userCreate = userCreate.
+			SetIsEmailVerified(true)
+	}
+
+	user, err := userCreate.Save(ctx)
 	if err != nil {
 		_ = tx.Rollback()
 		logger.Errorf("error: %v", err)
@@ -101,9 +110,11 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 		logger.Errorf("error: %v", err)
 	}
 
-	if verificationToken != nil {
-		if _, err := ctrl.emailService.SendVerificationEmail(ctx, verificationToken.Token, user.Email, user.FirstName); err != nil {
-			logger.Errorf("error: %v", err)
+	if serverConf.Environment == "production" {
+		if verificationToken != nil {
+			if _, err := ctrl.emailService.SendVerificationEmail(ctx, verificationToken.Token, user.Email, user.FirstName); err != nil {
+				logger.Errorf("error: %v", err)
+			}
 		}
 	}
 
@@ -112,15 +123,29 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 	// Create a provider profile
 	if u.ContainsString(scopes, "provider") {
 		// Fetch currency
+		if payload.Currency == "" {
+			_ = tx.Rollback()
+			u.APIResponse(ctx, http.StatusBadRequest, "error",
+				"Currency is required for provider account", nil)
+			return
+		}
 		currency, err := tx.FiatCurrency.
 			Query().
 			Where(
 				fiatcurrency.IsEnabledEQ(true),
-				fiatcurrency.CodeEQ("NGN"),
+				fiatcurrency.CodeEQ(payload.Currency),
 			).
 			Only(ctx)
 		if err != nil {
 			_ = tx.Rollback()
+			if ent.IsNotFound(err) {
+				u.APIResponse(ctx, http.StatusBadRequest, "error",
+					"Failed to validate payload", []types.ErrorData{{
+						Field:   "Currency",
+						Message: "Currency is not supported",
+					}})
+				return
+			}
 			logger.Errorf("error: %v", err)
 			u.APIResponse(ctx, http.StatusInternalServerError, "error",
 				"Failed to create new user", nil)
@@ -185,15 +210,19 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 		return
 	}
 
-	u.APIResponse(ctx, http.StatusCreated, "success", "User created successfully",
-		&types.RegisterResponse{
-			ID:        user.ID,
-			CreatedAt: user.CreatedAt,
-			UpdatedAt: user.UpdatedAt,
-			FirstName: user.FirstName,
-			LastName:  user.LastName,
-			Email:     user.Email,
-		})
+	response := &types.RegisterResponse{
+		ID:        user.ID,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
+	}
+
+	if !user.IsEmailVerified {
+		response.Email = user.Email
+	}
+
+	u.APIResponse(ctx, http.StatusCreated, "success", "User created successfully", response)
 }
 
 // Login controller validates the payload and creates a new user.
