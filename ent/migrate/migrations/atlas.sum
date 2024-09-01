@@ -1,4 +1,4 @@
-h1:x2hNULsDIxnzNmcU00VvaQGFnlrHEzEbFWH4+nuHsY8=
+h1:FbFAyGpTjH8WPdRx7VNMDrMeMo0rqWOeUa8GyvKIMQg=
 20240118234246_initial.sql h1:dYuYBqns33WT+3p8VQvbKUP62k3k6w6h8S+FqNqgSvU=
 20240130122324_order_from_address.sql h1:mMVI2iBUd1roIYLUqu0d2jZ7+B6exppRN8qqn+aIHx4=
 20240202010744_fees_on_order.sql h1:P7ngxZKqDKefBM5vk6M3kbWeMPVwbZ4MZVcLBjEfS34=
@@ -21,3 +21,9 @@ h1:x2hNULsDIxnzNmcU00VvaQGFnlrHEzEbFWH4+nuHsY8=
 20240820211511_unique_gateway_id.sql h1:Q2q1pDpPNSUTt4zWpuMFAU+CqWMrTwagnRM8hmPlrwQ=
 20240820215151_multi_fulfillments.sql h1:tzIAvIUZ9IgzO+6Df6uicRybclEKDjbXs6bcUWb0/WI=
 20240822020854_fee_percent.sql h1:Vl6hO6F/+czwgJ1C+7Xb00UgCJhHd7DqVLZ4dcZNUcY=
+20240831223804_add_fiat_currencies_1.sql h1:CPRpvs4yry+3CP8Qjy3bCzkPMo5m+LyuVqAxLJ43onw=
+20240831223854_kes_institutions.sql h1:KJ3zNp4SrJMV9s+N8E5tY8R5UcYmGyTmGOfPQU3+S7o=
+20240831231010_ugx_institutions.sql h1:s+/hZp4CuvMm59iDdxJIwBCH/yVLQLRg9PfdxuhkzpE=
+20240831231410_tzs_institutions.sql h1:D+JU0sSUHqjPbMVoRnmZATMEkx4pvXM+k+KT3QfueAQ=
+20240831231510_xofben_institutions.sql h1:ytKaQZtLeEFQBMstVng1DuXfQ4i7HiST8v68j1V/zZ4=
+20240831231600_xofciv_institutions.sql h1:vpIl/fkT55MATm5sbwyaKeDiRophYuKJ8rJ069MFxhA=
