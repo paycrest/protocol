@@ -11,7 +11,7 @@ DECLARE
     last_bucket_id BIGINT;
 BEGIN
     -- Get the ID of the XOF-CIV fiat currency
-    SELECT "id" INTO fiat_currency_institutions
+    SELECT "id" INTO fiat_currency_id
     FROM "fiat_currencies"
     WHERE "code" = 'XOF-CIV';
 
