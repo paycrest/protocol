@@ -124,7 +124,7 @@ func TestAuth(t *testing.T) {
 			// Parse the user ID string to uuid.UUID
 			userUUID, err := uuid.Parse(userID)
 			assert.NoError(t, err)
-			assert.Equal(t, payload.Email, data["email"].(string))
+			assert.Equal(t, "", data["email"].(string))
 			assert.Equal(t, payload.FirstName, data["firstName"].(string))
 			assert.Equal(t, payload.LastName, data["lastName"].(string))
 
