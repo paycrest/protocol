@@ -83,12 +83,12 @@ func TestAuth(t *testing.T) {
 		t.Run("with valid payload and both sender and provider scopes", func(t *testing.T) {
 			// Test register with valid payload
 			payload := types.RegisterPayload{
-				FirstName:   "Ike",
-				LastName:    "Ayo",
-				Email:       "ikeayo@example.com",
-				Password:    "password",
-				Currency:    "NGN",
-				Scopes:      []string{"sender", "provider"},
+				FirstName: "Ike",
+				LastName:  "Ayo",
+				Email:     "ikeayo@example.com",
+				Password:  "password",
+				Currency:  "NGN",
+				Scopes:    []string{"sender", "provider"},
 			}
 
 			header := map[string]string{
@@ -187,7 +187,7 @@ func TestAuth(t *testing.T) {
 			// Parse the user ID string to uuid.UUID
 			userUUID, err := uuid.Parse(userID)
 			assert.NoError(t, err)
-			assert.Equal(t, payload.Email, data["email"].(string))
+			assert.Equal(t, "", data["email"].(string))
 			assert.Equal(t, payload.FirstName, data["firstName"].(string))
 			assert.Equal(t, payload.LastName, data["lastName"].(string))
 
@@ -209,12 +209,12 @@ func TestAuth(t *testing.T) {
 		t.Run("with only provider scope payload", func(t *testing.T) {
 			// Test register with valid payload
 			payload := types.RegisterPayload{
-				FirstName:   "Ike",
-				LastName:    "Ayo",
-				Email:       "ikeayo2@example.com",
-				Password:    "password2",
-				Currency:    "NGN",
-				Scopes:      []string{"provider"},
+				FirstName: "Ike",
+				LastName:  "Ayo",
+				Email:     "ikeayo2@example.com",
+				Password:  "password2",
+				Currency:  "NGN",
+				Scopes:    []string{"provider"},
 			}
 
 			header := map[string]string{
@@ -248,7 +248,7 @@ func TestAuth(t *testing.T) {
 			// Parse the user ID string to uuid.UUID
 			userUUID, err := uuid.Parse(data["id"].(string))
 			assert.NoError(t, err)
-			assert.Equal(t, payload.Email, data["email"].(string))
+			assert.Equal(t, "", data["email"].(string))
 			assert.Equal(t, payload.FirstName, data["firstName"].(string))
 			assert.Equal(t, payload.LastName, data["lastName"].(string))
 
@@ -293,12 +293,12 @@ func TestAuth(t *testing.T) {
 		t.Run("from the provider app", func(t *testing.T) {
 			// Test register with valid payload
 			payload := types.RegisterPayload{
-				FirstName:   "Ike",
-				LastName:    "Ayo",
-				Email:       "ikeayoprovider@example.com",
-				Password:    "password",
-				Currency:    "NGN",
-				Scopes:      []string{"provider"},
+				FirstName: "Ike",
+				LastName:  "Ayo",
+				Email:     "ikeayoprovider@example.com",
+				Password:  "password",
+				Currency:  "NGN",
+				Scopes:    []string{"provider"},
 			}
 
 			headers := map[string]string{
@@ -525,6 +525,14 @@ func TestAuth(t *testing.T) {
 				Email:    "ikeayo@example.com",
 				Password: "password",
 			}
+
+			// Mark user as unverified
+			_, err := db.Client.User.
+				Update().
+				Where(userEnt.EmailEQ(strings.ToLower(payload.Email))).
+				SetIsEmailVerified(false).
+				Save(context.Background())
+			assert.NoError(t, err, "failed to set isEmailVerified to false")
 
 			res, err := test.PerformRequest(t, "POST", "/login", payload, nil, router)
 			assert.NoError(t, err)
