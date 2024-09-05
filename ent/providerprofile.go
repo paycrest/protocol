@@ -28,8 +28,6 @@ type ProviderProfile struct {
 	HostIdentifier string `json:"host_identifier,omitempty"`
 	// ProvisionMode holds the value of the "provision_mode" field.
 	ProvisionMode providerprofile.ProvisionMode `json:"provision_mode,omitempty"`
-	// IsPartner holds the value of the "is_partner" field.
-	IsPartner bool `json:"is_partner,omitempty"`
 	// IsActive holds the value of the "is_active" field.
 	IsActive bool `json:"is_active,omitempty"`
 	// IsAvailable holds the value of the "is_available" field.
@@ -159,7 +157,7 @@ func (*ProviderProfile) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case providerprofile.FieldIsPartner, providerprofile.FieldIsActive, providerprofile.FieldIsAvailable, providerprofile.FieldIsKybVerified:
+		case providerprofile.FieldIsActive, providerprofile.FieldIsAvailable, providerprofile.FieldIsKybVerified:
 			values[i] = new(sql.NullBool)
 		case providerprofile.FieldID, providerprofile.FieldTradingName, providerprofile.FieldHostIdentifier, providerprofile.FieldProvisionMode, providerprofile.FieldVisibilityMode, providerprofile.FieldAddress, providerprofile.FieldMobileNumber, providerprofile.FieldBusinessName, providerprofile.FieldIdentityDocumentType, providerprofile.FieldIdentityDocument, providerprofile.FieldBusinessDocument:
 			values[i] = new(sql.NullString)
@@ -207,12 +205,6 @@ func (pp *ProviderProfile) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field provision_mode", values[i])
 			} else if value.Valid {
 				pp.ProvisionMode = providerprofile.ProvisionMode(value.String)
-			}
-		case providerprofile.FieldIsPartner:
-			if value, ok := values[i].(*sql.NullBool); !ok {
-				return fmt.Errorf("unexpected type %T for field is_partner", values[i])
-			} else if value.Valid {
-				pp.IsPartner = value.Bool
 			}
 		case providerprofile.FieldIsActive:
 			if value, ok := values[i].(*sql.NullBool); !ok {
@@ -379,9 +371,6 @@ func (pp *ProviderProfile) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("provision_mode=")
 	builder.WriteString(fmt.Sprintf("%v", pp.ProvisionMode))
-	builder.WriteString(", ")
-	builder.WriteString("is_partner=")
-	builder.WriteString(fmt.Sprintf("%v", pp.IsPartner))
 	builder.WriteString(", ")
 	builder.WriteString("is_active=")
 	builder.WriteString(fmt.Sprintf("%v", pp.IsActive))

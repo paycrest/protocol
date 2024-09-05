@@ -23,6 +23,7 @@ func (SenderProfile) Fields() []ent.Field {
 		field.String("webhook_url").Optional(),
 		field.Strings("domain_whitelist").
 			Default([]string{}),
+		field.String("provider_id").Optional(),
 		field.Bool("is_partner").Default(false),
 		field.Bool("is_active").
 			Default(false),

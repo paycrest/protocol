@@ -21,8 +21,6 @@ const (
 	FieldHostIdentifier = "host_identifier"
 	// FieldProvisionMode holds the string denoting the provision_mode field in the database.
 	FieldProvisionMode = "provision_mode"
-	// FieldIsPartner holds the string denoting the is_partner field in the database.
-	FieldIsPartner = "is_partner"
 	// FieldIsActive holds the string denoting the is_active field in the database.
 	FieldIsActive = "is_active"
 	// FieldIsAvailable holds the string denoting the is_available field in the database.
@@ -118,7 +116,6 @@ var Columns = []string{
 	FieldTradingName,
 	FieldHostIdentifier,
 	FieldProvisionMode,
-	FieldIsPartner,
 	FieldIsActive,
 	FieldIsAvailable,
 	FieldUpdatedAt,
@@ -164,8 +161,6 @@ func ValidColumn(column string) bool {
 var (
 	// TradingNameValidator is a validator for the "trading_name" field. It is called by the builders before save.
 	TradingNameValidator func(string) error
-	// DefaultIsPartner holds the default value on creation for the "is_partner" field.
-	DefaultIsPartner bool
 	// DefaultIsActive holds the default value on creation for the "is_active" field.
 	DefaultIsActive bool
 	// DefaultIsAvailable holds the default value on creation for the "is_available" field.
@@ -277,11 +272,6 @@ func ByHostIdentifier(opts ...sql.OrderTermOption) OrderOption {
 // ByProvisionMode orders the results by the provision_mode field.
 func ByProvisionMode(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldProvisionMode, opts...).ToFunc()
-}
-
-// ByIsPartner orders the results by the is_partner field.
-func ByIsPartner(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldIsPartner, opts...).ToFunc()
 }
 
 // ByIsActive orders the results by the is_active field.

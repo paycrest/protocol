@@ -28,7 +28,6 @@ func (ProviderProfile) Fields() []ent.Field {
 		field.Enum("provision_mode").
 			Values("manual", "auto").
 			Default("auto"),
-		field.Bool("is_partner").Default(false),
 		field.Bool("is_active").
 			Default(false),
 		field.Bool("is_available").

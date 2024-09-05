@@ -541,7 +541,10 @@ func (ctrl *ProviderController) GetMarketRate(ctx *gin.Context) {
 	// Parse path parameters
 	tokenExists, err := storage.Client.Token.
 		Query().
-		Where(token.Symbol(strings.ToUpper(ctx.Param("token")))).
+		Where(
+			token.SymbolEQ(strings.ToUpper(ctx.Param("token"))),
+			token.IsEnabledEQ(true),
+		).
 		Exist(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)

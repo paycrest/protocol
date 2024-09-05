@@ -48,6 +48,20 @@ func (spc *SenderProfileCreate) SetDomainWhitelist(s []string) *SenderProfileCre
 	return spc
 }
 
+// SetProviderID sets the "provider_id" field.
+func (spc *SenderProfileCreate) SetProviderID(s string) *SenderProfileCreate {
+	spc.mutation.SetProviderID(s)
+	return spc
+}
+
+// SetNillableProviderID sets the "provider_id" field if the given value is not nil.
+func (spc *SenderProfileCreate) SetNillableProviderID(s *string) *SenderProfileCreate {
+	if s != nil {
+		spc.SetProviderID(*s)
+	}
+	return spc
+}
+
 // SetIsPartner sets the "is_partner" field.
 func (spc *SenderProfileCreate) SetIsPartner(b bool) *SenderProfileCreate {
 	spc.mutation.SetIsPartner(b)
@@ -282,6 +296,10 @@ func (spc *SenderProfileCreate) createSpec() (*SenderProfile, *sqlgraph.CreateSp
 		_spec.SetField(senderprofile.FieldDomainWhitelist, field.TypeJSON, value)
 		_node.DomainWhitelist = value
 	}
+	if value, ok := spc.mutation.ProviderID(); ok {
+		_spec.SetField(senderprofile.FieldProviderID, field.TypeString, value)
+		_node.ProviderID = value
+	}
 	if value, ok := spc.mutation.IsPartner(); ok {
 		_spec.SetField(senderprofile.FieldIsPartner, field.TypeBool, value)
 		_node.IsPartner = value
@@ -441,6 +459,24 @@ func (u *SenderProfileUpsert) UpdateDomainWhitelist() *SenderProfileUpsert {
 	return u
 }
 
+// SetProviderID sets the "provider_id" field.
+func (u *SenderProfileUpsert) SetProviderID(v string) *SenderProfileUpsert {
+	u.Set(senderprofile.FieldProviderID, v)
+	return u
+}
+
+// UpdateProviderID sets the "provider_id" field to the value that was provided on create.
+func (u *SenderProfileUpsert) UpdateProviderID() *SenderProfileUpsert {
+	u.SetExcluded(senderprofile.FieldProviderID)
+	return u
+}
+
+// ClearProviderID clears the value of the "provider_id" field.
+func (u *SenderProfileUpsert) ClearProviderID() *SenderProfileUpsert {
+	u.SetNull(senderprofile.FieldProviderID)
+	return u
+}
+
 // SetIsPartner sets the "is_partner" field.
 func (u *SenderProfileUpsert) SetIsPartner(v bool) *SenderProfileUpsert {
 	u.Set(senderprofile.FieldIsPartner, v)
@@ -557,6 +593,27 @@ func (u *SenderProfileUpsertOne) SetDomainWhitelist(v []string) *SenderProfileUp
 func (u *SenderProfileUpsertOne) UpdateDomainWhitelist() *SenderProfileUpsertOne {
 	return u.Update(func(s *SenderProfileUpsert) {
 		s.UpdateDomainWhitelist()
+	})
+}
+
+// SetProviderID sets the "provider_id" field.
+func (u *SenderProfileUpsertOne) SetProviderID(v string) *SenderProfileUpsertOne {
+	return u.Update(func(s *SenderProfileUpsert) {
+		s.SetProviderID(v)
+	})
+}
+
+// UpdateProviderID sets the "provider_id" field to the value that was provided on create.
+func (u *SenderProfileUpsertOne) UpdateProviderID() *SenderProfileUpsertOne {
+	return u.Update(func(s *SenderProfileUpsert) {
+		s.UpdateProviderID()
+	})
+}
+
+// ClearProviderID clears the value of the "provider_id" field.
+func (u *SenderProfileUpsertOne) ClearProviderID() *SenderProfileUpsertOne {
+	return u.Update(func(s *SenderProfileUpsert) {
+		s.ClearProviderID()
 	})
 }
 
@@ -849,6 +906,27 @@ func (u *SenderProfileUpsertBulk) SetDomainWhitelist(v []string) *SenderProfileU
 func (u *SenderProfileUpsertBulk) UpdateDomainWhitelist() *SenderProfileUpsertBulk {
 	return u.Update(func(s *SenderProfileUpsert) {
 		s.UpdateDomainWhitelist()
+	})
+}
+
+// SetProviderID sets the "provider_id" field.
+func (u *SenderProfileUpsertBulk) SetProviderID(v string) *SenderProfileUpsertBulk {
+	return u.Update(func(s *SenderProfileUpsert) {
+		s.SetProviderID(v)
+	})
+}
+
+// UpdateProviderID sets the "provider_id" field to the value that was provided on create.
+func (u *SenderProfileUpsertBulk) UpdateProviderID() *SenderProfileUpsertBulk {
+	return u.Update(func(s *SenderProfileUpsert) {
+		s.UpdateProviderID()
+	})
+}
+
+// ClearProviderID clears the value of the "provider_id" field.
+func (u *SenderProfileUpsertBulk) ClearProviderID() *SenderProfileUpsertBulk {
+	return u.Update(func(s *SenderProfileUpsert) {
+		s.ClearProviderID()
 	})
 }
 

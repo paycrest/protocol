@@ -89,20 +89,6 @@ func (ppu *ProviderProfileUpdate) SetNillableProvisionMode(pm *providerprofile.P
 	return ppu
 }
 
-// SetIsPartner sets the "is_partner" field.
-func (ppu *ProviderProfileUpdate) SetIsPartner(b bool) *ProviderProfileUpdate {
-	ppu.mutation.SetIsPartner(b)
-	return ppu
-}
-
-// SetNillableIsPartner sets the "is_partner" field if the given value is not nil.
-func (ppu *ProviderProfileUpdate) SetNillableIsPartner(b *bool) *ProviderProfileUpdate {
-	if b != nil {
-		ppu.SetIsPartner(*b)
-	}
-	return ppu
-}
-
 // SetIsActive sets the "is_active" field.
 func (ppu *ProviderProfileUpdate) SetIsActive(b bool) *ProviderProfileUpdate {
 	ppu.mutation.SetIsActive(b)
@@ -579,9 +565,6 @@ func (ppu *ProviderProfileUpdate) sqlSave(ctx context.Context) (n int, err error
 	if value, ok := ppu.mutation.ProvisionMode(); ok {
 		_spec.SetField(providerprofile.FieldProvisionMode, field.TypeEnum, value)
 	}
-	if value, ok := ppu.mutation.IsPartner(); ok {
-		_spec.SetField(providerprofile.FieldIsPartner, field.TypeBool, value)
-	}
 	if value, ok := ppu.mutation.IsActive(); ok {
 		_spec.SetField(providerprofile.FieldIsActive, field.TypeBool, value)
 	}
@@ -931,20 +914,6 @@ func (ppuo *ProviderProfileUpdateOne) SetProvisionMode(pm providerprofile.Provis
 func (ppuo *ProviderProfileUpdateOne) SetNillableProvisionMode(pm *providerprofile.ProvisionMode) *ProviderProfileUpdateOne {
 	if pm != nil {
 		ppuo.SetProvisionMode(*pm)
-	}
-	return ppuo
-}
-
-// SetIsPartner sets the "is_partner" field.
-func (ppuo *ProviderProfileUpdateOne) SetIsPartner(b bool) *ProviderProfileUpdateOne {
-	ppuo.mutation.SetIsPartner(b)
-	return ppuo
-}
-
-// SetNillableIsPartner sets the "is_partner" field if the given value is not nil.
-func (ppuo *ProviderProfileUpdateOne) SetNillableIsPartner(b *bool) *ProviderProfileUpdateOne {
-	if b != nil {
-		ppuo.SetIsPartner(*b)
 	}
 	return ppuo
 }
@@ -1454,9 +1423,6 @@ func (ppuo *ProviderProfileUpdateOne) sqlSave(ctx context.Context) (_node *Provi
 	}
 	if value, ok := ppuo.mutation.ProvisionMode(); ok {
 		_spec.SetField(providerprofile.FieldProvisionMode, field.TypeEnum, value)
-	}
-	if value, ok := ppuo.mutation.IsPartner(); ok {
-		_spec.SetField(providerprofile.FieldIsPartner, field.TypeBool, value)
 	}
 	if value, ok := ppuo.mutation.IsActive(); ok {
 		_spec.SetField(providerprofile.FieldIsActive, field.TypeBool, value)
