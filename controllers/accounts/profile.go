@@ -264,12 +264,6 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 		update.SetCurrency(currency)
 	}
 
-	if payload.IsPartner {
-		update.SetIsPartner(true)
-	} else {
-		update.SetIsPartner(false)
-	}
-
 	if payload.VisibilityMode != "" {
 		update.SetVisibilityMode(providerprofile.VisibilityMode(payload.VisibilityMode))
 	}
@@ -630,7 +624,6 @@ func (ctrl *ProfileController) GetProviderProfile(ctx *gin.Context) {
 		TradingName:          provider.TradingName,
 		Currency:             currency.Code,
 		HostIdentifier:       provider.HostIdentifier,
-		IsPartner:            provider.IsPartner,
 		IsAvailable:          provider.IsAvailable,
 		Tokens:               tokensPayload,
 		APIKey:               *apiKey,
