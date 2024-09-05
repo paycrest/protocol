@@ -213,26 +213,22 @@ func init() {
 	providerprofileDescTradingName := providerprofileFields[1].Descriptor()
 	// providerprofile.TradingNameValidator is a validator for the "trading_name" field. It is called by the builders before save.
 	providerprofile.TradingNameValidator = providerprofileDescTradingName.Validators[0].(func(string) error)
-	// providerprofileDescIsPartner is the schema descriptor for is_partner field.
-	providerprofileDescIsPartner := providerprofileFields[4].Descriptor()
-	// providerprofile.DefaultIsPartner holds the default value on creation for the is_partner field.
-	providerprofile.DefaultIsPartner = providerprofileDescIsPartner.Default.(bool)
 	// providerprofileDescIsActive is the schema descriptor for is_active field.
-	providerprofileDescIsActive := providerprofileFields[5].Descriptor()
+	providerprofileDescIsActive := providerprofileFields[4].Descriptor()
 	// providerprofile.DefaultIsActive holds the default value on creation for the is_active field.
 	providerprofile.DefaultIsActive = providerprofileDescIsActive.Default.(bool)
 	// providerprofileDescIsAvailable is the schema descriptor for is_available field.
-	providerprofileDescIsAvailable := providerprofileFields[6].Descriptor()
+	providerprofileDescIsAvailable := providerprofileFields[5].Descriptor()
 	// providerprofile.DefaultIsAvailable holds the default value on creation for the is_available field.
 	providerprofile.DefaultIsAvailable = providerprofileDescIsAvailable.Default.(bool)
 	// providerprofileDescUpdatedAt is the schema descriptor for updated_at field.
-	providerprofileDescUpdatedAt := providerprofileFields[7].Descriptor()
+	providerprofileDescUpdatedAt := providerprofileFields[6].Descriptor()
 	// providerprofile.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	providerprofile.DefaultUpdatedAt = providerprofileDescUpdatedAt.Default.(func() time.Time)
 	// providerprofile.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	providerprofile.UpdateDefaultUpdatedAt = providerprofileDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// providerprofileDescIsKybVerified is the schema descriptor for is_kyb_verified field.
-	providerprofileDescIsKybVerified := providerprofileFields[16].Descriptor()
+	providerprofileDescIsKybVerified := providerprofileFields[15].Descriptor()
 	// providerprofile.DefaultIsKybVerified holds the default value on creation for the is_kyb_verified field.
 	providerprofile.DefaultIsKybVerified = providerprofileDescIsKybVerified.Default.(bool)
 	// providerprofileDescID is the schema descriptor for id field.
@@ -309,15 +305,15 @@ func init() {
 	// senderprofile.DefaultDomainWhitelist holds the default value on creation for the domain_whitelist field.
 	senderprofile.DefaultDomainWhitelist = senderprofileDescDomainWhitelist.Default.([]string)
 	// senderprofileDescIsPartner is the schema descriptor for is_partner field.
-	senderprofileDescIsPartner := senderprofileFields[3].Descriptor()
+	senderprofileDescIsPartner := senderprofileFields[4].Descriptor()
 	// senderprofile.DefaultIsPartner holds the default value on creation for the is_partner field.
 	senderprofile.DefaultIsPartner = senderprofileDescIsPartner.Default.(bool)
 	// senderprofileDescIsActive is the schema descriptor for is_active field.
-	senderprofileDescIsActive := senderprofileFields[4].Descriptor()
+	senderprofileDescIsActive := senderprofileFields[5].Descriptor()
 	// senderprofile.DefaultIsActive holds the default value on creation for the is_active field.
 	senderprofile.DefaultIsActive = senderprofileDescIsActive.Default.(bool)
 	// senderprofileDescUpdatedAt is the schema descriptor for updated_at field.
-	senderprofileDescUpdatedAt := senderprofileFields[5].Descriptor()
+	senderprofileDescUpdatedAt := senderprofileFields[6].Descriptor()
 	// senderprofile.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	senderprofile.DefaultUpdatedAt = senderprofileDescUpdatedAt.Default.(func() time.Time)
 	// senderprofile.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

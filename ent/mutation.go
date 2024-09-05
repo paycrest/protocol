@@ -5659,8 +5659,8 @@ type PaymentOrderMutation struct {
 	from_address           *string
 	return_address         *string
 	receive_address_text   *string
-	fee_percent     *decimal.Decimal
-	addfee_percent  *decimal.Decimal
+	fee_percent            *decimal.Decimal
+	addfee_percent         *decimal.Decimal
 	fee_address            *string
 	gateway_id             *string
 	status                 *paymentorder.Status
@@ -9352,7 +9352,6 @@ type ProviderProfileMutation struct {
 	trading_name             *string
 	host_identifier          *string
 	provision_mode           *providerprofile.ProvisionMode
-	is_partner               *bool
 	is_active                *bool
 	is_available             *bool
 	updated_at               *time.Time
@@ -9624,42 +9623,6 @@ func (m *ProviderProfileMutation) OldProvisionMode(ctx context.Context) (v provi
 // ResetProvisionMode resets all changes to the "provision_mode" field.
 func (m *ProviderProfileMutation) ResetProvisionMode() {
 	m.provision_mode = nil
-}
-
-// SetIsPartner sets the "is_partner" field.
-func (m *ProviderProfileMutation) SetIsPartner(b bool) {
-	m.is_partner = &b
-}
-
-// IsPartner returns the value of the "is_partner" field in the mutation.
-func (m *ProviderProfileMutation) IsPartner() (r bool, exists bool) {
-	v := m.is_partner
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldIsPartner returns the old "is_partner" field's value of the ProviderProfile entity.
-// If the ProviderProfile object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ProviderProfileMutation) OldIsPartner(ctx context.Context) (v bool, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldIsPartner is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldIsPartner requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldIsPartner: %w", err)
-	}
-	return oldValue.IsPartner, nil
-}
-
-// ResetIsPartner resets all changes to the "is_partner" field.
-func (m *ProviderProfileMutation) ResetIsPartner() {
-	m.is_partner = nil
 }
 
 // SetIsActive sets the "is_active" field.
@@ -10537,7 +10500,7 @@ func (m *ProviderProfileMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ProviderProfileMutation) Fields() []string {
-	fields := make([]string, 0, 16)
+	fields := make([]string, 0, 15)
 	if m.trading_name != nil {
 		fields = append(fields, providerprofile.FieldTradingName)
 	}
@@ -10546,9 +10509,6 @@ func (m *ProviderProfileMutation) Fields() []string {
 	}
 	if m.provision_mode != nil {
 		fields = append(fields, providerprofile.FieldProvisionMode)
-	}
-	if m.is_partner != nil {
-		fields = append(fields, providerprofile.FieldIsPartner)
 	}
 	if m.is_active != nil {
 		fields = append(fields, providerprofile.FieldIsActive)
@@ -10600,8 +10560,6 @@ func (m *ProviderProfileMutation) Field(name string) (ent.Value, bool) {
 		return m.HostIdentifier()
 	case providerprofile.FieldProvisionMode:
 		return m.ProvisionMode()
-	case providerprofile.FieldIsPartner:
-		return m.IsPartner()
 	case providerprofile.FieldIsActive:
 		return m.IsActive()
 	case providerprofile.FieldIsAvailable:
@@ -10641,8 +10599,6 @@ func (m *ProviderProfileMutation) OldField(ctx context.Context, name string) (en
 		return m.OldHostIdentifier(ctx)
 	case providerprofile.FieldProvisionMode:
 		return m.OldProvisionMode(ctx)
-	case providerprofile.FieldIsPartner:
-		return m.OldIsPartner(ctx)
 	case providerprofile.FieldIsActive:
 		return m.OldIsActive(ctx)
 	case providerprofile.FieldIsAvailable:
@@ -10696,13 +10652,6 @@ func (m *ProviderProfileMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetProvisionMode(v)
-		return nil
-	case providerprofile.FieldIsPartner:
-		v, ok := value.(bool)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetIsPartner(v)
 		return nil
 	case providerprofile.FieldIsActive:
 		v, ok := value.(bool)
@@ -10902,9 +10851,6 @@ func (m *ProviderProfileMutation) ResetField(name string) error {
 		return nil
 	case providerprofile.FieldProvisionMode:
 		m.ResetProvisionMode()
-		return nil
-	case providerprofile.FieldIsPartner:
-		m.ResetIsPartner()
 		return nil
 	case providerprofile.FieldIsActive:
 		m.ResetIsActive()
@@ -14083,6 +14029,7 @@ type SenderProfileMutation struct {
 	webhook_url            *string
 	domain_whitelist       *[]string
 	appenddomain_whitelist []string
+	provider_id            *string
 	is_partner             *bool
 	is_active              *bool
 	updated_at             *time.Time
@@ -14304,6 +14251,55 @@ func (m *SenderProfileMutation) AppendedDomainWhitelist() ([]string, bool) {
 func (m *SenderProfileMutation) ResetDomainWhitelist() {
 	m.domain_whitelist = nil
 	m.appenddomain_whitelist = nil
+}
+
+// SetProviderID sets the "provider_id" field.
+func (m *SenderProfileMutation) SetProviderID(s string) {
+	m.provider_id = &s
+}
+
+// ProviderID returns the value of the "provider_id" field in the mutation.
+func (m *SenderProfileMutation) ProviderID() (r string, exists bool) {
+	v := m.provider_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldProviderID returns the old "provider_id" field's value of the SenderProfile entity.
+// If the SenderProfile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SenderProfileMutation) OldProviderID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldProviderID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldProviderID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldProviderID: %w", err)
+	}
+	return oldValue.ProviderID, nil
+}
+
+// ClearProviderID clears the value of the "provider_id" field.
+func (m *SenderProfileMutation) ClearProviderID() {
+	m.provider_id = nil
+	m.clearedFields[senderprofile.FieldProviderID] = struct{}{}
+}
+
+// ProviderIDCleared returns if the "provider_id" field was cleared in this mutation.
+func (m *SenderProfileMutation) ProviderIDCleared() bool {
+	_, ok := m.clearedFields[senderprofile.FieldProviderID]
+	return ok
+}
+
+// ResetProviderID resets all changes to the "provider_id" field.
+func (m *SenderProfileMutation) ResetProviderID() {
+	m.provider_id = nil
+	delete(m.clearedFields, senderprofile.FieldProviderID)
 }
 
 // SetIsPartner sets the "is_partner" field.
@@ -14634,12 +14630,15 @@ func (m *SenderProfileMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *SenderProfileMutation) Fields() []string {
-	fields := make([]string, 0, 5)
+	fields := make([]string, 0, 6)
 	if m.webhook_url != nil {
 		fields = append(fields, senderprofile.FieldWebhookURL)
 	}
 	if m.domain_whitelist != nil {
 		fields = append(fields, senderprofile.FieldDomainWhitelist)
+	}
+	if m.provider_id != nil {
+		fields = append(fields, senderprofile.FieldProviderID)
 	}
 	if m.is_partner != nil {
 		fields = append(fields, senderprofile.FieldIsPartner)
@@ -14662,6 +14661,8 @@ func (m *SenderProfileMutation) Field(name string) (ent.Value, bool) {
 		return m.WebhookURL()
 	case senderprofile.FieldDomainWhitelist:
 		return m.DomainWhitelist()
+	case senderprofile.FieldProviderID:
+		return m.ProviderID()
 	case senderprofile.FieldIsPartner:
 		return m.IsPartner()
 	case senderprofile.FieldIsActive:
@@ -14681,6 +14682,8 @@ func (m *SenderProfileMutation) OldField(ctx context.Context, name string) (ent.
 		return m.OldWebhookURL(ctx)
 	case senderprofile.FieldDomainWhitelist:
 		return m.OldDomainWhitelist(ctx)
+	case senderprofile.FieldProviderID:
+		return m.OldProviderID(ctx)
 	case senderprofile.FieldIsPartner:
 		return m.OldIsPartner(ctx)
 	case senderprofile.FieldIsActive:
@@ -14709,6 +14712,13 @@ func (m *SenderProfileMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetDomainWhitelist(v)
+		return nil
+	case senderprofile.FieldProviderID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetProviderID(v)
 		return nil
 	case senderprofile.FieldIsPartner:
 		v, ok := value.(bool)
@@ -14764,6 +14774,9 @@ func (m *SenderProfileMutation) ClearedFields() []string {
 	if m.FieldCleared(senderprofile.FieldWebhookURL) {
 		fields = append(fields, senderprofile.FieldWebhookURL)
 	}
+	if m.FieldCleared(senderprofile.FieldProviderID) {
+		fields = append(fields, senderprofile.FieldProviderID)
+	}
 	return fields
 }
 
@@ -14781,6 +14794,9 @@ func (m *SenderProfileMutation) ClearField(name string) error {
 	case senderprofile.FieldWebhookURL:
 		m.ClearWebhookURL()
 		return nil
+	case senderprofile.FieldProviderID:
+		m.ClearProviderID()
+		return nil
 	}
 	return fmt.Errorf("unknown SenderProfile nullable field %s", name)
 }
@@ -14794,6 +14810,9 @@ func (m *SenderProfileMutation) ResetField(name string) error {
 		return nil
 	case senderprofile.FieldDomainWhitelist:
 		m.ResetDomainWhitelist()
+		return nil
+	case senderprofile.FieldProviderID:
+		m.ResetProviderID()
 		return nil
 	case senderprofile.FieldIsPartner:
 		m.ResetIsPartner()

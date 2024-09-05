@@ -744,9 +744,6 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 
 	go func() {
 		timeToWait := 2 * time.Second
-		// if network.Identifier == "bnb-smart-chain" {
-		// 	timeToWait = 5 * time.Second
-		// }
 
 		time.Sleep(timeToWait)
 		_ = utils.Retry(50, timeToWait, func() error {
@@ -843,31 +840,55 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 
 	// Check if order is private
 	isPrivate := false
+	isTokenNetworkPresent := false
 	maxOrderAmount := decimal.NewFromInt(0)
+	minOrderAmount := decimal.NewFromInt(0)
 	if lockPaymentOrder.ProviderID != "" {
 		providerProfile, err := db.Client.ProviderProfile.
 			Query().
 			Where(
 				providerprofile.IDEQ(recipient.ProviderID),
+				providerprofile.HasCurrencyWith(
+					fiatcurrency.Code(institution.Edges.FiatCurrency.Code),
+				),
 			).
 			WithOrderTokens().
 			Only(ctx)
 		if err != nil {
+			err := s.order.RefundOrder(ctx, client, lockPaymentOrder.GatewayID)
+			if err != nil {
+				return fmt.Errorf("Invalid.RefundOrder: %w", err)
+			}
 			return fmt.Errorf("failed to fetch provider: %w", err)
 		}
-		maxOrderAmount = providerProfile.Edges.OrderTokens[0].MaxOrderAmount
 
 		if providerProfile.VisibilityMode == providerprofile.VisibilityModePrivate {
 			isPrivate = true
 		}
+
+	out:
+		for _, orderToken := range providerProfile.Edges.OrderTokens {
+			for _, address := range orderToken.Addresses {
+				if address.Network == token.Edges.Network.Identifier {
+					isTokenNetworkPresent = true
+					break out
+				}
+			}
+		}
+
+		if !isTokenNetworkPresent {
+			err := s.handleCancellation(ctx, client, lockPaymentOrder, "network is not supported by the specified provider")
+			if err != nil {
+				return fmt.Errorf("network is not supported by the specified provider: %w", err)
+			}
+			return nil
+		}
+
+		maxOrderAmount = providerProfile.Edges.OrderTokens[0].MaxOrderAmount
+		minOrderAmount = providerProfile.Edges.OrderTokens[0].MinOrderAmount
 	}
 
 	if provisionBucket == nil && !isPrivate {
-		if institution.Edges.FiatCurrency == nil || !institution.Edges.FiatCurrency.IsEnabled {
-			return fmt.Errorf("failed to fetch an active fiat currency")
-		}
-		currency := institution.Edges.FiatCurrency
-
 		// Split lock payment order into multiple orders
 		err = s.splitLockPaymentOrder(
 			ctx, client, lockPaymentOrder, currency,
@@ -882,7 +903,7 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 			return fmt.Errorf("%s failed to initiate db transaction %w", lockPaymentOrder.GatewayID, err)
 		}
 
-		transactionLog, err := tx.TransactionLog.
+		transactionLog, err := db.Client.TransactionLog.
 			Create().
 			SetStatus(transactionlog.StatusOrderCreated).
 			SetTxHash(lockPaymentOrder.TxHash).
@@ -890,12 +911,12 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 			SetGatewayID(lockPaymentOrder.GatewayID).
 			SetMetadata(
 				map[string]interface{}{
-					"Token":           token,
-					"GatewayID":       gatewayId,
-					"Amount":          amountInDecimals,
-					"Rate":            rate,
-					"Memo":            recipient.Memo,
-					"ProvisionBucket": provisionBucket,
+					"Token":           lockPaymentOrder.Token,
+					"GatewayID":       lockPaymentOrder.GatewayID,
+					"Amount":          lockPaymentOrder.Amount,
+					"Rate":            lockPaymentOrder.Rate,
+					"Memo":            lockPaymentOrder.Memo,
+					"ProvisionBucket": lockPaymentOrder.ProvisionBucket,
 					"ProviderID":      lockPaymentOrder.ProviderID,
 				}).
 			Save(ctx)
@@ -942,7 +963,7 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 			}
 
 			if !ok && err == nil {
-				err := s.order.RefundOrder(ctx, client, lockPaymentOrder.GatewayID)
+				err := s.handleCancellation(ctx, client, lockPaymentOrder, "AML compliance check failed")
 				if err != nil {
 					return fmt.Errorf("checkAMLCompliance.RefundOrder: %w", err)
 				}
@@ -952,15 +973,55 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 
 		// Assign the lock payment order to a provider
 		if isPrivate && lockPaymentOrder.Amount.GreaterThan(maxOrderAmount) {
-			err := s.order.RefundOrder(ctx, client, lockPaymentOrder.GatewayID)
+			err := s.handleCancellation(ctx, client, lockPaymentOrder, "Amount is greater than the maximum order amount")
 			if err != nil {
-				return fmt.Errorf("failed to refund order: %w", err)
+				return fmt.Errorf("failed to cancel order: %w", err)
+			}
+			return nil
+		} else if lockPaymentOrder.Amount.LessThan(minOrderAmount) {
+			err := s.handleCancellation(ctx, client, lockPaymentOrder, "Amount is less than the minimum order amount")
+			if err != nil {
+				return fmt.Errorf("failed to cancel order: %w", err)
 			}
 			return nil
 		} else {
 			lockPaymentOrder.ID = orderCreated.ID
 			_ = s.priorityQueue.AssignLockPaymentOrder(ctx, lockPaymentOrder)
 		}
+	}
+
+	return nil
+}
+
+// handleCancellation handles the cancellation of a lock payment order
+func (s *IndexerService) handleCancellation(ctx context.Context, client types.RPCClient, lockPaymentOrder types.LockPaymentOrderFields, cancellationReason string) error {
+	// Create lock payment order in db
+	order, err := db.Client.LockPaymentOrder.
+		Create().
+		SetToken(lockPaymentOrder.Token).
+		SetGatewayID(lockPaymentOrder.GatewayID).
+		SetAmount(lockPaymentOrder.Amount).
+		SetRate(lockPaymentOrder.Rate).
+		SetOrderPercent(decimal.NewFromInt(100)).
+		SetBlockNumber(lockPaymentOrder.BlockNumber).
+		SetTxHash(lockPaymentOrder.TxHash).
+		SetInstitution(lockPaymentOrder.Institution).
+		SetAccountIdentifier(lockPaymentOrder.AccountIdentifier).
+		SetAccountName(lockPaymentOrder.AccountName).
+		SetMemo(lockPaymentOrder.Memo).
+		SetProvisionBucket(lockPaymentOrder.ProvisionBucket).
+		SetCancellationCount(3).
+		SetCancellationReasons([]string{cancellationReason}).
+		SetStatus(lockpaymentorder.StatusCancelled).
+		Save(ctx)
+	if err != nil {
+		return fmt.Errorf("%s - failed to create lock payment order: %w", lockPaymentOrder.GatewayID, err)
+	}
+
+	// Attempt to refund the order
+	err = s.order.RefundOrder(ctx, client, lockPaymentOrder.GatewayID)
+	if err != nil {
+		logger.Errorf("handleCancellation.RefundOrder(%v): %v", order.ID, err)
 	}
 
 	return nil
@@ -1310,7 +1371,7 @@ func (s *IndexerService) UpdateReceiveAddressStatus(
 					return true, fmt.Errorf("UpdateReceiveAddressStatus.db: %v", err)
 				}
 
-				rate, err := s.priorityQueue.GetProviderRate(ctx, providerProfile)
+				rate, err := s.priorityQueue.GetProviderRate(ctx, providerProfile, paymentOrder.Edges.Token.Symbol)
 				if err != nil {
 					return true, fmt.Errorf("UpdateReceiveAddressStatus.db: %v", err)
 				}
@@ -1330,7 +1391,6 @@ func (s *IndexerService) UpdateReceiveAddressStatus(
 				"transactionData": event,
 			}).
 			Save(ctx)
-
 		if err != nil {
 			return true, fmt.Errorf("UpdateReceiveAddressStatus.transactionlog: %v", err)
 		}

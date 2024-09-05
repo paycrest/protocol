@@ -65,6 +65,26 @@ func (spu *SenderProfileUpdate) AppendDomainWhitelist(s []string) *SenderProfile
 	return spu
 }
 
+// SetProviderID sets the "provider_id" field.
+func (spu *SenderProfileUpdate) SetProviderID(s string) *SenderProfileUpdate {
+	spu.mutation.SetProviderID(s)
+	return spu
+}
+
+// SetNillableProviderID sets the "provider_id" field if the given value is not nil.
+func (spu *SenderProfileUpdate) SetNillableProviderID(s *string) *SenderProfileUpdate {
+	if s != nil {
+		spu.SetProviderID(*s)
+	}
+	return spu
+}
+
+// ClearProviderID clears the value of the "provider_id" field.
+func (spu *SenderProfileUpdate) ClearProviderID() *SenderProfileUpdate {
+	spu.mutation.ClearProviderID()
+	return spu
+}
+
 // SetIsPartner sets the "is_partner" field.
 func (spu *SenderProfileUpdate) SetIsPartner(b bool) *SenderProfileUpdate {
 	spu.mutation.SetIsPartner(b)
@@ -271,6 +291,12 @@ func (spu *SenderProfileUpdate) sqlSave(ctx context.Context) (n int, err error) 
 			sqljson.Append(u, senderprofile.FieldDomainWhitelist, value)
 		})
 	}
+	if value, ok := spu.mutation.ProviderID(); ok {
+		_spec.SetField(senderprofile.FieldProviderID, field.TypeString, value)
+	}
+	if spu.mutation.ProviderIDCleared() {
+		_spec.ClearField(senderprofile.FieldProviderID, field.TypeString)
+	}
 	if value, ok := spu.mutation.IsPartner(); ok {
 		_spec.SetField(senderprofile.FieldIsPartner, field.TypeBool, value)
 	}
@@ -448,6 +474,26 @@ func (spuo *SenderProfileUpdateOne) SetDomainWhitelist(s []string) *SenderProfil
 // AppendDomainWhitelist appends s to the "domain_whitelist" field.
 func (spuo *SenderProfileUpdateOne) AppendDomainWhitelist(s []string) *SenderProfileUpdateOne {
 	spuo.mutation.AppendDomainWhitelist(s)
+	return spuo
+}
+
+// SetProviderID sets the "provider_id" field.
+func (spuo *SenderProfileUpdateOne) SetProviderID(s string) *SenderProfileUpdateOne {
+	spuo.mutation.SetProviderID(s)
+	return spuo
+}
+
+// SetNillableProviderID sets the "provider_id" field if the given value is not nil.
+func (spuo *SenderProfileUpdateOne) SetNillableProviderID(s *string) *SenderProfileUpdateOne {
+	if s != nil {
+		spuo.SetProviderID(*s)
+	}
+	return spuo
+}
+
+// ClearProviderID clears the value of the "provider_id" field.
+func (spuo *SenderProfileUpdateOne) ClearProviderID() *SenderProfileUpdateOne {
+	spuo.mutation.ClearProviderID()
 	return spuo
 }
 
@@ -686,6 +732,12 @@ func (spuo *SenderProfileUpdateOne) sqlSave(ctx context.Context) (_node *SenderP
 		_spec.AddModifier(func(u *sql.UpdateBuilder) {
 			sqljson.Append(u, senderprofile.FieldDomainWhitelist, value)
 		})
+	}
+	if value, ok := spuo.mutation.ProviderID(); ok {
+		_spec.SetField(senderprofile.FieldProviderID, field.TypeString, value)
+	}
+	if spuo.mutation.ProviderIDCleared() {
+		_spec.ClearField(senderprofile.FieldProviderID, field.TypeString)
 	}
 	if value, ok := spuo.mutation.IsPartner(); ok {
 		_spec.SetField(senderprofile.FieldIsPartner, field.TypeBool, value)

@@ -280,7 +280,6 @@ var (
 		{Name: "trading_name", Type: field.TypeString, Nullable: true, Size: 80},
 		{Name: "host_identifier", Type: field.TypeString, Nullable: true},
 		{Name: "provision_mode", Type: field.TypeEnum, Enums: []string{"manual", "auto"}, Default: "auto"},
-		{Name: "is_partner", Type: field.TypeBool, Default: false},
 		{Name: "is_active", Type: field.TypeBool, Default: false},
 		{Name: "is_available", Type: field.TypeBool, Default: false},
 		{Name: "updated_at", Type: field.TypeTime},
@@ -304,13 +303,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "provider_profiles_fiat_currencies_providers",
-				Columns:    []*schema.Column{ProviderProfilesColumns[17]},
+				Columns:    []*schema.Column{ProviderProfilesColumns[16]},
 				RefColumns: []*schema.Column{FiatCurrenciesColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "provider_profiles_users_provider_profile",
-				Columns:    []*schema.Column{ProviderProfilesColumns[18]},
+				Columns:    []*schema.Column{ProviderProfilesColumns[17]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
@@ -431,6 +430,7 @@ var (
 		{Name: "id", Type: field.TypeUUID},
 		{Name: "webhook_url", Type: field.TypeString, Nullable: true},
 		{Name: "domain_whitelist", Type: field.TypeJSON},
+		{Name: "provider_id", Type: field.TypeString, Nullable: true},
 		{Name: "is_partner", Type: field.TypeBool, Default: false},
 		{Name: "is_active", Type: field.TypeBool, Default: false},
 		{Name: "updated_at", Type: field.TypeTime},
@@ -444,7 +444,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "sender_profiles_users_sender_profile",
-				Columns:    []*schema.Column{SenderProfilesColumns[6]},
+				Columns:    []*schema.Column{SenderProfilesColumns[7]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.Cascade,
 			},

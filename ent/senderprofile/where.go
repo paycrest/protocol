@@ -61,6 +61,11 @@ func WebhookURL(v string) predicate.SenderProfile {
 	return predicate.SenderProfile(sql.FieldEQ(FieldWebhookURL, v))
 }
 
+// ProviderID applies equality check predicate on the "provider_id" field. It's identical to ProviderIDEQ.
+func ProviderID(v string) predicate.SenderProfile {
+	return predicate.SenderProfile(sql.FieldEQ(FieldProviderID, v))
+}
+
 // IsPartner applies equality check predicate on the "is_partner" field. It's identical to IsPartnerEQ.
 func IsPartner(v bool) predicate.SenderProfile {
 	return predicate.SenderProfile(sql.FieldEQ(FieldIsPartner, v))
@@ -149,6 +154,81 @@ func WebhookURLEqualFold(v string) predicate.SenderProfile {
 // WebhookURLContainsFold applies the ContainsFold predicate on the "webhook_url" field.
 func WebhookURLContainsFold(v string) predicate.SenderProfile {
 	return predicate.SenderProfile(sql.FieldContainsFold(FieldWebhookURL, v))
+}
+
+// ProviderIDEQ applies the EQ predicate on the "provider_id" field.
+func ProviderIDEQ(v string) predicate.SenderProfile {
+	return predicate.SenderProfile(sql.FieldEQ(FieldProviderID, v))
+}
+
+// ProviderIDNEQ applies the NEQ predicate on the "provider_id" field.
+func ProviderIDNEQ(v string) predicate.SenderProfile {
+	return predicate.SenderProfile(sql.FieldNEQ(FieldProviderID, v))
+}
+
+// ProviderIDIn applies the In predicate on the "provider_id" field.
+func ProviderIDIn(vs ...string) predicate.SenderProfile {
+	return predicate.SenderProfile(sql.FieldIn(FieldProviderID, vs...))
+}
+
+// ProviderIDNotIn applies the NotIn predicate on the "provider_id" field.
+func ProviderIDNotIn(vs ...string) predicate.SenderProfile {
+	return predicate.SenderProfile(sql.FieldNotIn(FieldProviderID, vs...))
+}
+
+// ProviderIDGT applies the GT predicate on the "provider_id" field.
+func ProviderIDGT(v string) predicate.SenderProfile {
+	return predicate.SenderProfile(sql.FieldGT(FieldProviderID, v))
+}
+
+// ProviderIDGTE applies the GTE predicate on the "provider_id" field.
+func ProviderIDGTE(v string) predicate.SenderProfile {
+	return predicate.SenderProfile(sql.FieldGTE(FieldProviderID, v))
+}
+
+// ProviderIDLT applies the LT predicate on the "provider_id" field.
+func ProviderIDLT(v string) predicate.SenderProfile {
+	return predicate.SenderProfile(sql.FieldLT(FieldProviderID, v))
+}
+
+// ProviderIDLTE applies the LTE predicate on the "provider_id" field.
+func ProviderIDLTE(v string) predicate.SenderProfile {
+	return predicate.SenderProfile(sql.FieldLTE(FieldProviderID, v))
+}
+
+// ProviderIDContains applies the Contains predicate on the "provider_id" field.
+func ProviderIDContains(v string) predicate.SenderProfile {
+	return predicate.SenderProfile(sql.FieldContains(FieldProviderID, v))
+}
+
+// ProviderIDHasPrefix applies the HasPrefix predicate on the "provider_id" field.
+func ProviderIDHasPrefix(v string) predicate.SenderProfile {
+	return predicate.SenderProfile(sql.FieldHasPrefix(FieldProviderID, v))
+}
+
+// ProviderIDHasSuffix applies the HasSuffix predicate on the "provider_id" field.
+func ProviderIDHasSuffix(v string) predicate.SenderProfile {
+	return predicate.SenderProfile(sql.FieldHasSuffix(FieldProviderID, v))
+}
+
+// ProviderIDIsNil applies the IsNil predicate on the "provider_id" field.
+func ProviderIDIsNil() predicate.SenderProfile {
+	return predicate.SenderProfile(sql.FieldIsNull(FieldProviderID))
+}
+
+// ProviderIDNotNil applies the NotNil predicate on the "provider_id" field.
+func ProviderIDNotNil() predicate.SenderProfile {
+	return predicate.SenderProfile(sql.FieldNotNull(FieldProviderID))
+}
+
+// ProviderIDEqualFold applies the EqualFold predicate on the "provider_id" field.
+func ProviderIDEqualFold(v string) predicate.SenderProfile {
+	return predicate.SenderProfile(sql.FieldEqualFold(FieldProviderID, v))
+}
+
+// ProviderIDContainsFold applies the ContainsFold predicate on the "provider_id" field.
+func ProviderIDContainsFold(v string) predicate.SenderProfile {
+	return predicate.SenderProfile(sql.FieldContainsFold(FieldProviderID, v))
 }
 
 // IsPartnerEQ applies the EQ predicate on the "is_partner" field.

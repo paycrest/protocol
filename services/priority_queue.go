@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"math/rand"
-	"strconv"
 	"strings"
 	"time"
 
@@ -76,12 +75,13 @@ func (s *PriorityQueueService) GetProvisionBuckets(ctx context.Context) ([]*ent.
 }
 
 // GetProviderRate returns the rate for a provider
-func (s *PriorityQueueService) GetProviderRate(ctx context.Context, provider *ent.ProviderProfile) (decimal.Decimal, error) {
+func (s *PriorityQueueService) GetProviderRate(ctx context.Context, provider *ent.ProviderProfile, token string) (decimal.Decimal, error) {
 	// Fetch the token config for the provider
 	tokenConfig, err := storage.Client.ProviderOrderToken.
 		Query().
 		Where(
 			providerordertoken.HasProviderWith(providerprofile.IDEQ(provider.ID)),
+			providerordertoken.SymbolEQ(token),
 		).
 		WithProvider(func(pq *ent.ProviderProfileQuery) {
 			pq.WithCurrency()
@@ -131,25 +131,39 @@ func (s *PriorityQueueService) CreatePriorityQueueForBucket(ctx context.Context,
 	}
 
 	for _, provider := range providers {
-		providerID := provider.ID
-		rate, _ := s.GetProviderRate(ctx, provider)
-
-		// Check provider's rate against the market rate to ensure it's not too far off
-		percentDeviation := utils.AbsPercentageDeviation(bucket.Edges.Currency.MarketRate, rate)
-
-		if config.ServerConfig().Environment == "production" && percentDeviation.GreaterThan(config.OrderConfig().PercentDeviationFromMarketRate) {
-			// Skip this provider if the rate is too far off
-			// TODO: add a logic to notify the provider(s) to update his rate since it's stale. could be a cron job
+		tokens, err := storage.Client.ProviderOrderToken.
+			Query().
+			Where(
+				providerordertoken.HasProviderWith(providerprofile.IDEQ(provider.ID)),
+			).
+			Select(providerordertoken.FieldSymbol).
+			All(ctx)
+		if err != nil {
+			logger.Errorf("failed to get tokens for provider %s: %v", provider.ID, err)
 			continue
 		}
 
-		// Serialize the provider ID and rate into a single string
-		data := fmt.Sprintf("%s:%s:%s", providerID, rate, strconv.FormatBool(provider.IsPartner))
+		for _, token := range tokens {
+			providerID := provider.ID
+			rate, _ := s.GetProviderRate(ctx, provider, token.Symbol)
 
-		// Enqueue the serialized data into the circular queue
-		err := storage.RedisClient.RPush(ctx, redisKey, data).Err()
-		if err != nil {
-			logger.Errorf("failed to enqueue provider data to circular queue: %v", err)
+			// Check provider's rate against the market rate to ensure it's not too far off
+			percentDeviation := utils.AbsPercentageDeviation(bucket.Edges.Currency.MarketRate, rate)
+
+			if config.ServerConfig().Environment == "production" && percentDeviation.GreaterThan(config.OrderConfig().PercentDeviationFromMarketRate) {
+				// Skip this provider if the rate is too far off
+				// TODO: add a logic to notify the provider(s) to update his rate since it's stale. could be a cron job
+				continue
+			}
+
+			// Serialize the provider ID and rate into a single string
+			data := fmt.Sprintf("%s:%s:%s", providerID, token.Symbol, rate)
+
+			// Enqueue the serialized data into the circular queue
+			err := storage.RedisClient.RPush(ctx, redisKey, data).Err()
+			if err != nil {
+				logger.Errorf("failed to enqueue provider data to circular queue: %v", err)
+			}
 		}
 	}
 }
@@ -178,7 +192,7 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 			// TODO: check for provider's minimum and maximum rate for negotiation
 			// Update the rate with the current rate if order was last updated more than 10 mins ago
 			if order.UpdatedAt.Before(time.Now().Add(-10 * time.Minute)) {
-				order.Rate, err = s.GetProviderRate(ctx, provider)
+				order.Rate, err = s.GetProviderRate(ctx, provider, order.Token.Symbol)
 				if err != nil {
 					logger.Errorf("%s - failed to get rate for provider %s: %v", orderIDPrefix, order.ProviderID, err)
 				}

@@ -103,7 +103,10 @@ func (ctrl *Controller) GetTokenRate(ctx *gin.Context) {
 	// Parse path parameters
 	token, err := storage.Client.Token.
 		Query().
-		Where(token.Symbol(strings.ToUpper(ctx.Param("token")))).
+		Where(
+			token.SymbolEQ(strings.ToUpper(ctx.Param("token"))),
+			token.IsEnabledEQ(true),
+		).
 		First(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
@@ -155,7 +158,7 @@ func (ctrl *Controller) GetTokenRate(ctx *gin.Context) {
 			}
 		}
 
-		rateResponse, err = ctrl.priorityQueueService.GetProviderRate(ctx, provider)
+		rateResponse, err = ctrl.priorityQueueService.GetProviderRate(ctx, provider, token.Symbol)
 		if err != nil {
 			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch provider rate", nil)
 			return
@@ -185,7 +188,7 @@ func (ctrl *Controller) GetTokenRate(ctx *gin.Context) {
 			}
 
 			// Get fiat equivalent of the token amount
-			rate, _ := decimal.NewFromString(strings.Split(providerData, ":")[1])
+			rate, _ := decimal.NewFromString(strings.Split(providerData, ":")[2])
 			fiatAmount := tokenAmount.Mul(rate)
 
 			// Check if fiat amount is within the bucket range and set the rate

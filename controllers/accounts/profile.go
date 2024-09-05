@@ -527,16 +527,29 @@ func (ctrl *ProfileController) GetSenderProfile(ctx *gin.Context) {
 		tokensPayload[i] = payload
 	}
 
+	linkedProvider, err := storage.Client.ProviderProfile.
+		Query().
+		Where(providerprofile.IDEQ(sender.ProviderID)).
+		WithCurrency().
+		Only(ctx)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to retrieve profile", nil)
+		return
+	}
+
 	u.APIResponse(ctx, http.StatusOK, "success", "Profile retrieved successfully", &types.SenderProfileResponse{
-		ID:              sender.ID,
-		FirstName:       user.FirstName,
-		LastName:        user.LastName,
-		Email:           user.Email,
-		WebhookURL:      sender.WebhookURL,
-		DomainWhitelist: sender.DomainWhitelist,
-		Tokens:          tokensPayload,
-		APIKey:          *apiKey,
-		IsActive:        sender.IsActive,
+		ID:               sender.ID,
+		FirstName:        user.FirstName,
+		LastName:         user.LastName,
+		Email:            user.Email,
+		WebhookURL:       sender.WebhookURL,
+		DomainWhitelist:  sender.DomainWhitelist,
+		Tokens:           tokensPayload,
+		APIKey:           *apiKey,
+		ProviderID:       sender.ProviderID,
+		ProviderCurrency: linkedProvider.Edges.Currency.Code,
+		IsActive:         sender.IsActive,
 	})
 }
 
@@ -609,16 +622,6 @@ func (ctrl *ProfileController) GetProviderProfile(ctx *gin.Context) {
 		return
 	}
 
-	rate := decimal.NewFromInt(0)
-	if len(tokens) != 0 {
-		rate, err = ctrl.priorityQueueService.GetProviderRate(ctx, provider)
-		if err != nil {
-			logger.Errorf("error: %v", err)
-			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to retrieve profile", nil)
-			return
-		}
-	}
-
 	u.APIResponse(ctx, http.StatusOK, "success", "Profile retrieved successfully", &types.ProviderProfileResponse{
 		ID:                   provider.ID,
 		FirstName:            user.FirstName,
@@ -626,7 +629,6 @@ func (ctrl *ProfileController) GetProviderProfile(ctx *gin.Context) {
 		Email:                user.Email,
 		TradingName:          provider.TradingName,
 		Currency:             currency.Code,
-		Rate:                 rate,
 		HostIdentifier:       provider.HostIdentifier,
 		IsPartner:            provider.IsPartner,
 		IsAvailable:          provider.IsAvailable,

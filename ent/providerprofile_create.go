@@ -73,20 +73,6 @@ func (ppc *ProviderProfileCreate) SetNillableProvisionMode(pm *providerprofile.P
 	return ppc
 }
 
-// SetIsPartner sets the "is_partner" field.
-func (ppc *ProviderProfileCreate) SetIsPartner(b bool) *ProviderProfileCreate {
-	ppc.mutation.SetIsPartner(b)
-	return ppc
-}
-
-// SetNillableIsPartner sets the "is_partner" field if the given value is not nil.
-func (ppc *ProviderProfileCreate) SetNillableIsPartner(b *bool) *ProviderProfileCreate {
-	if b != nil {
-		ppc.SetIsPartner(*b)
-	}
-	return ppc
-}
-
 // SetIsActive sets the "is_active" field.
 func (ppc *ProviderProfileCreate) SetIsActive(b bool) *ProviderProfileCreate {
 	ppc.mutation.SetIsActive(b)
@@ -413,10 +399,6 @@ func (ppc *ProviderProfileCreate) defaults() {
 		v := providerprofile.DefaultProvisionMode
 		ppc.mutation.SetProvisionMode(v)
 	}
-	if _, ok := ppc.mutation.IsPartner(); !ok {
-		v := providerprofile.DefaultIsPartner
-		ppc.mutation.SetIsPartner(v)
-	}
 	if _, ok := ppc.mutation.IsActive(); !ok {
 		v := providerprofile.DefaultIsActive
 		ppc.mutation.SetIsActive(v)
@@ -457,9 +439,6 @@ func (ppc *ProviderProfileCreate) check() error {
 		if err := providerprofile.ProvisionModeValidator(v); err != nil {
 			return &ValidationError{Name: "provision_mode", err: fmt.Errorf(`ent: validator failed for field "ProviderProfile.provision_mode": %w`, err)}
 		}
-	}
-	if _, ok := ppc.mutation.IsPartner(); !ok {
-		return &ValidationError{Name: "is_partner", err: errors.New(`ent: missing required field "ProviderProfile.is_partner"`)}
 	}
 	if _, ok := ppc.mutation.IsActive(); !ok {
 		return &ValidationError{Name: "is_active", err: errors.New(`ent: missing required field "ProviderProfile.is_active"`)}
@@ -539,10 +518,6 @@ func (ppc *ProviderProfileCreate) createSpec() (*ProviderProfile, *sqlgraph.Crea
 	if value, ok := ppc.mutation.ProvisionMode(); ok {
 		_spec.SetField(providerprofile.FieldProvisionMode, field.TypeEnum, value)
 		_node.ProvisionMode = value
-	}
-	if value, ok := ppc.mutation.IsPartner(); ok {
-		_spec.SetField(providerprofile.FieldIsPartner, field.TypeBool, value)
-		_node.IsPartner = value
 	}
 	if value, ok := ppc.mutation.IsActive(); ok {
 		_spec.SetField(providerprofile.FieldIsActive, field.TypeBool, value)
@@ -803,18 +778,6 @@ func (u *ProviderProfileUpsert) SetProvisionMode(v providerprofile.ProvisionMode
 // UpdateProvisionMode sets the "provision_mode" field to the value that was provided on create.
 func (u *ProviderProfileUpsert) UpdateProvisionMode() *ProviderProfileUpsert {
 	u.SetExcluded(providerprofile.FieldProvisionMode)
-	return u
-}
-
-// SetIsPartner sets the "is_partner" field.
-func (u *ProviderProfileUpsert) SetIsPartner(v bool) *ProviderProfileUpsert {
-	u.Set(providerprofile.FieldIsPartner, v)
-	return u
-}
-
-// UpdateIsPartner sets the "is_partner" field to the value that was provided on create.
-func (u *ProviderProfileUpsert) UpdateIsPartner() *ProviderProfileUpsert {
-	u.SetExcluded(providerprofile.FieldIsPartner)
 	return u
 }
 
@@ -1105,20 +1068,6 @@ func (u *ProviderProfileUpsertOne) SetProvisionMode(v providerprofile.ProvisionM
 func (u *ProviderProfileUpsertOne) UpdateProvisionMode() *ProviderProfileUpsertOne {
 	return u.Update(func(s *ProviderProfileUpsert) {
 		s.UpdateProvisionMode()
-	})
-}
-
-// SetIsPartner sets the "is_partner" field.
-func (u *ProviderProfileUpsertOne) SetIsPartner(v bool) *ProviderProfileUpsertOne {
-	return u.Update(func(s *ProviderProfileUpsert) {
-		s.SetIsPartner(v)
-	})
-}
-
-// UpdateIsPartner sets the "is_partner" field to the value that was provided on create.
-func (u *ProviderProfileUpsertOne) UpdateIsPartner() *ProviderProfileUpsertOne {
-	return u.Update(func(s *ProviderProfileUpsert) {
-		s.UpdateIsPartner()
 	})
 }
 
@@ -1607,20 +1556,6 @@ func (u *ProviderProfileUpsertBulk) SetProvisionMode(v providerprofile.Provision
 func (u *ProviderProfileUpsertBulk) UpdateProvisionMode() *ProviderProfileUpsertBulk {
 	return u.Update(func(s *ProviderProfileUpsert) {
 		s.UpdateProvisionMode()
-	})
-}
-
-// SetIsPartner sets the "is_partner" field.
-func (u *ProviderProfileUpsertBulk) SetIsPartner(v bool) *ProviderProfileUpsertBulk {
-	return u.Update(func(s *ProviderProfileUpsert) {
-		s.SetIsPartner(v)
-	})
-}
-
-// UpdateIsPartner sets the "is_partner" field to the value that was provided on create.
-func (u *ProviderProfileUpsertBulk) UpdateIsPartner() *ProviderProfileUpsertBulk {
-	return u.Update(func(s *ProviderProfileUpsert) {
-		s.UpdateIsPartner()
 	})
 }
 
