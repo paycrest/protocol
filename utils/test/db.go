@@ -452,7 +452,6 @@ func CreateTestProviderProfile(overrides map[string]interface{}) (*ent.ProviderP
 		SetTradingName(payload["trading_name"].(string)).
 		SetHostIdentifier(payload["host_identifier"].(string)).
 		SetProvisionMode(providerprofile.ProvisionMode(payload["provision_mode"].(string))).
-		SetIsPartner(payload["is_partner"].(bool)).
 		SetUserID(payload["user_id"].(uuid.UUID)).
 		SetCurrencyID(payload["currency_id"].(uuid.UUID)).
 		SetVisibilityMode(providerprofile.VisibilityMode(payload["visibility_mode"].(string))).
