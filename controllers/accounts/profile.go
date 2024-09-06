@@ -481,7 +481,7 @@ func (ctrl *ProfileController) GetSenderProfile(ctx *gin.Context) {
 	user, err := sender.QueryUser().Only(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to retrieve profile", nil)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to retrieve profile 4", nil)
 		return
 	}
 
@@ -489,7 +489,7 @@ func (ctrl *ProfileController) GetSenderProfile(ctx *gin.Context) {
 	apiKey, err := ctrl.apiKeyService.GetAPIKey(ctx, sender, nil)
 	if err != nil {
 		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to retrieve profile", nil)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to retrieve profile 3", nil)
 		return
 	}
 
@@ -504,7 +504,7 @@ func (ctrl *ProfileController) GetSenderProfile(ctx *gin.Context) {
 		All(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to retrieve profile", nil)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to retrieve profile 2", nil)
 		return
 	}
 
@@ -537,11 +537,15 @@ func (ctrl *ProfileController) GetSenderProfile(ctx *gin.Context) {
 		Query().
 		Where(providerprofile.IDEQ(sender.ProviderID)).
 		WithCurrency().
-		First(ctx)
+		Only(ctx)
 	if err != nil {
-		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to retrieve profile", nil)
-		return
+		if ent.IsNotFound(err) {
+			// do nothing
+		} else {
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to retrieve profile 1", nil)
+			return
+		}
 	}
 
 	if linkedProvider != nil {
