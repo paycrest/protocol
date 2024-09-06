@@ -594,7 +594,7 @@ func (ctrl *Controller) RequestIDVerification(ctx *gin.Context) {
 		},
 		"callback_url":            fmt.Sprintf("%s/v1/kyc/webhook", serverConf.HostDomain),
 		"data_privacy_policy_url": "https://www.paycrest.io/privacy-policy",
-		"logo_url":                "https://i.ibb.co/LRkh8Ld/mark-2x-2.png",
+		"logo_url":                "https://i.postimg.cc/Twrq0gjC/mark-2x-2.png",
 		"is_single_use":           true,
 		"user_id":                 payload.WalletAddress,
 		"expires_at":              timestamp.Add(24 * time.Hour).Format(time.RFC3339Nano),
@@ -632,4 +632,102 @@ func (ctrl *Controller) RequestIDVerification(ctx *gin.Context) {
 		URL:       ivr.VerificationURL,
 		ExpiresAt: ivr.Timestamp,
 	})
+}
+
+// GetIDVerificationStatus controller fetches the status of an identity verification request
+func (ctrl *Controller) GetIDVerificationStatus(ctx *gin.Context) {
+	// Get wallet address from the URL
+	walletAddress := ctx.Param("wallet_address")
+
+	// Fetch related identity verification request from the database
+	ivr, err := storage.Client.IdentityVerificationRequest.
+		Query().
+		Where(
+			identityverificationrequest.WalletAddressEQ(walletAddress),
+		).
+		Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			u.APIResponse(ctx, http.StatusNotFound, "error", "No verification request found for this wallet address", nil)
+			return
+		}
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch identity verification status", nil)
+		return
+	}
+
+	response := struct {
+		Status string `json:"status"`
+	}{
+		Status: ivr.Status.String(),
+	}
+
+	u.APIResponse(ctx, http.StatusOK, "success", "Identity verification status fetched successfully", response)
+}
+
+// KYCWebhook handles the webhook callback from Smile Identity
+func (ctrl *Controller) KYCWebhook(ctx *gin.Context) {
+	var payload types.SmileIDWebhookPayload
+
+	// Parse the JSON payload
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		logger.Errorf("Failed to parse webhook payload: %v", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid payload"})
+		return
+	}
+
+	// Verify the webhook signature
+	if !verifyWebhookSignature(payload, ctx.GetHeader("X-Smile-Signature")) {
+		logger.Errorf("Invalid webhook signature")
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid signature"})
+		return
+	}
+
+	// Process the webhook
+	status := identityverificationrequest.StatusPending
+
+	// Check for success codes
+	successCodes := []string{
+		"0810", // Document Verified
+		"1020", // Exact Match (Basic KYC and Enhanced KYC)
+		"1021", // Partial Match (Basic KYC)
+		"1012", // Valid ID / ID Number Validated (Enhanced KYC)
+		"0820", // Authenticate User Machine Judgement - PASS
+		"0840", // Enroll User PASS - Machine Judgement
+	}
+
+	if slices.Contains(successCodes, payload.ResultCode) {
+		status = identityverificationrequest.StatusSuccess
+	}
+
+	// Update the verification status in the database
+	_, err := storage.Client.IdentityVerificationRequest.
+		Update().
+		Where(
+			identityverificationrequest.WalletAddressEQ(payload.PartnerParams.UserID),
+			identityverificationrequest.StatusEQ(identityverificationrequest.StatusPending),
+		).
+		SetStatus(status).
+		Save(ctx)
+
+	if err != nil {
+		logger.Errorf("Failed to update verification status: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process webhook"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Webhook processed successfully"})
+}
+
+func verifyWebhookSignature(payload types.SmileIDWebhookPayload, signatureHeader string) bool {
+	// Create HMAC
+	// Generate Smile Identity signature
+	h := hmac.New(sha256.New, []byte(identityConf.SmileIdentityApiKey))
+	h.Write([]byte(payload.Timestamp))
+	h.Write([]byte(identityConf.SmileIdentityPartnerId))
+	h.Write([]byte("sid_request"))
+
+	// Compare the computed signature with the one in the header
+	computedSignature := base64.StdEncoding.EncodeToString(h.Sum(nil))
+	return computedSignature == signatureHeader
 }

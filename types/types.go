@@ -593,3 +593,14 @@ type NewIDVerificationResponse struct {
 	URL       string    `json:"url"`
 	ExpiresAt time.Time `json:"expiresAt"`
 }
+
+// SmileIDWebhookPayload represents the payload structure from Smile Identity
+type SmileIDWebhookPayload struct {
+	ResultCode    string `json:"ResultCode"`
+	PartnerParams struct {
+		UserID string `json:"user_id"`
+	} `json:"PartnerParams"`
+	Signature string `json:"signature"`
+	Timestamp string `json:"timestamp"`
+	// Add other fields as needed
+}
