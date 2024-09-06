@@ -521,30 +521,35 @@ func (ctrl *ProfileController) GetSenderProfile(ctx *gin.Context) {
 		tokensPayload[i] = payload
 	}
 
+	response := &types.SenderProfileResponse{
+		ID:              sender.ID,
+		FirstName:       user.FirstName,
+		LastName:        user.LastName,
+		Email:           user.Email,
+		WebhookURL:      sender.WebhookURL,
+		DomainWhitelist: sender.DomainWhitelist,
+		Tokens:          tokensPayload,
+		APIKey:          *apiKey,
+		IsActive:        sender.IsActive,
+	}
+
 	linkedProvider, err := storage.Client.ProviderProfile.
 		Query().
 		Where(providerprofile.IDEQ(sender.ProviderID)).
 		WithCurrency().
-		Only(ctx)
+		First(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to retrieve profile", nil)
 		return
 	}
 
-	u.APIResponse(ctx, http.StatusOK, "success", "Profile retrieved successfully", &types.SenderProfileResponse{
-		ID:               sender.ID,
-		FirstName:        user.FirstName,
-		LastName:         user.LastName,
-		Email:            user.Email,
-		WebhookURL:       sender.WebhookURL,
-		DomainWhitelist:  sender.DomainWhitelist,
-		Tokens:           tokensPayload,
-		APIKey:           *apiKey,
-		ProviderID:       sender.ProviderID,
-		ProviderCurrency: linkedProvider.Edges.Currency.Code,
-		IsActive:         sender.IsActive,
-	})
+	if linkedProvider != nil {
+		response.ProviderID = sender.ProviderID
+		response.ProviderCurrency = linkedProvider.Edges.Currency.Code
+	}
+
+	u.APIResponse(ctx, http.StatusOK, "success", "Profile retrieved successfully", response)
 }
 
 // GetProviderProfile retrieves the provider profile
