@@ -978,7 +978,7 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 				return fmt.Errorf("failed to cancel order: %w", err)
 			}
 			return nil
-		} else if lockPaymentOrder.Amount.LessThan(minOrderAmount) {
+		} else if isPrivate && lockPaymentOrder.Amount.LessThan(minOrderAmount) {
 			err := s.handleCancellation(ctx, client, lockPaymentOrder, "Amount is less than the minimum order amount")
 			if err != nil {
 				return fmt.Errorf("failed to cancel order: %w", err)
