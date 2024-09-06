@@ -156,7 +156,7 @@ func (s *PriorityQueueService) CreatePriorityQueueForBucket(ctx context.Context,
 				continue
 			}
 
-			// Serialize the provider ID and rate into a single string
+			// Serialize the provider ID, token, and rate into a single string
 			data := fmt.Sprintf("%s:%s:%s", providerID, token.Symbol, rate)
 
 			// Enqueue the serialized data into the circular queue
@@ -245,16 +245,11 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 			providerData = partnerProviders[randomIndex]
 		}
 
-		// Extract the rate from the data (assuming it's in the format "providerID:rate:is_partner")
+		// Extract the rate from the data (assuming it's in the format "providerID:token:rate")
 		parts := strings.Split(providerData, ":")
 		if len(parts) != 3 {
 			logger.Errorf("%s - invalid data format at index %d: %s", orderIDPrefix, index, providerData)
 			continue // Skip this entry due to invalid format
-		}
-
-		// Check if the provider is a partner
-		if parts[2] == "true" {
-			partnerProviders = append(partnerProviders, providerData)
 		}
 
 		order.ProviderID = parts[0]
@@ -264,7 +259,12 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 			continue
 		}
 
-		rate, err := decimal.NewFromString(parts[1])
+		// Skip entry if token doesn't match
+		if parts[1] != order.Token.Symbol {
+			continue
+		}
+
+		rate, err := decimal.NewFromString(parts[2])
 		if err != nil {
 			logger.Errorf("%s - failed to parse rate at index %d: %v", orderIDPrefix, index, err)
 			continue // Skip this entry due to parsing error
