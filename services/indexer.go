@@ -785,6 +785,7 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 				networkent.IDEQ(network.ID),
 			),
 		).
+		WithNetwork().
 		Only(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to fetch token: %w", err)

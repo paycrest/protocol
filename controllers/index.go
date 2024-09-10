@@ -238,6 +238,12 @@ func (ctrl *Controller) VerifyAccount(ctx *gin.Context) {
 		return
 	}
 
+	// TODO: Remove this after testing non-NGN institutions
+	if institution.Edges.FiatCurrency.Code != "NGN" {
+		u.APIResponse(ctx, http.StatusOK, "success", "Account name was fetched successfully", "OK")
+		return
+	}
+
 	providers, err := storage.Client.ProviderProfile.
 		Query().
 		Where(
