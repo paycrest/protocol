@@ -1164,9 +1164,6 @@ func (s *IndexerService) UpdateOrderStatusSettled(ctx context.Context, event *ty
 			paymentorder.GatewayIDEQ(gatewayId),
 		).
 		WithSenderProfile().
-		WithToken(func(tq *ent.TokenQuery) {
-			tq.WithNetwork()
-		}).
 		Only(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {
@@ -1206,7 +1203,6 @@ func (s *IndexerService) UpdateOrderStatusSettled(ctx context.Context, event *ty
 			Create().
 			SetStatus(transactionlog.StatusOrderSettled).
 			SetTxHash(event.TxHash).
-			SetNetwork(paymentOrder.Edges.Token.Edges.Network.Identifier).
 			SetGatewayID(gatewayId).
 			SetMetadata(map[string]interface{}{
 				"GatewayID":       gatewayId,
