@@ -584,8 +584,9 @@ type VerifyAccountRequest struct {
 
 // NewIDVerificationRequest is the request for a new identity verification request
 type NewIDVerificationRequest struct {
-	Signature     string `json:"signature" binding:"required"`
 	WalletAddress string `json:"walletAddress" binding:"required"`
+	Signature     string `json:"signature" binding:"required"`
+	Nonce         string `json:"nonce" binding:"required"`
 }
 
 // NewIDVerificationResponse is the response for a new identity verification request
