@@ -1707,20 +1707,22 @@ func (m *FiatCurrencyMutation) ResetEdge(name string) error {
 // IdentityVerificationRequestMutation represents an operation that mutates the IdentityVerificationRequest nodes in the graph.
 type IdentityVerificationRequestMutation struct {
 	config
-	op               Op
-	typ              string
-	id               *uuid.UUID
-	wallet_address   *string
-	platform         *identityverificationrequest.Platform
-	platform_ref     *string
-	verification_url *string
-	status           *identityverificationrequest.Status
-	fee_reclaimed    *bool
-	timestamp        *time.Time
-	clearedFields    map[string]struct{}
-	done             bool
-	oldValue         func(context.Context) (*IdentityVerificationRequest, error)
-	predicates       []predicate.IdentityVerificationRequest
+	op                  Op
+	typ                 string
+	id                  *uuid.UUID
+	wallet_address      *string
+	wallet_signature    *string
+	platform            *identityverificationrequest.Platform
+	platform_ref        *string
+	verification_url    *string
+	status              *identityverificationrequest.Status
+	fee_reclaimed       *bool
+	updated_at          *time.Time
+	last_url_created_at *time.Time
+	clearedFields       map[string]struct{}
+	done                bool
+	oldValue            func(context.Context) (*IdentityVerificationRequest, error)
+	predicates          []predicate.IdentityVerificationRequest
 }
 
 var _ ent.Mutation = (*IdentityVerificationRequestMutation)(nil)
@@ -1861,6 +1863,42 @@ func (m *IdentityVerificationRequestMutation) OldWalletAddress(ctx context.Conte
 // ResetWalletAddress resets all changes to the "wallet_address" field.
 func (m *IdentityVerificationRequestMutation) ResetWalletAddress() {
 	m.wallet_address = nil
+}
+
+// SetWalletSignature sets the "wallet_signature" field.
+func (m *IdentityVerificationRequestMutation) SetWalletSignature(s string) {
+	m.wallet_signature = &s
+}
+
+// WalletSignature returns the value of the "wallet_signature" field in the mutation.
+func (m *IdentityVerificationRequestMutation) WalletSignature() (r string, exists bool) {
+	v := m.wallet_signature
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldWalletSignature returns the old "wallet_signature" field's value of the IdentityVerificationRequest entity.
+// If the IdentityVerificationRequest object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IdentityVerificationRequestMutation) OldWalletSignature(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldWalletSignature is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldWalletSignature requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldWalletSignature: %w", err)
+	}
+	return oldValue.WalletSignature, nil
+}
+
+// ResetWalletSignature resets all changes to the "wallet_signature" field.
+func (m *IdentityVerificationRequestMutation) ResetWalletSignature() {
+	m.wallet_signature = nil
 }
 
 // SetPlatform sets the "platform" field.
@@ -2043,40 +2081,76 @@ func (m *IdentityVerificationRequestMutation) ResetFeeReclaimed() {
 	m.fee_reclaimed = nil
 }
 
-// SetTimestamp sets the "timestamp" field.
-func (m *IdentityVerificationRequestMutation) SetTimestamp(t time.Time) {
-	m.timestamp = &t
+// SetUpdatedAt sets the "updated_at" field.
+func (m *IdentityVerificationRequestMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
 }
 
-// Timestamp returns the value of the "timestamp" field in the mutation.
-func (m *IdentityVerificationRequestMutation) Timestamp() (r time.Time, exists bool) {
-	v := m.timestamp
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *IdentityVerificationRequestMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldTimestamp returns the old "timestamp" field's value of the IdentityVerificationRequest entity.
+// OldUpdatedAt returns the old "updated_at" field's value of the IdentityVerificationRequest entity.
 // If the IdentityVerificationRequest object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *IdentityVerificationRequestMutation) OldTimestamp(ctx context.Context) (v time.Time, err error) {
+func (m *IdentityVerificationRequestMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldTimestamp is only allowed on UpdateOne operations")
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldTimestamp requires an ID field in the mutation")
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldTimestamp: %w", err)
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
 	}
-	return oldValue.Timestamp, nil
+	return oldValue.UpdatedAt, nil
 }
 
-// ResetTimestamp resets all changes to the "timestamp" field.
-func (m *IdentityVerificationRequestMutation) ResetTimestamp() {
-	m.timestamp = nil
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *IdentityVerificationRequestMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetLastURLCreatedAt sets the "last_url_created_at" field.
+func (m *IdentityVerificationRequestMutation) SetLastURLCreatedAt(t time.Time) {
+	m.last_url_created_at = &t
+}
+
+// LastURLCreatedAt returns the value of the "last_url_created_at" field in the mutation.
+func (m *IdentityVerificationRequestMutation) LastURLCreatedAt() (r time.Time, exists bool) {
+	v := m.last_url_created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLastURLCreatedAt returns the old "last_url_created_at" field's value of the IdentityVerificationRequest entity.
+// If the IdentityVerificationRequest object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IdentityVerificationRequestMutation) OldLastURLCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLastURLCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLastURLCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLastURLCreatedAt: %w", err)
+	}
+	return oldValue.LastURLCreatedAt, nil
+}
+
+// ResetLastURLCreatedAt resets all changes to the "last_url_created_at" field.
+func (m *IdentityVerificationRequestMutation) ResetLastURLCreatedAt() {
+	m.last_url_created_at = nil
 }
 
 // Where appends a list predicates to the IdentityVerificationRequestMutation builder.
@@ -2113,9 +2187,12 @@ func (m *IdentityVerificationRequestMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *IdentityVerificationRequestMutation) Fields() []string {
-	fields := make([]string, 0, 7)
+	fields := make([]string, 0, 9)
 	if m.wallet_address != nil {
 		fields = append(fields, identityverificationrequest.FieldWalletAddress)
+	}
+	if m.wallet_signature != nil {
+		fields = append(fields, identityverificationrequest.FieldWalletSignature)
 	}
 	if m.platform != nil {
 		fields = append(fields, identityverificationrequest.FieldPlatform)
@@ -2132,8 +2209,11 @@ func (m *IdentityVerificationRequestMutation) Fields() []string {
 	if m.fee_reclaimed != nil {
 		fields = append(fields, identityverificationrequest.FieldFeeReclaimed)
 	}
-	if m.timestamp != nil {
-		fields = append(fields, identityverificationrequest.FieldTimestamp)
+	if m.updated_at != nil {
+		fields = append(fields, identityverificationrequest.FieldUpdatedAt)
+	}
+	if m.last_url_created_at != nil {
+		fields = append(fields, identityverificationrequest.FieldLastURLCreatedAt)
 	}
 	return fields
 }
@@ -2145,6 +2225,8 @@ func (m *IdentityVerificationRequestMutation) Field(name string) (ent.Value, boo
 	switch name {
 	case identityverificationrequest.FieldWalletAddress:
 		return m.WalletAddress()
+	case identityverificationrequest.FieldWalletSignature:
+		return m.WalletSignature()
 	case identityverificationrequest.FieldPlatform:
 		return m.Platform()
 	case identityverificationrequest.FieldPlatformRef:
@@ -2155,8 +2237,10 @@ func (m *IdentityVerificationRequestMutation) Field(name string) (ent.Value, boo
 		return m.Status()
 	case identityverificationrequest.FieldFeeReclaimed:
 		return m.FeeReclaimed()
-	case identityverificationrequest.FieldTimestamp:
-		return m.Timestamp()
+	case identityverificationrequest.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case identityverificationrequest.FieldLastURLCreatedAt:
+		return m.LastURLCreatedAt()
 	}
 	return nil, false
 }
@@ -2168,6 +2252,8 @@ func (m *IdentityVerificationRequestMutation) OldField(ctx context.Context, name
 	switch name {
 	case identityverificationrequest.FieldWalletAddress:
 		return m.OldWalletAddress(ctx)
+	case identityverificationrequest.FieldWalletSignature:
+		return m.OldWalletSignature(ctx)
 	case identityverificationrequest.FieldPlatform:
 		return m.OldPlatform(ctx)
 	case identityverificationrequest.FieldPlatformRef:
@@ -2178,8 +2264,10 @@ func (m *IdentityVerificationRequestMutation) OldField(ctx context.Context, name
 		return m.OldStatus(ctx)
 	case identityverificationrequest.FieldFeeReclaimed:
 		return m.OldFeeReclaimed(ctx)
-	case identityverificationrequest.FieldTimestamp:
-		return m.OldTimestamp(ctx)
+	case identityverificationrequest.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case identityverificationrequest.FieldLastURLCreatedAt:
+		return m.OldLastURLCreatedAt(ctx)
 	}
 	return nil, fmt.Errorf("unknown IdentityVerificationRequest field %s", name)
 }
@@ -2195,6 +2283,13 @@ func (m *IdentityVerificationRequestMutation) SetField(name string, value ent.Va
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetWalletAddress(v)
+		return nil
+	case identityverificationrequest.FieldWalletSignature:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetWalletSignature(v)
 		return nil
 	case identityverificationrequest.FieldPlatform:
 		v, ok := value.(identityverificationrequest.Platform)
@@ -2231,12 +2326,19 @@ func (m *IdentityVerificationRequestMutation) SetField(name string, value ent.Va
 		}
 		m.SetFeeReclaimed(v)
 		return nil
-	case identityverificationrequest.FieldTimestamp:
+	case identityverificationrequest.FieldUpdatedAt:
 		v, ok := value.(time.Time)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetTimestamp(v)
+		m.SetUpdatedAt(v)
+		return nil
+	case identityverificationrequest.FieldLastURLCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLastURLCreatedAt(v)
 		return nil
 	}
 	return fmt.Errorf("unknown IdentityVerificationRequest field %s", name)
@@ -2290,6 +2392,9 @@ func (m *IdentityVerificationRequestMutation) ResetField(name string) error {
 	case identityverificationrequest.FieldWalletAddress:
 		m.ResetWalletAddress()
 		return nil
+	case identityverificationrequest.FieldWalletSignature:
+		m.ResetWalletSignature()
+		return nil
 	case identityverificationrequest.FieldPlatform:
 		m.ResetPlatform()
 		return nil
@@ -2305,8 +2410,11 @@ func (m *IdentityVerificationRequestMutation) ResetField(name string) error {
 	case identityverificationrequest.FieldFeeReclaimed:
 		m.ResetFeeReclaimed()
 		return nil
-	case identityverificationrequest.FieldTimestamp:
-		m.ResetTimestamp()
+	case identityverificationrequest.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case identityverificationrequest.FieldLastURLCreatedAt:
+		m.ResetLastURLCreatedAt()
 		return nil
 	}
 	return fmt.Errorf("unknown IdentityVerificationRequest field %s", name)

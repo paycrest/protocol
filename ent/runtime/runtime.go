@@ -73,13 +73,19 @@ func init() {
 	identityverificationrequestFields := schema.IdentityVerificationRequest{}.Fields()
 	_ = identityverificationrequestFields
 	// identityverificationrequestDescFeeReclaimed is the schema descriptor for fee_reclaimed field.
-	identityverificationrequestDescFeeReclaimed := identityverificationrequestFields[6].Descriptor()
+	identityverificationrequestDescFeeReclaimed := identityverificationrequestFields[7].Descriptor()
 	// identityverificationrequest.DefaultFeeReclaimed holds the default value on creation for the fee_reclaimed field.
 	identityverificationrequest.DefaultFeeReclaimed = identityverificationrequestDescFeeReclaimed.Default.(bool)
-	// identityverificationrequestDescTimestamp is the schema descriptor for timestamp field.
-	identityverificationrequestDescTimestamp := identityverificationrequestFields[7].Descriptor()
-	// identityverificationrequest.DefaultTimestamp holds the default value on creation for the timestamp field.
-	identityverificationrequest.DefaultTimestamp = identityverificationrequestDescTimestamp.Default.(func() time.Time)
+	// identityverificationrequestDescUpdatedAt is the schema descriptor for updated_at field.
+	identityverificationrequestDescUpdatedAt := identityverificationrequestFields[8].Descriptor()
+	// identityverificationrequest.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	identityverificationrequest.DefaultUpdatedAt = identityverificationrequestDescUpdatedAt.Default.(func() time.Time)
+	// identityverificationrequest.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	identityverificationrequest.UpdateDefaultUpdatedAt = identityverificationrequestDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// identityverificationrequestDescLastURLCreatedAt is the schema descriptor for last_url_created_at field.
+	identityverificationrequestDescLastURLCreatedAt := identityverificationrequestFields[9].Descriptor()
+	// identityverificationrequest.DefaultLastURLCreatedAt holds the default value on creation for the last_url_created_at field.
+	identityverificationrequest.DefaultLastURLCreatedAt = identityverificationrequestDescLastURLCreatedAt.Default.(func() time.Time)
 	// identityverificationrequestDescID is the schema descriptor for id field.
 	identityverificationrequestDescID := identityverificationrequestFields[0].Descriptor()
 	// identityverificationrequest.DefaultID holds the default value on creation for the id field.

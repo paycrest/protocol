@@ -42,6 +42,20 @@ func (ivru *IdentityVerificationRequestUpdate) SetNillableWalletAddress(s *strin
 	return ivru
 }
 
+// SetWalletSignature sets the "wallet_signature" field.
+func (ivru *IdentityVerificationRequestUpdate) SetWalletSignature(s string) *IdentityVerificationRequestUpdate {
+	ivru.mutation.SetWalletSignature(s)
+	return ivru
+}
+
+// SetNillableWalletSignature sets the "wallet_signature" field if the given value is not nil.
+func (ivru *IdentityVerificationRequestUpdate) SetNillableWalletSignature(s *string) *IdentityVerificationRequestUpdate {
+	if s != nil {
+		ivru.SetWalletSignature(*s)
+	}
+	return ivru
+}
+
 // SetPlatform sets the "platform" field.
 func (ivru *IdentityVerificationRequestUpdate) SetPlatform(i identityverificationrequest.Platform) *IdentityVerificationRequestUpdate {
 	ivru.mutation.SetPlatform(i)
@@ -112,16 +126,22 @@ func (ivru *IdentityVerificationRequestUpdate) SetNillableFeeReclaimed(b *bool) 
 	return ivru
 }
 
-// SetTimestamp sets the "timestamp" field.
-func (ivru *IdentityVerificationRequestUpdate) SetTimestamp(t time.Time) *IdentityVerificationRequestUpdate {
-	ivru.mutation.SetTimestamp(t)
+// SetUpdatedAt sets the "updated_at" field.
+func (ivru *IdentityVerificationRequestUpdate) SetUpdatedAt(t time.Time) *IdentityVerificationRequestUpdate {
+	ivru.mutation.SetUpdatedAt(t)
 	return ivru
 }
 
-// SetNillableTimestamp sets the "timestamp" field if the given value is not nil.
-func (ivru *IdentityVerificationRequestUpdate) SetNillableTimestamp(t *time.Time) *IdentityVerificationRequestUpdate {
+// SetLastURLCreatedAt sets the "last_url_created_at" field.
+func (ivru *IdentityVerificationRequestUpdate) SetLastURLCreatedAt(t time.Time) *IdentityVerificationRequestUpdate {
+	ivru.mutation.SetLastURLCreatedAt(t)
+	return ivru
+}
+
+// SetNillableLastURLCreatedAt sets the "last_url_created_at" field if the given value is not nil.
+func (ivru *IdentityVerificationRequestUpdate) SetNillableLastURLCreatedAt(t *time.Time) *IdentityVerificationRequestUpdate {
 	if t != nil {
-		ivru.SetTimestamp(*t)
+		ivru.SetLastURLCreatedAt(*t)
 	}
 	return ivru
 }
@@ -133,6 +153,7 @@ func (ivru *IdentityVerificationRequestUpdate) Mutation() *IdentityVerificationR
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (ivru *IdentityVerificationRequestUpdate) Save(ctx context.Context) (int, error) {
+	ivru.defaults()
 	return withHooks(ctx, ivru.sqlSave, ivru.mutation, ivru.hooks)
 }
 
@@ -155,6 +176,14 @@ func (ivru *IdentityVerificationRequestUpdate) Exec(ctx context.Context) error {
 func (ivru *IdentityVerificationRequestUpdate) ExecX(ctx context.Context) {
 	if err := ivru.Exec(ctx); err != nil {
 		panic(err)
+	}
+}
+
+// defaults sets the default values of the builder before save.
+func (ivru *IdentityVerificationRequestUpdate) defaults() {
+	if _, ok := ivru.mutation.UpdatedAt(); !ok {
+		v := identityverificationrequest.UpdateDefaultUpdatedAt()
+		ivru.mutation.SetUpdatedAt(v)
 	}
 }
 
@@ -188,6 +217,9 @@ func (ivru *IdentityVerificationRequestUpdate) sqlSave(ctx context.Context) (n i
 	if value, ok := ivru.mutation.WalletAddress(); ok {
 		_spec.SetField(identityverificationrequest.FieldWalletAddress, field.TypeString, value)
 	}
+	if value, ok := ivru.mutation.WalletSignature(); ok {
+		_spec.SetField(identityverificationrequest.FieldWalletSignature, field.TypeString, value)
+	}
 	if value, ok := ivru.mutation.Platform(); ok {
 		_spec.SetField(identityverificationrequest.FieldPlatform, field.TypeEnum, value)
 	}
@@ -203,8 +235,11 @@ func (ivru *IdentityVerificationRequestUpdate) sqlSave(ctx context.Context) (n i
 	if value, ok := ivru.mutation.FeeReclaimed(); ok {
 		_spec.SetField(identityverificationrequest.FieldFeeReclaimed, field.TypeBool, value)
 	}
-	if value, ok := ivru.mutation.Timestamp(); ok {
-		_spec.SetField(identityverificationrequest.FieldTimestamp, field.TypeTime, value)
+	if value, ok := ivru.mutation.UpdatedAt(); ok {
+		_spec.SetField(identityverificationrequest.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if value, ok := ivru.mutation.LastURLCreatedAt(); ok {
+		_spec.SetField(identityverificationrequest.FieldLastURLCreatedAt, field.TypeTime, value)
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, ivru.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -236,6 +271,20 @@ func (ivruo *IdentityVerificationRequestUpdateOne) SetWalletAddress(s string) *I
 func (ivruo *IdentityVerificationRequestUpdateOne) SetNillableWalletAddress(s *string) *IdentityVerificationRequestUpdateOne {
 	if s != nil {
 		ivruo.SetWalletAddress(*s)
+	}
+	return ivruo
+}
+
+// SetWalletSignature sets the "wallet_signature" field.
+func (ivruo *IdentityVerificationRequestUpdateOne) SetWalletSignature(s string) *IdentityVerificationRequestUpdateOne {
+	ivruo.mutation.SetWalletSignature(s)
+	return ivruo
+}
+
+// SetNillableWalletSignature sets the "wallet_signature" field if the given value is not nil.
+func (ivruo *IdentityVerificationRequestUpdateOne) SetNillableWalletSignature(s *string) *IdentityVerificationRequestUpdateOne {
+	if s != nil {
+		ivruo.SetWalletSignature(*s)
 	}
 	return ivruo
 }
@@ -310,16 +359,22 @@ func (ivruo *IdentityVerificationRequestUpdateOne) SetNillableFeeReclaimed(b *bo
 	return ivruo
 }
 
-// SetTimestamp sets the "timestamp" field.
-func (ivruo *IdentityVerificationRequestUpdateOne) SetTimestamp(t time.Time) *IdentityVerificationRequestUpdateOne {
-	ivruo.mutation.SetTimestamp(t)
+// SetUpdatedAt sets the "updated_at" field.
+func (ivruo *IdentityVerificationRequestUpdateOne) SetUpdatedAt(t time.Time) *IdentityVerificationRequestUpdateOne {
+	ivruo.mutation.SetUpdatedAt(t)
 	return ivruo
 }
 
-// SetNillableTimestamp sets the "timestamp" field if the given value is not nil.
-func (ivruo *IdentityVerificationRequestUpdateOne) SetNillableTimestamp(t *time.Time) *IdentityVerificationRequestUpdateOne {
+// SetLastURLCreatedAt sets the "last_url_created_at" field.
+func (ivruo *IdentityVerificationRequestUpdateOne) SetLastURLCreatedAt(t time.Time) *IdentityVerificationRequestUpdateOne {
+	ivruo.mutation.SetLastURLCreatedAt(t)
+	return ivruo
+}
+
+// SetNillableLastURLCreatedAt sets the "last_url_created_at" field if the given value is not nil.
+func (ivruo *IdentityVerificationRequestUpdateOne) SetNillableLastURLCreatedAt(t *time.Time) *IdentityVerificationRequestUpdateOne {
 	if t != nil {
-		ivruo.SetTimestamp(*t)
+		ivruo.SetLastURLCreatedAt(*t)
 	}
 	return ivruo
 }
@@ -344,6 +399,7 @@ func (ivruo *IdentityVerificationRequestUpdateOne) Select(field string, fields .
 
 // Save executes the query and returns the updated IdentityVerificationRequest entity.
 func (ivruo *IdentityVerificationRequestUpdateOne) Save(ctx context.Context) (*IdentityVerificationRequest, error) {
+	ivruo.defaults()
 	return withHooks(ctx, ivruo.sqlSave, ivruo.mutation, ivruo.hooks)
 }
 
@@ -366,6 +422,14 @@ func (ivruo *IdentityVerificationRequestUpdateOne) Exec(ctx context.Context) err
 func (ivruo *IdentityVerificationRequestUpdateOne) ExecX(ctx context.Context) {
 	if err := ivruo.Exec(ctx); err != nil {
 		panic(err)
+	}
+}
+
+// defaults sets the default values of the builder before save.
+func (ivruo *IdentityVerificationRequestUpdateOne) defaults() {
+	if _, ok := ivruo.mutation.UpdatedAt(); !ok {
+		v := identityverificationrequest.UpdateDefaultUpdatedAt()
+		ivruo.mutation.SetUpdatedAt(v)
 	}
 }
 
@@ -416,6 +480,9 @@ func (ivruo *IdentityVerificationRequestUpdateOne) sqlSave(ctx context.Context) 
 	if value, ok := ivruo.mutation.WalletAddress(); ok {
 		_spec.SetField(identityverificationrequest.FieldWalletAddress, field.TypeString, value)
 	}
+	if value, ok := ivruo.mutation.WalletSignature(); ok {
+		_spec.SetField(identityverificationrequest.FieldWalletSignature, field.TypeString, value)
+	}
 	if value, ok := ivruo.mutation.Platform(); ok {
 		_spec.SetField(identityverificationrequest.FieldPlatform, field.TypeEnum, value)
 	}
@@ -431,8 +498,11 @@ func (ivruo *IdentityVerificationRequestUpdateOne) sqlSave(ctx context.Context) 
 	if value, ok := ivruo.mutation.FeeReclaimed(); ok {
 		_spec.SetField(identityverificationrequest.FieldFeeReclaimed, field.TypeBool, value)
 	}
-	if value, ok := ivruo.mutation.Timestamp(); ok {
-		_spec.SetField(identityverificationrequest.FieldTimestamp, field.TypeTime, value)
+	if value, ok := ivruo.mutation.UpdatedAt(); ok {
+		_spec.SetField(identityverificationrequest.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if value, ok := ivruo.mutation.LastURLCreatedAt(); ok {
+		_spec.SetField(identityverificationrequest.FieldLastURLCreatedAt, field.TypeTime, value)
 	}
 	_node = &IdentityVerificationRequest{config: ivruo.config}
 	_spec.Assign = _node.assignValues

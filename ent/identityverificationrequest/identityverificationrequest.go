@@ -17,6 +17,8 @@ const (
 	FieldID = "id"
 	// FieldWalletAddress holds the string denoting the wallet_address field in the database.
 	FieldWalletAddress = "wallet_address"
+	// FieldWalletSignature holds the string denoting the wallet_signature field in the database.
+	FieldWalletSignature = "wallet_signature"
 	// FieldPlatform holds the string denoting the platform field in the database.
 	FieldPlatform = "platform"
 	// FieldPlatformRef holds the string denoting the platform_ref field in the database.
@@ -27,8 +29,10 @@ const (
 	FieldStatus = "status"
 	// FieldFeeReclaimed holds the string denoting the fee_reclaimed field in the database.
 	FieldFeeReclaimed = "fee_reclaimed"
-	// FieldTimestamp holds the string denoting the timestamp field in the database.
-	FieldTimestamp = "timestamp"
+	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
+	FieldUpdatedAt = "updated_at"
+	// FieldLastURLCreatedAt holds the string denoting the last_url_created_at field in the database.
+	FieldLastURLCreatedAt = "last_url_created_at"
 	// Table holds the table name of the identityverificationrequest in the database.
 	Table = "identity_verification_requests"
 )
@@ -37,12 +41,14 @@ const (
 var Columns = []string{
 	FieldID,
 	FieldWalletAddress,
+	FieldWalletSignature,
 	FieldPlatform,
 	FieldPlatformRef,
 	FieldVerificationURL,
 	FieldStatus,
 	FieldFeeReclaimed,
-	FieldTimestamp,
+	FieldUpdatedAt,
+	FieldLastURLCreatedAt,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -58,8 +64,12 @@ func ValidColumn(column string) bool {
 var (
 	// DefaultFeeReclaimed holds the default value on creation for the "fee_reclaimed" field.
 	DefaultFeeReclaimed bool
-	// DefaultTimestamp holds the default value on creation for the "timestamp" field.
-	DefaultTimestamp func() time.Time
+	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
+	DefaultUpdatedAt func() time.Time
+	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
+	UpdateDefaultUpdatedAt func() time.Time
+	// DefaultLastURLCreatedAt holds the default value on creation for the "last_url_created_at" field.
+	DefaultLastURLCreatedAt func() time.Time
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() uuid.UUID
 )
@@ -99,6 +109,7 @@ const DefaultStatus = StatusPending
 const (
 	StatusPending Status = "pending"
 	StatusSuccess Status = "success"
+	StatusFailed  Status = "failed"
 )
 
 func (s Status) String() string {
@@ -108,7 +119,7 @@ func (s Status) String() string {
 // StatusValidator is a validator for the "status" field enum values. It is called by the builders before save.
 func StatusValidator(s Status) error {
 	switch s {
-	case StatusPending, StatusSuccess:
+	case StatusPending, StatusSuccess, StatusFailed:
 		return nil
 	default:
 		return fmt.Errorf("identityverificationrequest: invalid enum value for status field: %q", s)
@@ -126,6 +137,11 @@ func ByID(opts ...sql.OrderTermOption) OrderOption {
 // ByWalletAddress orders the results by the wallet_address field.
 func ByWalletAddress(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldWalletAddress, opts...).ToFunc()
+}
+
+// ByWalletSignature orders the results by the wallet_signature field.
+func ByWalletSignature(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldWalletSignature, opts...).ToFunc()
 }
 
 // ByPlatform orders the results by the platform field.
@@ -153,7 +169,12 @@ func ByFeeReclaimed(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldFeeReclaimed, opts...).ToFunc()
 }
 
-// ByTimestamp orders the results by the timestamp field.
-func ByTimestamp(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldTimestamp, opts...).ToFunc()
+// ByUpdatedAt orders the results by the updated_at field.
+func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUpdatedAt, opts...).ToFunc()
+}
+
+// ByLastURLCreatedAt orders the results by the last_url_created_at field.
+func ByLastURLCreatedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLastURLCreatedAt, opts...).ToFunc()
 }
