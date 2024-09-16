@@ -411,7 +411,7 @@ func (ctrl *Controller) RequestIDVerification(ctx *gin.Context) {
 	signature[64] -= 27
 
 	// Verify wallet signature
-	message := fmt.Sprintf("I accept the AML and Data Privacy Policies and hereby request an identity verification check for %s", payload.WalletAddress)
+	message := fmt.Sprintf("I accept the KYC Policy and hereby request an identity verification check for %s with nonce %s", payload.WalletAddress, payload.Nonce)
 
 	prefix := "\x19Ethereum Signed Message:\n" + fmt.Sprint(len(message))
 	hash := crypto.Keccak256Hash([]byte(prefix + message))
@@ -436,7 +436,6 @@ func (ctrl *Controller) RequestIDVerification(ctx *gin.Context) {
 		).
 		Only(ctx)
 	if err != nil {
-		logger.Errorf("error: %v", err)
 		if !ent.IsNotFound(err) {
 			logger.Errorf("error: %v", err)
 			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to request identity verification", nil)
@@ -445,7 +444,7 @@ func (ctrl *Controller) RequestIDVerification(ctx *gin.Context) {
 	}
 
 	timestamp := time.Now()
-	if ivr.Status == "pending" && ivr.Timestamp.Add(24*7*time.Hour).Before(timestamp) {
+	if ivr.Status == "pending" && ivr.LastURLCreatedAt.Add(24*7*time.Hour).Before(timestamp) {
 		// Request is expired, delete db entry
 		_, err := storage.Client.IdentityVerificationRequest.
 			Delete().
@@ -459,10 +458,21 @@ func (ctrl *Controller) RequestIDVerification(ctx *gin.Context) {
 			return
 		}
 
-	} else if ivr.Status == "pending" && (ivr.Timestamp.Add(24*7*time.Hour).Equal(timestamp) || ivr.Timestamp.Add(24*7*time.Hour).After(timestamp)) {
+	} else if ivr.Status == "pending" && (ivr.LastURLCreatedAt.Add(24*7*time.Hour).Equal(timestamp) || ivr.LastURLCreatedAt.Add(24*7*time.Hour).After(timestamp)) {
+		// Update the wallet signature in db
+		_, err = storage.Client.IdentityVerificationRequest.
+			Update().
+			SetWalletSignature(payload.Signature).
+			Save(ctx)
+		if err != nil {
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to request identity verification", nil)
+			return
+		}
+
 		u.APIResponse(ctx, http.StatusOK, "success", "This account has a pending identity verification", &types.NewIDVerificationResponse{
 			URL:       ivr.VerificationURL,
-			ExpiresAt: ivr.Timestamp,
+			ExpiresAt: ivr.LastURLCreatedAt,
 		})
 		return
 	}
@@ -620,7 +630,7 @@ func (ctrl *Controller) RequestIDVerification(ctx *gin.Context) {
 		SetPlatform("smile_id").
 		SetPlatformRef(data["ref_id"].(string)).
 		SetVerificationURL(data["link"].(string)).
-		SetTimestamp(timestamp.Add(24 * time.Hour)).
+		SetLastURLCreatedAt(timestamp.Add(24 * time.Hour)).
 		Save(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
@@ -630,7 +640,7 @@ func (ctrl *Controller) RequestIDVerification(ctx *gin.Context) {
 
 	u.APIResponse(ctx, http.StatusOK, "success", "Identity verification requested successfully", &types.NewIDVerificationResponse{
 		URL:       ivr.VerificationURL,
-		ExpiresAt: ivr.Timestamp,
+		ExpiresAt: ivr.LastURLCreatedAt,
 	})
 }
 
@@ -648,6 +658,7 @@ func (ctrl *Controller) GetIDVerificationStatus(ctx *gin.Context) {
 		Only(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {
+			// Check the platform's status endpoint
 			u.APIResponse(ctx, http.StatusNotFound, "error", "No verification request found for this wallet address", nil)
 			return
 		}
@@ -660,6 +671,34 @@ func (ctrl *Controller) GetIDVerificationStatus(ctx *gin.Context) {
 		Status string `json:"status"`
 	}{
 		Status: ivr.Status.String(),
+	}
+
+	// Check if the status is pending and fetch the status from the platform
+	if ivr.Status == identityverificationrequest.StatusPending {
+		status, err := getSmileLinkStatus(ivr.PlatformRef)
+		if err != nil {
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusServiceUnavailable, "error", "Failed to fetch identity verification status", nil)
+			return
+		}
+
+		response.Status = status
+
+		if status != "pending" {
+			// Update the verification status in the database if it's not pending
+			_, err := storage.Client.IdentityVerificationRequest.
+				Update().
+				Where(
+					identityverificationrequest.WalletAddressEQ(walletAddress),
+				).
+				SetStatus(identityverificationrequest.Status(response.Status)).
+				Save(ctx)
+			if err != nil {
+				logger.Errorf("error: %v", err)
+				u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update identity verification status", nil)
+				return
+			}
+		}
 	}
 
 	u.APIResponse(ctx, http.StatusOK, "success", "Identity verification status fetched successfully", response)
@@ -677,7 +716,7 @@ func (ctrl *Controller) KYCWebhook(ctx *gin.Context) {
 	}
 
 	// Verify the webhook signature
-	if !verifyWebhookSignature(payload, ctx.GetHeader("X-Smile-Signature")) {
+	if !verifySmileIDWebhookSignature(payload, payload.Signature) {
 		logger.Errorf("Invalid webhook signature")
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid signature"})
 		return
@@ -690,14 +729,37 @@ func (ctrl *Controller) KYCWebhook(ctx *gin.Context) {
 	successCodes := []string{
 		"0810", // Document Verified
 		"1020", // Exact Match (Basic KYC and Enhanced KYC)
-		"1021", // Partial Match (Basic KYC)
 		"1012", // Valid ID / ID Number Validated (Enhanced KYC)
 		"0820", // Authenticate User Machine Judgement - PASS
 		"0840", // Enroll User PASS - Machine Judgement
 	}
 
+	// Check for failed codes
+	failedCodes := []string{
+		"0811", // Document Not Verified
+		"0812", // Document Not Verified
+		"0813", // Document Not Verified - Machine Judgement
+		"1022", // No Match
+		"1023", // No Found
+		"1011", // Invalid ID / ID Number Invalid
+		"1013", // ID Number Not Found
+		"1014", // Unsupported ID Type
+		"0821", // Images did not match
+		"0911", // No Face Found
+		"0912", // Face Not Matching
+		"0921", // Face Not Found
+		"0922", // Selfie Quality Too Poor
+		"0841", // Enroll User FAIL
+		"0941", // Face Not Found
+		"0942", // Face Poor Quality
+	}
+
 	if slices.Contains(successCodes, payload.ResultCode) {
 		status = identityverificationrequest.StatusSuccess
+	}
+
+	if slices.Contains(failedCodes, payload.ResultCode) {
+		status = identityverificationrequest.StatusFailed
 	}
 
 	// Update the verification status in the database
@@ -709,7 +771,6 @@ func (ctrl *Controller) KYCWebhook(ctx *gin.Context) {
 		).
 		SetStatus(status).
 		Save(ctx)
-
 	if err != nil {
 		logger.Errorf("Failed to update verification status: %v", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process webhook"})
@@ -719,7 +780,8 @@ func (ctrl *Controller) KYCWebhook(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "Webhook processed successfully"})
 }
 
-func verifyWebhookSignature(payload types.SmileIDWebhookPayload, signatureHeader string) bool {
+// verifyWebhookSignature verifies the signature of a Smile Identity webhook
+func verifySmileIDWebhookSignature(payload types.SmileIDWebhookPayload, receivedSignature string) bool {
 	// Create HMAC
 	// Generate Smile Identity signature
 	h := hmac.New(sha256.New, []byte(identityConf.SmileIdentityApiKey))
@@ -729,5 +791,52 @@ func verifyWebhookSignature(payload types.SmileIDWebhookPayload, signatureHeader
 
 	// Compare the computed signature with the one in the header
 	computedSignature := base64.StdEncoding.EncodeToString(h.Sum(nil))
-	return computedSignature == signatureHeader
+	return computedSignature == receivedSignature
+}
+
+// getSmileLinkStatus fetches the status of a Smile Link
+func getSmileLinkStatus(linkID string) (string, error) {
+	// Generate signature
+	timestamp := time.Now().UTC().Format(time.RFC3339)
+	h := hmac.New(sha256.New, []byte(identityConf.SmileIdentityApiKey))
+	h.Write([]byte(timestamp))
+	h.Write([]byte(identityConf.SmileIdentityPartnerId))
+	h.Write([]byte("sid_request"))
+
+	// Get Smile Link status
+	res, err := fastshot.NewClient(identityConf.SmileIdentityBaseUrl).
+		Config().SetTimeout(30 * time.Second).
+		Build().POST(fmt.Sprintf("/v1/smile_links/%s", linkID)).
+		Body().AsJSON(map[string]interface{}{
+		"partner_id": identityConf.SmileIdentityPartnerId,
+		"signature":  base64.StdEncoding.EncodeToString(h.Sum(nil)),
+		"timestamp":  timestamp,
+	}).
+		Send()
+	if err != nil {
+		return "", fmt.Errorf("failed to get Smile Link status: %w", err)
+	}
+
+	data, err := u.ParseJSONResponse(res.RawResponse)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse Smile Link response: %w", err)
+	}
+
+	totalJobs := data["total_jobs"].(float64)
+	successfulJobs := data["successful_jobs"].(float64)
+	failedJobs := data["failed_jobs"].(float64)
+
+	if failedJobs+successfulJobs < totalJobs {
+		return "pending", nil
+	}
+
+	if totalJobs == successfulJobs && failedJobs == 0 {
+		return "success", nil
+	}
+
+	if failedJobs > 0 {
+		return "failed", nil
+	}
+
+	return "", nil
 }
