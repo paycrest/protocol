@@ -18,13 +18,23 @@ func (IdentityVerificationRequest) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
 			Default(uuid.New),
-		field.String("wallet_address").Unique(),
-		field.Enum("platform").Values("smile_id", "metamap", "sumsub", "synaps"),
+		field.String("wallet_address").
+			Unique(),
+		field.String("wallet_signature").
+			Unique(),
+		field.Enum("platform").
+			Values("smile_id", "metamap", "sumsub", "synaps"),
 		field.String("platform_ref"),
 		field.String("verification_url"),
-		field.Enum("status").Values("pending", "success").Default("pending"),
+		field.Enum("status").
+			Values("pending", "success", "failed").
+			Default("pending"),
 		field.Bool("fee_reclaimed").Default(false),
-		field.Time("timestamp").Default(time.Now),
+		field.Time("updated_at").
+			Default(time.Now).
+			UpdateDefault(time.Now),
+		field.Time("last_url_created_at").
+			Default(time.Now),
 	}
 }
 

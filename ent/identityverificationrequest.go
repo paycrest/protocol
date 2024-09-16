@@ -20,6 +20,8 @@ type IdentityVerificationRequest struct {
 	ID uuid.UUID `json:"id,omitempty"`
 	// WalletAddress holds the value of the "wallet_address" field.
 	WalletAddress string `json:"wallet_address,omitempty"`
+	// WalletSignature holds the value of the "wallet_signature" field.
+	WalletSignature string `json:"wallet_signature,omitempty"`
 	// Platform holds the value of the "platform" field.
 	Platform identityverificationrequest.Platform `json:"platform,omitempty"`
 	// PlatformRef holds the value of the "platform_ref" field.
@@ -30,9 +32,11 @@ type IdentityVerificationRequest struct {
 	Status identityverificationrequest.Status `json:"status,omitempty"`
 	// FeeReclaimed holds the value of the "fee_reclaimed" field.
 	FeeReclaimed bool `json:"fee_reclaimed,omitempty"`
-	// Timestamp holds the value of the "timestamp" field.
-	Timestamp    time.Time `json:"timestamp,omitempty"`
-	selectValues sql.SelectValues
+	// UpdatedAt holds the value of the "updated_at" field.
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
+	// LastURLCreatedAt holds the value of the "last_url_created_at" field.
+	LastURLCreatedAt time.Time `json:"last_url_created_at,omitempty"`
+	selectValues     sql.SelectValues
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -42,9 +46,9 @@ func (*IdentityVerificationRequest) scanValues(columns []string) ([]any, error) 
 		switch columns[i] {
 		case identityverificationrequest.FieldFeeReclaimed:
 			values[i] = new(sql.NullBool)
-		case identityverificationrequest.FieldWalletAddress, identityverificationrequest.FieldPlatform, identityverificationrequest.FieldPlatformRef, identityverificationrequest.FieldVerificationURL, identityverificationrequest.FieldStatus:
+		case identityverificationrequest.FieldWalletAddress, identityverificationrequest.FieldWalletSignature, identityverificationrequest.FieldPlatform, identityverificationrequest.FieldPlatformRef, identityverificationrequest.FieldVerificationURL, identityverificationrequest.FieldStatus:
 			values[i] = new(sql.NullString)
-		case identityverificationrequest.FieldTimestamp:
+		case identityverificationrequest.FieldUpdatedAt, identityverificationrequest.FieldLastURLCreatedAt:
 			values[i] = new(sql.NullTime)
 		case identityverificationrequest.FieldID:
 			values[i] = new(uuid.UUID)
@@ -74,6 +78,12 @@ func (ivr *IdentityVerificationRequest) assignValues(columns []string, values []
 				return fmt.Errorf("unexpected type %T for field wallet_address", values[i])
 			} else if value.Valid {
 				ivr.WalletAddress = value.String
+			}
+		case identityverificationrequest.FieldWalletSignature:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field wallet_signature", values[i])
+			} else if value.Valid {
+				ivr.WalletSignature = value.String
 			}
 		case identityverificationrequest.FieldPlatform:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -105,11 +115,17 @@ func (ivr *IdentityVerificationRequest) assignValues(columns []string, values []
 			} else if value.Valid {
 				ivr.FeeReclaimed = value.Bool
 			}
-		case identityverificationrequest.FieldTimestamp:
+		case identityverificationrequest.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field timestamp", values[i])
+				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
-				ivr.Timestamp = value.Time
+				ivr.UpdatedAt = value.Time
+			}
+		case identityverificationrequest.FieldLastURLCreatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field last_url_created_at", values[i])
+			} else if value.Valid {
+				ivr.LastURLCreatedAt = value.Time
 			}
 		default:
 			ivr.selectValues.Set(columns[i], values[i])
@@ -150,6 +166,9 @@ func (ivr *IdentityVerificationRequest) String() string {
 	builder.WriteString("wallet_address=")
 	builder.WriteString(ivr.WalletAddress)
 	builder.WriteString(", ")
+	builder.WriteString("wallet_signature=")
+	builder.WriteString(ivr.WalletSignature)
+	builder.WriteString(", ")
 	builder.WriteString("platform=")
 	builder.WriteString(fmt.Sprintf("%v", ivr.Platform))
 	builder.WriteString(", ")
@@ -165,8 +184,11 @@ func (ivr *IdentityVerificationRequest) String() string {
 	builder.WriteString("fee_reclaimed=")
 	builder.WriteString(fmt.Sprintf("%v", ivr.FeeReclaimed))
 	builder.WriteString(", ")
-	builder.WriteString("timestamp=")
-	builder.WriteString(ivr.Timestamp.Format(time.ANSIC))
+	builder.WriteString("updated_at=")
+	builder.WriteString(ivr.UpdatedAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("last_url_created_at=")
+	builder.WriteString(ivr.LastURLCreatedAt.Format(time.ANSIC))
 	builder.WriteByte(')')
 	return builder.String()
 }

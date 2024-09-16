@@ -58,12 +58,14 @@ var (
 	IdentityVerificationRequestsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
 		{Name: "wallet_address", Type: field.TypeString, Unique: true},
+		{Name: "wallet_signature", Type: field.TypeString, Unique: true},
 		{Name: "platform", Type: field.TypeEnum, Enums: []string{"smile_id", "metamap", "sumsub", "synaps"}},
 		{Name: "platform_ref", Type: field.TypeString},
 		{Name: "verification_url", Type: field.TypeString},
-		{Name: "status", Type: field.TypeEnum, Enums: []string{"pending", "success"}, Default: "pending"},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"pending", "success", "failed"}, Default: "pending"},
 		{Name: "fee_reclaimed", Type: field.TypeBool, Default: false},
-		{Name: "timestamp", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "last_url_created_at", Type: field.TypeTime},
 	}
 	// IdentityVerificationRequestsTable holds the schema information for the "identity_verification_requests" table.
 	IdentityVerificationRequestsTable = &schema.Table{

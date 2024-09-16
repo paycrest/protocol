@@ -30,6 +30,12 @@ func (ivrc *IdentityVerificationRequestCreate) SetWalletAddress(s string) *Ident
 	return ivrc
 }
 
+// SetWalletSignature sets the "wallet_signature" field.
+func (ivrc *IdentityVerificationRequestCreate) SetWalletSignature(s string) *IdentityVerificationRequestCreate {
+	ivrc.mutation.SetWalletSignature(s)
+	return ivrc
+}
+
 // SetPlatform sets the "platform" field.
 func (ivrc *IdentityVerificationRequestCreate) SetPlatform(i identityverificationrequest.Platform) *IdentityVerificationRequestCreate {
 	ivrc.mutation.SetPlatform(i)
@@ -76,16 +82,30 @@ func (ivrc *IdentityVerificationRequestCreate) SetNillableFeeReclaimed(b *bool) 
 	return ivrc
 }
 
-// SetTimestamp sets the "timestamp" field.
-func (ivrc *IdentityVerificationRequestCreate) SetTimestamp(t time.Time) *IdentityVerificationRequestCreate {
-	ivrc.mutation.SetTimestamp(t)
+// SetUpdatedAt sets the "updated_at" field.
+func (ivrc *IdentityVerificationRequestCreate) SetUpdatedAt(t time.Time) *IdentityVerificationRequestCreate {
+	ivrc.mutation.SetUpdatedAt(t)
 	return ivrc
 }
 
-// SetNillableTimestamp sets the "timestamp" field if the given value is not nil.
-func (ivrc *IdentityVerificationRequestCreate) SetNillableTimestamp(t *time.Time) *IdentityVerificationRequestCreate {
+// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
+func (ivrc *IdentityVerificationRequestCreate) SetNillableUpdatedAt(t *time.Time) *IdentityVerificationRequestCreate {
 	if t != nil {
-		ivrc.SetTimestamp(*t)
+		ivrc.SetUpdatedAt(*t)
+	}
+	return ivrc
+}
+
+// SetLastURLCreatedAt sets the "last_url_created_at" field.
+func (ivrc *IdentityVerificationRequestCreate) SetLastURLCreatedAt(t time.Time) *IdentityVerificationRequestCreate {
+	ivrc.mutation.SetLastURLCreatedAt(t)
+	return ivrc
+}
+
+// SetNillableLastURLCreatedAt sets the "last_url_created_at" field if the given value is not nil.
+func (ivrc *IdentityVerificationRequestCreate) SetNillableLastURLCreatedAt(t *time.Time) *IdentityVerificationRequestCreate {
+	if t != nil {
+		ivrc.SetLastURLCreatedAt(*t)
 	}
 	return ivrc
 }
@@ -147,9 +167,13 @@ func (ivrc *IdentityVerificationRequestCreate) defaults() {
 		v := identityverificationrequest.DefaultFeeReclaimed
 		ivrc.mutation.SetFeeReclaimed(v)
 	}
-	if _, ok := ivrc.mutation.Timestamp(); !ok {
-		v := identityverificationrequest.DefaultTimestamp()
-		ivrc.mutation.SetTimestamp(v)
+	if _, ok := ivrc.mutation.UpdatedAt(); !ok {
+		v := identityverificationrequest.DefaultUpdatedAt()
+		ivrc.mutation.SetUpdatedAt(v)
+	}
+	if _, ok := ivrc.mutation.LastURLCreatedAt(); !ok {
+		v := identityverificationrequest.DefaultLastURLCreatedAt()
+		ivrc.mutation.SetLastURLCreatedAt(v)
 	}
 	if _, ok := ivrc.mutation.ID(); !ok {
 		v := identityverificationrequest.DefaultID()
@@ -161,6 +185,9 @@ func (ivrc *IdentityVerificationRequestCreate) defaults() {
 func (ivrc *IdentityVerificationRequestCreate) check() error {
 	if _, ok := ivrc.mutation.WalletAddress(); !ok {
 		return &ValidationError{Name: "wallet_address", err: errors.New(`ent: missing required field "IdentityVerificationRequest.wallet_address"`)}
+	}
+	if _, ok := ivrc.mutation.WalletSignature(); !ok {
+		return &ValidationError{Name: "wallet_signature", err: errors.New(`ent: missing required field "IdentityVerificationRequest.wallet_signature"`)}
 	}
 	if _, ok := ivrc.mutation.Platform(); !ok {
 		return &ValidationError{Name: "platform", err: errors.New(`ent: missing required field "IdentityVerificationRequest.platform"`)}
@@ -187,8 +214,11 @@ func (ivrc *IdentityVerificationRequestCreate) check() error {
 	if _, ok := ivrc.mutation.FeeReclaimed(); !ok {
 		return &ValidationError{Name: "fee_reclaimed", err: errors.New(`ent: missing required field "IdentityVerificationRequest.fee_reclaimed"`)}
 	}
-	if _, ok := ivrc.mutation.Timestamp(); !ok {
-		return &ValidationError{Name: "timestamp", err: errors.New(`ent: missing required field "IdentityVerificationRequest.timestamp"`)}
+	if _, ok := ivrc.mutation.UpdatedAt(); !ok {
+		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "IdentityVerificationRequest.updated_at"`)}
+	}
+	if _, ok := ivrc.mutation.LastURLCreatedAt(); !ok {
+		return &ValidationError{Name: "last_url_created_at", err: errors.New(`ent: missing required field "IdentityVerificationRequest.last_url_created_at"`)}
 	}
 	return nil
 }
@@ -230,6 +260,10 @@ func (ivrc *IdentityVerificationRequestCreate) createSpec() (*IdentityVerificati
 		_spec.SetField(identityverificationrequest.FieldWalletAddress, field.TypeString, value)
 		_node.WalletAddress = value
 	}
+	if value, ok := ivrc.mutation.WalletSignature(); ok {
+		_spec.SetField(identityverificationrequest.FieldWalletSignature, field.TypeString, value)
+		_node.WalletSignature = value
+	}
 	if value, ok := ivrc.mutation.Platform(); ok {
 		_spec.SetField(identityverificationrequest.FieldPlatform, field.TypeEnum, value)
 		_node.Platform = value
@@ -250,9 +284,13 @@ func (ivrc *IdentityVerificationRequestCreate) createSpec() (*IdentityVerificati
 		_spec.SetField(identityverificationrequest.FieldFeeReclaimed, field.TypeBool, value)
 		_node.FeeReclaimed = value
 	}
-	if value, ok := ivrc.mutation.Timestamp(); ok {
-		_spec.SetField(identityverificationrequest.FieldTimestamp, field.TypeTime, value)
-		_node.Timestamp = value
+	if value, ok := ivrc.mutation.UpdatedAt(); ok {
+		_spec.SetField(identityverificationrequest.FieldUpdatedAt, field.TypeTime, value)
+		_node.UpdatedAt = value
+	}
+	if value, ok := ivrc.mutation.LastURLCreatedAt(); ok {
+		_spec.SetField(identityverificationrequest.FieldLastURLCreatedAt, field.TypeTime, value)
+		_node.LastURLCreatedAt = value
 	}
 	return _node, _spec
 }
@@ -318,6 +356,18 @@ func (u *IdentityVerificationRequestUpsert) UpdateWalletAddress() *IdentityVerif
 	return u
 }
 
+// SetWalletSignature sets the "wallet_signature" field.
+func (u *IdentityVerificationRequestUpsert) SetWalletSignature(v string) *IdentityVerificationRequestUpsert {
+	u.Set(identityverificationrequest.FieldWalletSignature, v)
+	return u
+}
+
+// UpdateWalletSignature sets the "wallet_signature" field to the value that was provided on create.
+func (u *IdentityVerificationRequestUpsert) UpdateWalletSignature() *IdentityVerificationRequestUpsert {
+	u.SetExcluded(identityverificationrequest.FieldWalletSignature)
+	return u
+}
+
 // SetPlatform sets the "platform" field.
 func (u *IdentityVerificationRequestUpsert) SetPlatform(v identityverificationrequest.Platform) *IdentityVerificationRequestUpsert {
 	u.Set(identityverificationrequest.FieldPlatform, v)
@@ -378,15 +428,27 @@ func (u *IdentityVerificationRequestUpsert) UpdateFeeReclaimed() *IdentityVerifi
 	return u
 }
 
-// SetTimestamp sets the "timestamp" field.
-func (u *IdentityVerificationRequestUpsert) SetTimestamp(v time.Time) *IdentityVerificationRequestUpsert {
-	u.Set(identityverificationrequest.FieldTimestamp, v)
+// SetUpdatedAt sets the "updated_at" field.
+func (u *IdentityVerificationRequestUpsert) SetUpdatedAt(v time.Time) *IdentityVerificationRequestUpsert {
+	u.Set(identityverificationrequest.FieldUpdatedAt, v)
 	return u
 }
 
-// UpdateTimestamp sets the "timestamp" field to the value that was provided on create.
-func (u *IdentityVerificationRequestUpsert) UpdateTimestamp() *IdentityVerificationRequestUpsert {
-	u.SetExcluded(identityverificationrequest.FieldTimestamp)
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *IdentityVerificationRequestUpsert) UpdateUpdatedAt() *IdentityVerificationRequestUpsert {
+	u.SetExcluded(identityverificationrequest.FieldUpdatedAt)
+	return u
+}
+
+// SetLastURLCreatedAt sets the "last_url_created_at" field.
+func (u *IdentityVerificationRequestUpsert) SetLastURLCreatedAt(v time.Time) *IdentityVerificationRequestUpsert {
+	u.Set(identityverificationrequest.FieldLastURLCreatedAt, v)
+	return u
+}
+
+// UpdateLastURLCreatedAt sets the "last_url_created_at" field to the value that was provided on create.
+func (u *IdentityVerificationRequestUpsert) UpdateLastURLCreatedAt() *IdentityVerificationRequestUpsert {
+	u.SetExcluded(identityverificationrequest.FieldLastURLCreatedAt)
 	return u
 }
 
@@ -449,6 +511,20 @@ func (u *IdentityVerificationRequestUpsertOne) SetWalletAddress(v string) *Ident
 func (u *IdentityVerificationRequestUpsertOne) UpdateWalletAddress() *IdentityVerificationRequestUpsertOne {
 	return u.Update(func(s *IdentityVerificationRequestUpsert) {
 		s.UpdateWalletAddress()
+	})
+}
+
+// SetWalletSignature sets the "wallet_signature" field.
+func (u *IdentityVerificationRequestUpsertOne) SetWalletSignature(v string) *IdentityVerificationRequestUpsertOne {
+	return u.Update(func(s *IdentityVerificationRequestUpsert) {
+		s.SetWalletSignature(v)
+	})
+}
+
+// UpdateWalletSignature sets the "wallet_signature" field to the value that was provided on create.
+func (u *IdentityVerificationRequestUpsertOne) UpdateWalletSignature() *IdentityVerificationRequestUpsertOne {
+	return u.Update(func(s *IdentityVerificationRequestUpsert) {
+		s.UpdateWalletSignature()
 	})
 }
 
@@ -522,17 +598,31 @@ func (u *IdentityVerificationRequestUpsertOne) UpdateFeeReclaimed() *IdentityVer
 	})
 }
 
-// SetTimestamp sets the "timestamp" field.
-func (u *IdentityVerificationRequestUpsertOne) SetTimestamp(v time.Time) *IdentityVerificationRequestUpsertOne {
+// SetUpdatedAt sets the "updated_at" field.
+func (u *IdentityVerificationRequestUpsertOne) SetUpdatedAt(v time.Time) *IdentityVerificationRequestUpsertOne {
 	return u.Update(func(s *IdentityVerificationRequestUpsert) {
-		s.SetTimestamp(v)
+		s.SetUpdatedAt(v)
 	})
 }
 
-// UpdateTimestamp sets the "timestamp" field to the value that was provided on create.
-func (u *IdentityVerificationRequestUpsertOne) UpdateTimestamp() *IdentityVerificationRequestUpsertOne {
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *IdentityVerificationRequestUpsertOne) UpdateUpdatedAt() *IdentityVerificationRequestUpsertOne {
 	return u.Update(func(s *IdentityVerificationRequestUpsert) {
-		s.UpdateTimestamp()
+		s.UpdateUpdatedAt()
+	})
+}
+
+// SetLastURLCreatedAt sets the "last_url_created_at" field.
+func (u *IdentityVerificationRequestUpsertOne) SetLastURLCreatedAt(v time.Time) *IdentityVerificationRequestUpsertOne {
+	return u.Update(func(s *IdentityVerificationRequestUpsert) {
+		s.SetLastURLCreatedAt(v)
+	})
+}
+
+// UpdateLastURLCreatedAt sets the "last_url_created_at" field to the value that was provided on create.
+func (u *IdentityVerificationRequestUpsertOne) UpdateLastURLCreatedAt() *IdentityVerificationRequestUpsertOne {
+	return u.Update(func(s *IdentityVerificationRequestUpsert) {
+		s.UpdateLastURLCreatedAt()
 	})
 }
 
@@ -765,6 +855,20 @@ func (u *IdentityVerificationRequestUpsertBulk) UpdateWalletAddress() *IdentityV
 	})
 }
 
+// SetWalletSignature sets the "wallet_signature" field.
+func (u *IdentityVerificationRequestUpsertBulk) SetWalletSignature(v string) *IdentityVerificationRequestUpsertBulk {
+	return u.Update(func(s *IdentityVerificationRequestUpsert) {
+		s.SetWalletSignature(v)
+	})
+}
+
+// UpdateWalletSignature sets the "wallet_signature" field to the value that was provided on create.
+func (u *IdentityVerificationRequestUpsertBulk) UpdateWalletSignature() *IdentityVerificationRequestUpsertBulk {
+	return u.Update(func(s *IdentityVerificationRequestUpsert) {
+		s.UpdateWalletSignature()
+	})
+}
+
 // SetPlatform sets the "platform" field.
 func (u *IdentityVerificationRequestUpsertBulk) SetPlatform(v identityverificationrequest.Platform) *IdentityVerificationRequestUpsertBulk {
 	return u.Update(func(s *IdentityVerificationRequestUpsert) {
@@ -835,17 +939,31 @@ func (u *IdentityVerificationRequestUpsertBulk) UpdateFeeReclaimed() *IdentityVe
 	})
 }
 
-// SetTimestamp sets the "timestamp" field.
-func (u *IdentityVerificationRequestUpsertBulk) SetTimestamp(v time.Time) *IdentityVerificationRequestUpsertBulk {
+// SetUpdatedAt sets the "updated_at" field.
+func (u *IdentityVerificationRequestUpsertBulk) SetUpdatedAt(v time.Time) *IdentityVerificationRequestUpsertBulk {
 	return u.Update(func(s *IdentityVerificationRequestUpsert) {
-		s.SetTimestamp(v)
+		s.SetUpdatedAt(v)
 	})
 }
 
-// UpdateTimestamp sets the "timestamp" field to the value that was provided on create.
-func (u *IdentityVerificationRequestUpsertBulk) UpdateTimestamp() *IdentityVerificationRequestUpsertBulk {
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *IdentityVerificationRequestUpsertBulk) UpdateUpdatedAt() *IdentityVerificationRequestUpsertBulk {
 	return u.Update(func(s *IdentityVerificationRequestUpsert) {
-		s.UpdateTimestamp()
+		s.UpdateUpdatedAt()
+	})
+}
+
+// SetLastURLCreatedAt sets the "last_url_created_at" field.
+func (u *IdentityVerificationRequestUpsertBulk) SetLastURLCreatedAt(v time.Time) *IdentityVerificationRequestUpsertBulk {
+	return u.Update(func(s *IdentityVerificationRequestUpsert) {
+		s.SetLastURLCreatedAt(v)
+	})
+}
+
+// UpdateLastURLCreatedAt sets the "last_url_created_at" field to the value that was provided on create.
+func (u *IdentityVerificationRequestUpsertBulk) UpdateLastURLCreatedAt() *IdentityVerificationRequestUpsertBulk {
+	return u.Update(func(s *IdentityVerificationRequestUpsert) {
+		s.UpdateLastURLCreatedAt()
 	})
 }
 

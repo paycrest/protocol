@@ -60,6 +60,11 @@ func WalletAddress(v string) predicate.IdentityVerificationRequest {
 	return predicate.IdentityVerificationRequest(sql.FieldEQ(FieldWalletAddress, v))
 }
 
+// WalletSignature applies equality check predicate on the "wallet_signature" field. It's identical to WalletSignatureEQ.
+func WalletSignature(v string) predicate.IdentityVerificationRequest {
+	return predicate.IdentityVerificationRequest(sql.FieldEQ(FieldWalletSignature, v))
+}
+
 // PlatformRef applies equality check predicate on the "platform_ref" field. It's identical to PlatformRefEQ.
 func PlatformRef(v string) predicate.IdentityVerificationRequest {
 	return predicate.IdentityVerificationRequest(sql.FieldEQ(FieldPlatformRef, v))
@@ -75,9 +80,14 @@ func FeeReclaimed(v bool) predicate.IdentityVerificationRequest {
 	return predicate.IdentityVerificationRequest(sql.FieldEQ(FieldFeeReclaimed, v))
 }
 
-// Timestamp applies equality check predicate on the "timestamp" field. It's identical to TimestampEQ.
-func Timestamp(v time.Time) predicate.IdentityVerificationRequest {
-	return predicate.IdentityVerificationRequest(sql.FieldEQ(FieldTimestamp, v))
+// UpdatedAt applies equality check predicate on the "updated_at" field. It's identical to UpdatedAtEQ.
+func UpdatedAt(v time.Time) predicate.IdentityVerificationRequest {
+	return predicate.IdentityVerificationRequest(sql.FieldEQ(FieldUpdatedAt, v))
+}
+
+// LastURLCreatedAt applies equality check predicate on the "last_url_created_at" field. It's identical to LastURLCreatedAtEQ.
+func LastURLCreatedAt(v time.Time) predicate.IdentityVerificationRequest {
+	return predicate.IdentityVerificationRequest(sql.FieldEQ(FieldLastURLCreatedAt, v))
 }
 
 // WalletAddressEQ applies the EQ predicate on the "wallet_address" field.
@@ -143,6 +153,71 @@ func WalletAddressEqualFold(v string) predicate.IdentityVerificationRequest {
 // WalletAddressContainsFold applies the ContainsFold predicate on the "wallet_address" field.
 func WalletAddressContainsFold(v string) predicate.IdentityVerificationRequest {
 	return predicate.IdentityVerificationRequest(sql.FieldContainsFold(FieldWalletAddress, v))
+}
+
+// WalletSignatureEQ applies the EQ predicate on the "wallet_signature" field.
+func WalletSignatureEQ(v string) predicate.IdentityVerificationRequest {
+	return predicate.IdentityVerificationRequest(sql.FieldEQ(FieldWalletSignature, v))
+}
+
+// WalletSignatureNEQ applies the NEQ predicate on the "wallet_signature" field.
+func WalletSignatureNEQ(v string) predicate.IdentityVerificationRequest {
+	return predicate.IdentityVerificationRequest(sql.FieldNEQ(FieldWalletSignature, v))
+}
+
+// WalletSignatureIn applies the In predicate on the "wallet_signature" field.
+func WalletSignatureIn(vs ...string) predicate.IdentityVerificationRequest {
+	return predicate.IdentityVerificationRequest(sql.FieldIn(FieldWalletSignature, vs...))
+}
+
+// WalletSignatureNotIn applies the NotIn predicate on the "wallet_signature" field.
+func WalletSignatureNotIn(vs ...string) predicate.IdentityVerificationRequest {
+	return predicate.IdentityVerificationRequest(sql.FieldNotIn(FieldWalletSignature, vs...))
+}
+
+// WalletSignatureGT applies the GT predicate on the "wallet_signature" field.
+func WalletSignatureGT(v string) predicate.IdentityVerificationRequest {
+	return predicate.IdentityVerificationRequest(sql.FieldGT(FieldWalletSignature, v))
+}
+
+// WalletSignatureGTE applies the GTE predicate on the "wallet_signature" field.
+func WalletSignatureGTE(v string) predicate.IdentityVerificationRequest {
+	return predicate.IdentityVerificationRequest(sql.FieldGTE(FieldWalletSignature, v))
+}
+
+// WalletSignatureLT applies the LT predicate on the "wallet_signature" field.
+func WalletSignatureLT(v string) predicate.IdentityVerificationRequest {
+	return predicate.IdentityVerificationRequest(sql.FieldLT(FieldWalletSignature, v))
+}
+
+// WalletSignatureLTE applies the LTE predicate on the "wallet_signature" field.
+func WalletSignatureLTE(v string) predicate.IdentityVerificationRequest {
+	return predicate.IdentityVerificationRequest(sql.FieldLTE(FieldWalletSignature, v))
+}
+
+// WalletSignatureContains applies the Contains predicate on the "wallet_signature" field.
+func WalletSignatureContains(v string) predicate.IdentityVerificationRequest {
+	return predicate.IdentityVerificationRequest(sql.FieldContains(FieldWalletSignature, v))
+}
+
+// WalletSignatureHasPrefix applies the HasPrefix predicate on the "wallet_signature" field.
+func WalletSignatureHasPrefix(v string) predicate.IdentityVerificationRequest {
+	return predicate.IdentityVerificationRequest(sql.FieldHasPrefix(FieldWalletSignature, v))
+}
+
+// WalletSignatureHasSuffix applies the HasSuffix predicate on the "wallet_signature" field.
+func WalletSignatureHasSuffix(v string) predicate.IdentityVerificationRequest {
+	return predicate.IdentityVerificationRequest(sql.FieldHasSuffix(FieldWalletSignature, v))
+}
+
+// WalletSignatureEqualFold applies the EqualFold predicate on the "wallet_signature" field.
+func WalletSignatureEqualFold(v string) predicate.IdentityVerificationRequest {
+	return predicate.IdentityVerificationRequest(sql.FieldEqualFold(FieldWalletSignature, v))
+}
+
+// WalletSignatureContainsFold applies the ContainsFold predicate on the "wallet_signature" field.
+func WalletSignatureContainsFold(v string) predicate.IdentityVerificationRequest {
+	return predicate.IdentityVerificationRequest(sql.FieldContainsFold(FieldWalletSignature, v))
 }
 
 // PlatformEQ applies the EQ predicate on the "platform" field.
@@ -325,44 +400,84 @@ func FeeReclaimedNEQ(v bool) predicate.IdentityVerificationRequest {
 	return predicate.IdentityVerificationRequest(sql.FieldNEQ(FieldFeeReclaimed, v))
 }
 
-// TimestampEQ applies the EQ predicate on the "timestamp" field.
-func TimestampEQ(v time.Time) predicate.IdentityVerificationRequest {
-	return predicate.IdentityVerificationRequest(sql.FieldEQ(FieldTimestamp, v))
+// UpdatedAtEQ applies the EQ predicate on the "updated_at" field.
+func UpdatedAtEQ(v time.Time) predicate.IdentityVerificationRequest {
+	return predicate.IdentityVerificationRequest(sql.FieldEQ(FieldUpdatedAt, v))
 }
 
-// TimestampNEQ applies the NEQ predicate on the "timestamp" field.
-func TimestampNEQ(v time.Time) predicate.IdentityVerificationRequest {
-	return predicate.IdentityVerificationRequest(sql.FieldNEQ(FieldTimestamp, v))
+// UpdatedAtNEQ applies the NEQ predicate on the "updated_at" field.
+func UpdatedAtNEQ(v time.Time) predicate.IdentityVerificationRequest {
+	return predicate.IdentityVerificationRequest(sql.FieldNEQ(FieldUpdatedAt, v))
 }
 
-// TimestampIn applies the In predicate on the "timestamp" field.
-func TimestampIn(vs ...time.Time) predicate.IdentityVerificationRequest {
-	return predicate.IdentityVerificationRequest(sql.FieldIn(FieldTimestamp, vs...))
+// UpdatedAtIn applies the In predicate on the "updated_at" field.
+func UpdatedAtIn(vs ...time.Time) predicate.IdentityVerificationRequest {
+	return predicate.IdentityVerificationRequest(sql.FieldIn(FieldUpdatedAt, vs...))
 }
 
-// TimestampNotIn applies the NotIn predicate on the "timestamp" field.
-func TimestampNotIn(vs ...time.Time) predicate.IdentityVerificationRequest {
-	return predicate.IdentityVerificationRequest(sql.FieldNotIn(FieldTimestamp, vs...))
+// UpdatedAtNotIn applies the NotIn predicate on the "updated_at" field.
+func UpdatedAtNotIn(vs ...time.Time) predicate.IdentityVerificationRequest {
+	return predicate.IdentityVerificationRequest(sql.FieldNotIn(FieldUpdatedAt, vs...))
 }
 
-// TimestampGT applies the GT predicate on the "timestamp" field.
-func TimestampGT(v time.Time) predicate.IdentityVerificationRequest {
-	return predicate.IdentityVerificationRequest(sql.FieldGT(FieldTimestamp, v))
+// UpdatedAtGT applies the GT predicate on the "updated_at" field.
+func UpdatedAtGT(v time.Time) predicate.IdentityVerificationRequest {
+	return predicate.IdentityVerificationRequest(sql.FieldGT(FieldUpdatedAt, v))
 }
 
-// TimestampGTE applies the GTE predicate on the "timestamp" field.
-func TimestampGTE(v time.Time) predicate.IdentityVerificationRequest {
-	return predicate.IdentityVerificationRequest(sql.FieldGTE(FieldTimestamp, v))
+// UpdatedAtGTE applies the GTE predicate on the "updated_at" field.
+func UpdatedAtGTE(v time.Time) predicate.IdentityVerificationRequest {
+	return predicate.IdentityVerificationRequest(sql.FieldGTE(FieldUpdatedAt, v))
 }
 
-// TimestampLT applies the LT predicate on the "timestamp" field.
-func TimestampLT(v time.Time) predicate.IdentityVerificationRequest {
-	return predicate.IdentityVerificationRequest(sql.FieldLT(FieldTimestamp, v))
+// UpdatedAtLT applies the LT predicate on the "updated_at" field.
+func UpdatedAtLT(v time.Time) predicate.IdentityVerificationRequest {
+	return predicate.IdentityVerificationRequest(sql.FieldLT(FieldUpdatedAt, v))
 }
 
-// TimestampLTE applies the LTE predicate on the "timestamp" field.
-func TimestampLTE(v time.Time) predicate.IdentityVerificationRequest {
-	return predicate.IdentityVerificationRequest(sql.FieldLTE(FieldTimestamp, v))
+// UpdatedAtLTE applies the LTE predicate on the "updated_at" field.
+func UpdatedAtLTE(v time.Time) predicate.IdentityVerificationRequest {
+	return predicate.IdentityVerificationRequest(sql.FieldLTE(FieldUpdatedAt, v))
+}
+
+// LastURLCreatedAtEQ applies the EQ predicate on the "last_url_created_at" field.
+func LastURLCreatedAtEQ(v time.Time) predicate.IdentityVerificationRequest {
+	return predicate.IdentityVerificationRequest(sql.FieldEQ(FieldLastURLCreatedAt, v))
+}
+
+// LastURLCreatedAtNEQ applies the NEQ predicate on the "last_url_created_at" field.
+func LastURLCreatedAtNEQ(v time.Time) predicate.IdentityVerificationRequest {
+	return predicate.IdentityVerificationRequest(sql.FieldNEQ(FieldLastURLCreatedAt, v))
+}
+
+// LastURLCreatedAtIn applies the In predicate on the "last_url_created_at" field.
+func LastURLCreatedAtIn(vs ...time.Time) predicate.IdentityVerificationRequest {
+	return predicate.IdentityVerificationRequest(sql.FieldIn(FieldLastURLCreatedAt, vs...))
+}
+
+// LastURLCreatedAtNotIn applies the NotIn predicate on the "last_url_created_at" field.
+func LastURLCreatedAtNotIn(vs ...time.Time) predicate.IdentityVerificationRequest {
+	return predicate.IdentityVerificationRequest(sql.FieldNotIn(FieldLastURLCreatedAt, vs...))
+}
+
+// LastURLCreatedAtGT applies the GT predicate on the "last_url_created_at" field.
+func LastURLCreatedAtGT(v time.Time) predicate.IdentityVerificationRequest {
+	return predicate.IdentityVerificationRequest(sql.FieldGT(FieldLastURLCreatedAt, v))
+}
+
+// LastURLCreatedAtGTE applies the GTE predicate on the "last_url_created_at" field.
+func LastURLCreatedAtGTE(v time.Time) predicate.IdentityVerificationRequest {
+	return predicate.IdentityVerificationRequest(sql.FieldGTE(FieldLastURLCreatedAt, v))
+}
+
+// LastURLCreatedAtLT applies the LT predicate on the "last_url_created_at" field.
+func LastURLCreatedAtLT(v time.Time) predicate.IdentityVerificationRequest {
+	return predicate.IdentityVerificationRequest(sql.FieldLT(FieldLastURLCreatedAt, v))
+}
+
+// LastURLCreatedAtLTE applies the LTE predicate on the "last_url_created_at" field.
+func LastURLCreatedAtLTE(v time.Time) predicate.IdentityVerificationRequest {
+	return predicate.IdentityVerificationRequest(sql.FieldLTE(FieldLastURLCreatedAt, v))
 }
 
 // And groups predicates with the AND operator between them.
