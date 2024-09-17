@@ -139,14 +139,14 @@ func RetryStaleUserOperations() error {
 	orders, err = storage.Client.PaymentOrder.
 		Query().
 		Where(
-			paymentorder.Or(
-				paymentorder.StatusEQ(paymentorder.StatusInitiated),
-				paymentorder.StatusEQ(paymentorder.StatusExpired),
-			),
+			paymentorder.StatusNEQ(paymentorder.StatusReverted),
+			paymentorder.StatusNEQ(paymentorder.StatusRefunded),
 			paymentorder.AmountPaidGT(decimal.Zero),
 			paymentorder.UpdatedAtLT(time.Now().Add(-10*time.Minute)),
 		).
-		WithReceiveAddress().
+		WithReceiveAddress(func(rq *ent.ReceiveAddressQuery) {
+			rq.Where(receiveaddress.StatusNEQ(receiveaddress.StatusUnused))
+		}).
 		WithRecipient().
 		WithToken(func(tq *ent.TokenQuery) {
 			tq.WithNetwork()
@@ -160,7 +160,7 @@ func RetryStaleUserOperations() error {
 	go func() {
 		defer wg.Done()
 		for _, order := range orders {
-			if order.Edges.ReceiveAddress.Status == receiveaddress.StatusExpired || order.Edges.ReceiveAddress.Status == receiveaddress.StatusUsed || order.Edges.ReceiveAddress.Status == receiveaddress.StatusPartial {
+			if order.Edges.ReceiveAddress.Status != receiveaddress.StatusUnused {
 				var service types.OrderService
 				if strings.HasPrefix(order.Edges.Token.Edges.Network.Identifier, "tron") {
 					service = orderService.NewOrderTron()

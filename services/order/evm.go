@@ -373,23 +373,25 @@ func (s *OrderEVM) RevertOrder(ctx context.Context, client types.RPCClient, orde
 		return fmt.Errorf("%s - RevertOrder.transactionLog: %w", orderIDPrefix, err)
 	}
 
-	// Update payment order
-	_, err = order.Update().
-		SetTxHash(txHash).
-		SetBlockNumber(blockNumber).
-		SetAmountReturned(amountMinusFee).
-		SetStatus(paymentorder.StatusReverted).
-		AddTransactions(transactionLog).
-		Save(ctx)
-	if err != nil {
-		return fmt.Errorf("%s - RevertOrder.updateTxHash: %w", orderIDPrefix, err)
-	}
+	if order.AmountPaid.GreaterThan(orderAmountWithFees) {
+		// Update payment order
+		_, err = order.Update().
+			SetTxHash(txHash).
+			SetBlockNumber(blockNumber).
+			SetAmountReturned(amountMinusFee).
+			SetStatus(paymentorder.StatusReverted).
+			AddTransactions(transactionLog).
+			Save(ctx)
+		if err != nil {
+			return fmt.Errorf("%s - RevertOrder.updateTxHash: %w", orderIDPrefix, err)
+		}
 
-	// Send webhook notifcation to sender
-	order.Status = paymentorder.StatusReverted
-	err = utils.SendPaymentOrderWebhook(ctx, order)
-	if err != nil {
-		return fmt.Errorf("RevertOrder.webhook: %v", err)
+		// Send webhook notifcation to sender
+		order.Status = paymentorder.StatusReverted
+		err = utils.SendPaymentOrderWebhook(ctx, order)
+		if err != nil {
+			return fmt.Errorf("RevertOrder.webhook: %v", err)
+		}
 	}
 
 	return nil
