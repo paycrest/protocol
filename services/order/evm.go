@@ -373,7 +373,7 @@ func (s *OrderEVM) RevertOrder(ctx context.Context, client types.RPCClient, orde
 		return fmt.Errorf("%s - RevertOrder.transactionLog: %w", orderIDPrefix, err)
 	}
 
-	if order.AmountPaid.GreaterThan(orderAmountWithFees) {
+	if order.AmountPaid.LessThan(orderAmountWithFees) {
 		// Update payment order
 		_, err = order.Update().
 			SetTxHash(txHash).

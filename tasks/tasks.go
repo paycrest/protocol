@@ -1113,7 +1113,7 @@ func ComputeMarketRate() error {
 		// Fetch external rate
 		externalRate, err := fetchExternalRate(currency.Code)
 		if err != nil {
-			return fmt.Errorf("ComputeMarketRate: %w", err)
+			continue
 		}
 
 		// Fetch rates from token configs with fixed conversion rate
@@ -1126,7 +1126,7 @@ func ComputeMarketRate() error {
 			Select(providerordertoken.FieldFixedConversionRate).
 			All(ctx)
 		if err != nil {
-			return fmt.Errorf("ComputeMarketRate: %w", err)
+			continue
 		}
 
 		var rates []decimal.Decimal
@@ -1149,7 +1149,7 @@ func ComputeMarketRate() error {
 			SetMarketRate(median).
 			Save(ctx)
 		if err != nil {
-			return fmt.Errorf("ComputeMarketRate: %w", err)
+			continue
 		}
 	}
 
