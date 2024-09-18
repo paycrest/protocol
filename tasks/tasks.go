@@ -142,7 +142,7 @@ func RetryStaleUserOperations() error {
 			paymentorder.StatusNEQ(paymentorder.StatusReverted),
 			paymentorder.StatusNEQ(paymentorder.StatusRefunded),
 			paymentorder.AmountPaidGT(decimal.Zero),
-			paymentorder.UpdatedAtLT(time.Now().Add(-10*time.Minute)),
+			paymentorder.UpdatedAtGTE(time.Now().Add(-5*time.Minute)),
 		).
 		WithReceiveAddress(func(rq *ent.ReceiveAddressQuery) {
 			rq.Where(receiveaddress.StatusNEQ(receiveaddress.StatusUnused))

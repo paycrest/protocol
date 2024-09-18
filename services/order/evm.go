@@ -235,7 +235,7 @@ func (s *OrderEVM) RefundOrder(ctx context.Context, client types.RPCClient, orde
 
 // RevertOrder reverts an initiated payment order on-chain.
 func (s *OrderEVM) RevertOrder(ctx context.Context, client types.RPCClient, order *ent.PaymentOrder) error {
-	if !order.AmountReturned.Equal(decimal.Zero) || strings.HasPrefix(order.Edges.Recipient.Memo, "P#P") {
+	if !order.AmountReturned.Equal(decimal.Zero) || strings.HasPrefix(order.Edges.Recipient.Memo, "P#P") || order.UpdatedAt.Before(time.Now().Add(-5*time.Minute)) {
 		return nil
 	}
 
