@@ -108,7 +108,7 @@ var (
 		{Name: "id", Type: field.TypeUUID},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
-		{Name: "gateway_id", Type: field.TypeString, Unique: true},
+		{Name: "gateway_id", Type: field.TypeString},
 		{Name: "amount", Type: field.TypeFloat64},
 		{Name: "rate", Type: field.TypeFloat64},
 		{Name: "order_percent", Type: field.TypeFloat64},

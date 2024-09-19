@@ -45,7 +45,7 @@ var serverConf = config.ServerConfig()
 type Indexer interface {
 	IndexERC20Transfer(ctx context.Context, client types.RPCClient, order *ent.PaymentOrder) error
 	IndexTRC20Transfer(ctx context.Context, order *ent.PaymentOrder) error
-	IndexOrderCreated(ctx context.Context, client types.RPCClient, network *ent.Network, sender string) error
+	IndexOrderCreated(ctx context.Context, client types.RPCClient, network *ent.Network) error
 	IndexOrderCreatedTron(ctx context.Context, order *ent.PaymentOrder) error
 	IndexOrderSettled(ctx context.Context, client types.RPCClient, network *ent.Network, gatewayId string) error
 	IndexOrderSettledTron(ctx context.Context, order *ent.LockPaymentOrder) error
@@ -223,7 +223,7 @@ func (s *IndexerService) IndexTRC20Transfer(ctx context.Context, order *ent.Paym
 }
 
 // IndexOrderCreated indexes deposits to the order contract for an EVM network.
-func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPCClient, network *ent.Network, sender string) error {
+func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPCClient, network *ent.Network) error {
 	var err error
 
 	// Connect to RPC endpoint
@@ -257,17 +257,10 @@ func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPC
 	var iter *contracts.GatewayOrderCreatedIterator
 	retryErr := utils.Retry(3, 1*time.Second, func() error {
 		var err error
-		if sender != "" {
-			iter, err = filterer.FilterOrderCreated(&bind.FilterOpts{
-				Start: uint64(int64(toBlock) - 5000),
-				End:   &toBlock,
-			}, []common.Address{common.HexToAddress(sender)}, nil, nil)
-		} else {
-			iter, err = filterer.FilterOrderCreated(&bind.FilterOpts{
-				Start: uint64(int64(toBlock) - 5000),
-				End:   &toBlock,
-			}, nil, nil, nil)
-		}
+		iter, err = filterer.FilterOrderCreated(&bind.FilterOpts{
+			Start: uint64(int64(toBlock) - 5000),
+			End:   &toBlock,
+		}, nil, nil, nil)
 		return err
 	})
 	if retryErr != nil {

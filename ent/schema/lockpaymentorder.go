@@ -26,8 +26,7 @@ func (LockPaymentOrder) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
 			Default(uuid.New),
-		field.String("gateway_id").
-			Unique(),
+		field.String("gateway_id"),
 		field.Float("amount").
 			GoType(decimal.Decimal{}),
 		field.Float("rate").

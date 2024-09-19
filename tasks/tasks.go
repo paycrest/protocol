@@ -333,57 +333,48 @@ func IndexBlockchainEvents() error {
 		time.Sleep(500 * time.Millisecond)
 		_ = utils.Retry(3, 2*time.Second, func() error {
 			for _, network := range networks {
-				// Index events triggered from API
-				orders, err := storage.Client.PaymentOrder.
-					Query().
-					Where(func(s *sql.Selector) {
-						lpo := sql.Table(lockpaymentorder.Table)
-						s.Where(sql.And(
-							sql.EQ(s.C(paymentorder.FieldStatus), paymentorder.StatusPending),
-							sql.Or(
-								sql.NotExists(
-									sql.Select().
-										From(lpo).
-										Where(sql.ColumnsEQ(s.C(paymentorder.FieldGatewayID), lpo.C(lockpaymentorder.FieldGatewayID))),
+				if strings.HasPrefix(network.Identifier, "tron") {
+					orders, err := storage.Client.PaymentOrder.
+						Query().
+						Where(func(s *sql.Selector) {
+							lpo := sql.Table(lockpaymentorder.Table)
+							s.Where(sql.And(
+								sql.EQ(s.C(paymentorder.FieldStatus), paymentorder.StatusPending),
+								sql.Or(
+									sql.NotExists(
+										sql.Select().
+											From(lpo).
+											Where(sql.ColumnsEQ(s.C(paymentorder.FieldGatewayID), lpo.C(lockpaymentorder.FieldGatewayID))),
+									),
+									sql.IsNull(s.C(paymentorder.FieldGatewayID)),
 								),
-								sql.IsNull(s.C(paymentorder.FieldGatewayID)),
-							),
-							sql.GT(s.C(paymentorder.FieldBlockNumber), 0),
-						))
-					}).
-					Where(paymentorder.HasTokenWith(token.HasNetworkWith(networkent.IDEQ(network.ID)))).
-					WithReceiveAddress().
-					WithToken(func(tq *ent.TokenQuery) {
-						tq.WithNetwork()
-					}).
-					Order(ent.Asc(paymentorder.FieldBlockNumber)).
-					All(ctx)
-				if err != nil {
-					continue
-				}
+								sql.GT(s.C(paymentorder.FieldBlockNumber), 0),
+							))
+						}).
+						Where(paymentorder.HasTokenWith(token.HasNetworkWith(networkent.IDEQ(network.ID)))).
+						WithReceiveAddress().
+						WithToken(func(tq *ent.TokenQuery) {
+							tq.WithNetwork()
+						}).
+						Order(ent.Asc(paymentorder.FieldBlockNumber)).
+						All(ctx)
+					if err != nil {
+						continue
+					}
 
-				if len(orders) > 0 {
-					for _, order := range orders {
-						if strings.HasPrefix(network.Identifier, "tron") {
+					if len(orders) > 0 {
+						for _, order := range orders {
 							indexerService := services.NewIndexerService(orderService.NewOrderTron())
 							err := indexerService.IndexOrderCreatedTron(ctx, order)
 							if err != nil {
 								continue
 							}
-						} else {
-							indexerService := services.NewIndexerService(orderService.NewOrderEVM())
-							err := indexerService.IndexOrderCreated(ctx, rpcClients[network.Identifier], network, order.Edges.ReceiveAddress.Address)
-							if err != nil {
-								continue
-							}
 						}
 					}
-				}
 
-				// Index events triggered from Gateway contract
-				if !strings.HasPrefix(network.Identifier, "tron") {
+				} else {
 					indexerService := services.NewIndexerService(orderService.NewOrderEVM())
-					err = indexerService.IndexOrderCreated(ctx, rpcClients[network.Identifier], network, "")
+					err = indexerService.IndexOrderCreated(ctx, rpcClients[network.Identifier], network)
 					if err != nil {
 						continue
 					}
