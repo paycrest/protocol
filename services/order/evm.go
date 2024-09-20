@@ -108,25 +108,11 @@ func (s *OrderEVM) CreateOrder(ctx context.Context, client types.RPCClient, orde
 		return fmt.Errorf("%s - CreateOrder.SendUserOperation: %w", orderIDPrefix, err)
 	}
 
-	transactionLog, err := db.Client.TransactionLog.
-		Create().
-		SetStatus(transactionlog.StatusOrderCreated).
-		SetTxHash(txHash).
-		SetNetwork(order.Edges.Token.Edges.Network.Identifier).
-		SetMetadata(
-			map[string]interface{}{
-				"BlockNumber": blockNumber,
-			}).Save(ctx)
-	if err != nil {
-		return fmt.Errorf("%s - CreateOrder.transactionLog: %w", orderIDPrefix, err)
-	}
-
 	// Update payment order with userOpHash
 	_, err = order.Update().
 		SetTxHash(txHash).
 		SetBlockNumber(blockNumber).
 		SetStatus(paymentorder.StatusPending).
-		AddTransactions(transactionLog).
 		Save(ctx)
 	if err != nil {
 		return fmt.Errorf("%s - CreateOrder.updateTxHash: %w", orderIDPrefix, err)
@@ -201,30 +187,12 @@ func (s *OrderEVM) RefundOrder(ctx context.Context, client types.RPCClient, orde
 		return fmt.Errorf("%s - RefundOrder.sendUserOperation: %w", orderIDPrefix, err)
 	}
 
-	// Create log
-	transactionLog, err := db.Client.TransactionLog.
-		Create().
-		SetStatus(transactionlog.StatusOrderRefunded).
-		SetTxHash(txHash).
-		SetNetwork(lockOrder.Edges.Token.Edges.Network.Identifier).
-		SetGatewayID(lockOrder.GatewayID).
-		SetMetadata(
-			map[string]interface{}{
-				"BlockNumber": blockNumber,
-			}).
-		Save(ctx)
-	if err != nil {
-		return fmt.Errorf("%s - RefundOrder.transactionLog(%v): %w", orderIDPrefix, txHash, err)
-	}
-
 	// Update status of all lock orders with same order_id
 	_, err = db.Client.LockPaymentOrder.
 		Update().
 		Where(lockpaymentorder.GatewayIDEQ(lockOrder.GatewayID)).
 		SetTxHash(txHash).
 		SetBlockNumber(blockNumber).
-		SetStatus(lockpaymentorder.StatusRefunded).
-		AddTransactions(transactionLog).
 		Save(ctx)
 	if err != nil {
 		return fmt.Errorf("%s - RefundOrder.updateTxHash(%v): %w", orderIDPrefix, txHash, err)
@@ -457,28 +425,10 @@ func (s *OrderEVM) SettleOrder(ctx context.Context, client types.RPCClient, orde
 		return fmt.Errorf("%s - SettleOrder.sendUserOperation: %w", orderIDPrefix, err)
 	}
 
-	// Create log
-	transactionLog, err := db.Client.TransactionLog.
-		Create().
-		SetStatus(transactionlog.StatusOrderSettled).
-		SetTxHash(txHash).
-		SetNetwork(order.Edges.Token.Edges.Network.Identifier).
-		SetGatewayID(order.GatewayID).
-		SetMetadata(
-			map[string]interface{}{
-				"BlockNumber": blockNumber,
-			}).
-		Save(ctx)
-	if err != nil {
-		return fmt.Errorf("%s - SettleOrder.transactionLog: %w", orderIDPrefix, err)
-	}
-
 	// Update status of lock order
 	_, err = order.Update().
 		SetTxHash(txHash).
 		SetBlockNumber(blockNumber).
-		SetStatus(lockpaymentorder.StatusSettled).
-		AddTransactions(transactionLog).
 		Save(ctx)
 	if err != nil {
 		return fmt.Errorf("%s - SettleOrder.updateTxHash: %w", orderIDPrefix, err)

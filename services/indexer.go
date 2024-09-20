@@ -1059,7 +1059,6 @@ func (s *IndexerService) UpdateOrderStatusRefunded(ctx context.Context, log *typ
 		SetTxHash(log.TxHash).
 		SetMetadata(
 			map[string]interface{}{
-				"OrderId":         log.OrderId,
 				"GatewayID":       gatewayId,
 				"TransactionData": log,
 			}).
@@ -1344,7 +1343,7 @@ func (s *IndexerService) UpdateReceiveAddressStatus(
 			// This is a P2P order created from the provider dashboard. No reverts are allowed
 			// Hence, the order amount will be updated to whatever amount was sent to the receive address
 			orderAmount := utils.FromSubunit(event.Value, paymentOrder.Edges.Token.Decimals)
-			paymentOrderUpdate.SetAmount(orderAmount.Round(int32(2)))
+			paymentOrderUpdate = paymentOrderUpdate.SetAmount(orderAmount.Round(int32(2)))
 
 			// Update the rate with the current rate if order is older than 30 mins
 			if paymentOrder.CreatedAt.Before(time.Now().Add(-30 * time.Minute)) {
@@ -1368,35 +1367,37 @@ func (s *IndexerService) UpdateReceiveAddressStatus(
 				if err != nil {
 					return true, fmt.Errorf("UpdateReceiveAddressStatus.db: %v", err)
 				}
-				paymentOrderUpdate.SetRate(rate)
+				paymentOrderUpdate = paymentOrderUpdate.SetRate(rate)
 			}
 			comparisonResult = 0
 		}
 
-		transactionLog, err := db.Client.TransactionLog.
-			Create().
-			SetStatus(transactionlog.StatusCryptoDeposited).
-			SetGatewayID(paymentOrder.GatewayID).
-			SetTxHash(event.TxHash).
-			SetNetwork(paymentOrder.Edges.Token.Edges.Network.Identifier).
-			SetMetadata(map[string]interface{}{
-				"GatewayID":       paymentOrder.GatewayID,
-				"transactionData": event,
-			}).
-			Save(ctx)
-		if err != nil {
-			return true, fmt.Errorf("UpdateReceiveAddressStatus.transactionlog: %v", err)
-		}
+		if paymentOrder.AmountPaid.GreaterThanOrEqual(decimal.Zero) && paymentOrder.AmountPaid.LessThan(orderAmountWithFees) {
+			transactionLog, err := db.Client.TransactionLog.
+				Create().
+				SetStatus(transactionlog.StatusCryptoDeposited).
+				SetGatewayID(paymentOrder.GatewayID).
+				SetTxHash(event.TxHash).
+				SetNetwork(paymentOrder.Edges.Token.Edges.Network.Identifier).
+				SetMetadata(map[string]interface{}{
+					"GatewayID":       paymentOrder.GatewayID,
+					"transactionData": event,
+				}).
+				Save(ctx)
+			if err != nil {
+				return true, fmt.Errorf("UpdateReceiveAddressStatus.transactionlog: %v", err)
+			}
 
-		_, err = paymentOrderUpdate.
-			SetFromAddress(event.From).
-			SetTxHash(event.TxHash).
-			SetBlockNumber(int64(event.BlockNumber)).
-			AddAmountPaid(utils.FromSubunit(event.Value, paymentOrder.Edges.Token.Decimals)).
-			AddTransactions(transactionLog).
-			Save(ctx)
-		if err != nil {
-			return true, fmt.Errorf("UpdateReceiveAddressStatus.db: %v", err)
+			_, err = paymentOrderUpdate.
+				SetFromAddress(event.From).
+				SetTxHash(event.TxHash).
+				SetBlockNumber(int64(event.BlockNumber)).
+				AddAmountPaid(utils.FromSubunit(event.Value, paymentOrder.Edges.Token.Decimals)).
+				AddTransactions(transactionLog).
+				Save(ctx)
+			if err != nil {
+				return true, fmt.Errorf("UpdateReceiveAddressStatus.db: %v", err)
+			}
 		}
 
 		if comparisonResult == 0 {
