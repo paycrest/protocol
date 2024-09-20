@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -127,7 +128,10 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 			Value:       iter.Event.Value,
 		}
 
+		var mu sync.Mutex
+		mu.Lock()
 		ok, err := s.UpdateReceiveAddressStatus(ctx, client, order.Edges.ReceiveAddress, order, transferEvent)
+		mu.Unlock()
 		if err != nil {
 			logger.Errorf("IndexERC20Transfer.UpdateReceiveAddressStatus: %v", err)
 			continue
@@ -281,7 +285,10 @@ func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPC
 			MessageHash: iter.Event.MessageHash,
 		}
 
+		var mu sync.Mutex
+		mu.Lock()
 		err := s.CreateLockPaymentOrder(ctx, client, network, event)
+		mu.Unlock()
 		if err != nil {
 			logger.Errorf("IndexOrderCreated.createOrder: %v", err)
 			continue
@@ -432,7 +439,11 @@ func (s *IndexerService) IndexOrderSettled(ctx context.Context, client types.RPC
 			LiquidityProvider: iter.Event.LiquidityProvider.Hex(),
 			SettlePercent:     iter.Event.SettlePercent,
 		}
+
+		var mu sync.Mutex
+		mu.Lock()
 		err := s.UpdateOrderStatusSettled(ctx, settledEvent)
+		mu.Unlock()
 		if err != nil {
 			logger.Errorf("IndexOrderSettled.UpdateOrderStatusSettled: %v", err)
 			continue
@@ -579,7 +590,11 @@ func (s *IndexerService) IndexOrderRefunded(ctx context.Context, client types.RP
 			Fee:         iter.Event.Fee,
 			OrderId:     iter.Event.OrderId,
 		}
+
+		var mu sync.Mutex
+		mu.Lock()
 		err := s.UpdateOrderStatusRefunded(ctx, refundedEvent)
+		mu.Unlock()
 		if err != nil {
 			logger.Errorf("IndexOrderRefunded.UpdateOrderStatusRefunded: %v", err)
 			continue
