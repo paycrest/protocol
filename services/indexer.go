@@ -1033,7 +1033,7 @@ func (s *IndexerService) handleCancellation(ctx context.Context, client types.RP
 			return fmt.Errorf("%s - failed to update lock payment order: %w", createdLockPaymentOrder.GatewayID, err)
 		}
 
-		err = s.order.RefundOrder(ctx, client, lockPaymentOrder.GatewayID)
+		err = s.order.RefundOrder(ctx, client, createdLockPaymentOrder.GatewayID)
 		if err != nil {
 			logger.Errorf("handleCancellation.RefundOrder(%v): %v", createdLockPaymentOrder.ID, err)
 		}
