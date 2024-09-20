@@ -871,7 +871,7 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 		}
 
 		if !isTokenNetworkPresent {
-			err := s.handleCancellation(ctx, client, nil, lockPaymentOrder, "network is not supported by the specified provider")
+			err := s.handleCancellation(ctx, client, nil, &lockPaymentOrder, "network is not supported by the specified provider")
 			if err != nil {
 				return fmt.Errorf("network is not supported by the specified provider: %w", err)
 			}
@@ -957,7 +957,7 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 			}
 
 			if !ok && err == nil {
-				err := s.handleCancellation(ctx, client, orderCreated, types.LockPaymentOrderFields{}, "AML compliance check failed")
+				err := s.handleCancellation(ctx, client, orderCreated, nil, "AML compliance check failed")
 				if err != nil {
 					return fmt.Errorf("checkAMLCompliance.RefundOrder: %w", err)
 				}
@@ -967,13 +967,13 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 
 		// Assign the lock payment order to a provider
 		if isPrivate && lockPaymentOrder.Amount.GreaterThan(maxOrderAmount) {
-			err := s.handleCancellation(ctx, client, orderCreated, types.LockPaymentOrderFields{}, "Amount is greater than the maximum order amount")
+			err := s.handleCancellation(ctx, client, orderCreated, nil, "Amount is greater than the maximum order amount")
 			if err != nil {
 				return fmt.Errorf("failed to cancel order: %w", err)
 			}
 			return nil
 		} else if isPrivate && lockPaymentOrder.Amount.LessThan(minOrderAmount) {
-			err := s.handleCancellation(ctx, client, orderCreated, types.LockPaymentOrderFields{}, "Amount is less than the minimum order amount")
+			err := s.handleCancellation(ctx, client, orderCreated, nil, "Amount is less than the minimum order amount")
 			if err != nil {
 				return fmt.Errorf("failed to cancel order: %w", err)
 			}
@@ -988,13 +988,13 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 }
 
 // handleCancellation handles the cancellation of a lock payment order
-func (s *IndexerService) handleCancellation(ctx context.Context, client types.RPCClient, createdLockPaymentOrder *ent.LockPaymentOrder, lockPaymentOrder types.LockPaymentOrderFields, cancellationReason string) error {
+func (s *IndexerService) handleCancellation(ctx context.Context, client types.RPCClient, createdLockPaymentOrder *ent.LockPaymentOrder, lockPaymentOrder *types.LockPaymentOrderFields, cancellationReason string) error {
 	// lockPaymentOrder and createdLockPaymentOrder are mutually exclusive
-	if (createdLockPaymentOrder == nil && lockPaymentOrder.ProviderID == "") || (createdLockPaymentOrder != nil && lockPaymentOrder.ProviderID != "") {
+	if (createdLockPaymentOrder == nil && lockPaymentOrder == nil) || (createdLockPaymentOrder != nil && lockPaymentOrder != nil) {
 		return nil
 	}
 
-	if lockPaymentOrder.ProviderID != "" {
+	if lockPaymentOrder != nil {
 		order, err := db.Client.LockPaymentOrder.
 			Create().
 			SetToken(lockPaymentOrder.Token).
@@ -1645,7 +1645,7 @@ func (s *IndexerService) splitLockPaymentOrder(ctx context.Context, client types
 
 			if !ok && err == nil && len(ordersCreated) > 0 {
 				isRefunded = true
-				err := s.handleCancellation(ctx, client, ordersCreated[0], types.LockPaymentOrderFields{}, "AML compliance check failed")
+				err := s.handleCancellation(ctx, client, ordersCreated[0], nil, "AML compliance check failed")
 				if err != nil {
 					logger.Errorf("splitLockPaymentOrder.checkAMLCompliance.RefundOrder: %v", err)
 				}
