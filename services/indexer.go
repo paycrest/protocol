@@ -676,7 +676,7 @@ func (s *IndexerService) HandleReceiveAddressValidity(ctx context.Context, clien
 			if err != nil {
 				return fmt.Errorf("HandleReceiveAddressValidity.db: %v", err)
 			}
-		} else if isExpired && amountNotPaidInFull {
+		} else if isExpired && amountNotPaidInFull && !strings.HasPrefix(paymentOrder.Edges.Recipient.Memo, "P#P") {
 			// Receive address hasn't received full payment after validity period, mark status as expired
 			_, err := receiveAddress.
 				Update().
