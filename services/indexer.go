@@ -1023,8 +1023,11 @@ func (s *IndexerService) handleCancellation(ctx context.Context, client types.RP
 		}
 
 	} else if createdLockPaymentOrder != nil {
-		_, err := createdLockPaymentOrder.
+		_, err := db.Client.LockPaymentOrder.
 			Update().
+			Where(
+				lockpaymentorder.IDEQ(createdLockPaymentOrder.ID),
+			).
 			SetCancellationCount(3).
 			SetCancellationReasons([]string{cancellationReason}).
 			SetStatus(lockpaymentorder.StatusCancelled).
