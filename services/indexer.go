@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -130,7 +129,9 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 
 		ok, err := s.UpdateReceiveAddressStatus(ctx, client, order.Edges.ReceiveAddress, order, transferEvent)
 		if err != nil {
-			logger.Errorf("IndexERC20Transfer.UpdateReceiveAddressStatus: %v", err)
+			if !strings.Contains(err.Error(), "Duplicate payment order") {
+				logger.Errorf("IndexERC20Transfer.UpdateReceiveAddressStatus: %v", err)
+			}
 			continue
 		}
 		if ok {
@@ -282,10 +283,7 @@ func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPC
 			MessageHash: iter.Event.MessageHash,
 		}
 
-		var mu sync.Mutex
-		mu.Lock()
 		err := s.CreateLockPaymentOrder(ctx, client, network, event)
-		mu.Unlock()
 		if err != nil {
 			logger.Errorf("IndexOrderCreated.createOrder: %v", err)
 			continue
@@ -437,10 +435,7 @@ func (s *IndexerService) IndexOrderSettled(ctx context.Context, client types.RPC
 			SettlePercent:     iter.Event.SettlePercent,
 		}
 
-		var mu sync.Mutex
-		mu.Lock()
 		err := s.UpdateOrderStatusSettled(ctx, settledEvent)
-		mu.Unlock()
 		if err != nil {
 			logger.Errorf("IndexOrderSettled.UpdateOrderStatusSettled: %v", err)
 			continue
@@ -588,10 +583,7 @@ func (s *IndexerService) IndexOrderRefunded(ctx context.Context, client types.RP
 			OrderId:     iter.Event.OrderId,
 		}
 
-		var mu sync.Mutex
-		mu.Lock()
 		err := s.UpdateOrderStatusRefunded(ctx, refundedEvent)
-		mu.Unlock()
 		if err != nil {
 			logger.Errorf("IndexOrderRefunded.UpdateOrderStatusRefunded: %v", err)
 			continue
@@ -862,9 +854,9 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 			WithOrderTokens().
 			Only(ctx)
 		if err != nil {
-			err := s.order.RefundOrder(ctx, client, lockPaymentOrder.GatewayID)
+			err := s.handleCancellation(ctx, client, nil, &lockPaymentOrder, "Provider is not available")
 			if err != nil {
-				return fmt.Errorf("Invalid.RefundOrder: %w", err)
+				return fmt.Errorf("provider is not available: %w", err)
 			}
 			return fmt.Errorf("failed to fetch provider: %w", err)
 		}
@@ -884,7 +876,7 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 		}
 
 		if !isTokenNetworkPresent {
-			err := s.handleCancellation(ctx, client, nil, &lockPaymentOrder, "network is not supported by the specified provider")
+			err := s.handleCancellation(ctx, client, nil, &lockPaymentOrder, "Network is not supported by the provider")
 			if err != nil {
 				return fmt.Errorf("network is not supported by the specified provider: %w", err)
 			}
@@ -980,13 +972,13 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 
 		// Assign the lock payment order to a provider
 		if isPrivate && lockPaymentOrder.Amount.GreaterThan(maxOrderAmount) {
-			err := s.handleCancellation(ctx, client, orderCreated, nil, "Amount is greater than the maximum order amount")
+			err := s.handleCancellation(ctx, client, orderCreated, nil, "Amount is greater than the maximum order amount of the provider")
 			if err != nil {
 				return fmt.Errorf("failed to cancel order: %w", err)
 			}
 			return nil
 		} else if isPrivate && lockPaymentOrder.Amount.LessThan(minOrderAmount) {
-			err := s.handleCancellation(ctx, client, orderCreated, nil, "Amount is less than the minimum order amount")
+			err := s.handleCancellation(ctx, client, orderCreated, nil, "Amount is less than the minimum order amount of the provider")
 			if err != nil {
 				return fmt.Errorf("failed to cancel order: %w", err)
 			}
