@@ -193,6 +193,7 @@ func (s *OrderEVM) RefundOrder(ctx context.Context, client types.RPCClient, orde
 		Where(lockpaymentorder.GatewayIDEQ(lockOrder.GatewayID)).
 		SetTxHash(txHash).
 		SetBlockNumber(blockNumber).
+		SetStatus(lockpaymentorder.StatusRefunded).
 		Save(ctx)
 	if err != nil {
 		return fmt.Errorf("%s - RefundOrder.updateTxHash(%v): %w", orderIDPrefix, txHash, err)
@@ -429,6 +430,7 @@ func (s *OrderEVM) SettleOrder(ctx context.Context, client types.RPCClient, orde
 	_, err = order.Update().
 		SetTxHash(txHash).
 		SetBlockNumber(blockNumber).
+		SetStatus(lockpaymentorder.StatusSettled).
 		Save(ctx)
 	if err != nil {
 		return fmt.Errorf("%s - SettleOrder.updateTxHash: %w", orderIDPrefix, err)
