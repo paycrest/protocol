@@ -25,7 +25,7 @@ BEGIN
 
     -- Check if the amount_paid is within the valid range
     IF NEW.amount_paid < 0 OR NEW.amount_paid >= total_amount THEN
-        RAISE EXCEPTION 'Invalid amount_paid: must be greater than or equal to 0 and less than total order amount with fees';
+        RAISE EXCEPTION 'Duplicate payment order';
     END IF;
 
     RETURN NEW;
