@@ -1111,7 +1111,6 @@ func (s *IndexerService) UpdateOrderStatusRefunded(ctx context.Context, log *typ
 			SetGatewayID(gatewayId).
 			SetMetadata(
 				map[string]interface{}{
-					"OrderId":         log.OrderId,
 					"GatewayID":       gatewayId,
 					"TransactionData": log,
 				}).
@@ -1291,16 +1290,18 @@ func (s *IndexerService) UpdateOrderStatusSettled(ctx context.Context, event *ty
 			return fmt.Errorf("UpdateOrderStatusSettled.sender: %v", err)
 		}
 
-		// Commit the transaction
-		if err := tx.Commit(); err != nil {
-			return fmt.Errorf("UpdateOrderStatusSettled.sender %v", err)
-		}
-
-		// Send webhook notifcation to sender
 		paymentOrder.BlockNumber = int64(event.BlockNumber)
 		paymentOrder.TxHash = event.TxHash
 		paymentOrder.PercentSettled = settledPercent
+	}
 
+	// Commit the transaction
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("UpdateOrderStatusSettled.sender %v", err)
+	}
+
+	if paymentOrderExists {
+		// Send webhook notifcation to sender
 		err = utils.SendPaymentOrderWebhook(ctx, paymentOrder)
 		if err != nil {
 			return fmt.Errorf("UpdateOrderStatusSettled.webhook: %v", err)

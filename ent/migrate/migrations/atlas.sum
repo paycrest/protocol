@@ -1,4 +1,4 @@
-h1:HRYVN4UMkLLocVnsd/KBBuBrWqMUJf9DajqT8zR3qqg=
+h1:kT0K3XuYJfDqOo1Xl5CFFU4UzOZdO9CELpX90gkzFVQ=
 20240118234246_initial.sql h1:dYuYBqns33WT+3p8VQvbKUP62k3k6w6h8S+FqNqgSvU=
 20240130122324_order_from_address.sql h1:mMVI2iBUd1roIYLUqu0d2jZ7+B6exppRN8qqn+aIHx4=
 20240202010744_fees_on_order.sql h1:P7ngxZKqDKefBM5vk6M3kbWeMPVwbZ4MZVcLBjEfS34=
@@ -36,3 +36,5 @@ h1:HRYVN4UMkLLocVnsd/KBBuBrWqMUJf9DajqT8zR3qqg=
 20240921200000_fix_round_func.sql h1:mR1A+YVNZB2Yv1/zBMS+vLlQqNe6Fq7P53xAgW7hHg8=
 20240921203200_fix_round_func_2.sql h1:k9ktbooFfvawpcH0YWFMjD1HUOH4HH1fdjRxHCdnN1g=
 20240921215500_fix_round_func_3.sql h1:xi7V+CK3pPh0nHHTzQLDUGjOratBuAtN3Hs3xB3f2mg=
+20240921224500_fix_round_func_4.sql h1:hz+6zAhCKOx0cfiTkfEqjSqGt/bX+KGnfdQe1T7zZtA=
+20240921225500_fix_round_func_5.sql h1:HiM4roZT0QzRQ16+EmLoKTsUeIF9wrwZxp+dYCcPKS4=
