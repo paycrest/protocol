@@ -902,25 +902,40 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 			return fmt.Errorf("%s failed to initiate db transaction %w", lockPaymentOrder.GatewayID, err)
 		}
 
-		transactionLog, err := db.Client.TransactionLog.
-			Create().
-			SetStatus(transactionlog.StatusOrderCreated).
-			SetTxHash(lockPaymentOrder.TxHash).
-			SetNetwork(network.Identifier).
-			SetGatewayID(lockPaymentOrder.GatewayID).
-			SetMetadata(
-				map[string]interface{}{
-					"Token":           lockPaymentOrder.Token,
-					"GatewayID":       lockPaymentOrder.GatewayID,
-					"Amount":          lockPaymentOrder.Amount,
-					"Rate":            lockPaymentOrder.Rate,
-					"Memo":            lockPaymentOrder.Memo,
-					"ProvisionBucket": lockPaymentOrder.ProvisionBucket,
-					"ProviderID":      lockPaymentOrder.ProviderID,
-				}).
-			Save(ctx)
+		var transactionLog *ent.TransactionLog
+		_, err = db.Client.TransactionLog.
+			Query().
+			Where(
+				transactionlog.StatusEQ(transactionlog.StatusOrderCreated),
+				transactionlog.TxHashEQ(lockPaymentOrder.TxHash),
+				transactionlog.GatewayIDEQ(lockPaymentOrder.GatewayID),
+			).
+			Only(ctx)
 		if err != nil {
-			return fmt.Errorf("%s - failed to create transaction Log : %w", lockPaymentOrder.GatewayID, err)
+			if !ent.IsNotFound(err) {
+				return fmt.Errorf("%s - failed to fetch transaction Log: %w", lockPaymentOrder.GatewayID, err)
+			} else {
+				transactionLog, err = db.Client.TransactionLog.
+					Create().
+					SetStatus(transactionlog.StatusOrderCreated).
+					SetTxHash(lockPaymentOrder.TxHash).
+					SetNetwork(network.Identifier).
+					SetGatewayID(lockPaymentOrder.GatewayID).
+					SetMetadata(
+						map[string]interface{}{
+							"Token":           lockPaymentOrder.Token,
+							"GatewayID":       lockPaymentOrder.GatewayID,
+							"Amount":          lockPaymentOrder.Amount,
+							"Rate":            lockPaymentOrder.Rate,
+							"Memo":            lockPaymentOrder.Memo,
+							"ProvisionBucket": lockPaymentOrder.ProvisionBucket,
+							"ProviderID":      lockPaymentOrder.ProviderID,
+						}).
+					Save(ctx)
+				if err != nil {
+					return fmt.Errorf("%s - failed to create transaction Log : %w", lockPaymentOrder.GatewayID, err)
+				}
+			}
 		}
 
 		// Create lock payment order in db
@@ -937,11 +952,14 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 			SetAccountIdentifier(lockPaymentOrder.AccountIdentifier).
 			SetAccountName(lockPaymentOrder.AccountName).
 			SetMemo(lockPaymentOrder.Memo).
-			SetProvisionBucket(lockPaymentOrder.ProvisionBucket).
-			AddTransactions(transactionLog)
+			SetProvisionBucket(lockPaymentOrder.ProvisionBucket)
 
 		if lockPaymentOrder.ProviderID != "" {
 			orderBuilder = orderBuilder.SetProviderID(lockPaymentOrder.ProviderID)
+		}
+
+		if transactionLog != nil {
+			orderBuilder = orderBuilder.AddTransactions(transactionLog)
 		}
 
 		orderCreated, err := orderBuilder.Save(ctx)
