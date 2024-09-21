@@ -5,6 +5,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/schema/field"
+	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
 )
 
@@ -34,4 +35,12 @@ func (TransactionLog) Fields() []ent.Field {
 // Edges of the TransactionLog.
 func (TransactionLog) Edges() []ent.Edge {
 	return nil
+}
+
+// Indexes of the TransactionLog.
+func (TransactionLog) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("gateway_id", "status", "network", "tx_hash").
+			Unique(),
+	}
 }
