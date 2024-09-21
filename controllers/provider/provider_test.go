@@ -1553,10 +1553,10 @@ func TestProvider(t *testing.T) {
 		})
 
 		t.Run("when data is accurate", func(t *testing.T) {
-
 			order, err := test.CreateTestLockPaymentOrder(map[string]interface{}{
 				"gateway_id": uuid.New().String(),
 				"provider":   testCtx.provider,
+				"status":     "fulfilled",
 			})
 			assert.NoError(t, err)
 
