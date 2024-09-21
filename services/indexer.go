@@ -858,7 +858,7 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 			if err != nil {
 				return fmt.Errorf("provider is not available: %w", err)
 			}
-			return fmt.Errorf("failed to fetch provider: %w", err)
+			return nil
 		}
 
 		if providerProfile.VisibilityMode == providerprofile.VisibilityModePrivate {
@@ -1000,7 +1000,7 @@ func (s *IndexerService) handleCancellation(ctx context.Context, client types.RP
 	}
 
 	if lockPaymentOrder != nil {
-		order, err := db.Client.LockPaymentOrder.
+		orderBuilder := db.Client.LockPaymentOrder.
 			Create().
 			SetToken(lockPaymentOrder.Token).
 			SetGatewayID(lockPaymentOrder.GatewayID).
@@ -1016,8 +1016,14 @@ func (s *IndexerService) handleCancellation(ctx context.Context, client types.RP
 			SetProvisionBucket(lockPaymentOrder.ProvisionBucket).
 			SetCancellationCount(3).
 			SetCancellationReasons([]string{cancellationReason}).
-			SetStatus(lockpaymentorder.StatusCancelled).
-			Save(ctx)
+			SetStatus(lockpaymentorder.StatusCancelled)
+
+		if lockPaymentOrder.ProviderID != "" {
+			orderBuilder = orderBuilder.
+				SetProviderID(lockPaymentOrder.ProviderID)
+		}
+
+		order, err := orderBuilder.Save(ctx)
 		if err != nil {
 			return fmt.Errorf("%s - failed to create lock payment order: %w", lockPaymentOrder.GatewayID, err)
 		}
