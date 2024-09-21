@@ -5,6 +5,7 @@ import (
 	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
+	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 )
@@ -68,5 +69,14 @@ func (LockPaymentOrder) Edges() []ent.Edge {
 		edge.To("fulfillments", LockOrderFulfillment.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("transactions", TransactionLog.Type),
+	}
+}
+
+// Indexes of the LockPaymentOrder.
+func (LockPaymentOrder) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("gateway_id", "rate", "tx_hash", "block_number", "institution", "account_identifier", "account_name", "memo").
+			Edges("token").
+			Unique(),
 	}
 }

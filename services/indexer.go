@@ -128,10 +128,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 			Value:       iter.Event.Value,
 		}
 
-		var mu sync.Mutex
-		mu.Lock()
 		ok, err := s.UpdateReceiveAddressStatus(ctx, client, order.Edges.ReceiveAddress, order, transferEvent)
-		mu.Unlock()
 		if err != nil {
 			logger.Errorf("IndexERC20Transfer.UpdateReceiveAddressStatus: %v", err)
 			continue
@@ -860,6 +857,7 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 				providerprofile.HasCurrencyWith(
 					fiatcurrency.Code(institution.Edges.FiatCurrency.Code),
 				),
+				providerprofile.IsAvailableEQ(true),
 			).
 			WithOrderTokens().
 			Only(ctx)
