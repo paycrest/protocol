@@ -127,15 +127,15 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 			Value:       iter.Event.Value,
 		}
 
-		ok, err := s.UpdateReceiveAddressStatus(ctx, client, order.Edges.ReceiveAddress, order, transferEvent)
+		done, err := s.UpdateReceiveAddressStatus(ctx, client, order.Edges.ReceiveAddress, order, transferEvent)
 		if err != nil {
 			if !strings.Contains(err.Error(), "Duplicate payment order") {
 				logger.Errorf("IndexERC20Transfer.UpdateReceiveAddressStatus: %v", err)
 			}
 			continue
 		}
-		if ok {
-			return err
+		if done {
+			return nil
 		}
 	}
 
@@ -1368,7 +1368,12 @@ func (s *IndexerService) UpdateReceiveAddressStatus(
 		orderAmountWithFeesInSubunit := utils.ToSubunit(orderAmountWithFees, paymentOrder.Edges.Token.Decimals)
 		comparisonResult := event.Value.Cmp(orderAmountWithFeesInSubunit)
 
-		paymentOrderUpdate := db.Client.PaymentOrder.Update().Where(paymentorder.IDEQ(paymentOrder.ID))
+		tx, err := db.Client.Tx(ctx)
+		if err != nil {
+			return true, fmt.Errorf("UpdateReceiveAddressStatus.db: %v", err)
+		}
+
+		paymentOrderUpdate := tx.PaymentOrder.Update().Where(paymentorder.IDEQ(paymentOrder.ID))
 		if paymentOrder.ReturnAddress == "" {
 			paymentOrderUpdate = paymentOrderUpdate.SetReturnAddress(event.From)
 		}
@@ -1408,7 +1413,7 @@ func (s *IndexerService) UpdateReceiveAddressStatus(
 		}
 
 		if paymentOrder.AmountPaid.GreaterThanOrEqual(decimal.Zero) && paymentOrder.AmountPaid.LessThan(orderAmountWithFees) {
-			transactionLog, err := db.Client.TransactionLog.
+			transactionLog, err := tx.TransactionLog.
 				Create().
 				SetStatus(transactionlog.StatusCryptoDeposited).
 				SetGatewayID(paymentOrder.GatewayID).
@@ -1431,6 +1436,11 @@ func (s *IndexerService) UpdateReceiveAddressStatus(
 				AddTransactions(transactionLog).
 				Save(ctx)
 			if err != nil {
+				return true, fmt.Errorf("UpdateReceiveAddressStatus.db: %v", err)
+			}
+
+			// Commit the transaction
+			if err := tx.Commit(); err != nil {
 				return true, fmt.Errorf("UpdateReceiveAddressStatus.db: %v", err)
 			}
 		}
