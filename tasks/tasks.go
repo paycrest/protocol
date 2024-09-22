@@ -395,42 +395,49 @@ func IndexBlockchainEvents() error {
 		defer wg.Done()
 		time.Sleep(1000 * time.Millisecond)
 		_ = utils.Retry(3, 2*time.Second, func() error {
-			lockOrders, err := storage.Client.LockPaymentOrder.
-				Query().
-				Where(func(s *sql.Selector) {
-					po := sql.Table(paymentorder.Table)
-					s.LeftJoin(po).On(s.C(lockpaymentorder.FieldGatewayID), po.C(paymentorder.FieldGatewayID)).
-						Where(sql.Or(
-							sql.EQ(s.C(lockpaymentorder.FieldStatus), lockpaymentorder.StatusValidated),
-							sql.And(
-								sql.EQ(po.C(paymentorder.FieldStatus), paymentorder.StatusPending),
-								sql.EQ(s.C(lockpaymentorder.FieldStatus), lockpaymentorder.StatusSettled),
-							)),
-						)
-				}).
-				WithToken(func(tq *ent.TokenQuery) {
-					tq.WithNetwork()
-				}).
-				Order(ent.Asc(lockpaymentorder.FieldBlockNumber)).
-				All(ctx)
-			if err != nil {
-				logger.Errorf("IndexBlockchainEvents: %v", err)
-			}
+			for _, network := range networks {
+				if strings.HasPrefix(network.Identifier, "tron") {
+					lockOrders, err := storage.Client.LockPaymentOrder.
+						Query().
+						Where(func(s *sql.Selector) {
+							po := sql.Table(paymentorder.Table)
+							s.LeftJoin(po).On(s.C(lockpaymentorder.FieldGatewayID), po.C(paymentorder.FieldGatewayID)).
+								Where(sql.Or(
+									sql.EQ(s.C(lockpaymentorder.FieldStatus), lockpaymentorder.StatusValidated),
+									sql.And(
+										sql.EQ(po.C(paymentorder.FieldStatus), paymentorder.StatusPending),
+										sql.EQ(s.C(lockpaymentorder.FieldStatus), lockpaymentorder.StatusSettled),
+									)),
+								)
+						}).
+						Where(
+							lockpaymentorder.HasTokenWith(
+								token.HasNetworkWith(networkent.IDEQ(network.ID)),
+							),
+						).
+						WithToken(func(tq *ent.TokenQuery) {
+							tq.WithNetwork()
+						}).
+						Order(ent.Asc(lockpaymentorder.FieldBlockNumber)).
+						All(ctx)
+					if err != nil {
+						logger.Errorf("IndexBlockchainEvents: %v", err)
+					}
 
-			if len(lockOrders) > 0 {
-				for _, order := range lockOrders {
-					if strings.HasPrefix(order.Edges.Token.Edges.Network.Identifier, "tron") {
-						indexerService := services.NewIndexerService(orderService.NewOrderTron())
-						err := indexerService.IndexOrderSettledTron(ctx, order)
-						if err != nil {
-							continue
+					if len(lockOrders) > 0 {
+						for _, order := range lockOrders {
+							indexerService := services.NewIndexerService(orderService.NewOrderTron())
+							err := indexerService.IndexOrderSettledTron(ctx, order)
+							if err != nil {
+								continue
+							}
 						}
-					} else {
-						indexerService := services.NewIndexerService(orderService.NewOrderEVM())
-						err := indexerService.IndexOrderSettled(ctx, rpcClients[order.Edges.Token.Edges.Network.Identifier], order.Edges.Token.Edges.Network, order.GatewayID)
-						if err != nil {
-							continue
-						}
+					}
+				} else {
+					indexerService := services.NewIndexerService(orderService.NewOrderEVM())
+					err := indexerService.IndexOrderSettled(ctx, rpcClients[network.Identifier], network)
+					if err != nil {
+						continue
 					}
 				}
 			}
@@ -445,45 +452,52 @@ func IndexBlockchainEvents() error {
 		defer wg.Done()
 		time.Sleep(1500 * time.Millisecond)
 		_ = utils.Retry(3, 2*time.Second, func() error {
-			lockOrders, err := storage.Client.LockPaymentOrder.
-				Query().
-				Where(func(s *sql.Selector) {
-					po := sql.Table(paymentorder.Table)
-					s.LeftJoin(po).On(s.C(lockpaymentorder.FieldGatewayID), po.C(paymentorder.FieldGatewayID)).
-						Where(sql.Or(
-							sql.And(
-								sql.EQ(s.C(lockpaymentorder.FieldStatus), lockpaymentorder.StatusPending),
-								sql.LT(s.C(lockpaymentorder.FieldCreatedAt), time.Now().Add(-35*time.Minute)),
+			for _, network := range networks {
+				if strings.HasPrefix(network.Identifier, "tron") {
+					lockOrders, err := storage.Client.LockPaymentOrder.
+						Query().
+						Where(func(s *sql.Selector) {
+							po := sql.Table(paymentorder.Table)
+							s.LeftJoin(po).On(s.C(lockpaymentorder.FieldGatewayID), po.C(paymentorder.FieldGatewayID)).
+								Where(sql.Or(
+									sql.And(
+										sql.EQ(s.C(lockpaymentorder.FieldStatus), lockpaymentorder.StatusPending),
+										sql.LT(s.C(lockpaymentorder.FieldCreatedAt), time.Now().Add(-35*time.Minute)),
+									),
+									sql.And(
+										sql.EQ(po.C(paymentorder.FieldStatus), paymentorder.StatusPending),
+										sql.EQ(s.C(lockpaymentorder.FieldStatus), lockpaymentorder.StatusRefunded),
+									),
+								))
+						}).
+						Where(
+							lockpaymentorder.HasTokenWith(
+								token.HasNetworkWith(networkent.IDEQ(network.ID)),
 							),
-							sql.And(
-								sql.EQ(po.C(paymentorder.FieldStatus), paymentorder.StatusPending),
-								sql.EQ(s.C(lockpaymentorder.FieldStatus), lockpaymentorder.StatusRefunded),
-							),
-						))
-				}).
-				WithToken(func(tq *ent.TokenQuery) {
-					tq.WithNetwork()
-				}).
-				Order(ent.Asc(lockpaymentorder.FieldBlockNumber)).
-				All(ctx)
-			if err != nil {
-				logger.Errorf("IndexBlockchainEvents: %v", err)
-			}
+						).
+						WithToken(func(tq *ent.TokenQuery) {
+							tq.WithNetwork()
+						}).
+						Order(ent.Asc(lockpaymentorder.FieldBlockNumber)).
+						All(ctx)
+					if err != nil {
+						logger.Errorf("IndexBlockchainEvents: %v", err)
+					}
 
-			if len(lockOrders) > 0 {
-				for _, order := range lockOrders {
-					if strings.HasPrefix(order.Edges.Token.Edges.Network.Identifier, "tron") {
-						indexerService := services.NewIndexerService(orderService.NewOrderTron())
-						err := indexerService.IndexOrderRefundedTron(ctx, order)
-						if err != nil {
-							continue
+					if len(lockOrders) > 0 {
+						for _, order := range lockOrders {
+							indexerService := services.NewIndexerService(orderService.NewOrderTron())
+							err := indexerService.IndexOrderRefundedTron(ctx, order)
+							if err != nil {
+								continue
+							}
 						}
-					} else {
-						indexerService := services.NewIndexerService(orderService.NewOrderEVM())
-						err := indexerService.IndexOrderRefunded(ctx, rpcClients[order.Edges.Token.Edges.Network.Identifier], order.Edges.Token.Edges.Network, order.GatewayID)
-						if err != nil {
-							continue
-						}
+					}
+				} else {
+					indexerService := services.NewIndexerService(orderService.NewOrderEVM())
+					err := indexerService.IndexOrderRefunded(ctx, rpcClients[network.Identifier], network)
+					if err != nil {
+						continue
 					}
 				}
 			}
