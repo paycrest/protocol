@@ -285,7 +285,9 @@ func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPC
 
 		err := s.CreateLockPaymentOrder(ctx, client, network, event)
 		if err != nil {
-			logger.Errorf("IndexOrderCreated.createOrder: %v", err)
+			if !strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
+				logger.Errorf("IndexOrderCreated.createOrder: %v", err)
+			}
 			continue
 		}
 	}
