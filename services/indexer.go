@@ -903,7 +903,7 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 		}
 
 		var transactionLog *ent.TransactionLog
-		_, err = db.Client.TransactionLog.
+		_, err = tx.TransactionLog.
 			Query().
 			Where(
 				transactionlog.StatusEQ(transactionlog.StatusOrderCreated),
@@ -915,7 +915,7 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 			if !ent.IsNotFound(err) {
 				return fmt.Errorf("%s - failed to fetch transaction Log: %w", lockPaymentOrder.GatewayID, err)
 			} else {
-				transactionLog, err = db.Client.TransactionLog.
+				transactionLog, err = tx.TransactionLog.
 					Create().
 					SetStatus(transactionlog.StatusOrderCreated).
 					SetTxHash(lockPaymentOrder.TxHash).

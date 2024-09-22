@@ -351,7 +351,11 @@ func IndexBlockchainEvents() error {
 								sql.GT(s.C(paymentorder.FieldBlockNumber), 0),
 							))
 						}).
-						Where(paymentorder.HasTokenWith(token.HasNetworkWith(networkent.IDEQ(network.ID)))).
+						Where(
+							paymentorder.HasTokenWith(
+								token.HasNetworkWith(networkent.IDEQ(network.ID)),
+							),
+						).
 						WithReceiveAddress().
 						WithToken(func(tq *ent.TokenQuery) {
 							tq.WithNetwork()

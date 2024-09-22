@@ -173,32 +173,67 @@ func (ctrl *ProviderController) AcceptOrder(ctx *gin.Context) {
 		return
 	}
 
-	// create transaction
-	transactionlog, err := storage.Client.TransactionLog.Create().
-		SetStatus(transactionlog.StatusOrderProcessing).
-		SetMetadata(
-			map[string]interface{}{
-				"ProviderId": provider.ID,
-			}).
-		Save(ctx)
+	tx, err := storage.Client.Tx(ctx)
 	if err != nil {
-		u.APIResponse(ctx, http.StatusNotFound, "error", "Failed to update lock order status", nil)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update lock order status", nil)
 		return
 	}
+
+	// Log transaction status
+	var transactionLog *ent.TransactionLog
+	_, err = tx.LockPaymentOrder.
+		Query().
+		Where(
+			lockpaymentorder.IDEQ(orderID),
+			lockpaymentorder.HasTransactionsWith(
+				transactionlog.StatusEQ(transactionlog.StatusOrderProcessing),
+			),
+		).
+		Only(ctx)
+	if err != nil {
+		if !ent.IsNotFound(err) {
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update lock order status", nil)
+			return
+		} else {
+			transactionLog, err = tx.TransactionLog.
+				Create().
+				SetStatus(transactionlog.StatusOrderProcessing).
+				SetMetadata(
+					map[string]interface{}{
+						"ProviderId": provider.ID,
+					}).
+				Save(ctx)
+			if err != nil {
+				u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update lock order status", nil)
+				return
+			}
+		}
+	}
+
 	// Update lock order status to processing
-	order, err := storage.Client.LockPaymentOrder.
+	orderBuilder := tx.LockPaymentOrder.
 		UpdateOneID(orderID).
 		SetStatus(lockpaymentorder.StatusProcessing).
-		AddTransactions(transactionlog).
-		SetProviderID(provider.ID).
-		Save(ctx)
+		SetProviderID(provider.ID)
+
+	if transactionLog != nil {
+		orderBuilder = orderBuilder.AddTransactions(transactionLog)
+	}
+
+	order, err := orderBuilder.Save(ctx)
 	if err != nil {
-		logger.Errorf("error: %v", err)
+		logger.Errorf("%s - error.AcceptOrder: %v", orderID, err)
 		if ent.IsNotFound(err) {
 			u.APIResponse(ctx, http.StatusNotFound, "error", "Order not found", nil)
 		} else {
 			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update lock order status", nil)
 		}
+		return
+	}
+
+	// Commit transaction
+	if err := tx.Commit(); err != nil {
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update lock order status", nil)
 		return
 	}
 
