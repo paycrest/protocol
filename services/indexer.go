@@ -1147,7 +1147,7 @@ func (s *IndexerService) UpdateOrderStatusRefunded(ctx context.Context, log *typ
 	}
 
 	// Sender side status update
-	if paymentOrderExists {
+	if paymentOrderExists && paymentOrder.Status != paymentorder.StatusRefunded {
 		paymentOrderUpdate := tx.PaymentOrder.
 			Update().
 			Where(
@@ -1268,7 +1268,7 @@ func (s *IndexerService) UpdateOrderStatusSettled(ctx context.Context, event *ty
 	}
 
 	// Sender side status update
-	if paymentOrderExists {
+	if paymentOrderExists && paymentOrder.Status != paymentorder.StatusSettled {
 		paymentOrderUpdate := tx.PaymentOrder.
 			Update().
 			Where(
