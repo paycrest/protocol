@@ -840,21 +840,19 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 			isPrivate = true
 		}
 
-	out:
 		for _, orderToken := range providerProfile.Edges.OrderTokens {
+			if orderToken.Symbol == token.Symbol && len(orderToken.Addresses) > 0 {
+				isTokenPresent = true
+				maxOrderAmount = orderToken.MaxOrderAmount
+				minOrderAmount = orderToken.MinOrderAmount
+			}
+
 			for _, address := range orderToken.Addresses {
 				if address.Network == token.Edges.Network.Identifier || orderToken.Symbol == token.Symbol {
 					if address.Network == token.Edges.Network.Identifier {
 						isTokenNetworkPresent = true
+						break
 					}
-
-					if orderToken.Symbol == token.Symbol {
-						isTokenPresent = true
-						maxOrderAmount = orderToken.MaxOrderAmount
-						minOrderAmount = orderToken.MinOrderAmount
-					}
-
-					break out
 				}
 			}
 		}
