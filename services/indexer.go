@@ -848,7 +848,7 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 						isTokenNetworkPresent = true
 					}
 
-					if address.Address == token.ContractAddress {
+					if strings.EqualFold(address.Address, token.ContractAddress) {
 						isTokenPresent = true
 						maxOrderAmount = orderToken.MaxOrderAmount
 						minOrderAmount = orderToken.MinOrderAmount
