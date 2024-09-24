@@ -716,7 +716,7 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 		timeToWait := 2 * time.Second
 
 		time.Sleep(timeToWait)
-		_ = utils.Retry(50, timeToWait, func() error {
+		_ = utils.Retry(10, timeToWait, func() error {
 			logger.Errorf("CreateLockPaymentOrder: %s %s", event.TxHash, gatewayId)
 			// Update payment order with the gateway ID
 			paymentOrder, err := db.Client.PaymentOrder.
@@ -734,8 +734,11 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 				}
 			}
 
-			_, err = paymentOrder.
+			logger.Errorf("CreateLockPaymentOrder: %s", paymentOrder.ID)
+
+			_, err = db.Client.PaymentOrder.
 				Update().
+				Where(paymentorder.IDEQ(paymentOrder.ID)).
 				SetBlockNumber(int64(event.BlockNumber)).
 				SetGatewayID(gatewayId).
 				Save(ctx)
