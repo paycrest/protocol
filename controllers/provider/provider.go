@@ -421,14 +421,17 @@ func (ctrl *ProviderController) FulfillOrder(ctx *gin.Context) {
 		}
 
 		// Settle order or fail silently
-		if strings.HasPrefix(fulfillment.Edges.Order.Edges.Token.Edges.Network.Identifier, "tron") {
-			err = orderService.NewOrderTron().SettleOrder(ctx, nil, orderID)
-		} else {
-			err = orderService.NewOrderEVM().SettleOrder(ctx, nil, orderID)
-		}
-		if err != nil {
-			logger.Errorf("FulfillOrder.SettleOrder: %v", err)
-		}
+		go func() {
+			var err error
+			if strings.HasPrefix(fulfillment.Edges.Order.Edges.Token.Edges.Network.Identifier, "tron") {
+				err = orderService.NewOrderTron().SettleOrder(ctx, nil, orderID)
+			} else {
+				err = orderService.NewOrderEVM().SettleOrder(ctx, nil, orderID)
+			}
+			if err != nil {
+				logger.Errorf("FulfillOrder.SettleOrder: %v", err)
+			}
+		}()
 
 	} else if payload.ValidationStatus == lockorderfulfillment.ValidationStatusFailed {
 		_, err = fulfillment.Update().
@@ -554,14 +557,17 @@ func (ctrl *ProviderController) CancelOrder(ctx *gin.Context) {
 	// Check if order cancellation count is equal or greater than RefundCancellationCount in config,
 	// and the order has not been refunded, then trigger refund
 	if order.CancellationCount >= orderConf.RefundCancellationCount && order.Status == lockpaymentorder.StatusCancelled {
-		if strings.HasPrefix(order.Edges.Token.Edges.Network.Identifier, "tron") {
-			err = orderService.NewOrderTron().RefundOrder(ctx, nil, order.GatewayID)
-		} else {
-			err = orderService.NewOrderEVM().RefundOrder(ctx, nil, order.GatewayID)
-		}
-		if err != nil {
-			logger.Errorf("CancelOrder.RefundOrder(%v): %v", orderID, err)
-		}
+		go func() {
+			var err error
+			if strings.HasPrefix(order.Edges.Token.Edges.Network.Identifier, "tron") {
+				err = orderService.NewOrderTron().RefundOrder(ctx, nil, order.GatewayID)
+			} else {
+				err = orderService.NewOrderEVM().RefundOrder(ctx, nil, order.GatewayID)
+			}
+			if err != nil {
+				logger.Errorf("CancelOrder.RefundOrder(%v): %v", orderID, err)
+			}
+		}()
 	}
 
 	// Push provider ID to order exclude list
