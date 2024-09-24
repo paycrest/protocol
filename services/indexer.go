@@ -812,6 +812,7 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 	// Check if order is private
 	isPrivate := false
 	isTokenNetworkPresent := false
+	isTokenPresent := false
 	maxOrderAmount := decimal.NewFromInt(0)
 	minOrderAmount := decimal.NewFromInt(0)
 	if lockPaymentOrder.ProviderID != "" {
@@ -841,11 +842,28 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 	out:
 		for _, orderToken := range providerProfile.Edges.OrderTokens {
 			for _, address := range orderToken.Addresses {
-				if address.Network == token.Edges.Network.Identifier {
-					isTokenNetworkPresent = true
+				if address.Network == token.Edges.Network.Identifier || address.Address == token.ContractAddress {
+					if address.Network == token.Edges.Network.Identifier {
+						isTokenNetworkPresent = true
+					}
+
+					if address.Address == token.ContractAddress {
+						isTokenPresent = true
+						maxOrderAmount = orderToken.MaxOrderAmount
+						minOrderAmount = orderToken.MinOrderAmount
+					}
+
 					break out
 				}
 			}
+		}
+
+		if !isTokenPresent {
+			err := s.handleCancellation(ctx, client, nil, &lockPaymentOrder, "Token is not supported by the provider")
+			if err != nil {
+				return fmt.Errorf("token is not supported by the specified provider: %w", err)
+			}
+			return nil
 		}
 
 		if !isTokenNetworkPresent {
@@ -855,9 +873,6 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 			}
 			return nil
 		}
-
-		maxOrderAmount = providerProfile.Edges.OrderTokens[0].MaxOrderAmount
-		minOrderAmount = providerProfile.Edges.OrderTokens[0].MinOrderAmount
 	}
 
 	if provisionBucket == nil && !isPrivate {
