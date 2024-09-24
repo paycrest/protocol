@@ -843,12 +843,12 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 	out:
 		for _, orderToken := range providerProfile.Edges.OrderTokens {
 			for _, address := range orderToken.Addresses {
-				if address.Network == token.Edges.Network.Identifier || strings.EqualFold(address.Address, token.ContractAddress) {
+				if address.Network == token.Edges.Network.Identifier || orderToken.Symbol == token.Symbol {
 					if address.Network == token.Edges.Network.Identifier {
 						isTokenNetworkPresent = true
 					}
 
-					if strings.EqualFold(address.Address, token.ContractAddress) {
+					if orderToken.Symbol == token.Symbol {
 						isTokenPresent = true
 						maxOrderAmount = orderToken.MaxOrderAmount
 						minOrderAmount = orderToken.MinOrderAmount
