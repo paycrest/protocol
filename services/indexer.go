@@ -717,6 +717,7 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 
 		time.Sleep(timeToWait)
 		_ = utils.Retry(50, timeToWait, func() error {
+			logger.Errorf("CreateLockPaymentOrder: %s %s", event.TxHash, gatewayId)
 			// Update payment order with the gateway ID
 			paymentOrder, err := db.Client.PaymentOrder.
 				Query().
