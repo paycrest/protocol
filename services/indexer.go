@@ -717,7 +717,6 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 
 		time.Sleep(timeToWait)
 		_ = utils.Retry(10, timeToWait, func() error {
-			logger.Errorf("CreateLockPaymentOrder: %s %s", event.TxHash, gatewayId)
 			// Update payment order with the gateway ID
 			paymentOrder, err := db.Client.PaymentOrder.
 				Query().
@@ -733,8 +732,6 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 					return fmt.Errorf("CreateLockPaymentOrder.db: %v", err)
 				}
 			}
-
-			logger.Errorf("CreateLockPaymentOrder: %s", paymentOrder.ID)
 
 			_, err = db.Client.PaymentOrder.
 				Update().
@@ -846,7 +843,7 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 	out:
 		for _, orderToken := range providerProfile.Edges.OrderTokens {
 			for _, address := range orderToken.Addresses {
-				if address.Network == token.Edges.Network.Identifier || address.Address == token.ContractAddress {
+				if address.Network == token.Edges.Network.Identifier || strings.EqualFold(address.Address, token.ContractAddress) {
 					if address.Network == token.Edges.Network.Identifier {
 						isTokenNetworkPresent = true
 					}
