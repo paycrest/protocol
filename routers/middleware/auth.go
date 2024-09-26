@@ -346,7 +346,7 @@ func DynamicAuthMiddleware(c *gin.Context) {
 	case "web":
 		JWTMiddleware(c)
 	default:
-		if strings.Contains(c.Request.URL.Path, "/sender/") {
+		if strings.Contains(c.Request.URL.Path, "/sender/") && c.GetHeader("API-Key") != "" {
 			APIKeyMiddleware(c)
 		} else {
 			HMACVerificationMiddleware(c)
