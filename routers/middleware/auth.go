@@ -281,6 +281,61 @@ func HMACVerificationMiddleware(c *gin.Context) {
 	c.Next()
 }
 
+// APIKeyMiddleware is a middleware to handle API key authentication
+func APIKeyMiddleware(c *gin.Context) {
+	// Get the API key from the request headers
+	apiKey := c.GetHeader("API-Key")
+	if apiKey == "" {
+		u.APIResponse(c, http.StatusUnauthorized, "error", "Missing API-Key header", nil)
+		c.Abort()
+		return
+	}
+
+	// Parse the API key ID string to uuid.UUID
+	apiKeyUUID, err := uuid.Parse(apiKey)
+	if err != nil {
+		u.APIResponse(c, http.StatusBadRequest, "error", "Invalid API key ID", nil)
+		c.Abort()
+		return
+	}
+
+	// Fetch the API key from the database
+	apiKeyEnt, err := storage.Client.APIKey.
+		Query().
+		Where(apikey.IDEQ(apiKeyUUID)).
+		WithSenderProfile().
+		WithProviderProfile().
+		Only(c)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			u.APIResponse(c, http.StatusNotFound, "error", "API key not found", nil)
+		} else {
+			logger.Errorf("error: %v", err)
+			u.APIResponse(c, http.StatusInternalServerError, "error", "Failed to fetch API key", err.Error())
+		}
+		c.Abort()
+		return
+	}
+
+	// Set the user profiles in the context of the request
+	if apiKeyEnt.Edges.SenderProfile != nil {
+		c.Set("sender", apiKeyEnt.Edges.SenderProfile)
+	}
+
+	if apiKeyEnt.Edges.ProviderProfile != nil {
+		c.Set("provider", apiKeyEnt.Edges.ProviderProfile)
+	}
+
+	if apiKeyEnt.Edges.SenderProfile == nil && apiKeyEnt.Edges.ProviderProfile == nil {
+		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid API key or token", nil)
+		c.Abort()
+		return
+	}
+
+	// Continue to the next middleware
+	c.Next()
+}
+
 // DynamicAuthMiddleware is a middleware that dynamically selects the authentication method
 func DynamicAuthMiddleware(c *gin.Context) {
 	// Check the request headers to determine the desired authentication method
@@ -291,7 +346,11 @@ func DynamicAuthMiddleware(c *gin.Context) {
 	case "web":
 		JWTMiddleware(c)
 	default:
-		HMACVerificationMiddleware(c)
+		if strings.Contains(c.Request.URL.Path, "/sender/") {
+			APIKeyMiddleware(c)
+		} else {
+			HMACVerificationMiddleware(c)
+		}
 	}
 
 	c.Next()
