@@ -444,47 +444,57 @@ func (ctrl *Controller) RequestIDVerification(ctx *gin.Context) {
 	}
 
 	timestamp := time.Now()
-	if ivr.Status == "pending" && ivr.LastURLCreatedAt.Add(24*7*time.Hour).Before(timestamp) {
-		// Request is expired, delete db entry
-		_, err := storage.Client.IdentityVerificationRequest.
-			Delete().
-			Where(
-				identityverificationrequest.WalletAddressEQ(payload.WalletAddress),
-			).
-			Exec(ctx)
-		if err != nil {
-			logger.Errorf("error: %v", err)
-			u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to request identity verification", nil)
+
+	if ivr != nil {
+		if ivr.WalletSignature == payload.Signature {
+			u.APIResponse(ctx, http.StatusBadRequest, "error", "Signature already used for identity verification", nil)
 			return
 		}
 
-	} else if ivr.Status == "pending" && (ivr.LastURLCreatedAt.Add(24*7*time.Hour).Equal(timestamp) || ivr.LastURLCreatedAt.Add(24*7*time.Hour).After(timestamp)) {
-		// Update the wallet signature in db
-		_, err = storage.Client.IdentityVerificationRequest.
-			Update().
-			SetWalletSignature(payload.Signature).
-			Save(ctx)
-		if err != nil {
-			logger.Errorf("error: %v", err)
-			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to request identity verification", nil)
+		expiryPeriod := 15 * time.Minute
+
+		if ivr.Status == identityverificationrequest.StatusFailed || (ivr.Status == identityverificationrequest.StatusPending && ivr.LastURLCreatedAt.Add(expiryPeriod).Before(timestamp)) {
+			// Request is expired, delete db entry
+			_, err := storage.Client.IdentityVerificationRequest.
+				Delete().
+				Where(
+					identityverificationrequest.WalletAddressEQ(payload.WalletAddress),
+				).
+				Exec(ctx)
+			if err != nil {
+				logger.Errorf("error: %v", err)
+				u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to request identity verification", nil)
+				return
+			}
+
+		} else if ivr.Status == identityverificationrequest.StatusPending && (ivr.LastURLCreatedAt.Add(expiryPeriod).Equal(timestamp) || ivr.LastURLCreatedAt.Add(expiryPeriod).After(timestamp)) {
+			// Update the wallet signature in db
+			_, err = ivr.
+				Update().
+				SetWalletSignature(payload.Signature).
+				Save(ctx)
+			if err != nil {
+				logger.Errorf("error: %v", err)
+				u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to request identity verification", nil)
+				return
+			}
+
+			u.APIResponse(ctx, http.StatusOK, "success", "This account has a pending identity verification request", &types.NewIDVerificationResponse{
+				URL:       ivr.VerificationURL,
+				ExpiresAt: ivr.LastURLCreatedAt,
+			})
 			return
 		}
 
-		u.APIResponse(ctx, http.StatusOK, "success", "This account has a pending identity verification", &types.NewIDVerificationResponse{
-			URL:       ivr.VerificationURL,
-			ExpiresAt: ivr.LastURLCreatedAt,
-		})
-		return
-	}
-
-	if ivr.Status == "success" {
-		u.APIResponse(ctx, http.StatusBadRequest, "success", "Failed to request identity verification", "This account has already been successfully verified")
-		return
+		if ivr.Status == "success" {
+			u.APIResponse(ctx, http.StatusBadRequest, "success", "Failed to request identity verification", "This account has already been successfully verified")
+			return
+		}
 	}
 
 	// Generate Smile Identity signature
 	h := hmac.New(sha256.New, []byte(identityConf.SmileIdentityApiKey))
-	h.Write([]byte(timestamp.Format(time.RFC3339)))
+	h.Write([]byte(timestamp.Format(time.RFC3339Nano)))
 	h.Write([]byte(identityConf.SmileIdentityPartnerId))
 	h.Write([]byte("sid_request"))
 
@@ -497,7 +507,7 @@ func (ctrl *Controller) RequestIDVerification(ctx *gin.Context) {
 		"signature":    base64.StdEncoding.EncodeToString(h.Sum(nil)),
 		"timestamp":    timestamp,
 		"name":         "Aggregator KYC",
-		"company_name": "Paycrest Aggregator",
+		"company_name": "Paycrest",
 		"id_types": []map[string]interface{}{
 			// Nigeria
 			{
@@ -531,33 +541,6 @@ func (ctrl *Controller) RequestIDVerification(ctx *gin.Context) {
 				"verification_method": "doc_verification",
 			},
 
-			// Ghana
-			{
-				"country":             "GH",
-				"id_type":             "PASSPORT",
-				"verification_method": "enhanced_document_verification",
-			},
-			{
-				"country":             "GH",
-				"id_type":             "VOTER_ID",
-				"verification_method": "enhanced_document_verification",
-			},
-			{
-				"country":             "GH",
-				"id_type":             "NEW_VOTER_ID",
-				"verification_method": "biometric_kyc",
-			},
-			{
-				"country":             "GH",
-				"id_type":             "DRIVERS_LICENSE",
-				"verification_method": "doc_verification",
-			},
-			{
-				"country":             "GH",
-				"id_type":             "SSNIT",
-				"verification_method": "biometric_kyc",
-			},
-
 			// Kenya
 			{
 				"country":             "KE",
@@ -579,6 +562,33 @@ func (ctrl *Controller) RequestIDVerification(ctx *gin.Context) {
 				"id_type":             "NATIONAL_ID",
 				"verification_method": "biometric_kyc",
 			},
+
+			// Ghana
+			// {
+			// 	"country":             "GH",
+			// 	"id_type":             "PASSPORT",
+			// 	"verification_method": "enhanced_document_verification",
+			// },
+			// {
+			// 	"country":             "GH",
+			// 	"id_type":             "VOTER_ID",
+			// 	"verification_method": "enhanced_document_verification",
+			// },
+			// {
+			// 	"country":             "GH",
+			// 	"id_type":             "NEW_VOTER_ID",
+			// 	"verification_method": "biometric_kyc",
+			// },
+			// {
+			// 	"country":             "GH",
+			// 	"id_type":             "DRIVERS_LICENSE",
+			// 	"verification_method": "doc_verification",
+			// },
+			// {
+			// 	"country":             "GH",
+			// 	"id_type":             "SSNIT",
+			// 	"verification_method": "biometric_kyc",
+			// },
 
 			// South Africa
 			// {
@@ -627,6 +637,7 @@ func (ctrl *Controller) RequestIDVerification(ctx *gin.Context) {
 	ivr, err = storage.Client.IdentityVerificationRequest.
 		Create().
 		SetWalletAddress(payload.WalletAddress).
+		SetWalletSignature(payload.Signature).
 		SetPlatform("smile_id").
 		SetPlatformRef(data["ref_id"].(string)).
 		SetVerificationURL(data["link"].(string)).
@@ -674,32 +685,32 @@ func (ctrl *Controller) GetIDVerificationStatus(ctx *gin.Context) {
 	}
 
 	// Check if the status is pending and fetch the status from the platform
-	if ivr.Status == identityverificationrequest.StatusPending {
-		status, err := getSmileLinkStatus(ivr.PlatformRef)
-		if err != nil {
-			logger.Errorf("error: %v", err)
-			u.APIResponse(ctx, http.StatusServiceUnavailable, "error", "Failed to fetch identity verification status", nil)
-			return
-		}
+	// if ivr.Status == identityverificationrequest.StatusPending {
+	// 	status, err := getSmileLinkStatus(ivr.PlatformRef)
+	// 	if err != nil {
+	// 		logger.Errorf("error: %v", err)
+	// 		u.APIResponse(ctx, http.StatusServiceUnavailable, "error", "Failed to fetch identity verification status", nil)
+	// 		return
+	// 	}
 
-		response.Status = status
+	// 	response.Status = status
 
-		if status != "pending" {
-			// Update the verification status in the database if it's not pending
-			_, err := storage.Client.IdentityVerificationRequest.
-				Update().
-				Where(
-					identityverificationrequest.WalletAddressEQ(walletAddress),
-				).
-				SetStatus(identityverificationrequest.Status(response.Status)).
-				Save(ctx)
-			if err != nil {
-				logger.Errorf("error: %v", err)
-				u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update identity verification status", nil)
-				return
-			}
-		}
-	}
+	// 	if status != "pending" {
+	// 		// Update the verification status in the database if it's not pending
+	// 		_, err := storage.Client.IdentityVerificationRequest.
+	// 			Update().
+	// 			Where(
+	// 				identityverificationrequest.WalletAddressEQ(walletAddress),
+	// 			).
+	// 			SetStatus(identityverificationrequest.Status(response.Status)).
+	// 			Save(ctx)
+	// 		if err != nil {
+	// 			logger.Errorf("error: %v", err)
+	// 			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update identity verification status", nil)
+	// 			return
+	// 		}
+	// 	}
+	// }
 
 	u.APIResponse(ctx, http.StatusOK, "success", "Identity verification status fetched successfully", response)
 }
@@ -736,8 +747,8 @@ func (ctrl *Controller) KYCWebhook(ctx *gin.Context) {
 
 	// Check for failed codes
 	failedCodes := []string{
-		"0811", // Document Not Verified
-		"0812", // Document Not Verified
+		"0811", // No Face Match
+		"0812", // Filed Security Features Check
 		"0813", // Document Not Verified - Machine Judgement
 		"1022", // No Match
 		"1023", // No Found
@@ -797,7 +808,7 @@ func verifySmileIDWebhookSignature(payload types.SmileIDWebhookPayload, received
 // getSmileLinkStatus fetches the status of a Smile Link
 func getSmileLinkStatus(linkID string) (string, error) {
 	// Generate signature
-	timestamp := time.Now().UTC().Format(time.RFC3339)
+	timestamp := time.Now().Format(time.RFC3339Nano)
 	h := hmac.New(sha256.New, []byte(identityConf.SmileIdentityApiKey))
 	h.Write([]byte(timestamp))
 	h.Write([]byte(identityConf.SmileIdentityPartnerId))
