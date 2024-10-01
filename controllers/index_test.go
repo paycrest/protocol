@@ -259,6 +259,6 @@ func TestIndex(t *testing.T) {
 		assert.Equal(t, "success", response.Status)
 		data, ok := response.Data.(map[string]interface{})
 		assert.True(t, ok, "response.Data is not of type map[string]interface{}")
-		assert.Equal(t, "ped", data["status"])
+		assert.Equal(t, "pending", data["status"])
 	})
 }
