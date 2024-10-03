@@ -595,6 +595,11 @@ type NewIDVerificationResponse struct {
 	ExpiresAt time.Time `json:"expiresAt"`
 }
 
+type IDVerificationStatusResponse struct {
+	Status string `json:"status"`
+	URL    string `json:"url"`
+}
+
 // SmileIDWebhookPayload represents the payload structure from Smile Identity
 type SmileIDWebhookPayload struct {
 	ResultCode    string `json:"ResultCode"`

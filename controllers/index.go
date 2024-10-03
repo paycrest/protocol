@@ -678,12 +678,6 @@ func (ctrl *Controller) GetIDVerificationStatus(ctx *gin.Context) {
 		return
 	}
 
-	response := struct {
-		Status string `json:"status"`
-	}{
-		Status: ivr.Status.String(),
-	}
-
 	// Check if the status is pending and fetch the status from the platform
 	// if ivr.Status == identityverificationrequest.StatusPending {
 	// 	status, err := getSmileLinkStatus(ivr.PlatformRef)
@@ -712,7 +706,19 @@ func (ctrl *Controller) GetIDVerificationStatus(ctx *gin.Context) {
 	// 	}
 	// }
 
-	u.APIResponse(ctx, http.StatusOK, "success", "Identity verification status fetched successfully", response)
+	var status string
+
+	// Check if the verification URL has expired
+	if ivr.LastURLCreatedAt.Add(1 * time.Hour).Before(time.Now()) {
+		status = "expired"
+	} else {
+		status = ivr.Status.String()
+	}
+
+	u.APIResponse(ctx, http.StatusOK, "success", "Identity verification status fetched successfully", &types.IDVerificationStatusResponse{
+		Status: status,
+		URL:    ivr.VerificationURL,
+	})
 }
 
 // KYCWebhook handles the webhook callback from Smile Identity
