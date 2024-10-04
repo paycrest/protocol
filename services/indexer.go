@@ -403,8 +403,9 @@ func (s *IndexerService) IndexOrderSettled(ctx context.Context, client types.RPC
 	var iter *contracts.GatewayOrderSettledIterator
 	retryErr := utils.Retry(3, 1*time.Second, func() error {
 		var err error
-		if startBlock == 0 {
-			startBlock = int64(toBlock) - 5000
+		minimumStartBlock := int64(toBlock) - 5000
+		if startBlock == 0 || startBlock < minimumStartBlock {
+			startBlock = minimumStartBlock
 		}
 		iter, err = filterer.FilterOrderSettled(&bind.FilterOpts{
 			Start: uint64(startBlock),
@@ -543,8 +544,9 @@ func (s *IndexerService) IndexOrderRefunded(ctx context.Context, client types.RP
 	var iter *contracts.GatewayOrderRefundedIterator
 	retryErr := utils.Retry(3, 1*time.Second, func() error {
 		var err error
-		if startBlock == 0 {
-			startBlock = int64(toBlock) - 5000
+		minimumStartBlock := int64(toBlock) - 5000
+		if startBlock == 0 || startBlock < minimumStartBlock {
+			startBlock = minimumStartBlock
 		}
 		iter, err = filterer.FilterOrderRefunded(&bind.FilterOpts{
 			Start: uint64(startBlock),
