@@ -631,8 +631,6 @@ func ReassignPendingOrders() {
 			}
 		}
 	}
-
-	FixDatabaseMisHap()
 }
 
 // ReassignUnfulfilledLockOrders reassigns lockOrder unfulfilled within a time frame.
