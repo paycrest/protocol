@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
+	"github.com/paycrest/protocol/ent/linkedaddress"
 	"github.com/paycrest/protocol/ent/paymentorder"
 	"github.com/paycrest/protocol/ent/paymentorderrecipient"
 	"github.com/paycrest/protocol/ent/predicate"
@@ -385,6 +386,14 @@ func (pou *PaymentOrderUpdate) SetSenderProfileID(id uuid.UUID) *PaymentOrderUpd
 	return pou
 }
 
+// SetNillableSenderProfileID sets the "sender_profile" edge to the SenderProfile entity by ID if the given value is not nil.
+func (pou *PaymentOrderUpdate) SetNillableSenderProfileID(id *uuid.UUID) *PaymentOrderUpdate {
+	if id != nil {
+		pou = pou.SetSenderProfileID(*id)
+	}
+	return pou
+}
+
 // SetSenderProfile sets the "sender_profile" edge to the SenderProfile entity.
 func (pou *PaymentOrderUpdate) SetSenderProfile(s *SenderProfile) *PaymentOrderUpdate {
 	return pou.SetSenderProfileID(s.ID)
@@ -399,6 +408,25 @@ func (pou *PaymentOrderUpdate) SetTokenID(id int) *PaymentOrderUpdate {
 // SetToken sets the "token" edge to the Token entity.
 func (pou *PaymentOrderUpdate) SetToken(t *Token) *PaymentOrderUpdate {
 	return pou.SetTokenID(t.ID)
+}
+
+// SetLinkedAddressID sets the "linked_address" edge to the LinkedAddress entity by ID.
+func (pou *PaymentOrderUpdate) SetLinkedAddressID(id int) *PaymentOrderUpdate {
+	pou.mutation.SetLinkedAddressID(id)
+	return pou
+}
+
+// SetNillableLinkedAddressID sets the "linked_address" edge to the LinkedAddress entity by ID if the given value is not nil.
+func (pou *PaymentOrderUpdate) SetNillableLinkedAddressID(id *int) *PaymentOrderUpdate {
+	if id != nil {
+		pou = pou.SetLinkedAddressID(*id)
+	}
+	return pou
+}
+
+// SetLinkedAddress sets the "linked_address" edge to the LinkedAddress entity.
+func (pou *PaymentOrderUpdate) SetLinkedAddress(l *LinkedAddress) *PaymentOrderUpdate {
+	return pou.SetLinkedAddressID(l.ID)
 }
 
 // SetReceiveAddressID sets the "receive_address" edge to the ReceiveAddress entity by ID.
@@ -468,6 +496,12 @@ func (pou *PaymentOrderUpdate) ClearSenderProfile() *PaymentOrderUpdate {
 // ClearToken clears the "token" edge to the Token entity.
 func (pou *PaymentOrderUpdate) ClearToken() *PaymentOrderUpdate {
 	pou.mutation.ClearToken()
+	return pou
+}
+
+// ClearLinkedAddress clears the "linked_address" edge to the LinkedAddress entity.
+func (pou *PaymentOrderUpdate) ClearLinkedAddress() *PaymentOrderUpdate {
+	pou.mutation.ClearLinkedAddress()
 	return pou
 }
 
@@ -566,9 +600,6 @@ func (pou *PaymentOrderUpdate) check() error {
 		if err := paymentorder.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.status": %w`, err)}
 		}
-	}
-	if pou.mutation.SenderProfileCleared() && len(pou.mutation.SenderProfileIDs()) > 0 {
-		return errors.New(`ent: clearing a required unique edge "PaymentOrder.sender_profile"`)
 	}
 	if pou.mutation.TokenCleared() && len(pou.mutation.TokenIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "PaymentOrder.token"`)
@@ -738,6 +769,35 @@ func (pou *PaymentOrderUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(token.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if pou.mutation.LinkedAddressCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   paymentorder.LinkedAddressTable,
+			Columns: []string{paymentorder.LinkedAddressColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(linkedaddress.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := pou.mutation.LinkedAddressIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   paymentorder.LinkedAddressTable,
+			Columns: []string{paymentorder.LinkedAddressColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(linkedaddress.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -1218,6 +1278,14 @@ func (pouo *PaymentOrderUpdateOne) SetSenderProfileID(id uuid.UUID) *PaymentOrde
 	return pouo
 }
 
+// SetNillableSenderProfileID sets the "sender_profile" edge to the SenderProfile entity by ID if the given value is not nil.
+func (pouo *PaymentOrderUpdateOne) SetNillableSenderProfileID(id *uuid.UUID) *PaymentOrderUpdateOne {
+	if id != nil {
+		pouo = pouo.SetSenderProfileID(*id)
+	}
+	return pouo
+}
+
 // SetSenderProfile sets the "sender_profile" edge to the SenderProfile entity.
 func (pouo *PaymentOrderUpdateOne) SetSenderProfile(s *SenderProfile) *PaymentOrderUpdateOne {
 	return pouo.SetSenderProfileID(s.ID)
@@ -1232,6 +1300,25 @@ func (pouo *PaymentOrderUpdateOne) SetTokenID(id int) *PaymentOrderUpdateOne {
 // SetToken sets the "token" edge to the Token entity.
 func (pouo *PaymentOrderUpdateOne) SetToken(t *Token) *PaymentOrderUpdateOne {
 	return pouo.SetTokenID(t.ID)
+}
+
+// SetLinkedAddressID sets the "linked_address" edge to the LinkedAddress entity by ID.
+func (pouo *PaymentOrderUpdateOne) SetLinkedAddressID(id int) *PaymentOrderUpdateOne {
+	pouo.mutation.SetLinkedAddressID(id)
+	return pouo
+}
+
+// SetNillableLinkedAddressID sets the "linked_address" edge to the LinkedAddress entity by ID if the given value is not nil.
+func (pouo *PaymentOrderUpdateOne) SetNillableLinkedAddressID(id *int) *PaymentOrderUpdateOne {
+	if id != nil {
+		pouo = pouo.SetLinkedAddressID(*id)
+	}
+	return pouo
+}
+
+// SetLinkedAddress sets the "linked_address" edge to the LinkedAddress entity.
+func (pouo *PaymentOrderUpdateOne) SetLinkedAddress(l *LinkedAddress) *PaymentOrderUpdateOne {
+	return pouo.SetLinkedAddressID(l.ID)
 }
 
 // SetReceiveAddressID sets the "receive_address" edge to the ReceiveAddress entity by ID.
@@ -1301,6 +1388,12 @@ func (pouo *PaymentOrderUpdateOne) ClearSenderProfile() *PaymentOrderUpdateOne {
 // ClearToken clears the "token" edge to the Token entity.
 func (pouo *PaymentOrderUpdateOne) ClearToken() *PaymentOrderUpdateOne {
 	pouo.mutation.ClearToken()
+	return pouo
+}
+
+// ClearLinkedAddress clears the "linked_address" edge to the LinkedAddress entity.
+func (pouo *PaymentOrderUpdateOne) ClearLinkedAddress() *PaymentOrderUpdateOne {
+	pouo.mutation.ClearLinkedAddress()
 	return pouo
 }
 
@@ -1412,9 +1505,6 @@ func (pouo *PaymentOrderUpdateOne) check() error {
 		if err := paymentorder.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.status": %w`, err)}
 		}
-	}
-	if pouo.mutation.SenderProfileCleared() && len(pouo.mutation.SenderProfileIDs()) > 0 {
-		return errors.New(`ent: clearing a required unique edge "PaymentOrder.sender_profile"`)
 	}
 	if pouo.mutation.TokenCleared() && len(pouo.mutation.TokenIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "PaymentOrder.token"`)
@@ -1601,6 +1691,35 @@ func (pouo *PaymentOrderUpdateOne) sqlSave(ctx context.Context) (_node *PaymentO
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(token.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if pouo.mutation.LinkedAddressCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   paymentorder.LinkedAddressTable,
+			Columns: []string{paymentorder.LinkedAddressColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(linkedaddress.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := pouo.mutation.LinkedAddressIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   paymentorder.LinkedAddressTable,
+			Columns: []string{paymentorder.LinkedAddressColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(linkedaddress.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

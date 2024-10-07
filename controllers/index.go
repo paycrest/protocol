@@ -381,6 +381,44 @@ func (ctrl *Controller) GetLockPaymentOrderStatus(ctx *gin.Context) {
 	u.APIResponse(ctx, http.StatusOK, "success", "Order status fetched successfully", response)
 }
 
+// CreateLinkedAddress controller creates a new linked address
+func (ctrl *Controller) CreateLinkedAddress(ctx *gin.Context) {
+	// var payload types.NewLinkedAddressRequest
+
+	// if err := ctx.ShouldBindJSON(&payload); err != nil {
+	// 	logger.Errorf("error: %v", err)
+	// 	u.APIResponse(ctx, http.StatusBadRequest, "error",
+	// 		"Failed to validate payload", u.GetErrorData(err))
+	// 	return
+	// }
+
+	// // Get the user from the context
+	// user, _ := ctx.Get("user")
+
+	// // Create a new linked address
+	// la, err := storage.Client.LinkedAddress.
+	// 	Create().
+	// 	SetUser(user.(*ent.User)).
+	// 	SetAddress(payload.Address).
+	// 	SetCurrency(payload.Currency).
+	// 	SetNetwork(payload.Network).
+	// 	Save(ctx)
+	// if err != nil {
+	// 	logger.Errorf("error: %v", err)
+	// 	u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to create linked address", nil)
+	// 	return
+	// }
+
+	u.APIResponse(ctx, http.StatusOK, "success", "Linked address created successfully", nil)
+}
+
+// GetLinkedAddress controller fetches a linked address
+func (ctrl *Controller) GetLinkedAddress(ctx *gin.Context) {
+	user, _ := ctx.Get("owner_address")
+	fmt.Println("GetLinkedAddress: ", user)
+	u.APIResponse(ctx, http.StatusOK, "success", "Linked address fetched successfully", nil)
+}
+
 // RequestIDVerification controller requests identity verification details
 func (ctrl *Controller) RequestIDVerification(ctx *gin.Context) {
 	var payload types.NewIDVerificationRequest

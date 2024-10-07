@@ -10,6 +10,7 @@ import (
 	"github.com/paycrest/protocol/ent/fiatcurrency"
 	"github.com/paycrest/protocol/ent/identityverificationrequest"
 	"github.com/paycrest/protocol/ent/institution"
+	"github.com/paycrest/protocol/ent/linkedaddress"
 	"github.com/paycrest/protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	"github.com/paycrest/protocol/ent/network"
@@ -105,6 +106,25 @@ func init() {
 	institution.DefaultUpdatedAt = institutionDescUpdatedAt.Default.(func() time.Time)
 	// institution.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	institution.UpdateDefaultUpdatedAt = institutionDescUpdatedAt.UpdateDefault.(func() time.Time)
+	linkedaddressMixin := schema.LinkedAddress{}.Mixin()
+	linkedaddressMixinFields0 := linkedaddressMixin[0].Fields()
+	_ = linkedaddressMixinFields0
+	linkedaddressFields := schema.LinkedAddress{}.Fields()
+	_ = linkedaddressFields
+	// linkedaddressDescCreatedAt is the schema descriptor for created_at field.
+	linkedaddressDescCreatedAt := linkedaddressMixinFields0[0].Descriptor()
+	// linkedaddress.DefaultCreatedAt holds the default value on creation for the created_at field.
+	linkedaddress.DefaultCreatedAt = linkedaddressDescCreatedAt.Default.(func() time.Time)
+	// linkedaddressDescUpdatedAt is the schema descriptor for updated_at field.
+	linkedaddressDescUpdatedAt := linkedaddressMixinFields0[1].Descriptor()
+	// linkedaddress.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	linkedaddress.DefaultUpdatedAt = linkedaddressDescUpdatedAt.Default.(func() time.Time)
+	// linkedaddress.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	linkedaddress.UpdateDefaultUpdatedAt = linkedaddressDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// linkedaddressDescTxHash is the schema descriptor for tx_hash field.
+	linkedaddressDescTxHash := linkedaddressFields[7].Descriptor()
+	// linkedaddress.TxHashValidator is a validator for the "tx_hash" field. It is called by the builders before save.
+	linkedaddress.TxHashValidator = linkedaddressDescTxHash.Validators[0].(func(string) error)
 	lockorderfulfillmentMixin := schema.LockOrderFulfillment{}.Mixin()
 	lockorderfulfillmentMixinFields0 := lockorderfulfillmentMixin[0].Fields()
 	_ = lockorderfulfillmentMixinFields0
