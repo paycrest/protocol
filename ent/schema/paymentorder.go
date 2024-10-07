@@ -59,12 +59,14 @@ func (PaymentOrder) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("sender_profile", SenderProfile.Type).
 			Ref("payment_orders").
-			Unique().
-			Required(),
+			Unique(),
 		edge.From("token", Token.Type).
 			Ref("payment_orders").
 			Unique().
 			Required(),
+		edge.From("linked_address", LinkedAddress.Type).
+			Ref("payment_orders").
+			Unique(),
 		edge.To("receive_address", ReceiveAddress.Type).
 			Unique().
 			Annotations(entsql.OnDelete(entsql.SetNull)),

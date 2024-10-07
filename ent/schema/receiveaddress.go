@@ -41,5 +41,3 @@ func (ReceiveAddress) Edges() []ent.Edge {
 			Unique(),
 	}
 }
-
-// TODO: add hook to set amount_paid field to the value of amount in the payment order edge

@@ -18,6 +18,9 @@ type IdentityVerificationRequest func(*sql.Selector)
 // Institution is the predicate function for institution builders.
 type Institution func(*sql.Selector)
 
+// LinkedAddress is the predicate function for linkedaddress builders.
+type LinkedAddress func(*sql.Selector)
+
 // LockOrderFulfillment is the predicate function for lockorderfulfillment builders.
 type LockOrderFulfillment func(*sql.Selector)
 
