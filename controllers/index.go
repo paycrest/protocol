@@ -18,6 +18,7 @@ import (
 	"github.com/paycrest/protocol/ent/fiatcurrency"
 	"github.com/paycrest/protocol/ent/identityverificationrequest"
 	"github.com/paycrest/protocol/ent/institution"
+	"github.com/paycrest/protocol/ent/linkedaddress"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/token"
@@ -38,15 +39,17 @@ var identityConf = config.IdentityConfig()
 
 // Controller is the default controller for other endpoints
 type Controller struct {
-	orderService         types.OrderService
-	priorityQueueService *svc.PriorityQueueService
+	orderService          types.OrderService
+	priorityQueueService  *svc.PriorityQueueService
+	receiveAddressService *svc.ReceiveAddressService
 }
 
 // NewController creates a new instance of AuthController with injected services
 func NewController() *Controller {
 	return &Controller{
-		orderService:         orderSvc.NewOrderEVM(),
-		priorityQueueService: svc.NewPriorityQueueService(),
+		orderService:          orderSvc.NewOrderEVM(),
+		priorityQueueService:  svc.NewPriorityQueueService(),
+		receiveAddressService: svc.NewReceiveAddressService(),
 	}
 }
 
@@ -383,40 +386,166 @@ func (ctrl *Controller) GetLockPaymentOrderStatus(ctx *gin.Context) {
 
 // CreateLinkedAddress controller creates a new linked address
 func (ctrl *Controller) CreateLinkedAddress(ctx *gin.Context) {
-	// var payload types.NewLinkedAddressRequest
+	var payload types.NewLinkedAddressRequest
 
-	// if err := ctx.ShouldBindJSON(&payload); err != nil {
-	// 	logger.Errorf("error: %v", err)
-	// 	u.APIResponse(ctx, http.StatusBadRequest, "error",
-	// 		"Failed to validate payload", u.GetErrorData(err))
-	// 	return
-	// }
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusBadRequest, "error",
+			"Failed to validate payload", u.GetErrorData(err))
+		return
+	}
 
-	// // Get the user from the context
-	// user, _ := ctx.Get("user")
+	ownerAddress, _ := ctx.Get("owner_address")
 
-	// // Create a new linked address
-	// la, err := storage.Client.LinkedAddress.
-	// 	Create().
-	// 	SetUser(user.(*ent.User)).
-	// 	SetAddress(payload.Address).
-	// 	SetCurrency(payload.Currency).
-	// 	SetNetwork(payload.Network).
-	// 	Save(ctx)
-	// if err != nil {
-	// 	logger.Errorf("error: %v", err)
-	// 	u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to create linked address", nil)
-	// 	return
-	// }
+	// Generate smart account
+	address, salt, err := ctrl.receiveAddressService.CreateSmartAddress(ctx, nil, nil)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to create linked address", nil)
+		return
+	}
 
-	u.APIResponse(ctx, http.StatusOK, "success", "Linked address created successfully", nil)
+	// Create a new linked address
+	linkedAddress, err := storage.Client.LinkedAddress.
+		Create().
+		SetAddress(address).
+		SetSalt(salt).
+		SetInstitution(payload.Institution).
+		SetAccountIdentifier(payload.AccountIdentifier).
+		SetAccountName(payload.AccountName).
+		SetOwnerAddress(ownerAddress.(string)).
+		Save(ctx)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to create linked address", nil)
+		return
+	}
+
+	u.APIResponse(ctx, http.StatusOK, "success", "Linked address created successfully", types.NewLinkedAddressResponse{
+		LinkedAddress:     linkedAddress.Address,
+		Institution:       linkedAddress.Institution,
+		AccountIdentifier: linkedAddress.AccountIdentifier,
+		AccountName:       linkedAddress.AccountName,
+		UpdatedAt:         linkedAddress.UpdatedAt,
+		CreatedAt:         linkedAddress.CreatedAt,
+	})
 }
 
 // GetLinkedAddress controller fetches a linked address
 func (ctrl *Controller) GetLinkedAddress(ctx *gin.Context) {
-	user, _ := ctx.Get("owner_address")
-	fmt.Println("GetLinkedAddress: ", user)
-	u.APIResponse(ctx, http.StatusOK, "success", "Linked address fetched successfully", nil)
+	// Get owner address from the URL
+	owner_address := ctx.Param("owner_address")
+
+	linkedAddress, err := storage.Client.LinkedAddress.
+		Query().
+		Where(
+			linkedaddress.OwnerAddressEQ(owner_address),
+		).
+		Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			u.APIResponse(ctx, http.StatusNotFound, "error", "Linked address not found", nil)
+			return
+		} else {
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch linked address", nil)
+			return
+		}
+	}
+
+	u.APIResponse(ctx, http.StatusOK, "success", "Linked address fetched successfully", map[string]string{
+		"linkedAddress": linkedAddress.Address,
+	})
+}
+
+// GetLinkedAddressTransactions controller fetches transactions for a linked address
+func (ctrl *Controller) GetLinkedAddressTransactions(ctx *gin.Context) {
+	// Get linked address from the URL
+	linked_address := ctx.Param("linked_address")
+
+	linkedAddress, err := storage.Client.LinkedAddress.
+		Query().
+		Where(
+			linkedaddress.AddressEQ(linked_address),
+		).
+		Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			u.APIResponse(ctx, http.StatusNotFound, "error", "Linked address not found", nil)
+			return
+		} else {
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch linked address", nil)
+			return
+		}
+	}
+
+	// Get page and pageSize query params
+	page, offset, pageSize := u.Paginate(ctx)
+
+	// Fetch related transactions from the database
+	paymentOrderQuery := linkedAddress.QueryPaymentOrders()
+
+	count, err := paymentOrderQuery.Count(ctx)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch transactions", nil)
+		return
+	}
+
+	paymentOrders, err := paymentOrderQuery.
+		Limit(pageSize).
+		Offset(offset).
+		All(ctx)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch transactions", nil)
+		return
+	}
+
+	var orders []types.PaymentOrderResponse
+
+	for _, paymentOrder := range paymentOrders {
+		institution, err := storage.Client.Institution.
+			Query().
+			Where(institution.CodeEQ(paymentOrder.Edges.Recipient.Institution)).
+			WithFiatCurrency().
+			Only(ctx)
+		if err != nil {
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch payment orders", nil)
+			return
+		}
+
+		orders = append(orders, types.PaymentOrderResponse{
+			ID:             paymentOrder.ID,
+			Amount:         paymentOrder.Amount,
+			Token:          paymentOrder.Edges.Token.Symbol,
+			TransactionFee: paymentOrder.NetworkFee.Add(paymentOrder.ProtocolFee),
+			Rate:           paymentOrder.Rate,
+			Network:        paymentOrder.Edges.Token.Edges.Network.Identifier,
+			Recipient: types.PaymentOrderRecipient{
+				Currency:          institution.Edges.FiatCurrency.Code,
+				Institution:       institution.Name,
+				AccountIdentifier: paymentOrder.Edges.Recipient.AccountIdentifier,
+				AccountName:       paymentOrder.Edges.Recipient.AccountName,
+			},
+			FromAddress:   paymentOrder.FromAddress,
+			ReturnAddress: paymentOrder.ReturnAddress,
+			GatewayID:     paymentOrder.GatewayID,
+			CreatedAt:     paymentOrder.CreatedAt,
+			UpdatedAt:     paymentOrder.UpdatedAt,
+			Status:        paymentOrder.Status,
+		})
+	}
+
+	u.APIResponse(ctx, http.StatusOK, "success", "Transactions fetched successfully", types.LinkedAddressTransactionList{
+		Page:         page,
+		PageSize:     pageSize,
+		TotalRecords: count,
+		Transactions: orders,
+	})
+
 }
 
 // RequestIDVerification controller requests identity verification details

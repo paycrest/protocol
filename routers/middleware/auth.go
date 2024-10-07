@@ -98,6 +98,23 @@ func JWTMiddleware(c *gin.Context) {
 	c.Next()
 }
 
+type PrivyClaims struct {
+	jwt.MapClaims
+	AppId          string `json:"aud,omitempty"`
+	Expiration     uint64 `json:"exp,omitempty"`
+	Issuer         string `json:"iss,omitempty"`
+	UserId         string `json:"sub,omitempty"`
+	LinkedAccounts string `json:"linked_accounts,omitempty"`
+}
+
+type LinkedAccount struct {
+	Type             string `json:"type"`
+	Address          string `json:"address"`
+	ChainType        string `json:"chain_type"`
+	WalletClientType string `json:"wallet_client_type"`
+	Lv               int64  `json:"lv"`
+}
+
 // PrivyMiddleware verifies the access token from a Privy (privy.io) login
 func PrivyMiddleware(c *gin.Context) {
 	authHeader := c.GetHeader("Authorization")
@@ -115,15 +132,6 @@ func PrivyMiddleware(c *gin.Context) {
 			"Invalid Authorization header format", "Expected: Bearer <token>")
 		c.Abort()
 		return
-	}
-
-	type PrivyClaims struct {
-		jwt.MapClaims
-		AppId          string `json:"aud,omitempty"`
-		Expiration     uint64 `json:"exp,omitempty"`
-		Issuer         string `json:"iss,omitempty"`
-		UserId         string `json:"sub,omitempty"`
-		LinkedAccounts string `json:"linked_accounts,omitempty"`
 	}
 
 	accessToken := authParts[1]
@@ -176,14 +184,6 @@ func PrivyMiddleware(c *gin.Context) {
 	}
 
 	// Parse the linked accounts
-	type LinkedAccount struct {
-		Type             string `json:"type"`
-		Address          string `json:"address"`
-		ChainType        string `json:"chain_type"`
-		WalletClientType string `json:"wallet_client_type"`
-		Lv               int64  `json:"lv"`
-	}
-
 	var accounts []LinkedAccount
 	err = json.Unmarshal([]byte(privyClaim.LinkedAccounts), &accounts)
 	if err != nil {
@@ -191,13 +191,7 @@ func PrivyMiddleware(c *gin.Context) {
 		c.Abort()
 		return
 	}
-
-	for _, account := range accounts {
-		if account.Type == "wallet" && account.WalletClientType == "privy" {
-			c.Set("owner_address", account.Address)
-			break
-		}
-	}
+	c.Set("owner_address", determineOwnerAddress(accounts))
 
 	c.Next()
 }
@@ -500,4 +494,35 @@ func OnlyWebMiddleware(c *gin.Context) {
 	}
 
 	c.Next()
+}
+
+// determineOwnerAddress determines the owner address from the linked accounts
+func determineOwnerAddress(accounts []LinkedAccount) string {
+	var emailExists bool
+	var privyWallet, nonPrivyEthereumWallet string
+
+	for _, account := range accounts {
+		switch {
+		case account.Type == "email":
+			emailExists = true
+		case account.Type == "wallet" && account.ChainType == "ethereum":
+			if account.WalletClientType == "privy" {
+				privyWallet = account.Address
+			} else if nonPrivyEthereumWallet == "" {
+				nonPrivyEthereumWallet = account.Address
+			}
+		}
+	}
+
+	if emailExists && privyWallet != "" {
+		return privyWallet
+	}
+	if nonPrivyEthereumWallet != "" {
+		return nonPrivyEthereumWallet
+	}
+	if privyWallet != "" {
+		return privyWallet
+	}
+
+	return ""
 }
