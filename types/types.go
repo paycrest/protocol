@@ -609,3 +609,28 @@ type SmileIDWebhookPayload struct {
 	Timestamp string `json:"timestamp"`
 	// Add other fields as needed
 }
+
+// NewLinkedAddressRequest is the request for linking a new address
+type NewLinkedAddressRequest struct {
+	Institution       string `json:"institution" binding:"required"`
+	AccountIdentifier string `json:"accountIdentifier" binding:"required"`
+	AccountName       string `json:"accountName" binding:"required"`
+}
+
+// NewLinkedAddressResponse is the response for linking a new address
+type NewLinkedAddressResponse struct {
+	LinkedAddress     string    `json:"linkedAddress"`
+	Institution       string    `json:"institution"`
+	AccountIdentifier string    `json:"accountIdentifier"`
+	AccountName       string    `json:"accountName"`
+	UpdatedAt         time.Time `json:"updatedAt"`
+	CreatedAt         time.Time `json:"createdAt"`
+}
+
+// LinkedAddressTransactionList is the struct for a list of linked address transactions
+type LinkedAddressTransactionList struct {
+	TotalRecords int                    `json:"total"`
+	Page         int                    `json:"page"`
+	PageSize     int                    `json:"pageSize"`
+	Transactions []PaymentOrderResponse `json:"transactions"`
+}

@@ -5,16 +5,12 @@ import (
 	"crypto/rand"
 	"fmt"
 	"log"
-	"time"
 
 	"math/big"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/paycrest/protocol/ent"
-	"github.com/paycrest/protocol/ent/receiveaddress"
-	db "github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
 	"github.com/paycrest/protocol/utils/crypto"
 
@@ -154,17 +150,17 @@ func prepareDeployment(client types.RPCClient) (*bind.TransactOpts, error) {
 }
 
 // CreateSmartAddress function generates and saves a new EIP-4337 smart contract account address
-func CreateSmartAddress(ctx context.Context, client types.RPCClient) (*ent.ReceiveAddress, error) {
+func CreateSmartAddress(ctx context.Context, client types.RPCClient) (string, []byte, error) {
 
 	// Initialize contract factory
 	factory, err := DeployEIP4337FactoryContract(client)
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
 
 	factoryInstance, err := contracts.NewSimpleAccountFactory(factory, client.(bind.ContractBackend))
 	if err != nil {
-		return nil, fmt.Errorf("failed to initialize factory contract: %w", err)
+		return "", nil, fmt.Errorf("failed to initialize factory contract: %w", err)
 	}
 
 	// Get master account
@@ -174,7 +170,7 @@ func CreateSmartAddress(ctx context.Context, client types.RPCClient) (*ent.Recei
 	nonce := make([]byte, 32)
 	_, err = rand.Read(nonce)
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
 
 	// Create a new big.Int from the hash
@@ -188,13 +184,13 @@ func CreateSmartAddress(ctx context.Context, client types.RPCClient) (*ent.Recei
 	// Generate address
 	smartAccountAddress, err := factoryInstance.GetAddress(callOpts, *ownerAddress, salt)
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate address: %w", err)
+		return "", nil, fmt.Errorf("failed to generate address: %w", err)
 	}
-	
+
 	// Deploy smart account
 	createTx, err := factoryInstance.CreateAccount(auth, *ownerAddress, salt)
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate address: %w", err)
+		return "", nil, fmt.Errorf("failed to generate address: %w", err)
 	}
 	_, err = bind.WaitMined(context.Background(), client.(bind.DeployBackend), createTx)
 	if err != nil {
@@ -202,19 +198,8 @@ func CreateSmartAddress(ctx context.Context, client types.RPCClient) (*ent.Recei
 	}
 	saltEncrypted, err := crypto.EncryptPlain([]byte(salt.String()))
 	if err != nil {
-		return nil, fmt.Errorf("failed to encrypt salt: %w", err)
-	}
-	// Save address in db
-	receiveAddress, err := db.Client.ReceiveAddress.
-		Create().
-		SetAddress(smartAccountAddress.Hex()).
-		SetSalt(saltEncrypted).
-		SetStatus(receiveaddress.StatusUnused).
-		SetValidUntil(time.Now().Add(time.Millisecond * 5)).
-		Save(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to save address: %w", err)
+		return "", nil, fmt.Errorf("failed to encrypt salt: %w", err)
 	}
 
-	return receiveAddress, nil
+	return smartAccountAddress.Hex(), saltEncrypted, nil
 }

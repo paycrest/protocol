@@ -14,6 +14,7 @@ import (
 	"github.com/paycrest/protocol/ent/network"
 	"github.com/paycrest/protocol/ent/paymentorder"
 	providerprofile "github.com/paycrest/protocol/ent/providerprofile"
+	"github.com/paycrest/protocol/ent/receiveaddress"
 	"github.com/paycrest/protocol/ent/senderordertoken"
 	"github.com/paycrest/protocol/ent/senderprofile"
 	tokenEnt "github.com/paycrest/protocol/ent/token"
@@ -41,6 +42,7 @@ func NewSenderController() *SenderController {
 }
 
 var serverConf = config.ServerConfig()
+var orderConf = config.OrderConfig()
 
 // InitiatePaymentOrder controller creates a payment order
 func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
@@ -144,14 +146,40 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 	// Generate receive address
 	var receiveAddress *ent.ReceiveAddress
 	if strings.HasPrefix(payload.Network, "tron") {
-		receiveAddress, err = ctrl.receiveAddressService.CreateTronAddress(ctx)
+		address, salt, err := ctrl.receiveAddressService.CreateTronAddress(ctx)
+		if err != nil {
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to initiate payment order", nil)
+			return
+		}
+
+		receiveAddress, err = storage.Client.ReceiveAddress.
+			Create().
+			SetAddress(address).
+			SetSalt(salt).
+			SetStatus(receiveaddress.StatusUnused).
+			SetValidUntil(time.Now().Add(orderConf.ReceiveAddressValidity)).
+			Save(ctx)
 		if err != nil {
 			logger.Errorf("error: %v", err)
 			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to initiate payment order", nil)
 			return
 		}
 	} else {
-		receiveAddress, err = ctrl.receiveAddressService.CreateSmartAddress(ctx, nil, nil)
+		address, salt, err := ctrl.receiveAddressService.CreateSmartAddress(ctx, nil, nil)
+		if err != nil {
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to initiate payment order", nil)
+			return
+		}
+
+		receiveAddress, err = storage.Client.ReceiveAddress.
+			Create().
+			SetAddress(address).
+			SetSalt(salt).
+			SetStatus(receiveaddress.StatusUnused).
+			SetValidUntil(time.Now().Add(orderConf.ReceiveAddressValidity)).
+			Save(ctx)
 		if err != nil {
 			logger.Errorf("error: %v", err)
 			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to initiate payment order", nil)

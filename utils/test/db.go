@@ -16,6 +16,7 @@ import (
 	"github.com/paycrest/protocol/ent/paymentorder"
 	"github.com/paycrest/protocol/ent/providerordertoken"
 	"github.com/paycrest/protocol/ent/providerprofile"
+	"github.com/paycrest/protocol/ent/receiveaddress"
 	"github.com/paycrest/protocol/ent/senderordertoken"
 	"github.com/paycrest/protocol/ent/senderprofile"
 	"github.com/paycrest/protocol/ent/token"
@@ -276,12 +277,25 @@ func CreateTestPaymentOrder(client types.RPCClient, token *ent.Token, overrides 
 		payload[key] = value
 	}
 
-	// Create smart wallet
-	receiveAddress, err := CreateSmartAddress(
+	// Create smart address
+	address, salt, err := CreateSmartAddress(
 		context.Background(), client)
 	if err != nil {
 		return nil, err
 	}
+
+	// Create receive address
+	receiveAddress, err := db.Client.ReceiveAddress.
+		Create().
+		SetAddress(address).
+		SetSalt(salt).
+		SetStatus(receiveaddress.StatusUnused).
+		SetValidUntil(time.Now().Add(time.Millisecond * 5)).
+		Save(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
 	time.Sleep(time.Second)
 
 	// Create payment order

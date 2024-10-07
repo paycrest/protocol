@@ -5,14 +5,10 @@ import (
 	"crypto/rand"
 	"fmt"
 	"math/big"
-	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/paycrest/protocol/ent"
-	"github.com/paycrest/protocol/ent/receiveaddress"
 	"github.com/paycrest/protocol/services/contracts"
-	db "github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
 	cryptoUtils "github.com/paycrest/protocol/utils/crypto"
 	tronWallet "github.com/paycrest/tron-wallet"
@@ -28,14 +24,14 @@ func NewReceiveAddressService() *ReceiveAddressService {
 }
 
 // CreateSmartAddress function generates and saves a new EIP-4337 smart contract account address
-func (s *ReceiveAddressService) CreateSmartAddress(ctx context.Context, client types.RPCClient, factory *common.Address) (*ent.ReceiveAddress, error) {
+func (s *ReceiveAddressService) CreateSmartAddress(ctx context.Context, client types.RPCClient, factory *common.Address) (string, []byte, error) {
 
 	// Connect to RPC endpoint
 	var err error
 	if client == nil {
 		client, err = types.NewEthClient("https://mainnet.infura.io/v3/4818dbcee84d4651a832894818bd4534")
 		if err != nil {
-			return nil, fmt.Errorf("failed to connect to RPC client: %w", err)
+			return "", nil, fmt.Errorf("failed to connect to RPC client: %w", err)
 		}
 	}
 
@@ -48,7 +44,7 @@ func (s *ReceiveAddressService) CreateSmartAddress(ctx context.Context, client t
 
 	simpleAccountFactory, err := contracts.NewSimpleAccountFactory(*factory, client.(bind.ContractBackend))
 	if err != nil {
-		return nil, fmt.Errorf("failed to initialize factory contract: %w", err)
+		return "", nil, fmt.Errorf("failed to initialize factory contract: %w", err)
 	}
 
 	// Get master account
@@ -57,7 +53,7 @@ func (s *ReceiveAddressService) CreateSmartAddress(ctx context.Context, client t
 	nonce := make([]byte, 32)
 	_, err = rand.Read(nonce)
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
 
 	// Create a new big.Int from the hash
@@ -66,32 +62,20 @@ func (s *ReceiveAddressService) CreateSmartAddress(ctx context.Context, client t
 	// Generate address
 	address, err := simpleAccountFactory.GetAddress(nil, *ownerAddress, salt)
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate address: %w", err)
+		return "", nil, fmt.Errorf("failed to generate address: %w", err)
 	}
 
 	// Encrypt salt
 	saltEncrypted, err := cryptoUtils.EncryptPlain([]byte(salt.String()))
 	if err != nil {
-		return nil, fmt.Errorf("failed to encrypt salt: %w", err)
+		return "", nil, fmt.Errorf("failed to encrypt salt: %w", err)
 	}
 
-	// Save address in db
-	receiveAddress, err := db.Client.ReceiveAddress.
-		Create().
-		SetAddress(address.Hex()).
-		SetSalt(saltEncrypted).
-		SetStatus(receiveaddress.StatusUnused).
-		SetValidUntil(time.Now().Add(orderConf.ReceiveAddressValidity)).
-		Save(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to save address: %w", err)
-	}
-
-	return receiveAddress, nil
+	return address.Hex(), saltEncrypted, nil
 }
 
 // CreateTronAddress generates and saves a new Tron address
-func (s *ReceiveAddressService) CreateTronAddress(ctx context.Context) (*ent.ReceiveAddress, error) {
+func (s *ReceiveAddressService) CreateTronAddress(ctx context.Context) (string, []byte, error) {
 	var nodeUrl tronEnums.Node
 	if serverConf.Environment == "production" {
 		nodeUrl = tronEnums.MAIN_NODE
@@ -105,20 +89,8 @@ func (s *ReceiveAddressService) CreateTronAddress(ctx context.Context) (*ent.Rec
 	// Encrypt private key
 	privateKeyEncrypted, err := cryptoUtils.EncryptPlain([]byte(wallet.PrivateKey))
 	if err != nil {
-		return nil, fmt.Errorf("failed to encrypt salt: %w", err)
+		return "", nil, fmt.Errorf("failed to encrypt salt: %w", err)
 	}
 
-	// Save address in db
-	receiveAddress, err := db.Client.ReceiveAddress.
-		Create().
-		SetAddress(wallet.AddressBase58).
-		SetSalt(privateKeyEncrypted).
-		SetStatus(receiveaddress.StatusUnused).
-		SetValidUntil(time.Now().Add(orderConf.ReceiveAddressValidity)).
-		Save(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to save address: %w", err)
-	}
-
-	return receiveAddress, nil
+	return wallet.AddressBase58, privateKeyEncrypted, nil
 }
