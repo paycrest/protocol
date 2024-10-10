@@ -135,46 +135,6 @@ func RetryStaleUserOperations() error {
 		}
 	}()
 
-	// Revert order process
-	orders, err = storage.Client.PaymentOrder.
-		Query().
-		Where(
-			paymentorder.StatusNEQ(paymentorder.StatusReverted),
-			paymentorder.StatusNEQ(paymentorder.StatusRefunded),
-			paymentorder.AmountPaidGT(decimal.Zero),
-			paymentorder.UpdatedAtGTE(time.Now().Add(-5*time.Minute)),
-		).
-		WithReceiveAddress(func(rq *ent.ReceiveAddressQuery) {
-			rq.Where(receiveaddress.StatusNEQ(receiveaddress.StatusUnused))
-		}).
-		WithRecipient().
-		WithToken(func(tq *ent.TokenQuery) {
-			tq.WithNetwork()
-		}).
-		All(ctx)
-	if err != nil {
-		return err
-	}
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		for _, order := range orders {
-			if order.Edges.ReceiveAddress.Status != receiveaddress.StatusUnused {
-				var service types.OrderService
-				if strings.HasPrefix(order.Edges.Token.Edges.Network.Identifier, "tron") {
-					service = orderService.NewOrderTron()
-				} else {
-					service = orderService.NewOrderEVM()
-				}
-				err := service.RevertOrder(ctx, rpcClients[order.Edges.Token.Edges.Network.Identifier], order)
-				if err != nil {
-					logger.Errorf("RetryStaleUserOperations.RevertOrder: %v", err)
-				}
-			}
-		}
-	}()
-
 	// Settle order process
 	lockOrders, err := storage.Client.LockPaymentOrder.
 		Query().
@@ -287,10 +247,7 @@ func IndexBlockchainEvents() error {
 				Where(
 					paymentorder.StatusEQ(paymentorder.StatusInitiated),
 					paymentorder.HasReceiveAddressWith(
-						receiveaddress.Or(
-							receiveaddress.StatusEQ(receiveaddress.StatusUnused),
-							receiveaddress.StatusEQ(receiveaddress.StatusPartial),
-						),
+						receiveaddress.StatusEQ(receiveaddress.StatusUnused),
 						receiveaddress.ValidUntilGT(time.Now()),
 					),
 				).

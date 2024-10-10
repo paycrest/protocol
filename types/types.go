@@ -98,7 +98,6 @@ type OrderRefundedEvent struct {
 type OrderService interface {
 	CreateOrder(ctx context.Context, client RPCClient, orderID uuid.UUID) error
 	RefundOrder(ctx context.Context, client RPCClient, orderID string) error
-	RevertOrder(ctx context.Context, client RPCClient, order *ent.PaymentOrder) error
 	SettleOrder(ctx context.Context, client RPCClient, orderID uuid.UUID) error
 }
 

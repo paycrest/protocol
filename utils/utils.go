@@ -202,8 +202,6 @@ func SendPaymentOrderWebhook(ctx context.Context, paymentOrder *ent.PaymentOrder
 	switch paymentOrder.Status {
 	case paymentorder.StatusPending:
 		event = "payment_order.pending"
-	case paymentorder.StatusReverted:
-		event = "payment_order.reverted"
 	case paymentorder.StatusExpired:
 		event = "payment_order.expired"
 	case paymentorder.StatusSettled:

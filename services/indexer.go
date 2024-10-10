@@ -653,7 +653,6 @@ func (s *IndexerService) HandleReceiveAddressValidity(ctx context.Context, clien
 	}
 
 	if receiveAddress.Status != receiveaddress.StatusUsed {
-		amountNotPaidInFull := receiveAddress.Status == receiveaddress.StatusPartial || receiveAddress.Status == receiveaddress.StatusUnused
 		validUntilIsFarGone := receiveAddress.ValidUntil.Before(time.Now().Add(-(5 * time.Minute)))
 		isExpired := receiveAddress.ValidUntil.Before(time.Now())
 
@@ -665,8 +664,8 @@ func (s *IndexerService) HandleReceiveAddressValidity(ctx context.Context, clien
 			if err != nil {
 				return fmt.Errorf("HandleReceiveAddressValidity.db: %v", err)
 			}
-		} else if isExpired && amountNotPaidInFull && !strings.HasPrefix(paymentOrder.Edges.Recipient.Memo, "P#P") {
-			// Receive address hasn't received full payment after validity period, mark status as expired
+		} else if isExpired && !strings.HasPrefix(paymentOrder.Edges.Recipient.Memo, "P#P") {
+			// Receive address hasn't received payment after validity period, mark status as expired
 			_, err := receiveAddress.
 				Update().
 				SetStatus(receiveaddress.StatusExpired).
@@ -683,18 +682,6 @@ func (s *IndexerService) HandleReceiveAddressValidity(ctx context.Context, clien
 			if err != nil {
 				return fmt.Errorf("HandleReceiveAddressValidity.db: %v", err)
 			}
-
-			// Revert amount to the from address
-			err = s.order.RevertOrder(ctx, client, paymentOrder)
-			if err != nil {
-				return fmt.Errorf("HandleReceiveAddressValidity.RevertOrder: %v", err)
-			}
-		}
-	} else {
-		// Revert excess amount to the from address
-		err := s.order.RevertOrder(ctx, client, paymentOrder)
-		if err != nil {
-			return fmt.Errorf("HandleReceiveAddressValidity.RevertOrder: %v", err)
 		}
 	}
 
@@ -1397,14 +1384,13 @@ func (s *IndexerService) UpdateReceiveAddressStatus(
 		}
 
 		orderRecipient := paymentOrder.Edges.Recipient
-		if strings.HasPrefix(orderRecipient.Memo, "P#P") && orderRecipient.ProviderID != "" && comparisonResult != 0 {
-			// This is a P2P order created from the provider dashboard. No reverts are allowed
-			// Hence, the order amount will be updated to whatever amount was sent to the receive address
+		if comparisonResult != 0 {
+			// Update the order amount will be updated to whatever amount was sent to the receive address
 			orderAmount := utils.FromSubunit(event.Value, paymentOrder.Edges.Token.Decimals)
 			paymentOrderUpdate = paymentOrderUpdate.SetAmount(orderAmount.Round(int32(2)))
 
-			// Update the rate with the current rate if order is older than 30 mins
-			if paymentOrder.CreatedAt.Before(time.Now().Add(-30 * time.Minute)) {
+			// Update the rate with the current rate if order is older than 30 mins for a P2P order from the sender dashboard
+			if strings.HasPrefix(orderRecipient.Memo, "P#P") && orderRecipient.ProviderID != "" && paymentOrder.CreatedAt.Before(time.Now().Add(-30 * time.Minute)) {
 				providerProfile, err := db.Client.ProviderProfile.
 					Query().
 					Where(
@@ -1482,45 +1468,6 @@ func (s *IndexerService) UpdateReceiveAddressStatus(
 			}
 
 			return true, nil
-
-		} else if comparisonResult < 0 {
-			// Transfer value is less than order amount with fees
-			// and
-			// If amount paid meets or exceeds the order amount with fees, mark receive address as used
-			if paymentOrder.AmountPaid.GreaterThanOrEqual(orderAmountWithFees) {
-				_, err = receiveAddress.
-					Update().
-					SetStatus(receiveaddress.StatusUsed).
-					SetLastUsed(time.Now()).
-					SetTxHash(event.TxHash).
-					SetLastIndexedBlock(int64(event.BlockNumber)).
-					Save(ctx)
-				if err != nil {
-					return true, fmt.Errorf("UpdateReceiveAddressStatus.db: %v", err)
-				}
-			} else {
-				_, err = receiveAddress.
-					Update().
-					SetStatus(receiveaddress.StatusPartial).
-					SetTxHash(event.TxHash).
-					SetLastIndexedBlock(int64(event.BlockNumber)).
-					Save(ctx)
-				if err != nil {
-					return true, fmt.Errorf("UpdateReceiveAddressStatus.db: %v", err)
-				}
-			}
-
-		} else if comparisonResult > 0 {
-			// Transfer value is greater than order amount with fees
-			_, err = receiveAddress.
-				Update().
-				SetStatus(receiveaddress.StatusUsed).
-				SetLastUsed(time.Now()).
-				SetLastIndexedBlock(int64(event.BlockNumber)).
-				Save(ctx)
-			if err != nil {
-				return true, fmt.Errorf("UpdateReceiveAddressStatus.db: %v", err)
-			}
 		}
 
 		err = s.HandleReceiveAddressValidity(ctx, client, receiveAddress, paymentOrder)

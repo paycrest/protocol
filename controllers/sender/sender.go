@@ -473,7 +473,6 @@ func (ctrl *SenderController) GetPaymentOrders(ctx *gin.Context) {
 	statusMap := map[string]paymentorder.Status{
 		"initiated": paymentorder.StatusInitiated,
 		"pending":   paymentorder.StatusPending,
-		"reverted":  paymentorder.StatusReverted,
 		"expired":   paymentorder.StatusExpired,
 		"settled":   paymentorder.StatusSettled,
 		"refunded":  paymentorder.StatusRefunded,
