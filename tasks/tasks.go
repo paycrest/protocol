@@ -532,7 +532,7 @@ func IndexBlockchainEvents() error {
 }
 
 // IndexLinkAddresses indexes ERC20 transfer events to linked addresses
-func IndexLinkAddresses() error {
+func IndexLinkedAddresses() error {
 	ctx := context.Background()
 
 	go func() {
@@ -545,7 +545,7 @@ func IndexLinkAddresses() error {
 			WithNetwork().
 			All(ctx)
 		if err != nil {
-			logger.Errorf("IndexBlockchainEvents: %v", err)
+			logger.Errorf("IndexLinkedAddresses: %v", err)
 			return
 		}
 
@@ -561,7 +561,9 @@ func IndexLinkAddresses() error {
 				Order(ent.Desc(linkedaddress.FieldLastIndexedBlock)).
 				First(ctx)
 			if err != nil {
-				logger.Errorf("IndexBlockchainEvents: %v", err)
+				if !ent.IsNotFound(err) {
+					logger.Errorf("IndexLinkedAddresses: %v", err)
+				}
 			}
 
 			if linkedAddress != nil {
@@ -1370,7 +1372,7 @@ func StartCronJobs() {
 	}
 
 	// Index linked addresses every 1 minute
-	_, err = scheduler.Cron("*/1 * * * *").Do(IndexLinkAddresses)
+	_, err = scheduler.Cron("*/1 * * * *").Do(IndexLinkedAddresses)
 	if err != nil {
 		logger.Errorf("StartCronJobs: %v", err)
 	}

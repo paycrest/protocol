@@ -58,19 +58,30 @@ func (s *OrderEVM) CreateOrder(ctx context.Context, client types.RPCClient, orde
 		WithSenderProfile().
 		WithRecipient().
 		WithReceiveAddress().
+		WithLinkedAddress().
 		Only(ctx)
 	if err != nil {
 		return fmt.Errorf("%s - CreateOrder.fetchOrder: %w", orderIDPrefix, err)
 	}
 
-	saltDecrypted, err := cryptoUtils.DecryptPlain(order.Edges.ReceiveAddress.Salt)
+	var salt []byte
+	var address string
+	if order.Edges.ReceiveAddress != nil {
+		salt = order.Edges.ReceiveAddress.Salt
+		address = order.Edges.ReceiveAddress.Address
+	} else if order.Edges.LinkedAddress != nil {
+		salt = order.Edges.LinkedAddress.Salt
+		address = order.Edges.LinkedAddress.Address
+	}
+
+	saltDecrypted, err := cryptoUtils.DecryptPlain(salt)
 	if err != nil {
 		return fmt.Errorf("%s - CreateOrder.DecryptPlain: %w", orderIDPrefix, err)
 	}
 
 	// Initialize user operation with defaults
 	userOperation, err := utils.InitializeUserOperation(
-		ctx, nil, order.Edges.Token.Edges.Network.RPCEndpoint, order.Edges.ReceiveAddress.Address, string(saltDecrypted),
+		ctx, nil, order.Edges.Token.Edges.Network.RPCEndpoint, address, string(saltDecrypted),
 	)
 	if err != nil {
 		return fmt.Errorf("%s - CreateOrder.InitializeUserOperation: %w", orderIDPrefix, err)
@@ -441,23 +452,29 @@ func (s *OrderEVM) createOrderCallData(order *ent.PaymentOrder) ([]byte, error) 
 		return nil, fmt.Errorf("failed to encrypt recipient details: %w", err)
 	}
 
+	var token *ent.SenderOrderToken
 	isTokenConfigured := true
-	token, err := db.Client.SenderOrderToken.
-		Query().
-		Where(
-			senderordertoken.And(
-				senderordertoken.HasTokenWith(tokenEnt.IDEQ(order.Edges.Token.ID)),
-				senderordertoken.HasSenderWith(
-					senderprofile.IDEQ(order.Edges.SenderProfile.ID),
-				),
-			)).
-		Only(context.Background())
-	if err != nil {
-		if ent.IsNotFound(err) {
-			isTokenConfigured = false
-		} else {
-			return nil, fmt.Errorf("failed to fetch order token: %w", err)
+
+	if order.Edges.SenderProfile != nil {
+		token, err = db.Client.SenderOrderToken.
+			Query().
+			Where(
+				senderordertoken.And(
+					senderordertoken.HasTokenWith(tokenEnt.IDEQ(order.Edges.Token.ID)),
+					senderordertoken.HasSenderWith(
+						senderprofile.IDEQ(order.Edges.SenderProfile.ID),
+					),
+				)).
+			Only(context.Background())
+		if err != nil {
+			if ent.IsNotFound(err) {
+				isTokenConfigured = false
+			} else {
+				return nil, fmt.Errorf("failed to fetch order token: %w", err)
+			}
 		}
+	} else {
+		isTokenConfigured = false
 	}
 
 	var refundAddress common.Address
