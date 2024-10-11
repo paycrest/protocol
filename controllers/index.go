@@ -152,7 +152,7 @@ func (ctrl *Controller) GetTokenRate(ctx *gin.Context) {
 		return
 	}
 
-	rateResponse := decimal.NewFromInt(0)
+	rateResponse := currency.MarketRate
 
 	// get providerID from query params
 	providerID := ctx.Query("provider_id")
@@ -194,26 +194,27 @@ func (ctrl *Controller) GetTokenRate(ctx *gin.Context) {
 			minAmount, _ := decimal.NewFromString(bucketData[2])
 			maxAmount, _ := decimal.NewFromString(bucketData[3])
 
-			// Get the topmost provider in the priority queue of the bucket
-			providerData, err := storage.RedisClient.LIndex(ctx, key, 0).Result()
-			if err != nil {
-				u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch rates", nil)
-				return
-			}
+			for index := 0; ; index++ {
+				// Get the topmost provider in the priority queue of the bucket
+				providerData, err := storage.RedisClient.LIndex(ctx, key, int64(index)).Result()
+				if err != nil {
+					break
+				}
 
-			// Get fiat equivalent of the token amount
-			rate, _ := decimal.NewFromString(strings.Split(providerData, ":")[2])
-			fiatAmount := tokenAmount.Mul(rate)
+				if strings.Split(providerData, ":")[1] == token.Symbol {
+					// Get fiat equivalent of the token amount
+					rate, _ := decimal.NewFromString(strings.Split(providerData, ":")[2])
+					fiatAmount := tokenAmount.Mul(rate)
 
-			// Check if fiat amount is within the bucket range and set the rate
-			if fiatAmount.GreaterThanOrEqual(minAmount) && fiatAmount.LessThanOrEqual(maxAmount) {
-				rateResponse = rate
-				break
-			} else {
-				// Get the highest max amount
-				if maxAmount.GreaterThan(highestMaxAmount) {
-					highestMaxAmount = maxAmount
-					rateResponse = rate
+					// Check if fiat amount is within the bucket range and set the rate
+					if fiatAmount.GreaterThanOrEqual(minAmount) && fiatAmount.LessThanOrEqual(maxAmount) {
+						rateResponse = rate
+						break
+					} else if maxAmount.GreaterThan(highestMaxAmount) {
+						// Get the highest max amount
+						highestMaxAmount = maxAmount
+						rateResponse = rate
+					}
 				}
 			}
 		}
@@ -421,7 +422,7 @@ func (ctrl *Controller) CreateLinkedAddress(ctx *gin.Context) {
 		return
 	}
 
-	u.APIResponse(ctx, http.StatusOK, "success", "Linked address created successfully", types.NewLinkedAddressResponse{
+	u.APIResponse(ctx, http.StatusOK, "success", "Linked address created successfully", &types.NewLinkedAddressResponse{
 		LinkedAddress:     linkedAddress.Address,
 		Institution:       linkedAddress.Institution,
 		AccountIdentifier: linkedAddress.AccountIdentifier,
@@ -453,8 +454,20 @@ func (ctrl *Controller) GetLinkedAddress(ctx *gin.Context) {
 		}
 	}
 
-	u.APIResponse(ctx, http.StatusOK, "success", "Linked address fetched successfully", map[string]string{
-		"linkedAddress": linkedAddress.Address,
+	institution, err := storage.Client.Institution.
+		Query().
+		Where(institution.CodeEQ(linkedAddress.Institution)).
+		WithFiatCurrency().
+		Only(ctx)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch linked address", nil)
+		return
+	}
+
+	u.APIResponse(ctx, http.StatusOK, "success", "Linked address fetched successfully", &types.LinkedAddressResponse{
+		LinkedAddress: linkedAddress.Address,
+		Currency:      institution.Edges.FiatCurrency.Code,
 	})
 }
 
@@ -496,6 +509,10 @@ func (ctrl *Controller) GetLinkedAddressTransactions(ctx *gin.Context) {
 	paymentOrders, err := paymentOrderQuery.
 		Limit(pageSize).
 		Offset(offset).
+		WithRecipient().
+		WithToken(func(tq *ent.TokenQuery) {
+			tq.WithNetwork()
+		}).
 		All(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
@@ -503,7 +520,7 @@ func (ctrl *Controller) GetLinkedAddressTransactions(ctx *gin.Context) {
 		return
 	}
 
-	orders := make([]types.PaymentOrderResponse, 0, len(paymentOrders))
+	orders := make([]types.LinkedAddressTransaction, 0, len(paymentOrders))
 
 	for _, paymentOrder := range paymentOrders {
 		institution, err := storage.Client.Institution.
@@ -517,14 +534,13 @@ func (ctrl *Controller) GetLinkedAddressTransactions(ctx *gin.Context) {
 			return
 		}
 
-		orders = append(orders, types.PaymentOrderResponse{
-			ID:             paymentOrder.ID,
-			Amount:         paymentOrder.Amount,
-			Token:          paymentOrder.Edges.Token.Symbol,
-			TransactionFee: paymentOrder.NetworkFee.Add(paymentOrder.ProtocolFee),
-			Rate:           paymentOrder.Rate,
-			Network:        paymentOrder.Edges.Token.Edges.Network.Identifier,
-			Recipient: types.PaymentOrderRecipient{
+		orders = append(orders, types.LinkedAddressTransaction{
+			ID:      paymentOrder.ID,
+			Amount:  paymentOrder.Amount,
+			Token:   paymentOrder.Edges.Token.Symbol,
+			Rate:    paymentOrder.Rate,
+			Network: paymentOrder.Edges.Token.Edges.Network.Identifier,
+			Recipient: types.LinkedAddressTransactionRecipient{
 				Currency:          institution.Edges.FiatCurrency.Code,
 				Institution:       institution.Name,
 				AccountIdentifier: paymentOrder.Edges.Recipient.AccountIdentifier,
@@ -533,13 +549,14 @@ func (ctrl *Controller) GetLinkedAddressTransactions(ctx *gin.Context) {
 			FromAddress:   paymentOrder.FromAddress,
 			ReturnAddress: paymentOrder.ReturnAddress,
 			GatewayID:     paymentOrder.GatewayID,
+			TxHash:        paymentOrder.TxHash,
 			CreatedAt:     paymentOrder.CreatedAt,
 			UpdatedAt:     paymentOrder.UpdatedAt,
 			Status:        paymentOrder.Status,
 		})
 	}
 
-	u.APIResponse(ctx, http.StatusOK, "success", "Transactions fetched successfully", types.LinkedAddressTransactionList{
+	u.APIResponse(ctx, http.StatusOK, "success", "Transactions fetched successfully", &types.LinkedAddressTransactionList{
 		Page:         page,
 		PageSize:     pageSize,
 		TotalRecords: count,

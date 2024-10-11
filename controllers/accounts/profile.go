@@ -26,7 +26,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-var orderConf = config.OrderConfig() 
+var orderConf = config.OrderConfig()
 
 // ProfileController is a controller type for profile settings
 type ProfileController struct {
@@ -420,12 +420,21 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 			}
 		}
 
+		rate, err = ctrl.priorityQueueService.GetProviderRate(ctx, provider, tokenPayload.Symbol)
+		if err != nil {
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to set token", nil)
+			return
+		}
+
 		// Add provider to buckets
 		buckets, err := storage.Client.ProvisionBucket.
 			Query().
 			Where(
-				provisionbucket.MinAmountLTE(tokenPayload.MinOrderAmount.Mul(currency.MarketRate)),
-				provisionbucket.MaxAmountGTE(tokenPayload.MaxOrderAmount.Mul(currency.MarketRate)),
+				provisionbucket.Or(
+					provisionbucket.MinAmountLTE(tokenPayload.MinOrderAmount.Mul(rate)),
+					provisionbucket.MinAmountLTE(tokenPayload.MaxOrderAmount.Mul(rate)),
+					provisionbucket.MaxAmountGTE(tokenPayload.MaxOrderAmount.Mul(rate)),
+				),
 			).
 			All(ctx)
 		if err != nil {

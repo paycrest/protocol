@@ -627,10 +627,42 @@ type NewLinkedAddressResponse struct {
 	CreatedAt         time.Time `json:"createdAt"`
 }
 
+// LinkedAddressResponse is the response for a linked address
+type LinkedAddressResponse struct {
+	LinkedAddress string `json:"linkedAddress"`
+	Currency      string `json:"currency"`
+}
+
+// LinkedAddressTransactionRecipient is the struct for a linked address transaction recipient
+type LinkedAddressTransactionRecipient struct {
+	Currency          string `json:"currency"`
+	Institution       string `json:"institution"`
+	AccountIdentifier string `json:"accountIdentifier"`
+	AccountName       string `json:"accountName"`
+}
+
+// LinkedAddressTransaction is the struct for a linked address transaction
+type LinkedAddressTransaction struct {
+	ID            uuid.UUID                         `json:"id"`
+	Amount        decimal.Decimal                   `json:"amount"`
+	Token         string                            `json:"token"`
+	Rate          decimal.Decimal                   `json:"rate"`
+	Network       string                            `json:"network"`
+	GatewayID     string                            `json:"gatewayId"`
+	Recipient     LinkedAddressTransactionRecipient `json:"recipient"`
+	FromAddress   string                            `json:"fromAddress"`
+	ReturnAddress string                            `json:"returnAddress"`
+	CreatedAt     time.Time                         `json:"createdAt"`
+	UpdatedAt     time.Time                         `json:"updatedAt"`
+	TxHash        string                            `json:"txHash"`
+	Status        paymentorder.Status               `json:"status"`
+	Transactions  []TransactionLog                  `json:"transactionLogs"`
+}
+
 // LinkedAddressTransactionList is the struct for a list of linked address transactions
 type LinkedAddressTransactionList struct {
-	TotalRecords int                    `json:"total"`
-	Page         int                    `json:"page"`
-	PageSize     int                    `json:"pageSize"`
-	Transactions []PaymentOrderResponse `json:"transactions"`
+	TotalRecords int                        `json:"total"`
+	Page         int                        `json:"page"`
+	PageSize     int                        `json:"pageSize"`
+	Transactions []LinkedAddressTransaction `json:"transactions"`
 }
