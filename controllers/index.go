@@ -434,7 +434,7 @@ func (ctrl *Controller) CreateLinkedAddress(ctx *gin.Context) {
 // GetLinkedAddress controller fetches a linked address
 func (ctrl *Controller) GetLinkedAddress(ctx *gin.Context) {
 	// Get owner address from the URL
-	owner_address := ctx.Param("owner_address")
+	owner_address := ctx.Query("owner_address")
 
 	linkedAddress, err := storage.Client.LinkedAddress.
 		Query().
@@ -503,7 +503,7 @@ func (ctrl *Controller) GetLinkedAddressTransactions(ctx *gin.Context) {
 		return
 	}
 
-	var orders []types.PaymentOrderResponse
+	orders := make([]types.PaymentOrderResponse, 0, len(paymentOrders))
 
 	for _, paymentOrder := range paymentOrders {
 		institution, err := storage.Client.Institution.

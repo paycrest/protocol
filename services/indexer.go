@@ -200,20 +200,21 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 				continue
 			}
 
-			transactionLog, err := tx.TransactionLog.
-				Create().
-				SetStatus(transactionlog.StatusOrderInitiated).
-				SetMetadata(
-					map[string]interface{}{
-						"LinkedAddress": linkedAddress.Address,
-					},
-				).SetNetwork(token.Edges.Network.Identifier).
-				Save(ctx)
-			if err != nil {
-				logger.Errorf("IndexERC20Transfer.CreateTransactionLog: %v", err)
-				_ = tx.Rollback()
-				continue
-			}
+			// transactionLog, err := tx.TransactionLog.
+			// 	Create().
+			// 	SetStatus(transactionlog.StatusOrderInitiated).
+			// 	SetMetadata(
+			// 		map[string]interface{}{
+			// 			"LinkedAddress": linkedAddress.Address,
+			// 		},
+			// 	).
+			// 	SetNetwork(token.Edges.Network.Identifier).
+			// 	Save(ctx)
+			// if err != nil {
+			// 	logger.Errorf("IndexERC20Transfer.CreateTransactionLog: %v", err)
+			// 	_ = tx.Rollback()
+			// 	continue
+			// }
 
 			order, err := db.Client.PaymentOrder.
 				Create().
@@ -233,7 +234,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 				SetReceiveAddressText(linkedAddress.Address).
 				SetFeePercent(decimal.NewFromInt(0)).
 				SetReturnAddress(linkedAddress.Address).
-				AddTransactions(transactionLog).
+				// AddTransactions(transactionLog).
 				Save(ctx)
 			if err != nil {
 				logger.Errorf("IndexERC20Transfer.CreatePaymentOrder: %v", err)
@@ -247,9 +248,21 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 				SetAccountIdentifier(linkedAddress.AccountIdentifier).
 				SetAccountName(linkedAddress.AccountName).
 				SetPaymentOrder(order).
+				SetProviderID("RKVeHPBP").
 				Save(ctx)
 			if err != nil {
 				logger.Errorf("IndexERC20Transfer.CreatePaymentOrderRecipient: %v", err)
+				_ = tx.Rollback()
+				continue
+			}
+
+			_, err = tx.LinkedAddress.
+				UpdateOneID(linkedAddress.ID).
+				SetTxHash(transferEvent.TxHash).
+				SetLastIndexedBlock(int64(transferEvent.BlockNumber)).
+				Save(ctx)
+			if err != nil {
+				logger.Errorf("IndexERC20Transfer.UpdateLinkedAddress: %v", err)
 				_ = tx.Rollback()
 				continue
 			}
@@ -265,7 +278,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 				continue
 			}
 
-		} else {
+		} else if order != nil {
 			// Process transfer event for receive address
 			done, err := s.UpdateReceiveAddressStatus(ctx, client, order.Edges.ReceiveAddress, order, transferEvent)
 			if err != nil {
