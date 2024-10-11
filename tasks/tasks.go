@@ -15,6 +15,7 @@ import (
 	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/fiatcurrency"
+	"github.com/paycrest/protocol/ent/linkedaddress"
 	"github.com/paycrest/protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	networkent "github.com/paycrest/protocol/ent/network"
@@ -25,6 +26,7 @@ import (
 	"github.com/paycrest/protocol/ent/receiveaddress"
 	"github.com/paycrest/protocol/ent/senderprofile"
 	"github.com/paycrest/protocol/ent/token"
+	tokenent "github.com/paycrest/protocol/ent/token"
 	"github.com/paycrest/protocol/ent/transactionlog"
 	"github.com/paycrest/protocol/ent/webhookretryattempt"
 	"github.com/paycrest/protocol/services"
@@ -271,7 +273,7 @@ func IndexBlockchainEvents() error {
 						}
 					} else {
 						indexerService := services.NewIndexerService(orderService.NewOrderEVM())
-						err := indexerService.IndexERC20Transfer(ctx, rpcClients[order.Edges.Token.Edges.Network.Identifier], order)
+						err := indexerService.IndexERC20Transfer(ctx, rpcClients[order.Edges.Token.Edges.Network.Identifier], order, nil, 0)
 						if err != nil {
 							continue
 						}
@@ -371,7 +373,7 @@ func IndexBlockchainEvents() error {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		time.Sleep(1000 * time.Millisecond)
+		time.Sleep(800 * time.Millisecond)
 		_ = utils.Retry(3, 2*time.Second, func() error {
 			for _, network := range networks {
 				if strings.HasPrefix(network.Identifier, "tron") {
@@ -449,7 +451,7 @@ func IndexBlockchainEvents() error {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		time.Sleep(1500 * time.Millisecond)
+		time.Sleep(1300 * time.Millisecond)
 		_ = utils.Retry(3, 2*time.Second, func() error {
 			for _, network := range networks {
 				if strings.HasPrefix(network.Identifier, "tron") {
@@ -524,6 +526,54 @@ func IndexBlockchainEvents() error {
 
 			return fmt.Errorf("trigger retry")
 		})
+	}()
+
+	return nil
+}
+
+// IndexLinkAddresses indexes ERC20 transfer events to linked addresses
+func IndexLinkAddresses() error {
+	ctx := context.Background()
+
+	go func() {
+		time.Sleep(200 * time.Millisecond)
+		tokens, err := storage.Client.Token.
+			Query().
+			Where(
+				token.IsEnabled(true),
+			).
+			WithNetwork().
+			All(ctx)
+		if err != nil {
+			logger.Errorf("IndexBlockchainEvents: %v", err)
+			return
+		}
+
+		for _, token := range tokens {
+			startBlockNumber := int64(0)
+			linkedAddress, err := storage.Client.LinkedAddress.
+				Query().
+				Where(
+					linkedaddress.HasPaymentOrdersWith(
+						paymentorder.HasTokenWith(tokenent.IDEQ(token.ID)),
+					),
+				).
+				Order(ent.Desc(linkedaddress.FieldLastIndexedBlock)).
+				First(ctx)
+			if err != nil {
+				logger.Errorf("IndexBlockchainEvents: %v", err)
+			}
+
+			if linkedAddress != nil {
+				startBlockNumber = linkedAddress.LastIndexedBlock + 1
+			}
+
+			indexerService := services.NewIndexerService(orderService.NewOrderEVM())
+			err = indexerService.IndexERC20Transfer(ctx, rpcClients[token.Edges.Network.Identifier], nil, token, startBlockNumber)
+			if err != nil {
+				continue
+			}
+		}
 	}()
 
 	return nil
@@ -1315,6 +1365,12 @@ func StartCronJobs() {
 
 	// Index blockchain events every 1 minute
 	_, err = scheduler.Cron("*/1 * * * *").Do(IndexBlockchainEvents)
+	if err != nil {
+		logger.Errorf("StartCronJobs: %v", err)
+	}
+
+	// Index linked addresses every 1 minute
+	_, err = scheduler.Cron("*/1 * * * *").Do(IndexLinkAddresses)
 	if err != nil {
 		logger.Errorf("StartCronJobs: %v", err)
 	}
