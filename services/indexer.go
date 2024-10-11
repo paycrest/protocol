@@ -205,7 +205,6 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 			highestMaxAmount := decimal.NewFromInt(0)
 
 			// Scan through the buckets to find a matching rate
-			logger.Errorf("IndexERC20Transfer.RedisScan: %v\n", keys)
 			for _, key := range keys {
 				bucketData := strings.Split(key, "_")
 				minAmount, _ := decimal.NewFromString(bucketData[2])
