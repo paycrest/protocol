@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"math/rand"
 	"strings"
 	"time"
 
@@ -60,8 +59,9 @@ func (s *PriorityQueueService) GetProvisionBuckets(ctx context.Context) ([]*ent.
 
 			// Filter only providers that are always available
 			ppq.Where(
-				providerprofile.IsAvailableEQ(true),
-				providerprofile.IsActiveEQ(true),
+				providerprofile.IsAvailable(true),
+				providerprofile.IsActive(true),
+				providerprofile.IsKybVerified(true),
 				providerprofile.VisibilityModeEQ(providerprofile.VisibilityModePublic),
 			)
 		}).
@@ -222,28 +222,27 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 	// Get the first provider from the circular queue
 	redisKey := fmt.Sprintf("bucket_%s_%s_%s", order.ProvisionBucket.Edges.Currency.Code, order.ProvisionBucket.MinAmount, order.ProvisionBucket.MaxAmount)
 
-	partnerProviders := []string{}
+	// partnerProviders := []string{}
 
 	for index := 0; ; index++ {
 		providerData, err := storage.RedisClient.LIndex(ctx, redisKey, int64(index)).Result()
 		if err != nil {
-			logger.Errorf("%s - failed to access index %d from circular queue: %v", orderIDPrefix, index, err)
 			break
 		}
 
-		if providerData == "" {
-			// Reached the end of the queue
-			logger.Errorf("%s - rate didn't match a provider, finding a partner provider", orderIDPrefix)
+		// if providerData == "" {
+		// 	// Reached the end of the queue
+		// 	logger.Errorf("%s - rate didn't match a provider, finding a partner provider", orderIDPrefix)
 
-			if len(partnerProviders) == 0 {
-				logger.Errorf("%s - no partner providers found", orderIDPrefix)
-				return nil
-			}
+		// 	if len(partnerProviders) == 0 {
+		// 		logger.Errorf("%s - no partner providers found", orderIDPrefix)
+		// 		return nil
+		// 	}
 
-			// Pick a random partner provider
-			randomIndex := rand.New(rand.NewSource(time.Now().UnixNano())).Intn(len(partnerProviders))
-			providerData = partnerProviders[randomIndex]
-		}
+		// 	// Pick a random partner provider
+		// 	randomIndex := rand.New(rand.NewSource(time.Now().UnixNano())).Intn(len(partnerProviders))
+		// 	providerData = partnerProviders[randomIndex]
+		// }
 
 		// Extract the rate from the data (assuming it's in the format "providerID:token:rate")
 		parts := strings.Split(providerData, ":")

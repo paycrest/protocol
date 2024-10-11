@@ -183,16 +183,9 @@ func AbsPercentageDeviation(trueValue, measuredValue decimal.Decimal) decimal.De
 func SendPaymentOrderWebhook(ctx context.Context, paymentOrder *ent.PaymentOrder) error {
 	var err error
 
-	if paymentOrder.Edges.LinkedAddress != nil {
-		return nil
-	}
-
 	profile := paymentOrder.Edges.SenderProfile
 	if profile == nil {
-		profile, err = paymentOrder.QuerySenderProfile().Only(ctx)
-		if err != nil {
-			return err
-		}
+		return nil
 	}
 
 	// If webhook URL is empty, return

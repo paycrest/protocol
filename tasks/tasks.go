@@ -1304,20 +1304,18 @@ func StartCronJobs() {
 	scheduler := gocron.NewScheduler(time.UTC)
 	priorityQueue := services.NewPriorityQueueService()
 
-	if serverConf.Environment != "production" {
-		err := ComputeMarketRate()
-		if err != nil {
-			logger.Errorf("StartCronJobs: %v", err)
-		}
+	err := ComputeMarketRate()
+	if err != nil {
+		logger.Errorf("StartCronJobs: %v", err)
+	}
 
-		err = priorityQueue.ProcessBucketQueues()
-		if err != nil {
-			logger.Errorf("StartCronJobs: %v", err)
-		}
+	err = priorityQueue.ProcessBucketQueues()
+	if err != nil {
+		logger.Errorf("StartCronJobs: %v", err)
 	}
 
 	// Compute market rate every 30 minutes
-	_, err := scheduler.Cron("*/30 * * * *").Do(ComputeMarketRate)
+	_, err = scheduler.Cron("*/30 * * * *").Do(ComputeMarketRate)
 	if err != nil {
 		logger.Errorf("StartCronJobs: %v", err)
 	}

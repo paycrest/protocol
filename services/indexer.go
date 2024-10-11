@@ -98,7 +98,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 	// Fetch current block header
 	header, err := client.HeaderByNumber(ctx, nil)
 	if err != nil {
-		logger.Errorf("IndexERC20Transfer.HeaderByNumber: %v", err)
+		// logger.Errorf("IndexERC20Transfer.HeaderByNumber: %v", err)
 		return err
 	}
 	toBlock := header.Number.Uint64()
@@ -194,6 +194,48 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 				continue
 			}
 
+			// Get rate from priority queue
+			keys, _, err := db.RedisClient.Scan(ctx, uint64(0), "bucket_"+currency.Code+"_*_*", 100).Result()
+			if err != nil {
+				logger.Errorf("IndexERC20Transfer.RedisScan: %v", err)
+				continue
+			}
+
+			rateResponse := currency.MarketRate
+			highestMaxAmount := decimal.NewFromInt(0)
+
+			// Scan through the buckets to find a matching rate
+			logger.Errorf("IndexERC20Transfer.RedisScan: %v\n", keys)
+			for _, key := range keys {
+				bucketData := strings.Split(key, "_")
+				minAmount, _ := decimal.NewFromString(bucketData[2])
+				maxAmount, _ := decimal.NewFromString(bucketData[3])
+
+				for index := 0; ; index++ {
+					// Get the topmost provider in the priority queue of the bucket
+					providerData, err := db.RedisClient.LIndex(ctx, key, int64(index)).Result()
+					if err != nil {
+						break
+					}
+
+					if strings.Split(providerData, ":")[1] == token.Symbol {
+						// Get fiat equivalent of the token amount
+						rate, _ := decimal.NewFromString(strings.Split(providerData, ":")[2])
+						fiatAmount := orderAmount.Mul(rate)
+
+						// Check if fiat amount is within the bucket range and set the rate
+						if fiatAmount.GreaterThanOrEqual(minAmount) && fiatAmount.LessThanOrEqual(maxAmount) {
+							rateResponse = rate
+							break
+						} else if maxAmount.GreaterThan(highestMaxAmount) {
+							// Get the highest max amount
+							highestMaxAmount = maxAmount
+							rateResponse = rate
+						}
+					}
+				}
+			}
+
 			tx, err := db.Client.Tx(ctx)
 			if err != nil {
 				logger.Errorf("IndexERC20Transfer.Tx: %v", err)
@@ -226,7 +268,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 				SetProtocolFee(decimal.NewFromInt(0)).
 				SetSenderFee(decimal.NewFromInt(0)).
 				SetToken(token).
-				SetRate(currency.MarketRate).
+				SetRate(rateResponse).
 				SetTxHash(transferEvent.TxHash).
 				SetBlockNumber(int64(transferEvent.BlockNumber)).
 				SetFromAddress(transferEvent.From).
@@ -248,7 +290,6 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 				SetAccountIdentifier(linkedAddress.AccountIdentifier).
 				SetAccountName(linkedAddress.AccountName).
 				SetPaymentOrder(order).
-				SetProviderID("RKVeHPBP").
 				Save(ctx)
 			if err != nil {
 				logger.Errorf("IndexERC20Transfer.CreatePaymentOrderRecipient: %v", err)
@@ -1544,7 +1585,7 @@ func (s *IndexerService) UpdateReceiveAddressStatus(
 			paymentOrderUpdate = paymentOrderUpdate.SetAmount(orderAmount.Round(int32(2)))
 
 			// Update the rate with the current rate if order is older than 30 mins for a P2P order from the sender dashboard
-			if strings.HasPrefix(orderRecipient.Memo, "P#P") && orderRecipient.ProviderID != "" && paymentOrder.CreatedAt.Before(time.Now().Add(-30 * time.Minute)) {
+			if strings.HasPrefix(orderRecipient.Memo, "P#P") && orderRecipient.ProviderID != "" && paymentOrder.CreatedAt.Before(time.Now().Add(-30*time.Minute)) {
 				providerProfile, err := db.Client.ProviderProfile.
 					Query().
 					Where(
