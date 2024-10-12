@@ -93,6 +93,7 @@ func (s *PriorityQueueService) GetProviderRate(ctx context.Context, provider *en
 		).
 		First(ctx)
 	if err != nil {
+		logger.Errorf("failed to get token config for provider %s %s: %v", provider.ID, token, err)
 		return decimal.Decimal{}, err
 	}
 
