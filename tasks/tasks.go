@@ -373,7 +373,7 @@ func IndexBlockchainEvents() error {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		time.Sleep(800 * time.Millisecond)
+		time.Sleep(1000 * time.Millisecond)
 		_ = utils.Retry(3, 2*time.Second, func() error {
 			for _, network := range networks {
 				if strings.HasPrefix(network.Identifier, "tron") {
@@ -451,7 +451,7 @@ func IndexBlockchainEvents() error {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		time.Sleep(1300 * time.Millisecond)
+		time.Sleep(1500 * time.Millisecond)
 		_ = utils.Retry(3, 2*time.Second, func() error {
 			for _, network := range networks {
 				if strings.HasPrefix(network.Identifier, "tron") {
@@ -536,7 +536,7 @@ func IndexLinkedAddresses() error {
 	ctx := context.Background()
 
 	go func() {
-		time.Sleep(200 * time.Millisecond)
+		time.Sleep(500 * time.Millisecond)
 		tokens, err := storage.Client.Token.
 			Query().
 			Where(
