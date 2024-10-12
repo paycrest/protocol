@@ -102,7 +102,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 	// Fetch current block header
 	header, err := client.HeaderByNumber(ctx, nil)
 	if err != nil {
-		// logger.Errorf("IndexERC20Transfer.HeaderByNumber: %v", err)
+		logger.Errorf("IndexERC20Transfer.HeaderByNumber: %v", err)
 		return err
 	}
 	toBlock := header.Number.Uint64()
