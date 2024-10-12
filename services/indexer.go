@@ -79,6 +79,10 @@ func NewIndexerService(order types.OrderService) Indexer {
 func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RPCClient, order *ent.PaymentOrder, token *ent.Token, startBlock int64) error {
 	var err error
 
+	if order != nil {
+		token = order.Edges.Token
+	}
+
 	// Connect to RPC endpoint
 	retryErr := utils.Retry(3, 1*time.Second, func() error {
 		client, err = types.NewEthClient(token.Edges.Network.RPCEndpoint)
