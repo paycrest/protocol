@@ -465,10 +465,20 @@ func (ctrl *Controller) GetLinkedAddress(ctx *gin.Context) {
 		return
 	}
 
-	u.APIResponse(ctx, http.StatusOK, "success", "Linked address fetched successfully", &types.LinkedAddressResponse{
+	ownerAddressFromAuth, _ := ctx.Get("owner_address")
+
+	response := &types.LinkedAddressResponse{
 		LinkedAddress: linkedAddress.Address,
 		Currency:      institution.Edges.FiatCurrency.Code,
-	})
+	}
+
+	if ownerAddressFromAuth != nil {
+		response.AccountIdentifier = linkedAddress.AccountIdentifier
+		response.AccountName = linkedAddress.AccountName
+		response.Institution = institution.Name
+	}
+
+	u.APIResponse(ctx, http.StatusOK, "success", "Linked address fetched successfully", response)
 }
 
 // GetLinkedAddressTransactions controller fetches transactions for a linked address

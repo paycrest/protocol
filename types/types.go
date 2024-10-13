@@ -629,8 +629,11 @@ type NewLinkedAddressResponse struct {
 
 // LinkedAddressResponse is the response for a linked address
 type LinkedAddressResponse struct {
-	LinkedAddress string `json:"linkedAddress"`
-	Currency      string `json:"currency"`
+	LinkedAddress     string `json:"linkedAddress"`
+	Currency          string `json:"currency"`
+	Institution       string `json:"institution"`
+	AccountIdentifier string `json:"accountIdentifier"`
+	AccountName       string `json:"accountName"`
 }
 
 // LinkedAddressTransactionRecipient is the struct for a linked address transaction recipient

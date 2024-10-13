@@ -50,6 +50,7 @@ func RegisterRoutes(route *gin.Engine) {
 	// Linked address routes
 	v1.POST("linked-addresses", middleware.PrivyMiddleware, ctrl.CreateLinkedAddress)
 	v1.GET("linked-addresses", ctrl.GetLinkedAddress)
+	v1.GET("linked-addresses/me", middleware.PrivyMiddleware, ctrl.GetLinkedAddress)
 	v1.GET("linked-addresses/:linked_address/transactions", middleware.PrivyMiddleware, ctrl.GetLinkedAddressTransactions)
 }
 

@@ -102,12 +102,12 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 	}
 
 	// Fetch current block header
-	_, err = client.HeaderByNumber(ctx, nil)
+	header, err := client.HeaderByNumber(ctx, nil)
 	if err != nil {
 		logger.Errorf("IndexERC20Transfer.HeaderByNumber: %v", err)
 		return err
 	}
-	toBlock := uint64(20987890)
+	toBlock := header.Number.Uint64()
 
 	// Fetch logs
 	var iter *contracts.ERC20TokenTransferIterator
@@ -121,13 +121,13 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 			}
 		}
 
-		var addresses []common.Address
+		addresses := []common.Address{}
 		if addressToWatch != "" {
 			addresses = []common.Address{common.HexToAddress(addressToWatch)}
 		}
 
 		iter, err = filterer.FilterTransfer(&bind.FilterOpts{
-			Start: uint64(20987880),
+			Start: uint64(startBlock),
 			End:   &toBlock,
 		}, nil, addresses)
 
@@ -162,16 +162,17 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 
 		// Create a new payment order from the transfer event to the linked address
 		if linkedAddress != nil {
+			orderAmount := utils.FromSubunit(transferEvent.Value, token.Decimals)
 			// Check if the payment order already exists
 			paymentOrderExists := true
 			_, err := db.Client.PaymentOrder.
 				Query().
 				Where(
-					paymentorder.TxHash(transferEvent.TxHash),
-					paymentorder.BlockNumber(int64(transferEvent.BlockNumber)),
 					paymentorder.FromAddress(transferEvent.From),
+					paymentorder.AmountEQ(orderAmount),
 					paymentorder.HasLinkedAddressWith(
 						linkedaddress.AddressEQ(linkedAddress.Address),
+						linkedaddress.LastIndexedBlockEQ(int64(transferEvent.BlockNumber)),
 					),
 				).
 				WithSenderProfile().
@@ -190,7 +191,6 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 			}
 
 			// Create payment order
-			orderAmount := utils.FromSubunit(transferEvent.Value, token.Decimals)
 			institution, err := s.getInstitutionByCode(ctx, linkedAddress.Institution)
 			if err != nil {
 				logger.Errorf("IndexERC20Transfer.GetInstitutionByCode: %v", err)
