@@ -102,19 +102,23 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 	}
 
 	// Fetch current block header
-	header, err := client.HeaderByNumber(ctx, nil)
+	_, err = client.HeaderByNumber(ctx, nil)
 	if err != nil {
 		logger.Errorf("IndexERC20Transfer.HeaderByNumber: %v", err)
 		return err
 	}
-	toBlock := header.Number.Uint64()
+	toBlock := uint64(20987880)
 
 	// Fetch logs
 	var iter *contracts.ERC20TokenTransferIterator
 	retryErr = utils.Retry(3, 1*time.Second, func() error {
 		var err error
 		if startBlock == 0 {
-			startBlock = int64(toBlock) - 5000
+			if addressToWatch != "" {
+				startBlock = int64(toBlock) - 5000
+			} else {
+				startBlock = int64(toBlock) - 500
+			}
 		}
 
 		addresses := []common.Address{}
@@ -123,7 +127,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 		}
 
 		iter, err = filterer.FilterTransfer(&bind.FilterOpts{
-			Start: uint64(startBlock),
+			Start: uint64(20987890),
 			End:   &toBlock,
 		}, nil, addresses)
 
