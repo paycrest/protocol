@@ -119,11 +119,13 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 			addresses = []common.Address{common.HexToAddress(addressToWatch)}
 			startBlock = int64(toBlock) - 5000
 		} else {
-			if strings.Contains(token.Edges.Network.RPCEndpoint, "base") {
-				logger.Errorf("IndexERC20Transfer: %v", toBlock)
-				logger.Errorf("IndexERC20Transfer: %v", startBlock)
+			startBlock = int64(toBlock) - 1000
+			if token.Edges.Network.Identifier == "base" {
+				logger.Errorf("IndexERC20Transfer: %v %v", toBlock, startBlock)
 			}
-			startBlock = int64(toBlock) - 100
+
+			startBlock = 21001620
+			toBlock = uint64(21001623)
 		}
 
 		iter, err = filterer.FilterTransfer(&bind.FilterOpts{
