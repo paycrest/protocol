@@ -93,7 +93,6 @@ func (s *PriorityQueueService) GetProviderRate(ctx context.Context, provider *en
 		).
 		First(ctx)
 	if err != nil {
-		logger.Errorf("failed to get token config for provider %s %s: %v", provider.ID, token, err)
 		return decimal.Decimal{}, err
 	}
 
@@ -146,12 +145,16 @@ func (s *PriorityQueueService) CreatePriorityQueueForBucket(ctx context.Context,
 
 		for _, token := range tokens {
 			providerID := provider.ID
-			rate, _ := s.GetProviderRate(ctx, provider, token.Symbol)
+			rate, err := s.GetProviderRate(ctx, provider, token.Symbol)
+			if err != nil {
+				logger.Errorf("failed to get %s rate for provider %s: %v", token.Symbol, providerID, err)
+				continue
+			}
 
 			// Check provider's rate against the market rate to ensure it's not too far off
 			percentDeviation := utils.AbsPercentageDeviation(bucket.Edges.Currency.MarketRate, rate)
 
-			if config.ServerConfig().Environment == "production" && percentDeviation.GreaterThan(config.OrderConfig().PercentDeviationFromMarketRate) {
+			if config.ServerConfig().Environment == "production" && percentDeviation.GreaterThan(orderConf.PercentDeviationFromMarketRate) {
 				// Skip this provider if the rate is too far off
 				// TODO: add a logic to notify the provider(s) to update his rate since it's stale. could be a cron job
 				continue
@@ -161,7 +164,7 @@ func (s *PriorityQueueService) CreatePriorityQueueForBucket(ctx context.Context,
 			data := fmt.Sprintf("%s:%s:%s", providerID, token.Symbol, rate)
 
 			// Enqueue the serialized data into the circular queue
-			err := storage.RedisClient.RPush(ctx, redisKey, data).Err()
+			err = storage.RedisClient.RPush(ctx, redisKey, data).Err()
 			if err != nil {
 				logger.Errorf("failed to enqueue provider data to circular queue: %v", err)
 			}
@@ -328,7 +331,7 @@ func (s *PriorityQueueService) sendOrderRequest(ctx context.Context, order types
 	}
 
 	// Set a TTL for the order request
-	err := storage.RedisClient.ExpireAt(ctx, orderKey, time.Now().Add(config.OrderConfig().OrderRequestValidity)).Err()
+	err := storage.RedisClient.ExpireAt(ctx, orderKey, time.Now().Add(orderConf.OrderRequestValidity)).Err()
 	if err != nil {
 		logger.Errorf("failed to set TTL for order request: %v", err)
 		return err

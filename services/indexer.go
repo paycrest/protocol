@@ -969,7 +969,7 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 	amountInDecimals := utils.FromSubunit(event.Amount, token.Decimals)
 	institution, err := s.getInstitutionByCode(ctx, recipient.Institution)
 	if err != nil {
-		return fmt.Errorf("failed to fetch institution: %w", err)
+		return fmt.Errorf("failed to fetch institution: %s %s %s %s %w", recipient.Institution, amountInDecimals, event.TxHash, network.Identifier, err)
 	}
 
 	currency, err := db.Client.FiatCurrency.
