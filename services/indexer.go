@@ -113,17 +113,13 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 	var iter *contracts.ERC20TokenTransferIterator
 	retryErr = utils.Retry(3, 1*time.Second, func() error {
 		var err error
-		if startBlock == 0 {
-			if addressToWatch != "" {
-				startBlock = int64(toBlock) - 5000
-			} else {
-				startBlock = int64(toBlock) - 100
-			}
-		}
 
 		addresses := []common.Address{}
 		if addressToWatch != "" {
 			addresses = []common.Address{common.HexToAddress(addressToWatch)}
+			startBlock = int64(toBlock) - 5000
+		} else {
+			startBlock = int64(toBlock) - 100
 		}
 
 		iter, err = filterer.FilterTransfer(&bind.FilterOpts{
