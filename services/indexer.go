@@ -109,6 +109,8 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 	}
 	toBlock := header.Number.Uint64()
 
+	logger.Errorf("IndexERC20Transfer: %v", toBlock)
+
 	// Fetch logs
 	var iter *contracts.ERC20TokenTransferIterator
 	retryErr = utils.Retry(3, 1*time.Second, func() error {
@@ -121,6 +123,8 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 		} else {
 			startBlock = int64(toBlock) - 100
 		}
+
+		logger.Errorf("IndexERC20Transfer: %v", startBlock)
 
 		iter, err = filterer.FilterTransfer(&bind.FilterOpts{
 			Start: uint64(startBlock),
