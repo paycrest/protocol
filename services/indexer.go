@@ -78,9 +78,11 @@ func NewIndexerService(order types.OrderService) Indexer {
 // IndexERC20Transfer indexes transfers to the receive address for an EVM network.
 func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RPCClient, order *ent.PaymentOrder, token *ent.Token, startBlock int64) error {
 	var err error
+	var addressToWatch string
 
 	if order != nil {
 		token = order.Edges.Token
+		addressToWatch = order.Edges.ReceiveAddress.Address
 	}
 
 	// Connect to RPC endpoint
@@ -114,10 +116,17 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 		if startBlock == 0 {
 			startBlock = int64(toBlock) - 5000
 		}
+
+		addresses := []common.Address{}
+		if addressToWatch != "" {
+			addresses = []common.Address{common.HexToAddress(addressToWatch)}
+		}
+
 		iter, err = filterer.FilterTransfer(&bind.FilterOpts{
 			Start: uint64(startBlock),
 			End:   &toBlock,
-		}, nil, nil)
+		}, nil, addresses)
+
 		return err
 	})
 	if retryErr != nil {
