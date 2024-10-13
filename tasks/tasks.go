@@ -336,29 +336,8 @@ func IndexBlockchainEvents() error {
 					}
 
 				} else {
-					startBlockNumber := int64(0)
-					order, err := storage.Client.LockPaymentOrder.
-						Query().
-						Where(
-							lockpaymentorder.StatusEQ(lockpaymentorder.StatusPending),
-							lockpaymentorder.HasTokenWith(
-								token.HasNetworkWith(networkent.IDEQ(network.ID)),
-							),
-						).
-						Order(ent.Desc(lockpaymentorder.FieldBlockNumber)).
-						First(ctx)
-					if err != nil {
-						if !ent.IsNotFound(err) {
-							continue
-						}
-					}
-
-					if order != nil {
-						startBlockNumber = order.BlockNumber + 1
-					}
-
 					indexerService := services.NewIndexerService(orderService.NewOrderEVM())
-					err = indexerService.IndexOrderCreated(ctx, rpcClients[network.Identifier], network, startBlockNumber)
+					err = indexerService.IndexOrderCreated(ctx, rpcClients[network.Identifier], network)
 					if err != nil {
 						continue
 					}
@@ -414,29 +393,8 @@ func IndexBlockchainEvents() error {
 						}
 					}
 				} else {
-					startBlockNumber := int64(0)
-					order, err := storage.Client.LockPaymentOrder.
-						Query().
-						Where(
-							lockpaymentorder.StatusEQ(lockpaymentorder.StatusSettled),
-							lockpaymentorder.HasTokenWith(
-								token.HasNetworkWith(networkent.IDEQ(network.ID)),
-							),
-						).
-						Order(ent.Desc(lockpaymentorder.FieldBlockNumber)).
-						First(ctx)
-					if err != nil {
-						if !ent.IsNotFound(err) {
-							continue
-						}
-					}
-
-					if order != nil {
-						startBlockNumber = order.BlockNumber + 1
-					}
-
 					indexerService := services.NewIndexerService(orderService.NewOrderEVM())
-					err = indexerService.IndexOrderSettled(ctx, rpcClients[network.Identifier], network, startBlockNumber)
+					err = indexerService.IndexOrderSettled(ctx, rpcClients[network.Identifier], network)
 					if err != nil {
 						continue
 					}
@@ -495,29 +453,8 @@ func IndexBlockchainEvents() error {
 						}
 					}
 				} else {
-					startBlockNumber := int64(0)
-					order, err := storage.Client.LockPaymentOrder.
-						Query().
-						Where(
-							lockpaymentorder.StatusEQ(lockpaymentorder.StatusRefunded),
-							lockpaymentorder.HasTokenWith(
-								token.HasNetworkWith(networkent.IDEQ(network.ID)),
-							),
-						).
-						Order(ent.Desc(lockpaymentorder.FieldBlockNumber)).
-						First(ctx)
-					if err != nil {
-						if !ent.IsNotFound(err) {
-							continue
-						}
-					}
-
-					if order != nil {
-						startBlockNumber = order.BlockNumber + 1
-					}
-
 					indexerService := services.NewIndexerService(orderService.NewOrderEVM())
-					err = indexerService.IndexOrderRefunded(ctx, rpcClients[network.Identifier], network, startBlockNumber)
+					err = indexerService.IndexOrderRefunded(ctx, rpcClients[network.Identifier], network)
 					if err != nil {
 						continue
 					}

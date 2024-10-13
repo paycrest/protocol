@@ -46,11 +46,11 @@ var serverConf = config.ServerConfig()
 type Indexer interface {
 	IndexERC20Transfer(ctx context.Context, client types.RPCClient, order *ent.PaymentOrder, token *ent.Token, startBlock int64) error
 	IndexTRC20Transfer(ctx context.Context, order *ent.PaymentOrder) error
-	IndexOrderCreated(ctx context.Context, client types.RPCClient, network *ent.Network, startBlock int64) error
+	IndexOrderCreated(ctx context.Context, client types.RPCClient, network *ent.Network) error
 	IndexOrderCreatedTron(ctx context.Context, order *ent.PaymentOrder) error
-	IndexOrderSettled(ctx context.Context, client types.RPCClient, network *ent.Network, startBlock int64) error
+	IndexOrderSettled(ctx context.Context, client types.RPCClient, network *ent.Network) error
 	IndexOrderSettledTron(ctx context.Context, order *ent.LockPaymentOrder) error
-	IndexOrderRefunded(ctx context.Context, client types.RPCClient, network *ent.Network, startBlock int64) error
+	IndexOrderRefunded(ctx context.Context, client types.RPCClient, network *ent.Network) error
 	IndexOrderRefundedTron(ctx context.Context, order *ent.LockPaymentOrder) error
 	HandleReceiveAddressValidity(ctx context.Context, client types.RPCClient, receiveAddress *ent.ReceiveAddress, paymentOrder *ent.PaymentOrder) error
 	CreateLockPaymentOrder(ctx context.Context, client types.RPCClient, network *ent.Network, event *types.OrderCreatedEvent) error
@@ -432,7 +432,7 @@ func (s *IndexerService) IndexTRC20Transfer(ctx context.Context, order *ent.Paym
 }
 
 // IndexOrderCreated indexes deposits to the order contract for an EVM network.
-func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPCClient, network *ent.Network, startBlock int64) error {
+func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPCClient, network *ent.Network) error {
 	var err error
 
 	// Connect to RPC endpoint
@@ -465,12 +465,8 @@ func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPC
 	// Fetch logs
 	var iter *contracts.GatewayOrderCreatedIterator
 	retryErr := utils.Retry(3, 1*time.Second, func() error {
-		var err error
-		if startBlock == 0 {
-			startBlock = int64(toBlock) - 5000
-		}
 		iter, err = filterer.FilterOrderCreated(&bind.FilterOpts{
-			Start: uint64(startBlock),
+			Start: uint64(int64(toBlock) - 5000),
 			End:   &toBlock,
 		}, nil, nil, nil)
 		return err
@@ -576,7 +572,7 @@ func (s *IndexerService) IndexOrderCreatedTron(ctx context.Context, order *ent.P
 }
 
 // IndexOrderSettled indexes order settlements for an EVM network.
-func (s *IndexerService) IndexOrderSettled(ctx context.Context, client types.RPCClient, network *ent.Network, startBlock int64) error {
+func (s *IndexerService) IndexOrderSettled(ctx context.Context, client types.RPCClient, network *ent.Network) error {
 	var err error
 
 	// Connect to RPC endpoint
@@ -609,13 +605,8 @@ func (s *IndexerService) IndexOrderSettled(ctx context.Context, client types.RPC
 	// Fetch logs
 	var iter *contracts.GatewayOrderSettledIterator
 	retryErr := utils.Retry(3, 1*time.Second, func() error {
-		var err error
-		minimumStartBlock := int64(toBlock) - 5000
-		if startBlock == 0 || startBlock < minimumStartBlock {
-			startBlock = minimumStartBlock
-		}
 		iter, err = filterer.FilterOrderSettled(&bind.FilterOpts{
-			Start: uint64(startBlock),
+			Start: uint64(int64(toBlock) - 5000),
 			End:   &toBlock,
 		}, nil, nil)
 		return err
@@ -717,7 +708,7 @@ func (s *IndexerService) IndexOrderSettledTron(ctx context.Context, order *ent.L
 }
 
 // IndexOrderRefunded indexes order refunds for an EVM network.
-func (s *IndexerService) IndexOrderRefunded(ctx context.Context, client types.RPCClient, network *ent.Network, startBlock int64) error {
+func (s *IndexerService) IndexOrderRefunded(ctx context.Context, client types.RPCClient, network *ent.Network) error {
 	var err error
 
 	// Connect to RPC endpoint
@@ -750,13 +741,8 @@ func (s *IndexerService) IndexOrderRefunded(ctx context.Context, client types.RP
 	// Fetch logs
 	var iter *contracts.GatewayOrderRefundedIterator
 	retryErr := utils.Retry(3, 1*time.Second, func() error {
-		var err error
-		minimumStartBlock := int64(toBlock) - 5000
-		if startBlock == 0 || startBlock < minimumStartBlock {
-			startBlock = minimumStartBlock
-		}
 		iter, err = filterer.FilterOrderRefunded(&bind.FilterOpts{
-			Start: uint64(startBlock),
+			Start: uint64(int64(toBlock) - 5000),
 			End:   &toBlock,
 		}, nil)
 		return err
@@ -1909,6 +1895,10 @@ func (s *IndexerService) splitLockPaymentOrder(ctx context.Context, client types
 
 // checkAMLCompliance checks if a transaction is compliant with AML rules
 func (s *IndexerService) checkAMLCompliance(rpcUrl string, txHash string) (bool, error) {
+	if !strings.Contains(rpcUrl, "shield3") {
+		return true, nil
+	}
+
 	type Transaction struct {
 		Kind int         `json:"__kind"`
 		Data interface{} `json:"data"`
