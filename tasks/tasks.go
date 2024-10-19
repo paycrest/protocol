@@ -177,6 +177,11 @@ func RetryStaleUserOperations() error {
 		Query().
 		Where(
 			lockpaymentorder.GatewayIDNEQ(""),
+			lockpaymentorder.HasFulfillmentsWith(
+				lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusFailed),
+				lockorderfulfillment.Not(lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusSuccess)),
+				lockorderfulfillment.Not(lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusPending)),
+			),
 			lockpaymentorder.Or(
 				lockpaymentorder.And(
 					lockpaymentorder.Or(
@@ -190,11 +195,6 @@ func RetryStaleUserOperations() error {
 						providerprofile.VisibilityModeEQ(providerprofile.VisibilityModePrivate),
 					),
 					lockpaymentorder.StatusEQ(lockpaymentorder.StatusFulfilled),
-					lockpaymentorder.HasFulfillmentsWith(
-						lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusFailed),
-						lockorderfulfillment.Not(lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusSuccess)),
-						lockorderfulfillment.Not(lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusPending)),
-					),
 				),
 			),
 		).
