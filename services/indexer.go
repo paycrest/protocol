@@ -144,6 +144,10 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 			Value:       iter.Event.Value,
 		}
 
+		if strings.EqualFold(transferEvent.From, token.Edges.Network.GatewayContractAddress) {
+			continue
+		}
+
 		linkedAddress, err := db.Client.LinkedAddress.
 			Query().
 			Where(

@@ -243,7 +243,7 @@ func IndexBlockchainEvents() error {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		_ = utils.Retry(3, 2*time.Second, func() error {
+		_ = utils.Retry(10, 2*time.Second, func() error {
 			orders, err := storage.Client.PaymentOrder.
 				Query().
 				Where(
@@ -290,7 +290,7 @@ func IndexBlockchainEvents() error {
 	go func() {
 		defer wg.Done()
 		time.Sleep(500 * time.Millisecond)
-		_ = utils.Retry(3, 2*time.Second, func() error {
+		_ = utils.Retry(10, 2*time.Second, func() error {
 			for _, network := range networks {
 				if strings.HasPrefix(network.Identifier, "tron") {
 					orders, err := storage.Client.PaymentOrder.
@@ -353,7 +353,7 @@ func IndexBlockchainEvents() error {
 	go func() {
 		defer wg.Done()
 		time.Sleep(1000 * time.Millisecond)
-		_ = utils.Retry(3, 2*time.Second, func() error {
+		_ = utils.Retry(10, 2*time.Second, func() error {
 			for _, network := range networks {
 				if strings.HasPrefix(network.Identifier, "tron") {
 					lockOrders, err := storage.Client.LockPaymentOrder.
@@ -410,7 +410,7 @@ func IndexBlockchainEvents() error {
 	go func() {
 		defer wg.Done()
 		time.Sleep(1500 * time.Millisecond)
-		_ = utils.Retry(3, 2*time.Second, func() error {
+		_ = utils.Retry(10, 2*time.Second, func() error {
 			for _, network := range networks {
 				if strings.HasPrefix(network.Identifier, "tron") {
 					lockOrders, err := storage.Client.LockPaymentOrder.
@@ -474,45 +474,50 @@ func IndexLinkedAddresses() error {
 
 	go func() {
 		time.Sleep(500 * time.Millisecond)
-		tokens, err := storage.Client.Token.
-			Query().
-			Where(
-				token.IsEnabled(true),
-			).
-			WithNetwork().
-			All(ctx)
-		if err != nil {
-			logger.Errorf("IndexLinkedAddresses: %v", err)
-			return
-		}
-
-		for _, token := range tokens {
-			startBlockNumber := int64(0)
-			linkedAddress, err := storage.Client.LinkedAddress.
+		_ = utils.Retry(8, 2*time.Second, func() error {
+			tokens, err := storage.Client.Token.
 				Query().
 				Where(
-					linkedaddress.HasPaymentOrdersWith(
-						paymentorder.HasTokenWith(tokenent.IDEQ(token.ID)),
-					),
+					token.IsEnabled(true),
 				).
-				Order(ent.Desc(linkedaddress.FieldLastIndexedBlock)).
-				First(ctx)
+				WithNetwork().
+				All(ctx)
 			if err != nil {
-				if !ent.IsNotFound(err) {
-					logger.Errorf("IndexLinkedAddresses: %v", err)
+				logger.Errorf("IndexLinkedAddresses: %v", err)
+			}
+
+			if len(tokens) > 0 {
+				for _, token := range tokens {
+					startBlockNumber := int64(0)
+					linkedAddress, err := storage.Client.LinkedAddress.
+						Query().
+						Where(
+							linkedaddress.HasPaymentOrdersWith(
+								paymentorder.HasTokenWith(tokenent.IDEQ(token.ID)),
+							),
+						).
+						Order(ent.Desc(linkedaddress.FieldLastIndexedBlock)).
+						First(ctx)
+					if err != nil {
+						if !ent.IsNotFound(err) {
+							logger.Errorf("IndexLinkedAddresses: %v", err)
+						}
+					}
+
+					if linkedAddress != nil {
+						startBlockNumber = linkedAddress.LastIndexedBlock + 1
+					}
+
+					indexerService := services.NewIndexerService(orderService.NewOrderEVM())
+					err = indexerService.IndexERC20Transfer(ctx, rpcClients[token.Edges.Network.Identifier], nil, token, startBlockNumber)
+					if err != nil {
+						continue
+					}
 				}
 			}
 
-			if linkedAddress != nil {
-				startBlockNumber = linkedAddress.LastIndexedBlock + 1
-			}
-
-			indexerService := services.NewIndexerService(orderService.NewOrderEVM())
-			err = indexerService.IndexERC20Transfer(ctx, rpcClients[token.Edges.Network.Identifier], nil, token, startBlockNumber)
-			if err != nil {
-				continue
-			}
-		}
+			return fmt.Errorf("trigger retry")
+		})
 	}()
 
 	return nil
