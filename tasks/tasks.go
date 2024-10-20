@@ -177,11 +177,6 @@ func RetryStaleUserOperations() error {
 		Query().
 		Where(
 			lockpaymentorder.GatewayIDNEQ(""),
-			lockpaymentorder.HasFulfillmentsWith(
-				lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusFailed),
-				lockorderfulfillment.Not(lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusSuccess)),
-				lockorderfulfillment.Not(lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusPending)),
-			),
 			lockpaymentorder.Or(
 				lockpaymentorder.And(
 					lockpaymentorder.Or(
@@ -189,12 +184,25 @@ func RetryStaleUserOperations() error {
 						lockpaymentorder.StatusEQ(lockpaymentorder.StatusCancelled),
 					),
 					lockpaymentorder.CreatedAtLTE(time.Now().Add(-30*time.Minute)),
+					lockpaymentorder.Or(
+						lockpaymentorder.Not(lockpaymentorder.HasFulfillments()),
+						lockpaymentorder.HasFulfillmentsWith(
+							lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusFailed),
+							lockorderfulfillment.Not(lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusSuccess)),
+							lockorderfulfillment.Not(lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusPending)),
+						),
+					),
 				),
 				lockpaymentorder.And(
 					lockpaymentorder.HasProviderWith(
 						providerprofile.VisibilityModeEQ(providerprofile.VisibilityModePrivate),
 					),
 					lockpaymentorder.StatusEQ(lockpaymentorder.StatusFulfilled),
+					lockpaymentorder.HasFulfillmentsWith(
+						lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusFailed),
+						lockorderfulfillment.Not(lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusSuccess)),
+						lockorderfulfillment.Not(lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusPending)),
+					),
 				),
 			),
 		).
