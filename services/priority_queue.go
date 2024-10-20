@@ -159,8 +159,8 @@ func (s *PriorityQueueService) CreatePriorityQueueForBucket(ctx context.Context,
 				continue
 			}
 
-			// Serialize the provider ID, token, and rate into a single string
-			data := fmt.Sprintf("%s:%s:%s", providerID, token.Symbol, rate)
+			// Serialize the provider ID, token, rate, min and max order amount into a single string
+			data := fmt.Sprintf("%s:%s:%s:%s:%s", providerID, token.Symbol, rate, token.MinOrderAmount, token.MaxOrderAmount)
 
 			// Enqueue the serialized data into the circular queue
 			err = storage.RedisClient.RPush(ctx, redisKey, data).Err()
@@ -249,7 +249,7 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 
 		// Extract the rate from the data (assuming it's in the format "providerID:token:rate")
 		parts := strings.Split(providerData, ":")
-		if len(parts) != 3 {
+		if len(parts) != 5 {
 			logger.Errorf("%s - invalid data format at index %d: %s", orderIDPrefix, index, providerData)
 			continue // Skip this entry due to invalid format
 		}
@@ -266,10 +266,25 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 			continue
 		}
 
+		// Skip entry if order amount is not within provider's min and max order amount
+		minOrderAmount, err := decimal.NewFromString(parts[3])
+		if err != nil {
+			continue
+		}
+
+		maxOrderAmount, err := decimal.NewFromString(parts[4])
+		if err != nil {
+			continue
+		}
+
+		if order.Amount.LessThan(minOrderAmount) || order.Amount.GreaterThan(maxOrderAmount) {
+			continue
+		}
+
+		// Fetch and check provider for rate match
 		rate, err := decimal.NewFromString(parts[2])
 		if err != nil {
-			logger.Errorf("%s - failed to parse rate at index %d: %v", orderIDPrefix, index, err)
-			continue // Skip this entry due to parsing error
+			continue
 		}
 
 		if rate.Equal(order.Rate) {
