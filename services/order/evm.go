@@ -19,7 +19,7 @@ import (
 	db "github.com/paycrest/protocol/storage"
 	"github.com/shopspring/decimal"
 
-	"github.com/paycrest/protocol/ent/fiatcurrency"
+	"github.com/paycrest/protocol/ent/institution"
 	"github.com/paycrest/protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	"github.com/paycrest/protocol/ent/paymentorder"
@@ -75,18 +75,16 @@ func (s *OrderEVM) CreateOrder(ctx context.Context, client types.RPCClient, orde
 		address = order.Edges.LinkedAddress.Address
 
 		// Update the rate
-		currency, err := db.Client.FiatCurrency.
+		institution, err := db.Client.Institution.
 			Query().
-			Where(
-				fiatcurrency.IsEnabledEQ(true),
-				fiatcurrency.CodeEQ(order.Edges.Recipient.Institution),
-			).
+			Where(institution.CodeEQ(order.Edges.Recipient.Institution)).
+			WithFiatCurrency().
 			Only(ctx)
 		if err != nil {
-			return fmt.Errorf("%s - CreateOrder.fetchCurrency: %w", orderIDPrefix, err)
+			return fmt.Errorf("%s - CreateOrder.fetchInstitution: %w", orderIDPrefix, err)
 		}
 
-		rate, err := utils.GetTokenRateFromQueue(order.Edges.Token.Symbol, order.Amount, currency.Code, currency.MarketRate)
+		rate, err := utils.GetTokenRateFromQueue(order.Edges.Token.Symbol, order.Amount, institution.Edges.FiatCurrency.Code, institution.Edges.FiatCurrency.MarketRate)
 		if err != nil {
 			return fmt.Errorf("%s - CreateOrder.getRate: %w", orderIDPrefix, err)
 		}
