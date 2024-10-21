@@ -92,6 +92,15 @@ func (s *OrderEVM) CreateOrder(ctx context.Context, client types.RPCClient, orde
 		_, err = db.Client.PaymentOrder.
 			UpdateOneID(orderID).
 			SetRate(rate).
+			SetStatus(paymentorder.StatusPending). // hack to prevent duplicate constraint error -- PO table requires status update
+			Save(ctx)
+		if err != nil {
+			return fmt.Errorf("%s - CreateOrder.updateRate: %w", orderIDPrefix, err)
+		}
+
+		_, err = db.Client.PaymentOrder.
+			UpdateOneID(orderID).
+			SetStatus(paymentorder.StatusRefunded).
 			Save(ctx)
 		if err != nil {
 			return fmt.Errorf("%s - CreateOrder.updateRate: %w", orderIDPrefix, err)
