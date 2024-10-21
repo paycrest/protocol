@@ -934,7 +934,7 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 	amountInDecimals := utils.FromSubunit(event.Amount, token.Decimals)
 	institution, err := s.getInstitutionByCode(ctx, recipient.Institution)
 	if err != nil {
-		return fmt.Errorf("failed to fetch institution: %s %s %s %s %w", recipient.Institution, amountInDecimals, event.TxHash, network.Identifier, err)
+		return nil
 	}
 
 	currency, err := db.Client.FiatCurrency.
@@ -945,14 +945,14 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 		).
 		Only(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to fetch fiat currency: %w", err)
+		return nil
 	}
 
 	rate := decimal.NewFromBigInt(event.Rate, 0)
 
 	provisionBucket, err := s.getProvisionBucket(ctx, amountInDecimals.Mul(rate), currency)
 	if err != nil {
-		logger.Errorf("failed to fetch provision bucket: %v", err)
+		logger.Errorf("failed to fetch provision bucket: %s %s %v", amountInDecimals, currency, err)
 	}
 
 	// Create lock payment order fields
@@ -993,7 +993,7 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 		if err != nil {
 			err := s.handleCancellation(ctx, client, nil, &lockPaymentOrder, "Provider is not available")
 			if err != nil {
-				return fmt.Errorf("provider is not available: %w", err)
+				return nil
 			}
 			return nil
 		}
@@ -1022,7 +1022,7 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 		if !isTokenPresent {
 			err := s.handleCancellation(ctx, client, nil, &lockPaymentOrder, "Token is not supported by the provider")
 			if err != nil {
-				return fmt.Errorf("token is not supported by the specified provider: %w", err)
+				return nil
 			}
 			return nil
 		}
