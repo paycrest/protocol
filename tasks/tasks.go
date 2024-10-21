@@ -249,16 +249,6 @@ func RetryStaleUserOperations() error {
 	go func() {
 		defer wg.Done()
 		for _, order := range orders {
-			_, err := storage.Client.LockPaymentOrder.
-				Delete().
-				Where(
-					lockpaymentorder.GatewayIDEQ(order.GatewayID),
-				).
-				Exec(ctx)
-			if err != nil {
-				logger.Errorf("RetryStaleUserOperations.RetryLinkedAddress: %v", err)
-			}
-
 			service := orderService.NewOrderEVM()
 			err = service.CreateOrder(ctx, rpcClients[order.Edges.Token.Edges.Network.Identifier], order.ID)
 			if err != nil {
