@@ -25,7 +25,6 @@ import (
 	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/receiveaddress"
 	"github.com/paycrest/protocol/ent/senderprofile"
-	"github.com/paycrest/protocol/ent/token"
 	tokenent "github.com/paycrest/protocol/ent/token"
 	"github.com/paycrest/protocol/ent/transactionlog"
 	"github.com/paycrest/protocol/ent/webhookretryattempt"
@@ -152,7 +151,7 @@ func RetryStaleUserOperations() error {
 		}).
 		All(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("RetryStaleUserOperations: %w", err)
 	}
 
 	wg.Add(1)
@@ -211,7 +210,7 @@ func RetryStaleUserOperations() error {
 		}).
 		All(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("RetryStaleUserOperations: %w", err)
 	}
 
 	wg.Add(1)
@@ -227,6 +226,43 @@ func RetryStaleUserOperations() error {
 			err := service.RefundOrder(ctx, rpcClients[order.Edges.Token.Edges.Network.Identifier], order.GatewayID)
 			if err != nil {
 				logger.Errorf("RetryStaleUserOperations.RefundOrder: %v", err)
+			}
+		}
+	}()
+
+	// Retry refunded linked address deposits
+	orders, err = storage.Client.PaymentOrder.
+		Query().
+		Where(
+			paymentorder.StatusEQ(paymentorder.StatusRefunded),
+			paymentorder.HasLinkedAddress(),
+		).
+		WithToken(func(tq *ent.TokenQuery) {
+			tq.WithNetwork()
+		}).
+		All(ctx)
+	if err != nil {
+		return fmt.Errorf("RetryStaleUserOperations: %w", err)
+	}
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for _, order := range orders {
+			_, err := storage.Client.LockPaymentOrder.
+				Delete().
+				Where(
+					lockpaymentorder.GatewayIDEQ(order.GatewayID),
+				).
+				Exec(ctx)
+			if err != nil {
+				logger.Errorf("RetryStaleUserOperations.RetryLinkedAddress: %v", err)
+			}
+
+			service := orderService.NewOrderEVM()
+			err = service.CreateOrder(ctx, rpcClients[order.Edges.Token.Edges.Network.Identifier], order.ID)
+			if err != nil {
+				logger.Errorf("RetryStaleUserOperations.RetryLinkedAddress: %v", err)
 			}
 		}
 	}()
@@ -320,7 +356,7 @@ func IndexBlockchainEvents() error {
 						}).
 						Where(
 							paymentorder.HasTokenWith(
-								token.HasNetworkWith(networkent.IDEQ(network.ID)),
+								tokenent.HasNetworkWith(networkent.IDEQ(network.ID)),
 							),
 						).
 						WithReceiveAddress().
@@ -379,7 +415,7 @@ func IndexBlockchainEvents() error {
 						}).
 						Where(
 							lockpaymentorder.HasTokenWith(
-								token.HasNetworkWith(networkent.IDEQ(network.ID)),
+								tokenent.HasNetworkWith(networkent.IDEQ(network.ID)),
 							),
 						).
 						WithToken(func(tq *ent.TokenQuery) {
@@ -439,7 +475,7 @@ func IndexBlockchainEvents() error {
 						}).
 						Where(
 							lockpaymentorder.HasTokenWith(
-								token.HasNetworkWith(networkent.IDEQ(network.ID)),
+								tokenent.HasNetworkWith(networkent.IDEQ(network.ID)),
 							),
 						).
 						WithToken(func(tq *ent.TokenQuery) {
@@ -480,13 +516,19 @@ func IndexBlockchainEvents() error {
 func IndexLinkedAddresses() error {
 	ctx := context.Background()
 
+	// Establish RPC connections
+	_, err := setRPCClients(ctx)
+	if err != nil {
+		return fmt.Errorf("IndexLinkedAddresses: %w", err)
+	}
+
 	go func() {
 		time.Sleep(500 * time.Millisecond)
 		_ = utils.Retry(8, 2*time.Second, func() error {
 			tokens, err := storage.Client.Token.
 				Query().
 				Where(
-					token.IsEnabled(true),
+					tokenent.IsEnabled(true),
 				).
 				WithNetwork().
 				All(ctx)
