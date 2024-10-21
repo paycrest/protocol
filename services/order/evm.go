@@ -19,6 +19,7 @@ import (
 	db "github.com/paycrest/protocol/storage"
 	"github.com/shopspring/decimal"
 
+	"github.com/paycrest/protocol/ent/fiatcurrency"
 	"github.com/paycrest/protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	"github.com/paycrest/protocol/ent/paymentorder"
@@ -72,6 +73,31 @@ func (s *OrderEVM) CreateOrder(ctx context.Context, client types.RPCClient, orde
 	} else if order.Edges.LinkedAddress != nil {
 		salt = order.Edges.LinkedAddress.Salt
 		address = order.Edges.LinkedAddress.Address
+
+		// Update the rate
+		currency, err := db.Client.FiatCurrency.
+			Query().
+			Where(
+				fiatcurrency.IsEnabledEQ(true),
+				fiatcurrency.CodeEQ(order.Edges.Recipient.Institution),
+			).
+			Only(ctx)
+		if err != nil {
+			return fmt.Errorf("%s - CreateOrder.fetchCurrency: %w", orderIDPrefix, err)
+		}
+
+		rate, err := utils.GetTokenRateFromQueue(order.Edges.Token.Symbol, order.Amount, currency.Code, currency.MarketRate)
+		if err != nil {
+			return fmt.Errorf("%s - CreateOrder.getRate: %w", orderIDPrefix, err)
+		}
+
+		_, err = db.Client.PaymentOrder.
+			UpdateOneID(orderID).
+			SetRate(rate).
+			Save(ctx)
+		if err != nil {
+			return fmt.Errorf("%s - CreateOrder.updateRate: %w", orderIDPrefix, err)
+		}
 	}
 
 	saltDecrypted, err := cryptoUtils.DecryptPlain(salt)

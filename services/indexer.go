@@ -212,44 +212,10 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 			}
 
 			// Get rate from priority queue
-			keys, _, err := db.RedisClient.Scan(ctx, uint64(0), "bucket_"+currency.Code+"_*_*", 100).Result()
+			rateResponse, err := utils.GetTokenRateFromQueue(token.Symbol, orderAmount, currency.Code, currency.MarketRate)
 			if err != nil {
-				logger.Errorf("IndexERC20Transfer.RedisScan: %v", err)
+				logger.Errorf("IndexERC20Transfer.GetTokenRateFromQueue: %v", err)
 				continue
-			}
-
-			rateResponse := currency.MarketRate
-			highestMaxAmount := decimal.NewFromInt(0)
-
-			// Scan through the buckets to find a matching rate
-			for _, key := range keys {
-				bucketData := strings.Split(key, "_")
-				minAmount, _ := decimal.NewFromString(bucketData[2])
-				maxAmount, _ := decimal.NewFromString(bucketData[3])
-
-				for index := 0; ; index++ {
-					// Get the topmost provider in the priority queue of the bucket
-					providerData, err := db.RedisClient.LIndex(ctx, key, int64(index)).Result()
-					if err != nil {
-						break
-					}
-
-					if strings.Split(providerData, ":")[1] == token.Symbol {
-						// Get fiat equivalent of the token amount
-						rate, _ := decimal.NewFromString(strings.Split(providerData, ":")[2])
-						fiatAmount := orderAmount.Mul(rate)
-
-						// Check if fiat amount is within the bucket range and set the rate
-						if fiatAmount.GreaterThanOrEqual(minAmount) && fiatAmount.LessThanOrEqual(maxAmount) {
-							rateResponse = rate
-							break
-						} else if maxAmount.GreaterThan(highestMaxAmount) {
-							// Get the highest max amount
-							highestMaxAmount = maxAmount
-							rateResponse = rate
-						}
-					}
-				}
 			}
 
 			tx, err := db.Client.Tx(ctx)
