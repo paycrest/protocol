@@ -98,7 +98,7 @@ func (s *OrderEVM) CreateOrder(ctx context.Context, client types.RPCClient, orde
 			return fmt.Errorf("%s - CreateOrder.updateRate: %w", orderIDPrefix, err)
 		}
 
-		_, err = db.Client.PaymentOrder.
+		order, err = db.Client.PaymentOrder.
 			UpdateOneID(orderID).
 			SetStatus(paymentorder.StatusRefunded).
 			Save(ctx)
