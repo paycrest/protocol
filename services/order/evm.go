@@ -98,12 +98,28 @@ func (s *OrderEVM) CreateOrder(ctx context.Context, client types.RPCClient, orde
 			return fmt.Errorf("%s - CreateOrder.updateRate: %w", orderIDPrefix, err)
 		}
 
-		order, err = db.Client.PaymentOrder.
+		_, err = db.Client.PaymentOrder.
 			UpdateOneID(orderID).
 			SetStatus(paymentorder.StatusRefunded).
 			Save(ctx)
 		if err != nil {
 			return fmt.Errorf("%s - CreateOrder.updateRate: %w", orderIDPrefix, err)
+		}
+
+		// Refresh order from db
+		order, err = db.Client.PaymentOrder.
+			Query().
+			Where(paymentorder.IDEQ(orderID)).
+			WithToken(func(tq *ent.TokenQuery) {
+				tq.WithNetwork()
+			}).
+			WithSenderProfile().
+			WithRecipient().
+			WithReceiveAddress().
+			WithLinkedAddress().
+			Only(ctx)
+		if err != nil {
+			return fmt.Errorf("%s - CreateOrder.refreshOrder: %w", orderIDPrefix, err)
 		}
 	}
 
