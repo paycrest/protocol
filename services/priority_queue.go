@@ -135,7 +135,7 @@ func (s *PriorityQueueService) CreatePriorityQueueForBucket(ctx context.Context,
 			Where(
 				providerordertoken.HasProviderWith(providerprofile.IDEQ(provider.ID)),
 			).
-			Select(providerordertoken.FieldSymbol).
+			Select(providerordertoken.FieldSymbol, providerordertoken.FieldMinOrderAmount, providerordertoken.FieldMaxOrderAmount).
 			All(ctx)
 		if err != nil {
 			logger.Errorf("failed to get tokens for provider %s: %v", provider.ID, err)
