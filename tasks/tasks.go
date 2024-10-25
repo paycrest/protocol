@@ -736,13 +736,13 @@ func ReassignUnvalidatedLockOrders() {
 		WithToken(func(tq *ent.TokenQuery) {
 			tq.WithNetwork()
 		}).
-		WithProvider(
-			func(pq *ent.ProviderProfileQuery) {
-				pq.WithAPIKey()
-			},
-		).
+		WithProvider(func(pq *ent.ProviderProfileQuery) {
+			pq.WithAPIKey()
+		}).
 		WithFulfillments().
-		WithProvisionBucket().
+		WithProvisionBucket(func(pb *ent.ProvisionBucketQuery) {
+			pb.WithCurrency()
+		}).
 		All(ctx)
 	if err != nil {
 		logger.Errorf("ReassignUnvalidatedLockOrders.db: %v", err)
