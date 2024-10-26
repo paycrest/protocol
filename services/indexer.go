@@ -435,13 +435,8 @@ func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPC
 	// Fetch logs
 	var iter *contracts.GatewayOrderCreatedIterator
 	retryErr := utils.Retry(3, 1*time.Second, func() error {
-		startBlock := uint64(int64(toBlock) - 5000)
-		if strings.Contains(network.Identifier, "arbitrum") {
-			startBlock = 267684600
-			toBlock = 267684700
-		}
 		iter, err = filterer.FilterOrderCreated(&bind.FilterOpts{
-			Start: startBlock,
+			Start: uint64(int64(toBlock) - 5000),
 			End:   &toBlock,
 		}, nil, nil, nil)
 		return err
@@ -467,7 +462,7 @@ func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPC
 		err := s.CreateLockPaymentOrder(ctx, client, network, event)
 		if err != nil {
 			if !strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
-				logger.Errorf("IndexOrderCreated.createOrder: %v", err)
+				logger.Errorf("IndexOrderCreated.CreateLockPaymentOrder: %v", err)
 			}
 			continue
 		}
