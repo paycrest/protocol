@@ -119,7 +119,12 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 			addresses = []common.Address{common.HexToAddress(addressToWatch)}
 			startBlock = int64(toBlock) - 5000
 		} else {
-			startBlock = int64(toBlock) - 100
+			if strings.Contains(token.Edges.Network.Identifier, "arbitrum") {
+				startBlock = 267660300
+				toBlock = 267660400
+			} else {
+				startBlock = int64(toBlock) - 100
+			}
 		}
 
 		iter, err = filterer.FilterTransfer(&bind.FilterOpts{

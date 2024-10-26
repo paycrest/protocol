@@ -15,7 +15,6 @@ import (
 	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/fiatcurrency"
-	"github.com/paycrest/protocol/ent/linkedaddress"
 	"github.com/paycrest/protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	networkent "github.com/paycrest/protocol/ent/network"
@@ -528,28 +527,8 @@ func IndexLinkedAddresses() error {
 
 			if len(tokens) > 0 {
 				for _, token := range tokens {
-					startBlockNumber := int64(0)
-					linkedAddress, err := storage.Client.LinkedAddress.
-						Query().
-						Where(
-							linkedaddress.HasPaymentOrdersWith(
-								paymentorder.HasTokenWith(tokenent.IDEQ(token.ID)),
-							),
-						).
-						Order(ent.Desc(linkedaddress.FieldLastIndexedBlock)).
-						First(ctx)
-					if err != nil {
-						if !ent.IsNotFound(err) {
-							logger.Errorf("IndexLinkedAddresses: %v", err)
-						}
-					}
-
-					if linkedAddress != nil {
-						startBlockNumber = linkedAddress.LastIndexedBlock + 1
-					}
-
 					indexerService := services.NewIndexerService(orderService.NewOrderEVM())
-					err = indexerService.IndexERC20Transfer(ctx, rpcClients[token.Edges.Network.Identifier], nil, token, startBlockNumber)
+					err = indexerService.IndexERC20Transfer(ctx, rpcClients[token.Edges.Network.Identifier], nil, token, 0)
 					if err != nil {
 						continue
 					}
