@@ -435,8 +435,13 @@ func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPC
 	// Fetch logs
 	var iter *contracts.GatewayOrderCreatedIterator
 	retryErr := utils.Retry(3, 1*time.Second, func() error {
+		startBlock := uint64(int64(toBlock) - 5000)
+		if strings.Contains(network.Identifier, "arbitrum") {
+			startBlock = 267684600
+			toBlock = 267684700
+		}
 		iter, err = filterer.FilterOrderCreated(&bind.FilterOpts{
-			Start: uint64(int64(toBlock) - 5000),
+			Start: startBlock,
 			End:   &toBlock,
 		}, nil, nil, nil)
 		return err
