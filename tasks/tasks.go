@@ -691,7 +691,15 @@ func ReassignUnvalidatedLockOrders() {
 	lockOrders, err := storage.Client.LockPaymentOrder.
 		Query().
 		Where(
-			lockpaymentorder.StatusEQ(lockpaymentorder.StatusFulfilled),
+			lockpaymentorder.Or(
+				lockpaymentorder.StatusEQ(lockpaymentorder.StatusFulfilled),
+				lockpaymentorder.And(
+					lockpaymentorder.StatusEQ(lockpaymentorder.StatusCancelled),
+					lockpaymentorder.HasFulfillmentsWith(
+						lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusPending),
+					),
+				),
+			),
 			lockpaymentorder.Or(
 				lockpaymentorder.HasFulfillmentsWith(
 					lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusFailed),
