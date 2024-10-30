@@ -185,6 +185,9 @@ func RetryStaleUserOperations() error {
 					lockpaymentorder.Or(
 						lockpaymentorder.Not(lockpaymentorder.HasFulfillments()),
 						lockpaymentorder.HasFulfillmentsWith(
+							lockorderfulfillment.Not(lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusPending)),
+						),
+						lockpaymentorder.HasFulfillmentsWith(
 							lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusFailed),
 							lockorderfulfillment.Not(lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusSuccess)),
 							lockorderfulfillment.Not(lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusPending)),
