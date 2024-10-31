@@ -181,7 +181,7 @@ func RetryStaleUserOperations() error {
 						lockpaymentorder.StatusEQ(lockpaymentorder.StatusPending),
 						lockpaymentorder.StatusEQ(lockpaymentorder.StatusCancelled),
 					),
-					lockpaymentorder.CreatedAtLTE(time.Now().Add(-30*time.Minute)),
+					lockpaymentorder.CreatedAtLTE(time.Now().Add(-10*time.Minute)),
 					lockpaymentorder.Or(
 						lockpaymentorder.Not(lockpaymentorder.HasFulfillments()),
 						lockpaymentorder.HasFulfillmentsWith(
