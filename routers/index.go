@@ -30,7 +30,6 @@ func RegisterRoutes(route *gin.Engine) {
 
 	v1.GET(
 		"currencies",
-		middleware.DynamicAuthMiddleware,
 		ctrl.GetFiatCurrencies,
 	)
 	v1.GET(
