@@ -65,6 +65,8 @@ func (s *OrderEVM) CreateOrder(ctx context.Context, client types.RPCClient, orde
 		return fmt.Errorf("%s - CreateOrder.fetchOrder: %w", orderIDPrefix, err)
 	}
 
+	originalStatus := order.Status
+
 	var salt []byte
 	var address string
 	if order.Edges.ReceiveAddress != nil {
@@ -89,42 +91,51 @@ func (s *OrderEVM) CreateOrder(ctx context.Context, client types.RPCClient, orde
 			return fmt.Errorf("%s - CreateOrder.getRate: %w", orderIDPrefix, err)
 		}
 
-		_, err = db.Client.PaymentOrder.
-			UpdateOneID(orderID).
-			SetRate(rate).
-			SetStatus(paymentorder.StatusPending). // hack to prevent duplicate constraint error -- PO table requires status update
-			Save(ctx)
-		if err != nil {
-			return fmt.Errorf("%s - CreateOrder.updateRate: %w", orderIDPrefix, err)
+		if rate != order.Rate {
+			_, err = db.Client.PaymentOrder.
+				UpdateOneID(orderID).
+				SetRate(rate).
+				SetStatus(paymentorder.StatusPending). // hack to prevent duplicate constraint error -- PO table requires status update
+				Save(ctx)
+			if err != nil {
+				return fmt.Errorf("%s - CreateOrder.updateRate: %w", orderIDPrefix, err)
+			}
+
+			// Refresh order from db
+			order, err = db.Client.PaymentOrder.
+				Query().
+				Where(paymentorder.IDEQ(orderID)).
+				WithToken(func(tq *ent.TokenQuery) {
+					tq.WithNetwork()
+				}).
+				WithSenderProfile().
+				WithRecipient().
+				WithReceiveAddress().
+				WithLinkedAddress().
+				Only(ctx)
+			if err != nil {
+				return fmt.Errorf("%s - CreateOrder.refreshOrder: %w", orderIDPrefix, err)
+			}
+		}
+	}
+
+	revertStatusToRefunded := func() error {
+		if originalStatus == paymentorder.StatusRefunded {
+			_, err = db.Client.PaymentOrder.
+				UpdateOneID(orderID).
+				SetStatus(paymentorder.StatusRefunded).
+				Save(ctx)
+			if err != nil {
+				return err
+			}
 		}
 
-		_, err = db.Client.PaymentOrder.
-			UpdateOneID(orderID).
-			SetStatus(paymentorder.StatusRefunded).
-			Save(ctx)
-		if err != nil {
-			return fmt.Errorf("%s - CreateOrder.updateRate: %w", orderIDPrefix, err)
-		}
-
-		// Refresh order from db
-		order, err = db.Client.PaymentOrder.
-			Query().
-			Where(paymentorder.IDEQ(orderID)).
-			WithToken(func(tq *ent.TokenQuery) {
-				tq.WithNetwork()
-			}).
-			WithSenderProfile().
-			WithRecipient().
-			WithReceiveAddress().
-			WithLinkedAddress().
-			Only(ctx)
-		if err != nil {
-			return fmt.Errorf("%s - CreateOrder.refreshOrder: %w", orderIDPrefix, err)
-		}
+		return nil
 	}
 
 	saltDecrypted, err := cryptoUtils.DecryptPlain(salt)
 	if err != nil {
+		_ = revertStatusToRefunded()
 		return fmt.Errorf("%s - CreateOrder.DecryptPlain: %w", orderIDPrefix, err)
 	}
 
@@ -133,12 +144,14 @@ func (s *OrderEVM) CreateOrder(ctx context.Context, client types.RPCClient, orde
 		ctx, nil, order.Edges.Token.Edges.Network.RPCEndpoint, address, string(saltDecrypted),
 	)
 	if err != nil {
+		_ = revertStatusToRefunded()
 		return fmt.Errorf("%s - CreateOrder.InitializeUserOperation: %w", orderIDPrefix, err)
 	}
 
 	// Create calldata
 	calldata, err := s.executeBatchCreateOrderCallData(order)
 	if err != nil {
+		_ = revertStatusToRefunded()
 		return fmt.Errorf("%s - CreateOrder.executeBatchCreateOrderCallData: %w", orderIDPrefix, err)
 	}
 	userOperation.CallData = calldata
@@ -151,22 +164,25 @@ func (s *OrderEVM) CreateOrder(ctx context.Context, client types.RPCClient, orde
 		err = utils.SponsorUserOperation(userOperation, "sponsored", "", order.Edges.Token.Edges.Network.ChainID)
 	}
 	if err != nil {
+		_ = revertStatusToRefunded()
 		return fmt.Errorf("%s - CreateOrder.SponsorUserOperation: %w", orderIDPrefix, err)
 	}
 
 	// Sign user operation
 	err = utils.SignUserOperation(userOperation, order.Edges.Token.Edges.Network.ChainID)
 	if err != nil {
+		_ = revertStatusToRefunded()
 		return fmt.Errorf("%s - CreateOrder.SignUserOperation: %w", orderIDPrefix, err)
 	}
 
 	// Send user operation
 	txHash, blockNumber, err := utils.SendUserOperation(userOperation, order.Edges.Token.Edges.Network.ChainID)
 	if err != nil {
+		_ = revertStatusToRefunded()
 		return fmt.Errorf("%s - CreateOrder.SendUserOperation: %w", orderIDPrefix, err)
 	}
 
-	// Update payment order with userOpHash
+	// Update payment order with txHash
 	_, err = order.Update().
 		SetTxHash(txHash).
 		SetBlockNumber(blockNumber).
@@ -176,6 +192,7 @@ func (s *OrderEVM) CreateOrder(ctx context.Context, client types.RPCClient, orde
 		return fmt.Errorf("%s - CreateOrder.updateTxHash: %w", orderIDPrefix, err)
 	}
 
+	// Refetch payment order
 	paymentOrder, err := db.Client.PaymentOrder.
 		Query().
 		Where(paymentorder.IDEQ(orderID)).
