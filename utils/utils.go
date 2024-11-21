@@ -347,10 +347,10 @@ func MapToStruct(m map[string]interface{}, s interface{}) error {
 	return nil
 }
 
-// IsValidMobileNumber checks if a string is a valid Nigerian mobile number
+// IsValidMobileNumber checks if a string is a valid mobile number
 func IsValidMobileNumber(number string) bool {
-	// Pattern for Nigerian phone numbers (both mobile and landline)
-	pattern := `^(?:\+234|0)[789]\d{9}$` // Single backslashes for Go regex
+	// Pattern for valid mobile numbers (generalized)
+	pattern := `^\+?[1-9]\d{1,14}$` // Matches international format
 	matched, _ := regexp.MatchString(pattern, number)
 	return matched
 }
