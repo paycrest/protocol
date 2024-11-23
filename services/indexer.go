@@ -1240,6 +1240,7 @@ func (s *IndexerService) UpdateOrderStatusRefunded(ctx context.Context, log *typ
 			paymentorder.GatewayIDEQ(gatewayId),
 		).
 		WithSenderProfile().
+		WithLinkedAddress().
 		Only(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {
@@ -1320,6 +1321,10 @@ func (s *IndexerService) UpdateOrderStatusRefunded(ctx context.Context, log *typ
 			).
 			SetTxHash(log.TxHash).
 			SetStatus(paymentorder.StatusRefunded)
+
+		if paymentOrder.Edges.LinkedAddress != nil {
+			paymentOrderUpdate = paymentOrderUpdate.SetGatewayID("")
+		}
 
 		if transactionLog != nil {
 			paymentOrderUpdate = paymentOrderUpdate.AddTransactions(transactionLog)

@@ -159,7 +159,6 @@ func (s *OrderEVM) CreateOrder(ctx context.Context, client types.RPCClient, orde
 		SetTxHash(txHash).
 		SetBlockNumber(blockNumber).
 		SetRate(order.Rate).
-		SetGatewayID("").
 		SetStatus(paymentorder.StatusPending).
 		Save(ctx)
 	if err != nil {
