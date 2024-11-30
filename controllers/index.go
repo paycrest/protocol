@@ -369,13 +369,18 @@ func (ctrl *Controller) GetLockPaymentOrderStatus(ctx *gin.Context) {
 		return
 	}
 
+	status := orders[0].Status
+	if status == lockpaymentorder.StatusCancelled {
+		status = lockpaymentorder.StatusProcessing
+	}
+
 	response := &types.LockPaymentOrderStatusResponse{
 		OrderID:       orders[0].GatewayID,
 		Amount:        totalAmount,
 		Token:         orders[0].Edges.Token.Symbol,
 		Network:       orders[0].Edges.Token.Edges.Network.Identifier,
 		SettlePercent: settlePercent,
-		Status:        orders[0].Status,
+		Status:        status,
 		TxHash:        receipts[0].TxHash,
 		Settlements:   settlements,
 		TxReceipts:    receipts,
