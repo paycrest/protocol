@@ -89,9 +89,10 @@ func TestUserOp(t *testing.T) {
 
 			},
 		)
-		transactionHash, blockNumber, err := SendUserOperation(data, 1)
+		transactionHash, orderId, blockNumber, err := SendUserOperation(data, 1)
 		assert.NoError(t, err)
 		assert.NotEmpty(t, transactionHash, "transactionHash should not be empty")
+		assert.NotEmpty(t, orderId, "orderId should not be empty")
 		assert.Equal(t, int64(120), blockNumber)
 
 	})

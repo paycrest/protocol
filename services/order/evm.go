@@ -176,7 +176,7 @@ func (s *OrderEVM) CreateOrder(ctx context.Context, client types.RPCClient, orde
 	}
 
 	// Send user operation
-	txHash, blockNumber, err := utils.SendUserOperation(userOperation, order.Edges.Token.Edges.Network.ChainID)
+	txHash, _, blockNumber, err := utils.SendUserOperation(userOperation, order.Edges.Token.Edges.Network.GatewayContractAddress, order.Edges.Token.Edges.Network.ChainID)
 	if err != nil {
 		_ = revertStatusToRefunded()
 		return fmt.Errorf("%s - CreateOrder.SendUserOperation: %w", orderIDPrefix, err)
@@ -257,7 +257,7 @@ func (s *OrderEVM) RefundOrder(ctx context.Context, client types.RPCClient, orde
 	_ = utils.SignUserOperation(userOperation, lockOrder.Edges.Token.Edges.Network.ChainID)
 
 	// Send user operation
-	txHash, blockNumber, err := utils.SendUserOperation(userOperation, lockOrder.Edges.Token.Edges.Network.ChainID)
+	txHash, _, blockNumber, err := utils.SendUserOperation(userOperation, lockOrder.Edges.Token.Edges.Network.GatewayContractAddress, lockOrder.Edges.Token.Edges.Network.ChainID)
 	if err != nil {
 		return fmt.Errorf("%s - RefundOrder.sendUserOperation: %w", orderIDPrefix, err)
 	}
@@ -332,7 +332,7 @@ func (s *OrderEVM) SettleOrder(ctx context.Context, client types.RPCClient, orde
 	_ = utils.SignUserOperation(userOperation, order.Edges.Token.Edges.Network.ChainID)
 
 	// Send user operation
-	txHash, blockNumber, err := utils.SendUserOperation(userOperation, order.Edges.Token.Edges.Network.ChainID)
+	txHash, _, blockNumber, err := utils.SendUserOperation(userOperation, order.Edges.Token.Edges.Network.GatewayContractAddress, order.Edges.Token.Edges.Network.ChainID)
 	if err != nil {
 		return fmt.Errorf("%s - SettleOrder.sendUserOperation: %w", orderIDPrefix, err)
 	}

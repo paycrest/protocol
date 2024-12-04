@@ -3,6 +3,7 @@ package utils
 import (
 	"context"
 	"encoding/json"
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"strings"
@@ -249,15 +250,15 @@ func SignUserOperation(userOperation *userop.UserOperation, chainId int64) error
 }
 
 // SendUserOperation sends the user operation
-func SendUserOperation(userOp *userop.UserOperation, chainId int64) (string, int64, error) {
+func SendUserOperation(userOp *userop.UserOperation, gatewayContractAddress string, chainId int64) (string, string, int64, error) {
 	bundlerUrl, _, err := getEndpoints(chainId)
 	if err != nil {
-		return "", 0, fmt.Errorf("failed to get endpoints: %w", err)
+		return "", "", 0, fmt.Errorf("failed to get endpoints: %w", err)
 	}
 
 	client, err := rpc.Dial(bundlerUrl)
 	if err != nil {
-		return "", 0, fmt.Errorf("failed to connect to RPC client: %w", err)
+		return "", "", 0, fmt.Errorf("failed to connect to RPC client: %w", err)
 	}
 
 	var requestParams []interface{}
@@ -281,35 +282,69 @@ func SendUserOperation(userOp *userop.UserOperation, chainId int64) (string, int
 	err = client.Call(&result, "eth_sendUserOperation", requestParams...)
 	if err != nil {
 		op, _ := userOp.MarshalJSON()
-		return "", 0, fmt.Errorf("RPC error: %w\nUser Operation: %s", err, string(op))
+		return "", "", 0, fmt.Errorf("RPC error: %w\nUser Operation: %s", err, string(op))
 	}
 
 	var userOpHash string
 	err = json.Unmarshal(result, &userOpHash)
 	if err != nil {
-		return "", 0, fmt.Errorf("failed to unmarshal response: %w", err)
+		return "", "", 0, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
-	response, err := GetUserOperationByHash(userOpHash, chainId)
+	response, err := GetUserOperationByReceipt(userOpHash, chainId)
 	if err != nil {
-		return "", 0, fmt.Errorf("failed to get user operation by hash: %w", err)
+		return "", "", 0, fmt.Errorf("failed to get user operation by hash: %w", err)
 	}
 
 	transactionHash, ok := response["transactionHash"].(string)
 	if !ok {
-		return "", 0, fmt.Errorf("failed to get transaction hash")
+		return "", "", 0, fmt.Errorf("failed to get transaction hash")
 	}
 
 	blockNumber, ok := response["blockNumber"].(float64)
 	if !ok {
-		return "", 0, fmt.Errorf("failed to get block number")
+		return "", "", 0, fmt.Errorf("failed to get block number")
 	}
 
-	return transactionHash, int64(blockNumber), nil
+	receipt := response["receipt"].(map[string]interface{})
+    logs := receipt["logs"].([]interface{})
+    logAddress := receipt["address"].(string)
+
+	var orderId string
+
+	// Iterate over logs to find the OrderCreated event
+    for _, log := range logs {
+        logMap := log.(map[string]interface{})
+        topics := logMap["topics"].([]interface{})
+        eventSignature := topics[0].(string)
+		// should be hardcoded since it is a constant
+		if strings.EqualFold(logAddress, gatewayContractAddress) && eventSignature == "0x40ccd1ceb111a3c186ef9911e1b876dc1f789ed331b86097b3b8851055b6a137" {
+			data := logMap["data"].(string)
+			// Remove "0x" prefix if present
+            if len(data) > 2 && data[:2] == "0x" {
+                data = data[2:]
+            }
+
+			// Extract orderId (first 32 bytes)
+			orderIdBytes, err := hex.DecodeString(data[:64])
+			if err != nil {
+				return "", "", 0, fmt.Errorf("failed to decode orderId: %w", err)
+			}
+			// Convert to bytes32
+			orderId = common.BytesToHash(orderIdBytes).Hex()
+			fmt.Println("Order ID: ", orderId)
+		}
+	}
+
+	if orderId == "" {
+		return "", "", 0, fmt.Errorf("failed to get order ID")
+	}
+
+	return transactionHash, orderId, int64(blockNumber), nil
 }
 
-// GetUserOperationByHash fetches the user operation by hash
-func GetUserOperationByHash(userOpHash string, chainId int64) (map[string]interface{}, error) {
+// GetUserOperationByReceipt fetches the user operation by hash
+func GetUserOperationByReceipt(userOpHash string, chainId int64) (map[string]interface{}, error) {
 	bundlerUrl, _, err := getEndpoints(chainId)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get endpoints: %w", err)
@@ -327,7 +362,7 @@ func GetUserOperationByHash(userOpHash string, chainId int64) (map[string]interf
 	for {
 		time.Sleep(10 * time.Second)
 		var result json.RawMessage
-		err = client.Call(&result, "eth_getUserOperationByHash", []interface{}{userOpHash}...)
+		err = client.Call(&result, "eth_getUserOperationReceipt", []interface{}{userOpHash}...)
 		if err != nil {
 			return nil, fmt.Errorf("RPC error: %w", err)
 		}
@@ -337,7 +372,7 @@ func GetUserOperationByHash(userOpHash string, chainId int64) (map[string]interf
 			return nil, err
 		}
 
-		if response == nil && response["transactionHash"] == nil {
+		if response == nil && response["receipt"] == nil {
 			elapsed := time.Since(start)
 			if elapsed >= timeout {
 				return nil, err
