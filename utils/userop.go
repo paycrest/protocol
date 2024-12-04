@@ -308,15 +308,16 @@ func SendUserOperation(userOp *userop.UserOperation, gatewayContractAddress stri
 
 	receipt := response["receipt"].(map[string]interface{})
     logs := receipt["logs"].([]interface{})
-    logAddress := receipt["address"].(string)
-
+	
 	var orderId string
-
+	
 	// Iterate over logs to find the OrderCreated event
     for _, log := range logs {
-        logMap := log.(map[string]interface{})
+		logMap := log.(map[string]interface{})
         topics := logMap["topics"].([]interface{})
         eventSignature := topics[0].(string)
+
+		logAddress := logMap["address"].(string)
 		// should be hardcoded since it is a constant
 		if strings.EqualFold(logAddress, gatewayContractAddress) && eventSignature == "0x40ccd1ceb111a3c186ef9911e1b876dc1f789ed331b86097b3b8851055b6a137" {
 			data := logMap["data"].(string)
@@ -335,7 +336,7 @@ func SendUserOperation(userOp *userop.UserOperation, gatewayContractAddress stri
 			fmt.Println("Order ID: ", orderId)
 		}
 	}
-
+	// if orderId is empty, return error
 	if orderId == "" {
 		return "", "", 0, fmt.Errorf("failed to get order ID")
 	}
