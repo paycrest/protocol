@@ -287,8 +287,8 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 			continue
 		}
 
-		// TODO: make the slippage or 0.1 configurable by provider
-		if rate.Sub(order.Rate).Abs().LessThan(decimal.NewFromFloat(0.1)) {
+		// TODO: make the slippage of 0.5 configurable by provider
+		if rate.Sub(order.Rate).Abs().LessThan(decimal.NewFromFloat(0.5)) {
 			// Found a match for the rate
 			if index == 0 {
 				// Match found at index 0, perform LPOP to dequeue

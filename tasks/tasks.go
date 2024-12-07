@@ -622,7 +622,13 @@ func ReassignUnfulfilledLockOrders() {
 					lockorderfulfillment.Not(lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusPending)),
 				),
 			),
-			lockpaymentorder.StatusEQ(lockpaymentorder.StatusProcessing),
+			lockpaymentorder.Or(
+				lockpaymentorder.StatusEQ(lockpaymentorder.StatusProcessing),
+				lockpaymentorder.And(
+					lockpaymentorder.StatusEQ(lockpaymentorder.StatusCancelled),
+					lockpaymentorder.Not(lockpaymentorder.HasFulfillments()),
+				),
+			),
 			lockpaymentorder.Or(
 				lockpaymentorder.UpdatedAtLTE(time.Now().Add(-orderConf.OrderFulfillmentValidity*time.Minute)),
 				lockpaymentorder.HasFulfillmentsWith(
@@ -674,9 +680,14 @@ func ReassignUnfulfilledLockOrders() {
 			Institution:       order.Institution,
 			AccountIdentifier: order.AccountIdentifier,
 			AccountName:       order.AccountName,
-			ProviderID:        order.Edges.Provider.ID,
 			Memo:              order.Memo,
 			ProvisionBucket:   order.Edges.ProvisionBucket,
+		}
+
+		if order.Edges.Provider != nil {
+			lockPaymentOrder.ProviderID = order.Edges.Provider.ID
+		} else {
+			lockPaymentOrder.ProviderID = ""
 		}
 
 		err := services.NewPriorityQueueService().AssignLockPaymentOrder(ctx, lockPaymentOrder)
