@@ -624,13 +624,16 @@ func ReassignUnfulfilledLockOrders() {
 			),
 			lockpaymentorder.Or(
 				lockpaymentorder.StatusEQ(lockpaymentorder.StatusProcessing),
-				lockpaymentorder.And(
-					lockpaymentorder.StatusEQ(lockpaymentorder.StatusCancelled),
-					lockpaymentorder.Not(lockpaymentorder.HasFulfillments()),
-				),
+				lockpaymentorder.StatusEQ(lockpaymentorder.StatusCancelled),
 			),
 			lockpaymentorder.Or(
-				lockpaymentorder.UpdatedAtLTE(time.Now().Add(-orderConf.OrderFulfillmentValidity*time.Minute)),
+				lockpaymentorder.Or(
+					lockpaymentorder.And(
+						lockpaymentorder.StatusEQ(lockpaymentorder.StatusProcessing),
+						lockpaymentorder.UpdatedAtLTE(time.Now().Add(-orderConf.OrderFulfillmentValidity*time.Minute)),
+					),
+					lockpaymentorder.StatusEQ(lockpaymentorder.StatusCancelled),
+				),
 				lockpaymentorder.HasFulfillmentsWith(
 					lockorderfulfillment.CreatedAtLTE(time.Now().Add(-orderConf.OrderFulfillmentValidity*time.Minute)),
 				),
@@ -651,8 +654,13 @@ func ReassignUnfulfilledLockOrders() {
 	_, err = storage.Client.LockPaymentOrder.
 		Update().
 		Where(
-			lockpaymentorder.StatusEQ(lockpaymentorder.StatusProcessing),
-			lockpaymentorder.UpdatedAtLTE(time.Now().Add(-orderConf.OrderFulfillmentValidity*time.Minute)),
+			lockpaymentorder.Or(
+				lockpaymentorder.And(
+					lockpaymentorder.StatusEQ(lockpaymentorder.StatusProcessing),
+					lockpaymentorder.UpdatedAtLTE(time.Now().Add(-orderConf.OrderFulfillmentValidity*time.Minute)),
+				),
+				lockpaymentorder.StatusEQ(lockpaymentorder.StatusCancelled),
+			),
 			lockpaymentorder.Or(
 				lockpaymentorder.Not(lockpaymentorder.HasFulfillments()),
 				lockpaymentorder.HasFulfillmentsWith(
@@ -686,8 +694,6 @@ func ReassignUnfulfilledLockOrders() {
 
 		if order.Edges.Provider != nil {
 			lockPaymentOrder.ProviderID = order.Edges.Provider.ID
-		} else {
-			lockPaymentOrder.ProviderID = ""
 		}
 
 		err := services.NewPriorityQueueService().AssignLockPaymentOrder(ctx, lockPaymentOrder)
