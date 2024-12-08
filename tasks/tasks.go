@@ -549,6 +549,20 @@ func IndexLinkedAddresses() error {
 func ReassignPendingOrders() {
 	ctx := context.Background()
 
+	// Remove provider id from pending lock orders
+	_, err := storage.Client.LockPaymentOrder.
+		Update().
+		Where(
+			lockpaymentorder.StatusEQ(lockpaymentorder.StatusPending),
+			lockpaymentorder.Not(lockpaymentorder.HasFulfillments()),
+		).
+		ClearProvider().
+		Save(ctx)
+	if err != nil {
+		logger.Errorf("ReassignPendingOrders.db: %v", err)
+		return
+	}
+
 	// Query pending lock orders
 	lockOrders, err := storage.Client.LockPaymentOrder.
 		Query().
@@ -610,6 +624,34 @@ func ReassignPendingOrders() {
 func ReassignUnfulfilledLockOrders() {
 	ctx := context.Background()
 
+	// Unassign unfulfilled lock orders.
+	_, err := storage.Client.LockPaymentOrder.
+		Update().
+		Where(
+			lockpaymentorder.Or(
+				lockpaymentorder.And(
+					lockpaymentorder.StatusEQ(lockpaymentorder.StatusProcessing),
+					lockpaymentorder.UpdatedAtLTE(time.Now().Add(-orderConf.OrderFulfillmentValidity*time.Minute)),
+				),
+				lockpaymentorder.StatusEQ(lockpaymentorder.StatusCancelled),
+			),
+			lockpaymentorder.Or(
+				lockpaymentorder.Not(lockpaymentorder.HasFulfillments()),
+				lockpaymentorder.HasFulfillmentsWith(
+					lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusFailed),
+					lockorderfulfillment.Not(lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusSuccess)),
+					lockorderfulfillment.Not(lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusPending)),
+				),
+			),
+		).
+		SetStatus(lockpaymentorder.StatusPending).
+		ClearProvider().
+		Save(ctx)
+	if err != nil {
+		logger.Errorf("ReassignUnfulfilledLockOrders: %v", err)
+		return
+	}
+
 	// Query unfulfilled lock orders.
 	lockOrders, err := storage.Client.LockPaymentOrder.
 		Query().
@@ -645,33 +687,6 @@ func ReassignUnfulfilledLockOrders() {
 			pbq.WithCurrency()
 		}).
 		All(ctx)
-	if err != nil {
-		logger.Errorf("ReassignUnfulfilledLockOrders: %v", err)
-		return
-	}
-
-	// Unassign unfulfilled lock orders.
-	_, err = storage.Client.LockPaymentOrder.
-		Update().
-		Where(
-			lockpaymentorder.Or(
-				lockpaymentorder.And(
-					lockpaymentorder.StatusEQ(lockpaymentorder.StatusProcessing),
-					lockpaymentorder.UpdatedAtLTE(time.Now().Add(-orderConf.OrderFulfillmentValidity*time.Minute)),
-				),
-				lockpaymentorder.StatusEQ(lockpaymentorder.StatusCancelled),
-			),
-			lockpaymentorder.Or(
-				lockpaymentorder.Not(lockpaymentorder.HasFulfillments()),
-				lockpaymentorder.HasFulfillmentsWith(
-					lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusFailed),
-					lockorderfulfillment.Not(lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusSuccess)),
-					lockorderfulfillment.Not(lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusPending)),
-				),
-			),
-		).
-		SetStatus(lockpaymentorder.StatusPending).
-		Save(ctx)
 	if err != nil {
 		logger.Errorf("ReassignUnfulfilledLockOrders: %v", err)
 		return
