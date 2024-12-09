@@ -251,7 +251,7 @@ func SignUserOperation(userOperation *userop.UserOperation, chainId int64) error
 }
 
 // SendUserOperation sends the user operation
-func SendUserOperation(userOp *userop.UserOperation, gatewayContractAddress string, chainId int64) (string, string, int64, error) {
+func SendUserOperation(userOp *userop.UserOperation, chainId int64) (string, string, int64, error) {
 	bundlerUrl, _, err := getEndpoints(chainId)
 	if err != nil {
 		return "", "", 0, fmt.Errorf("failed to get endpoints: %w", err)
@@ -292,7 +292,7 @@ func SendUserOperation(userOp *userop.UserOperation, gatewayContractAddress stri
 		return "", "", 0, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
-	response, err := GetUserOperationByReceipt(userOpHash, gatewayContractAddress, chainId)
+	response, err := GetUserOperationByReceipt(userOpHash, chainId)
 	if err != nil {
 		return "", "", 0, fmt.Errorf("failed to get user operation by hash: %w", err)
 	}
@@ -307,16 +307,16 @@ func SendUserOperation(userOp *userop.UserOperation, gatewayContractAddress stri
 		return "", "", 0, fmt.Errorf("failed to get order ID")
 	}
 
-	blockNumber, ok := response["blockNumber"].(int64)
+	blockNumber, ok := response["blockNumber"].(float64)
 	if !ok {
 		return "", "", 0, fmt.Errorf("failed to get block number")
 	}
 
-	return transactionHash, orderId, blockNumber, nil
+	return transactionHash, orderId, int64(blockNumber), nil
 }
 
 // GetUserOperationByReceipt fetches the user operation by hash
-func GetUserOperationByReceipt(userOpHash string, gatewayContractAddress string, chainId int64) (map[string]interface{}, error) {
+func GetUserOperationByReceipt(userOpHash string, chainId int64) (map[string]interface{}, error) {
 	bundlerUrl, _, err := getEndpoints(chainId)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get endpoints: %w", err)
@@ -378,34 +378,29 @@ func GetUserOperationByReceipt(userOpHash string, gatewayContractAddress string,
 		return nil, fmt.Errorf("failed to get transaction hash from log entry")
 	}
 
-	blockNumberStr, ok := logMap["blockNumber"].(string)
+	blockNumber, ok := logMap["blockNumber"].(string)
 	if !ok {
 		return nil, fmt.Errorf("failed to get block number")
 	}
-	// Convert block number from hexadecimal string to int64
-	blockNumber, err := strconv.ParseInt(blockNumberStr[2:], 16, 64)
-    if err != nil {
-        return nil, fmt.Errorf("failed to parse block number: %w", err)
-    }
-	
+
 	var orderId string
 	
 	// Iterate over logs to find the OrderCreated event
     for _, event := range receipt["logs"].([]interface{}) {
 		eventData := event.(map[string]interface{})
-		if eventData["address"] == gatewayContractAddress && eventData["topics"].([]interface{})[0] == "0x40ccd1ceb111a3c186ef9911e1b876dc1f789ed331b86097b3b8851055b6a137" {
+		if eventData["topics"].([]interface{})[0] == "0x40ccd1ceb111a3c186ef9911e1b876dc1f789ed331b86097b3b8851055b6a137" {
 			unpackedEventData, err := UnpackEventData(eventData["data"].(string), contracts.GatewayMetaData.ABI, "OrderCreated")
 			if err != nil {
 				return nil, fmt.Errorf("userop failed to unpack event data: %w", err)
 			}
 			orderIdBytes := unpackedEventData[1].([32]byte)
 			orderId = hex.EncodeToString(orderIdBytes[:])
+			// if orderId is empty, return error
+			if orderId == "" {
+				return nil, fmt.Errorf("failed to get order ID")
+			}
 			break
 		}
-	}
-	// if orderId is empty, return error
-	if orderId == "" {
-		return nil, fmt.Errorf("failed to get order ID")
 	}
 
 	return map[string]interface{}{

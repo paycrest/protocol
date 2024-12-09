@@ -176,7 +176,7 @@ func (s *OrderEVM) CreateOrder(ctx context.Context, client types.RPCClient, orde
 	}
 
 	// Send user operation
-	txHash, _, blockNumber, err := utils.SendUserOperation(userOperation, order.Edges.Token.Edges.Network.GatewayContractAddress, order.Edges.Token.Edges.Network.ChainID)
+	txHash, gatewayId, blockNumber, err := utils.SendUserOperation(userOperation, order.Edges.Token.Edges.Network.ChainID)
 	if err != nil {
 		_ = revertStatusToRefunded()
 		return fmt.Errorf("%s - CreateOrder.SendUserOperation: %w", orderIDPrefix, err)
@@ -185,6 +185,7 @@ func (s *OrderEVM) CreateOrder(ctx context.Context, client types.RPCClient, orde
 	// Update payment order with txHash
 	_, err = order.Update().
 		SetTxHash(txHash).
+		SetGatewayID(gatewayId).
 		SetBlockNumber(blockNumber).
 		SetStatus(paymentorder.StatusPending).
 		Save(ctx)
@@ -257,7 +258,7 @@ func (s *OrderEVM) RefundOrder(ctx context.Context, client types.RPCClient, orde
 	_ = utils.SignUserOperation(userOperation, lockOrder.Edges.Token.Edges.Network.ChainID)
 
 	// Send user operation
-	txHash, _, blockNumber, err := utils.SendUserOperation(userOperation, lockOrder.Edges.Token.Edges.Network.GatewayContractAddress, lockOrder.Edges.Token.Edges.Network.ChainID)
+	txHash, _, blockNumber, err := utils.SendUserOperation(userOperation, lockOrder.Edges.Token.Edges.Network.ChainID)
 	if err != nil {
 		return fmt.Errorf("%s - RefundOrder.sendUserOperation: %w", orderIDPrefix, err)
 	}
