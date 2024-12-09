@@ -541,20 +541,38 @@ func (ctrl *ProviderController) CancelOrder(ctx *gin.Context) {
 		cancellationCount += 1
 		orderUpdate.AppendCancellationReasons([]string{payload.Reason})
 	} else if payload.Reason == "Insufficient funds" {
-		// Search for the specific provider in the queue using a Redis set
+		// Search for the specific provider in the queue using a Redis list
 		redisKey := fmt.Sprintf("bucket_%s_%s_%s", order.Edges.ProvisionBucket.Edges.Currency.Code, order.Edges.ProvisionBucket.MinAmount, order.Edges.ProvisionBucket.MaxAmount)
 
-		// Check if the provider ID exists in the set
-		exists, err := storage.RedisClient.SIsMember(ctx, redisKey, provider.ID).Result()
-		if err != nil {
-			logger.Errorf("failed to check provider ID in circular queue: %v", err)
-		}
-
-		if exists {
-			// Remove the specific provider ID from the set
-			_, err := storage.RedisClient.SRem(ctx, redisKey, provider.ID).Result()
+		// Check if the provider ID exists in the list
+		for index := -1; ; index-- {
+			providerData, err := storage.RedisClient.LIndex(ctx, redisKey, int64(index)).Result()
 			if err != nil {
-				logger.Errorf("failed to remove provider %s from circular queue: %v", provider.ID, err)
+				break
+			}
+
+			// Extract the id from the data (assuming format "providerID:token:rate:minAmount:maxAmount")
+			parts := strings.Split(providerData, ":")
+			if len(parts) != 5 {
+				logger.Errorf("invalid provider data format: %s", providerData)
+				continue // Skip this entry due to invalid format
+			}
+
+			if parts[0] == provider.ID {
+				// Remove the provider from the list
+				placeholder := "DELETED_PROVIDER" // Define a placeholder value
+				_, err := storage.RedisClient.LSet(ctx, redisKey, int64(index), placeholder).Result()
+				if err != nil {
+					logger.Errorf("failed to set placeholder at index %d: %v", index, err)
+				}
+
+				// Remove all occurences of the placeholder from the list
+				_, err = storage.RedisClient.LRem(ctx, redisKey, 0, placeholder).Result()
+				if err != nil {
+					logger.Errorf("failed to remove placeholder from circular queue: %v", err)
+				}
+
+				break
 			}
 		}
 

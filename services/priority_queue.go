@@ -247,7 +247,7 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 		// 	providerData = partnerProviders[randomIndex]
 		// }
 
-		// Extract the rate from the data (assuming it's in the format "providerID:token:rate")
+		// Extract the rate from the data (assuming it's in the format "providerID:token:rate:minAmount:maxAmount")
 		parts := strings.Split(providerData, ":")
 		if len(parts) != 5 {
 			logger.Errorf("%s - invalid data format at index %d: %s", orderIDPrefix, index, providerData)
