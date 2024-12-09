@@ -1338,10 +1338,10 @@ func StartCronJobs() {
 	}
 
 	// Reassign pending order requests every 13 minutes
-	_, err = scheduler.Cron("*/13 * * * *").Do(ReassignPendingOrders)
-	if err != nil {
-		logger.Errorf("StartCronJobs: %v", err)
-	}
+	// _, err = scheduler.Cron("*/13 * * * *").Do(ReassignPendingOrders)
+	// if err != nil {
+	// 	logger.Errorf("StartCronJobs: %v", err)
+	// }
 
 	// Reassign unvalidated order requests every 2 minutes
 	_, err = scheduler.Cron("*/2 * * * *").Do(ReassignUnvalidatedLockOrders)
@@ -1350,10 +1350,10 @@ func StartCronJobs() {
 	}
 
 	// Reassign unfulfilled order requests every 3 minutes
-	_, err = scheduler.Cron("*/3 * * * *").Do(ReassignUnfulfilledLockOrders)
-	if err != nil {
-		logger.Errorf("StartCronJobs: %v", err)
-	}
+	// _, err = scheduler.Cron("*/3 * * * *").Do(ReassignUnfulfilledLockOrders)
+	// if err != nil {
+	// 	logger.Errorf("StartCronJobs: %v", err)
+	// }
 
 	// Handle receive address validity every 31 minutes
 	_, err = scheduler.Cron("*/31 * * * *").Do(HandleReceiveAddressValidity)
