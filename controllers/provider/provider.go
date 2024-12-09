@@ -523,6 +523,7 @@ func (ctrl *ProviderController) CancelOrder(ctx *gin.Context) {
 			tq.WithNetwork()
 		}).
 		WithProvider().
+		WithProvisionBucket().
 		Only(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
@@ -539,6 +540,32 @@ func (ctrl *ProviderController) CancelOrder(ctx *gin.Context) {
 	} else if payload.Reason != "Insufficient funds" {
 		cancellationCount += 1
 		orderUpdate.AppendCancellationReasons([]string{payload.Reason})
+	} else if payload.Reason == "Insufficient funds" {
+		// Search for the specific provider in the queue using a Redis set
+		redisKey := fmt.Sprintf("bucket_%s_%s_%s", order.Edges.ProvisionBucket.Edges.Currency.Code, order.Edges.ProvisionBucket.MinAmount, order.Edges.ProvisionBucket.MaxAmount)
+
+		// Check if the provider ID exists in the set
+		exists, err := storage.RedisClient.SIsMember(ctx, redisKey, provider.ID).Result()
+		if err != nil {
+			logger.Errorf("failed to check provider ID in circular queue: %v", err)
+		}
+
+		if exists {
+			// Remove the specific provider ID from the set
+			_, err := storage.RedisClient.SRem(ctx, redisKey, provider.ID).Result()
+			if err != nil {
+				logger.Errorf("failed to remove provider %s from circular queue: %v", provider.ID, err)
+			}
+		}
+
+		// Update provider availability to off
+		_, err = storage.Client.ProviderProfile.
+			UpdateOneID(provider.ID).
+			SetIsAvailable(false).
+			Save(ctx)
+		if err != nil {
+			logger.Errorf("failed to update provider availability: %v", err)
+		}
 	}
 
 	// Update lock order status to cancelled
