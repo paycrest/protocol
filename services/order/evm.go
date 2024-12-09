@@ -333,7 +333,7 @@ func (s *OrderEVM) SettleOrder(ctx context.Context, client types.RPCClient, orde
 	_ = utils.SignUserOperation(userOperation, order.Edges.Token.Edges.Network.ChainID)
 
 	// Send user operation
-	txHash, _, blockNumber, err := utils.SendUserOperation(userOperation, order.Edges.Token.Edges.Network.GatewayContractAddress, order.Edges.Token.Edges.Network.ChainID)
+	txHash, _, blockNumber, err := utils.SendUserOperation(userOperation, order.Edges.Token.Edges.Network.ChainID)
 	if err != nil {
 		return fmt.Errorf("%s - SettleOrder.sendUserOperation: %w", orderIDPrefix, err)
 	}
