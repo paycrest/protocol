@@ -523,7 +523,9 @@ func (ctrl *ProviderController) CancelOrder(ctx *gin.Context) {
 			tq.WithNetwork()
 		}).
 		WithProvider().
-		WithProvisionBucket().
+		WithProvisionBucket(func(pbq *ent.ProvisionBucketQuery) {
+			pbq.WithCurrency()
+		}).
 		Only(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
