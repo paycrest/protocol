@@ -23,6 +23,7 @@ func (SenderProfile) Fields() []ent.Field {
 		field.String("webhook_url").Optional(),
 		field.Strings("domain_whitelist").
 			Default([]string{}),
+		field.String("provider_id").Optional(),
 		field.Bool("is_partner").Default(false),
 		field.Bool("is_active").
 			Default(false),
@@ -46,6 +47,8 @@ func (SenderProfile) Edges() []ent.Edge {
 		edge.To("payment_orders", PaymentOrder.Type).
 			Annotations(entsql.OnDelete(entsql.SetNull)),
 		edge.To("order_tokens", SenderOrderToken.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("linked_address", LinkedAddress.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }

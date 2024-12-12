@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 
+	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
@@ -110,7 +111,7 @@ func (sotq *SenderOrderTokenQuery) QueryToken() *TokenQuery {
 // First returns the first SenderOrderToken entity from the query.
 // Returns a *NotFoundError when no SenderOrderToken was found.
 func (sotq *SenderOrderTokenQuery) First(ctx context.Context) (*SenderOrderToken, error) {
-	nodes, err := sotq.Limit(1).All(setContextOp(ctx, sotq.ctx, "First"))
+	nodes, err := sotq.Limit(1).All(setContextOp(ctx, sotq.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
@@ -133,7 +134,7 @@ func (sotq *SenderOrderTokenQuery) FirstX(ctx context.Context) *SenderOrderToken
 // Returns a *NotFoundError when no SenderOrderToken ID was found.
 func (sotq *SenderOrderTokenQuery) FirstID(ctx context.Context) (id int, err error) {
 	var ids []int
-	if ids, err = sotq.Limit(1).IDs(setContextOp(ctx, sotq.ctx, "FirstID")); err != nil {
+	if ids, err = sotq.Limit(1).IDs(setContextOp(ctx, sotq.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -156,7 +157,7 @@ func (sotq *SenderOrderTokenQuery) FirstIDX(ctx context.Context) int {
 // Returns a *NotSingularError when more than one SenderOrderToken entity is found.
 // Returns a *NotFoundError when no SenderOrderToken entities are found.
 func (sotq *SenderOrderTokenQuery) Only(ctx context.Context) (*SenderOrderToken, error) {
-	nodes, err := sotq.Limit(2).All(setContextOp(ctx, sotq.ctx, "Only"))
+	nodes, err := sotq.Limit(2).All(setContextOp(ctx, sotq.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
 	}
@@ -184,7 +185,7 @@ func (sotq *SenderOrderTokenQuery) OnlyX(ctx context.Context) *SenderOrderToken 
 // Returns a *NotFoundError when no entities are found.
 func (sotq *SenderOrderTokenQuery) OnlyID(ctx context.Context) (id int, err error) {
 	var ids []int
-	if ids, err = sotq.Limit(2).IDs(setContextOp(ctx, sotq.ctx, "OnlyID")); err != nil {
+	if ids, err = sotq.Limit(2).IDs(setContextOp(ctx, sotq.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -209,7 +210,7 @@ func (sotq *SenderOrderTokenQuery) OnlyIDX(ctx context.Context) int {
 
 // All executes the query and returns a list of SenderOrderTokens.
 func (sotq *SenderOrderTokenQuery) All(ctx context.Context) ([]*SenderOrderToken, error) {
-	ctx = setContextOp(ctx, sotq.ctx, "All")
+	ctx = setContextOp(ctx, sotq.ctx, ent.OpQueryAll)
 	if err := sotq.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
@@ -231,7 +232,7 @@ func (sotq *SenderOrderTokenQuery) IDs(ctx context.Context) (ids []int, err erro
 	if sotq.ctx.Unique == nil && sotq.path != nil {
 		sotq.Unique(true)
 	}
-	ctx = setContextOp(ctx, sotq.ctx, "IDs")
+	ctx = setContextOp(ctx, sotq.ctx, ent.OpQueryIDs)
 	if err = sotq.Select(senderordertoken.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
@@ -249,7 +250,7 @@ func (sotq *SenderOrderTokenQuery) IDsX(ctx context.Context) []int {
 
 // Count returns the count of the given query.
 func (sotq *SenderOrderTokenQuery) Count(ctx context.Context) (int, error) {
-	ctx = setContextOp(ctx, sotq.ctx, "Count")
+	ctx = setContextOp(ctx, sotq.ctx, ent.OpQueryCount)
 	if err := sotq.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
@@ -267,7 +268,7 @@ func (sotq *SenderOrderTokenQuery) CountX(ctx context.Context) int {
 
 // Exist returns true if the query has elements in the graph.
 func (sotq *SenderOrderTokenQuery) Exist(ctx context.Context) (bool, error) {
-	ctx = setContextOp(ctx, sotq.ctx, "Exist")
+	ctx = setContextOp(ctx, sotq.ctx, ent.OpQueryExist)
 	switch _, err := sotq.FirstID(ctx); {
 	case IsNotFound(err):
 		return false, nil
@@ -612,7 +613,7 @@ func (sotgb *SenderOrderTokenGroupBy) Aggregate(fns ...AggregateFunc) *SenderOrd
 
 // Scan applies the selector query and scans the result into the given value.
 func (sotgb *SenderOrderTokenGroupBy) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, sotgb.build.ctx, "GroupBy")
+	ctx = setContextOp(ctx, sotgb.build.ctx, ent.OpQueryGroupBy)
 	if err := sotgb.build.prepareQuery(ctx); err != nil {
 		return err
 	}
@@ -660,7 +661,7 @@ func (sots *SenderOrderTokenSelect) Aggregate(fns ...AggregateFunc) *SenderOrder
 
 // Scan applies the selector query and scans the result into the given value.
 func (sots *SenderOrderTokenSelect) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, sots.ctx, "Select")
+	ctx = setContextOp(ctx, sots.ctx, ent.OpQuerySelect)
 	if err := sots.prepareQuery(ctx); err != nil {
 		return err
 	}

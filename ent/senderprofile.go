@@ -25,6 +25,8 @@ type SenderProfile struct {
 	WebhookURL string `json:"webhook_url,omitempty"`
 	// DomainWhitelist holds the value of the "domain_whitelist" field.
 	DomainWhitelist []string `json:"domain_whitelist,omitempty"`
+	// ProviderID holds the value of the "provider_id" field.
+	ProviderID string `json:"provider_id,omitempty"`
 	// IsPartner holds the value of the "is_partner" field.
 	IsPartner bool `json:"is_partner,omitempty"`
 	// IsActive holds the value of the "is_active" field.
@@ -48,20 +50,20 @@ type SenderProfileEdges struct {
 	PaymentOrders []*PaymentOrder `json:"payment_orders,omitempty"`
 	// OrderTokens holds the value of the order_tokens edge.
 	OrderTokens []*SenderOrderToken `json:"order_tokens,omitempty"`
+	// LinkedAddress holds the value of the linked_address edge.
+	LinkedAddress []*LinkedAddress `json:"linked_address,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [4]bool
+	loadedTypes [5]bool
 }
 
 // UserOrErr returns the User value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e SenderProfileEdges) UserOrErr() (*User, error) {
-	if e.loadedTypes[0] {
-		if e.User == nil {
-			// Edge was loaded but was not found.
-			return nil, &NotFoundError{label: user.Label}
-		}
+	if e.User != nil {
 		return e.User, nil
+	} else if e.loadedTypes[0] {
+		return nil, &NotFoundError{label: user.Label}
 	}
 	return nil, &NotLoadedError{edge: "user"}
 }
@@ -69,12 +71,10 @@ func (e SenderProfileEdges) UserOrErr() (*User, error) {
 // APIKeyOrErr returns the APIKey value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e SenderProfileEdges) APIKeyOrErr() (*APIKey, error) {
-	if e.loadedTypes[1] {
-		if e.APIKey == nil {
-			// Edge was loaded but was not found.
-			return nil, &NotFoundError{label: apikey.Label}
-		}
+	if e.APIKey != nil {
 		return e.APIKey, nil
+	} else if e.loadedTypes[1] {
+		return nil, &NotFoundError{label: apikey.Label}
 	}
 	return nil, &NotLoadedError{edge: "api_key"}
 }
@@ -97,6 +97,15 @@ func (e SenderProfileEdges) OrderTokensOrErr() ([]*SenderOrderToken, error) {
 	return nil, &NotLoadedError{edge: "order_tokens"}
 }
 
+// LinkedAddressOrErr returns the LinkedAddress value or an error if the edge
+// was not loaded in eager-loading.
+func (e SenderProfileEdges) LinkedAddressOrErr() ([]*LinkedAddress, error) {
+	if e.loadedTypes[4] {
+		return e.LinkedAddress, nil
+	}
+	return nil, &NotLoadedError{edge: "linked_address"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*SenderProfile) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -106,7 +115,7 @@ func (*SenderProfile) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case senderprofile.FieldIsPartner, senderprofile.FieldIsActive:
 			values[i] = new(sql.NullBool)
-		case senderprofile.FieldWebhookURL:
+		case senderprofile.FieldWebhookURL, senderprofile.FieldProviderID:
 			values[i] = new(sql.NullString)
 		case senderprofile.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -148,6 +157,12 @@ func (sp *SenderProfile) assignValues(columns []string, values []any) error {
 				if err := json.Unmarshal(*value, &sp.DomainWhitelist); err != nil {
 					return fmt.Errorf("unmarshal field domain_whitelist: %w", err)
 				}
+			}
+		case senderprofile.FieldProviderID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field provider_id", values[i])
+			} else if value.Valid {
+				sp.ProviderID = value.String
 			}
 		case senderprofile.FieldIsPartner:
 			if value, ok := values[i].(*sql.NullBool); !ok {
@@ -207,6 +222,11 @@ func (sp *SenderProfile) QueryOrderTokens() *SenderOrderTokenQuery {
 	return NewSenderProfileClient(sp.config).QueryOrderTokens(sp)
 }
 
+// QueryLinkedAddress queries the "linked_address" edge of the SenderProfile entity.
+func (sp *SenderProfile) QueryLinkedAddress() *LinkedAddressQuery {
+	return NewSenderProfileClient(sp.config).QueryLinkedAddress(sp)
+}
+
 // Update returns a builder for updating this SenderProfile.
 // Note that you need to call SenderProfile.Unwrap() before calling this method if this SenderProfile
 // was returned from a transaction, and the transaction was committed or rolled back.
@@ -235,6 +255,9 @@ func (sp *SenderProfile) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("domain_whitelist=")
 	builder.WriteString(fmt.Sprintf("%v", sp.DomainWhitelist))
+	builder.WriteString(", ")
+	builder.WriteString("provider_id=")
+	builder.WriteString(sp.ProviderID)
 	builder.WriteString(", ")
 	builder.WriteString("is_partner=")
 	builder.WriteString(fmt.Sprintf("%v", sp.IsPartner))

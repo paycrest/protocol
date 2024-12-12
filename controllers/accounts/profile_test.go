@@ -248,7 +248,7 @@ func TestProfile(t *testing.T) {
 			tokenAddresses[0].Network = testCtx.token.Edges.Network.Identifier
 			tokenAddresses[0].RefundAddress = "0xD4EB9067111F81b9bAabE06E2b8ebBaDADEd5DA0"
 
-			tokenPayload[0].FeePerTokenUnit = decimal.NewFromInt(1)
+			tokenPayload[0].FeePercent = decimal.NewFromInt(1)
 			tokenPayload[0].Symbol = testCtx.token.Symbol
 			tokenPayload[0].Addresses = tokenAddresses
 
@@ -263,7 +263,7 @@ func TestProfile(t *testing.T) {
 			tronTokenAddresses[0].Network = tronToken.Edges.Network.Identifier
 			tronTokenAddresses[0].RefundAddress = "TFRKiHrHCeSyWL67CEwydFvUMYJ6CbYYXR"
 
-			tokenPayload[1].FeePerTokenUnit = decimal.NewFromInt(2)
+			tokenPayload[1].FeePercent = decimal.NewFromInt(2)
 			tokenPayload[1].Symbol = tronToken.Symbol
 			tokenPayload[1].Addresses = tronTokenAddresses
 

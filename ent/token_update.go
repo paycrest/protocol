@@ -45,9 +45,25 @@ func (tu *TokenUpdate) SetSymbol(s string) *TokenUpdate {
 	return tu
 }
 
+// SetNillableSymbol sets the "symbol" field if the given value is not nil.
+func (tu *TokenUpdate) SetNillableSymbol(s *string) *TokenUpdate {
+	if s != nil {
+		tu.SetSymbol(*s)
+	}
+	return tu
+}
+
 // SetContractAddress sets the "contract_address" field.
 func (tu *TokenUpdate) SetContractAddress(s string) *TokenUpdate {
 	tu.mutation.SetContractAddress(s)
+	return tu
+}
+
+// SetNillableContractAddress sets the "contract_address" field if the given value is not nil.
+func (tu *TokenUpdate) SetNillableContractAddress(s *string) *TokenUpdate {
+	if s != nil {
+		tu.SetContractAddress(*s)
+	}
 	return tu
 }
 
@@ -55,6 +71,14 @@ func (tu *TokenUpdate) SetContractAddress(s string) *TokenUpdate {
 func (tu *TokenUpdate) SetDecimals(i int8) *TokenUpdate {
 	tu.mutation.ResetDecimals()
 	tu.mutation.SetDecimals(i)
+	return tu
+}
+
+// SetNillableDecimals sets the "decimals" field if the given value is not nil.
+func (tu *TokenUpdate) SetNillableDecimals(i *int8) *TokenUpdate {
+	if i != nil {
+		tu.SetDecimals(*i)
+	}
 	return tu
 }
 
@@ -256,7 +280,7 @@ func (tu *TokenUpdate) check() error {
 			return &ValidationError{Name: "contract_address", err: fmt.Errorf(`ent: validator failed for field "Token.contract_address": %w`, err)}
 		}
 	}
-	if _, ok := tu.mutation.NetworkID(); tu.mutation.NetworkCleared() && !ok {
+	if tu.mutation.NetworkCleared() && len(tu.mutation.NetworkIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "Token.network"`)
 	}
 	return nil
@@ -488,9 +512,25 @@ func (tuo *TokenUpdateOne) SetSymbol(s string) *TokenUpdateOne {
 	return tuo
 }
 
+// SetNillableSymbol sets the "symbol" field if the given value is not nil.
+func (tuo *TokenUpdateOne) SetNillableSymbol(s *string) *TokenUpdateOne {
+	if s != nil {
+		tuo.SetSymbol(*s)
+	}
+	return tuo
+}
+
 // SetContractAddress sets the "contract_address" field.
 func (tuo *TokenUpdateOne) SetContractAddress(s string) *TokenUpdateOne {
 	tuo.mutation.SetContractAddress(s)
+	return tuo
+}
+
+// SetNillableContractAddress sets the "contract_address" field if the given value is not nil.
+func (tuo *TokenUpdateOne) SetNillableContractAddress(s *string) *TokenUpdateOne {
+	if s != nil {
+		tuo.SetContractAddress(*s)
+	}
 	return tuo
 }
 
@@ -498,6 +538,14 @@ func (tuo *TokenUpdateOne) SetContractAddress(s string) *TokenUpdateOne {
 func (tuo *TokenUpdateOne) SetDecimals(i int8) *TokenUpdateOne {
 	tuo.mutation.ResetDecimals()
 	tuo.mutation.SetDecimals(i)
+	return tuo
+}
+
+// SetNillableDecimals sets the "decimals" field if the given value is not nil.
+func (tuo *TokenUpdateOne) SetNillableDecimals(i *int8) *TokenUpdateOne {
+	if i != nil {
+		tuo.SetDecimals(*i)
+	}
 	return tuo
 }
 
@@ -712,7 +760,7 @@ func (tuo *TokenUpdateOne) check() error {
 			return &ValidationError{Name: "contract_address", err: fmt.Errorf(`ent: validator failed for field "Token.contract_address": %w`, err)}
 		}
 	}
-	if _, ok := tuo.mutation.NetworkID(); tuo.mutation.NetworkCleared() && !ok {
+	if tuo.mutation.NetworkCleared() && len(tuo.mutation.NetworkIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "Token.network"`)
 	}
 	return nil

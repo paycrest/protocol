@@ -42,9 +42,25 @@ func (iu *InstitutionUpdate) SetCode(s string) *InstitutionUpdate {
 	return iu
 }
 
+// SetNillableCode sets the "code" field if the given value is not nil.
+func (iu *InstitutionUpdate) SetNillableCode(s *string) *InstitutionUpdate {
+	if s != nil {
+		iu.SetCode(*s)
+	}
+	return iu
+}
+
 // SetName sets the "name" field.
 func (iu *InstitutionUpdate) SetName(s string) *InstitutionUpdate {
 	iu.mutation.SetName(s)
+	return iu
+}
+
+// SetNillableName sets the "name" field if the given value is not nil.
+func (iu *InstitutionUpdate) SetNillableName(s *string) *InstitutionUpdate {
+	if s != nil {
+		iu.SetName(*s)
+	}
 	return iu
 }
 
@@ -223,9 +239,25 @@ func (iuo *InstitutionUpdateOne) SetCode(s string) *InstitutionUpdateOne {
 	return iuo
 }
 
+// SetNillableCode sets the "code" field if the given value is not nil.
+func (iuo *InstitutionUpdateOne) SetNillableCode(s *string) *InstitutionUpdateOne {
+	if s != nil {
+		iuo.SetCode(*s)
+	}
+	return iuo
+}
+
 // SetName sets the "name" field.
 func (iuo *InstitutionUpdateOne) SetName(s string) *InstitutionUpdateOne {
 	iuo.mutation.SetName(s)
+	return iuo
+}
+
+// SetNillableName sets the "name" field if the given value is not nil.
+func (iuo *InstitutionUpdateOne) SetNillableName(s *string) *InstitutionUpdateOne {
+	if s != nil {
+		iuo.SetName(*s)
+	}
 	return iuo
 }
 

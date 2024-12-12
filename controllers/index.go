@@ -1,15 +1,24 @@
 package controllers
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
+	"fmt"
 	"net/http"
 	"slices"
 	"strings"
+	"time"
 
+	"github.com/ethereum/go-ethereum/crypto"
 	fastshot "github.com/opus-domini/fast-shot"
 	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/fiatcurrency"
+	"github.com/paycrest/protocol/ent/identityverificationrequest"
 	"github.com/paycrest/protocol/ent/institution"
+	"github.com/paycrest/protocol/ent/linkedaddress"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/token"
@@ -24,17 +33,23 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+var cryptoConf = config.CryptoConfig()
+var serverConf = config.ServerConfig()
+var identityConf = config.IdentityConfig()
+
 // Controller is the default controller for other endpoints
 type Controller struct {
-	orderService         types.OrderService
-	priorityQueueService *svc.PriorityQueueService
+	orderService          types.OrderService
+	priorityQueueService  *svc.PriorityQueueService
+	receiveAddressService *svc.ReceiveAddressService
 }
 
 // NewController creates a new instance of AuthController with injected services
 func NewController() *Controller {
 	return &Controller{
-		orderService:         orderSvc.NewOrderEVM(),
-		priorityQueueService: svc.NewPriorityQueueService(),
+		orderService:          orderSvc.NewOrderEVM(),
+		priorityQueueService:  svc.NewPriorityQueueService(),
+		receiveAddressService: svc.NewReceiveAddressService(),
 	}
 }
 
@@ -102,7 +117,10 @@ func (ctrl *Controller) GetTokenRate(ctx *gin.Context) {
 	// Parse path parameters
 	token, err := storage.Client.Token.
 		Query().
-		Where(token.Symbol(strings.ToUpper(ctx.Param("token")))).
+		Where(
+			token.SymbolEQ(strings.ToUpper(ctx.Param("token"))),
+			token.IsEnabledEQ(true),
+		).
 		First(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
@@ -134,7 +152,7 @@ func (ctrl *Controller) GetTokenRate(ctx *gin.Context) {
 		return
 	}
 
-	rateResponse := decimal.NewFromInt(0)
+	rateResponse := currency.MarketRate
 
 	// get providerID from query params
 	providerID := ctx.Query("provider_id")
@@ -154,7 +172,7 @@ func (ctrl *Controller) GetTokenRate(ctx *gin.Context) {
 			}
 		}
 
-		rateResponse, err = ctrl.priorityQueueService.GetProviderRate(ctx, provider)
+		rateResponse, err = ctrl.priorityQueueService.GetProviderRate(ctx, provider, token.Symbol)
 		if err != nil {
 			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch provider rate", nil)
 			return
@@ -176,26 +194,27 @@ func (ctrl *Controller) GetTokenRate(ctx *gin.Context) {
 			minAmount, _ := decimal.NewFromString(bucketData[2])
 			maxAmount, _ := decimal.NewFromString(bucketData[3])
 
-			// Get the topmost provider in the priority queue of the bucket
-			providerData, err := storage.RedisClient.LIndex(ctx, key, 0).Result()
-			if err != nil {
-				u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch rates", nil)
-				return
-			}
+			for index := 0; ; index++ {
+				// Get the topmost provider in the priority queue of the bucket
+				providerData, err := storage.RedisClient.LIndex(ctx, key, int64(index)).Result()
+				if err != nil {
+					break
+				}
 
-			// Get fiat equivalent of the token amount
-			rate, _ := decimal.NewFromString(strings.Split(providerData, ":")[1])
-			fiatAmount := tokenAmount.Mul(rate)
+				if strings.Split(providerData, ":")[1] == token.Symbol {
+					// Get fiat equivalent of the token amount
+					rate, _ := decimal.NewFromString(strings.Split(providerData, ":")[2])
+					fiatAmount := tokenAmount.Mul(rate)
 
-			// Check if fiat amount is within the bucket range and set the rate
-			if fiatAmount.GreaterThanOrEqual(minAmount) && fiatAmount.LessThanOrEqual(maxAmount) {
-				rateResponse = rate
-				break
-			} else {
-				// Get the highest max amount
-				if maxAmount.GreaterThan(highestMaxAmount) {
-					highestMaxAmount = maxAmount
-					rateResponse = rate
+					// Check if fiat amount is within the bucket range and set the rate
+					if fiatAmount.GreaterThanOrEqual(minAmount) && fiatAmount.LessThanOrEqual(maxAmount) {
+						rateResponse = rate
+						break
+					} else if maxAmount.GreaterThan(highestMaxAmount) {
+						// Get the highest max amount
+						highestMaxAmount = maxAmount
+						rateResponse = rate
+					}
 				}
 			}
 		}
@@ -206,7 +225,7 @@ func (ctrl *Controller) GetTokenRate(ctx *gin.Context) {
 
 // GetAggregatorPublicKey controller expose Aggregator Public Key
 func (ctrl *Controller) GetAggregatorPublicKey(ctx *gin.Context) {
-	u.APIResponse(ctx, http.StatusOK, "success", "OK", config.CryptoConfig().AggregatorPublicKey)
+	u.APIResponse(ctx, http.StatusOK, "success", "OK", cryptoConf.AggregatorPublicKey)
 }
 
 // VerifyAccount controller verifies an account of a given institution
@@ -234,7 +253,13 @@ func (ctrl *Controller) VerifyAccount(ctx *gin.Context) {
 		return
 	}
 
-	provider, err := storage.Client.ProviderProfile.
+	// TODO: Remove this after testing non-NGN institutions
+	if institution.Edges.FiatCurrency.Code != "NGN" {
+		u.APIResponse(ctx, http.StatusOK, "success", "Account name was fetched successfully", "OK")
+		return
+	}
+
+	providers, err := storage.Client.ProviderProfile.
 		Query().
 		Where(
 			providerprofile.HasCurrencyWith(
@@ -244,7 +269,7 @@ func (ctrl *Controller) VerifyAccount(ctx *gin.Context) {
 			providerprofile.IsActiveEQ(true),
 			providerprofile.IsAvailableEQ(true),
 		).
-		First(ctx)
+		All(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
 		u.APIResponse(ctx, http.StatusBadRequest, "error",
@@ -252,19 +277,26 @@ func (ctrl *Controller) VerifyAccount(ctx *gin.Context) {
 		return
 	}
 
-	res, err := fastshot.NewClient(provider.HostIdentifier).
-		Build().POST("/verify_account").
-		Body().AsJSON(payload).
-		Send()
-	if err != nil {
-		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusServiceUnavailable, "error", "Failed to verify account", nil)
-		return
+	var res fastshot.Response
+	var data map[string]interface{}
+	for _, provider := range providers {
+		res, err = fastshot.NewClient(provider.HostIdentifier).
+			Config().SetTimeout(30 * time.Second).
+			Build().POST("/verify_account").
+			Body().AsJSON(payload).
+			Send()
+		if err != nil {
+			continue
+		}
+
+		data, err = u.ParseJSONResponse(res.RawResponse)
+		if err != nil {
+			continue
+		}
 	}
 
-	data, err := u.ParseJSONResponse(res.RawResponse)
 	if err != nil {
-		logger.Errorf("error: %v", err)
+		logger.Errorf("error: %v %v", err, data)
 		u.APIResponse(ctx, http.StatusServiceUnavailable, "error", "Failed to verify account", nil)
 		return
 	}
@@ -337,13 +369,18 @@ func (ctrl *Controller) GetLockPaymentOrderStatus(ctx *gin.Context) {
 		return
 	}
 
+	status := orders[0].Status
+	if status == lockpaymentorder.StatusCancelled {
+		status = lockpaymentorder.StatusProcessing
+	}
+
 	response := &types.LockPaymentOrderStatusResponse{
 		OrderID:       orders[0].GatewayID,
 		Amount:        totalAmount,
 		Token:         orders[0].Edges.Token.Symbol,
 		Network:       orders[0].Edges.Token.Edges.Network.Identifier,
 		SettlePercent: settlePercent,
-		Status:        orders[0].Status,
+		Status:        status,
 		TxHash:        receipts[0].TxHash,
 		Settlements:   settlements,
 		TxReceipts:    receipts,
@@ -351,4 +388,671 @@ func (ctrl *Controller) GetLockPaymentOrderStatus(ctx *gin.Context) {
 	}
 
 	u.APIResponse(ctx, http.StatusOK, "success", "Order status fetched successfully", response)
+}
+
+// CreateLinkedAddress controller creates a new linked address
+func (ctrl *Controller) CreateLinkedAddress(ctx *gin.Context) {
+	var payload types.NewLinkedAddressRequest
+
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusBadRequest, "error",
+			"Failed to validate payload", u.GetErrorData(err))
+		return
+	}
+
+	ownerAddress, _ := ctx.Get("owner_address")
+
+	// Generate smart account
+	address, salt, err := ctrl.receiveAddressService.CreateSmartAddress(ctx, nil, nil)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to create linked address", nil)
+		return
+	}
+
+	// Create a new linked address
+	linkedAddress, err := storage.Client.LinkedAddress.
+		Create().
+		SetAddress(address).
+		SetSalt(salt).
+		SetInstitution(payload.Institution).
+		SetAccountIdentifier(payload.AccountIdentifier).
+		SetAccountName(payload.AccountName).
+		SetOwnerAddress(ownerAddress.(string)).
+		Save(ctx)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to create linked address", nil)
+		return
+	}
+
+	u.APIResponse(ctx, http.StatusOK, "success", "Linked address created successfully", &types.NewLinkedAddressResponse{
+		LinkedAddress:     linkedAddress.Address,
+		Institution:       linkedAddress.Institution,
+		AccountIdentifier: linkedAddress.AccountIdentifier,
+		AccountName:       linkedAddress.AccountName,
+		UpdatedAt:         linkedAddress.UpdatedAt,
+		CreatedAt:         linkedAddress.CreatedAt,
+	})
+}
+
+// GetLinkedAddress controller fetches a linked address
+func (ctrl *Controller) GetLinkedAddress(ctx *gin.Context) {
+	// Get owner address from the URL
+	owner_address := ctx.Query("owner_address")
+
+	linkedAddress, err := storage.Client.LinkedAddress.
+		Query().
+		Where(
+			linkedaddress.OwnerAddressEQ(owner_address),
+		).
+		Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			u.APIResponse(ctx, http.StatusNotFound, "error", "Linked address not found", nil)
+			return
+		} else {
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch linked address", nil)
+			return
+		}
+	}
+
+	institution, err := storage.Client.Institution.
+		Query().
+		Where(institution.CodeEQ(linkedAddress.Institution)).
+		WithFiatCurrency().
+		Only(ctx)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch linked address", nil)
+		return
+	}
+
+	ownerAddressFromAuth, _ := ctx.Get("owner_address")
+
+	response := &types.LinkedAddressResponse{
+		LinkedAddress: linkedAddress.Address,
+		Currency:      institution.Edges.FiatCurrency.Code,
+	}
+
+	if ownerAddressFromAuth != nil {
+		response.AccountIdentifier = linkedAddress.AccountIdentifier
+		response.AccountName = linkedAddress.AccountName
+		response.Institution = institution.Name
+	}
+
+	u.APIResponse(ctx, http.StatusOK, "success", "Linked address fetched successfully", response)
+}
+
+// GetLinkedAddressTransactions controller fetches transactions for a linked address
+func (ctrl *Controller) GetLinkedAddressTransactions(ctx *gin.Context) {
+	// Get linked address from the URL
+	linked_address := ctx.Param("linked_address")
+
+	linkedAddress, err := storage.Client.LinkedAddress.
+		Query().
+		Where(
+			linkedaddress.AddressEQ(linked_address),
+		).
+		Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			u.APIResponse(ctx, http.StatusNotFound, "error", "Linked address not found", nil)
+			return
+		} else {
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch linked address", nil)
+			return
+		}
+	}
+
+	// Get page and pageSize query params
+	page, offset, pageSize := u.Paginate(ctx)
+
+	// Fetch related transactions from the database
+	paymentOrderQuery := linkedAddress.QueryPaymentOrders()
+
+	count, err := paymentOrderQuery.Count(ctx)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch transactions", nil)
+		return
+	}
+
+	paymentOrders, err := paymentOrderQuery.
+		Limit(pageSize).
+		Offset(offset).
+		WithRecipient().
+		WithToken(func(tq *ent.TokenQuery) {
+			tq.WithNetwork()
+		}).
+		All(ctx)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch transactions", nil)
+		return
+	}
+
+	orders := make([]types.LinkedAddressTransaction, 0, len(paymentOrders))
+
+	for _, paymentOrder := range paymentOrders {
+		institution, err := storage.Client.Institution.
+			Query().
+			Where(institution.CodeEQ(paymentOrder.Edges.Recipient.Institution)).
+			WithFiatCurrency().
+			Only(ctx)
+		if err != nil {
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch payment orders", nil)
+			return
+		}
+
+		orders = append(orders, types.LinkedAddressTransaction{
+			ID:      paymentOrder.ID,
+			Amount:  paymentOrder.Amount,
+			Token:   paymentOrder.Edges.Token.Symbol,
+			Rate:    paymentOrder.Rate,
+			Network: paymentOrder.Edges.Token.Edges.Network.Identifier,
+			Recipient: types.LinkedAddressTransactionRecipient{
+				Currency:          institution.Edges.FiatCurrency.Code,
+				Institution:       institution.Name,
+				AccountIdentifier: paymentOrder.Edges.Recipient.AccountIdentifier,
+				AccountName:       paymentOrder.Edges.Recipient.AccountName,
+			},
+			FromAddress:   paymentOrder.FromAddress,
+			ReturnAddress: paymentOrder.ReturnAddress,
+			GatewayID:     paymentOrder.GatewayID,
+			TxHash:        paymentOrder.TxHash,
+			CreatedAt:     paymentOrder.CreatedAt,
+			UpdatedAt:     paymentOrder.UpdatedAt,
+			Status:        paymentOrder.Status,
+		})
+	}
+
+	u.APIResponse(ctx, http.StatusOK, "success", "Transactions fetched successfully", &types.LinkedAddressTransactionList{
+		Page:         page,
+		PageSize:     pageSize,
+		TotalRecords: count,
+		Transactions: orders,
+	})
+
+}
+
+// RequestIDVerification controller requests identity verification details
+func (ctrl *Controller) RequestIDVerification(ctx *gin.Context) {
+	var payload types.NewIDVerificationRequest
+
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusBadRequest, "error",
+			"Failed to validate payload", u.GetErrorData(err))
+		return
+	}
+
+	// Validate wallet signature
+	signature, err := hex.DecodeString(payload.Signature)
+	if err != nil {
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid signature", "Signature is not in the correct format")
+		return
+	}
+
+	if len(signature) != 65 {
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid signature", "Signature length is not correct")
+		return
+	}
+
+	if signature[64] != 27 && signature[64] != 28 {
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid signature", "Invalid recovery ID")
+		return
+	}
+	signature[64] -= 27
+
+	// Verify wallet signature
+	message := fmt.Sprintf("I accept the KYC Policy and hereby request an identity verification check for %s with nonce %s", payload.WalletAddress, payload.Nonce)
+
+	prefix := "\x19Ethereum Signed Message:\n" + fmt.Sprint(len(message))
+	hash := crypto.Keccak256Hash([]byte(prefix + message))
+
+	sigPublicKeyECDSA, err := crypto.SigToPub(hash.Bytes(), signature)
+	if err != nil {
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid signature", nil)
+		return
+	}
+
+	recoveredAddress := crypto.PubkeyToAddress(*sigPublicKeyECDSA)
+	if !strings.EqualFold(recoveredAddress.Hex(), payload.WalletAddress) {
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid signature", nil)
+		return
+	}
+
+	// Check if there is an existing verification request
+	ivr, err := storage.Client.IdentityVerificationRequest.
+		Query().
+		Where(
+			identityverificationrequest.WalletAddressEQ(payload.WalletAddress),
+		).
+		Only(ctx)
+	if err != nil {
+		if !ent.IsNotFound(err) {
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to request identity verification", nil)
+			return
+		}
+	}
+
+	timestamp := time.Now()
+
+	if ivr != nil {
+		if ivr.WalletSignature == payload.Signature {
+			u.APIResponse(ctx, http.StatusBadRequest, "error", "Signature already used for identity verification", nil)
+			return
+		}
+
+		expiryPeriod := 15 * time.Minute
+
+		if ivr.Status == identityverificationrequest.StatusFailed || (ivr.Status == identityverificationrequest.StatusPending && ivr.LastURLCreatedAt.Add(expiryPeriod).Before(timestamp)) {
+			// Request is expired, delete db entry
+			_, err := storage.Client.IdentityVerificationRequest.
+				Delete().
+				Where(
+					identityverificationrequest.WalletAddressEQ(payload.WalletAddress),
+				).
+				Exec(ctx)
+			if err != nil {
+				logger.Errorf("error: %v", err)
+				u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to request identity verification", nil)
+				return
+			}
+
+		} else if ivr.Status == identityverificationrequest.StatusPending && (ivr.LastURLCreatedAt.Add(expiryPeriod).Equal(timestamp) || ivr.LastURLCreatedAt.Add(expiryPeriod).After(timestamp)) {
+			// Update the wallet signature in db
+			_, err = ivr.
+				Update().
+				SetWalletSignature(payload.Signature).
+				Save(ctx)
+			if err != nil {
+				logger.Errorf("error: %v", err)
+				u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to request identity verification", nil)
+				return
+			}
+
+			u.APIResponse(ctx, http.StatusOK, "success", "This account has a pending identity verification request", &types.NewIDVerificationResponse{
+				URL:       ivr.VerificationURL,
+				ExpiresAt: ivr.LastURLCreatedAt,
+			})
+			return
+		}
+
+		if ivr.Status == "success" {
+			u.APIResponse(ctx, http.StatusBadRequest, "success", "Failed to request identity verification", "This account has already been successfully verified")
+			return
+		}
+	}
+
+	// Generate Smile Identity signature
+	h := hmac.New(sha256.New, []byte(identityConf.SmileIdentityApiKey))
+	h.Write([]byte(timestamp.Format(time.RFC3339Nano)))
+	h.Write([]byte(identityConf.SmileIdentityPartnerId))
+	h.Write([]byte("sid_request"))
+
+	// Initiate KYC verification
+	res, err := fastshot.NewClient(identityConf.SmileIdentityBaseUrl).
+		Config().SetTimeout(30 * time.Second).
+		Build().POST("/v1/smile_links").
+		Body().AsJSON(map[string]interface{}{
+		"partner_id":   identityConf.SmileIdentityPartnerId,
+		"signature":    base64.StdEncoding.EncodeToString(h.Sum(nil)),
+		"timestamp":    timestamp,
+		"name":         "Aggregator KYC",
+		"company_name": "Paycrest",
+		"id_types": []map[string]interface{}{
+			// Nigeria
+			{
+				"country":             "NG",
+				"id_type":             "PASSPORT",
+				"verification_method": "doc_verification",
+			},
+			{
+				"country":             "NG",
+				"id_type":             "DRIVERS_LICENSE",
+				"verification_method": "doc_verification",
+			},
+			{
+				"country":             "NG",
+				"id_type":             "V_NIN",
+				"verification_method": "biometric_kyc",
+			},
+			{
+				"country":             "NG",
+				"id_type":             "VOTER_ID",
+				"verification_method": "biometric_kyc",
+			},
+			{
+				"country":             "NG",
+				"id_type":             "RESIDENT_ID",
+				"verification_method": "doc_verification",
+			},
+			{
+				"country":             "NG",
+				"id_type":             "IDENTITY_CARD",
+				"verification_method": "doc_verification",
+			},
+
+			// Kenya
+			{
+				"country":             "KE",
+				"id_type":             "PASSPORT",
+				"verification_method": "enhanced_document_verification",
+			},
+			{
+				"country":             "KE",
+				"id_type":             "DRIVERS_LICENSE",
+				"verification_method": "doc_verification",
+			},
+			{
+				"country":             "KE",
+				"id_type":             "ALIEN_CARD",
+				"verification_method": "biometric_kyc",
+			},
+			{
+				"country":             "KE",
+				"id_type":             "NATIONAL_ID",
+				"verification_method": "biometric_kyc",
+			},
+
+			// Ghana
+			// {
+			// 	"country":             "GH",
+			// 	"id_type":             "PASSPORT",
+			// 	"verification_method": "enhanced_document_verification",
+			// },
+			// {
+			// 	"country":             "GH",
+			// 	"id_type":             "VOTER_ID",
+			// 	"verification_method": "enhanced_document_verification",
+			// },
+			// {
+			// 	"country":             "GH",
+			// 	"id_type":             "NEW_VOTER_ID",
+			// 	"verification_method": "biometric_kyc",
+			// },
+			// {
+			// 	"country":             "GH",
+			// 	"id_type":             "DRIVERS_LICENSE",
+			// 	"verification_method": "doc_verification",
+			// },
+			// {
+			// 	"country":             "GH",
+			// 	"id_type":             "SSNIT",
+			// 	"verification_method": "biometric_kyc",
+			// },
+
+			// South Africa
+			// {
+			// 	"country":             "ZA",
+			// 	"id_type":             "PASSPORT",
+			// 	"verification_method": "doc_verification",
+			// },
+			// {
+			// 	"country":             "ZA",
+			// 	"id_type":             "DRIVERS_LICENSE",
+			// 	"verification_method": "doc_verification",
+			// },
+			// {
+			// 	"country":             "ZA",
+			// 	"id_type":             "RESIDENT_ID",
+			// 	"verification_method": "doc_verification",
+			// },
+			// {
+			// 	"country":             "ZA",
+			// 	"id_type":             "NATIONAL_ID",
+			// 	"verification_method": "biometric_kyc",
+			// },
+		},
+		"callback_url":            fmt.Sprintf("%s/v1/kyc/webhook", serverConf.HostDomain),
+		"data_privacy_policy_url": "https://paycrest.notion.site/KYC-Policy-10e2482d45a280e191b8d47d76a8d242",
+		"logo_url":                "https://i.postimg.cc/Twrq0gjC/mark-2x-2.png",
+		"is_single_use":           true,
+		"user_id":                 payload.WalletAddress,
+		"expires_at":              timestamp.Add(1 * time.Hour).Format(time.RFC3339Nano),
+	}).
+		Send()
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusServiceUnavailable, "error", "Failed to request identity verification", "Couldn't reach identity provider")
+		return
+	}
+
+	data, err := u.ParseJSONResponse(res.RawResponse)
+	if err != nil {
+		logger.Errorf("error: %v %v", err, data)
+		u.APIResponse(ctx, http.StatusServiceUnavailable, "error", "Failed to request identity verification", data)
+		return
+	}
+
+	// Save the verification details to the database
+	ivr, err = storage.Client.IdentityVerificationRequest.
+		Create().
+		SetWalletAddress(payload.WalletAddress).
+		SetWalletSignature(payload.Signature).
+		SetPlatform("smile_id").
+		SetPlatformRef(data["ref_id"].(string)).
+		SetVerificationURL(data["link"].(string)).
+		SetLastURLCreatedAt(timestamp.Add(24 * time.Hour)).
+		Save(ctx)
+	if err != nil {
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to request identity verification", nil)
+		return
+	}
+
+	u.APIResponse(ctx, http.StatusOK, "success", "Identity verification requested successfully", &types.NewIDVerificationResponse{
+		URL:       ivr.VerificationURL,
+		ExpiresAt: ivr.LastURLCreatedAt,
+	})
+}
+
+// GetIDVerificationStatus controller fetches the status of an identity verification request
+func (ctrl *Controller) GetIDVerificationStatus(ctx *gin.Context) {
+	// Get wallet address from the URL
+	walletAddress := ctx.Param("wallet_address")
+
+	// Fetch related identity verification request from the database
+	ivr, err := storage.Client.IdentityVerificationRequest.
+		Query().
+		Where(
+			identityverificationrequest.WalletAddressEQ(walletAddress),
+		).
+		Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			// Check the platform's status endpoint
+			u.APIResponse(ctx, http.StatusNotFound, "error", "No verification request found for this wallet address", nil)
+			return
+		}
+		logger.Errorf("error: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch identity verification status", nil)
+		return
+	}
+
+	// Check if the status is pending and fetch the status from the platform
+	// if ivr.Status == identityverificationrequest.StatusPending {
+	// 	status, err := getSmileLinkStatus(ivr.PlatformRef)
+	// 	if err != nil {
+	// 		logger.Errorf("error: %v", err)
+	// 		u.APIResponse(ctx, http.StatusServiceUnavailable, "error", "Failed to fetch identity verification status", nil)
+	// 		return
+	// 	}
+
+	// 	response.Status = status
+
+	// 	if status != "pending" {
+	// 		// Update the verification status in the database if it's not pending
+	// 		_, err := storage.Client.IdentityVerificationRequest.
+	// 			Update().
+	// 			Where(
+	// 				identityverificationrequest.WalletAddressEQ(walletAddress),
+	// 			).
+	// 			SetStatus(identityverificationrequest.Status(response.Status)).
+	// 			Save(ctx)
+	// 		if err != nil {
+	// 			logger.Errorf("error: %v", err)
+	// 			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update identity verification status", nil)
+	// 			return
+	// 		}
+	// 	}
+	// }
+
+	var status string
+
+	// Check if the verification URL has expired
+	if ivr.LastURLCreatedAt.Add(1 * time.Hour).Before(time.Now()) {
+		status = "expired"
+	} else {
+		status = ivr.Status.String()
+	}
+
+	u.APIResponse(ctx, http.StatusOK, "success", "Identity verification status fetched successfully", &types.IDVerificationStatusResponse{
+		Status: status,
+		URL:    ivr.VerificationURL,
+	})
+}
+
+// KYCWebhook handles the webhook callback from Smile Identity
+func (ctrl *Controller) KYCWebhook(ctx *gin.Context) {
+	var payload types.SmileIDWebhookPayload
+
+	// Parse the JSON payload
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		logger.Errorf("Failed to parse webhook payload: %v", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid payload"})
+		return
+	}
+
+	// Verify the webhook signature
+	if !verifySmileIDWebhookSignature(payload, payload.Signature) {
+		logger.Errorf("Invalid webhook signature")
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid signature"})
+		return
+	}
+
+	// Process the webhook
+	status := identityverificationrequest.StatusPending
+
+	// Check for success codes
+	successCodes := []string{
+		"0810", // Document Verified
+		"1020", // Exact Match (Basic KYC and Enhanced KYC)
+		"1012", // Valid ID / ID Number Validated (Enhanced KYC)
+		"0820", // Authenticate User Machine Judgement - PASS
+		"0840", // Enroll User PASS - Machine Judgement
+	}
+
+	// Check for failed codes
+	failedCodes := []string{
+		"0811", // No Face Match
+		"0812", // Filed Security Features Check
+		"0813", // Document Not Verified - Machine Judgement
+		"1022", // No Match
+		"1023", // No Found
+		"1011", // Invalid ID / ID Number Invalid
+		"1013", // ID Number Not Found
+		"1014", // Unsupported ID Type
+		"0821", // Images did not match
+		"0911", // No Face Found
+		"0912", // Face Not Matching
+		"0921", // Face Not Found
+		"0922", // Selfie Quality Too Poor
+		"0841", // Enroll User FAIL
+		"0941", // Face Not Found
+		"0942", // Face Poor Quality
+	}
+
+	if slices.Contains(successCodes, payload.ResultCode) {
+		status = identityverificationrequest.StatusSuccess
+	}
+
+	if slices.Contains(failedCodes, payload.ResultCode) {
+		status = identityverificationrequest.StatusFailed
+	}
+
+	// Update the verification status in the database
+	_, err := storage.Client.IdentityVerificationRequest.
+		Update().
+		Where(
+			identityverificationrequest.WalletAddressEQ(payload.PartnerParams.UserID),
+			identityverificationrequest.StatusEQ(identityverificationrequest.StatusPending),
+		).
+		SetStatus(status).
+		Save(ctx)
+	if err != nil {
+		logger.Errorf("Failed to update verification status: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process webhook"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Webhook processed successfully"})
+}
+
+// verifyWebhookSignature verifies the signature of a Smile Identity webhook
+func verifySmileIDWebhookSignature(payload types.SmileIDWebhookPayload, receivedSignature string) bool {
+	// Create HMAC
+	// Generate Smile Identity signature
+	h := hmac.New(sha256.New, []byte(identityConf.SmileIdentityApiKey))
+	h.Write([]byte(payload.Timestamp))
+	h.Write([]byte(identityConf.SmileIdentityPartnerId))
+	h.Write([]byte("sid_request"))
+
+	// Compare the computed signature with the one in the header
+	computedSignature := base64.StdEncoding.EncodeToString(h.Sum(nil))
+	return computedSignature == receivedSignature
+}
+
+// getSmileLinkStatus fetches the status of a Smile Link
+func getSmileLinkStatus(linkID string) (string, error) {
+	// Generate signature
+	timestamp := time.Now().Format(time.RFC3339Nano)
+	h := hmac.New(sha256.New, []byte(identityConf.SmileIdentityApiKey))
+	h.Write([]byte(timestamp))
+	h.Write([]byte(identityConf.SmileIdentityPartnerId))
+	h.Write([]byte("sid_request"))
+
+	// Get Smile Link status
+	res, err := fastshot.NewClient(identityConf.SmileIdentityBaseUrl).
+		Config().SetTimeout(30 * time.Second).
+		Build().POST(fmt.Sprintf("/v1/smile_links/%s", linkID)).
+		Body().AsJSON(map[string]interface{}{
+		"partner_id": identityConf.SmileIdentityPartnerId,
+		"signature":  base64.StdEncoding.EncodeToString(h.Sum(nil)),
+		"timestamp":  timestamp,
+	}).
+		Send()
+	if err != nil {
+		return "", fmt.Errorf("failed to get Smile Link status: %w", err)
+	}
+
+	data, err := u.ParseJSONResponse(res.RawResponse)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse Smile Link response: %w", err)
+	}
+
+	totalJobs := data["total_jobs"].(float64)
+	successfulJobs := data["successful_jobs"].(float64)
+	failedJobs := data["failed_jobs"].(float64)
+
+	if failedJobs+successfulJobs < totalJobs {
+		return "pending", nil
+	}
+
+	if totalJobs == successfulJobs && failedJobs == 0 {
+		return "success", nil
+	}
+
+	if failedJobs > 0 {
+		return "failed", nil
+	}
+
+	return "", nil
 }

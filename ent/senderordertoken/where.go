@@ -66,9 +66,9 @@ func UpdatedAt(v time.Time) predicate.SenderOrderToken {
 	return predicate.SenderOrderToken(sql.FieldEQ(FieldUpdatedAt, v))
 }
 
-// FeePerTokenUnit applies equality check predicate on the "fee_per_token_unit" field. It's identical to FeePerTokenUnitEQ.
-func FeePerTokenUnit(v decimal.Decimal) predicate.SenderOrderToken {
-	return predicate.SenderOrderToken(sql.FieldEQ(FieldFeePerTokenUnit, v))
+// FeePercent applies equality check predicate on the "fee_percent" field. It's identical to FeePercentEQ.
+func FeePercent(v decimal.Decimal) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldEQ(FieldFeePercent, v))
 }
 
 // FeeAddress applies equality check predicate on the "fee_address" field. It's identical to FeeAddressEQ.
@@ -161,44 +161,44 @@ func UpdatedAtLTE(v time.Time) predicate.SenderOrderToken {
 	return predicate.SenderOrderToken(sql.FieldLTE(FieldUpdatedAt, v))
 }
 
-// FeePerTokenUnitEQ applies the EQ predicate on the "fee_per_token_unit" field.
-func FeePerTokenUnitEQ(v decimal.Decimal) predicate.SenderOrderToken {
-	return predicate.SenderOrderToken(sql.FieldEQ(FieldFeePerTokenUnit, v))
+// FeePercentEQ applies the EQ predicate on the "fee_percent" field.
+func FeePercentEQ(v decimal.Decimal) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldEQ(FieldFeePercent, v))
 }
 
-// FeePerTokenUnitNEQ applies the NEQ predicate on the "fee_per_token_unit" field.
-func FeePerTokenUnitNEQ(v decimal.Decimal) predicate.SenderOrderToken {
-	return predicate.SenderOrderToken(sql.FieldNEQ(FieldFeePerTokenUnit, v))
+// FeePercentNEQ applies the NEQ predicate on the "fee_percent" field.
+func FeePercentNEQ(v decimal.Decimal) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldNEQ(FieldFeePercent, v))
 }
 
-// FeePerTokenUnitIn applies the In predicate on the "fee_per_token_unit" field.
-func FeePerTokenUnitIn(vs ...decimal.Decimal) predicate.SenderOrderToken {
-	return predicate.SenderOrderToken(sql.FieldIn(FieldFeePerTokenUnit, vs...))
+// FeePercentIn applies the In predicate on the "fee_percent" field.
+func FeePercentIn(vs ...decimal.Decimal) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldIn(FieldFeePercent, vs...))
 }
 
-// FeePerTokenUnitNotIn applies the NotIn predicate on the "fee_per_token_unit" field.
-func FeePerTokenUnitNotIn(vs ...decimal.Decimal) predicate.SenderOrderToken {
-	return predicate.SenderOrderToken(sql.FieldNotIn(FieldFeePerTokenUnit, vs...))
+// FeePercentNotIn applies the NotIn predicate on the "fee_percent" field.
+func FeePercentNotIn(vs ...decimal.Decimal) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldNotIn(FieldFeePercent, vs...))
 }
 
-// FeePerTokenUnitGT applies the GT predicate on the "fee_per_token_unit" field.
-func FeePerTokenUnitGT(v decimal.Decimal) predicate.SenderOrderToken {
-	return predicate.SenderOrderToken(sql.FieldGT(FieldFeePerTokenUnit, v))
+// FeePercentGT applies the GT predicate on the "fee_percent" field.
+func FeePercentGT(v decimal.Decimal) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldGT(FieldFeePercent, v))
 }
 
-// FeePerTokenUnitGTE applies the GTE predicate on the "fee_per_token_unit" field.
-func FeePerTokenUnitGTE(v decimal.Decimal) predicate.SenderOrderToken {
-	return predicate.SenderOrderToken(sql.FieldGTE(FieldFeePerTokenUnit, v))
+// FeePercentGTE applies the GTE predicate on the "fee_percent" field.
+func FeePercentGTE(v decimal.Decimal) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldGTE(FieldFeePercent, v))
 }
 
-// FeePerTokenUnitLT applies the LT predicate on the "fee_per_token_unit" field.
-func FeePerTokenUnitLT(v decimal.Decimal) predicate.SenderOrderToken {
-	return predicate.SenderOrderToken(sql.FieldLT(FieldFeePerTokenUnit, v))
+// FeePercentLT applies the LT predicate on the "fee_percent" field.
+func FeePercentLT(v decimal.Decimal) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldLT(FieldFeePercent, v))
 }
 
-// FeePerTokenUnitLTE applies the LTE predicate on the "fee_per_token_unit" field.
-func FeePerTokenUnitLTE(v decimal.Decimal) predicate.SenderOrderToken {
-	return predicate.SenderOrderToken(sql.FieldLTE(FieldFeePerTokenUnit, v))
+// FeePercentLTE applies the LTE predicate on the "fee_percent" field.
+func FeePercentLTE(v decimal.Decimal) predicate.SenderOrderToken {
+	return predicate.SenderOrderToken(sql.FieldLTE(FieldFeePercent, v))
 }
 
 // FeeAddressEQ applies the EQ predicate on the "fee_address" field.
@@ -379,32 +379,15 @@ func HasTokenWith(preds ...predicate.Token) predicate.SenderOrderToken {
 
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.SenderOrderToken) predicate.SenderOrderToken {
-	return predicate.SenderOrderToken(func(s *sql.Selector) {
-		s1 := s.Clone().SetP(nil)
-		for _, p := range predicates {
-			p(s1)
-		}
-		s.Where(s1.P())
-	})
+	return predicate.SenderOrderToken(sql.AndPredicates(predicates...))
 }
 
 // Or groups predicates with the OR operator between them.
 func Or(predicates ...predicate.SenderOrderToken) predicate.SenderOrderToken {
-	return predicate.SenderOrderToken(func(s *sql.Selector) {
-		s1 := s.Clone().SetP(nil)
-		for i, p := range predicates {
-			if i > 0 {
-				s1.Or()
-			}
-			p(s1)
-		}
-		s.Where(s1.P())
-	})
+	return predicate.SenderOrderToken(sql.OrPredicates(predicates...))
 }
 
 // Not applies the not operator on the given predicate.
 func Not(p predicate.SenderOrderToken) predicate.SenderOrderToken {
-	return predicate.SenderOrderToken(func(s *sql.Selector) {
-		p(s.Not())
-	})
+	return predicate.SenderOrderToken(sql.NotPredicates(p))
 }

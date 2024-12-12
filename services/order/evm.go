@@ -19,16 +19,15 @@ import (
 	db "github.com/paycrest/protocol/storage"
 	"github.com/shopspring/decimal"
 
+	"github.com/paycrest/protocol/ent/institution"
 	"github.com/paycrest/protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	"github.com/paycrest/protocol/ent/paymentorder"
 	"github.com/paycrest/protocol/ent/providerordertoken"
 	"github.com/paycrest/protocol/ent/providerprofile"
-	"github.com/paycrest/protocol/ent/receiveaddress"
 	"github.com/paycrest/protocol/ent/senderordertoken"
 	"github.com/paycrest/protocol/ent/senderprofile"
 	tokenEnt "github.com/paycrest/protocol/ent/token"
-	"github.com/paycrest/protocol/ent/transactionlog"
 	"github.com/paycrest/protocol/types"
 	"github.com/paycrest/protocol/utils"
 	cryptoUtils "github.com/paycrest/protocol/utils/crypto"
@@ -60,19 +59,66 @@ func (s *OrderEVM) CreateOrder(ctx context.Context, client types.RPCClient, orde
 		WithSenderProfile().
 		WithRecipient().
 		WithReceiveAddress().
+		WithLinkedAddress().
 		Only(ctx)
 	if err != nil {
 		return fmt.Errorf("%s - CreateOrder.fetchOrder: %w", orderIDPrefix, err)
 	}
 
-	saltDecrypted, err := cryptoUtils.DecryptPlain(order.Edges.ReceiveAddress.Salt)
+	var salt []byte
+	var address string
+	if order.Edges.ReceiveAddress != nil {
+		salt = order.Edges.ReceiveAddress.Salt
+		address = order.Edges.ReceiveAddress.Address
+	} else if order.Edges.LinkedAddress != nil {
+		salt = order.Edges.LinkedAddress.Salt
+		address = order.Edges.LinkedAddress.Address
+
+		// Update the rate
+		institution, err := db.Client.Institution.
+			Query().
+			Where(institution.CodeEQ(order.Edges.Recipient.Institution)).
+			WithFiatCurrency().
+			Only(ctx)
+		if err != nil {
+			return fmt.Errorf("%s - CreateOrder.fetchInstitution: %w", orderIDPrefix, err)
+		}
+
+		rate, err := utils.GetTokenRateFromQueue(order.Edges.Token.Symbol, order.Amount, institution.Edges.FiatCurrency.Code, institution.Edges.FiatCurrency.MarketRate)
+		if err != nil {
+			return fmt.Errorf("%s - CreateOrder.getRate: %w", orderIDPrefix, err)
+		}
+
+		if rate != order.Rate {
+			// Update order rate
+			order.Rate = rate
+
+			// Refresh order from db
+			order, err = db.Client.PaymentOrder.
+				Query().
+				Where(paymentorder.IDEQ(orderID)).
+				WithToken(func(tq *ent.TokenQuery) {
+					tq.WithNetwork()
+				}).
+				WithSenderProfile().
+				WithRecipient().
+				WithReceiveAddress().
+				WithLinkedAddress().
+				Only(ctx)
+			if err != nil {
+				return fmt.Errorf("%s - CreateOrder.refreshOrder: %w", orderIDPrefix, err)
+			}
+		}
+	}
+
+	saltDecrypted, err := cryptoUtils.DecryptPlain(salt)
 	if err != nil {
 		return fmt.Errorf("%s - CreateOrder.DecryptPlain: %w", orderIDPrefix, err)
 	}
 
 	// Initialize user operation with defaults
 	userOperation, err := utils.InitializeUserOperation(
-		ctx, nil, order.Edges.Token.Edges.Network.RPCEndpoint, order.Edges.ReceiveAddress.Address, string(saltDecrypted),
+		ctx, nil, order.Edges.Token.Edges.Network.RPCEndpoint, address, string(saltDecrypted),
 	)
 	if err != nil {
 		return fmt.Errorf("%s - CreateOrder.InitializeUserOperation: %w", orderIDPrefix, err)
@@ -108,31 +154,18 @@ func (s *OrderEVM) CreateOrder(ctx context.Context, client types.RPCClient, orde
 		return fmt.Errorf("%s - CreateOrder.SendUserOperation: %w", orderIDPrefix, err)
 	}
 
-	transactionLog, err := db.Client.TransactionLog.
-		Create().
-		SetStatus(transactionlog.StatusOrderCreated).
-		SetTxHash(txHash).
-		SetNetwork(order.Edges.Token.Edges.Network.Identifier).
-		SetGatewayID(order.GatewayID).
-		SetMetadata(
-			map[string]interface{}{
-				"BlockNumber": blockNumber,
-			}).Save(ctx)
-	if err != nil {
-		return fmt.Errorf("%s - CreateOrder.transactionLog: %w", orderIDPrefix, err)
-	}
-
-	// Update payment order with userOpHash
+	// Update payment order with txHash
 	_, err = order.Update().
 		SetTxHash(txHash).
 		SetBlockNumber(blockNumber).
+		SetRate(order.Rate).
 		SetStatus(paymentorder.StatusPending).
-		AddTransactions(transactionLog).
 		Save(ctx)
 	if err != nil {
 		return fmt.Errorf("%s - CreateOrder.updateTxHash: %w", orderIDPrefix, err)
 	}
 
+	// Refetch payment order
 	paymentOrder, err := db.Client.PaymentOrder.
 		Query().
 		Where(paymentorder.IDEQ(orderID)).
@@ -202,22 +235,6 @@ func (s *OrderEVM) RefundOrder(ctx context.Context, client types.RPCClient, orde
 		return fmt.Errorf("%s - RefundOrder.sendUserOperation: %w", orderIDPrefix, err)
 	}
 
-	// Create log
-	transactionLog, err := db.Client.TransactionLog.
-		Create().
-		SetStatus(transactionlog.StatusOrderRefunded).
-		SetTxHash(txHash).
-		SetNetwork(lockOrder.Edges.Token.Edges.Network.Identifier).
-		SetGatewayID(lockOrder.GatewayID).
-		SetMetadata(
-			map[string]interface{}{
-				"BlockNumber": blockNumber,
-			}).
-		Save(ctx)
-	if err != nil {
-		return fmt.Errorf("%s - RefundOrder.transactionLog(%v): %w", orderIDPrefix, txHash, err)
-	}
-
 	// Update status of all lock orders with same order_id
 	_, err = db.Client.LockPaymentOrder.
 		Update().
@@ -225,172 +242,9 @@ func (s *OrderEVM) RefundOrder(ctx context.Context, client types.RPCClient, orde
 		SetTxHash(txHash).
 		SetBlockNumber(blockNumber).
 		SetStatus(lockpaymentorder.StatusRefunded).
-		AddTransactions(transactionLog).
 		Save(ctx)
 	if err != nil {
 		return fmt.Errorf("%s - RefundOrder.updateTxHash(%v): %w", orderIDPrefix, txHash, err)
-	}
-
-	return nil
-}
-
-// RevertOrder reverts an initiated payment order on-chain.
-func (s *OrderEVM) RevertOrder(ctx context.Context, client types.RPCClient, order *ent.PaymentOrder) error {
-	if !order.AmountReturned.Equal(decimal.Zero) || strings.HasPrefix(order.Edges.Recipient.Memo, "P#P") {
-		return nil
-	}
-
-	orderIDPrefix := strings.Split(order.ID.String(), "-")[0]
-
-	// Fetch payment order from db
-	order, err := db.Client.PaymentOrder.
-		Query().
-		Where(paymentorder.IDEQ(order.ID)).
-		WithToken(func(tq *ent.TokenQuery) {
-			tq.WithNetwork()
-		}).
-		WithReceiveAddress().
-		WithSenderProfile().
-		Only(ctx)
-	if err != nil {
-		return fmt.Errorf("%s - RevertOrder.fetchOrder: %w", orderIDPrefix, err)
-	}
-
-	fees := order.NetworkFee.Add(order.SenderFee).Add(order.ProtocolFee)
-	orderAmountWithFees := order.Amount.Add(fees)
-
-	var amountToRevert decimal.Decimal
-
-	if order.AmountPaid.LessThan(orderAmountWithFees) {
-		amountToRevert = order.AmountPaid
-	} else if order.AmountPaid.GreaterThan(orderAmountWithFees) {
-		amountToRevert = order.AmountPaid.Sub(orderAmountWithFees)
-	} else if order.Status == paymentorder.StatusInitiated && order.Edges.ReceiveAddress.Status == receiveaddress.StatusUsed && order.UpdatedAt.Before(time.Now().Add(-5*time.Minute)) {
-		amountToRevert = order.AmountPaid
-	} else {
-		return nil
-	}
-
-	if amountToRevert.Equal(decimal.Zero) {
-		return nil
-	}
-
-	// Subtract the network fee from the amount
-	amountMinusFee := amountToRevert.Sub(order.NetworkFee)
-
-	// If amount minus fee is less than zero, return
-	if amountMinusFee.LessThan(decimal.Zero) {
-		return nil
-	}
-
-	// Convert amountMinusFee to big.Int
-	amountMinusFeeBigInt := utils.ToSubunit(amountMinusFee, order.Edges.Token.Decimals)
-
-	// Decrypt salt
-	saltDecrypted, err := cryptoUtils.DecryptPlain(order.Edges.ReceiveAddress.Salt)
-	if err != nil {
-		return fmt.Errorf("%s - RevertOrder.DecryptPlain: %w", orderIDPrefix, err)
-	}
-
-	// Get default userOperation
-	userOperation, err := utils.InitializeUserOperation(
-		ctx, nil, order.Edges.Token.Edges.Network.RPCEndpoint, order.Edges.ReceiveAddress.Address, string(saltDecrypted),
-	)
-	if err != nil {
-		return fmt.Errorf("%s - RevertOrder.InitializeUserOperation: %w", orderIDPrefix, err)
-	}
-
-	// Check if token is configured for sender
-	isTokenConfigured := true
-	token, err := db.Client.SenderOrderToken.
-		Query().
-		Where(
-			senderordertoken.And(
-				senderordertoken.HasTokenWith(tokenEnt.IDEQ(order.Edges.Token.ID)),
-				senderordertoken.HasSenderWith(
-					senderprofile.IDEQ(order.Edges.SenderProfile.ID),
-				),
-			)).
-		Only(ctx)
-	if err != nil {
-		if ent.IsNotFound(err) {
-			isTokenConfigured = false
-		} else {
-			return fmt.Errorf("%s - RevertOrder.FetchReturnAddress: %w", orderIDPrefix, err)
-		}
-	}
-
-	var returnAddress common.Address
-
-	if isTokenConfigured {
-		returnAddress = common.HexToAddress(token.RefundAddress)
-	} else {
-		returnAddress = common.HexToAddress(order.ReturnAddress)
-	}
-
-	// Create calldata
-	calldata, err := s.executeBatchTransferCallData(order, returnAddress, amountMinusFeeBigInt)
-	if err != nil {
-		return fmt.Errorf("RevertOrder.executeBatchTransferCallData: %w", err)
-	}
-	userOperation.CallData = calldata
-
-	// Sponsor user operation.
-	// This will populate the following fields in userOperation: PaymasterAndData, PreVerificationGas, VerificationGasLimit, CallGasLimit
-	if serverConf.Environment != "production" {
-		err = utils.SponsorUserOperation(userOperation, "erc20", order.Edges.Token.ContractAddress, order.Edges.Token.Edges.Network.ChainID)
-	} else {
-		err = utils.SponsorUserOperation(userOperation, "sponsored", "", order.Edges.Token.Edges.Network.ChainID)
-	}
-	if err != nil {
-		return fmt.Errorf("%s - RevertOrder.SponsorUserOperation: %w", orderIDPrefix, err)
-	}
-
-	// Sign user operation
-	err = utils.SignUserOperation(userOperation, order.Edges.Token.Edges.Network.ChainID)
-	if err != nil {
-		return fmt.Errorf("%s - RevertOrder.SignUserOperation: %w", orderIDPrefix, err)
-	}
-
-	// Send user operation
-	txHash, blockNumber, err := utils.SendUserOperation(userOperation, order.Edges.Token.Edges.Network.ChainID)
-	if err != nil {
-		return fmt.Errorf("%s - RevertOrder.sendUserOperation: %w", orderIDPrefix, err)
-	}
-
-	// Create log
-	transactionLog, err := db.Client.TransactionLog.
-		Create().
-		SetStatus(transactionlog.StatusOrderReverted).
-		SetTxHash(txHash).
-		SetNetwork(order.Edges.Token.Edges.Network.Identifier).
-		SetGatewayID(order.GatewayID).
-		SetMetadata(
-			map[string]interface{}{
-				"BlockNumber": blockNumber,
-			}).
-		Save(ctx)
-	if err != nil {
-		return fmt.Errorf("%s - RevertOrder.transactionLog: %w", orderIDPrefix, err)
-	}
-
-	// Update payment order
-	_, err = order.Update().
-		SetTxHash(txHash).
-		SetBlockNumber(blockNumber).
-		SetAmountReturned(amountMinusFee).
-		SetStatus(paymentorder.StatusReverted).
-		AddTransactions(transactionLog).
-		Save(ctx)
-	if err != nil {
-		return fmt.Errorf("%s - RevertOrder.updateTxHash: %w", orderIDPrefix, err)
-	}
-
-	// Send webhook notifcation to sender
-	order.Status = paymentorder.StatusReverted
-	err = utils.SendPaymentOrderWebhook(ctx, order)
-	if err != nil {
-		return fmt.Errorf("RevertOrder.webhook: %v", err)
 	}
 
 	return nil
@@ -408,7 +262,7 @@ func (s *OrderEVM) SettleOrder(ctx context.Context, client types.RPCClient, orde
 		Where(
 			lockpaymentorder.IDEQ(orderID),
 			lockpaymentorder.StatusEQ(lockpaymentorder.StatusValidated),
-			lockpaymentorder.HasFulfillmentWith(
+			lockpaymentorder.HasFulfillmentsWith(
 				lockorderfulfillment.ValidationStatusEQ(lockorderfulfillment.ValidationStatusSuccess),
 			),
 		).
@@ -456,28 +310,11 @@ func (s *OrderEVM) SettleOrder(ctx context.Context, client types.RPCClient, orde
 		return fmt.Errorf("%s - SettleOrder.sendUserOperation: %w", orderIDPrefix, err)
 	}
 
-	// Create log
-	transactionLog, err := db.Client.TransactionLog.
-		Create().
-		SetStatus(transactionlog.StatusOrderSettled).
-		SetTxHash(txHash).
-		SetNetwork(order.Edges.Token.Edges.Network.Identifier).
-		SetGatewayID(order.GatewayID).
-		SetMetadata(
-			map[string]interface{}{
-				"BlockNumber": blockNumber,
-			}).
-		Save(ctx)
-	if err != nil {
-		return fmt.Errorf("%s - SettleOrder.transactionLog: %w", orderIDPrefix, err)
-	}
-
 	// Update status of lock order
 	_, err = order.Update().
 		SetTxHash(txHash).
 		SetBlockNumber(blockNumber).
 		SetStatus(lockpaymentorder.StatusSettled).
-		AddTransactions(transactionLog).
 		Save(ctx)
 	if err != nil {
 		return fmt.Errorf("%s - SettleOrder.updateTxHash: %w", orderIDPrefix, err)
@@ -654,23 +491,29 @@ func (s *OrderEVM) createOrderCallData(order *ent.PaymentOrder) ([]byte, error) 
 		return nil, fmt.Errorf("failed to encrypt recipient details: %w", err)
 	}
 
+	var token *ent.SenderOrderToken
 	isTokenConfigured := true
-	token, err := db.Client.SenderOrderToken.
-		Query().
-		Where(
-			senderordertoken.And(
-				senderordertoken.HasTokenWith(tokenEnt.IDEQ(order.Edges.Token.ID)),
-				senderordertoken.HasSenderWith(
-					senderprofile.IDEQ(order.Edges.SenderProfile.ID),
-				),
-			)).
-		Only(context.Background())
-	if err != nil {
-		if ent.IsNotFound(err) {
-			isTokenConfigured = false
-		} else {
-			return nil, fmt.Errorf("failed to fetch order token: %w", err)
+
+	if order.Edges.SenderProfile != nil {
+		token, err = db.Client.SenderOrderToken.
+			Query().
+			Where(
+				senderordertoken.And(
+					senderordertoken.HasTokenWith(tokenEnt.IDEQ(order.Edges.Token.ID)),
+					senderordertoken.HasSenderWith(
+						senderprofile.IDEQ(order.Edges.SenderProfile.ID),
+					),
+				)).
+			Only(context.Background())
+		if err != nil {
+			if ent.IsNotFound(err) {
+				isTokenConfigured = false
+			} else {
+				return nil, fmt.Errorf("failed to fetch order token: %w", err)
+			}
 		}
+	} else {
+		isTokenConfigured = false
 	}
 
 	var refundAddress common.Address
@@ -689,7 +532,7 @@ func (s *OrderEVM) createOrderCallData(order *ent.PaymentOrder) ([]byte, error) 
 		Amount:             utils.ToSubunit(amountWithProtocolFee, order.Edges.Token.Decimals),
 		Rate:               order.Rate.BigInt(),
 		SenderFeeRecipient: common.HexToAddress(order.FeeAddress),
-		SenderFee:          order.SenderFee.BigInt(),
+		SenderFee:          utils.ToSubunit(order.SenderFee, order.Edges.Token.Decimals),
 		RefundAddress:      refundAddress,
 		MessageHash:        encryptedOrderRecipient,
 	}

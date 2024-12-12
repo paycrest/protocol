@@ -15,6 +15,7 @@ type ServerConfiguration struct {
 	AllowedHosts string
 	Environment  string
 	SentryDSN    string
+	HostDomain   string
 }
 
 // ServerConfig sets the server configuration
@@ -35,6 +36,7 @@ func ServerConfig() *ServerConfiguration {
 		AllowedHosts: viper.GetString("ALLOWED_HOSTS"),
 		Environment:  viper.GetString("ENVIRONMENT"),
 		SentryDSN:    viper.GetString("SENTRY_DSN"),
+		HostDomain:   viper.GetString("HOST_DOMAIN"),
 	}
 }
 

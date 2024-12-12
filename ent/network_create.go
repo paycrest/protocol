@@ -659,12 +659,16 @@ func (u *NetworkUpsertOne) IDX(ctx context.Context) int {
 // NetworkCreateBulk is the builder for creating many Network entities in bulk.
 type NetworkCreateBulk struct {
 	config
+	err      error
 	builders []*NetworkCreate
 	conflict []sql.ConflictOption
 }
 
 // Save creates the Network entities in the database.
 func (ncb *NetworkCreateBulk) Save(ctx context.Context) ([]*Network, error) {
+	if ncb.err != nil {
+		return nil, ncb.err
+	}
 	specs := make([]*sqlgraph.CreateSpec, len(ncb.builders))
 	nodes := make([]*Network, len(ncb.builders))
 	mutators := make([]Mutator, len(ncb.builders))
@@ -965,6 +969,9 @@ func (u *NetworkUpsertBulk) UpdateFee() *NetworkUpsertBulk {
 
 // Exec executes the query.
 func (u *NetworkUpsertBulk) Exec(ctx context.Context) error {
+	if u.create.err != nil {
+		return u.create.err
+	}
 	for i, b := range u.create.builders {
 		if len(b.conflict) != 0 {
 			return fmt.Errorf("ent: OnConflict was set for builder %d. Set it on the NetworkCreateBulk instead", i)

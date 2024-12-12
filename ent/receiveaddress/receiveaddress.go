@@ -101,7 +101,6 @@ const DefaultStatus = StatusUnused
 // Status values.
 const (
 	StatusUnused  Status = "unused"
-	StatusPartial Status = "partial"
 	StatusUsed    Status = "used"
 	StatusExpired Status = "expired"
 )
@@ -113,7 +112,7 @@ func (s Status) String() string {
 // StatusValidator is a validator for the "status" field enum values. It is called by the builders before save.
 func StatusValidator(s Status) error {
 	switch s {
-	case StatusUnused, StatusPartial, StatusUsed, StatusExpired:
+	case StatusUnused, StatusUsed, StatusExpired:
 		return nil
 	default:
 		return fmt.Errorf("receiveaddress: invalid enum value for status field: %q", s)

@@ -63,6 +63,14 @@ func (lpou *LockPaymentOrderUpdate) SetAmount(d decimal.Decimal) *LockPaymentOrd
 	return lpou
 }
 
+// SetNillableAmount sets the "amount" field if the given value is not nil.
+func (lpou *LockPaymentOrderUpdate) SetNillableAmount(d *decimal.Decimal) *LockPaymentOrderUpdate {
+	if d != nil {
+		lpou.SetAmount(*d)
+	}
+	return lpou
+}
+
 // AddAmount adds d to the "amount" field.
 func (lpou *LockPaymentOrderUpdate) AddAmount(d decimal.Decimal) *LockPaymentOrderUpdate {
 	lpou.mutation.AddAmount(d)
@@ -76,6 +84,14 @@ func (lpou *LockPaymentOrderUpdate) SetRate(d decimal.Decimal) *LockPaymentOrder
 	return lpou
 }
 
+// SetNillableRate sets the "rate" field if the given value is not nil.
+func (lpou *LockPaymentOrderUpdate) SetNillableRate(d *decimal.Decimal) *LockPaymentOrderUpdate {
+	if d != nil {
+		lpou.SetRate(*d)
+	}
+	return lpou
+}
+
 // AddRate adds d to the "rate" field.
 func (lpou *LockPaymentOrderUpdate) AddRate(d decimal.Decimal) *LockPaymentOrderUpdate {
 	lpou.mutation.AddRate(d)
@@ -86,6 +102,14 @@ func (lpou *LockPaymentOrderUpdate) AddRate(d decimal.Decimal) *LockPaymentOrder
 func (lpou *LockPaymentOrderUpdate) SetOrderPercent(d decimal.Decimal) *LockPaymentOrderUpdate {
 	lpou.mutation.ResetOrderPercent()
 	lpou.mutation.SetOrderPercent(d)
+	return lpou
+}
+
+// SetNillableOrderPercent sets the "order_percent" field if the given value is not nil.
+func (lpou *LockPaymentOrderUpdate) SetNillableOrderPercent(d *decimal.Decimal) *LockPaymentOrderUpdate {
+	if d != nil {
+		lpou.SetOrderPercent(*d)
+	}
 	return lpou
 }
 
@@ -136,6 +160,14 @@ func (lpou *LockPaymentOrderUpdate) SetBlockNumber(i int64) *LockPaymentOrderUpd
 	return lpou
 }
 
+// SetNillableBlockNumber sets the "block_number" field if the given value is not nil.
+func (lpou *LockPaymentOrderUpdate) SetNillableBlockNumber(i *int64) *LockPaymentOrderUpdate {
+	if i != nil {
+		lpou.SetBlockNumber(*i)
+	}
+	return lpou
+}
+
 // AddBlockNumber adds i to the "block_number" field.
 func (lpou *LockPaymentOrderUpdate) AddBlockNumber(i int64) *LockPaymentOrderUpdate {
 	lpou.mutation.AddBlockNumber(i)
@@ -148,15 +180,39 @@ func (lpou *LockPaymentOrderUpdate) SetInstitution(s string) *LockPaymentOrderUp
 	return lpou
 }
 
+// SetNillableInstitution sets the "institution" field if the given value is not nil.
+func (lpou *LockPaymentOrderUpdate) SetNillableInstitution(s *string) *LockPaymentOrderUpdate {
+	if s != nil {
+		lpou.SetInstitution(*s)
+	}
+	return lpou
+}
+
 // SetAccountIdentifier sets the "account_identifier" field.
 func (lpou *LockPaymentOrderUpdate) SetAccountIdentifier(s string) *LockPaymentOrderUpdate {
 	lpou.mutation.SetAccountIdentifier(s)
 	return lpou
 }
 
+// SetNillableAccountIdentifier sets the "account_identifier" field if the given value is not nil.
+func (lpou *LockPaymentOrderUpdate) SetNillableAccountIdentifier(s *string) *LockPaymentOrderUpdate {
+	if s != nil {
+		lpou.SetAccountIdentifier(*s)
+	}
+	return lpou
+}
+
 // SetAccountName sets the "account_name" field.
 func (lpou *LockPaymentOrderUpdate) SetAccountName(s string) *LockPaymentOrderUpdate {
 	lpou.mutation.SetAccountName(s)
+	return lpou
+}
+
+// SetNillableAccountName sets the "account_name" field if the given value is not nil.
+func (lpou *LockPaymentOrderUpdate) SetNillableAccountName(s *string) *LockPaymentOrderUpdate {
+	if s != nil {
+		lpou.SetAccountName(*s)
+	}
 	return lpou
 }
 
@@ -262,23 +318,19 @@ func (lpou *LockPaymentOrderUpdate) SetProvider(p *ProviderProfile) *LockPayment
 	return lpou.SetProviderID(p.ID)
 }
 
-// SetFulfillmentID sets the "fulfillment" edge to the LockOrderFulfillment entity by ID.
-func (lpou *LockPaymentOrderUpdate) SetFulfillmentID(id uuid.UUID) *LockPaymentOrderUpdate {
-	lpou.mutation.SetFulfillmentID(id)
+// AddFulfillmentIDs adds the "fulfillments" edge to the LockOrderFulfillment entity by IDs.
+func (lpou *LockPaymentOrderUpdate) AddFulfillmentIDs(ids ...uuid.UUID) *LockPaymentOrderUpdate {
+	lpou.mutation.AddFulfillmentIDs(ids...)
 	return lpou
 }
 
-// SetNillableFulfillmentID sets the "fulfillment" edge to the LockOrderFulfillment entity by ID if the given value is not nil.
-func (lpou *LockPaymentOrderUpdate) SetNillableFulfillmentID(id *uuid.UUID) *LockPaymentOrderUpdate {
-	if id != nil {
-		lpou = lpou.SetFulfillmentID(*id)
+// AddFulfillments adds the "fulfillments" edges to the LockOrderFulfillment entity.
+func (lpou *LockPaymentOrderUpdate) AddFulfillments(l ...*LockOrderFulfillment) *LockPaymentOrderUpdate {
+	ids := make([]uuid.UUID, len(l))
+	for i := range l {
+		ids[i] = l[i].ID
 	}
-	return lpou
-}
-
-// SetFulfillment sets the "fulfillment" edge to the LockOrderFulfillment entity.
-func (lpou *LockPaymentOrderUpdate) SetFulfillment(l *LockOrderFulfillment) *LockPaymentOrderUpdate {
-	return lpou.SetFulfillmentID(l.ID)
+	return lpou.AddFulfillmentIDs(ids...)
 }
 
 // AddTransactionIDs adds the "transactions" edge to the TransactionLog entity by IDs.
@@ -319,10 +371,25 @@ func (lpou *LockPaymentOrderUpdate) ClearProvider() *LockPaymentOrderUpdate {
 	return lpou
 }
 
-// ClearFulfillment clears the "fulfillment" edge to the LockOrderFulfillment entity.
-func (lpou *LockPaymentOrderUpdate) ClearFulfillment() *LockPaymentOrderUpdate {
-	lpou.mutation.ClearFulfillment()
+// ClearFulfillments clears all "fulfillments" edges to the LockOrderFulfillment entity.
+func (lpou *LockPaymentOrderUpdate) ClearFulfillments() *LockPaymentOrderUpdate {
+	lpou.mutation.ClearFulfillments()
 	return lpou
+}
+
+// RemoveFulfillmentIDs removes the "fulfillments" edge to LockOrderFulfillment entities by IDs.
+func (lpou *LockPaymentOrderUpdate) RemoveFulfillmentIDs(ids ...uuid.UUID) *LockPaymentOrderUpdate {
+	lpou.mutation.RemoveFulfillmentIDs(ids...)
+	return lpou
+}
+
+// RemoveFulfillments removes "fulfillments" edges to LockOrderFulfillment entities.
+func (lpou *LockPaymentOrderUpdate) RemoveFulfillments(l ...*LockOrderFulfillment) *LockPaymentOrderUpdate {
+	ids := make([]uuid.UUID, len(l))
+	for i := range l {
+		ids[i] = l[i].ID
+	}
+	return lpou.RemoveFulfillmentIDs(ids...)
 }
 
 // ClearTransactions clears all "transactions" edges to the TransactionLog entity.
@@ -394,7 +461,7 @@ func (lpou *LockPaymentOrderUpdate) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "LockPaymentOrder.status": %w`, err)}
 		}
 	}
-	if _, ok := lpou.mutation.TokenID(); lpou.mutation.TokenCleared() && !ok {
+	if lpou.mutation.TokenCleared() && len(lpou.mutation.TokenIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "LockPaymentOrder.token"`)
 	}
 	return nil
@@ -567,12 +634,12 @@ func (lpou *LockPaymentOrderUpdate) sqlSave(ctx context.Context) (n int, err err
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if lpou.mutation.FulfillmentCleared() {
+	if lpou.mutation.FulfillmentsCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   lockpaymentorder.FulfillmentTable,
-			Columns: []string{lockpaymentorder.FulfillmentColumn},
+			Table:   lockpaymentorder.FulfillmentsTable,
+			Columns: []string{lockpaymentorder.FulfillmentsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(lockorderfulfillment.FieldID, field.TypeUUID),
@@ -580,12 +647,28 @@ func (lpou *LockPaymentOrderUpdate) sqlSave(ctx context.Context) (n int, err err
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := lpou.mutation.FulfillmentIDs(); len(nodes) > 0 {
+	if nodes := lpou.mutation.RemovedFulfillmentsIDs(); len(nodes) > 0 && !lpou.mutation.FulfillmentsCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   lockpaymentorder.FulfillmentTable,
-			Columns: []string{lockpaymentorder.FulfillmentColumn},
+			Table:   lockpaymentorder.FulfillmentsTable,
+			Columns: []string{lockpaymentorder.FulfillmentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(lockorderfulfillment.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := lpou.mutation.FulfillmentsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   lockpaymentorder.FulfillmentsTable,
+			Columns: []string{lockpaymentorder.FulfillmentsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(lockorderfulfillment.FieldID, field.TypeUUID),
@@ -688,6 +771,14 @@ func (lpouo *LockPaymentOrderUpdateOne) SetAmount(d decimal.Decimal) *LockPaymen
 	return lpouo
 }
 
+// SetNillableAmount sets the "amount" field if the given value is not nil.
+func (lpouo *LockPaymentOrderUpdateOne) SetNillableAmount(d *decimal.Decimal) *LockPaymentOrderUpdateOne {
+	if d != nil {
+		lpouo.SetAmount(*d)
+	}
+	return lpouo
+}
+
 // AddAmount adds d to the "amount" field.
 func (lpouo *LockPaymentOrderUpdateOne) AddAmount(d decimal.Decimal) *LockPaymentOrderUpdateOne {
 	lpouo.mutation.AddAmount(d)
@@ -701,6 +792,14 @@ func (lpouo *LockPaymentOrderUpdateOne) SetRate(d decimal.Decimal) *LockPaymentO
 	return lpouo
 }
 
+// SetNillableRate sets the "rate" field if the given value is not nil.
+func (lpouo *LockPaymentOrderUpdateOne) SetNillableRate(d *decimal.Decimal) *LockPaymentOrderUpdateOne {
+	if d != nil {
+		lpouo.SetRate(*d)
+	}
+	return lpouo
+}
+
 // AddRate adds d to the "rate" field.
 func (lpouo *LockPaymentOrderUpdateOne) AddRate(d decimal.Decimal) *LockPaymentOrderUpdateOne {
 	lpouo.mutation.AddRate(d)
@@ -711,6 +810,14 @@ func (lpouo *LockPaymentOrderUpdateOne) AddRate(d decimal.Decimal) *LockPaymentO
 func (lpouo *LockPaymentOrderUpdateOne) SetOrderPercent(d decimal.Decimal) *LockPaymentOrderUpdateOne {
 	lpouo.mutation.ResetOrderPercent()
 	lpouo.mutation.SetOrderPercent(d)
+	return lpouo
+}
+
+// SetNillableOrderPercent sets the "order_percent" field if the given value is not nil.
+func (lpouo *LockPaymentOrderUpdateOne) SetNillableOrderPercent(d *decimal.Decimal) *LockPaymentOrderUpdateOne {
+	if d != nil {
+		lpouo.SetOrderPercent(*d)
+	}
 	return lpouo
 }
 
@@ -761,6 +868,14 @@ func (lpouo *LockPaymentOrderUpdateOne) SetBlockNumber(i int64) *LockPaymentOrde
 	return lpouo
 }
 
+// SetNillableBlockNumber sets the "block_number" field if the given value is not nil.
+func (lpouo *LockPaymentOrderUpdateOne) SetNillableBlockNumber(i *int64) *LockPaymentOrderUpdateOne {
+	if i != nil {
+		lpouo.SetBlockNumber(*i)
+	}
+	return lpouo
+}
+
 // AddBlockNumber adds i to the "block_number" field.
 func (lpouo *LockPaymentOrderUpdateOne) AddBlockNumber(i int64) *LockPaymentOrderUpdateOne {
 	lpouo.mutation.AddBlockNumber(i)
@@ -773,15 +888,39 @@ func (lpouo *LockPaymentOrderUpdateOne) SetInstitution(s string) *LockPaymentOrd
 	return lpouo
 }
 
+// SetNillableInstitution sets the "institution" field if the given value is not nil.
+func (lpouo *LockPaymentOrderUpdateOne) SetNillableInstitution(s *string) *LockPaymentOrderUpdateOne {
+	if s != nil {
+		lpouo.SetInstitution(*s)
+	}
+	return lpouo
+}
+
 // SetAccountIdentifier sets the "account_identifier" field.
 func (lpouo *LockPaymentOrderUpdateOne) SetAccountIdentifier(s string) *LockPaymentOrderUpdateOne {
 	lpouo.mutation.SetAccountIdentifier(s)
 	return lpouo
 }
 
+// SetNillableAccountIdentifier sets the "account_identifier" field if the given value is not nil.
+func (lpouo *LockPaymentOrderUpdateOne) SetNillableAccountIdentifier(s *string) *LockPaymentOrderUpdateOne {
+	if s != nil {
+		lpouo.SetAccountIdentifier(*s)
+	}
+	return lpouo
+}
+
 // SetAccountName sets the "account_name" field.
 func (lpouo *LockPaymentOrderUpdateOne) SetAccountName(s string) *LockPaymentOrderUpdateOne {
 	lpouo.mutation.SetAccountName(s)
+	return lpouo
+}
+
+// SetNillableAccountName sets the "account_name" field if the given value is not nil.
+func (lpouo *LockPaymentOrderUpdateOne) SetNillableAccountName(s *string) *LockPaymentOrderUpdateOne {
+	if s != nil {
+		lpouo.SetAccountName(*s)
+	}
 	return lpouo
 }
 
@@ -887,23 +1026,19 @@ func (lpouo *LockPaymentOrderUpdateOne) SetProvider(p *ProviderProfile) *LockPay
 	return lpouo.SetProviderID(p.ID)
 }
 
-// SetFulfillmentID sets the "fulfillment" edge to the LockOrderFulfillment entity by ID.
-func (lpouo *LockPaymentOrderUpdateOne) SetFulfillmentID(id uuid.UUID) *LockPaymentOrderUpdateOne {
-	lpouo.mutation.SetFulfillmentID(id)
+// AddFulfillmentIDs adds the "fulfillments" edge to the LockOrderFulfillment entity by IDs.
+func (lpouo *LockPaymentOrderUpdateOne) AddFulfillmentIDs(ids ...uuid.UUID) *LockPaymentOrderUpdateOne {
+	lpouo.mutation.AddFulfillmentIDs(ids...)
 	return lpouo
 }
 
-// SetNillableFulfillmentID sets the "fulfillment" edge to the LockOrderFulfillment entity by ID if the given value is not nil.
-func (lpouo *LockPaymentOrderUpdateOne) SetNillableFulfillmentID(id *uuid.UUID) *LockPaymentOrderUpdateOne {
-	if id != nil {
-		lpouo = lpouo.SetFulfillmentID(*id)
+// AddFulfillments adds the "fulfillments" edges to the LockOrderFulfillment entity.
+func (lpouo *LockPaymentOrderUpdateOne) AddFulfillments(l ...*LockOrderFulfillment) *LockPaymentOrderUpdateOne {
+	ids := make([]uuid.UUID, len(l))
+	for i := range l {
+		ids[i] = l[i].ID
 	}
-	return lpouo
-}
-
-// SetFulfillment sets the "fulfillment" edge to the LockOrderFulfillment entity.
-func (lpouo *LockPaymentOrderUpdateOne) SetFulfillment(l *LockOrderFulfillment) *LockPaymentOrderUpdateOne {
-	return lpouo.SetFulfillmentID(l.ID)
+	return lpouo.AddFulfillmentIDs(ids...)
 }
 
 // AddTransactionIDs adds the "transactions" edge to the TransactionLog entity by IDs.
@@ -944,10 +1079,25 @@ func (lpouo *LockPaymentOrderUpdateOne) ClearProvider() *LockPaymentOrderUpdateO
 	return lpouo
 }
 
-// ClearFulfillment clears the "fulfillment" edge to the LockOrderFulfillment entity.
-func (lpouo *LockPaymentOrderUpdateOne) ClearFulfillment() *LockPaymentOrderUpdateOne {
-	lpouo.mutation.ClearFulfillment()
+// ClearFulfillments clears all "fulfillments" edges to the LockOrderFulfillment entity.
+func (lpouo *LockPaymentOrderUpdateOne) ClearFulfillments() *LockPaymentOrderUpdateOne {
+	lpouo.mutation.ClearFulfillments()
 	return lpouo
+}
+
+// RemoveFulfillmentIDs removes the "fulfillments" edge to LockOrderFulfillment entities by IDs.
+func (lpouo *LockPaymentOrderUpdateOne) RemoveFulfillmentIDs(ids ...uuid.UUID) *LockPaymentOrderUpdateOne {
+	lpouo.mutation.RemoveFulfillmentIDs(ids...)
+	return lpouo
+}
+
+// RemoveFulfillments removes "fulfillments" edges to LockOrderFulfillment entities.
+func (lpouo *LockPaymentOrderUpdateOne) RemoveFulfillments(l ...*LockOrderFulfillment) *LockPaymentOrderUpdateOne {
+	ids := make([]uuid.UUID, len(l))
+	for i := range l {
+		ids[i] = l[i].ID
+	}
+	return lpouo.RemoveFulfillmentIDs(ids...)
 }
 
 // ClearTransactions clears all "transactions" edges to the TransactionLog entity.
@@ -1032,7 +1182,7 @@ func (lpouo *LockPaymentOrderUpdateOne) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "LockPaymentOrder.status": %w`, err)}
 		}
 	}
-	if _, ok := lpouo.mutation.TokenID(); lpouo.mutation.TokenCleared() && !ok {
+	if lpouo.mutation.TokenCleared() && len(lpouo.mutation.TokenIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "LockPaymentOrder.token"`)
 	}
 	return nil
@@ -1222,12 +1372,12 @@ func (lpouo *LockPaymentOrderUpdateOne) sqlSave(ctx context.Context) (_node *Loc
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if lpouo.mutation.FulfillmentCleared() {
+	if lpouo.mutation.FulfillmentsCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   lockpaymentorder.FulfillmentTable,
-			Columns: []string{lockpaymentorder.FulfillmentColumn},
+			Table:   lockpaymentorder.FulfillmentsTable,
+			Columns: []string{lockpaymentorder.FulfillmentsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(lockorderfulfillment.FieldID, field.TypeUUID),
@@ -1235,12 +1385,28 @@ func (lpouo *LockPaymentOrderUpdateOne) sqlSave(ctx context.Context) (_node *Loc
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := lpouo.mutation.FulfillmentIDs(); len(nodes) > 0 {
+	if nodes := lpouo.mutation.RemovedFulfillmentsIDs(); len(nodes) > 0 && !lpouo.mutation.FulfillmentsCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   lockpaymentorder.FulfillmentTable,
-			Columns: []string{lockpaymentorder.FulfillmentColumn},
+			Table:   lockpaymentorder.FulfillmentsTable,
+			Columns: []string{lockpaymentorder.FulfillmentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(lockorderfulfillment.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := lpouo.mutation.FulfillmentsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   lockpaymentorder.FulfillmentsTable,
+			Columns: []string{lockpaymentorder.FulfillmentsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(lockorderfulfillment.FieldID, field.TypeUUID),

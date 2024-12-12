@@ -47,12 +47,10 @@ type PaymentOrderRecipientEdges struct {
 // PaymentOrderOrErr returns the PaymentOrder value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e PaymentOrderRecipientEdges) PaymentOrderOrErr() (*PaymentOrder, error) {
-	if e.loadedTypes[0] {
-		if e.PaymentOrder == nil {
-			// Edge was loaded but was not found.
-			return nil, &NotFoundError{label: paymentorder.Label}
-		}
+	if e.PaymentOrder != nil {
 		return e.PaymentOrder, nil
+	} else if e.loadedTypes[0] {
+		return nil, &NotFoundError{label: paymentorder.Label}
 	}
 	return nil, &NotLoadedError{edge: "payment_order"}
 }

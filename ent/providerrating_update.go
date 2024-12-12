@@ -42,6 +42,14 @@ func (pru *ProviderRatingUpdate) SetTrustScore(d decimal.Decimal) *ProviderRatin
 	return pru
 }
 
+// SetNillableTrustScore sets the "trust_score" field if the given value is not nil.
+func (pru *ProviderRatingUpdate) SetNillableTrustScore(d *decimal.Decimal) *ProviderRatingUpdate {
+	if d != nil {
+		pru.SetTrustScore(*d)
+	}
+	return pru
+}
+
 // AddTrustScore adds d to the "trust_score" field.
 func (pru *ProviderRatingUpdate) AddTrustScore(d decimal.Decimal) *ProviderRatingUpdate {
 	pru.mutation.AddTrustScore(d)
@@ -91,7 +99,7 @@ func (pru *ProviderRatingUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (pru *ProviderRatingUpdate) check() error {
-	if _, ok := pru.mutation.ProviderProfileID(); pru.mutation.ProviderProfileCleared() && !ok {
+	if pru.mutation.ProviderProfileCleared() && len(pru.mutation.ProviderProfileIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "ProviderRating.provider_profile"`)
 	}
 	return nil
@@ -148,6 +156,14 @@ func (pruo *ProviderRatingUpdateOne) SetUpdatedAt(t time.Time) *ProviderRatingUp
 func (pruo *ProviderRatingUpdateOne) SetTrustScore(d decimal.Decimal) *ProviderRatingUpdateOne {
 	pruo.mutation.ResetTrustScore()
 	pruo.mutation.SetTrustScore(d)
+	return pruo
+}
+
+// SetNillableTrustScore sets the "trust_score" field if the given value is not nil.
+func (pruo *ProviderRatingUpdateOne) SetNillableTrustScore(d *decimal.Decimal) *ProviderRatingUpdateOne {
+	if d != nil {
+		pruo.SetTrustScore(*d)
+	}
 	return pruo
 }
 
@@ -213,7 +229,7 @@ func (pruo *ProviderRatingUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (pruo *ProviderRatingUpdateOne) check() error {
-	if _, ok := pruo.mutation.ProviderProfileID(); pruo.mutation.ProviderProfileCleared() && !ok {
+	if pruo.mutation.ProviderProfileCleared() && len(pruo.mutation.ProviderProfileIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "ProviderRating.provider_profile"`)
 	}
 	return nil

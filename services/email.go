@@ -1,26 +1,26 @@
 package services
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"net/http"
 	"time"
 
 	mailgunv3 "github.com/mailgun/mailgun-go/v3"
+	fastshot "github.com/opus-domini/fast-shot"
 	"github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
 
 	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/types"
+	"github.com/paycrest/protocol/utils"
+	"github.com/paycrest/protocol/utils/logger"
 )
 
 var (
 	notificationConf = config.NotificationConfig()
 
 	mailgunClient       mailgunv3.Mailgun
-	_DefaultFromAddress = notificationConf.EmailFromAddress //"Paycrest <no-reply@paycrest.io>"
+	_DefaultFromAddress = notificationConf.EmailFromAddress
 )
 
 type MailProvider string
@@ -63,12 +63,13 @@ func (m *EmailService) SendEmail(ctx context.Context, payload types.SendEmailPay
 }
 
 // SendVerificationEmail performs the actions for sending a verification token to the user email.
-func (m *EmailService) SendVerificationEmail(ctx context.Context, token, email string) (types.SendEmailResponse, error) {
+func (m *EmailService) SendVerificationEmail(ctx context.Context, token, email, firstName string) (types.SendEmailResponse, error) {
 	payload := types.SendEmailPayload{
 		FromAddress: _DefaultFromAddress,
 		ToAddress:   email,
 		DynamicData: map[string]interface{}{
-			"code": token,
+			"first_name": firstName,
+			"token":       token,
 		},
 	}
 	return SendTemplateEmail(payload, "d-f26d853bbb884c0c856f0bbda894032c")
@@ -76,13 +77,14 @@ func (m *EmailService) SendVerificationEmail(ctx context.Context, token, email s
 }
 
 // SendPasswordResetEmail performs the actions for sending a password reset token to the user email.
-func (m *EmailService) SendPasswordResetEmail(ctx context.Context, token, email string) (types.SendEmailResponse, error) {
+func (m *EmailService) SendPasswordResetEmail(ctx context.Context, token, email, firstName string) (types.SendEmailResponse, error) {
 
 	payload := types.SendEmailPayload{
 		FromAddress: _DefaultFromAddress,
 		ToAddress:   email,
 		DynamicData: map[string]interface{}{
-			"code": token,
+			"first_name": firstName,
+			"token":       token,
 		},
 	}
 	return SendTemplateEmail(payload, "d-8b689801cd9947748775ccd1c4cc932e")
@@ -134,22 +136,18 @@ func sendEmailViaSendGrid(ctx context.Context, content types.SendEmailPayload) (
 	return types.SendEmailResponse{Id: response.Headers["X-Message-Id"][0]}, nil
 }
 
+// SendTemplateEmail sends an email using SendGrid's dynamic template.
 func SendTemplateEmail(content types.SendEmailPayload, templateId string) (types.SendEmailResponse, error) {
-	client := &http.Client{
-		Timeout: 30 * time.Second,
-	}
-
-	url := "https://api.sendgrid.com/v3/mail/send"
-
 	reqBody := map[string]interface{}{
 		"from": map[string]string{
-			"email": _DefaultFromAddress,
+			"email": content.FromAddress,
 		},
 		"personalizations": []map[string]interface{}{
 			{
 				"to": []map[string]string{
 					{
 						"email": content.ToAddress,
+						"name":  "Paycrest",
 					},
 				},
 				"dynamic_template_data": content.DynamicData,
@@ -158,46 +156,42 @@ func SendTemplateEmail(content types.SendEmailPayload, templateId string) (types
 		"template_id": templateId,
 	}
 
-	jsonBody, err := json.Marshal(reqBody)
+	res, err := fastshot.NewClient(fmt.Sprintf("https://%s", notificationConf.EmailDomain)).
+		Config().SetTimeout(30*time.Second).
+		Auth().BearerToken(notificationConf.EmailAPIKey).
+		Header().Add("Content-Type", "application/json").
+		Build().POST("/v3/mail/send").
+		Body().AsJSON(reqBody).
+		Send()
 	if err != nil {
-		return types.SendEmailResponse{}, fmt.Errorf("error marshalling JSON: %w", err)
-
-	}
-
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonBody))
-	if err != nil {
-		return types.SendEmailResponse{}, fmt.Errorf("error creating request: %w", err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+notificationConf.EmailAPIKey)
-
-	body, err := client.Do(req)
-	if err != nil {
+		logger.Errorf("error sending request: %v", err)
 		return types.SendEmailResponse{}, fmt.Errorf("error sending request: %w", err)
 	}
+
+	data, err := utils.ParseJSONResponse(res.RawResponse)
+	if err != nil {
+		logger.Errorf("error parsing response: %v %v", err, data)
+		return types.SendEmailResponse{}, fmt.Errorf("error parsing response: %w", err)
+	}
+
 	return types.SendEmailResponse{
-		Response: body.Header.Get("X-Message-Id"),
-		Id:       body.Header.Get("X-Message-Id"),
+		Response: res.RawResponse.Header.Get("X-Message-Id"),
+		Id:       res.RawResponse.Header.Get("X-Message-Id"),
 	}, nil
 }
 
+// SendTemplateEmailWithJsonAttachment sends an email using SendGrid's dynamic template with a JSON attachment.
 func SendTemplateEmailWithJsonAttachment(content types.SendEmailPayload, templateId string) error {
-	client := &http.Client{
-		Timeout: 30 * time.Second,
-	}
-
-	url := "https://api.sendgrid.com/v3/mail/send"
-
 	reqBody := map[string]interface{}{
 		"from": map[string]string{
-			"email": _DefaultFromAddress,
+			"email": content.FromAddress,
 		},
 		"personalizations": []map[string]interface{}{
 			{
 				"to": []map[string]string{
 					{
 						"email": content.ToAddress,
+						"name":  "Paycrest",
 					},
 				},
 				"dynamic_template_data": content.DynamicData,
@@ -213,23 +207,23 @@ func SendTemplateEmailWithJsonAttachment(content types.SendEmailPayload, templat
 		},
 	}
 
-	jsonBody, err := json.Marshal(reqBody)
+	res, err := fastshot.NewClient(fmt.Sprintf("https://%s", notificationConf.EmailDomain)).
+		Config().SetTimeout(30*time.Second).
+		Auth().BearerToken(notificationConf.EmailAPIKey).
+		Header().Add("Content-Type", "application/json").
+		Build().POST("/v3/mail/send").
+		Body().AsJSON(reqBody).
+		Send()
 	if err != nil {
-		return fmt.Errorf("error marshalling JSON: %w", err)
-
-	}
-
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonBody))
-	if err != nil {
-		return fmt.Errorf("error creating request: %w", err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+notificationConf.EmailAPIKey)
-
-	_, err = client.Do(req)
-	if err != nil {
+		logger.Errorf("error sending request: %v", err)
 		return fmt.Errorf("error sending request: %w", err)
 	}
+
+	data, err := utils.ParseJSONResponse(res.RawResponse)
+	if err != nil {
+		logger.Errorf("error parsing response: %v %v", err, data)
+		return fmt.Errorf("error parsing response: %w", err)
+	}
+
 	return nil
 }

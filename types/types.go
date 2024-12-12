@@ -98,7 +98,6 @@ type OrderRefundedEvent struct {
 type OrderService interface {
 	CreateOrder(ctx context.Context, client RPCClient, orderID uuid.UUID) error
 	RefundOrder(ctx context.Context, client RPCClient, orderID string) error
-	RevertOrder(ctx context.Context, client RPCClient, order *ent.PaymentOrder) error
 	SettleOrder(ctx context.Context, client RPCClient, orderID uuid.UUID) error
 }
 
@@ -115,13 +114,12 @@ type CreateOrderParams struct {
 
 // RegisterPayload is the payload for the register endpoint
 type RegisterPayload struct {
-	FirstName   string   `json:"firstName" binding:"required"`
-	LastName    string   `json:"lastName" binding:"required"`
-	Email       string   `json:"email" binding:"required,email"`
-	Password    string   `json:"password" binding:"required,min=6,max=20"`
-	TradingName string   `json:"tradingName"`
-	Currency    string   `json:"currency"`
-	Scopes      []string `json:"scopes" binding:"required,dive,oneof=sender provider"`
+	FirstName string   `json:"firstName" binding:"required"`
+	LastName  string   `json:"lastName" binding:"required"`
+	Email     string   `json:"email" binding:"required,email"`
+	Password  string   `json:"password" binding:"required,min=6,max=20"`
+	Currency  string   `json:"currency"`
+	Scopes    []string `json:"scopes" binding:"required,dive,oneof=sender provider"`
 }
 
 // RegisterResponse is the response for the register endpoint
@@ -159,6 +157,7 @@ type AcceptOrderResponse struct {
 // FulfillLockOrderPayload is the payload for the fulfill order endpoint
 type FulfillLockOrderPayload struct {
 	TxID             string                                `json:"txId" binding:"required"`
+	PSP              string                                `json:"psp" binding:"required"`
 	ValidationStatus lockorderfulfillment.ValidationStatus `json:"validationStatus"`
 	ValidationError  string                                `json:"validationError"`
 }
@@ -186,21 +185,18 @@ type RefreshJWTPayload struct {
 	RefreshToken string `json:"refreshToken" binding:"required"`
 }
 
-// ValidatorProfilePayload is the payload for the validator profile endpoint
-type ValidatorProfilePayload struct {
-	WalletAddress  string `json:"walletAddress"`
-	HostIdentifier string `json:"hostIdentifier"`
-}
-
+// SenderOrderAddressPayload defines the sender setting for an address
 type SenderOrderAddressPayload struct {
 	Network       string `json:"network" binding:"required"`
 	FeeAddress    string `json:"feeAddress" binding:"required"`
 	RefundAddress string `json:"refundAddress" binding:"required"`
 }
+
+// SenderOrderTokenPayload defines the sender setting for a token
 type SenderOrderTokenPayload struct {
-	Symbol          string                      `json:"symbol" binding:"required"`
-	FeePerTokenUnit decimal.Decimal             `json:"feePerTokenUnit" binding:"required"`
-	Addresses       []SenderOrderAddressPayload `json:"addresses"`
+	Symbol     string                      `json:"symbol" binding:"required"`
+	FeePercent decimal.Decimal             `json:"feePercent" binding:"required"`
+	Addresses  []SenderOrderAddressPayload `json:"addresses"`
 }
 
 // SenderProfilePayload is the payload for the sender profile endpoint
@@ -229,7 +225,6 @@ type ProviderProfilePayload struct {
 	TradingName          string                      `json:"tradingName"`
 	Currency             string                      `json:"currency"`
 	HostIdentifier       string                      `json:"hostIdentifier"`
-	IsPartner            bool                        `json:"isPartner"`
 	IsAvailable          bool                        `json:"isAvailable"`
 	Tokens               []ProviderOrderTokenPayload `json:"tokens"`
 	VisibilityMode       string                      `json:"visibilityMode"`
@@ -250,9 +245,7 @@ type ProviderProfileResponse struct {
 	Email                string                               `json:"email"`
 	TradingName          string                               `json:"tradingName"`
 	Currency             string                               `json:"currency"`
-	Rate                 decimal.Decimal                      `json:"rate"`
 	HostIdentifier       string                               `json:"hostIdentifier"`
-	IsPartner            bool                                 `json:"isPartner"`
 	IsAvailable          bool                                 `json:"isAvailable"`
 	Tokens               []ProviderOrderTokenPayload          `json:"tokens"`
 	APIKey               APIKeyResponse                       `json:"apiKey"`
@@ -268,34 +261,28 @@ type ProviderProfileResponse struct {
 	IsKybVerified        bool                                 `json:"isKybVerified"`
 }
 
-// ValidatorProfileResponse is the response for the validator profile endpoint
-type ValidatorProfileResponse struct {
-	ID             uuid.UUID      `json:"id"`
-	WalletAddress  string         `json:"walletAddress"`
-	HostIdentifier string         `json:"hostIdentifier"`
-	APIKey         APIKeyResponse `json:"apiKey"`
-}
-
 // SenderOrderTokenResponse defines the provider setting for a token
 type SenderOrderTokenResponse struct {
-	Symbol          string          `json:"symbol" binding:"required"`
-	FeePerTokenUnit decimal.Decimal `json:"feePerTokenUnit" binding:"required"`
-	Network         string          `json:"network" binding:"required"`
-	FeeAddress      string          `json:"feeAddress" binding:"required"`
-	RefundAddress   string          `json:"refundAddress" binding:"required"`
+	Symbol        string          `json:"symbol" binding:"required"`
+	FeePercent    decimal.Decimal `json:"feePercent" binding:"required"`
+	Network       string          `json:"network" binding:"required"`
+	FeeAddress    string          `json:"feeAddress" binding:"required"`
+	RefundAddress string          `json:"refundAddress" binding:"required"`
 }
 
 // SenderProfileResponse is the response for the sender profile endpoint
 type SenderProfileResponse struct {
-	ID              uuid.UUID                  `json:"id"`
-	FirstName       string                     `json:"firstName"`
-	LastName        string                     `json:"lastName"`
-	Email           string                     `json:"email"`
-	WebhookURL      string                     `json:"webhookUrl"`
-	DomainWhitelist []string                   `json:"domainWhitelist"`
-	Tokens          []SenderOrderTokenResponse `json:"tokens"`
-	APIKey          APIKeyResponse             `json:"apiKey"`
-	IsActive        bool                       `json:"isActive"`
+	ID               uuid.UUID                  `json:"id"`
+	FirstName        string                     `json:"firstName"`
+	LastName         string                     `json:"lastName"`
+	Email            string                     `json:"email"`
+	WebhookURL       string                     `json:"webhookUrl"`
+	DomainWhitelist  []string                   `json:"domainWhitelist"`
+	Tokens           []SenderOrderTokenResponse `json:"tokens"`
+	APIKey           APIKeyResponse             `json:"apiKey"`
+	ProviderID       string                     `json:"providerId"`
+	ProviderCurrency string                     `json:"providerCurrency"`
+	IsActive         bool                       `json:"isActive"`
 }
 
 // RefreshResponse is the response for the refresh endpoint
@@ -404,14 +391,14 @@ type PaymentOrderRecipient struct {
 
 // NewPaymentOrderPayload is the payload for the create payment order endpoint
 type NewPaymentOrderPayload struct {
-	Amount          decimal.Decimal       `json:"amount" binding:"required"`
-	Token           string                `json:"token" binding:"required"`
-	Rate            decimal.Decimal       `json:"rate" binding:"required"`
-	Network         string                `json:"network" binding:"required"`
-	Recipient       PaymentOrderRecipient `json:"recipient" binding:"required"`
-	ReturnAddress   string                `json:"returnAddress"`
-	FeePerTokenUnit decimal.Decimal       `json:"feePerTokenUnit"`
-	FeeAddress      string                `json:"feeAddress"`
+	Amount        decimal.Decimal       `json:"amount" binding:"required"`
+	Token         string                `json:"token" binding:"required"`
+	Rate          decimal.Decimal       `json:"rate" binding:"required"`
+	Network       string                `json:"network" binding:"required"`
+	Recipient     PaymentOrderRecipient `json:"recipient" binding:"required"`
+	ReturnAddress string                `json:"returnAddress"`
+	FeePercent    decimal.Decimal       `json:"feePercent"`
+	FeeAddress    string                `json:"feeAddress"`
 }
 
 // ReceiveAddressResponse is the response type for a receive address
@@ -544,12 +531,12 @@ type ErrorData struct {
 // Payload for reset password request
 type ResetPasswordPayload struct {
 	Password   string `json:"password" binding:"required,min=6,max=20"`
-	ResetToken string `json:"resetToken"`
+	ResetToken string `json:"resetToken" binding:"required"`
 }
 
 // Payload for reset password token endpoint
 type ResetPasswordTokenPayload struct {
-	Email string `json:"email"`
+	Email string `json:"email" binding:"required,email"`
 }
 
 // ProviderLockOrderList is the struct for a list of provider lock orders
@@ -590,6 +577,95 @@ type ProviderStatsResponse struct {
 
 // VerifyAccountRequest is the request for account verification of an institution
 type VerifyAccountRequest struct {
+	Institution       string `json:"institution" binding:"required"`
+	AccountIdentifier string `json:"accountIdentifier" binding:"required"`
+}
+
+// NewIDVerificationRequest is the request for a new identity verification request
+type NewIDVerificationRequest struct {
+	WalletAddress string `json:"walletAddress" binding:"required"`
+	Signature     string `json:"signature" binding:"required"`
+	Nonce         string `json:"nonce" binding:"required"`
+}
+
+// NewIDVerificationResponse is the response for a new identity verification request
+type NewIDVerificationResponse struct {
+	URL       string    `json:"url"`
+	ExpiresAt time.Time `json:"expiresAt"`
+}
+
+type IDVerificationStatusResponse struct {
+	Status string `json:"status"`
+	URL    string `json:"url"`
+}
+
+// SmileIDWebhookPayload represents the payload structure from Smile Identity
+type SmileIDWebhookPayload struct {
+	ResultCode    string `json:"ResultCode"`
+	PartnerParams struct {
+		UserID string `json:"user_id"`
+	} `json:"PartnerParams"`
+	Signature string `json:"signature"`
+	Timestamp string `json:"timestamp"`
+	// Add other fields as needed
+}
+
+// NewLinkedAddressRequest is the request for linking a new address
+type NewLinkedAddressRequest struct {
+	Institution       string `json:"institution" binding:"required"`
+	AccountIdentifier string `json:"accountIdentifier" binding:"required"`
+	AccountName       string `json:"accountName" binding:"required"`
+}
+
+// NewLinkedAddressResponse is the response for linking a new address
+type NewLinkedAddressResponse struct {
+	LinkedAddress     string    `json:"linkedAddress"`
+	Institution       string    `json:"institution"`
+	AccountIdentifier string    `json:"accountIdentifier"`
+	AccountName       string    `json:"accountName"`
+	UpdatedAt         time.Time `json:"updatedAt"`
+	CreatedAt         time.Time `json:"createdAt"`
+}
+
+// LinkedAddressResponse is the response for a linked address
+type LinkedAddressResponse struct {
+	LinkedAddress     string `json:"linkedAddress"`
+	Currency          string `json:"currency"`
 	Institution       string `json:"institution"`
 	AccountIdentifier string `json:"accountIdentifier"`
+	AccountName       string `json:"accountName"`
+}
+
+// LinkedAddressTransactionRecipient is the struct for a linked address transaction recipient
+type LinkedAddressTransactionRecipient struct {
+	Currency          string `json:"currency"`
+	Institution       string `json:"institution"`
+	AccountIdentifier string `json:"accountIdentifier"`
+	AccountName       string `json:"accountName"`
+}
+
+// LinkedAddressTransaction is the struct for a linked address transaction
+type LinkedAddressTransaction struct {
+	ID            uuid.UUID                         `json:"id"`
+	Amount        decimal.Decimal                   `json:"amount"`
+	Token         string                            `json:"token"`
+	Rate          decimal.Decimal                   `json:"rate"`
+	Network       string                            `json:"network"`
+	GatewayID     string                            `json:"gatewayId"`
+	Recipient     LinkedAddressTransactionRecipient `json:"recipient"`
+	FromAddress   string                            `json:"fromAddress"`
+	ReturnAddress string                            `json:"returnAddress"`
+	CreatedAt     time.Time                         `json:"createdAt"`
+	UpdatedAt     time.Time                         `json:"updatedAt"`
+	TxHash        string                            `json:"txHash"`
+	Status        paymentorder.Status               `json:"status"`
+	Transactions  []TransactionLog                  `json:"transactionLogs"`
+}
+
+// LinkedAddressTransactionList is the struct for a list of linked address transactions
+type LinkedAddressTransactionList struct {
+	TotalRecords int                        `json:"total"`
+	Page         int                        `json:"page"`
+	PageSize     int                        `json:"pageSize"`
+	Transactions []LinkedAddressTransaction `json:"transactions"`
 }

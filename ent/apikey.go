@@ -45,12 +45,10 @@ type APIKeyEdges struct {
 // SenderProfileOrErr returns the SenderProfile value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e APIKeyEdges) SenderProfileOrErr() (*SenderProfile, error) {
-	if e.loadedTypes[0] {
-		if e.SenderProfile == nil {
-			// Edge was loaded but was not found.
-			return nil, &NotFoundError{label: senderprofile.Label}
-		}
+	if e.SenderProfile != nil {
 		return e.SenderProfile, nil
+	} else if e.loadedTypes[0] {
+		return nil, &NotFoundError{label: senderprofile.Label}
 	}
 	return nil, &NotLoadedError{edge: "sender_profile"}
 }
@@ -58,12 +56,10 @@ func (e APIKeyEdges) SenderProfileOrErr() (*SenderProfile, error) {
 // ProviderProfileOrErr returns the ProviderProfile value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e APIKeyEdges) ProviderProfileOrErr() (*ProviderProfile, error) {
-	if e.loadedTypes[1] {
-		if e.ProviderProfile == nil {
-			// Edge was loaded but was not found.
-			return nil, &NotFoundError{label: providerprofile.Label}
-		}
+	if e.ProviderProfile != nil {
 		return e.ProviderProfile, nil
+	} else if e.loadedTypes[1] {
+		return nil, &NotFoundError{label: providerprofile.Label}
 	}
 	return nil, &NotLoadedError{edge: "provider_profile"}
 }

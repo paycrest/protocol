@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math"
 
+	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
@@ -135,7 +136,7 @@ func (pbq *ProvisionBucketQuery) QueryProviderProfiles() *ProviderProfileQuery {
 // First returns the first ProvisionBucket entity from the query.
 // Returns a *NotFoundError when no ProvisionBucket was found.
 func (pbq *ProvisionBucketQuery) First(ctx context.Context) (*ProvisionBucket, error) {
-	nodes, err := pbq.Limit(1).All(setContextOp(ctx, pbq.ctx, "First"))
+	nodes, err := pbq.Limit(1).All(setContextOp(ctx, pbq.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +159,7 @@ func (pbq *ProvisionBucketQuery) FirstX(ctx context.Context) *ProvisionBucket {
 // Returns a *NotFoundError when no ProvisionBucket ID was found.
 func (pbq *ProvisionBucketQuery) FirstID(ctx context.Context) (id int, err error) {
 	var ids []int
-	if ids, err = pbq.Limit(1).IDs(setContextOp(ctx, pbq.ctx, "FirstID")); err != nil {
+	if ids, err = pbq.Limit(1).IDs(setContextOp(ctx, pbq.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -181,7 +182,7 @@ func (pbq *ProvisionBucketQuery) FirstIDX(ctx context.Context) int {
 // Returns a *NotSingularError when more than one ProvisionBucket entity is found.
 // Returns a *NotFoundError when no ProvisionBucket entities are found.
 func (pbq *ProvisionBucketQuery) Only(ctx context.Context) (*ProvisionBucket, error) {
-	nodes, err := pbq.Limit(2).All(setContextOp(ctx, pbq.ctx, "Only"))
+	nodes, err := pbq.Limit(2).All(setContextOp(ctx, pbq.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
 	}
@@ -209,7 +210,7 @@ func (pbq *ProvisionBucketQuery) OnlyX(ctx context.Context) *ProvisionBucket {
 // Returns a *NotFoundError when no entities are found.
 func (pbq *ProvisionBucketQuery) OnlyID(ctx context.Context) (id int, err error) {
 	var ids []int
-	if ids, err = pbq.Limit(2).IDs(setContextOp(ctx, pbq.ctx, "OnlyID")); err != nil {
+	if ids, err = pbq.Limit(2).IDs(setContextOp(ctx, pbq.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -234,7 +235,7 @@ func (pbq *ProvisionBucketQuery) OnlyIDX(ctx context.Context) int {
 
 // All executes the query and returns a list of ProvisionBuckets.
 func (pbq *ProvisionBucketQuery) All(ctx context.Context) ([]*ProvisionBucket, error) {
-	ctx = setContextOp(ctx, pbq.ctx, "All")
+	ctx = setContextOp(ctx, pbq.ctx, ent.OpQueryAll)
 	if err := pbq.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
@@ -256,7 +257,7 @@ func (pbq *ProvisionBucketQuery) IDs(ctx context.Context) (ids []int, err error)
 	if pbq.ctx.Unique == nil && pbq.path != nil {
 		pbq.Unique(true)
 	}
-	ctx = setContextOp(ctx, pbq.ctx, "IDs")
+	ctx = setContextOp(ctx, pbq.ctx, ent.OpQueryIDs)
 	if err = pbq.Select(provisionbucket.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
@@ -274,7 +275,7 @@ func (pbq *ProvisionBucketQuery) IDsX(ctx context.Context) []int {
 
 // Count returns the count of the given query.
 func (pbq *ProvisionBucketQuery) Count(ctx context.Context) (int, error) {
-	ctx = setContextOp(ctx, pbq.ctx, "Count")
+	ctx = setContextOp(ctx, pbq.ctx, ent.OpQueryCount)
 	if err := pbq.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
@@ -292,7 +293,7 @@ func (pbq *ProvisionBucketQuery) CountX(ctx context.Context) int {
 
 // Exist returns true if the query has elements in the graph.
 func (pbq *ProvisionBucketQuery) Exist(ctx context.Context) (bool, error) {
-	ctx = setContextOp(ctx, pbq.ctx, "Exist")
+	ctx = setContextOp(ctx, pbq.ctx, ent.OpQueryExist)
 	switch _, err := pbq.FirstID(ctx); {
 	case IsNotFound(err):
 		return false, nil
@@ -722,7 +723,7 @@ func (pbgb *ProvisionBucketGroupBy) Aggregate(fns ...AggregateFunc) *ProvisionBu
 
 // Scan applies the selector query and scans the result into the given value.
 func (pbgb *ProvisionBucketGroupBy) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, pbgb.build.ctx, "GroupBy")
+	ctx = setContextOp(ctx, pbgb.build.ctx, ent.OpQueryGroupBy)
 	if err := pbgb.build.prepareQuery(ctx); err != nil {
 		return err
 	}
@@ -770,7 +771,7 @@ func (pbs *ProvisionBucketSelect) Aggregate(fns ...AggregateFunc) *ProvisionBuck
 
 // Scan applies the selector query and scans the result into the given value.
 func (pbs *ProvisionBucketSelect) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, pbs.ctx, "Select")
+	ctx = setContextOp(ctx, pbs.ctx, ent.OpQuerySelect)
 	if err := pbs.prepareQuery(ctx); err != nil {
 		return err
 	}

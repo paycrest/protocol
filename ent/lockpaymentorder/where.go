@@ -901,21 +901,21 @@ func HasProviderWith(preds ...predicate.ProviderProfile) predicate.LockPaymentOr
 	})
 }
 
-// HasFulfillment applies the HasEdge predicate on the "fulfillment" edge.
-func HasFulfillment() predicate.LockPaymentOrder {
+// HasFulfillments applies the HasEdge predicate on the "fulfillments" edge.
+func HasFulfillments() predicate.LockPaymentOrder {
 	return predicate.LockPaymentOrder(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, FulfillmentTable, FulfillmentColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, FulfillmentsTable, FulfillmentsColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasFulfillmentWith applies the HasEdge predicate on the "fulfillment" edge with a given conditions (other predicates).
-func HasFulfillmentWith(preds ...predicate.LockOrderFulfillment) predicate.LockPaymentOrder {
+// HasFulfillmentsWith applies the HasEdge predicate on the "fulfillments" edge with a given conditions (other predicates).
+func HasFulfillmentsWith(preds ...predicate.LockOrderFulfillment) predicate.LockPaymentOrder {
 	return predicate.LockPaymentOrder(func(s *sql.Selector) {
-		step := newFulfillmentStep()
+		step := newFulfillmentsStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)
@@ -949,32 +949,15 @@ func HasTransactionsWith(preds ...predicate.TransactionLog) predicate.LockPaymen
 
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.LockPaymentOrder) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(func(s *sql.Selector) {
-		s1 := s.Clone().SetP(nil)
-		for _, p := range predicates {
-			p(s1)
-		}
-		s.Where(s1.P())
-	})
+	return predicate.LockPaymentOrder(sql.AndPredicates(predicates...))
 }
 
 // Or groups predicates with the OR operator between them.
 func Or(predicates ...predicate.LockPaymentOrder) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(func(s *sql.Selector) {
-		s1 := s.Clone().SetP(nil)
-		for i, p := range predicates {
-			if i > 0 {
-				s1.Or()
-			}
-			p(s1)
-		}
-		s.Where(s1.P())
-	})
+	return predicate.LockPaymentOrder(sql.OrPredicates(predicates...))
 }
 
 // Not applies the not operator on the given predicate.
 func Not(p predicate.LockPaymentOrder) predicate.LockPaymentOrder {
-	return predicate.LockPaymentOrder(func(s *sql.Selector) {
-		p(s.Not())
-	})
+	return predicate.LockPaymentOrder(sql.NotPredicates(p))
 }

@@ -75,11 +75,6 @@ func HostIdentifier(v string) predicate.ProviderProfile {
 	return predicate.ProviderProfile(sql.FieldEQ(FieldHostIdentifier, v))
 }
 
-// IsPartner applies equality check predicate on the "is_partner" field. It's identical to IsPartnerEQ.
-func IsPartner(v bool) predicate.ProviderProfile {
-	return predicate.ProviderProfile(sql.FieldEQ(FieldIsPartner, v))
-}
-
 // IsActive applies equality check predicate on the "is_active" field. It's identical to IsActiveEQ.
 func IsActive(v bool) predicate.ProviderProfile {
 	return predicate.ProviderProfile(sql.FieldEQ(FieldIsActive, v))
@@ -298,16 +293,6 @@ func ProvisionModeIn(vs ...ProvisionMode) predicate.ProviderProfile {
 // ProvisionModeNotIn applies the NotIn predicate on the "provision_mode" field.
 func ProvisionModeNotIn(vs ...ProvisionMode) predicate.ProviderProfile {
 	return predicate.ProviderProfile(sql.FieldNotIn(FieldProvisionMode, vs...))
-}
-
-// IsPartnerEQ applies the EQ predicate on the "is_partner" field.
-func IsPartnerEQ(v bool) predicate.ProviderProfile {
-	return predicate.ProviderProfile(sql.FieldEQ(FieldIsPartner, v))
-}
-
-// IsPartnerNEQ applies the NEQ predicate on the "is_partner" field.
-func IsPartnerNEQ(v bool) predicate.ProviderProfile {
-	return predicate.ProviderProfile(sql.FieldNEQ(FieldIsPartner, v))
 }
 
 // IsActiveEQ applies the EQ predicate on the "is_active" field.
@@ -1018,32 +1003,15 @@ func HasAssignedOrdersWith(preds ...predicate.LockPaymentOrder) predicate.Provid
 
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.ProviderProfile) predicate.ProviderProfile {
-	return predicate.ProviderProfile(func(s *sql.Selector) {
-		s1 := s.Clone().SetP(nil)
-		for _, p := range predicates {
-			p(s1)
-		}
-		s.Where(s1.P())
-	})
+	return predicate.ProviderProfile(sql.AndPredicates(predicates...))
 }
 
 // Or groups predicates with the OR operator between them.
 func Or(predicates ...predicate.ProviderProfile) predicate.ProviderProfile {
-	return predicate.ProviderProfile(func(s *sql.Selector) {
-		s1 := s.Clone().SetP(nil)
-		for i, p := range predicates {
-			if i > 0 {
-				s1.Or()
-			}
-			p(s1)
-		}
-		s.Where(s1.P())
-	})
+	return predicate.ProviderProfile(sql.OrPredicates(predicates...))
 }
 
 // Not applies the not operator on the given predicate.
 func Not(p predicate.ProviderProfile) predicate.ProviderProfile {
-	return predicate.ProviderProfile(func(s *sql.Selector) {
-		p(s.Not())
-	})
+	return predicate.ProviderProfile(sql.NotPredicates(p))
 }

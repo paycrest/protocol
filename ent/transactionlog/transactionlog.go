@@ -87,7 +87,6 @@ const (
 	StatusOrderValidated  Status = "order_validated"
 	StatusOrderSettled    Status = "order_settled"
 	StatusOrderRefunded   Status = "order_refunded"
-	StatusOrderReverted   Status = "order_reverted"
 	StatusGasPrefunded    Status = "gas_prefunded"
 	StatusGatewayApproved Status = "gateway_approved"
 )
@@ -99,7 +98,7 @@ func (s Status) String() string {
 // StatusValidator is a validator for the "status" field enum values. It is called by the builders before save.
 func StatusValidator(s Status) error {
 	switch s {
-	case StatusOrderInitiated, StatusCryptoDeposited, StatusOrderCreated, StatusOrderProcessing, StatusOrderFulfilled, StatusOrderValidated, StatusOrderSettled, StatusOrderRefunded, StatusOrderReverted, StatusGasPrefunded, StatusGatewayApproved:
+	case StatusOrderInitiated, StatusCryptoDeposited, StatusOrderCreated, StatusOrderProcessing, StatusOrderFulfilled, StatusOrderValidated, StatusOrderSettled, StatusOrderRefunded, StatusGasPrefunded, StatusGatewayApproved:
 		return nil
 	default:
 		return fmt.Errorf("transactionlog: invalid enum value for status field: %q", s)

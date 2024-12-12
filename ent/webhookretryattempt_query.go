@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 
+	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
@@ -60,7 +61,7 @@ func (wraq *WebhookRetryAttemptQuery) Order(o ...webhookretryattempt.OrderOption
 // First returns the first WebhookRetryAttempt entity from the query.
 // Returns a *NotFoundError when no WebhookRetryAttempt was found.
 func (wraq *WebhookRetryAttemptQuery) First(ctx context.Context) (*WebhookRetryAttempt, error) {
-	nodes, err := wraq.Limit(1).All(setContextOp(ctx, wraq.ctx, "First"))
+	nodes, err := wraq.Limit(1).All(setContextOp(ctx, wraq.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +84,7 @@ func (wraq *WebhookRetryAttemptQuery) FirstX(ctx context.Context) *WebhookRetryA
 // Returns a *NotFoundError when no WebhookRetryAttempt ID was found.
 func (wraq *WebhookRetryAttemptQuery) FirstID(ctx context.Context) (id int, err error) {
 	var ids []int
-	if ids, err = wraq.Limit(1).IDs(setContextOp(ctx, wraq.ctx, "FirstID")); err != nil {
+	if ids, err = wraq.Limit(1).IDs(setContextOp(ctx, wraq.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -106,7 +107,7 @@ func (wraq *WebhookRetryAttemptQuery) FirstIDX(ctx context.Context) int {
 // Returns a *NotSingularError when more than one WebhookRetryAttempt entity is found.
 // Returns a *NotFoundError when no WebhookRetryAttempt entities are found.
 func (wraq *WebhookRetryAttemptQuery) Only(ctx context.Context) (*WebhookRetryAttempt, error) {
-	nodes, err := wraq.Limit(2).All(setContextOp(ctx, wraq.ctx, "Only"))
+	nodes, err := wraq.Limit(2).All(setContextOp(ctx, wraq.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
 	}
@@ -134,7 +135,7 @@ func (wraq *WebhookRetryAttemptQuery) OnlyX(ctx context.Context) *WebhookRetryAt
 // Returns a *NotFoundError when no entities are found.
 func (wraq *WebhookRetryAttemptQuery) OnlyID(ctx context.Context) (id int, err error) {
 	var ids []int
-	if ids, err = wraq.Limit(2).IDs(setContextOp(ctx, wraq.ctx, "OnlyID")); err != nil {
+	if ids, err = wraq.Limit(2).IDs(setContextOp(ctx, wraq.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -159,7 +160,7 @@ func (wraq *WebhookRetryAttemptQuery) OnlyIDX(ctx context.Context) int {
 
 // All executes the query and returns a list of WebhookRetryAttempts.
 func (wraq *WebhookRetryAttemptQuery) All(ctx context.Context) ([]*WebhookRetryAttempt, error) {
-	ctx = setContextOp(ctx, wraq.ctx, "All")
+	ctx = setContextOp(ctx, wraq.ctx, ent.OpQueryAll)
 	if err := wraq.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
@@ -181,7 +182,7 @@ func (wraq *WebhookRetryAttemptQuery) IDs(ctx context.Context) (ids []int, err e
 	if wraq.ctx.Unique == nil && wraq.path != nil {
 		wraq.Unique(true)
 	}
-	ctx = setContextOp(ctx, wraq.ctx, "IDs")
+	ctx = setContextOp(ctx, wraq.ctx, ent.OpQueryIDs)
 	if err = wraq.Select(webhookretryattempt.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
@@ -199,7 +200,7 @@ func (wraq *WebhookRetryAttemptQuery) IDsX(ctx context.Context) []int {
 
 // Count returns the count of the given query.
 func (wraq *WebhookRetryAttemptQuery) Count(ctx context.Context) (int, error) {
-	ctx = setContextOp(ctx, wraq.ctx, "Count")
+	ctx = setContextOp(ctx, wraq.ctx, ent.OpQueryCount)
 	if err := wraq.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
@@ -217,7 +218,7 @@ func (wraq *WebhookRetryAttemptQuery) CountX(ctx context.Context) int {
 
 // Exist returns true if the query has elements in the graph.
 func (wraq *WebhookRetryAttemptQuery) Exist(ctx context.Context) (bool, error) {
-	ctx = setContextOp(ctx, wraq.ctx, "Exist")
+	ctx = setContextOp(ctx, wraq.ctx, ent.OpQueryExist)
 	switch _, err := wraq.FirstID(ctx); {
 	case IsNotFound(err):
 		return false, nil
@@ -449,7 +450,7 @@ func (wragb *WebhookRetryAttemptGroupBy) Aggregate(fns ...AggregateFunc) *Webhoo
 
 // Scan applies the selector query and scans the result into the given value.
 func (wragb *WebhookRetryAttemptGroupBy) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, wragb.build.ctx, "GroupBy")
+	ctx = setContextOp(ctx, wragb.build.ctx, ent.OpQueryGroupBy)
 	if err := wragb.build.prepareQuery(ctx); err != nil {
 		return err
 	}
@@ -497,7 +498,7 @@ func (wras *WebhookRetryAttemptSelect) Aggregate(fns ...AggregateFunc) *WebhookR
 
 // Scan applies the selector query and scans the result into the given value.
 func (wras *WebhookRetryAttemptSelect) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, wras.ctx, "Select")
+	ctx = setContextOp(ctx, wras.ctx, ent.OpQuerySelect)
 	if err := wras.prepareQuery(ctx); err != nil {
 		return err
 	}

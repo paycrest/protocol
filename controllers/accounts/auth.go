@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/paycrest/protocol/config"
+	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/fiatcurrency"
 	"github.com/paycrest/protocol/ent/providerprofile"
 	userEnt "github.com/paycrest/protocol/ent/user"
@@ -21,7 +22,8 @@ import (
 	"github.com/paycrest/protocol/utils/token"
 )
 
-var conf = config.AuthConfig()
+var authConf = config.AuthConfig()
+var serverConf = config.ServerConfig()
 
 // AuthController is the controller type for the auth endpoints
 type AuthController struct {
@@ -42,6 +44,8 @@ func NewAuthController() *AuthController {
 // It also sends an email to verify the user's email address.
 func (ctrl *AuthController) Register(ctx *gin.Context) {
 	var payload types.RegisterPayload
+
+	serverConf := config.ServerConfig()
 
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		u.APIResponse(ctx, http.StatusBadRequest, "error",
@@ -74,14 +78,20 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 
 	// Save the user
 	scope := strings.Join(payload.Scopes, " ")
-	user, err := tx.User.
+	userCreate := tx.User.
 		Create().
 		SetFirstName(payload.FirstName).
 		SetLastName(payload.LastName).
 		SetEmail(strings.ToLower(payload.Email)).
 		SetPassword(payload.Password).
-		SetScope(scope).
-		Save(ctx)
+		SetScope(scope)
+
+	if serverConf.Environment != "production" {
+		userCreate = userCreate.
+			SetIsEmailVerified(true)
+	}
+
+	user, err := userCreate.Save(ctx)
 	if err != nil {
 		_ = tx.Rollback()
 		logger.Errorf("error: %v", err)
@@ -95,14 +105,17 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 		Create().
 		SetOwner(user).
 		SetScope(verificationtoken.ScopeEmailVerification).
+		SetExpiryAt(time.Now().Add(authConf.PasswordResetLifespan)).
 		Save(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
 	}
 
-	if verificationToken != nil {
-		if _, err := ctrl.emailService.SendVerificationEmail(ctx, verificationToken.Token, user.Email); err != nil {
-			logger.Errorf("error: %v", err)
+	if serverConf.Environment == "production" {
+		if verificationToken != nil {
+			if _, err := ctrl.emailService.SendVerificationEmail(ctx, verificationToken.Token, user.Email, user.FirstName); err != nil {
+				logger.Errorf("error: %v", err)
+			}
 		}
 	}
 
@@ -111,6 +124,12 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 	// Create a provider profile
 	if u.ContainsString(scopes, "provider") {
 		// Fetch currency
+		if payload.Currency == "" {
+			_ = tx.Rollback()
+			u.APIResponse(ctx, http.StatusBadRequest, "error",
+				"Currency is required for provider account", nil)
+			return
+		}
 		currency, err := tx.FiatCurrency.
 			Query().
 			Where(
@@ -120,6 +139,14 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 			Only(ctx)
 		if err != nil {
 			_ = tx.Rollback()
+			if ent.IsNotFound(err) {
+				u.APIResponse(ctx, http.StatusBadRequest, "error",
+					"Failed to validate payload", []types.ErrorData{{
+						Field:   "Currency",
+						Message: "Currency is not supported",
+					}})
+				return
+			}
 			logger.Errorf("error: %v", err)
 			u.APIResponse(ctx, http.StatusInternalServerError, "error",
 				"Failed to create new user", nil)
@@ -184,15 +211,19 @@ func (ctrl *AuthController) Register(ctx *gin.Context) {
 		return
 	}
 
-	u.APIResponse(ctx, http.StatusCreated, "success", "User created successfully",
-		&types.RegisterResponse{
-			ID:        user.ID,
-			CreatedAt: user.CreatedAt,
-			UpdatedAt: user.UpdatedAt,
-			FirstName: user.FirstName,
-			LastName:  user.LastName,
-			Email:     user.Email,
-		})
+	response := &types.RegisterResponse{
+		ID:        user.ID,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
+	}
+
+	if !user.IsEmailVerified {
+		response.Email = user.Email
+	}
+
+	u.APIResponse(ctx, http.StatusCreated, "success", "User created successfully", response)
 }
 
 // Login controller validates the payload and creates a new user.
@@ -228,7 +259,7 @@ func (ctrl *AuthController) Login(ctx *gin.Context) {
 	}
 
 	// Check if user has early access
-	environment := config.ServerConfig().Environment
+	environment := serverConf.Environment
 	if !user.HasEarlyAccess && (environment == "production" || environment == "staging") {
 		u.APIResponse(ctx, http.StatusUnauthorized, "error",
 			"Your early access request is still pending", nil,
@@ -321,13 +352,14 @@ func (ctrl *AuthController) ConfirmEmail(ctx *gin.Context) {
 		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid verification token", vtErr.Error())
 		return
 	}
+
 	if time.Now().After(verificationToken.ExpiryAt) {
 		err := db.Client.VerificationToken.
 			DeleteOneID(verificationToken.ID).Exec(ctx)
 		if err != nil {
 			logger.Errorf("ConfirmEmailError.VerificationToken.Delete: %v", err)
 		}
-		u.APIResponse(ctx, http.StatusBadRequest, "error", "token Expired", nil)
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Token is expired", nil)
 		return
 	}
 
@@ -343,10 +375,10 @@ func (ctrl *AuthController) ConfirmEmail(ctx *gin.Context) {
 
 	err := db.Client.VerificationToken.
 		DeleteOneID(verificationToken.ID).Exec(ctx)
-
 	if err != nil {
 		logger.Errorf("ConfirmEmailError.VerificationToken.Delete: %v", err)
 	}
+
 	// Return a success response
 	u.APIResponse(ctx, http.StatusOK, "success", "User email verified successfully", nil)
 }
@@ -372,13 +404,14 @@ func (ctrl *AuthController) ResendVerificationToken(ctx *gin.Context) {
 		Create().
 		SetOwner(user).
 		SetScope(verificationtoken.Scope(payload.Scope)).
+		SetExpiryAt(time.Now().Add(authConf.PasswordResetLifespan)).
 		Save(ctx)
 	if vtErr != nil {
 		u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to generate verification token", vtErr.Error())
 		return
 	}
 
-	if _, err := ctrl.emailService.SendVerificationEmail(ctx, verificationtoken.Token, user.Email); err != nil {
+	if _, err := ctrl.emailService.SendVerificationEmail(ctx, verificationtoken.Token, user.Email, user.FirstName); err != nil {
 		u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to send verification email", err.Error())
 		return
 	}
@@ -400,22 +433,24 @@ func (ctrl *AuthController) ResetPassword(ctx *gin.Context) {
 	// Verify reset token
 	token, err := db.Client.VerificationToken.
 		Query().
-		Where(verificationtoken.TokenEQ(payload.ResetToken)).
-		Where(verificationtoken.ScopeEQ(verificationtoken.ScopeResetPassword)).
-		Where(verificationtoken.ExpiryAtGTE(time.Now())).
+		Where(
+			verificationtoken.TokenEQ(payload.ResetToken),
+			verificationtoken.ScopeEQ(verificationtoken.ScopeResetPassword),
+		).
 		WithOwner().
 		Only(ctx)
 	if err != nil || token == nil || token.Edges.Owner == nil {
 		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid password reset token", nil)
 		return
 	}
+
 	if time.Now().After(token.ExpiryAt) {
 		err := db.Client.VerificationToken.
 			DeleteOneID(token.ID).Exec(ctx)
 		if err != nil {
 			logger.Errorf("ResetPasswordError.VerificationToken.Delete: %v", err)
 		}
-		u.APIResponse(ctx, http.StatusBadRequest, "error", "token Expired", nil)
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Token is expired", nil)
 		return
 	}
 
@@ -434,6 +469,7 @@ func (ctrl *AuthController) ResetPassword(ctx *gin.Context) {
 	if verificationErr != nil {
 		logger.Errorf("ResetPasswordError.VerificationToken.Delete: %v", verificationErr)
 	}
+
 	// Return a success response
 	u.APIResponse(ctx, http.StatusOK, "success", "Password reset was successful", nil)
 }
@@ -462,14 +498,14 @@ func (ctrl *AuthController) ResetPasswordToken(ctx *gin.Context) {
 		Create().
 		SetOwner(user).
 		SetScope(verificationtoken.ScopeResetPassword).
-		SetExpiryAt(time.Now().Add(conf.PasswordResetLifespan)).
+		SetExpiryAt(time.Now().Add(authConf.PasswordResetLifespan)).
 		Save(ctx)
 	if rtErr != nil || passwordResetToken == nil {
 		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to generate reset password token", nil)
 		return
 	}
 
-	if _, err := ctrl.emailService.SendPasswordResetEmail(ctx, passwordResetToken.Token, user.Email); err != nil {
+	if _, err := ctrl.emailService.SendPasswordResetEmail(ctx, passwordResetToken.Token, user.Email, user.FirstName); err != nil {
 		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to send reset password token", nil)
 		return
 	}

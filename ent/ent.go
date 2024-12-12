@@ -14,7 +14,9 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/paycrest/protocol/ent/apikey"
 	"github.com/paycrest/protocol/ent/fiatcurrency"
+	"github.com/paycrest/protocol/ent/identityverificationrequest"
 	"github.com/paycrest/protocol/ent/institution"
+	"github.com/paycrest/protocol/ent/linkedaddress"
 	"github.com/paycrest/protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	"github.com/paycrest/protocol/ent/network"
@@ -88,30 +90,32 @@ var (
 	columnCheck sql.ColumnCheck
 )
 
-// columnChecker checks if the column exists in the given table.
+// checkColumn checks if the column exists in the given table.
 func checkColumn(table, column string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			apikey.Table:                apikey.ValidColumn,
-			fiatcurrency.Table:          fiatcurrency.ValidColumn,
-			institution.Table:           institution.ValidColumn,
-			lockorderfulfillment.Table:  lockorderfulfillment.ValidColumn,
-			lockpaymentorder.Table:      lockpaymentorder.ValidColumn,
-			network.Table:               network.ValidColumn,
-			paymentorder.Table:          paymentorder.ValidColumn,
-			paymentorderrecipient.Table: paymentorderrecipient.ValidColumn,
-			providerordertoken.Table:    providerordertoken.ValidColumn,
-			providerprofile.Table:       providerprofile.ValidColumn,
-			providerrating.Table:        providerrating.ValidColumn,
-			provisionbucket.Table:       provisionbucket.ValidColumn,
-			receiveaddress.Table:        receiveaddress.ValidColumn,
-			senderordertoken.Table:      senderordertoken.ValidColumn,
-			senderprofile.Table:         senderprofile.ValidColumn,
-			token.Table:                 token.ValidColumn,
-			transactionlog.Table:        transactionlog.ValidColumn,
-			user.Table:                  user.ValidColumn,
-			verificationtoken.Table:     verificationtoken.ValidColumn,
-			webhookretryattempt.Table:   webhookretryattempt.ValidColumn,
+			apikey.Table:                      apikey.ValidColumn,
+			fiatcurrency.Table:                fiatcurrency.ValidColumn,
+			identityverificationrequest.Table: identityverificationrequest.ValidColumn,
+			institution.Table:                 institution.ValidColumn,
+			linkedaddress.Table:               linkedaddress.ValidColumn,
+			lockorderfulfillment.Table:        lockorderfulfillment.ValidColumn,
+			lockpaymentorder.Table:            lockpaymentorder.ValidColumn,
+			network.Table:                     network.ValidColumn,
+			paymentorder.Table:                paymentorder.ValidColumn,
+			paymentorderrecipient.Table:       paymentorderrecipient.ValidColumn,
+			providerordertoken.Table:          providerordertoken.ValidColumn,
+			providerprofile.Table:             providerprofile.ValidColumn,
+			providerrating.Table:              providerrating.ValidColumn,
+			provisionbucket.Table:             provisionbucket.ValidColumn,
+			receiveaddress.Table:              receiveaddress.ValidColumn,
+			senderordertoken.Table:            senderordertoken.ValidColumn,
+			senderprofile.Table:               senderprofile.ValidColumn,
+			token.Table:                       token.ValidColumn,
+			transactionlog.Table:              transactionlog.ValidColumn,
+			user.Table:                        user.ValidColumn,
+			verificationtoken.Table:           verificationtoken.ValidColumn,
+			webhookretryattempt.Table:         webhookretryattempt.ValidColumn,
 		})
 	})
 	return columnCheck(table, column)

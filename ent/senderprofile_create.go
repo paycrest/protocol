@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
 	"github.com/paycrest/protocol/ent/apikey"
+	"github.com/paycrest/protocol/ent/linkedaddress"
 	"github.com/paycrest/protocol/ent/paymentorder"
 	"github.com/paycrest/protocol/ent/senderordertoken"
 	"github.com/paycrest/protocol/ent/senderprofile"
@@ -45,6 +46,20 @@ func (spc *SenderProfileCreate) SetNillableWebhookURL(s *string) *SenderProfileC
 // SetDomainWhitelist sets the "domain_whitelist" field.
 func (spc *SenderProfileCreate) SetDomainWhitelist(s []string) *SenderProfileCreate {
 	spc.mutation.SetDomainWhitelist(s)
+	return spc
+}
+
+// SetProviderID sets the "provider_id" field.
+func (spc *SenderProfileCreate) SetProviderID(s string) *SenderProfileCreate {
+	spc.mutation.SetProviderID(s)
+	return spc
+}
+
+// SetNillableProviderID sets the "provider_id" field if the given value is not nil.
+func (spc *SenderProfileCreate) SetNillableProviderID(s *string) *SenderProfileCreate {
+	if s != nil {
+		spc.SetProviderID(*s)
+	}
 	return spc
 }
 
@@ -164,6 +179,21 @@ func (spc *SenderProfileCreate) AddOrderTokens(s ...*SenderOrderToken) *SenderPr
 	return spc.AddOrderTokenIDs(ids...)
 }
 
+// AddLinkedAddresIDs adds the "linked_address" edge to the LinkedAddress entity by IDs.
+func (spc *SenderProfileCreate) AddLinkedAddresIDs(ids ...int) *SenderProfileCreate {
+	spc.mutation.AddLinkedAddresIDs(ids...)
+	return spc
+}
+
+// AddLinkedAddress adds the "linked_address" edges to the LinkedAddress entity.
+func (spc *SenderProfileCreate) AddLinkedAddress(l ...*LinkedAddress) *SenderProfileCreate {
+	ids := make([]int, len(l))
+	for i := range l {
+		ids[i] = l[i].ID
+	}
+	return spc.AddLinkedAddresIDs(ids...)
+}
+
 // Mutation returns the SenderProfileMutation object of the builder.
 func (spc *SenderProfileCreate) Mutation() *SenderProfileMutation {
 	return spc.mutation
@@ -235,7 +265,7 @@ func (spc *SenderProfileCreate) check() error {
 	if _, ok := spc.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "SenderProfile.updated_at"`)}
 	}
-	if _, ok := spc.mutation.UserID(); !ok {
+	if len(spc.mutation.UserIDs()) == 0 {
 		return &ValidationError{Name: "user", err: errors.New(`ent: missing required edge "SenderProfile.user"`)}
 	}
 	return nil
@@ -281,6 +311,10 @@ func (spc *SenderProfileCreate) createSpec() (*SenderProfile, *sqlgraph.CreateSp
 	if value, ok := spc.mutation.DomainWhitelist(); ok {
 		_spec.SetField(senderprofile.FieldDomainWhitelist, field.TypeJSON, value)
 		_node.DomainWhitelist = value
+	}
+	if value, ok := spc.mutation.ProviderID(); ok {
+		_spec.SetField(senderprofile.FieldProviderID, field.TypeString, value)
+		_node.ProviderID = value
 	}
 	if value, ok := spc.mutation.IsPartner(); ok {
 		_spec.SetField(senderprofile.FieldIsPartner, field.TypeBool, value)
@@ -352,6 +386,22 @@ func (spc *SenderProfileCreate) createSpec() (*SenderProfile, *sqlgraph.CreateSp
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(senderordertoken.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := spc.mutation.LinkedAddressIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   senderprofile.LinkedAddressTable,
+			Columns: []string{senderprofile.LinkedAddressColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(linkedaddress.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -438,6 +488,24 @@ func (u *SenderProfileUpsert) SetDomainWhitelist(v []string) *SenderProfileUpser
 // UpdateDomainWhitelist sets the "domain_whitelist" field to the value that was provided on create.
 func (u *SenderProfileUpsert) UpdateDomainWhitelist() *SenderProfileUpsert {
 	u.SetExcluded(senderprofile.FieldDomainWhitelist)
+	return u
+}
+
+// SetProviderID sets the "provider_id" field.
+func (u *SenderProfileUpsert) SetProviderID(v string) *SenderProfileUpsert {
+	u.Set(senderprofile.FieldProviderID, v)
+	return u
+}
+
+// UpdateProviderID sets the "provider_id" field to the value that was provided on create.
+func (u *SenderProfileUpsert) UpdateProviderID() *SenderProfileUpsert {
+	u.SetExcluded(senderprofile.FieldProviderID)
+	return u
+}
+
+// ClearProviderID clears the value of the "provider_id" field.
+func (u *SenderProfileUpsert) ClearProviderID() *SenderProfileUpsert {
+	u.SetNull(senderprofile.FieldProviderID)
 	return u
 }
 
@@ -560,6 +628,27 @@ func (u *SenderProfileUpsertOne) UpdateDomainWhitelist() *SenderProfileUpsertOne
 	})
 }
 
+// SetProviderID sets the "provider_id" field.
+func (u *SenderProfileUpsertOne) SetProviderID(v string) *SenderProfileUpsertOne {
+	return u.Update(func(s *SenderProfileUpsert) {
+		s.SetProviderID(v)
+	})
+}
+
+// UpdateProviderID sets the "provider_id" field to the value that was provided on create.
+func (u *SenderProfileUpsertOne) UpdateProviderID() *SenderProfileUpsertOne {
+	return u.Update(func(s *SenderProfileUpsert) {
+		s.UpdateProviderID()
+	})
+}
+
+// ClearProviderID clears the value of the "provider_id" field.
+func (u *SenderProfileUpsertOne) ClearProviderID() *SenderProfileUpsertOne {
+	return u.Update(func(s *SenderProfileUpsert) {
+		s.ClearProviderID()
+	})
+}
+
 // SetIsPartner sets the "is_partner" field.
 func (u *SenderProfileUpsertOne) SetIsPartner(v bool) *SenderProfileUpsertOne {
 	return u.Update(func(s *SenderProfileUpsert) {
@@ -643,12 +732,16 @@ func (u *SenderProfileUpsertOne) IDX(ctx context.Context) uuid.UUID {
 // SenderProfileCreateBulk is the builder for creating many SenderProfile entities in bulk.
 type SenderProfileCreateBulk struct {
 	config
+	err      error
 	builders []*SenderProfileCreate
 	conflict []sql.ConflictOption
 }
 
 // Save creates the SenderProfile entities in the database.
 func (spcb *SenderProfileCreateBulk) Save(ctx context.Context) ([]*SenderProfile, error) {
+	if spcb.err != nil {
+		return nil, spcb.err
+	}
 	specs := make([]*sqlgraph.CreateSpec, len(spcb.builders))
 	nodes := make([]*SenderProfile, len(spcb.builders))
 	mutators := make([]Mutator, len(spcb.builders))
@@ -848,6 +941,27 @@ func (u *SenderProfileUpsertBulk) UpdateDomainWhitelist() *SenderProfileUpsertBu
 	})
 }
 
+// SetProviderID sets the "provider_id" field.
+func (u *SenderProfileUpsertBulk) SetProviderID(v string) *SenderProfileUpsertBulk {
+	return u.Update(func(s *SenderProfileUpsert) {
+		s.SetProviderID(v)
+	})
+}
+
+// UpdateProviderID sets the "provider_id" field to the value that was provided on create.
+func (u *SenderProfileUpsertBulk) UpdateProviderID() *SenderProfileUpsertBulk {
+	return u.Update(func(s *SenderProfileUpsert) {
+		s.UpdateProviderID()
+	})
+}
+
+// ClearProviderID clears the value of the "provider_id" field.
+func (u *SenderProfileUpsertBulk) ClearProviderID() *SenderProfileUpsertBulk {
+	return u.Update(func(s *SenderProfileUpsert) {
+		s.ClearProviderID()
+	})
+}
+
 // SetIsPartner sets the "is_partner" field.
 func (u *SenderProfileUpsertBulk) SetIsPartner(v bool) *SenderProfileUpsertBulk {
 	return u.Update(func(s *SenderProfileUpsert) {
@@ -892,6 +1006,9 @@ func (u *SenderProfileUpsertBulk) UpdateUpdatedAt() *SenderProfileUpsertBulk {
 
 // Exec executes the query.
 func (u *SenderProfileUpsertBulk) Exec(ctx context.Context) error {
+	if u.create.err != nil {
+		return u.create.err
+	}
 	for i, b := range u.create.builders {
 		if len(b.conflict) != 0 {
 			return fmt.Errorf("ent: OnConflict was set for builder %d. Set it on the SenderProfileCreateBulk instead", i)

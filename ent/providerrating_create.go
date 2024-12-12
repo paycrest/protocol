@@ -125,7 +125,7 @@ func (prc *ProviderRatingCreate) check() error {
 	if _, ok := prc.mutation.TrustScore(); !ok {
 		return &ValidationError{Name: "trust_score", err: errors.New(`ent: missing required field "ProviderRating.trust_score"`)}
 	}
-	if _, ok := prc.mutation.ProviderProfileID(); !ok {
+	if len(prc.mutation.ProviderProfileIDs()) == 0 {
 		return &ValidationError{Name: "provider_profile", err: errors.New(`ent: missing required edge "ProviderRating.provider_profile"`)}
 	}
 	return nil
@@ -382,12 +382,16 @@ func (u *ProviderRatingUpsertOne) IDX(ctx context.Context) int {
 // ProviderRatingCreateBulk is the builder for creating many ProviderRating entities in bulk.
 type ProviderRatingCreateBulk struct {
 	config
+	err      error
 	builders []*ProviderRatingCreate
 	conflict []sql.ConflictOption
 }
 
 // Save creates the ProviderRating entities in the database.
 func (prcb *ProviderRatingCreateBulk) Save(ctx context.Context) ([]*ProviderRating, error) {
+	if prcb.err != nil {
+		return nil, prcb.err
+	}
 	specs := make([]*sqlgraph.CreateSpec, len(prcb.builders))
 	nodes := make([]*ProviderRating, len(prcb.builders))
 	mutators := make([]Mutator, len(prcb.builders))
@@ -590,6 +594,9 @@ func (u *ProviderRatingUpsertBulk) UpdateTrustScore() *ProviderRatingUpsertBulk 
 
 // Exec executes the query.
 func (u *ProviderRatingUpsertBulk) Exec(ctx context.Context) error {
+	if u.create.err != nil {
+		return u.create.err
+	}
 	for i, b := range u.create.builders {
 		if len(b.conflict) != 0 {
 			return fmt.Errorf("ent: OnConflict was set for builder %d. Set it on the ProviderRatingCreateBulk instead", i)

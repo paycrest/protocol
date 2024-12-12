@@ -51,11 +51,25 @@ func setup() error {
 	}
 	time.Sleep(time.Duration(time.Duration(rand.Intn(5)) * time.Second))
 
-	receiveAddress, err := test.CreateSmartAddress(
+	// Create smart address
+	address, salt, err := test.CreateSmartAddress(
 		context.Background(), client)
 	if err != nil {
 		return fmt.Errorf("CreateSmartAddress.setup.indexer_test: %w", err)
 	}
+
+	// Create receive address
+	receiveAddress, err := db.Client.ReceiveAddress.
+		Create().
+		SetAddress(address).
+		SetSalt(salt).
+		SetStatus(receiveaddress.StatusUnused).
+		SetValidUntil(time.Now().Add(time.Millisecond * 5)).
+		Save(context.Background())
+	if err != nil {
+		return fmt.Errorf("CreateReceiveAddress.setup.indexer_test: %w", err)
+	}
+
 	testCtx.receiveAddress = receiveAddress
 
 	time.Sleep(time.Duration(time.Duration(rand.Intn(10)) * time.Second))
@@ -116,7 +130,7 @@ func setup() error {
 		SetToken(token).
 		SetReceiveAddress(receiveAddress).
 		SetReceiveAddressText(receiveAddress.Address).
-		SetFeePerTokenUnit(senderToken.FeePerTokenUnit).
+		SetFeePercent(senderToken.FeePercent).
 		SetFeeAddress(senderToken.FeeAddress).
 		Save(context.Background())
 	if err != nil {

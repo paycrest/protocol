@@ -35,6 +35,14 @@ func (aku *APIKeyUpdate) SetSecret(s string) *APIKeyUpdate {
 	return aku
 }
 
+// SetNillableSecret sets the "secret" field if the given value is not nil.
+func (aku *APIKeyUpdate) SetNillableSecret(s *string) *APIKeyUpdate {
+	if s != nil {
+		aku.SetSecret(*s)
+	}
+	return aku
+}
+
 // AddPaymentOrderIDs adds the "payment_orders" edge to the PaymentOrder entity by IDs.
 func (aku *APIKeyUpdate) AddPaymentOrderIDs(ids ...uuid.UUID) *APIKeyUpdate {
 	aku.mutation.AddPaymentOrderIDs(ids...)
@@ -196,6 +204,14 @@ type APIKeyUpdateOne struct {
 // SetSecret sets the "secret" field.
 func (akuo *APIKeyUpdateOne) SetSecret(s string) *APIKeyUpdateOne {
 	akuo.mutation.SetSecret(s)
+	return akuo
+}
+
+// SetNillableSecret sets the "secret" field if the given value is not nil.
+func (akuo *APIKeyUpdateOne) SetNillableSecret(s *string) *APIKeyUpdateOne {
+	if s != nil {
+		akuo.SetSecret(*s)
+	}
 	return akuo
 }
 

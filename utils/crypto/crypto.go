@@ -198,7 +198,6 @@ func PublicKeyDecryptJSON(ciphertext []byte, privateKeyPEM string) (interface{},
 	}
 
 	return data, nil
-
 }
 
 // GenerateAccountFromIndex generates a crypto wallet account from HD wallet mnemonic

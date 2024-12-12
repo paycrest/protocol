@@ -43,10 +43,26 @@ func (potu *ProviderOrderTokenUpdate) SetSymbol(s string) *ProviderOrderTokenUpd
 	return potu
 }
 
+// SetNillableSymbol sets the "symbol" field if the given value is not nil.
+func (potu *ProviderOrderTokenUpdate) SetNillableSymbol(s *string) *ProviderOrderTokenUpdate {
+	if s != nil {
+		potu.SetSymbol(*s)
+	}
+	return potu
+}
+
 // SetFixedConversionRate sets the "fixed_conversion_rate" field.
 func (potu *ProviderOrderTokenUpdate) SetFixedConversionRate(d decimal.Decimal) *ProviderOrderTokenUpdate {
 	potu.mutation.ResetFixedConversionRate()
 	potu.mutation.SetFixedConversionRate(d)
+	return potu
+}
+
+// SetNillableFixedConversionRate sets the "fixed_conversion_rate" field if the given value is not nil.
+func (potu *ProviderOrderTokenUpdate) SetNillableFixedConversionRate(d *decimal.Decimal) *ProviderOrderTokenUpdate {
+	if d != nil {
+		potu.SetFixedConversionRate(*d)
+	}
 	return potu
 }
 
@@ -63,6 +79,14 @@ func (potu *ProviderOrderTokenUpdate) SetFloatingConversionRate(d decimal.Decima
 	return potu
 }
 
+// SetNillableFloatingConversionRate sets the "floating_conversion_rate" field if the given value is not nil.
+func (potu *ProviderOrderTokenUpdate) SetNillableFloatingConversionRate(d *decimal.Decimal) *ProviderOrderTokenUpdate {
+	if d != nil {
+		potu.SetFloatingConversionRate(*d)
+	}
+	return potu
+}
+
 // AddFloatingConversionRate adds d to the "floating_conversion_rate" field.
 func (potu *ProviderOrderTokenUpdate) AddFloatingConversionRate(d decimal.Decimal) *ProviderOrderTokenUpdate {
 	potu.mutation.AddFloatingConversionRate(d)
@@ -75,10 +99,26 @@ func (potu *ProviderOrderTokenUpdate) SetConversionRateType(prt providerordertok
 	return potu
 }
 
+// SetNillableConversionRateType sets the "conversion_rate_type" field if the given value is not nil.
+func (potu *ProviderOrderTokenUpdate) SetNillableConversionRateType(prt *providerordertoken.ConversionRateType) *ProviderOrderTokenUpdate {
+	if prt != nil {
+		potu.SetConversionRateType(*prt)
+	}
+	return potu
+}
+
 // SetMaxOrderAmount sets the "max_order_amount" field.
 func (potu *ProviderOrderTokenUpdate) SetMaxOrderAmount(d decimal.Decimal) *ProviderOrderTokenUpdate {
 	potu.mutation.ResetMaxOrderAmount()
 	potu.mutation.SetMaxOrderAmount(d)
+	return potu
+}
+
+// SetNillableMaxOrderAmount sets the "max_order_amount" field if the given value is not nil.
+func (potu *ProviderOrderTokenUpdate) SetNillableMaxOrderAmount(d *decimal.Decimal) *ProviderOrderTokenUpdate {
+	if d != nil {
+		potu.SetMaxOrderAmount(*d)
+	}
 	return potu
 }
 
@@ -92,6 +132,14 @@ func (potu *ProviderOrderTokenUpdate) AddMaxOrderAmount(d decimal.Decimal) *Prov
 func (potu *ProviderOrderTokenUpdate) SetMinOrderAmount(d decimal.Decimal) *ProviderOrderTokenUpdate {
 	potu.mutation.ResetMinOrderAmount()
 	potu.mutation.SetMinOrderAmount(d)
+	return potu
+}
+
+// SetNillableMinOrderAmount sets the "min_order_amount" field if the given value is not nil.
+func (potu *ProviderOrderTokenUpdate) SetNillableMinOrderAmount(d *decimal.Decimal) *ProviderOrderTokenUpdate {
+	if d != nil {
+		potu.SetMinOrderAmount(*d)
+	}
 	return potu
 }
 
@@ -309,10 +357,26 @@ func (potuo *ProviderOrderTokenUpdateOne) SetSymbol(s string) *ProviderOrderToke
 	return potuo
 }
 
+// SetNillableSymbol sets the "symbol" field if the given value is not nil.
+func (potuo *ProviderOrderTokenUpdateOne) SetNillableSymbol(s *string) *ProviderOrderTokenUpdateOne {
+	if s != nil {
+		potuo.SetSymbol(*s)
+	}
+	return potuo
+}
+
 // SetFixedConversionRate sets the "fixed_conversion_rate" field.
 func (potuo *ProviderOrderTokenUpdateOne) SetFixedConversionRate(d decimal.Decimal) *ProviderOrderTokenUpdateOne {
 	potuo.mutation.ResetFixedConversionRate()
 	potuo.mutation.SetFixedConversionRate(d)
+	return potuo
+}
+
+// SetNillableFixedConversionRate sets the "fixed_conversion_rate" field if the given value is not nil.
+func (potuo *ProviderOrderTokenUpdateOne) SetNillableFixedConversionRate(d *decimal.Decimal) *ProviderOrderTokenUpdateOne {
+	if d != nil {
+		potuo.SetFixedConversionRate(*d)
+	}
 	return potuo
 }
 
@@ -329,6 +393,14 @@ func (potuo *ProviderOrderTokenUpdateOne) SetFloatingConversionRate(d decimal.De
 	return potuo
 }
 
+// SetNillableFloatingConversionRate sets the "floating_conversion_rate" field if the given value is not nil.
+func (potuo *ProviderOrderTokenUpdateOne) SetNillableFloatingConversionRate(d *decimal.Decimal) *ProviderOrderTokenUpdateOne {
+	if d != nil {
+		potuo.SetFloatingConversionRate(*d)
+	}
+	return potuo
+}
+
 // AddFloatingConversionRate adds d to the "floating_conversion_rate" field.
 func (potuo *ProviderOrderTokenUpdateOne) AddFloatingConversionRate(d decimal.Decimal) *ProviderOrderTokenUpdateOne {
 	potuo.mutation.AddFloatingConversionRate(d)
@@ -341,10 +413,26 @@ func (potuo *ProviderOrderTokenUpdateOne) SetConversionRateType(prt providerorde
 	return potuo
 }
 
+// SetNillableConversionRateType sets the "conversion_rate_type" field if the given value is not nil.
+func (potuo *ProviderOrderTokenUpdateOne) SetNillableConversionRateType(prt *providerordertoken.ConversionRateType) *ProviderOrderTokenUpdateOne {
+	if prt != nil {
+		potuo.SetConversionRateType(*prt)
+	}
+	return potuo
+}
+
 // SetMaxOrderAmount sets the "max_order_amount" field.
 func (potuo *ProviderOrderTokenUpdateOne) SetMaxOrderAmount(d decimal.Decimal) *ProviderOrderTokenUpdateOne {
 	potuo.mutation.ResetMaxOrderAmount()
 	potuo.mutation.SetMaxOrderAmount(d)
+	return potuo
+}
+
+// SetNillableMaxOrderAmount sets the "max_order_amount" field if the given value is not nil.
+func (potuo *ProviderOrderTokenUpdateOne) SetNillableMaxOrderAmount(d *decimal.Decimal) *ProviderOrderTokenUpdateOne {
+	if d != nil {
+		potuo.SetMaxOrderAmount(*d)
+	}
 	return potuo
 }
 
@@ -358,6 +446,14 @@ func (potuo *ProviderOrderTokenUpdateOne) AddMaxOrderAmount(d decimal.Decimal) *
 func (potuo *ProviderOrderTokenUpdateOne) SetMinOrderAmount(d decimal.Decimal) *ProviderOrderTokenUpdateOne {
 	potuo.mutation.ResetMinOrderAmount()
 	potuo.mutation.SetMinOrderAmount(d)
+	return potuo
+}
+
+// SetNillableMinOrderAmount sets the "min_order_amount" field if the given value is not nil.
+func (potuo *ProviderOrderTokenUpdateOne) SetNillableMinOrderAmount(d *decimal.Decimal) *ProviderOrderTokenUpdateOne {
+	if d != nil {
+		potuo.SetMinOrderAmount(*d)
+	}
 	return potuo
 }
 

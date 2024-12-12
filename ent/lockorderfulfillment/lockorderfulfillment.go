@@ -22,6 +22,8 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// FieldTxID holds the string denoting the tx_id field in the database.
 	FieldTxID = "tx_id"
+	// FieldPsp holds the string denoting the psp field in the database.
+	FieldPsp = "psp"
 	// FieldValidationStatus holds the string denoting the validation_status field in the database.
 	FieldValidationStatus = "validation_status"
 	// FieldValidationError holds the string denoting the validation_error field in the database.
@@ -36,7 +38,7 @@ const (
 	// It exists in this package in order to avoid circular dependency with the "lockpaymentorder" package.
 	OrderInverseTable = "lock_payment_orders"
 	// OrderColumn is the table column denoting the order relation/edge.
-	OrderColumn = "lock_payment_order_fulfillment"
+	OrderColumn = "lock_payment_order_fulfillments"
 )
 
 // Columns holds all SQL columns for lockorderfulfillment fields.
@@ -45,6 +47,7 @@ var Columns = []string{
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldTxID,
+	FieldPsp,
 	FieldValidationStatus,
 	FieldValidationError,
 }
@@ -52,7 +55,7 @@ var Columns = []string{
 // ForeignKeys holds the SQL foreign-keys that are owned by the "lock_order_fulfillments"
 // table and are not defined as standalone fields in the schema.
 var ForeignKeys = []string{
-	"lock_payment_order_fulfillment",
+	"lock_payment_order_fulfillments",
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -131,6 +134,11 @@ func ByTxID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldTxID, opts...).ToFunc()
 }
 
+// ByPsp orders the results by the psp field.
+func ByPsp(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPsp, opts...).ToFunc()
+}
+
 // ByValidationStatus orders the results by the validation_status field.
 func ByValidationStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldValidationStatus, opts...).ToFunc()
@@ -151,6 +159,6 @@ func newOrderStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(OrderInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2O, true, OrderTable, OrderColumn),
+		sqlgraph.Edge(sqlgraph.M2O, true, OrderTable, OrderColumn),
 	)
 }

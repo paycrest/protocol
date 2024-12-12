@@ -71,6 +71,11 @@ func TxID(v string) predicate.LockOrderFulfillment {
 	return predicate.LockOrderFulfillment(sql.FieldEQ(FieldTxID, v))
 }
 
+// Psp applies equality check predicate on the "psp" field. It's identical to PspEQ.
+func Psp(v string) predicate.LockOrderFulfillment {
+	return predicate.LockOrderFulfillment(sql.FieldEQ(FieldPsp, v))
+}
+
 // ValidationError applies equality check predicate on the "validation_error" field. It's identical to ValidationErrorEQ.
 func ValidationError(v string) predicate.LockOrderFulfillment {
 	return predicate.LockOrderFulfillment(sql.FieldEQ(FieldValidationError, v))
@@ -221,6 +226,81 @@ func TxIDContainsFold(v string) predicate.LockOrderFulfillment {
 	return predicate.LockOrderFulfillment(sql.FieldContainsFold(FieldTxID, v))
 }
 
+// PspEQ applies the EQ predicate on the "psp" field.
+func PspEQ(v string) predicate.LockOrderFulfillment {
+	return predicate.LockOrderFulfillment(sql.FieldEQ(FieldPsp, v))
+}
+
+// PspNEQ applies the NEQ predicate on the "psp" field.
+func PspNEQ(v string) predicate.LockOrderFulfillment {
+	return predicate.LockOrderFulfillment(sql.FieldNEQ(FieldPsp, v))
+}
+
+// PspIn applies the In predicate on the "psp" field.
+func PspIn(vs ...string) predicate.LockOrderFulfillment {
+	return predicate.LockOrderFulfillment(sql.FieldIn(FieldPsp, vs...))
+}
+
+// PspNotIn applies the NotIn predicate on the "psp" field.
+func PspNotIn(vs ...string) predicate.LockOrderFulfillment {
+	return predicate.LockOrderFulfillment(sql.FieldNotIn(FieldPsp, vs...))
+}
+
+// PspGT applies the GT predicate on the "psp" field.
+func PspGT(v string) predicate.LockOrderFulfillment {
+	return predicate.LockOrderFulfillment(sql.FieldGT(FieldPsp, v))
+}
+
+// PspGTE applies the GTE predicate on the "psp" field.
+func PspGTE(v string) predicate.LockOrderFulfillment {
+	return predicate.LockOrderFulfillment(sql.FieldGTE(FieldPsp, v))
+}
+
+// PspLT applies the LT predicate on the "psp" field.
+func PspLT(v string) predicate.LockOrderFulfillment {
+	return predicate.LockOrderFulfillment(sql.FieldLT(FieldPsp, v))
+}
+
+// PspLTE applies the LTE predicate on the "psp" field.
+func PspLTE(v string) predicate.LockOrderFulfillment {
+	return predicate.LockOrderFulfillment(sql.FieldLTE(FieldPsp, v))
+}
+
+// PspContains applies the Contains predicate on the "psp" field.
+func PspContains(v string) predicate.LockOrderFulfillment {
+	return predicate.LockOrderFulfillment(sql.FieldContains(FieldPsp, v))
+}
+
+// PspHasPrefix applies the HasPrefix predicate on the "psp" field.
+func PspHasPrefix(v string) predicate.LockOrderFulfillment {
+	return predicate.LockOrderFulfillment(sql.FieldHasPrefix(FieldPsp, v))
+}
+
+// PspHasSuffix applies the HasSuffix predicate on the "psp" field.
+func PspHasSuffix(v string) predicate.LockOrderFulfillment {
+	return predicate.LockOrderFulfillment(sql.FieldHasSuffix(FieldPsp, v))
+}
+
+// PspIsNil applies the IsNil predicate on the "psp" field.
+func PspIsNil() predicate.LockOrderFulfillment {
+	return predicate.LockOrderFulfillment(sql.FieldIsNull(FieldPsp))
+}
+
+// PspNotNil applies the NotNil predicate on the "psp" field.
+func PspNotNil() predicate.LockOrderFulfillment {
+	return predicate.LockOrderFulfillment(sql.FieldNotNull(FieldPsp))
+}
+
+// PspEqualFold applies the EqualFold predicate on the "psp" field.
+func PspEqualFold(v string) predicate.LockOrderFulfillment {
+	return predicate.LockOrderFulfillment(sql.FieldEqualFold(FieldPsp, v))
+}
+
+// PspContainsFold applies the ContainsFold predicate on the "psp" field.
+func PspContainsFold(v string) predicate.LockOrderFulfillment {
+	return predicate.LockOrderFulfillment(sql.FieldContainsFold(FieldPsp, v))
+}
+
 // ValidationStatusEQ applies the EQ predicate on the "validation_status" field.
 func ValidationStatusEQ(v ValidationStatus) predicate.LockOrderFulfillment {
 	return predicate.LockOrderFulfillment(sql.FieldEQ(FieldValidationStatus, v))
@@ -321,7 +401,7 @@ func HasOrder() predicate.LockOrderFulfillment {
 	return predicate.LockOrderFulfillment(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, OrderTable, OrderColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, OrderTable, OrderColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
@@ -341,32 +421,15 @@ func HasOrderWith(preds ...predicate.LockPaymentOrder) predicate.LockOrderFulfil
 
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.LockOrderFulfillment) predicate.LockOrderFulfillment {
-	return predicate.LockOrderFulfillment(func(s *sql.Selector) {
-		s1 := s.Clone().SetP(nil)
-		for _, p := range predicates {
-			p(s1)
-		}
-		s.Where(s1.P())
-	})
+	return predicate.LockOrderFulfillment(sql.AndPredicates(predicates...))
 }
 
 // Or groups predicates with the OR operator between them.
 func Or(predicates ...predicate.LockOrderFulfillment) predicate.LockOrderFulfillment {
-	return predicate.LockOrderFulfillment(func(s *sql.Selector) {
-		s1 := s.Clone().SetP(nil)
-		for i, p := range predicates {
-			if i > 0 {
-				s1.Or()
-			}
-			p(s1)
-		}
-		s.Where(s1.P())
-	})
+	return predicate.LockOrderFulfillment(sql.OrPredicates(predicates...))
 }
 
 // Not applies the not operator on the given predicate.
 func Not(p predicate.LockOrderFulfillment) predicate.LockOrderFulfillment {
-	return predicate.LockOrderFulfillment(func(s *sql.Selector) {
-		p(s.Not())
-	})
+	return predicate.LockOrderFulfillment(sql.NotPredicates(p))
 }

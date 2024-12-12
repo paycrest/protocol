@@ -59,6 +59,20 @@ func (lofc *LockOrderFulfillmentCreate) SetTxID(s string) *LockOrderFulfillmentC
 	return lofc
 }
 
+// SetPsp sets the "psp" field.
+func (lofc *LockOrderFulfillmentCreate) SetPsp(s string) *LockOrderFulfillmentCreate {
+	lofc.mutation.SetPsp(s)
+	return lofc
+}
+
+// SetNillablePsp sets the "psp" field if the given value is not nil.
+func (lofc *LockOrderFulfillmentCreate) SetNillablePsp(s *string) *LockOrderFulfillmentCreate {
+	if s != nil {
+		lofc.SetPsp(*s)
+	}
+	return lofc
+}
+
 // SetValidationStatus sets the "validation_status" field.
 func (lofc *LockOrderFulfillmentCreate) SetValidationStatus(ls lockorderfulfillment.ValidationStatus) *LockOrderFulfillmentCreate {
 	lofc.mutation.SetValidationStatus(ls)
@@ -184,7 +198,7 @@ func (lofc *LockOrderFulfillmentCreate) check() error {
 			return &ValidationError{Name: "validation_status", err: fmt.Errorf(`ent: validator failed for field "LockOrderFulfillment.validation_status": %w`, err)}
 		}
 	}
-	if _, ok := lofc.mutation.OrderID(); !ok {
+	if len(lofc.mutation.OrderIDs()) == 0 {
 		return &ValidationError{Name: "order", err: errors.New(`ent: missing required edge "LockOrderFulfillment.order"`)}
 	}
 	return nil
@@ -235,6 +249,10 @@ func (lofc *LockOrderFulfillmentCreate) createSpec() (*LockOrderFulfillment, *sq
 		_spec.SetField(lockorderfulfillment.FieldTxID, field.TypeString, value)
 		_node.TxID = value
 	}
+	if value, ok := lofc.mutation.Psp(); ok {
+		_spec.SetField(lockorderfulfillment.FieldPsp, field.TypeString, value)
+		_node.Psp = value
+	}
 	if value, ok := lofc.mutation.ValidationStatus(); ok {
 		_spec.SetField(lockorderfulfillment.FieldValidationStatus, field.TypeEnum, value)
 		_node.ValidationStatus = value
@@ -245,7 +263,7 @@ func (lofc *LockOrderFulfillmentCreate) createSpec() (*LockOrderFulfillment, *sq
 	}
 	if nodes := lofc.mutation.OrderIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
+			Rel:     sqlgraph.M2O,
 			Inverse: true,
 			Table:   lockorderfulfillment.OrderTable,
 			Columns: []string{lockorderfulfillment.OrderColumn},
@@ -257,7 +275,7 @@ func (lofc *LockOrderFulfillmentCreate) createSpec() (*LockOrderFulfillment, *sq
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.lock_payment_order_fulfillment = &nodes[0]
+		_node.lock_payment_order_fulfillments = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
@@ -333,6 +351,24 @@ func (u *LockOrderFulfillmentUpsert) SetTxID(v string) *LockOrderFulfillmentUpse
 // UpdateTxID sets the "tx_id" field to the value that was provided on create.
 func (u *LockOrderFulfillmentUpsert) UpdateTxID() *LockOrderFulfillmentUpsert {
 	u.SetExcluded(lockorderfulfillment.FieldTxID)
+	return u
+}
+
+// SetPsp sets the "psp" field.
+func (u *LockOrderFulfillmentUpsert) SetPsp(v string) *LockOrderFulfillmentUpsert {
+	u.Set(lockorderfulfillment.FieldPsp, v)
+	return u
+}
+
+// UpdatePsp sets the "psp" field to the value that was provided on create.
+func (u *LockOrderFulfillmentUpsert) UpdatePsp() *LockOrderFulfillmentUpsert {
+	u.SetExcluded(lockorderfulfillment.FieldPsp)
+	return u
+}
+
+// ClearPsp clears the value of the "psp" field.
+func (u *LockOrderFulfillmentUpsert) ClearPsp() *LockOrderFulfillmentUpsert {
+	u.SetNull(lockorderfulfillment.FieldPsp)
 	return u
 }
 
@@ -445,6 +481,27 @@ func (u *LockOrderFulfillmentUpsertOne) UpdateTxID() *LockOrderFulfillmentUpsert
 	})
 }
 
+// SetPsp sets the "psp" field.
+func (u *LockOrderFulfillmentUpsertOne) SetPsp(v string) *LockOrderFulfillmentUpsertOne {
+	return u.Update(func(s *LockOrderFulfillmentUpsert) {
+		s.SetPsp(v)
+	})
+}
+
+// UpdatePsp sets the "psp" field to the value that was provided on create.
+func (u *LockOrderFulfillmentUpsertOne) UpdatePsp() *LockOrderFulfillmentUpsertOne {
+	return u.Update(func(s *LockOrderFulfillmentUpsert) {
+		s.UpdatePsp()
+	})
+}
+
+// ClearPsp clears the value of the "psp" field.
+func (u *LockOrderFulfillmentUpsertOne) ClearPsp() *LockOrderFulfillmentUpsertOne {
+	return u.Update(func(s *LockOrderFulfillmentUpsert) {
+		s.ClearPsp()
+	})
+}
+
 // SetValidationStatus sets the "validation_status" field.
 func (u *LockOrderFulfillmentUpsertOne) SetValidationStatus(v lockorderfulfillment.ValidationStatus) *LockOrderFulfillmentUpsertOne {
 	return u.Update(func(s *LockOrderFulfillmentUpsert) {
@@ -521,12 +578,16 @@ func (u *LockOrderFulfillmentUpsertOne) IDX(ctx context.Context) uuid.UUID {
 // LockOrderFulfillmentCreateBulk is the builder for creating many LockOrderFulfillment entities in bulk.
 type LockOrderFulfillmentCreateBulk struct {
 	config
+	err      error
 	builders []*LockOrderFulfillmentCreate
 	conflict []sql.ConflictOption
 }
 
 // Save creates the LockOrderFulfillment entities in the database.
 func (lofcb *LockOrderFulfillmentCreateBulk) Save(ctx context.Context) ([]*LockOrderFulfillment, error) {
+	if lofcb.err != nil {
+		return nil, lofcb.err
+	}
 	specs := make([]*sqlgraph.CreateSpec, len(lofcb.builders))
 	nodes := make([]*LockOrderFulfillment, len(lofcb.builders))
 	mutators := make([]Mutator, len(lofcb.builders))
@@ -722,6 +783,27 @@ func (u *LockOrderFulfillmentUpsertBulk) UpdateTxID() *LockOrderFulfillmentUpser
 	})
 }
 
+// SetPsp sets the "psp" field.
+func (u *LockOrderFulfillmentUpsertBulk) SetPsp(v string) *LockOrderFulfillmentUpsertBulk {
+	return u.Update(func(s *LockOrderFulfillmentUpsert) {
+		s.SetPsp(v)
+	})
+}
+
+// UpdatePsp sets the "psp" field to the value that was provided on create.
+func (u *LockOrderFulfillmentUpsertBulk) UpdatePsp() *LockOrderFulfillmentUpsertBulk {
+	return u.Update(func(s *LockOrderFulfillmentUpsert) {
+		s.UpdatePsp()
+	})
+}
+
+// ClearPsp clears the value of the "psp" field.
+func (u *LockOrderFulfillmentUpsertBulk) ClearPsp() *LockOrderFulfillmentUpsertBulk {
+	return u.Update(func(s *LockOrderFulfillmentUpsert) {
+		s.ClearPsp()
+	})
+}
+
 // SetValidationStatus sets the "validation_status" field.
 func (u *LockOrderFulfillmentUpsertBulk) SetValidationStatus(v lockorderfulfillment.ValidationStatus) *LockOrderFulfillmentUpsertBulk {
 	return u.Update(func(s *LockOrderFulfillmentUpsert) {
@@ -759,6 +841,9 @@ func (u *LockOrderFulfillmentUpsertBulk) ClearValidationError() *LockOrderFulfil
 
 // Exec executes the query.
 func (u *LockOrderFulfillmentUpsertBulk) Exec(ctx context.Context) error {
+	if u.create.err != nil {
+		return u.create.err
+	}
 	for i, b := range u.create.builders {
 		if len(b.conflict) != 0 {
 			return fmt.Errorf("ent: OnConflict was set for builder %d. Set it on the LockOrderFulfillmentCreateBulk instead", i)

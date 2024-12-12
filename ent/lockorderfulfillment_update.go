@@ -42,6 +42,34 @@ func (lofu *LockOrderFulfillmentUpdate) SetTxID(s string) *LockOrderFulfillmentU
 	return lofu
 }
 
+// SetNillableTxID sets the "tx_id" field if the given value is not nil.
+func (lofu *LockOrderFulfillmentUpdate) SetNillableTxID(s *string) *LockOrderFulfillmentUpdate {
+	if s != nil {
+		lofu.SetTxID(*s)
+	}
+	return lofu
+}
+
+// SetPsp sets the "psp" field.
+func (lofu *LockOrderFulfillmentUpdate) SetPsp(s string) *LockOrderFulfillmentUpdate {
+	lofu.mutation.SetPsp(s)
+	return lofu
+}
+
+// SetNillablePsp sets the "psp" field if the given value is not nil.
+func (lofu *LockOrderFulfillmentUpdate) SetNillablePsp(s *string) *LockOrderFulfillmentUpdate {
+	if s != nil {
+		lofu.SetPsp(*s)
+	}
+	return lofu
+}
+
+// ClearPsp clears the value of the "psp" field.
+func (lofu *LockOrderFulfillmentUpdate) ClearPsp() *LockOrderFulfillmentUpdate {
+	lofu.mutation.ClearPsp()
+	return lofu
+}
+
 // SetValidationStatus sets the "validation_status" field.
 func (lofu *LockOrderFulfillmentUpdate) SetValidationStatus(ls lockorderfulfillment.ValidationStatus) *LockOrderFulfillmentUpdate {
 	lofu.mutation.SetValidationStatus(ls)
@@ -141,7 +169,7 @@ func (lofu *LockOrderFulfillmentUpdate) check() error {
 			return &ValidationError{Name: "validation_status", err: fmt.Errorf(`ent: validator failed for field "LockOrderFulfillment.validation_status": %w`, err)}
 		}
 	}
-	if _, ok := lofu.mutation.OrderID(); lofu.mutation.OrderCleared() && !ok {
+	if lofu.mutation.OrderCleared() && len(lofu.mutation.OrderIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "LockOrderFulfillment.order"`)
 	}
 	return nil
@@ -165,6 +193,12 @@ func (lofu *LockOrderFulfillmentUpdate) sqlSave(ctx context.Context) (n int, err
 	if value, ok := lofu.mutation.TxID(); ok {
 		_spec.SetField(lockorderfulfillment.FieldTxID, field.TypeString, value)
 	}
+	if value, ok := lofu.mutation.Psp(); ok {
+		_spec.SetField(lockorderfulfillment.FieldPsp, field.TypeString, value)
+	}
+	if lofu.mutation.PspCleared() {
+		_spec.ClearField(lockorderfulfillment.FieldPsp, field.TypeString)
+	}
 	if value, ok := lofu.mutation.ValidationStatus(); ok {
 		_spec.SetField(lockorderfulfillment.FieldValidationStatus, field.TypeEnum, value)
 	}
@@ -176,7 +210,7 @@ func (lofu *LockOrderFulfillmentUpdate) sqlSave(ctx context.Context) (n int, err
 	}
 	if lofu.mutation.OrderCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
+			Rel:     sqlgraph.M2O,
 			Inverse: true,
 			Table:   lockorderfulfillment.OrderTable,
 			Columns: []string{lockorderfulfillment.OrderColumn},
@@ -189,7 +223,7 @@ func (lofu *LockOrderFulfillmentUpdate) sqlSave(ctx context.Context) (n int, err
 	}
 	if nodes := lofu.mutation.OrderIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
+			Rel:     sqlgraph.M2O,
 			Inverse: true,
 			Table:   lockorderfulfillment.OrderTable,
 			Columns: []string{lockorderfulfillment.OrderColumn},
@@ -232,6 +266,34 @@ func (lofuo *LockOrderFulfillmentUpdateOne) SetUpdatedAt(t time.Time) *LockOrder
 // SetTxID sets the "tx_id" field.
 func (lofuo *LockOrderFulfillmentUpdateOne) SetTxID(s string) *LockOrderFulfillmentUpdateOne {
 	lofuo.mutation.SetTxID(s)
+	return lofuo
+}
+
+// SetNillableTxID sets the "tx_id" field if the given value is not nil.
+func (lofuo *LockOrderFulfillmentUpdateOne) SetNillableTxID(s *string) *LockOrderFulfillmentUpdateOne {
+	if s != nil {
+		lofuo.SetTxID(*s)
+	}
+	return lofuo
+}
+
+// SetPsp sets the "psp" field.
+func (lofuo *LockOrderFulfillmentUpdateOne) SetPsp(s string) *LockOrderFulfillmentUpdateOne {
+	lofuo.mutation.SetPsp(s)
+	return lofuo
+}
+
+// SetNillablePsp sets the "psp" field if the given value is not nil.
+func (lofuo *LockOrderFulfillmentUpdateOne) SetNillablePsp(s *string) *LockOrderFulfillmentUpdateOne {
+	if s != nil {
+		lofuo.SetPsp(*s)
+	}
+	return lofuo
+}
+
+// ClearPsp clears the value of the "psp" field.
+func (lofuo *LockOrderFulfillmentUpdateOne) ClearPsp() *LockOrderFulfillmentUpdateOne {
+	lofuo.mutation.ClearPsp()
 	return lofuo
 }
 
@@ -347,7 +409,7 @@ func (lofuo *LockOrderFulfillmentUpdateOne) check() error {
 			return &ValidationError{Name: "validation_status", err: fmt.Errorf(`ent: validator failed for field "LockOrderFulfillment.validation_status": %w`, err)}
 		}
 	}
-	if _, ok := lofuo.mutation.OrderID(); lofuo.mutation.OrderCleared() && !ok {
+	if lofuo.mutation.OrderCleared() && len(lofuo.mutation.OrderIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "LockOrderFulfillment.order"`)
 	}
 	return nil
@@ -388,6 +450,12 @@ func (lofuo *LockOrderFulfillmentUpdateOne) sqlSave(ctx context.Context) (_node 
 	if value, ok := lofuo.mutation.TxID(); ok {
 		_spec.SetField(lockorderfulfillment.FieldTxID, field.TypeString, value)
 	}
+	if value, ok := lofuo.mutation.Psp(); ok {
+		_spec.SetField(lockorderfulfillment.FieldPsp, field.TypeString, value)
+	}
+	if lofuo.mutation.PspCleared() {
+		_spec.ClearField(lockorderfulfillment.FieldPsp, field.TypeString)
+	}
 	if value, ok := lofuo.mutation.ValidationStatus(); ok {
 		_spec.SetField(lockorderfulfillment.FieldValidationStatus, field.TypeEnum, value)
 	}
@@ -399,7 +467,7 @@ func (lofuo *LockOrderFulfillmentUpdateOne) sqlSave(ctx context.Context) (_node 
 	}
 	if lofuo.mutation.OrderCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
+			Rel:     sqlgraph.M2O,
 			Inverse: true,
 			Table:   lockorderfulfillment.OrderTable,
 			Columns: []string{lockorderfulfillment.OrderColumn},
@@ -412,7 +480,7 @@ func (lofuo *LockOrderFulfillmentUpdateOne) sqlSave(ctx context.Context) (_node 
 	}
 	if nodes := lofuo.mutation.OrderIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
+			Rel:     sqlgraph.M2O,
 			Inverse: true,
 			Table:   lockorderfulfillment.OrderTable,
 			Columns: []string{lockorderfulfillment.OrderColumn},

@@ -67,9 +67,9 @@ func setup() error {
 	}
 
 	senderProfile, err := test.CreateTestSenderProfile(map[string]interface{}{
-		"user_id":            user.ID,
-		"fee_per_token_unit": "5",
-		"token":              token.Symbol,
+		"user_id":     user.ID,
+		"fee_percent": "5",
+		"token":       token.Symbol,
 	})
 
 	if err != nil {
@@ -125,15 +125,15 @@ func TestSender(t *testing.T) {
 
 	// Set up test routers
 	router := gin.New()
-	router.Use(middleware.HMACVerificationMiddleware)
+	router.Use(middleware.DynamicAuthMiddleware)
 	router.Use(middleware.OnlySenderMiddleware)
 
 	// Create a new instance of the SenderController with the mock service
 	ctrl := NewSenderController()
-	router.POST("/orders", ctrl.InitiatePaymentOrder)
-	router.GET("/orders/:id", ctrl.GetPaymentOrderByID)
-	router.GET("/orders", ctrl.GetPaymentOrders)
-	router.GET("/stats", ctrl.Stats)
+	router.POST("/sender/orders", ctrl.InitiatePaymentOrder)
+	router.GET("/sender/orders/:id", ctrl.GetPaymentOrderByID)
+	router.GET("/sender/orders", ctrl.GetPaymentOrders)
+	router.GET("/sender/stats", ctrl.Stats)
 
 	var paymentOrderUUID uuid.UUID
 
@@ -157,16 +157,13 @@ func TestSender(t *testing.T) {
 				"accountName":       "John Doe",
 				"memo":              "Shola Kehinde - rent for May 2021",
 			},
-			"timestamp": time.Now().Unix(),
 		}
-
-		signature := token.GenerateHMACSignature(payload, testCtx.apiKeySecret)
 
 		headers := map[string]string{
-			"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
+			"API-Key": testCtx.apiKey.ID.String(),
 		}
 
-		res, err := test.PerformRequest(t, "POST", "/orders", payload, headers, router)
+		res, err := test.PerformRequest(t, "POST", "/sender/orders", payload, headers, router)
 		assert.NoError(t, err)
 
 		// Assert the response body
@@ -201,21 +198,15 @@ func TestSender(t *testing.T) {
 		assert.Equal(t, paymentOrder.Edges.Recipient.Memo, payload["recipient"].(map[string]interface{})["memo"])
 		assert.Equal(t, paymentOrder.Edges.Recipient.AccountName, payload["recipient"].(map[string]interface{})["accountName"])
 		assert.Equal(t, paymentOrder.Edges.Recipient.Institution, payload["recipient"].(map[string]interface{})["institution"])
-		assert.Equal(t, data["senderFee"], "0.666667")
+		assert.Equal(t, data["senderFee"], "5")
 		assert.Equal(t, data["transactionFee"], network.Fee.String())
 
 		t.Run("Check Transaction Logs", func(t *testing.T) {
-			payload = map[string]interface{}{
-				"timestamp": time.Now().Unix(),
+			headers := map[string]string{
+				"API-Key": testCtx.apiKey.ID.String(),
 			}
 
-			signature = token.GenerateHMACSignature(payload, testCtx.apiKeySecret)
-
-			headers = map[string]string{
-				"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
-			}
-
-			res, err = test.PerformRequest(t, "GET", fmt.Sprintf("/orders/%s?timestamp=%v", paymentOrderUUID.String(), payload["timestamp"]), nil, headers, router)
+			res, err = test.PerformRequest(t, "GET", fmt.Sprintf("/sender/orders/%s?timestamp=%v", paymentOrderUUID.String(), payload["timestamp"]), nil, headers, router)
 			assert.NoError(t, err)
 
 			type Response struct {
@@ -247,7 +238,7 @@ func TestSender(t *testing.T) {
 			"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
 		}
 
-		res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/orders/%s?timestamp=%v", paymentOrderUUID.String(), payload["timestamp"]), nil, headers, router)
+		res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/sender/orders/%s?timestamp=%v", paymentOrderUUID.String(), payload["timestamp"]), nil, headers, router)
 		assert.NoError(t, err)
 
 		// Assert the response body
@@ -275,7 +266,7 @@ func TestSender(t *testing.T) {
 				"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
 			}
 
-			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/orders?timestamp=%v", payload["timestamp"]), nil, headers, router)
+			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/sender/orders?timestamp=%v", payload["timestamp"]), nil, headers, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -308,7 +299,7 @@ func TestSender(t *testing.T) {
 				"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
 			}
 
-			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/orders?status=%s&timestamp=%v", payload["status"], payload["timestamp"]), nil, headers, router)
+			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/sender/orders?status=%s&timestamp=%v", payload["status"], payload["timestamp"]), nil, headers, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -344,7 +335,7 @@ func TestSender(t *testing.T) {
 				"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
 			}
 
-			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/orders?page=%s&pageSize=%s&timestamp=%v", strconv.Itoa(page), strconv.Itoa(pageSize), payload["timestamp"]), nil, headers, router)
+			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/sender/orders?page=%s&pageSize=%s&timestamp=%v", strconv.Itoa(page), strconv.Itoa(pageSize), payload["timestamp"]), nil, headers, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -378,7 +369,7 @@ func TestSender(t *testing.T) {
 				"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
 			}
 
-			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/orders?ordering=%s&timestamp=%v", payload["ordering"], payload["timestamp"]), nil, headers, router)
+			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/sender/orders?ordering=%s&timestamp=%v", payload["ordering"], payload["timestamp"]), nil, headers, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -423,7 +414,7 @@ func TestSender(t *testing.T) {
 				"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
 			}
 
-			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/orders?network=%s&timestamp=%v", payload["network"], payload["timestamp"]), nil, headers, router)
+			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/sender/orders?network=%s&timestamp=%v", payload["network"], payload["timestamp"]), nil, headers, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -458,7 +449,7 @@ func TestSender(t *testing.T) {
 				"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
 			}
 
-			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/orders?token=%s&timestamp=%v", payload["token"], payload["timestamp"]), nil, headers, router)
+			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/sender/orders?token=%s&timestamp=%v", payload["token"], payload["timestamp"]), nil, headers, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -493,8 +484,8 @@ func TestSender(t *testing.T) {
 			}
 
 			senderProfile, err := test.CreateTestSenderProfile(map[string]interface{}{
-				"user_id":            user.ID,
-				"fee_per_token_unit": "5",
+				"user_id":     user.ID,
+				"fee_percent": "5",
 			})
 			if err != nil {
 				return
@@ -521,7 +512,7 @@ func TestSender(t *testing.T) {
 				"Authorization": "HMAC " + apiKey.ID.String() + ":" + signature,
 			}
 
-			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/stats?timestamp=%v", payload["timestamp"]), nil, headers, router)
+			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/sender/stats?timestamp=%v", payload["timestamp"]), nil, headers, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -561,7 +552,7 @@ func TestSender(t *testing.T) {
 				"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
 			}
 
-			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/stats?timestamp=%v", payload["timestamp"]), nil, headers, router)
+			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/sender/stats?timestamp=%v", payload["timestamp"]), nil, headers, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -600,12 +591,12 @@ func TestSender(t *testing.T) {
 
 			// create settled Order
 			_, err = test.CreateTestPaymentOrder(testCtx.client, testCtx.token, map[string]interface{}{
-				"sender":             testCtx.user,
-				"amount":             100.0,
-				"token":              testCtx.token.Symbol,
-				"rate":               750.0,
-				"status":             "settled",
-				"fee_per_token_unit": 5.0,
+				"sender":      testCtx.user,
+				"amount":      100.0,
+				"token":       testCtx.token.Symbol,
+				"rate":        750.0,
+				"status":      "settled",
+				"fee_percent": 5.0,
 			})
 			assert.NoError(t, err)
 			var payload = map[string]interface{}{
@@ -618,7 +609,7 @@ func TestSender(t *testing.T) {
 				"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
 			}
 
-			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/stats?timestamp=%v", payload["timestamp"]), nil, headers, router)
+			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/sender/stats?timestamp=%v", payload["timestamp"]), nil, headers, router)
 			assert.NoError(t, err)
 
 			// Assert the response body

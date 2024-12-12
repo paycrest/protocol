@@ -25,8 +25,8 @@ type SenderOrderToken struct {
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
-	// FeePerTokenUnit holds the value of the "fee_per_token_unit" field.
-	FeePerTokenUnit decimal.Decimal `json:"fee_per_token_unit,omitempty"`
+	// FeePercent holds the value of the "fee_percent" field.
+	FeePercent decimal.Decimal `json:"fee_percent,omitempty"`
 	// FeeAddress holds the value of the "fee_address" field.
 	FeeAddress string `json:"fee_address,omitempty"`
 	// RefundAddress holds the value of the "refund_address" field.
@@ -53,12 +53,10 @@ type SenderOrderTokenEdges struct {
 // SenderOrErr returns the Sender value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e SenderOrderTokenEdges) SenderOrErr() (*SenderProfile, error) {
-	if e.loadedTypes[0] {
-		if e.Sender == nil {
-			// Edge was loaded but was not found.
-			return nil, &NotFoundError{label: senderprofile.Label}
-		}
+	if e.Sender != nil {
 		return e.Sender, nil
+	} else if e.loadedTypes[0] {
+		return nil, &NotFoundError{label: senderprofile.Label}
 	}
 	return nil, &NotLoadedError{edge: "sender"}
 }
@@ -66,12 +64,10 @@ func (e SenderOrderTokenEdges) SenderOrErr() (*SenderProfile, error) {
 // TokenOrErr returns the Token value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e SenderOrderTokenEdges) TokenOrErr() (*Token, error) {
-	if e.loadedTypes[1] {
-		if e.Token == nil {
-			// Edge was loaded but was not found.
-			return nil, &NotFoundError{label: token.Label}
-		}
+	if e.Token != nil {
 		return e.Token, nil
+	} else if e.loadedTypes[1] {
+		return nil, &NotFoundError{label: token.Label}
 	}
 	return nil, &NotLoadedError{edge: "token"}
 }
@@ -81,7 +77,7 @@ func (*SenderOrderToken) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case senderordertoken.FieldFeePerTokenUnit:
+		case senderordertoken.FieldFeePercent:
 			values[i] = new(decimal.Decimal)
 		case senderordertoken.FieldID:
 			values[i] = new(sql.NullInt64)
@@ -126,11 +122,11 @@ func (sot *SenderOrderToken) assignValues(columns []string, values []any) error 
 			} else if value.Valid {
 				sot.UpdatedAt = value.Time
 			}
-		case senderordertoken.FieldFeePerTokenUnit:
+		case senderordertoken.FieldFeePercent:
 			if value, ok := values[i].(*decimal.Decimal); !ok {
-				return fmt.Errorf("unexpected type %T for field fee_per_token_unit", values[i])
+				return fmt.Errorf("unexpected type %T for field fee_percent", values[i])
 			} else if value != nil {
-				sot.FeePerTokenUnit = *value
+				sot.FeePercent = *value
 			}
 		case senderordertoken.FieldFeeAddress:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -210,8 +206,8 @@ func (sot *SenderOrderToken) String() string {
 	builder.WriteString("updated_at=")
 	builder.WriteString(sot.UpdatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
-	builder.WriteString("fee_per_token_unit=")
-	builder.WriteString(fmt.Sprintf("%v", sot.FeePerTokenUnit))
+	builder.WriteString("fee_percent=")
+	builder.WriteString(fmt.Sprintf("%v", sot.FeePercent))
 	builder.WriteString(", ")
 	builder.WriteString("fee_address=")
 	builder.WriteString(sot.FeeAddress)

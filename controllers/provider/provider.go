@@ -26,6 +26,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+var orderConf = config.OrderConfig()
+
 // ProviderController is a controller type for provider endpoints
 type ProviderController struct{}
 
@@ -173,32 +175,67 @@ func (ctrl *ProviderController) AcceptOrder(ctx *gin.Context) {
 		return
 	}
 
-	// create transaction
-	transactionlog, err := storage.Client.TransactionLog.Create().
-		SetStatus(transactionlog.StatusOrderProcessing).
-		SetMetadata(
-			map[string]interface{}{
-				"ProviderId": provider.ID,
-			}).
-		Save(ctx)
+	tx, err := storage.Client.Tx(ctx)
 	if err != nil {
-		u.APIResponse(ctx, http.StatusNotFound, "error", "Failed to update lock order status", nil)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update lock order status", nil)
 		return
 	}
+
+	// Log transaction status
+	var transactionLog *ent.TransactionLog
+	_, err = tx.LockPaymentOrder.
+		Query().
+		Where(
+			lockpaymentorder.IDEQ(orderID),
+			lockpaymentorder.HasTransactionsWith(
+				transactionlog.StatusEQ(transactionlog.StatusOrderProcessing),
+			),
+		).
+		Only(ctx)
+	if err != nil {
+		if !ent.IsNotFound(err) {
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update lock order status", nil)
+			return
+		} else {
+			transactionLog, err = tx.TransactionLog.
+				Create().
+				SetStatus(transactionlog.StatusOrderProcessing).
+				SetMetadata(
+					map[string]interface{}{
+						"ProviderId": provider.ID,
+					}).
+				Save(ctx)
+			if err != nil {
+				u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update lock order status", nil)
+				return
+			}
+		}
+	}
+
 	// Update lock order status to processing
-	order, err := storage.Client.LockPaymentOrder.
+	orderBuilder := tx.LockPaymentOrder.
 		UpdateOneID(orderID).
 		SetStatus(lockpaymentorder.StatusProcessing).
-		AddTransactions(transactionlog).
-		SetProviderID(provider.ID).
-		Save(ctx)
+		SetProviderID(provider.ID)
+
+	if transactionLog != nil {
+		orderBuilder = orderBuilder.AddTransactions(transactionLog)
+	}
+
+	order, err := orderBuilder.Save(ctx)
 	if err != nil {
-		logger.Errorf("error: %v", err)
+		logger.Errorf("%s - error.AcceptOrder: %v", orderID, err)
 		if ent.IsNotFound(err) {
 			u.APIResponse(ctx, http.StatusNotFound, "error", "Order not found", nil)
 		} else {
 			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update lock order status", nil)
 		}
+		return
+	}
+
+	// Commit transaction
+	if err := tx.Commit(); err != nil {
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update lock order status", nil)
 		return
 	}
 
@@ -317,6 +354,7 @@ func (ctrl *ProviderController) FulfillOrder(ctx *gin.Context) {
 				Create().
 				SetOrderID(orderID).
 				SetTxID(payload.TxID).
+				SetPsp(payload.PSP).
 				Save(ctx)
 			if err != nil {
 				logger.Errorf("error: %v", err)
@@ -346,6 +384,11 @@ func (ctrl *ProviderController) FulfillOrder(ctx *gin.Context) {
 	}
 
 	if payload.ValidationStatus == lockorderfulfillment.ValidationStatusSuccess {
+		if fulfillment.Edges.Order.Status != lockpaymentorder.StatusFulfilled {
+			u.APIResponse(ctx, http.StatusOK, "success", "Order already validated", nil)
+			return
+		}
+
 		_, err := fulfillment.Update().
 			SetValidationStatus(lockorderfulfillment.ValidationStatusSuccess).
 			Save(ctx)
@@ -360,6 +403,7 @@ func (ctrl *ProviderController) FulfillOrder(ctx *gin.Context) {
 			SetNetwork(fulfillment.Edges.Order.Edges.Token.Edges.Network.Identifier).
 			SetMetadata(map[string]interface{}{
 				"TransactionID": payload.TxID,
+				"PSP":           payload.PSP,
 			}).
 			Save(ctx)
 		if err != nil {
@@ -379,14 +423,17 @@ func (ctrl *ProviderController) FulfillOrder(ctx *gin.Context) {
 		}
 
 		// Settle order or fail silently
-		if strings.HasPrefix(fulfillment.Edges.Order.Edges.Token.Edges.Network.Identifier, "tron") {
-			err = orderService.NewOrderTron().SettleOrder(ctx, nil, orderID)
-		} else {
-			err = orderService.NewOrderEVM().SettleOrder(ctx, nil, orderID)
-		}
-		if err != nil {
-			logger.Errorf("FulfillOrder.SettleOrder: %v", err)
-		}
+		go func() {
+			var err error
+			if strings.HasPrefix(fulfillment.Edges.Order.Edges.Token.Edges.Network.Identifier, "tron") {
+				err = orderService.NewOrderTron().SettleOrder(ctx, nil, orderID)
+			} else {
+				err = orderService.NewOrderEVM().SettleOrder(ctx, nil, orderID)
+			}
+			if err != nil {
+				logger.Errorf("FulfillOrder.SettleOrder: %v", err)
+			}
+		}()
 
 	} else if payload.ValidationStatus == lockorderfulfillment.ValidationStatusFailed {
 		_, err = fulfillment.Update().
@@ -414,6 +461,7 @@ func (ctrl *ProviderController) FulfillOrder(ctx *gin.Context) {
 			SetNetwork(fulfillment.Edges.Order.Edges.Token.Edges.Network.Identifier).
 			SetMetadata(map[string]interface{}{
 				"TransactionID": payload.TxID,
+				"PSP":           payload.PSP,
 			}).
 			Save(ctx)
 		if err != nil {
@@ -475,6 +523,9 @@ func (ctrl *ProviderController) CancelOrder(ctx *gin.Context) {
 			tq.WithNetwork()
 		}).
 		WithProvider().
+		WithProvisionBucket(func(pbq *ent.ProvisionBucketQuery) {
+			pbq.WithCurrency()
+		}).
 		Only(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
@@ -483,7 +534,6 @@ func (ctrl *ProviderController) CancelOrder(ctx *gin.Context) {
 	}
 
 	// Get new cancellation count based on cancel reason
-	orderConf := config.OrderConfig()
 	orderUpdate := storage.Client.LockPaymentOrder.UpdateOneID(orderID)
 	cancellationCount := order.CancellationCount
 	if payload.Reason == "Invalid recipient bank details" || provider.VisibilityMode == providerprofile.VisibilityModePrivate {
@@ -492,6 +542,50 @@ func (ctrl *ProviderController) CancelOrder(ctx *gin.Context) {
 	} else if payload.Reason != "Insufficient funds" {
 		cancellationCount += 1
 		orderUpdate.AppendCancellationReasons([]string{payload.Reason})
+	} else if payload.Reason == "Insufficient funds" {
+		// Search for the specific provider in the queue using a Redis list
+		redisKey := fmt.Sprintf("bucket_%s_%s_%s", order.Edges.ProvisionBucket.Edges.Currency.Code, order.Edges.ProvisionBucket.MinAmount, order.Edges.ProvisionBucket.MaxAmount)
+
+		// Check if the provider ID exists in the list
+		for index := -1; ; index-- {
+			providerData, err := storage.RedisClient.LIndex(ctx, redisKey, int64(index)).Result()
+			if err != nil {
+				break
+			}
+
+			// Extract the id from the data (assuming format "providerID:token:rate:minAmount:maxAmount")
+			parts := strings.Split(providerData, ":")
+			if len(parts) != 5 {
+				logger.Errorf("invalid provider data format: %s", providerData)
+				continue // Skip this entry due to invalid format
+			}
+
+			if parts[0] == provider.ID {
+				// Remove the provider from the list
+				placeholder := "DELETED_PROVIDER" // Define a placeholder value
+				_, err := storage.RedisClient.LSet(ctx, redisKey, int64(index), placeholder).Result()
+				if err != nil {
+					logger.Errorf("failed to set placeholder at index %d: %v", index, err)
+				}
+
+				// Remove all occurences of the placeholder from the list
+				_, err = storage.RedisClient.LRem(ctx, redisKey, 0, placeholder).Result()
+				if err != nil {
+					logger.Errorf("failed to remove placeholder from circular queue: %v", err)
+				}
+
+				break
+			}
+		}
+
+		// Update provider availability to off
+		_, err = storage.Client.ProviderProfile.
+			UpdateOneID(provider.ID).
+			SetIsAvailable(false).
+			Save(ctx)
+		if err != nil {
+			logger.Errorf("failed to update provider availability: %v", err)
+		}
 	}
 
 	// Update lock order status to cancelled
@@ -508,19 +602,20 @@ func (ctrl *ProviderController) CancelOrder(ctx *gin.Context) {
 	order.Status = lockpaymentorder.StatusCancelled
 	order.CancellationCount = cancellationCount
 
-	// logger.Errorf("cancellation count, status", order.Status.String(), order.CancellationCount)
-
 	// Check if order cancellation count is equal or greater than RefundCancellationCount in config,
 	// and the order has not been refunded, then trigger refund
 	if order.CancellationCount >= orderConf.RefundCancellationCount && order.Status == lockpaymentorder.StatusCancelled {
-		if strings.HasPrefix(order.Edges.Token.Edges.Network.Identifier, "tron") {
-			err = orderService.NewOrderTron().RefundOrder(ctx, nil, order.GatewayID)
-		} else {
-			err = orderService.NewOrderEVM().RefundOrder(ctx, nil, order.GatewayID)
-		}
-		if err != nil {
-			logger.Errorf("CancelOrder.RefundOrder(%v): %v", orderID, err)
-		}
+		go func() {
+			var err error
+			if strings.HasPrefix(order.Edges.Token.Edges.Network.Identifier, "tron") {
+				err = orderService.NewOrderTron().RefundOrder(ctx, nil, order.GatewayID)
+			} else {
+				err = orderService.NewOrderEVM().RefundOrder(ctx, nil, order.GatewayID)
+			}
+			if err != nil {
+				logger.Errorf("CancelOrder.RefundOrder(%v): %v", orderID, err)
+			}
+		}()
 	}
 
 	// Push provider ID to order exclude list
@@ -540,7 +635,10 @@ func (ctrl *ProviderController) GetMarketRate(ctx *gin.Context) {
 	// Parse path parameters
 	tokenExists, err := storage.Client.Token.
 		Query().
-		Where(token.Symbol(strings.ToUpper(ctx.Param("token")))).
+		Where(
+			token.SymbolEQ(strings.ToUpper(ctx.Param("token"))),
+			token.IsEnabledEQ(true),
+		).
 		Exist(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
@@ -567,7 +665,6 @@ func (ctrl *ProviderController) GetMarketRate(ctx *gin.Context) {
 		return
 	}
 
-	orderConf := config.OrderConfig()
 	deviation := currency.MarketRate.Mul(orderConf.PercentDeviationFromMarketRate.Div(decimal.NewFromInt(100)))
 
 	u.APIResponse(ctx, http.StatusOK, "success", "Rate fetched successfully", &types.MarketRateResponse{

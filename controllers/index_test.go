@@ -1,11 +1,13 @@
 package controllers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"testing"
 
+	"github.com/jarcoal/httpmock"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/ent"
@@ -15,6 +17,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/paycrest/protocol/ent/enttest"
+	"github.com/paycrest/protocol/ent/identityverificationrequest"
 	"github.com/paycrest/protocol/utils/test"
 	"github.com/stretchr/testify/assert"
 )
@@ -52,6 +55,9 @@ func TestIndex(t *testing.T) {
 	router.GET("currencies", ctrl.GetFiatCurrencies)
 	router.GET("pubkey", ctrl.GetAggregatorPublicKey)
 	router.GET("institutions/:currency_code", ctrl.GetInstitutionsByCurrency)
+	router.POST("kyc", ctrl.RequestIDVerification)
+	router.GET("kyc/:wallet_address", ctrl.GetIDVerificationStatus)
+	router.POST("kyc/webhook", ctrl.KYCWebhook)
 
 	t.Run("GetInstitutions By Currency", func(t *testing.T) {
 
@@ -127,5 +133,132 @@ func TestIndex(t *testing.T) {
 
 			assert.Equal(t, response.Data, config.CryptoConfig().AggregatorPublicKey)
 		})
+	})
+
+	t.Run("Request ID Verification", func(t *testing.T) {
+		// activate httpmock
+		httpmock.Activate()
+		defer httpmock.Deactivate()
+
+		// register mock response
+		httpmock.RegisterResponder("POST", identityConf.SmileIdentityBaseUrl+"/v1/smile_links",
+			func(r *http.Request) (*http.Response, error) {
+				resp := httpmock.NewBytesResponse(202, []byte(`{"link": "https://links.usesmileid.com/1111/123456", "ref_id": "123456"}`))
+				return resp, nil
+			},
+		)
+		t.Run("with valid details", func(t *testing.T) {
+			payload := types.NewIDVerificationRequest{
+				Signature:     "b1dcfa6beba6c93e5abd38c23890a1ff2e553721c5c379a80b66a2ad74b3755f543cd8e7d8fb064ae4fdeeba93302c156bd012e390c2321a763eddaa12e5ab5d1c",
+				WalletAddress: "0xf4c5c4deDde7A86b25E7430796441e209e23eBFB",
+				Nonce:         "e08511abb6087c47",
+			}
+
+			res, err := test.PerformRequest(t, "POST", "/kyc", payload, nil, router)
+			assert.NoError(t, err)
+
+			// Assert the response code.
+			assert.Equal(t, http.StatusOK, res.Code)
+
+			var response types.Response
+			err = json.Unmarshal(res.Body.Bytes(), &response)
+			assert.NoError(t, err)
+			assert.Equal(t, "Identity verification requested successfully", response.Message)
+			data, ok := response.Data.(map[string]interface{})
+			assert.True(t, ok, "response.Data is not of type map[string]interface{}")
+			assert.Equal(t, "https://links.usesmileid.com/1111/123456", data["url"])
+
+			ivr, err := db.Client.IdentityVerificationRequest.
+				Query().
+				Where(
+					identityverificationrequest.WalletAddressEQ(payload.WalletAddress),
+					identityverificationrequest.WalletSignatureEQ(payload.Signature),
+				).
+				Only(context.Background())
+
+			assert.NoError(t, err)
+			assert.Equal(t, "success", response.Status)
+			assert.Equal(t, "https://links.usesmileid.com/1111/123456", ivr.VerificationURL)
+			assert.Equal(t, "123456", ivr.PlatformRef)
+		})
+
+		t.Run("with an already used signature", func(t *testing.T) {
+			payload := types.NewIDVerificationRequest{
+				Signature:     "b1dcfa6beba6c93e5abd38c23890a1ff2e553721c5c379a80b66a2ad74b3755f543cd8e7d8fb064ae4fdeeba93302c156bd012e390c2321a763eddaa12e5ab5d1c",
+				WalletAddress: "0xf4c5c4deDde7A86b25E7430796441e209e23eBFB",
+				Nonce:         "e08511abb6087c47",
+			}
+
+			res, err := test.PerformRequest(t, "POST", "/kyc", payload, nil, router)
+			assert.NoError(t, err)
+
+			// Assert the response code.
+			assert.Equal(t, http.StatusBadRequest, res.Code)
+
+			var response types.Response
+			err = json.Unmarshal(res.Body.Bytes(), &response)
+			assert.NoError(t, err)
+			assert.Equal(t, "error", response.Status)
+			assert.Equal(t, "Signature already used for identity verification", response.Message)
+			assert.Nil(t, response.Data)
+		})
+
+		t.Run("with a different signature for same wallet address with validity duration", func(t *testing.T) {
+			payload := types.NewIDVerificationRequest{
+				Signature:     "dea3406fa45aa364283e1704b3a8c3b70973a25c262540b71e857efe25e8582b23f98b969cebe320dd2851e5ea36c781253edf7e7d1cd5fe6be704f5709f76df1b",
+				WalletAddress: "0xf4c5c4deDde7A86b25E7430796441e209e23eBFB",
+				Nonce:         "8c400162fbfe0527",
+			}
+
+			res, err := test.PerformRequest(t, "POST", "/kyc", payload, nil, router)
+			assert.NoError(t, err)
+
+			// Assert the response code.
+			assert.Equal(t, http.StatusOK, res.Code)
+
+			var response types.Response
+			err = json.Unmarshal(res.Body.Bytes(), &response)
+			assert.NoError(t, err)
+			assert.Equal(t, "success", response.Status)
+			assert.Equal(t, "This account has a pending identity verification request", response.Message)
+		})
+
+		t.Run("with invalid signature", func(t *testing.T) {
+			payload := types.NewIDVerificationRequest{
+				Signature:     "invalid_signature",
+				WalletAddress: "0xf4c5c4deDde7A86b25E7430796441e209e23eBFB",
+				Nonce:         "e08511abb6087c47",
+			}
+
+			res, err := test.PerformRequest(t, "POST", "/kyc", payload, nil, router)
+			assert.NoError(t, err)
+
+			// Assert the response code.
+			assert.Equal(t, http.StatusBadRequest, res.Code)
+
+			var response types.Response
+			err = json.Unmarshal(res.Body.Bytes(), &response)
+			assert.NoError(t, err)
+			assert.Equal(t, "error", response.Status)
+			assert.Equal(t, "Invalid signature", response.Message)
+		})
+	})
+
+	t.Run("Get ID Verification Status", func(t *testing.T) {
+		// Test with a valid wallet address
+		res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/kyc/%s", "0xf4c5c4deDde7A86b25E7430796441e209e23eBFB"), nil, nil, router)
+		assert.NoError(t, err)
+
+		// Assert the response code.
+		assert.Equal(t, http.StatusOK, res.Code)
+
+		var response types.Response
+		err = json.Unmarshal(res.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.Equal(t, "Identity verification status fetched successfully", response.Message)
+		assert.Equal(t, "success", response.Status)
+		data, ok := response.Data.(map[string]interface{})
+		assert.True(t, ok, "response.Data is not of type map[string]interface{}")
+		assert.Equal(t, "pending", data["status"])
 	})
 }

@@ -185,10 +185,7 @@ func SendPaymentOrderWebhook(ctx context.Context, paymentOrder *ent.PaymentOrder
 
 	profile := paymentOrder.Edges.SenderProfile
 	if profile == nil {
-		profile, err = paymentOrder.QuerySenderProfile().Only(ctx)
-		if err != nil {
-			return err
-		}
+		return nil
 	}
 
 	// If webhook URL is empty, return
@@ -202,8 +199,6 @@ func SendPaymentOrderWebhook(ctx context.Context, paymentOrder *ent.PaymentOrder
 	switch paymentOrder.Status {
 	case paymentorder.StatusPending:
 		event = "payment_order.pending"
-	case paymentorder.StatusReverted:
-		event = "payment_order.reverted"
 	case paymentorder.StatusExpired:
 		event = "payment_order.expired"
 	case paymentorder.StatusSettled:
@@ -352,10 +347,10 @@ func MapToStruct(m map[string]interface{}, s interface{}) error {
 	return nil
 }
 
-// IsValidMobileNumber checks if a string is a valid Nigerian mobile number
+// IsValidMobileNumber checks if a string is a valid mobile number
 func IsValidMobileNumber(number string) bool {
-	// Pattern for Nigerian phone numbers (both mobile and landline)
-	pattern := `^(?:\+234|0)[789]\d{9}$` // Single backslashes for Go regex
+	// Pattern for valid mobile numbers (generalized)
+	pattern := `^\+?[1-9]\d{1,14}$` // Matches international format
 	matched, _ := regexp.MatchString(pattern, number)
 	return matched
 }
@@ -476,4 +471,51 @@ func IsBase64(s string) bool {
 		return err == nil
 	}
 	return false
+}
+
+// GetTokenRateFromQueue gets the rate of a token from the priority queue
+func GetTokenRateFromQueue(tokenSymbol string, orderAmount decimal.Decimal, fiatCurrency string, marketRate decimal.Decimal) (decimal.Decimal, error) {
+	ctx := context.Background()
+
+	// Get rate from priority queue
+	keys, _, err := storage.RedisClient.Scan(ctx, uint64(0), "bucket_"+fiatCurrency+"_*_*", 100).Result()
+	if err != nil {
+		return decimal.Decimal{}, err
+	}
+
+	rateResponse := marketRate
+	highestMaxAmount := decimal.NewFromInt(0)
+
+	// Scan through the buckets to find a suitable rate
+	for _, key := range keys {
+		bucketData := strings.Split(key, "_")
+		minAmount, _ := decimal.NewFromString(bucketData[2])
+		maxAmount, _ := decimal.NewFromString(bucketData[3])
+
+		for index := 0; ; index++ {
+			// Get the topmost provider in the priority queue of the bucket
+			providerData, err := storage.RedisClient.LIndex(ctx, key, int64(index)).Result()
+			if err != nil {
+				break
+			}
+
+			if strings.Split(providerData, ":")[1] == tokenSymbol {
+				// Get fiat equivalent of the token amount
+				rate, _ := decimal.NewFromString(strings.Split(providerData, ":")[2])
+				fiatAmount := orderAmount.Mul(rate)
+
+				// Check if fiat amount is within the bucket range and set the rate
+				if fiatAmount.GreaterThanOrEqual(minAmount) && fiatAmount.LessThanOrEqual(maxAmount) {
+					rateResponse = rate
+					break
+				} else if maxAmount.GreaterThan(highestMaxAmount) {
+					// Get the highest max amount
+					highestMaxAmount = maxAmount
+					rateResponse = rate
+				}
+			}
+		}
+	}
+
+	return rateResponse, nil
 }

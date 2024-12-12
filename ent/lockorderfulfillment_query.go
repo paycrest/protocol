@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 
+	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
@@ -75,7 +76,7 @@ func (lofq *LockOrderFulfillmentQuery) QueryOrder() *LockPaymentOrderQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(lockorderfulfillment.Table, lockorderfulfillment.FieldID, selector),
 			sqlgraph.To(lockpaymentorder.Table, lockpaymentorder.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, lockorderfulfillment.OrderTable, lockorderfulfillment.OrderColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, lockorderfulfillment.OrderTable, lockorderfulfillment.OrderColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(lofq.driver.Dialect(), step)
 		return fromU, nil
@@ -86,7 +87,7 @@ func (lofq *LockOrderFulfillmentQuery) QueryOrder() *LockPaymentOrderQuery {
 // First returns the first LockOrderFulfillment entity from the query.
 // Returns a *NotFoundError when no LockOrderFulfillment was found.
 func (lofq *LockOrderFulfillmentQuery) First(ctx context.Context) (*LockOrderFulfillment, error) {
-	nodes, err := lofq.Limit(1).All(setContextOp(ctx, lofq.ctx, "First"))
+	nodes, err := lofq.Limit(1).All(setContextOp(ctx, lofq.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +110,7 @@ func (lofq *LockOrderFulfillmentQuery) FirstX(ctx context.Context) *LockOrderFul
 // Returns a *NotFoundError when no LockOrderFulfillment ID was found.
 func (lofq *LockOrderFulfillmentQuery) FirstID(ctx context.Context) (id uuid.UUID, err error) {
 	var ids []uuid.UUID
-	if ids, err = lofq.Limit(1).IDs(setContextOp(ctx, lofq.ctx, "FirstID")); err != nil {
+	if ids, err = lofq.Limit(1).IDs(setContextOp(ctx, lofq.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -132,7 +133,7 @@ func (lofq *LockOrderFulfillmentQuery) FirstIDX(ctx context.Context) uuid.UUID {
 // Returns a *NotSingularError when more than one LockOrderFulfillment entity is found.
 // Returns a *NotFoundError when no LockOrderFulfillment entities are found.
 func (lofq *LockOrderFulfillmentQuery) Only(ctx context.Context) (*LockOrderFulfillment, error) {
-	nodes, err := lofq.Limit(2).All(setContextOp(ctx, lofq.ctx, "Only"))
+	nodes, err := lofq.Limit(2).All(setContextOp(ctx, lofq.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
 	}
@@ -160,7 +161,7 @@ func (lofq *LockOrderFulfillmentQuery) OnlyX(ctx context.Context) *LockOrderFulf
 // Returns a *NotFoundError when no entities are found.
 func (lofq *LockOrderFulfillmentQuery) OnlyID(ctx context.Context) (id uuid.UUID, err error) {
 	var ids []uuid.UUID
-	if ids, err = lofq.Limit(2).IDs(setContextOp(ctx, lofq.ctx, "OnlyID")); err != nil {
+	if ids, err = lofq.Limit(2).IDs(setContextOp(ctx, lofq.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -185,7 +186,7 @@ func (lofq *LockOrderFulfillmentQuery) OnlyIDX(ctx context.Context) uuid.UUID {
 
 // All executes the query and returns a list of LockOrderFulfillments.
 func (lofq *LockOrderFulfillmentQuery) All(ctx context.Context) ([]*LockOrderFulfillment, error) {
-	ctx = setContextOp(ctx, lofq.ctx, "All")
+	ctx = setContextOp(ctx, lofq.ctx, ent.OpQueryAll)
 	if err := lofq.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
@@ -207,7 +208,7 @@ func (lofq *LockOrderFulfillmentQuery) IDs(ctx context.Context) (ids []uuid.UUID
 	if lofq.ctx.Unique == nil && lofq.path != nil {
 		lofq.Unique(true)
 	}
-	ctx = setContextOp(ctx, lofq.ctx, "IDs")
+	ctx = setContextOp(ctx, lofq.ctx, ent.OpQueryIDs)
 	if err = lofq.Select(lockorderfulfillment.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
@@ -225,7 +226,7 @@ func (lofq *LockOrderFulfillmentQuery) IDsX(ctx context.Context) []uuid.UUID {
 
 // Count returns the count of the given query.
 func (lofq *LockOrderFulfillmentQuery) Count(ctx context.Context) (int, error) {
-	ctx = setContextOp(ctx, lofq.ctx, "Count")
+	ctx = setContextOp(ctx, lofq.ctx, ent.OpQueryCount)
 	if err := lofq.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
@@ -243,7 +244,7 @@ func (lofq *LockOrderFulfillmentQuery) CountX(ctx context.Context) int {
 
 // Exist returns true if the query has elements in the graph.
 func (lofq *LockOrderFulfillmentQuery) Exist(ctx context.Context) (bool, error) {
-	ctx = setContextOp(ctx, lofq.ctx, "Exist")
+	ctx = setContextOp(ctx, lofq.ctx, ent.OpQueryExist)
 	switch _, err := lofq.FirstID(ctx); {
 	case IsNotFound(err):
 		return false, nil
@@ -413,10 +414,10 @@ func (lofq *LockOrderFulfillmentQuery) loadOrder(ctx context.Context, query *Loc
 	ids := make([]uuid.UUID, 0, len(nodes))
 	nodeids := make(map[uuid.UUID][]*LockOrderFulfillment)
 	for i := range nodes {
-		if nodes[i].lock_payment_order_fulfillment == nil {
+		if nodes[i].lock_payment_order_fulfillments == nil {
 			continue
 		}
-		fk := *nodes[i].lock_payment_order_fulfillment
+		fk := *nodes[i].lock_payment_order_fulfillments
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}
@@ -433,7 +434,7 @@ func (lofq *LockOrderFulfillmentQuery) loadOrder(ctx context.Context, query *Loc
 	for _, n := range neighbors {
 		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "lock_payment_order_fulfillment" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "lock_payment_order_fulfillments" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
@@ -537,7 +538,7 @@ func (lofgb *LockOrderFulfillmentGroupBy) Aggregate(fns ...AggregateFunc) *LockO
 
 // Scan applies the selector query and scans the result into the given value.
 func (lofgb *LockOrderFulfillmentGroupBy) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, lofgb.build.ctx, "GroupBy")
+	ctx = setContextOp(ctx, lofgb.build.ctx, ent.OpQueryGroupBy)
 	if err := lofgb.build.prepareQuery(ctx); err != nil {
 		return err
 	}
@@ -585,7 +586,7 @@ func (lofs *LockOrderFulfillmentSelect) Aggregate(fns ...AggregateFunc) *LockOrd
 
 // Scan applies the selector query and scans the result into the given value.
 func (lofs *LockOrderFulfillmentSelect) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, lofs.ctx, "Select")
+	ctx = setContextOp(ctx, lofs.ctx, ent.OpQuerySelect)
 	if err := lofs.prepareQuery(ctx); err != nil {
 		return err
 	}

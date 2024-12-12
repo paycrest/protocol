@@ -54,9 +54,9 @@ func (sotc *SenderOrderTokenCreate) SetNillableUpdatedAt(t *time.Time) *SenderOr
 	return sotc
 }
 
-// SetFeePerTokenUnit sets the "fee_per_token_unit" field.
-func (sotc *SenderOrderTokenCreate) SetFeePerTokenUnit(d decimal.Decimal) *SenderOrderTokenCreate {
-	sotc.mutation.SetFeePerTokenUnit(d)
+// SetFeePercent sets the "fee_percent" field.
+func (sotc *SenderOrderTokenCreate) SetFeePercent(d decimal.Decimal) *SenderOrderTokenCreate {
+	sotc.mutation.SetFeePercent(d)
 	return sotc
 }
 
@@ -147,8 +147,8 @@ func (sotc *SenderOrderTokenCreate) check() error {
 	if _, ok := sotc.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "SenderOrderToken.updated_at"`)}
 	}
-	if _, ok := sotc.mutation.FeePerTokenUnit(); !ok {
-		return &ValidationError{Name: "fee_per_token_unit", err: errors.New(`ent: missing required field "SenderOrderToken.fee_per_token_unit"`)}
+	if _, ok := sotc.mutation.FeePercent(); !ok {
+		return &ValidationError{Name: "fee_percent", err: errors.New(`ent: missing required field "SenderOrderToken.fee_percent"`)}
 	}
 	if _, ok := sotc.mutation.FeeAddress(); !ok {
 		return &ValidationError{Name: "fee_address", err: errors.New(`ent: missing required field "SenderOrderToken.fee_address"`)}
@@ -166,10 +166,10 @@ func (sotc *SenderOrderTokenCreate) check() error {
 			return &ValidationError{Name: "refund_address", err: fmt.Errorf(`ent: validator failed for field "SenderOrderToken.refund_address": %w`, err)}
 		}
 	}
-	if _, ok := sotc.mutation.SenderID(); !ok {
+	if len(sotc.mutation.SenderIDs()) == 0 {
 		return &ValidationError{Name: "sender", err: errors.New(`ent: missing required edge "SenderOrderToken.sender"`)}
 	}
-	if _, ok := sotc.mutation.TokenID(); !ok {
+	if len(sotc.mutation.TokenIDs()) == 0 {
 		return &ValidationError{Name: "token", err: errors.New(`ent: missing required edge "SenderOrderToken.token"`)}
 	}
 	return nil
@@ -207,9 +207,9 @@ func (sotc *SenderOrderTokenCreate) createSpec() (*SenderOrderToken, *sqlgraph.C
 		_spec.SetField(senderordertoken.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
 	}
-	if value, ok := sotc.mutation.FeePerTokenUnit(); ok {
-		_spec.SetField(senderordertoken.FieldFeePerTokenUnit, field.TypeFloat64, value)
-		_node.FeePerTokenUnit = value
+	if value, ok := sotc.mutation.FeePercent(); ok {
+		_spec.SetField(senderordertoken.FieldFeePercent, field.TypeFloat64, value)
+		_node.FeePercent = value
 	}
 	if value, ok := sotc.mutation.FeeAddress(); ok {
 		_spec.SetField(senderordertoken.FieldFeeAddress, field.TypeString, value)
@@ -317,21 +317,21 @@ func (u *SenderOrderTokenUpsert) UpdateUpdatedAt() *SenderOrderTokenUpsert {
 	return u
 }
 
-// SetFeePerTokenUnit sets the "fee_per_token_unit" field.
-func (u *SenderOrderTokenUpsert) SetFeePerTokenUnit(v decimal.Decimal) *SenderOrderTokenUpsert {
-	u.Set(senderordertoken.FieldFeePerTokenUnit, v)
+// SetFeePercent sets the "fee_percent" field.
+func (u *SenderOrderTokenUpsert) SetFeePercent(v decimal.Decimal) *SenderOrderTokenUpsert {
+	u.Set(senderordertoken.FieldFeePercent, v)
 	return u
 }
 
-// UpdateFeePerTokenUnit sets the "fee_per_token_unit" field to the value that was provided on create.
-func (u *SenderOrderTokenUpsert) UpdateFeePerTokenUnit() *SenderOrderTokenUpsert {
-	u.SetExcluded(senderordertoken.FieldFeePerTokenUnit)
+// UpdateFeePercent sets the "fee_percent" field to the value that was provided on create.
+func (u *SenderOrderTokenUpsert) UpdateFeePercent() *SenderOrderTokenUpsert {
+	u.SetExcluded(senderordertoken.FieldFeePercent)
 	return u
 }
 
-// AddFeePerTokenUnit adds v to the "fee_per_token_unit" field.
-func (u *SenderOrderTokenUpsert) AddFeePerTokenUnit(v decimal.Decimal) *SenderOrderTokenUpsert {
-	u.Add(senderordertoken.FieldFeePerTokenUnit, v)
+// AddFeePercent adds v to the "fee_percent" field.
+func (u *SenderOrderTokenUpsert) AddFeePercent(v decimal.Decimal) *SenderOrderTokenUpsert {
+	u.Add(senderordertoken.FieldFeePercent, v)
 	return u
 }
 
@@ -418,24 +418,24 @@ func (u *SenderOrderTokenUpsertOne) UpdateUpdatedAt() *SenderOrderTokenUpsertOne
 	})
 }
 
-// SetFeePerTokenUnit sets the "fee_per_token_unit" field.
-func (u *SenderOrderTokenUpsertOne) SetFeePerTokenUnit(v decimal.Decimal) *SenderOrderTokenUpsertOne {
+// SetFeePercent sets the "fee_percent" field.
+func (u *SenderOrderTokenUpsertOne) SetFeePercent(v decimal.Decimal) *SenderOrderTokenUpsertOne {
 	return u.Update(func(s *SenderOrderTokenUpsert) {
-		s.SetFeePerTokenUnit(v)
+		s.SetFeePercent(v)
 	})
 }
 
-// AddFeePerTokenUnit adds v to the "fee_per_token_unit" field.
-func (u *SenderOrderTokenUpsertOne) AddFeePerTokenUnit(v decimal.Decimal) *SenderOrderTokenUpsertOne {
+// AddFeePercent adds v to the "fee_percent" field.
+func (u *SenderOrderTokenUpsertOne) AddFeePercent(v decimal.Decimal) *SenderOrderTokenUpsertOne {
 	return u.Update(func(s *SenderOrderTokenUpsert) {
-		s.AddFeePerTokenUnit(v)
+		s.AddFeePercent(v)
 	})
 }
 
-// UpdateFeePerTokenUnit sets the "fee_per_token_unit" field to the value that was provided on create.
-func (u *SenderOrderTokenUpsertOne) UpdateFeePerTokenUnit() *SenderOrderTokenUpsertOne {
+// UpdateFeePercent sets the "fee_percent" field to the value that was provided on create.
+func (u *SenderOrderTokenUpsertOne) UpdateFeePercent() *SenderOrderTokenUpsertOne {
 	return u.Update(func(s *SenderOrderTokenUpsert) {
-		s.UpdateFeePerTokenUnit()
+		s.UpdateFeePercent()
 	})
 }
 
@@ -503,12 +503,16 @@ func (u *SenderOrderTokenUpsertOne) IDX(ctx context.Context) int {
 // SenderOrderTokenCreateBulk is the builder for creating many SenderOrderToken entities in bulk.
 type SenderOrderTokenCreateBulk struct {
 	config
+	err      error
 	builders []*SenderOrderTokenCreate
 	conflict []sql.ConflictOption
 }
 
 // Save creates the SenderOrderToken entities in the database.
 func (sotcb *SenderOrderTokenCreateBulk) Save(ctx context.Context) ([]*SenderOrderToken, error) {
+	if sotcb.err != nil {
+		return nil, sotcb.err
+	}
 	specs := make([]*sqlgraph.CreateSpec, len(sotcb.builders))
 	nodes := make([]*SenderOrderToken, len(sotcb.builders))
 	mutators := make([]Mutator, len(sotcb.builders))
@@ -688,24 +692,24 @@ func (u *SenderOrderTokenUpsertBulk) UpdateUpdatedAt() *SenderOrderTokenUpsertBu
 	})
 }
 
-// SetFeePerTokenUnit sets the "fee_per_token_unit" field.
-func (u *SenderOrderTokenUpsertBulk) SetFeePerTokenUnit(v decimal.Decimal) *SenderOrderTokenUpsertBulk {
+// SetFeePercent sets the "fee_percent" field.
+func (u *SenderOrderTokenUpsertBulk) SetFeePercent(v decimal.Decimal) *SenderOrderTokenUpsertBulk {
 	return u.Update(func(s *SenderOrderTokenUpsert) {
-		s.SetFeePerTokenUnit(v)
+		s.SetFeePercent(v)
 	})
 }
 
-// AddFeePerTokenUnit adds v to the "fee_per_token_unit" field.
-func (u *SenderOrderTokenUpsertBulk) AddFeePerTokenUnit(v decimal.Decimal) *SenderOrderTokenUpsertBulk {
+// AddFeePercent adds v to the "fee_percent" field.
+func (u *SenderOrderTokenUpsertBulk) AddFeePercent(v decimal.Decimal) *SenderOrderTokenUpsertBulk {
 	return u.Update(func(s *SenderOrderTokenUpsert) {
-		s.AddFeePerTokenUnit(v)
+		s.AddFeePercent(v)
 	})
 }
 
-// UpdateFeePerTokenUnit sets the "fee_per_token_unit" field to the value that was provided on create.
-func (u *SenderOrderTokenUpsertBulk) UpdateFeePerTokenUnit() *SenderOrderTokenUpsertBulk {
+// UpdateFeePercent sets the "fee_percent" field to the value that was provided on create.
+func (u *SenderOrderTokenUpsertBulk) UpdateFeePercent() *SenderOrderTokenUpsertBulk {
 	return u.Update(func(s *SenderOrderTokenUpsert) {
-		s.UpdateFeePerTokenUnit()
+		s.UpdateFeePercent()
 	})
 }
 
@@ -739,6 +743,9 @@ func (u *SenderOrderTokenUpsertBulk) UpdateRefundAddress() *SenderOrderTokenUpse
 
 // Exec executes the query.
 func (u *SenderOrderTokenUpsertBulk) Exec(ctx context.Context) error {
+	if u.create.err != nil {
+		return u.create.err
+	}
 	for i, b := range u.create.builders {
 		if len(b.conflict) != 0 {
 			return fmt.Errorf("ent: OnConflict was set for builder %d. Set it on the SenderOrderTokenCreateBulk instead", i)

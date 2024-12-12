@@ -590,7 +590,7 @@ func TestProvider(t *testing.T) {
 				"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
 			}
 
-			res, err := test.PerformRequest(t, "GET", "/rates/XXXX/USD", payload, headers, router)
+			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/rates/XXXX/USD?timestamp=%v", payload["timestamp"]), payload, headers, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -615,7 +615,7 @@ func TestProvider(t *testing.T) {
 				"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
 			}
 
-			res, err := test.PerformRequest(t, "GET", "/rates/"+testCtx.token.Symbol+"/USD", payload, headers, router)
+			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/rates/%s/USD?timestamp=%v", testCtx.token.Symbol, payload["timestamp"]), payload, headers, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -640,7 +640,7 @@ func TestProvider(t *testing.T) {
 				"Authorization": "HMAC " + testCtx.apiKey.ID.String() + ":" + signature,
 			}
 
-			res, err := test.PerformRequest(t, "GET", "/rates/"+testCtx.token.Symbol+"/"+testCtx.currency.Code, payload, headers, router)
+			res, err := test.PerformRequest(t, "GET", fmt.Sprintf("/rates/%s/%s?timestamp=%v", testCtx.token.Symbol, testCtx.currency.Code, payload["timestamp"]), payload, headers, router)
 			assert.NoError(t, err)
 
 			// Assert the response body
@@ -1475,6 +1475,7 @@ func TestProvider(t *testing.T) {
 				var payload = map[string]interface{}{
 					"timestamp": time.Now().Unix(),
 					"txId":      "0x1232",
+					"psp":       "psp-name",
 				}
 
 				signature := token.GenerateHMACSignature(payload, testCtx.apiKeySecret)
@@ -1494,7 +1495,7 @@ func TestProvider(t *testing.T) {
 				assert.NoError(t, err)
 				assert.Equal(t, "Invalid Order ID", response.Message)
 			})
-			
+
 			t.Run("Order Id that doesn't Exist", func(t *testing.T) {
 
 				order, err := test.CreateTestLockPaymentOrder(map[string]interface{}{
@@ -1529,6 +1530,7 @@ func TestProvider(t *testing.T) {
 				var payload = map[string]interface{}{
 					"timestamp": time.Now().Unix(),
 					"txId":      "0x1232",
+					"psp":       "psp-name",
 				}
 
 				signature := token.GenerateHMACSignature(payload, testCtx.apiKeySecret)
@@ -1551,16 +1553,17 @@ func TestProvider(t *testing.T) {
 		})
 
 		t.Run("when data is accurate", func(t *testing.T) {
-
 			order, err := test.CreateTestLockPaymentOrder(map[string]interface{}{
 				"gateway_id": uuid.New().String(),
 				"provider":   testCtx.provider,
+				"status":     "fulfilled",
 			})
 			assert.NoError(t, err)
 
 			tx_id := "0x123" + fmt.Sprint(rand.Intn(1000000))
 			_, err = test.CreateTestLockOrderFulfillment(map[string]interface{}{
 				"tx_id":             tx_id,
+				"psp":               "psp-name",
 				"validation_status": "success",
 				"orderId":           order.ID,
 			})
@@ -1571,6 +1574,7 @@ func TestProvider(t *testing.T) {
 				"timestamp":        time.Now().Unix(),
 				"validationStatus": "success",
 				"txId":             tx_id,
+				"psp":              "psp-name",
 			}
 
 			signature := token.GenerateHMACSignature(payload, testCtx.apiKeySecret)

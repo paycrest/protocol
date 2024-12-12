@@ -8,11 +8,13 @@ import (
 	"fmt"
 	"math"
 
+	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
 	"github.com/paycrest/protocol/ent/apikey"
+	"github.com/paycrest/protocol/ent/linkedaddress"
 	"github.com/paycrest/protocol/ent/paymentorder"
 	"github.com/paycrest/protocol/ent/predicate"
 	"github.com/paycrest/protocol/ent/senderordertoken"
@@ -31,6 +33,7 @@ type SenderProfileQuery struct {
 	withAPIKey        *APIKeyQuery
 	withPaymentOrders *PaymentOrderQuery
 	withOrderTokens   *SenderOrderTokenQuery
+	withLinkedAddress *LinkedAddressQuery
 	withFKs           bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -156,10 +159,32 @@ func (spq *SenderProfileQuery) QueryOrderTokens() *SenderOrderTokenQuery {
 	return query
 }
 
+// QueryLinkedAddress chains the current query on the "linked_address" edge.
+func (spq *SenderProfileQuery) QueryLinkedAddress() *LinkedAddressQuery {
+	query := (&LinkedAddressClient{config: spq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := spq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := spq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(senderprofile.Table, senderprofile.FieldID, selector),
+			sqlgraph.To(linkedaddress.Table, linkedaddress.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, senderprofile.LinkedAddressTable, senderprofile.LinkedAddressColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(spq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
 // First returns the first SenderProfile entity from the query.
 // Returns a *NotFoundError when no SenderProfile was found.
 func (spq *SenderProfileQuery) First(ctx context.Context) (*SenderProfile, error) {
-	nodes, err := spq.Limit(1).All(setContextOp(ctx, spq.ctx, "First"))
+	nodes, err := spq.Limit(1).All(setContextOp(ctx, spq.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
@@ -182,7 +207,7 @@ func (spq *SenderProfileQuery) FirstX(ctx context.Context) *SenderProfile {
 // Returns a *NotFoundError when no SenderProfile ID was found.
 func (spq *SenderProfileQuery) FirstID(ctx context.Context) (id uuid.UUID, err error) {
 	var ids []uuid.UUID
-	if ids, err = spq.Limit(1).IDs(setContextOp(ctx, spq.ctx, "FirstID")); err != nil {
+	if ids, err = spq.Limit(1).IDs(setContextOp(ctx, spq.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -205,7 +230,7 @@ func (spq *SenderProfileQuery) FirstIDX(ctx context.Context) uuid.UUID {
 // Returns a *NotSingularError when more than one SenderProfile entity is found.
 // Returns a *NotFoundError when no SenderProfile entities are found.
 func (spq *SenderProfileQuery) Only(ctx context.Context) (*SenderProfile, error) {
-	nodes, err := spq.Limit(2).All(setContextOp(ctx, spq.ctx, "Only"))
+	nodes, err := spq.Limit(2).All(setContextOp(ctx, spq.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
 	}
@@ -233,7 +258,7 @@ func (spq *SenderProfileQuery) OnlyX(ctx context.Context) *SenderProfile {
 // Returns a *NotFoundError when no entities are found.
 func (spq *SenderProfileQuery) OnlyID(ctx context.Context) (id uuid.UUID, err error) {
 	var ids []uuid.UUID
-	if ids, err = spq.Limit(2).IDs(setContextOp(ctx, spq.ctx, "OnlyID")); err != nil {
+	if ids, err = spq.Limit(2).IDs(setContextOp(ctx, spq.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -258,7 +283,7 @@ func (spq *SenderProfileQuery) OnlyIDX(ctx context.Context) uuid.UUID {
 
 // All executes the query and returns a list of SenderProfiles.
 func (spq *SenderProfileQuery) All(ctx context.Context) ([]*SenderProfile, error) {
-	ctx = setContextOp(ctx, spq.ctx, "All")
+	ctx = setContextOp(ctx, spq.ctx, ent.OpQueryAll)
 	if err := spq.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
@@ -280,7 +305,7 @@ func (spq *SenderProfileQuery) IDs(ctx context.Context) (ids []uuid.UUID, err er
 	if spq.ctx.Unique == nil && spq.path != nil {
 		spq.Unique(true)
 	}
-	ctx = setContextOp(ctx, spq.ctx, "IDs")
+	ctx = setContextOp(ctx, spq.ctx, ent.OpQueryIDs)
 	if err = spq.Select(senderprofile.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
@@ -298,7 +323,7 @@ func (spq *SenderProfileQuery) IDsX(ctx context.Context) []uuid.UUID {
 
 // Count returns the count of the given query.
 func (spq *SenderProfileQuery) Count(ctx context.Context) (int, error) {
-	ctx = setContextOp(ctx, spq.ctx, "Count")
+	ctx = setContextOp(ctx, spq.ctx, ent.OpQueryCount)
 	if err := spq.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
@@ -316,7 +341,7 @@ func (spq *SenderProfileQuery) CountX(ctx context.Context) int {
 
 // Exist returns true if the query has elements in the graph.
 func (spq *SenderProfileQuery) Exist(ctx context.Context) (bool, error) {
-	ctx = setContextOp(ctx, spq.ctx, "Exist")
+	ctx = setContextOp(ctx, spq.ctx, ent.OpQueryExist)
 	switch _, err := spq.FirstID(ctx); {
 	case IsNotFound(err):
 		return false, nil
@@ -352,6 +377,7 @@ func (spq *SenderProfileQuery) Clone() *SenderProfileQuery {
 		withAPIKey:        spq.withAPIKey.Clone(),
 		withPaymentOrders: spq.withPaymentOrders.Clone(),
 		withOrderTokens:   spq.withOrderTokens.Clone(),
+		withLinkedAddress: spq.withLinkedAddress.Clone(),
 		// clone intermediate query.
 		sql:  spq.sql.Clone(),
 		path: spq.path,
@@ -399,6 +425,17 @@ func (spq *SenderProfileQuery) WithOrderTokens(opts ...func(*SenderOrderTokenQue
 		opt(query)
 	}
 	spq.withOrderTokens = query
+	return spq
+}
+
+// WithLinkedAddress tells the query-builder to eager-load the nodes that are connected to
+// the "linked_address" edge. The optional arguments are used to configure the query builder of the edge.
+func (spq *SenderProfileQuery) WithLinkedAddress(opts ...func(*LinkedAddressQuery)) *SenderProfileQuery {
+	query := (&LinkedAddressClient{config: spq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	spq.withLinkedAddress = query
 	return spq
 }
 
@@ -481,11 +518,12 @@ func (spq *SenderProfileQuery) sqlAll(ctx context.Context, hooks ...queryHook) (
 		nodes       = []*SenderProfile{}
 		withFKs     = spq.withFKs
 		_spec       = spq.querySpec()
-		loadedTypes = [4]bool{
+		loadedTypes = [5]bool{
 			spq.withUser != nil,
 			spq.withAPIKey != nil,
 			spq.withPaymentOrders != nil,
 			spq.withOrderTokens != nil,
+			spq.withLinkedAddress != nil,
 		}
 	)
 	if spq.withUser != nil {
@@ -535,6 +573,13 @@ func (spq *SenderProfileQuery) sqlAll(ctx context.Context, hooks ...queryHook) (
 		if err := spq.loadOrderTokens(ctx, query, nodes,
 			func(n *SenderProfile) { n.Edges.OrderTokens = []*SenderOrderToken{} },
 			func(n *SenderProfile, e *SenderOrderToken) { n.Edges.OrderTokens = append(n.Edges.OrderTokens, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := spq.withLinkedAddress; query != nil {
+		if err := spq.loadLinkedAddress(ctx, query, nodes,
+			func(n *SenderProfile) { n.Edges.LinkedAddress = []*LinkedAddress{} },
+			func(n *SenderProfile, e *LinkedAddress) { n.Edges.LinkedAddress = append(n.Edges.LinkedAddress, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -663,6 +708,37 @@ func (spq *SenderProfileQuery) loadOrderTokens(ctx context.Context, query *Sende
 	}
 	return nil
 }
+func (spq *SenderProfileQuery) loadLinkedAddress(ctx context.Context, query *LinkedAddressQuery, nodes []*SenderProfile, init func(*SenderProfile), assign func(*SenderProfile, *LinkedAddress)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*SenderProfile)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.LinkedAddress(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(senderprofile.LinkedAddressColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.sender_profile_linked_address
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "sender_profile_linked_address" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "sender_profile_linked_address" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
 
 func (spq *SenderProfileQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := spq.querySpec()
@@ -759,7 +835,7 @@ func (spgb *SenderProfileGroupBy) Aggregate(fns ...AggregateFunc) *SenderProfile
 
 // Scan applies the selector query and scans the result into the given value.
 func (spgb *SenderProfileGroupBy) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, spgb.build.ctx, "GroupBy")
+	ctx = setContextOp(ctx, spgb.build.ctx, ent.OpQueryGroupBy)
 	if err := spgb.build.prepareQuery(ctx); err != nil {
 		return err
 	}
@@ -807,7 +883,7 @@ func (sps *SenderProfileSelect) Aggregate(fns ...AggregateFunc) *SenderProfileSe
 
 // Scan applies the selector query and scans the result into the given value.
 func (sps *SenderProfileSelect) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, sps.ctx, "Select")
+	ctx = setContextOp(ctx, sps.ctx, ent.OpQuerySelect)
 	if err := sps.prepareQuery(ctx); err != nil {
 		return err
 	}

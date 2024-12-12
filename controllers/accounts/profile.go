@@ -26,6 +26,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+var orderConf = config.OrderConfig()
+
 // ProfileController is a controller type for profile settings
 type ProfileController struct {
 	apiKeyService        *svc.APIKeyService
@@ -164,7 +166,7 @@ func (ctrl *ProfileController) UpdateSenderProfile(ctx *gin.Context) {
 						SetSenderID(sender.ID).
 						SetTokenID(networksToTokenId[address.Network]).
 						SetRefundAddress(address.RefundAddress).
-						SetFeePerTokenUnit(tokenPayload.FeePerTokenUnit).
+						SetFeePercent(tokenPayload.FeePercent).
 						SetFeeAddress(address.FeeAddress).
 						Save(context.Background())
 					if err != nil {
@@ -180,7 +182,7 @@ func (ctrl *ProfileController) UpdateSenderProfile(ctx *gin.Context) {
 				_, err := senderToken.
 					Update().
 					SetRefundAddress(address.RefundAddress).
-					SetFeePerTokenUnit(tokenPayload.FeePerTokenUnit).
+					SetFeePercent(tokenPayload.FeePercent).
 					SetFeeAddress(address.FeeAddress).
 					Save(context.Background())
 				if err != nil {
@@ -190,6 +192,7 @@ func (ctrl *ProfileController) UpdateSenderProfile(ctx *gin.Context) {
 			}
 		}
 	}
+
 	// Commit the transaction
 	if err := tx.Commit(); err != nil {
 		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to update profile commit", nil)
@@ -212,8 +215,6 @@ func (ctrl *ProfileController) UpdateSenderProfile(ctx *gin.Context) {
 // UpdateProviderProfile controller updates the provider profile
 func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 	var payload types.ProviderProfilePayload
-
-	orderConf := config.OrderConfig()
 
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		u.APIResponse(ctx, http.StatusBadRequest, "error",
@@ -261,12 +262,6 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 			return
 		}
 		update.SetCurrency(currency)
-	}
-
-	if payload.IsPartner {
-		update.SetIsPartner(true)
-	} else {
-		update.SetIsPartner(false)
 	}
 
 	if payload.VisibilityMode != "" {
@@ -412,14 +407,12 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 		} else {
 			// Token exists, update it
 			_, err = orderToken.Update().
-				SetSymbol(tokenPayload.Symbol).
 				SetConversionRateType(tokenPayload.ConversionRateType).
 				SetFixedConversionRate(tokenPayload.FixedConversionRate).
 				SetFloatingConversionRate(tokenPayload.FloatingConversionRate).
 				SetMaxOrderAmount(tokenPayload.MaxOrderAmount).
 				SetMinOrderAmount(tokenPayload.MinOrderAmount).
 				SetAddresses(tokenPayload.Addresses).
-				SetProviderID(provider.ID).
 				Save(ctx)
 			if err != nil {
 				u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to set token - "+tokenPayload.Symbol, nil)
@@ -427,12 +420,21 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 			}
 		}
 
+		rate, err = ctrl.priorityQueueService.GetProviderRate(ctx, provider, tokenPayload.Symbol)
+		if err != nil {
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to set token", nil)
+			return
+		}
+
 		// Add provider to buckets
 		buckets, err := storage.Client.ProvisionBucket.
 			Query().
 			Where(
-				provisionbucket.MinAmountLTE(tokenPayload.MinOrderAmount.Mul(currency.MarketRate)),
-				provisionbucket.MaxAmountGTE(tokenPayload.MaxOrderAmount.Mul(currency.MarketRate)),
+				provisionbucket.Or(
+					provisionbucket.MinAmountLTE(tokenPayload.MinOrderAmount.Mul(rate)),
+					provisionbucket.MinAmountLTE(tokenPayload.MaxOrderAmount.Mul(rate)),
+					provisionbucket.MaxAmountGTE(tokenPayload.MaxOrderAmount.Mul(rate)),
+				),
 			).
 			All(ctx)
 		if err != nil {
@@ -442,6 +444,24 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 			update.AddProvisionBuckets(buckets...)
 		}
 	}
+
+	// // Update rate and order amount range
+	// // TODO: remove this when rate and range is handled per token in dashboard
+	// _, err := storage.Client.ProviderOrderToken.
+	// 	Update().
+	// 	Where(
+	// 		providerordertoken.HasProviderWith(providerprofile.IDEQ(provider.ID)),
+	// 	).
+	// 	SetConversionRateType(payload.Tokens[0].ConversionRateType).
+	// 	SetFixedConversionRate(payload.Tokens[0].FixedConversionRate).
+	// 	SetFloatingConversionRate(payload.Tokens[0].FloatingConversionRate).
+	// 	SetMaxOrderAmount(payload.Tokens[0].MaxOrderAmount).
+	// 	SetMinOrderAmount(payload.Tokens[0].MinOrderAmount).
+	// 	Save(ctx)
+	// if err != nil {
+	// 	u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to set token - "+payload.Tokens[0].Symbol, nil)
+	// 	return
+	// }
 
 	// Activate profile
 	if payload.BusinessDocument != "" && payload.IdentityDocument != "" {
@@ -470,7 +490,7 @@ func (ctrl *ProfileController) GetSenderProfile(ctx *gin.Context) {
 	user, err := sender.QueryUser().Only(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to retrieve profile", nil)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to retrieve profile 4", nil)
 		return
 	}
 
@@ -478,7 +498,7 @@ func (ctrl *ProfileController) GetSenderProfile(ctx *gin.Context) {
 	apiKey, err := ctrl.apiKeyService.GetAPIKey(ctx, sender, nil)
 	if err != nil {
 		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to retrieve profile", nil)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to retrieve profile 3", nil)
 		return
 	}
 
@@ -493,34 +513,56 @@ func (ctrl *ProfileController) GetSenderProfile(ctx *gin.Context) {
 		All(ctx)
 	if err != nil {
 		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to retrieve profile", nil)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to retrieve profile 2", nil)
 		return
 	}
 
 	tokensPayload := make([]types.SenderOrderTokenResponse, len(sender.Edges.OrderTokens))
 	for i, token := range senderToken {
 		payload := types.SenderOrderTokenResponse{
-			Symbol:          token.Edges.Token.Symbol,
-			RefundAddress:   token.RefundAddress,
-			FeePerTokenUnit: token.FeePerTokenUnit,
-			FeeAddress:      token.FeeAddress,
-			Network:         token.Edges.Token.Edges.Network.Identifier,
+			Symbol:        token.Edges.Token.Symbol,
+			RefundAddress: token.RefundAddress,
+			FeePercent:    token.FeePercent,
+			FeeAddress:    token.FeeAddress,
+			Network:       token.Edges.Token.Edges.Network.Identifier,
 		}
 
 		tokensPayload[i] = payload
 	}
 
-	u.APIResponse(ctx, http.StatusOK, "success", "Profile retrieved successfully", &types.SenderProfileResponse{
+	response := &types.SenderProfileResponse{
 		ID:              sender.ID,
 		FirstName:       user.FirstName,
 		LastName:        user.LastName,
 		Email:           user.Email,
 		WebhookURL:      sender.WebhookURL,
 		DomainWhitelist: sender.DomainWhitelist,
-		Tokens:           tokensPayload,
+		Tokens:          tokensPayload,
 		APIKey:          *apiKey,
 		IsActive:        sender.IsActive,
-	})
+	}
+
+	linkedProvider, err := storage.Client.ProviderProfile.
+		Query().
+		Where(providerprofile.IDEQ(sender.ProviderID)).
+		WithCurrency().
+		Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			// do nothing
+		} else {
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to retrieve profile 1", nil)
+			return
+		}
+	}
+
+	if linkedProvider != nil {
+		response.ProviderID = sender.ProviderID
+		response.ProviderCurrency = linkedProvider.Edges.Currency.Code
+	}
+
+	u.APIResponse(ctx, http.StatusOK, "success", "Profile retrieved successfully", response)
 }
 
 // GetProviderProfile retrieves the provider profile
@@ -592,16 +634,6 @@ func (ctrl *ProfileController) GetProviderProfile(ctx *gin.Context) {
 		return
 	}
 
-	rate := decimal.NewFromInt(0)
-	if len(tokens) != 0 {
-		rate, err = ctrl.priorityQueueService.GetProviderRate(ctx, provider)
-		if err != nil {
-			logger.Errorf("error: %v", err)
-			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to retrieve profile", nil)
-			return
-		}
-	}
-
 	u.APIResponse(ctx, http.StatusOK, "success", "Profile retrieved successfully", &types.ProviderProfileResponse{
 		ID:                   provider.ID,
 		FirstName:            user.FirstName,
@@ -609,9 +641,7 @@ func (ctrl *ProfileController) GetProviderProfile(ctx *gin.Context) {
 		Email:                user.Email,
 		TradingName:          provider.TradingName,
 		Currency:             currency.Code,
-		Rate:                 rate,
 		HostIdentifier:       provider.HostIdentifier,
-		IsPartner:            provider.IsPartner,
 		IsAvailable:          provider.IsAvailable,
 		Tokens:               tokensPayload,
 		APIKey:               *apiKey,

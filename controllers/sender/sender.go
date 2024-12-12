@@ -14,6 +14,7 @@ import (
 	"github.com/paycrest/protocol/ent/network"
 	"github.com/paycrest/protocol/ent/paymentorder"
 	providerprofile "github.com/paycrest/protocol/ent/providerprofile"
+	"github.com/paycrest/protocol/ent/receiveaddress"
 	"github.com/paycrest/protocol/ent/senderordertoken"
 	"github.com/paycrest/protocol/ent/senderprofile"
 	tokenEnt "github.com/paycrest/protocol/ent/token"
@@ -40,6 +41,9 @@ func NewSenderController() *SenderController {
 	}
 }
 
+var serverConf = config.ServerConfig()
+var orderConf = config.OrderConfig()
+
 // InitiatePaymentOrder controller creates a payment order
 func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 	var payload types.NewPaymentOrderPayload
@@ -59,9 +63,7 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 	}
 	sender := senderCtx.(*ent.SenderProfile)
 
-	conf := config.ServerConfig()
-
-	if !sender.IsActive && !conf.Debug {
+	if !sender.IsActive && !serverConf.Debug {
 		u.APIResponse(ctx, http.StatusForbidden, "error", "Your account is not active", nil)
 		return
 	}
@@ -144,14 +146,40 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 	// Generate receive address
 	var receiveAddress *ent.ReceiveAddress
 	if strings.HasPrefix(payload.Network, "tron") {
-		receiveAddress, err = ctrl.receiveAddressService.CreateTronAddress(ctx)
+		address, salt, err := ctrl.receiveAddressService.CreateTronAddress(ctx)
+		if err != nil {
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to initiate payment order", nil)
+			return
+		}
+
+		receiveAddress, err = storage.Client.ReceiveAddress.
+			Create().
+			SetAddress(address).
+			SetSalt(salt).
+			SetStatus(receiveaddress.StatusUnused).
+			SetValidUntil(time.Now().Add(orderConf.ReceiveAddressValidity)).
+			Save(ctx)
 		if err != nil {
 			logger.Errorf("error: %v", err)
 			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to initiate payment order", nil)
 			return
 		}
 	} else {
-		receiveAddress, err = ctrl.receiveAddressService.CreateSmartAddress(ctx, nil, nil)
+		address, salt, err := ctrl.receiveAddressService.CreateSmartAddress(ctx, nil, nil)
+		if err != nil {
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to initiate payment order", nil)
+			return
+		}
+
+		receiveAddress, err = storage.Client.ReceiveAddress.
+			Create().
+			SetAddress(address).
+			SetSalt(salt).
+			SetStatus(receiveaddress.StatusUnused).
+			SetValidUntil(time.Now().Add(orderConf.ReceiveAddressValidity)).
+			Save(ctx)
 		if err != nil {
 			logger.Errorf("error: %v", err)
 			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to initiate payment order", nil)
@@ -173,11 +201,11 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 	}
 
 	// Handle sender profile overrides
-	var feePerTokenUnit decimal.Decimal
+	var feePercent decimal.Decimal
 	var feeAddress string
 	var senderOrderToken *ent.SenderOrderToken
 
-	if (payload.FeePerTokenUnit.IsZero() && !strings.HasPrefix(payload.Recipient.Memo, "P#P")) || payload.FeeAddress == "" {
+	if (payload.FeePercent.IsZero() && !strings.HasPrefix(payload.Recipient.Memo, "P#P")) || payload.FeeAddress == "" {
 		senderOrderToken, err = tx.SenderOrderToken.
 			Query().
 			Where(
@@ -197,10 +225,10 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 		}
 	}
 
-	if payload.FeePerTokenUnit.IsZero() && !strings.HasPrefix(payload.Recipient.Memo, "P#P") {
-		feePerTokenUnit = senderOrderToken.FeePerTokenUnit
+	if payload.FeePercent.IsZero() && !strings.HasPrefix(payload.Recipient.Memo, "P#P") {
+		feePercent = senderOrderToken.FeePercent
 	} else {
-		feePerTokenUnit = payload.FeePerTokenUnit
+		feePercent = payload.FeePercent
 	}
 
 	if payload.FeeAddress == "" {
@@ -260,7 +288,7 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 	protocolFee := decimal.NewFromFloat(0)
 
 	if !strings.HasPrefix(payload.Recipient.Memo, "P#P") {
-		senderFee = feePerTokenUnit.Mul(payload.Amount).Div(payload.Rate).Round(int32(token.Decimals))
+		senderFee = feePercent.Mul(payload.Amount).Div(decimal.NewFromInt(100)).Round(4)
 	}
 
 	// Create transaction Log
@@ -296,7 +324,7 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 		SetRate(payload.Rate).
 		SetReceiveAddress(receiveAddress).
 		SetReceiveAddressText(receiveAddress.Address).
-		SetFeePerTokenUnit(feePerTokenUnit).
+		SetFeePercent(feePercent).
 		SetFeeAddress(feeAddress).
 		SetReturnAddress(payload.ReturnAddress).
 		AddTransactions(transactionLog).
@@ -473,7 +501,6 @@ func (ctrl *SenderController) GetPaymentOrders(ctx *gin.Context) {
 	statusMap := map[string]paymentorder.Status{
 		"initiated": paymentorder.StatusInitiated,
 		"pending":   paymentorder.StatusPending,
-		"reverted":  paymentorder.StatusReverted,
 		"expired":   paymentorder.StatusExpired,
 		"settled":   paymentorder.StatusSettled,
 		"refunded":  paymentorder.StatusRefunded,

@@ -41,6 +41,14 @@ func (wrau *WebhookRetryAttemptUpdate) SetAttemptNumber(i int) *WebhookRetryAtte
 	return wrau
 }
 
+// SetNillableAttemptNumber sets the "attempt_number" field if the given value is not nil.
+func (wrau *WebhookRetryAttemptUpdate) SetNillableAttemptNumber(i *int) *WebhookRetryAttemptUpdate {
+	if i != nil {
+		wrau.SetAttemptNumber(*i)
+	}
+	return wrau
+}
+
 // AddAttemptNumber adds i to the "attempt_number" field.
 func (wrau *WebhookRetryAttemptUpdate) AddAttemptNumber(i int) *WebhookRetryAttemptUpdate {
 	wrau.mutation.AddAttemptNumber(i)
@@ -90,6 +98,14 @@ func (wrau *WebhookRetryAttemptUpdate) ClearSignature() *WebhookRetryAttemptUpda
 // SetWebhookURL sets the "webhook_url" field.
 func (wrau *WebhookRetryAttemptUpdate) SetWebhookURL(s string) *WebhookRetryAttemptUpdate {
 	wrau.mutation.SetWebhookURL(s)
+	return wrau
+}
+
+// SetNillableWebhookURL sets the "webhook_url" field if the given value is not nil.
+func (wrau *WebhookRetryAttemptUpdate) SetNillableWebhookURL(s *string) *WebhookRetryAttemptUpdate {
+	if s != nil {
+		wrau.SetWebhookURL(*s)
+	}
 	return wrau
 }
 
@@ -230,6 +246,14 @@ func (wrauo *WebhookRetryAttemptUpdateOne) SetAttemptNumber(i int) *WebhookRetry
 	return wrauo
 }
 
+// SetNillableAttemptNumber sets the "attempt_number" field if the given value is not nil.
+func (wrauo *WebhookRetryAttemptUpdateOne) SetNillableAttemptNumber(i *int) *WebhookRetryAttemptUpdateOne {
+	if i != nil {
+		wrauo.SetAttemptNumber(*i)
+	}
+	return wrauo
+}
+
 // AddAttemptNumber adds i to the "attempt_number" field.
 func (wrauo *WebhookRetryAttemptUpdateOne) AddAttemptNumber(i int) *WebhookRetryAttemptUpdateOne {
 	wrauo.mutation.AddAttemptNumber(i)
@@ -279,6 +303,14 @@ func (wrauo *WebhookRetryAttemptUpdateOne) ClearSignature() *WebhookRetryAttempt
 // SetWebhookURL sets the "webhook_url" field.
 func (wrauo *WebhookRetryAttemptUpdateOne) SetWebhookURL(s string) *WebhookRetryAttemptUpdateOne {
 	wrauo.mutation.SetWebhookURL(s)
+	return wrauo
+}
+
+// SetNillableWebhookURL sets the "webhook_url" field if the given value is not nil.
+func (wrauo *WebhookRetryAttemptUpdateOne) SetNillableWebhookURL(s *string) *WebhookRetryAttemptUpdateOne {
+	if s != nil {
+		wrauo.SetWebhookURL(*s)
+	}
 	return wrauo
 }
 

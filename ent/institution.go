@@ -48,12 +48,10 @@ type InstitutionEdges struct {
 // FiatCurrencyOrErr returns the FiatCurrency value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e InstitutionEdges) FiatCurrencyOrErr() (*FiatCurrency, error) {
-	if e.loadedTypes[0] {
-		if e.FiatCurrency == nil {
-			// Edge was loaded but was not found.
-			return nil, &NotFoundError{label: fiatcurrency.Label}
-		}
+	if e.FiatCurrency != nil {
 		return e.FiatCurrency, nil
+	} else if e.loadedTypes[0] {
+		return nil, &NotFoundError{label: fiatcurrency.Label}
 	}
 	return nil, &NotLoadedError{edge: "fiat_currency"}
 }

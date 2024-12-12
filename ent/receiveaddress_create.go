@@ -692,12 +692,16 @@ func (u *ReceiveAddressUpsertOne) IDX(ctx context.Context) int {
 // ReceiveAddressCreateBulk is the builder for creating many ReceiveAddress entities in bulk.
 type ReceiveAddressCreateBulk struct {
 	config
+	err      error
 	builders []*ReceiveAddressCreate
 	conflict []sql.ConflictOption
 }
 
 // Save creates the ReceiveAddress entities in the database.
 func (racb *ReceiveAddressCreateBulk) Save(ctx context.Context) ([]*ReceiveAddress, error) {
+	if racb.err != nil {
+		return nil, racb.err
+	}
 	specs := make([]*sqlgraph.CreateSpec, len(racb.builders))
 	nodes := make([]*ReceiveAddress, len(racb.builders))
 	mutators := make([]Mutator, len(racb.builders))
@@ -1001,6 +1005,9 @@ func (u *ReceiveAddressUpsertBulk) ClearValidUntil() *ReceiveAddressUpsertBulk {
 
 // Exec executes the query.
 func (u *ReceiveAddressUpsertBulk) Exec(ctx context.Context) error {
+	if u.create.err != nil {
+		return u.create.err
+	}
 	for i, b := range u.create.builders {
 		if len(b.conflict) != 0 {
 			return fmt.Errorf("ent: OnConflict was set for builder %d. Set it on the ReceiveAddressCreateBulk instead", i)

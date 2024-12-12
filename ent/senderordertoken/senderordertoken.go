@@ -18,8 +18,8 @@ const (
 	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
 	FieldUpdatedAt = "updated_at"
-	// FieldFeePerTokenUnit holds the string denoting the fee_per_token_unit field in the database.
-	FieldFeePerTokenUnit = "fee_per_token_unit"
+	// FieldFeePercent holds the string denoting the fee_percent field in the database.
+	FieldFeePercent = "fee_percent"
 	// FieldFeeAddress holds the string denoting the fee_address field in the database.
 	FieldFeeAddress = "fee_address"
 	// FieldRefundAddress holds the string denoting the refund_address field in the database.
@@ -51,7 +51,7 @@ var Columns = []string{
 	FieldID,
 	FieldCreatedAt,
 	FieldUpdatedAt,
-	FieldFeePerTokenUnit,
+	FieldFeePercent,
 	FieldFeeAddress,
 	FieldRefundAddress,
 }
@@ -109,9 +109,9 @@ func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldUpdatedAt, opts...).ToFunc()
 }
 
-// ByFeePerTokenUnit orders the results by the fee_per_token_unit field.
-func ByFeePerTokenUnit(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldFeePerTokenUnit, opts...).ToFunc()
+// ByFeePercent orders the results by the fee_percent field.
+func ByFeePercent(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFeePercent, opts...).ToFunc()
 }
 
 // ByFeeAddress orders the results by the fee_address field.

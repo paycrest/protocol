@@ -8,7 +8,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/paycrest/protocol/ent/apikey"
 	"github.com/paycrest/protocol/ent/fiatcurrency"
+	"github.com/paycrest/protocol/ent/identityverificationrequest"
 	"github.com/paycrest/protocol/ent/institution"
+	"github.com/paycrest/protocol/ent/linkedaddress"
 	"github.com/paycrest/protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	"github.com/paycrest/protocol/ent/network"
@@ -69,6 +71,26 @@ func init() {
 	fiatcurrencyDescID := fiatcurrencyFields[0].Descriptor()
 	// fiatcurrency.DefaultID holds the default value on creation for the id field.
 	fiatcurrency.DefaultID = fiatcurrencyDescID.Default.(func() uuid.UUID)
+	identityverificationrequestFields := schema.IdentityVerificationRequest{}.Fields()
+	_ = identityverificationrequestFields
+	// identityverificationrequestDescFeeReclaimed is the schema descriptor for fee_reclaimed field.
+	identityverificationrequestDescFeeReclaimed := identityverificationrequestFields[7].Descriptor()
+	// identityverificationrequest.DefaultFeeReclaimed holds the default value on creation for the fee_reclaimed field.
+	identityverificationrequest.DefaultFeeReclaimed = identityverificationrequestDescFeeReclaimed.Default.(bool)
+	// identityverificationrequestDescUpdatedAt is the schema descriptor for updated_at field.
+	identityverificationrequestDescUpdatedAt := identityverificationrequestFields[8].Descriptor()
+	// identityverificationrequest.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	identityverificationrequest.DefaultUpdatedAt = identityverificationrequestDescUpdatedAt.Default.(func() time.Time)
+	// identityverificationrequest.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	identityverificationrequest.UpdateDefaultUpdatedAt = identityverificationrequestDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// identityverificationrequestDescLastURLCreatedAt is the schema descriptor for last_url_created_at field.
+	identityverificationrequestDescLastURLCreatedAt := identityverificationrequestFields[9].Descriptor()
+	// identityverificationrequest.DefaultLastURLCreatedAt holds the default value on creation for the last_url_created_at field.
+	identityverificationrequest.DefaultLastURLCreatedAt = identityverificationrequestDescLastURLCreatedAt.Default.(func() time.Time)
+	// identityverificationrequestDescID is the schema descriptor for id field.
+	identityverificationrequestDescID := identityverificationrequestFields[0].Descriptor()
+	// identityverificationrequest.DefaultID holds the default value on creation for the id field.
+	identityverificationrequest.DefaultID = identityverificationrequestDescID.Default.(func() uuid.UUID)
 	institutionMixin := schema.Institution{}.Mixin()
 	institutionMixinFields0 := institutionMixin[0].Fields()
 	_ = institutionMixinFields0
@@ -84,6 +106,25 @@ func init() {
 	institution.DefaultUpdatedAt = institutionDescUpdatedAt.Default.(func() time.Time)
 	// institution.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	institution.UpdateDefaultUpdatedAt = institutionDescUpdatedAt.UpdateDefault.(func() time.Time)
+	linkedaddressMixin := schema.LinkedAddress{}.Mixin()
+	linkedaddressMixinFields0 := linkedaddressMixin[0].Fields()
+	_ = linkedaddressMixinFields0
+	linkedaddressFields := schema.LinkedAddress{}.Fields()
+	_ = linkedaddressFields
+	// linkedaddressDescCreatedAt is the schema descriptor for created_at field.
+	linkedaddressDescCreatedAt := linkedaddressMixinFields0[0].Descriptor()
+	// linkedaddress.DefaultCreatedAt holds the default value on creation for the created_at field.
+	linkedaddress.DefaultCreatedAt = linkedaddressDescCreatedAt.Default.(func() time.Time)
+	// linkedaddressDescUpdatedAt is the schema descriptor for updated_at field.
+	linkedaddressDescUpdatedAt := linkedaddressMixinFields0[1].Descriptor()
+	// linkedaddress.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	linkedaddress.DefaultUpdatedAt = linkedaddressDescUpdatedAt.Default.(func() time.Time)
+	// linkedaddress.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	linkedaddress.UpdateDefaultUpdatedAt = linkedaddressDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// linkedaddressDescTxHash is the schema descriptor for tx_hash field.
+	linkedaddressDescTxHash := linkedaddressFields[7].Descriptor()
+	// linkedaddress.TxHashValidator is a validator for the "tx_hash" field. It is called by the builders before save.
+	linkedaddress.TxHashValidator = linkedaddressDescTxHash.Validators[0].(func(string) error)
 	lockorderfulfillmentMixin := schema.LockOrderFulfillment{}.Mixin()
 	lockorderfulfillmentMixinFields0 := lockorderfulfillmentMixin[0].Fields()
 	_ = lockorderfulfillmentMixinFields0
@@ -118,10 +159,6 @@ func init() {
 	lockpaymentorder.DefaultUpdatedAt = lockpaymentorderDescUpdatedAt.Default.(func() time.Time)
 	// lockpaymentorder.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	lockpaymentorder.UpdateDefaultUpdatedAt = lockpaymentorderDescUpdatedAt.UpdateDefault.(func() time.Time)
-	// lockpaymentorderDescGatewayID is the schema descriptor for gateway_id field.
-	lockpaymentorderDescGatewayID := lockpaymentorderFields[1].Descriptor()
-	// lockpaymentorder.DefaultGatewayID holds the default value on creation for the gateway_id field.
-	lockpaymentorder.DefaultGatewayID = lockpaymentorderDescGatewayID.Default.(string)
 	// lockpaymentorderDescTxHash is the schema descriptor for tx_hash field.
 	lockpaymentorderDescTxHash := lockpaymentorderFields[5].Descriptor()
 	// lockpaymentorder.TxHashValidator is a validator for the "tx_hash" field. It is called by the builders before save.
@@ -217,26 +254,22 @@ func init() {
 	providerprofileDescTradingName := providerprofileFields[1].Descriptor()
 	// providerprofile.TradingNameValidator is a validator for the "trading_name" field. It is called by the builders before save.
 	providerprofile.TradingNameValidator = providerprofileDescTradingName.Validators[0].(func(string) error)
-	// providerprofileDescIsPartner is the schema descriptor for is_partner field.
-	providerprofileDescIsPartner := providerprofileFields[4].Descriptor()
-	// providerprofile.DefaultIsPartner holds the default value on creation for the is_partner field.
-	providerprofile.DefaultIsPartner = providerprofileDescIsPartner.Default.(bool)
 	// providerprofileDescIsActive is the schema descriptor for is_active field.
-	providerprofileDescIsActive := providerprofileFields[5].Descriptor()
+	providerprofileDescIsActive := providerprofileFields[4].Descriptor()
 	// providerprofile.DefaultIsActive holds the default value on creation for the is_active field.
 	providerprofile.DefaultIsActive = providerprofileDescIsActive.Default.(bool)
 	// providerprofileDescIsAvailable is the schema descriptor for is_available field.
-	providerprofileDescIsAvailable := providerprofileFields[6].Descriptor()
+	providerprofileDescIsAvailable := providerprofileFields[5].Descriptor()
 	// providerprofile.DefaultIsAvailable holds the default value on creation for the is_available field.
 	providerprofile.DefaultIsAvailable = providerprofileDescIsAvailable.Default.(bool)
 	// providerprofileDescUpdatedAt is the schema descriptor for updated_at field.
-	providerprofileDescUpdatedAt := providerprofileFields[7].Descriptor()
+	providerprofileDescUpdatedAt := providerprofileFields[6].Descriptor()
 	// providerprofile.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	providerprofile.DefaultUpdatedAt = providerprofileDescUpdatedAt.Default.(func() time.Time)
 	// providerprofile.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	providerprofile.UpdateDefaultUpdatedAt = providerprofileDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// providerprofileDescIsKybVerified is the schema descriptor for is_kyb_verified field.
-	providerprofileDescIsKybVerified := providerprofileFields[16].Descriptor()
+	providerprofileDescIsKybVerified := providerprofileFields[15].Descriptor()
 	// providerprofile.DefaultIsKybVerified holds the default value on creation for the is_kyb_verified field.
 	providerprofile.DefaultIsKybVerified = providerprofileDescIsKybVerified.Default.(bool)
 	// providerprofileDescID is the schema descriptor for id field.
@@ -313,15 +346,15 @@ func init() {
 	// senderprofile.DefaultDomainWhitelist holds the default value on creation for the domain_whitelist field.
 	senderprofile.DefaultDomainWhitelist = senderprofileDescDomainWhitelist.Default.([]string)
 	// senderprofileDescIsPartner is the schema descriptor for is_partner field.
-	senderprofileDescIsPartner := senderprofileFields[3].Descriptor()
+	senderprofileDescIsPartner := senderprofileFields[4].Descriptor()
 	// senderprofile.DefaultIsPartner holds the default value on creation for the is_partner field.
 	senderprofile.DefaultIsPartner = senderprofileDescIsPartner.Default.(bool)
 	// senderprofileDescIsActive is the schema descriptor for is_active field.
-	senderprofileDescIsActive := senderprofileFields[4].Descriptor()
+	senderprofileDescIsActive := senderprofileFields[5].Descriptor()
 	// senderprofile.DefaultIsActive holds the default value on creation for the is_active field.
 	senderprofile.DefaultIsActive = senderprofileDescIsActive.Default.(bool)
 	// senderprofileDescUpdatedAt is the schema descriptor for updated_at field.
-	senderprofileDescUpdatedAt := senderprofileFields[5].Descriptor()
+	senderprofileDescUpdatedAt := senderprofileFields[6].Descriptor()
 	// senderprofile.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	senderprofile.DefaultUpdatedAt = senderprofileDescUpdatedAt.Default.(func() time.Time)
 	// senderprofile.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
@@ -451,6 +484,6 @@ func init() {
 }
 
 const (
-	Version = "v0.12.3"                                         // Version of ent codegen.
-	Sum     = "h1:N5lO2EOrHpCH5HYfiMOCHYbo+oh5M8GjT0/cx5x6xkk=" // Sum of ent codegen.
+	Version = "v0.14.0"                                         // Version of ent codegen.
+	Sum     = "h1:EO3Z9aZ5bXJatJeGqu/EVdnNr6K4mRq3rWe5owt0MC4=" // Sum of ent codegen.
 )

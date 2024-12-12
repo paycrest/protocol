@@ -40,6 +40,14 @@ func (vtu *VerificationTokenUpdate) SetScope(v verificationtoken.Scope) *Verific
 	return vtu
 }
 
+// SetNillableScope sets the "scope" field if the given value is not nil.
+func (vtu *VerificationTokenUpdate) SetNillableScope(v *verificationtoken.Scope) *VerificationTokenUpdate {
+	if v != nil {
+		vtu.SetScope(*v)
+	}
+	return vtu
+}
+
 // Mutation returns the VerificationTokenMutation object of the builder.
 func (vtu *VerificationTokenUpdate) Mutation() *VerificationTokenMutation {
 	return vtu.mutation
@@ -94,7 +102,7 @@ func (vtu *VerificationTokenUpdate) check() error {
 			return &ValidationError{Name: "scope", err: fmt.Errorf(`ent: validator failed for field "VerificationToken.scope": %w`, err)}
 		}
 	}
-	if _, ok := vtu.mutation.OwnerID(); vtu.mutation.OwnerCleared() && !ok {
+	if vtu.mutation.OwnerCleared() && len(vtu.mutation.OwnerIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "VerificationToken.owner"`)
 	}
 	return nil
@@ -147,6 +155,14 @@ func (vtuo *VerificationTokenUpdateOne) SetUpdatedAt(t time.Time) *VerificationT
 // SetScope sets the "scope" field.
 func (vtuo *VerificationTokenUpdateOne) SetScope(v verificationtoken.Scope) *VerificationTokenUpdateOne {
 	vtuo.mutation.SetScope(v)
+	return vtuo
+}
+
+// SetNillableScope sets the "scope" field if the given value is not nil.
+func (vtuo *VerificationTokenUpdateOne) SetNillableScope(v *verificationtoken.Scope) *VerificationTokenUpdateOne {
+	if v != nil {
+		vtuo.SetScope(*v)
+	}
 	return vtuo
 }
 
@@ -217,7 +233,7 @@ func (vtuo *VerificationTokenUpdateOne) check() error {
 			return &ValidationError{Name: "scope", err: fmt.Errorf(`ent: validator failed for field "VerificationToken.scope": %w`, err)}
 		}
 	}
-	if _, ok := vtuo.mutation.OwnerID(); vtuo.mutation.OwnerCleared() && !ok {
+	if vtuo.mutation.OwnerCleared() && len(vtuo.mutation.OwnerIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "VerificationToken.owner"`)
 	}
 	return nil

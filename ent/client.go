@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"reflect"
 
 	"github.com/google/uuid"
 	"github.com/paycrest/protocol/ent/migrate"
@@ -17,7 +18,9 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/paycrest/protocol/ent/apikey"
 	"github.com/paycrest/protocol/ent/fiatcurrency"
+	"github.com/paycrest/protocol/ent/identityverificationrequest"
 	"github.com/paycrest/protocol/ent/institution"
+	"github.com/paycrest/protocol/ent/linkedaddress"
 	"github.com/paycrest/protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	"github.com/paycrest/protocol/ent/network"
@@ -46,8 +49,12 @@ type Client struct {
 	APIKey *APIKeyClient
 	// FiatCurrency is the client for interacting with the FiatCurrency builders.
 	FiatCurrency *FiatCurrencyClient
+	// IdentityVerificationRequest is the client for interacting with the IdentityVerificationRequest builders.
+	IdentityVerificationRequest *IdentityVerificationRequestClient
 	// Institution is the client for interacting with the Institution builders.
 	Institution *InstitutionClient
+	// LinkedAddress is the client for interacting with the LinkedAddress builders.
+	LinkedAddress *LinkedAddressClient
 	// LockOrderFulfillment is the client for interacting with the LockOrderFulfillment builders.
 	LockOrderFulfillment *LockOrderFulfillmentClient
 	// LockPaymentOrder is the client for interacting with the LockPaymentOrder builders.
@@ -86,9 +93,7 @@ type Client struct {
 
 // NewClient creates a new client configured with the given options.
 func NewClient(opts ...Option) *Client {
-	cfg := config{log: log.Println, hooks: &hooks{}, inters: &inters{}}
-	cfg.options(opts...)
-	client := &Client{config: cfg}
+	client := &Client{config: newConfig(opts...)}
 	client.init()
 	return client
 }
@@ -97,7 +102,9 @@ func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
 	c.APIKey = NewAPIKeyClient(c.config)
 	c.FiatCurrency = NewFiatCurrencyClient(c.config)
+	c.IdentityVerificationRequest = NewIdentityVerificationRequestClient(c.config)
 	c.Institution = NewInstitutionClient(c.config)
+	c.LinkedAddress = NewLinkedAddressClient(c.config)
 	c.LockOrderFulfillment = NewLockOrderFulfillmentClient(c.config)
 	c.LockPaymentOrder = NewLockPaymentOrderClient(c.config)
 	c.Network = NewNetworkClient(c.config)
@@ -134,6 +141,13 @@ type (
 	// Option function to configure the client.
 	Option func(*config)
 )
+
+// newConfig creates a new config for the client.
+func newConfig(opts ...Option) config {
+	cfg := config{log: log.Println, hooks: &hooks{}, inters: &inters{}}
+	cfg.options(opts...)
+	return cfg
+}
 
 // options applies the options on the config object.
 func (c *config) options(opts ...Option) {
@@ -182,11 +196,14 @@ func Open(driverName, dataSourceName string, options ...Option) (*Client, error)
 	}
 }
 
+// ErrTxStarted is returned when trying to start a new transaction from a transactional client.
+var ErrTxStarted = errors.New("ent: cannot start a transaction within a transaction")
+
 // Tx returns a new transactional client. The provided context
 // is used until the transaction is committed or rolled back.
 func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	if _, ok := c.driver.(*txDriver); ok {
-		return nil, errors.New("ent: cannot start a transaction within a transaction")
+		return nil, ErrTxStarted
 	}
 	tx, err := newTx(ctx, c.driver)
 	if err != nil {
@@ -195,28 +212,30 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:                   ctx,
-		config:                cfg,
-		APIKey:                NewAPIKeyClient(cfg),
-		FiatCurrency:          NewFiatCurrencyClient(cfg),
-		Institution:           NewInstitutionClient(cfg),
-		LockOrderFulfillment:  NewLockOrderFulfillmentClient(cfg),
-		LockPaymentOrder:      NewLockPaymentOrderClient(cfg),
-		Network:               NewNetworkClient(cfg),
-		PaymentOrder:          NewPaymentOrderClient(cfg),
-		PaymentOrderRecipient: NewPaymentOrderRecipientClient(cfg),
-		ProviderOrderToken:    NewProviderOrderTokenClient(cfg),
-		ProviderProfile:       NewProviderProfileClient(cfg),
-		ProviderRating:        NewProviderRatingClient(cfg),
-		ProvisionBucket:       NewProvisionBucketClient(cfg),
-		ReceiveAddress:        NewReceiveAddressClient(cfg),
-		SenderOrderToken:      NewSenderOrderTokenClient(cfg),
-		SenderProfile:         NewSenderProfileClient(cfg),
-		Token:                 NewTokenClient(cfg),
-		TransactionLog:        NewTransactionLogClient(cfg),
-		User:                  NewUserClient(cfg),
-		VerificationToken:     NewVerificationTokenClient(cfg),
-		WebhookRetryAttempt:   NewWebhookRetryAttemptClient(cfg),
+		ctx:                         ctx,
+		config:                      cfg,
+		APIKey:                      NewAPIKeyClient(cfg),
+		FiatCurrency:                NewFiatCurrencyClient(cfg),
+		IdentityVerificationRequest: NewIdentityVerificationRequestClient(cfg),
+		Institution:                 NewInstitutionClient(cfg),
+		LinkedAddress:               NewLinkedAddressClient(cfg),
+		LockOrderFulfillment:        NewLockOrderFulfillmentClient(cfg),
+		LockPaymentOrder:            NewLockPaymentOrderClient(cfg),
+		Network:                     NewNetworkClient(cfg),
+		PaymentOrder:                NewPaymentOrderClient(cfg),
+		PaymentOrderRecipient:       NewPaymentOrderRecipientClient(cfg),
+		ProviderOrderToken:          NewProviderOrderTokenClient(cfg),
+		ProviderProfile:             NewProviderProfileClient(cfg),
+		ProviderRating:              NewProviderRatingClient(cfg),
+		ProvisionBucket:             NewProvisionBucketClient(cfg),
+		ReceiveAddress:              NewReceiveAddressClient(cfg),
+		SenderOrderToken:            NewSenderOrderTokenClient(cfg),
+		SenderProfile:               NewSenderProfileClient(cfg),
+		Token:                       NewTokenClient(cfg),
+		TransactionLog:              NewTransactionLogClient(cfg),
+		User:                        NewUserClient(cfg),
+		VerificationToken:           NewVerificationTokenClient(cfg),
+		WebhookRetryAttempt:         NewWebhookRetryAttemptClient(cfg),
 	}, nil
 }
 
@@ -234,28 +253,30 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:                   ctx,
-		config:                cfg,
-		APIKey:                NewAPIKeyClient(cfg),
-		FiatCurrency:          NewFiatCurrencyClient(cfg),
-		Institution:           NewInstitutionClient(cfg),
-		LockOrderFulfillment:  NewLockOrderFulfillmentClient(cfg),
-		LockPaymentOrder:      NewLockPaymentOrderClient(cfg),
-		Network:               NewNetworkClient(cfg),
-		PaymentOrder:          NewPaymentOrderClient(cfg),
-		PaymentOrderRecipient: NewPaymentOrderRecipientClient(cfg),
-		ProviderOrderToken:    NewProviderOrderTokenClient(cfg),
-		ProviderProfile:       NewProviderProfileClient(cfg),
-		ProviderRating:        NewProviderRatingClient(cfg),
-		ProvisionBucket:       NewProvisionBucketClient(cfg),
-		ReceiveAddress:        NewReceiveAddressClient(cfg),
-		SenderOrderToken:      NewSenderOrderTokenClient(cfg),
-		SenderProfile:         NewSenderProfileClient(cfg),
-		Token:                 NewTokenClient(cfg),
-		TransactionLog:        NewTransactionLogClient(cfg),
-		User:                  NewUserClient(cfg),
-		VerificationToken:     NewVerificationTokenClient(cfg),
-		WebhookRetryAttempt:   NewWebhookRetryAttemptClient(cfg),
+		ctx:                         ctx,
+		config:                      cfg,
+		APIKey:                      NewAPIKeyClient(cfg),
+		FiatCurrency:                NewFiatCurrencyClient(cfg),
+		IdentityVerificationRequest: NewIdentityVerificationRequestClient(cfg),
+		Institution:                 NewInstitutionClient(cfg),
+		LinkedAddress:               NewLinkedAddressClient(cfg),
+		LockOrderFulfillment:        NewLockOrderFulfillmentClient(cfg),
+		LockPaymentOrder:            NewLockPaymentOrderClient(cfg),
+		Network:                     NewNetworkClient(cfg),
+		PaymentOrder:                NewPaymentOrderClient(cfg),
+		PaymentOrderRecipient:       NewPaymentOrderRecipientClient(cfg),
+		ProviderOrderToken:          NewProviderOrderTokenClient(cfg),
+		ProviderProfile:             NewProviderProfileClient(cfg),
+		ProviderRating:              NewProviderRatingClient(cfg),
+		ProvisionBucket:             NewProvisionBucketClient(cfg),
+		ReceiveAddress:              NewReceiveAddressClient(cfg),
+		SenderOrderToken:            NewSenderOrderTokenClient(cfg),
+		SenderProfile:               NewSenderProfileClient(cfg),
+		Token:                       NewTokenClient(cfg),
+		TransactionLog:              NewTransactionLogClient(cfg),
+		User:                        NewUserClient(cfg),
+		VerificationToken:           NewVerificationTokenClient(cfg),
+		WebhookRetryAttempt:         NewWebhookRetryAttemptClient(cfg),
 	}, nil
 }
 
@@ -285,11 +306,12 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.APIKey, c.FiatCurrency, c.Institution, c.LockOrderFulfillment,
-		c.LockPaymentOrder, c.Network, c.PaymentOrder, c.PaymentOrderRecipient,
-		c.ProviderOrderToken, c.ProviderProfile, c.ProviderRating, c.ProvisionBucket,
-		c.ReceiveAddress, c.SenderOrderToken, c.SenderProfile, c.Token,
-		c.TransactionLog, c.User, c.VerificationToken, c.WebhookRetryAttempt,
+		c.APIKey, c.FiatCurrency, c.IdentityVerificationRequest, c.Institution,
+		c.LinkedAddress, c.LockOrderFulfillment, c.LockPaymentOrder, c.Network,
+		c.PaymentOrder, c.PaymentOrderRecipient, c.ProviderOrderToken,
+		c.ProviderProfile, c.ProviderRating, c.ProvisionBucket, c.ReceiveAddress,
+		c.SenderOrderToken, c.SenderProfile, c.Token, c.TransactionLog, c.User,
+		c.VerificationToken, c.WebhookRetryAttempt,
 	} {
 		n.Use(hooks...)
 	}
@@ -299,11 +321,12 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.APIKey, c.FiatCurrency, c.Institution, c.LockOrderFulfillment,
-		c.LockPaymentOrder, c.Network, c.PaymentOrder, c.PaymentOrderRecipient,
-		c.ProviderOrderToken, c.ProviderProfile, c.ProviderRating, c.ProvisionBucket,
-		c.ReceiveAddress, c.SenderOrderToken, c.SenderProfile, c.Token,
-		c.TransactionLog, c.User, c.VerificationToken, c.WebhookRetryAttempt,
+		c.APIKey, c.FiatCurrency, c.IdentityVerificationRequest, c.Institution,
+		c.LinkedAddress, c.LockOrderFulfillment, c.LockPaymentOrder, c.Network,
+		c.PaymentOrder, c.PaymentOrderRecipient, c.ProviderOrderToken,
+		c.ProviderProfile, c.ProviderRating, c.ProvisionBucket, c.ReceiveAddress,
+		c.SenderOrderToken, c.SenderProfile, c.Token, c.TransactionLog, c.User,
+		c.VerificationToken, c.WebhookRetryAttempt,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -316,8 +339,12 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.APIKey.mutate(ctx, m)
 	case *FiatCurrencyMutation:
 		return c.FiatCurrency.mutate(ctx, m)
+	case *IdentityVerificationRequestMutation:
+		return c.IdentityVerificationRequest.mutate(ctx, m)
 	case *InstitutionMutation:
 		return c.Institution.mutate(ctx, m)
+	case *LinkedAddressMutation:
+		return c.LinkedAddress.mutate(ctx, m)
 	case *LockOrderFulfillmentMutation:
 		return c.LockOrderFulfillment.mutate(ctx, m)
 	case *LockPaymentOrderMutation:
@@ -387,6 +414,21 @@ func (c *APIKeyClient) Create() *APIKeyCreate {
 
 // CreateBulk returns a builder for creating a bulk of APIKey entities.
 func (c *APIKeyClient) CreateBulk(builders ...*APIKeyCreate) *APIKeyCreateBulk {
+	return &APIKeyCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *APIKeyClient) MapCreateBulk(slice any, setFunc func(*APIKeyCreate, int)) *APIKeyCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &APIKeyCreateBulk{err: fmt.Errorf("calling to APIKeyClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*APIKeyCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
 	return &APIKeyCreateBulk{config: c.config, builders: builders}
 }
 
@@ -556,6 +598,21 @@ func (c *FiatCurrencyClient) CreateBulk(builders ...*FiatCurrencyCreate) *FiatCu
 	return &FiatCurrencyCreateBulk{config: c.config, builders: builders}
 }
 
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *FiatCurrencyClient) MapCreateBulk(slice any, setFunc func(*FiatCurrencyCreate, int)) *FiatCurrencyCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &FiatCurrencyCreateBulk{err: fmt.Errorf("calling to FiatCurrencyClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*FiatCurrencyCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &FiatCurrencyCreateBulk{config: c.config, builders: builders}
+}
+
 // Update returns an update builder for FiatCurrency.
 func (c *FiatCurrencyClient) Update() *FiatCurrencyUpdate {
 	mutation := newFiatCurrencyMutation(c.config, OpUpdate)
@@ -689,6 +746,139 @@ func (c *FiatCurrencyClient) mutate(ctx context.Context, m *FiatCurrencyMutation
 	}
 }
 
+// IdentityVerificationRequestClient is a client for the IdentityVerificationRequest schema.
+type IdentityVerificationRequestClient struct {
+	config
+}
+
+// NewIdentityVerificationRequestClient returns a client for the IdentityVerificationRequest from the given config.
+func NewIdentityVerificationRequestClient(c config) *IdentityVerificationRequestClient {
+	return &IdentityVerificationRequestClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `identityverificationrequest.Hooks(f(g(h())))`.
+func (c *IdentityVerificationRequestClient) Use(hooks ...Hook) {
+	c.hooks.IdentityVerificationRequest = append(c.hooks.IdentityVerificationRequest, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `identityverificationrequest.Intercept(f(g(h())))`.
+func (c *IdentityVerificationRequestClient) Intercept(interceptors ...Interceptor) {
+	c.inters.IdentityVerificationRequest = append(c.inters.IdentityVerificationRequest, interceptors...)
+}
+
+// Create returns a builder for creating a IdentityVerificationRequest entity.
+func (c *IdentityVerificationRequestClient) Create() *IdentityVerificationRequestCreate {
+	mutation := newIdentityVerificationRequestMutation(c.config, OpCreate)
+	return &IdentityVerificationRequestCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of IdentityVerificationRequest entities.
+func (c *IdentityVerificationRequestClient) CreateBulk(builders ...*IdentityVerificationRequestCreate) *IdentityVerificationRequestCreateBulk {
+	return &IdentityVerificationRequestCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *IdentityVerificationRequestClient) MapCreateBulk(slice any, setFunc func(*IdentityVerificationRequestCreate, int)) *IdentityVerificationRequestCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &IdentityVerificationRequestCreateBulk{err: fmt.Errorf("calling to IdentityVerificationRequestClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*IdentityVerificationRequestCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &IdentityVerificationRequestCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for IdentityVerificationRequest.
+func (c *IdentityVerificationRequestClient) Update() *IdentityVerificationRequestUpdate {
+	mutation := newIdentityVerificationRequestMutation(c.config, OpUpdate)
+	return &IdentityVerificationRequestUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *IdentityVerificationRequestClient) UpdateOne(ivr *IdentityVerificationRequest) *IdentityVerificationRequestUpdateOne {
+	mutation := newIdentityVerificationRequestMutation(c.config, OpUpdateOne, withIdentityVerificationRequest(ivr))
+	return &IdentityVerificationRequestUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *IdentityVerificationRequestClient) UpdateOneID(id uuid.UUID) *IdentityVerificationRequestUpdateOne {
+	mutation := newIdentityVerificationRequestMutation(c.config, OpUpdateOne, withIdentityVerificationRequestID(id))
+	return &IdentityVerificationRequestUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for IdentityVerificationRequest.
+func (c *IdentityVerificationRequestClient) Delete() *IdentityVerificationRequestDelete {
+	mutation := newIdentityVerificationRequestMutation(c.config, OpDelete)
+	return &IdentityVerificationRequestDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *IdentityVerificationRequestClient) DeleteOne(ivr *IdentityVerificationRequest) *IdentityVerificationRequestDeleteOne {
+	return c.DeleteOneID(ivr.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *IdentityVerificationRequestClient) DeleteOneID(id uuid.UUID) *IdentityVerificationRequestDeleteOne {
+	builder := c.Delete().Where(identityverificationrequest.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &IdentityVerificationRequestDeleteOne{builder}
+}
+
+// Query returns a query builder for IdentityVerificationRequest.
+func (c *IdentityVerificationRequestClient) Query() *IdentityVerificationRequestQuery {
+	return &IdentityVerificationRequestQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeIdentityVerificationRequest},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a IdentityVerificationRequest entity by its id.
+func (c *IdentityVerificationRequestClient) Get(ctx context.Context, id uuid.UUID) (*IdentityVerificationRequest, error) {
+	return c.Query().Where(identityverificationrequest.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *IdentityVerificationRequestClient) GetX(ctx context.Context, id uuid.UUID) *IdentityVerificationRequest {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *IdentityVerificationRequestClient) Hooks() []Hook {
+	return c.hooks.IdentityVerificationRequest
+}
+
+// Interceptors returns the client interceptors.
+func (c *IdentityVerificationRequestClient) Interceptors() []Interceptor {
+	return c.inters.IdentityVerificationRequest
+}
+
+func (c *IdentityVerificationRequestClient) mutate(ctx context.Context, m *IdentityVerificationRequestMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&IdentityVerificationRequestCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&IdentityVerificationRequestUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&IdentityVerificationRequestUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&IdentityVerificationRequestDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown IdentityVerificationRequest mutation op: %q", m.Op())
+	}
+}
+
 // InstitutionClient is a client for the Institution schema.
 type InstitutionClient struct {
 	config
@@ -719,6 +909,21 @@ func (c *InstitutionClient) Create() *InstitutionCreate {
 
 // CreateBulk returns a builder for creating a bulk of Institution entities.
 func (c *InstitutionClient) CreateBulk(builders ...*InstitutionCreate) *InstitutionCreateBulk {
+	return &InstitutionCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *InstitutionClient) MapCreateBulk(slice any, setFunc func(*InstitutionCreate, int)) *InstitutionCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &InstitutionCreateBulk{err: fmt.Errorf("calling to InstitutionClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*InstitutionCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
 	return &InstitutionCreateBulk{config: c.config, builders: builders}
 }
 
@@ -823,6 +1028,155 @@ func (c *InstitutionClient) mutate(ctx context.Context, m *InstitutionMutation) 
 	}
 }
 
+// LinkedAddressClient is a client for the LinkedAddress schema.
+type LinkedAddressClient struct {
+	config
+}
+
+// NewLinkedAddressClient returns a client for the LinkedAddress from the given config.
+func NewLinkedAddressClient(c config) *LinkedAddressClient {
+	return &LinkedAddressClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `linkedaddress.Hooks(f(g(h())))`.
+func (c *LinkedAddressClient) Use(hooks ...Hook) {
+	c.hooks.LinkedAddress = append(c.hooks.LinkedAddress, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `linkedaddress.Intercept(f(g(h())))`.
+func (c *LinkedAddressClient) Intercept(interceptors ...Interceptor) {
+	c.inters.LinkedAddress = append(c.inters.LinkedAddress, interceptors...)
+}
+
+// Create returns a builder for creating a LinkedAddress entity.
+func (c *LinkedAddressClient) Create() *LinkedAddressCreate {
+	mutation := newLinkedAddressMutation(c.config, OpCreate)
+	return &LinkedAddressCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of LinkedAddress entities.
+func (c *LinkedAddressClient) CreateBulk(builders ...*LinkedAddressCreate) *LinkedAddressCreateBulk {
+	return &LinkedAddressCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *LinkedAddressClient) MapCreateBulk(slice any, setFunc func(*LinkedAddressCreate, int)) *LinkedAddressCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &LinkedAddressCreateBulk{err: fmt.Errorf("calling to LinkedAddressClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*LinkedAddressCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &LinkedAddressCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for LinkedAddress.
+func (c *LinkedAddressClient) Update() *LinkedAddressUpdate {
+	mutation := newLinkedAddressMutation(c.config, OpUpdate)
+	return &LinkedAddressUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *LinkedAddressClient) UpdateOne(la *LinkedAddress) *LinkedAddressUpdateOne {
+	mutation := newLinkedAddressMutation(c.config, OpUpdateOne, withLinkedAddress(la))
+	return &LinkedAddressUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *LinkedAddressClient) UpdateOneID(id int) *LinkedAddressUpdateOne {
+	mutation := newLinkedAddressMutation(c.config, OpUpdateOne, withLinkedAddressID(id))
+	return &LinkedAddressUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for LinkedAddress.
+func (c *LinkedAddressClient) Delete() *LinkedAddressDelete {
+	mutation := newLinkedAddressMutation(c.config, OpDelete)
+	return &LinkedAddressDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *LinkedAddressClient) DeleteOne(la *LinkedAddress) *LinkedAddressDeleteOne {
+	return c.DeleteOneID(la.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *LinkedAddressClient) DeleteOneID(id int) *LinkedAddressDeleteOne {
+	builder := c.Delete().Where(linkedaddress.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &LinkedAddressDeleteOne{builder}
+}
+
+// Query returns a query builder for LinkedAddress.
+func (c *LinkedAddressClient) Query() *LinkedAddressQuery {
+	return &LinkedAddressQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeLinkedAddress},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a LinkedAddress entity by its id.
+func (c *LinkedAddressClient) Get(ctx context.Context, id int) (*LinkedAddress, error) {
+	return c.Query().Where(linkedaddress.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *LinkedAddressClient) GetX(ctx context.Context, id int) *LinkedAddress {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryPaymentOrders queries the payment_orders edge of a LinkedAddress.
+func (c *LinkedAddressClient) QueryPaymentOrders(la *LinkedAddress) *PaymentOrderQuery {
+	query := (&PaymentOrderClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := la.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(linkedaddress.Table, linkedaddress.FieldID, id),
+			sqlgraph.To(paymentorder.Table, paymentorder.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, linkedaddress.PaymentOrdersTable, linkedaddress.PaymentOrdersColumn),
+		)
+		fromV = sqlgraph.Neighbors(la.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *LinkedAddressClient) Hooks() []Hook {
+	return c.hooks.LinkedAddress
+}
+
+// Interceptors returns the client interceptors.
+func (c *LinkedAddressClient) Interceptors() []Interceptor {
+	return c.inters.LinkedAddress
+}
+
+func (c *LinkedAddressClient) mutate(ctx context.Context, m *LinkedAddressMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&LinkedAddressCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&LinkedAddressUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&LinkedAddressUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&LinkedAddressDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown LinkedAddress mutation op: %q", m.Op())
+	}
+}
+
 // LockOrderFulfillmentClient is a client for the LockOrderFulfillment schema.
 type LockOrderFulfillmentClient struct {
 	config
@@ -853,6 +1207,21 @@ func (c *LockOrderFulfillmentClient) Create() *LockOrderFulfillmentCreate {
 
 // CreateBulk returns a builder for creating a bulk of LockOrderFulfillment entities.
 func (c *LockOrderFulfillmentClient) CreateBulk(builders ...*LockOrderFulfillmentCreate) *LockOrderFulfillmentCreateBulk {
+	return &LockOrderFulfillmentCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *LockOrderFulfillmentClient) MapCreateBulk(slice any, setFunc func(*LockOrderFulfillmentCreate, int)) *LockOrderFulfillmentCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &LockOrderFulfillmentCreateBulk{err: fmt.Errorf("calling to LockOrderFulfillmentClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*LockOrderFulfillmentCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
 	return &LockOrderFulfillmentCreateBulk{config: c.config, builders: builders}
 }
 
@@ -924,7 +1293,7 @@ func (c *LockOrderFulfillmentClient) QueryOrder(lof *LockOrderFulfillment) *Lock
 		step := sqlgraph.NewStep(
 			sqlgraph.From(lockorderfulfillment.Table, lockorderfulfillment.FieldID, id),
 			sqlgraph.To(lockpaymentorder.Table, lockpaymentorder.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, lockorderfulfillment.OrderTable, lockorderfulfillment.OrderColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, lockorderfulfillment.OrderTable, lockorderfulfillment.OrderColumn),
 		)
 		fromV = sqlgraph.Neighbors(lof.driver.Dialect(), step)
 		return fromV, nil
@@ -987,6 +1356,21 @@ func (c *LockPaymentOrderClient) Create() *LockPaymentOrderCreate {
 
 // CreateBulk returns a builder for creating a bulk of LockPaymentOrder entities.
 func (c *LockPaymentOrderClient) CreateBulk(builders ...*LockPaymentOrderCreate) *LockPaymentOrderCreateBulk {
+	return &LockPaymentOrderCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *LockPaymentOrderClient) MapCreateBulk(slice any, setFunc func(*LockPaymentOrderCreate, int)) *LockPaymentOrderCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &LockPaymentOrderCreateBulk{err: fmt.Errorf("calling to LockPaymentOrderClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*LockPaymentOrderCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
 	return &LockPaymentOrderCreateBulk{config: c.config, builders: builders}
 }
 
@@ -1098,15 +1482,15 @@ func (c *LockPaymentOrderClient) QueryProvider(lpo *LockPaymentOrder) *ProviderP
 	return query
 }
 
-// QueryFulfillment queries the fulfillment edge of a LockPaymentOrder.
-func (c *LockPaymentOrderClient) QueryFulfillment(lpo *LockPaymentOrder) *LockOrderFulfillmentQuery {
+// QueryFulfillments queries the fulfillments edge of a LockPaymentOrder.
+func (c *LockPaymentOrderClient) QueryFulfillments(lpo *LockPaymentOrder) *LockOrderFulfillmentQuery {
 	query := (&LockOrderFulfillmentClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := lpo.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(lockpaymentorder.Table, lockpaymentorder.FieldID, id),
 			sqlgraph.To(lockorderfulfillment.Table, lockorderfulfillment.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, lockpaymentorder.FulfillmentTable, lockpaymentorder.FulfillmentColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, lockpaymentorder.FulfillmentsTable, lockpaymentorder.FulfillmentsColumn),
 		)
 		fromV = sqlgraph.Neighbors(lpo.driver.Dialect(), step)
 		return fromV, nil
@@ -1185,6 +1569,21 @@ func (c *NetworkClient) Create() *NetworkCreate {
 
 // CreateBulk returns a builder for creating a bulk of Network entities.
 func (c *NetworkClient) CreateBulk(builders ...*NetworkCreate) *NetworkCreateBulk {
+	return &NetworkCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *NetworkClient) MapCreateBulk(slice any, setFunc func(*NetworkCreate, int)) *NetworkCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &NetworkCreateBulk{err: fmt.Errorf("calling to NetworkClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*NetworkCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
 	return &NetworkCreateBulk{config: c.config, builders: builders}
 }
 
@@ -1322,6 +1721,21 @@ func (c *PaymentOrderClient) CreateBulk(builders ...*PaymentOrderCreate) *Paymen
 	return &PaymentOrderCreateBulk{config: c.config, builders: builders}
 }
 
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PaymentOrderClient) MapCreateBulk(slice any, setFunc func(*PaymentOrderCreate, int)) *PaymentOrderCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PaymentOrderCreateBulk{err: fmt.Errorf("calling to PaymentOrderClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PaymentOrderCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &PaymentOrderCreateBulk{config: c.config, builders: builders}
+}
+
 // Update returns an update builder for PaymentOrder.
 func (c *PaymentOrderClient) Update() *PaymentOrderUpdate {
 	mutation := newPaymentOrderMutation(c.config, OpUpdate)
@@ -1407,6 +1821,22 @@ func (c *PaymentOrderClient) QueryToken(po *PaymentOrder) *TokenQuery {
 			sqlgraph.From(paymentorder.Table, paymentorder.FieldID, id),
 			sqlgraph.To(token.Table, token.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, paymentorder.TokenTable, paymentorder.TokenColumn),
+		)
+		fromV = sqlgraph.Neighbors(po.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryLinkedAddress queries the linked_address edge of a PaymentOrder.
+func (c *PaymentOrderClient) QueryLinkedAddress(po *PaymentOrder) *LinkedAddressQuery {
+	query := (&LinkedAddressClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := po.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(paymentorder.Table, paymentorder.FieldID, id),
+			sqlgraph.To(linkedaddress.Table, linkedaddress.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, paymentorder.LinkedAddressTable, paymentorder.LinkedAddressColumn),
 		)
 		fromV = sqlgraph.Neighbors(po.driver.Dialect(), step)
 		return fromV, nil
@@ -1517,6 +1947,21 @@ func (c *PaymentOrderRecipientClient) Create() *PaymentOrderRecipientCreate {
 
 // CreateBulk returns a builder for creating a bulk of PaymentOrderRecipient entities.
 func (c *PaymentOrderRecipientClient) CreateBulk(builders ...*PaymentOrderRecipientCreate) *PaymentOrderRecipientCreateBulk {
+	return &PaymentOrderRecipientCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PaymentOrderRecipientClient) MapCreateBulk(slice any, setFunc func(*PaymentOrderRecipientCreate, int)) *PaymentOrderRecipientCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PaymentOrderRecipientCreateBulk{err: fmt.Errorf("calling to PaymentOrderRecipientClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PaymentOrderRecipientCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
 	return &PaymentOrderRecipientCreateBulk{config: c.config, builders: builders}
 }
 
@@ -1654,6 +2099,21 @@ func (c *ProviderOrderTokenClient) CreateBulk(builders ...*ProviderOrderTokenCre
 	return &ProviderOrderTokenCreateBulk{config: c.config, builders: builders}
 }
 
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ProviderOrderTokenClient) MapCreateBulk(slice any, setFunc func(*ProviderOrderTokenCreate, int)) *ProviderOrderTokenCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ProviderOrderTokenCreateBulk{err: fmt.Errorf("calling to ProviderOrderTokenClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ProviderOrderTokenCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ProviderOrderTokenCreateBulk{config: c.config, builders: builders}
+}
+
 // Update returns an update builder for ProviderOrderToken.
 func (c *ProviderOrderTokenClient) Update() *ProviderOrderTokenUpdate {
 	mutation := newProviderOrderTokenMutation(c.config, OpUpdate)
@@ -1785,6 +2245,21 @@ func (c *ProviderProfileClient) Create() *ProviderProfileCreate {
 
 // CreateBulk returns a builder for creating a bulk of ProviderProfile entities.
 func (c *ProviderProfileClient) CreateBulk(builders ...*ProviderProfileCreate) *ProviderProfileCreateBulk {
+	return &ProviderProfileCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ProviderProfileClient) MapCreateBulk(slice any, setFunc func(*ProviderProfileCreate, int)) *ProviderProfileCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ProviderProfileCreateBulk{err: fmt.Errorf("calling to ProviderProfileClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ProviderProfileCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
 	return &ProviderProfileCreateBulk{config: c.config, builders: builders}
 }
 
@@ -2018,6 +2493,21 @@ func (c *ProviderRatingClient) CreateBulk(builders ...*ProviderRatingCreate) *Pr
 	return &ProviderRatingCreateBulk{config: c.config, builders: builders}
 }
 
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ProviderRatingClient) MapCreateBulk(slice any, setFunc func(*ProviderRatingCreate, int)) *ProviderRatingCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ProviderRatingCreateBulk{err: fmt.Errorf("calling to ProviderRatingClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ProviderRatingCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ProviderRatingCreateBulk{config: c.config, builders: builders}
+}
+
 // Update returns an update builder for ProviderRating.
 func (c *ProviderRatingClient) Update() *ProviderRatingUpdate {
 	mutation := newProviderRatingMutation(c.config, OpUpdate)
@@ -2149,6 +2639,21 @@ func (c *ProvisionBucketClient) Create() *ProvisionBucketCreate {
 
 // CreateBulk returns a builder for creating a bulk of ProvisionBucket entities.
 func (c *ProvisionBucketClient) CreateBulk(builders ...*ProvisionBucketCreate) *ProvisionBucketCreateBulk {
+	return &ProvisionBucketCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ProvisionBucketClient) MapCreateBulk(slice any, setFunc func(*ProvisionBucketCreate, int)) *ProvisionBucketCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ProvisionBucketCreateBulk{err: fmt.Errorf("calling to ProvisionBucketClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ProvisionBucketCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
 	return &ProvisionBucketCreateBulk{config: c.config, builders: builders}
 }
 
@@ -2318,6 +2823,21 @@ func (c *ReceiveAddressClient) CreateBulk(builders ...*ReceiveAddressCreate) *Re
 	return &ReceiveAddressCreateBulk{config: c.config, builders: builders}
 }
 
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ReceiveAddressClient) MapCreateBulk(slice any, setFunc func(*ReceiveAddressCreate, int)) *ReceiveAddressCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ReceiveAddressCreateBulk{err: fmt.Errorf("calling to ReceiveAddressClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ReceiveAddressCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ReceiveAddressCreateBulk{config: c.config, builders: builders}
+}
+
 // Update returns an update builder for ReceiveAddress.
 func (c *ReceiveAddressClient) Update() *ReceiveAddressUpdate {
 	mutation := newReceiveAddressMutation(c.config, OpUpdate)
@@ -2449,6 +2969,21 @@ func (c *SenderOrderTokenClient) Create() *SenderOrderTokenCreate {
 
 // CreateBulk returns a builder for creating a bulk of SenderOrderToken entities.
 func (c *SenderOrderTokenClient) CreateBulk(builders ...*SenderOrderTokenCreate) *SenderOrderTokenCreateBulk {
+	return &SenderOrderTokenCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *SenderOrderTokenClient) MapCreateBulk(slice any, setFunc func(*SenderOrderTokenCreate, int)) *SenderOrderTokenCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &SenderOrderTokenCreateBulk{err: fmt.Errorf("calling to SenderOrderTokenClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*SenderOrderTokenCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
 	return &SenderOrderTokenCreateBulk{config: c.config, builders: builders}
 }
 
@@ -2602,6 +3137,21 @@ func (c *SenderProfileClient) CreateBulk(builders ...*SenderProfileCreate) *Send
 	return &SenderProfileCreateBulk{config: c.config, builders: builders}
 }
 
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *SenderProfileClient) MapCreateBulk(slice any, setFunc func(*SenderProfileCreate, int)) *SenderProfileCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &SenderProfileCreateBulk{err: fmt.Errorf("calling to SenderProfileClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*SenderProfileCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &SenderProfileCreateBulk{config: c.config, builders: builders}
+}
+
 // Update returns an update builder for SenderProfile.
 func (c *SenderProfileClient) Update() *SenderProfileUpdate {
 	mutation := newSenderProfileMutation(c.config, OpUpdate)
@@ -2726,6 +3276,22 @@ func (c *SenderProfileClient) QueryOrderTokens(sp *SenderProfile) *SenderOrderTo
 	return query
 }
 
+// QueryLinkedAddress queries the linked_address edge of a SenderProfile.
+func (c *SenderProfileClient) QueryLinkedAddress(sp *SenderProfile) *LinkedAddressQuery {
+	query := (&LinkedAddressClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := sp.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(senderprofile.Table, senderprofile.FieldID, id),
+			sqlgraph.To(linkedaddress.Table, linkedaddress.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, senderprofile.LinkedAddressTable, senderprofile.LinkedAddressColumn),
+		)
+		fromV = sqlgraph.Neighbors(sp.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *SenderProfileClient) Hooks() []Hook {
 	return c.hooks.SenderProfile
@@ -2781,6 +3347,21 @@ func (c *TokenClient) Create() *TokenCreate {
 
 // CreateBulk returns a builder for creating a bulk of Token entities.
 func (c *TokenClient) CreateBulk(builders ...*TokenCreate) *TokenCreateBulk {
+	return &TokenCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *TokenClient) MapCreateBulk(slice any, setFunc func(*TokenCreate, int)) *TokenCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &TokenCreateBulk{err: fmt.Errorf("calling to TokenClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*TokenCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
 	return &TokenCreateBulk{config: c.config, builders: builders}
 }
 
@@ -2966,6 +3547,21 @@ func (c *TransactionLogClient) CreateBulk(builders ...*TransactionLogCreate) *Tr
 	return &TransactionLogCreateBulk{config: c.config, builders: builders}
 }
 
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *TransactionLogClient) MapCreateBulk(slice any, setFunc func(*TransactionLogCreate, int)) *TransactionLogCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &TransactionLogCreateBulk{err: fmt.Errorf("calling to TransactionLogClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*TransactionLogCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &TransactionLogCreateBulk{config: c.config, builders: builders}
+}
+
 // Update returns an update builder for TransactionLog.
 func (c *TransactionLogClient) Update() *TransactionLogUpdate {
 	mutation := newTransactionLogMutation(c.config, OpUpdate)
@@ -3081,6 +3677,21 @@ func (c *UserClient) Create() *UserCreate {
 
 // CreateBulk returns a builder for creating a bulk of User entities.
 func (c *UserClient) CreateBulk(builders ...*UserCreate) *UserCreateBulk {
+	return &UserCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *UserClient) MapCreateBulk(slice any, setFunc func(*UserCreate, int)) *UserCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &UserCreateBulk{err: fmt.Errorf("calling to UserClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*UserCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
 	return &UserCreateBulk{config: c.config, builders: builders}
 }
 
@@ -3251,6 +3862,21 @@ func (c *VerificationTokenClient) CreateBulk(builders ...*VerificationTokenCreat
 	return &VerificationTokenCreateBulk{config: c.config, builders: builders}
 }
 
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *VerificationTokenClient) MapCreateBulk(slice any, setFunc func(*VerificationTokenCreate, int)) *VerificationTokenCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &VerificationTokenCreateBulk{err: fmt.Errorf("calling to VerificationTokenClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*VerificationTokenCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &VerificationTokenCreateBulk{config: c.config, builders: builders}
+}
+
 // Update returns an update builder for VerificationToken.
 func (c *VerificationTokenClient) Update() *VerificationTokenUpdate {
 	mutation := newVerificationTokenMutation(c.config, OpUpdate)
@@ -3386,6 +4012,21 @@ func (c *WebhookRetryAttemptClient) CreateBulk(builders ...*WebhookRetryAttemptC
 	return &WebhookRetryAttemptCreateBulk{config: c.config, builders: builders}
 }
 
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *WebhookRetryAttemptClient) MapCreateBulk(slice any, setFunc func(*WebhookRetryAttemptCreate, int)) *WebhookRetryAttemptCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &WebhookRetryAttemptCreateBulk{err: fmt.Errorf("calling to WebhookRetryAttemptClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*WebhookRetryAttemptCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &WebhookRetryAttemptCreateBulk{config: c.config, builders: builders}
+}
+
 // Update returns an update builder for WebhookRetryAttempt.
 func (c *WebhookRetryAttemptClient) Update() *WebhookRetryAttemptUpdate {
 	mutation := newWebhookRetryAttemptMutation(c.config, OpUpdate)
@@ -3474,17 +4115,17 @@ func (c *WebhookRetryAttemptClient) mutate(ctx context.Context, m *WebhookRetryA
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		APIKey, FiatCurrency, Institution, LockOrderFulfillment, LockPaymentOrder,
-		Network, PaymentOrder, PaymentOrderRecipient, ProviderOrderToken,
-		ProviderProfile, ProviderRating, ProvisionBucket, ReceiveAddress,
-		SenderOrderToken, SenderProfile, Token, TransactionLog, User,
-		VerificationToken, WebhookRetryAttempt []ent.Hook
+		APIKey, FiatCurrency, IdentityVerificationRequest, Institution, LinkedAddress,
+		LockOrderFulfillment, LockPaymentOrder, Network, PaymentOrder,
+		PaymentOrderRecipient, ProviderOrderToken, ProviderProfile, ProviderRating,
+		ProvisionBucket, ReceiveAddress, SenderOrderToken, SenderProfile, Token,
+		TransactionLog, User, VerificationToken, WebhookRetryAttempt []ent.Hook
 	}
 	inters struct {
-		APIKey, FiatCurrency, Institution, LockOrderFulfillment, LockPaymentOrder,
-		Network, PaymentOrder, PaymentOrderRecipient, ProviderOrderToken,
-		ProviderProfile, ProviderRating, ProvisionBucket, ReceiveAddress,
-		SenderOrderToken, SenderProfile, Token, TransactionLog, User,
-		VerificationToken, WebhookRetryAttempt []ent.Interceptor
+		APIKey, FiatCurrency, IdentityVerificationRequest, Institution, LinkedAddress,
+		LockOrderFulfillment, LockPaymentOrder, Network, PaymentOrder,
+		PaymentOrderRecipient, ProviderOrderToken, ProviderProfile, ProviderRating,
+		ProvisionBucket, ReceiveAddress, SenderOrderToken, SenderProfile, Token,
+		TransactionLog, User, VerificationToken, WebhookRetryAttempt []ent.Interceptor
 	}
 )

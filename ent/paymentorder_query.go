@@ -8,10 +8,12 @@ import (
 	"fmt"
 	"math"
 
+	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
+	"github.com/paycrest/protocol/ent/linkedaddress"
 	"github.com/paycrest/protocol/ent/paymentorder"
 	"github.com/paycrest/protocol/ent/paymentorderrecipient"
 	"github.com/paycrest/protocol/ent/predicate"
@@ -30,6 +32,7 @@ type PaymentOrderQuery struct {
 	predicates         []predicate.PaymentOrder
 	withSenderProfile  *SenderProfileQuery
 	withToken          *TokenQuery
+	withLinkedAddress  *LinkedAddressQuery
 	withReceiveAddress *ReceiveAddressQuery
 	withRecipient      *PaymentOrderRecipientQuery
 	withTransactions   *TransactionLogQuery
@@ -114,6 +117,28 @@ func (poq *PaymentOrderQuery) QueryToken() *TokenQuery {
 	return query
 }
 
+// QueryLinkedAddress chains the current query on the "linked_address" edge.
+func (poq *PaymentOrderQuery) QueryLinkedAddress() *LinkedAddressQuery {
+	query := (&LinkedAddressClient{config: poq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := poq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := poq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(paymentorder.Table, paymentorder.FieldID, selector),
+			sqlgraph.To(linkedaddress.Table, linkedaddress.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, paymentorder.LinkedAddressTable, paymentorder.LinkedAddressColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(poq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
 // QueryReceiveAddress chains the current query on the "receive_address" edge.
 func (poq *PaymentOrderQuery) QueryReceiveAddress() *ReceiveAddressQuery {
 	query := (&ReceiveAddressClient{config: poq.config}).Query()
@@ -183,7 +208,7 @@ func (poq *PaymentOrderQuery) QueryTransactions() *TransactionLogQuery {
 // First returns the first PaymentOrder entity from the query.
 // Returns a *NotFoundError when no PaymentOrder was found.
 func (poq *PaymentOrderQuery) First(ctx context.Context) (*PaymentOrder, error) {
-	nodes, err := poq.Limit(1).All(setContextOp(ctx, poq.ctx, "First"))
+	nodes, err := poq.Limit(1).All(setContextOp(ctx, poq.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
@@ -206,7 +231,7 @@ func (poq *PaymentOrderQuery) FirstX(ctx context.Context) *PaymentOrder {
 // Returns a *NotFoundError when no PaymentOrder ID was found.
 func (poq *PaymentOrderQuery) FirstID(ctx context.Context) (id uuid.UUID, err error) {
 	var ids []uuid.UUID
-	if ids, err = poq.Limit(1).IDs(setContextOp(ctx, poq.ctx, "FirstID")); err != nil {
+	if ids, err = poq.Limit(1).IDs(setContextOp(ctx, poq.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -229,7 +254,7 @@ func (poq *PaymentOrderQuery) FirstIDX(ctx context.Context) uuid.UUID {
 // Returns a *NotSingularError when more than one PaymentOrder entity is found.
 // Returns a *NotFoundError when no PaymentOrder entities are found.
 func (poq *PaymentOrderQuery) Only(ctx context.Context) (*PaymentOrder, error) {
-	nodes, err := poq.Limit(2).All(setContextOp(ctx, poq.ctx, "Only"))
+	nodes, err := poq.Limit(2).All(setContextOp(ctx, poq.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
 	}
@@ -257,7 +282,7 @@ func (poq *PaymentOrderQuery) OnlyX(ctx context.Context) *PaymentOrder {
 // Returns a *NotFoundError when no entities are found.
 func (poq *PaymentOrderQuery) OnlyID(ctx context.Context) (id uuid.UUID, err error) {
 	var ids []uuid.UUID
-	if ids, err = poq.Limit(2).IDs(setContextOp(ctx, poq.ctx, "OnlyID")); err != nil {
+	if ids, err = poq.Limit(2).IDs(setContextOp(ctx, poq.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -282,7 +307,7 @@ func (poq *PaymentOrderQuery) OnlyIDX(ctx context.Context) uuid.UUID {
 
 // All executes the query and returns a list of PaymentOrders.
 func (poq *PaymentOrderQuery) All(ctx context.Context) ([]*PaymentOrder, error) {
-	ctx = setContextOp(ctx, poq.ctx, "All")
+	ctx = setContextOp(ctx, poq.ctx, ent.OpQueryAll)
 	if err := poq.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
@@ -304,7 +329,7 @@ func (poq *PaymentOrderQuery) IDs(ctx context.Context) (ids []uuid.UUID, err err
 	if poq.ctx.Unique == nil && poq.path != nil {
 		poq.Unique(true)
 	}
-	ctx = setContextOp(ctx, poq.ctx, "IDs")
+	ctx = setContextOp(ctx, poq.ctx, ent.OpQueryIDs)
 	if err = poq.Select(paymentorder.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
@@ -322,7 +347,7 @@ func (poq *PaymentOrderQuery) IDsX(ctx context.Context) []uuid.UUID {
 
 // Count returns the count of the given query.
 func (poq *PaymentOrderQuery) Count(ctx context.Context) (int, error) {
-	ctx = setContextOp(ctx, poq.ctx, "Count")
+	ctx = setContextOp(ctx, poq.ctx, ent.OpQueryCount)
 	if err := poq.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
@@ -340,7 +365,7 @@ func (poq *PaymentOrderQuery) CountX(ctx context.Context) int {
 
 // Exist returns true if the query has elements in the graph.
 func (poq *PaymentOrderQuery) Exist(ctx context.Context) (bool, error) {
-	ctx = setContextOp(ctx, poq.ctx, "Exist")
+	ctx = setContextOp(ctx, poq.ctx, ent.OpQueryExist)
 	switch _, err := poq.FirstID(ctx); {
 	case IsNotFound(err):
 		return false, nil
@@ -374,6 +399,7 @@ func (poq *PaymentOrderQuery) Clone() *PaymentOrderQuery {
 		predicates:         append([]predicate.PaymentOrder{}, poq.predicates...),
 		withSenderProfile:  poq.withSenderProfile.Clone(),
 		withToken:          poq.withToken.Clone(),
+		withLinkedAddress:  poq.withLinkedAddress.Clone(),
 		withReceiveAddress: poq.withReceiveAddress.Clone(),
 		withRecipient:      poq.withRecipient.Clone(),
 		withTransactions:   poq.withTransactions.Clone(),
@@ -402,6 +428,17 @@ func (poq *PaymentOrderQuery) WithToken(opts ...func(*TokenQuery)) *PaymentOrder
 		opt(query)
 	}
 	poq.withToken = query
+	return poq
+}
+
+// WithLinkedAddress tells the query-builder to eager-load the nodes that are connected to
+// the "linked_address" edge. The optional arguments are used to configure the query builder of the edge.
+func (poq *PaymentOrderQuery) WithLinkedAddress(opts ...func(*LinkedAddressQuery)) *PaymentOrderQuery {
+	query := (&LinkedAddressClient{config: poq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	poq.withLinkedAddress = query
 	return poq
 }
 
@@ -517,15 +554,16 @@ func (poq *PaymentOrderQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([
 		nodes       = []*PaymentOrder{}
 		withFKs     = poq.withFKs
 		_spec       = poq.querySpec()
-		loadedTypes = [5]bool{
+		loadedTypes = [6]bool{
 			poq.withSenderProfile != nil,
 			poq.withToken != nil,
+			poq.withLinkedAddress != nil,
 			poq.withReceiveAddress != nil,
 			poq.withRecipient != nil,
 			poq.withTransactions != nil,
 		}
 	)
-	if poq.withSenderProfile != nil || poq.withToken != nil {
+	if poq.withSenderProfile != nil || poq.withToken != nil || poq.withLinkedAddress != nil {
 		withFKs = true
 	}
 	if withFKs {
@@ -558,6 +596,12 @@ func (poq *PaymentOrderQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([
 	if query := poq.withToken; query != nil {
 		if err := poq.loadToken(ctx, query, nodes, nil,
 			func(n *PaymentOrder, e *Token) { n.Edges.Token = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := poq.withLinkedAddress; query != nil {
+		if err := poq.loadLinkedAddress(ctx, query, nodes, nil,
+			func(n *PaymentOrder, e *LinkedAddress) { n.Edges.LinkedAddress = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -640,6 +684,38 @@ func (poq *PaymentOrderQuery) loadToken(ctx context.Context, query *TokenQuery, 
 		nodes, ok := nodeids[n.ID]
 		if !ok {
 			return fmt.Errorf(`unexpected foreign-key "token_payment_orders" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
+func (poq *PaymentOrderQuery) loadLinkedAddress(ctx context.Context, query *LinkedAddressQuery, nodes []*PaymentOrder, init func(*PaymentOrder), assign func(*PaymentOrder, *LinkedAddress)) error {
+	ids := make([]int, 0, len(nodes))
+	nodeids := make(map[int][]*PaymentOrder)
+	for i := range nodes {
+		if nodes[i].linked_address_payment_orders == nil {
+			continue
+		}
+		fk := *nodes[i].linked_address_payment_orders
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(linkedaddress.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "linked_address_payment_orders" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
@@ -830,7 +906,7 @@ func (pogb *PaymentOrderGroupBy) Aggregate(fns ...AggregateFunc) *PaymentOrderGr
 
 // Scan applies the selector query and scans the result into the given value.
 func (pogb *PaymentOrderGroupBy) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, pogb.build.ctx, "GroupBy")
+	ctx = setContextOp(ctx, pogb.build.ctx, ent.OpQueryGroupBy)
 	if err := pogb.build.prepareQuery(ctx); err != nil {
 		return err
 	}
@@ -878,7 +954,7 @@ func (pos *PaymentOrderSelect) Aggregate(fns ...AggregateFunc) *PaymentOrderSele
 
 // Scan applies the selector query and scans the result into the given value.
 func (pos *PaymentOrderSelect) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, pos.ctx, "Select")
+	ctx = setContextOp(ctx, pos.ctx, ent.OpQuerySelect)
 	if err := pos.prepareQuery(ctx); err != nil {
 		return err
 	}

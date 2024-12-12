@@ -46,8 +46,8 @@ const (
 	FieldReturnAddress = "return_address"
 	// FieldReceiveAddressText holds the string denoting the receive_address_text field in the database.
 	FieldReceiveAddressText = "receive_address_text"
-	// FieldFeePerTokenUnit holds the string denoting the fee_per_token_unit field in the database.
-	FieldFeePerTokenUnit = "fee_per_token_unit"
+	// FieldFeePercent holds the string denoting the fee_percent field in the database.
+	FieldFeePercent = "fee_percent"
 	// FieldFeeAddress holds the string denoting the fee_address field in the database.
 	FieldFeeAddress = "fee_address"
 	// FieldGatewayID holds the string denoting the gateway_id field in the database.
@@ -58,6 +58,8 @@ const (
 	EdgeSenderProfile = "sender_profile"
 	// EdgeToken holds the string denoting the token edge name in mutations.
 	EdgeToken = "token"
+	// EdgeLinkedAddress holds the string denoting the linked_address edge name in mutations.
+	EdgeLinkedAddress = "linked_address"
 	// EdgeReceiveAddress holds the string denoting the receive_address edge name in mutations.
 	EdgeReceiveAddress = "receive_address"
 	// EdgeRecipient holds the string denoting the recipient edge name in mutations.
@@ -80,6 +82,13 @@ const (
 	TokenInverseTable = "tokens"
 	// TokenColumn is the table column denoting the token relation/edge.
 	TokenColumn = "token_payment_orders"
+	// LinkedAddressTable is the table that holds the linked_address relation/edge.
+	LinkedAddressTable = "payment_orders"
+	// LinkedAddressInverseTable is the table name for the LinkedAddress entity.
+	// It exists in this package in order to avoid circular dependency with the "linkedaddress" package.
+	LinkedAddressInverseTable = "linked_addresses"
+	// LinkedAddressColumn is the table column denoting the linked_address relation/edge.
+	LinkedAddressColumn = "linked_address_payment_orders"
 	// ReceiveAddressTable is the table that holds the receive_address relation/edge.
 	ReceiveAddressTable = "receive_addresses"
 	// ReceiveAddressInverseTable is the table name for the ReceiveAddress entity.
@@ -121,7 +130,7 @@ var Columns = []string{
 	FieldFromAddress,
 	FieldReturnAddress,
 	FieldReceiveAddressText,
-	FieldFeePerTokenUnit,
+	FieldFeePercent,
 	FieldFeeAddress,
 	FieldGatewayID,
 	FieldStatus,
@@ -131,6 +140,7 @@ var Columns = []string{
 // table and are not defined as standalone fields in the schema.
 var ForeignKeys = []string{
 	"api_key_payment_orders",
+	"linked_address_payment_orders",
 	"sender_profile_payment_orders",
 	"token_payment_orders",
 }
@@ -180,7 +190,6 @@ const DefaultStatus = StatusInitiated
 // Status values.
 const (
 	StatusInitiated Status = "initiated"
-	StatusReverted  Status = "reverted"
 	StatusPending   Status = "pending"
 	StatusExpired   Status = "expired"
 	StatusSettled   Status = "settled"
@@ -194,7 +203,7 @@ func (s Status) String() string {
 // StatusValidator is a validator for the "status" field enum values. It is called by the builders before save.
 func StatusValidator(s Status) error {
 	switch s {
-	case StatusInitiated, StatusReverted, StatusPending, StatusExpired, StatusSettled, StatusRefunded:
+	case StatusInitiated, StatusPending, StatusExpired, StatusSettled, StatusRefunded:
 		return nil
 	default:
 		return fmt.Errorf("paymentorder: invalid enum value for status field: %q", s)
@@ -284,9 +293,9 @@ func ByReceiveAddressText(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldReceiveAddressText, opts...).ToFunc()
 }
 
-// ByFeePerTokenUnit orders the results by the fee_per_token_unit field.
-func ByFeePerTokenUnit(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldFeePerTokenUnit, opts...).ToFunc()
+// ByFeePercent orders the results by the fee_percent field.
+func ByFeePercent(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFeePercent, opts...).ToFunc()
 }
 
 // ByFeeAddress orders the results by the fee_address field.
@@ -315,6 +324,13 @@ func BySenderProfileField(field string, opts ...sql.OrderTermOption) OrderOption
 func ByTokenField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newTokenStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByLinkedAddressField orders the results by linked_address field.
+func ByLinkedAddressField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newLinkedAddressStep(), sql.OrderByField(field, opts...))
 	}
 }
 
@@ -357,6 +373,13 @@ func newTokenStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(TokenInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, TokenTable, TokenColumn),
+	)
+}
+func newLinkedAddressStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(LinkedAddressInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, LinkedAddressTable, LinkedAddressColumn),
 	)
 }
 func newReceiveAddressStep() *sqlgraph.Step {

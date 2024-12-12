@@ -64,14 +64,6 @@ func (lpoc *LockPaymentOrderCreate) SetGatewayID(s string) *LockPaymentOrderCrea
 	return lpoc
 }
 
-// SetNillableGatewayID sets the "gateway_id" field if the given value is not nil.
-func (lpoc *LockPaymentOrderCreate) SetNillableGatewayID(s *string) *LockPaymentOrderCreate {
-	if s != nil {
-		lpoc.SetGatewayID(*s)
-	}
-	return lpoc
-}
-
 // SetAmount sets the "amount" field.
 func (lpoc *LockPaymentOrderCreate) SetAmount(d decimal.Decimal) *LockPaymentOrderCreate {
 	lpoc.mutation.SetAmount(d)
@@ -239,23 +231,19 @@ func (lpoc *LockPaymentOrderCreate) SetProvider(p *ProviderProfile) *LockPayment
 	return lpoc.SetProviderID(p.ID)
 }
 
-// SetFulfillmentID sets the "fulfillment" edge to the LockOrderFulfillment entity by ID.
-func (lpoc *LockPaymentOrderCreate) SetFulfillmentID(id uuid.UUID) *LockPaymentOrderCreate {
-	lpoc.mutation.SetFulfillmentID(id)
+// AddFulfillmentIDs adds the "fulfillments" edge to the LockOrderFulfillment entity by IDs.
+func (lpoc *LockPaymentOrderCreate) AddFulfillmentIDs(ids ...uuid.UUID) *LockPaymentOrderCreate {
+	lpoc.mutation.AddFulfillmentIDs(ids...)
 	return lpoc
 }
 
-// SetNillableFulfillmentID sets the "fulfillment" edge to the LockOrderFulfillment entity by ID if the given value is not nil.
-func (lpoc *LockPaymentOrderCreate) SetNillableFulfillmentID(id *uuid.UUID) *LockPaymentOrderCreate {
-	if id != nil {
-		lpoc = lpoc.SetFulfillmentID(*id)
+// AddFulfillments adds the "fulfillments" edges to the LockOrderFulfillment entity.
+func (lpoc *LockPaymentOrderCreate) AddFulfillments(l ...*LockOrderFulfillment) *LockPaymentOrderCreate {
+	ids := make([]uuid.UUID, len(l))
+	for i := range l {
+		ids[i] = l[i].ID
 	}
-	return lpoc
-}
-
-// SetFulfillment sets the "fulfillment" edge to the LockOrderFulfillment entity.
-func (lpoc *LockPaymentOrderCreate) SetFulfillment(l *LockOrderFulfillment) *LockPaymentOrderCreate {
-	return lpoc.SetFulfillmentID(l.ID)
+	return lpoc.AddFulfillmentIDs(ids...)
 }
 
 // AddTransactionIDs adds the "transactions" edge to the TransactionLog entity by IDs.
@@ -315,10 +303,6 @@ func (lpoc *LockPaymentOrderCreate) defaults() {
 	if _, ok := lpoc.mutation.UpdatedAt(); !ok {
 		v := lockpaymentorder.DefaultUpdatedAt()
 		lpoc.mutation.SetUpdatedAt(v)
-	}
-	if _, ok := lpoc.mutation.GatewayID(); !ok {
-		v := lockpaymentorder.DefaultGatewayID
-		lpoc.mutation.SetGatewayID(v)
 	}
 	if _, ok := lpoc.mutation.Status(); !ok {
 		v := lockpaymentorder.DefaultStatus
@@ -389,7 +373,7 @@ func (lpoc *LockPaymentOrderCreate) check() error {
 	if _, ok := lpoc.mutation.CancellationReasons(); !ok {
 		return &ValidationError{Name: "cancellation_reasons", err: errors.New(`ent: missing required field "LockPaymentOrder.cancellation_reasons"`)}
 	}
-	if _, ok := lpoc.mutation.TokenID(); !ok {
+	if len(lpoc.mutation.TokenIDs()) == 0 {
 		return &ValidationError{Name: "token", err: errors.New(`ent: missing required edge "LockPaymentOrder.token"`)}
 	}
 	return nil
@@ -539,12 +523,12 @@ func (lpoc *LockPaymentOrderCreate) createSpec() (*LockPaymentOrder, *sqlgraph.C
 		_node.provider_profile_assigned_orders = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := lpoc.mutation.FulfillmentIDs(); len(nodes) > 0 {
+	if nodes := lpoc.mutation.FulfillmentsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   lockpaymentorder.FulfillmentTable,
-			Columns: []string{lockpaymentorder.FulfillmentColumn},
+			Table:   lockpaymentorder.FulfillmentsTable,
+			Columns: []string{lockpaymentorder.FulfillmentsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(lockorderfulfillment.FieldID, field.TypeUUID),
@@ -1170,12 +1154,16 @@ func (u *LockPaymentOrderUpsertOne) IDX(ctx context.Context) uuid.UUID {
 // LockPaymentOrderCreateBulk is the builder for creating many LockPaymentOrder entities in bulk.
 type LockPaymentOrderCreateBulk struct {
 	config
+	err      error
 	builders []*LockPaymentOrderCreate
 	conflict []sql.ConflictOption
 }
 
 // Save creates the LockPaymentOrder entities in the database.
 func (lpocb *LockPaymentOrderCreateBulk) Save(ctx context.Context) ([]*LockPaymentOrder, error) {
+	if lpocb.err != nil {
+		return nil, lpocb.err
+	}
 	specs := make([]*sqlgraph.CreateSpec, len(lpocb.builders))
 	nodes := make([]*LockPaymentOrder, len(lpocb.builders))
 	mutators := make([]Mutator, len(lpocb.builders))
@@ -1590,6 +1578,9 @@ func (u *LockPaymentOrderUpsertBulk) UpdateCancellationReasons() *LockPaymentOrd
 
 // Exec executes the query.
 func (u *LockPaymentOrderUpsertBulk) Exec(ctx context.Context) error {
+	if u.create.err != nil {
+		return u.create.err
+	}
 	for i, b := range u.create.builders {
 		if len(b.conflict) != 0 {
 			return fmt.Errorf("ent: OnConflict was set for builder %d. Set it on the LockPaymentOrderCreateBulk instead", i)

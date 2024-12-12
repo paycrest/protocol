@@ -11,7 +11,6 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
-	"github.com/paycrest/protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	"github.com/paycrest/protocol/ent/providerprofile"
 	"github.com/paycrest/protocol/ent/provisionbucket"
@@ -71,8 +70,8 @@ type LockPaymentOrderEdges struct {
 	ProvisionBucket *ProvisionBucket `json:"provision_bucket,omitempty"`
 	// Provider holds the value of the provider edge.
 	Provider *ProviderProfile `json:"provider,omitempty"`
-	// Fulfillment holds the value of the fulfillment edge.
-	Fulfillment *LockOrderFulfillment `json:"fulfillment,omitempty"`
+	// Fulfillments holds the value of the fulfillments edge.
+	Fulfillments []*LockOrderFulfillment `json:"fulfillments,omitempty"`
 	// Transactions holds the value of the transactions edge.
 	Transactions []*TransactionLog `json:"transactions,omitempty"`
 	// loadedTypes holds the information for reporting if a
@@ -83,12 +82,10 @@ type LockPaymentOrderEdges struct {
 // TokenOrErr returns the Token value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e LockPaymentOrderEdges) TokenOrErr() (*Token, error) {
-	if e.loadedTypes[0] {
-		if e.Token == nil {
-			// Edge was loaded but was not found.
-			return nil, &NotFoundError{label: token.Label}
-		}
+	if e.Token != nil {
 		return e.Token, nil
+	} else if e.loadedTypes[0] {
+		return nil, &NotFoundError{label: token.Label}
 	}
 	return nil, &NotLoadedError{edge: "token"}
 }
@@ -96,12 +93,10 @@ func (e LockPaymentOrderEdges) TokenOrErr() (*Token, error) {
 // ProvisionBucketOrErr returns the ProvisionBucket value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e LockPaymentOrderEdges) ProvisionBucketOrErr() (*ProvisionBucket, error) {
-	if e.loadedTypes[1] {
-		if e.ProvisionBucket == nil {
-			// Edge was loaded but was not found.
-			return nil, &NotFoundError{label: provisionbucket.Label}
-		}
+	if e.ProvisionBucket != nil {
 		return e.ProvisionBucket, nil
+	} else if e.loadedTypes[1] {
+		return nil, &NotFoundError{label: provisionbucket.Label}
 	}
 	return nil, &NotLoadedError{edge: "provision_bucket"}
 }
@@ -109,27 +104,21 @@ func (e LockPaymentOrderEdges) ProvisionBucketOrErr() (*ProvisionBucket, error) 
 // ProviderOrErr returns the Provider value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e LockPaymentOrderEdges) ProviderOrErr() (*ProviderProfile, error) {
-	if e.loadedTypes[2] {
-		if e.Provider == nil {
-			// Edge was loaded but was not found.
-			return nil, &NotFoundError{label: providerprofile.Label}
-		}
+	if e.Provider != nil {
 		return e.Provider, nil
+	} else if e.loadedTypes[2] {
+		return nil, &NotFoundError{label: providerprofile.Label}
 	}
 	return nil, &NotLoadedError{edge: "provider"}
 }
 
-// FulfillmentOrErr returns the Fulfillment value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e LockPaymentOrderEdges) FulfillmentOrErr() (*LockOrderFulfillment, error) {
+// FulfillmentsOrErr returns the Fulfillments value or an error if the edge
+// was not loaded in eager-loading.
+func (e LockPaymentOrderEdges) FulfillmentsOrErr() ([]*LockOrderFulfillment, error) {
 	if e.loadedTypes[3] {
-		if e.Fulfillment == nil {
-			// Edge was loaded but was not found.
-			return nil, &NotFoundError{label: lockorderfulfillment.Label}
-		}
-		return e.Fulfillment, nil
+		return e.Fulfillments, nil
 	}
-	return nil, &NotLoadedError{edge: "fulfillment"}
+	return nil, &NotLoadedError{edge: "fulfillments"}
 }
 
 // TransactionsOrErr returns the Transactions value or an error if the edge
@@ -326,9 +315,9 @@ func (lpo *LockPaymentOrder) QueryProvider() *ProviderProfileQuery {
 	return NewLockPaymentOrderClient(lpo.config).QueryProvider(lpo)
 }
 
-// QueryFulfillment queries the "fulfillment" edge of the LockPaymentOrder entity.
-func (lpo *LockPaymentOrder) QueryFulfillment() *LockOrderFulfillmentQuery {
-	return NewLockPaymentOrderClient(lpo.config).QueryFulfillment(lpo)
+// QueryFulfillments queries the "fulfillments" edge of the LockPaymentOrder entity.
+func (lpo *LockPaymentOrder) QueryFulfillments() *LockOrderFulfillmentQuery {
+	return NewLockPaymentOrderClient(lpo.config).QueryFulfillments(lpo)
 }
 
 // QueryTransactions queries the "transactions" edge of the LockPaymentOrder entity.

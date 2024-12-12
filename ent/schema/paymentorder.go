@@ -45,11 +45,11 @@ func (PaymentOrder) Fields() []ent.Field {
 			Optional(),
 		field.String("receive_address_text").
 			MaxLen(60),
-		field.Float("fee_per_token_unit").GoType(decimal.Decimal{}),
+		field.Float("fee_percent").GoType(decimal.Decimal{}),
 		field.String("fee_address").Optional(),
 		field.String("gateway_id").Optional(),
 		field.Enum("status").
-			Values("initiated", "reverted", "pending", "expired", "settled", "refunded").
+			Values("initiated", "pending", "expired", "settled", "refunded").
 			Default("initiated"),
 	}
 }
@@ -59,12 +59,14 @@ func (PaymentOrder) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("sender_profile", SenderProfile.Type).
 			Ref("payment_orders").
-			Unique().
-			Required(),
+			Unique(),
 		edge.From("token", Token.Type).
 			Ref("payment_orders").
 			Unique().
 			Required(),
+		edge.From("linked_address", LinkedAddress.Type).
+			Ref("payment_orders").
+			Unique(),
 		edge.To("receive_address", ReceiveAddress.Type).
 			Unique().
 			Annotations(entsql.OnDelete(entsql.SetNull)),

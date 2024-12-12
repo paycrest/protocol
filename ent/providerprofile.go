@@ -28,8 +28,6 @@ type ProviderProfile struct {
 	HostIdentifier string `json:"host_identifier,omitempty"`
 	// ProvisionMode holds the value of the "provision_mode" field.
 	ProvisionMode providerprofile.ProvisionMode `json:"provision_mode,omitempty"`
-	// IsPartner holds the value of the "is_partner" field.
-	IsPartner bool `json:"is_partner,omitempty"`
 	// IsActive holds the value of the "is_active" field.
 	IsActive bool `json:"is_active,omitempty"`
 	// IsAvailable holds the value of the "is_available" field.
@@ -86,12 +84,10 @@ type ProviderProfileEdges struct {
 // UserOrErr returns the User value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e ProviderProfileEdges) UserOrErr() (*User, error) {
-	if e.loadedTypes[0] {
-		if e.User == nil {
-			// Edge was loaded but was not found.
-			return nil, &NotFoundError{label: user.Label}
-		}
+	if e.User != nil {
 		return e.User, nil
+	} else if e.loadedTypes[0] {
+		return nil, &NotFoundError{label: user.Label}
 	}
 	return nil, &NotLoadedError{edge: "user"}
 }
@@ -99,12 +95,10 @@ func (e ProviderProfileEdges) UserOrErr() (*User, error) {
 // APIKeyOrErr returns the APIKey value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e ProviderProfileEdges) APIKeyOrErr() (*APIKey, error) {
-	if e.loadedTypes[1] {
-		if e.APIKey == nil {
-			// Edge was loaded but was not found.
-			return nil, &NotFoundError{label: apikey.Label}
-		}
+	if e.APIKey != nil {
 		return e.APIKey, nil
+	} else if e.loadedTypes[1] {
+		return nil, &NotFoundError{label: apikey.Label}
 	}
 	return nil, &NotLoadedError{edge: "api_key"}
 }
@@ -112,12 +106,10 @@ func (e ProviderProfileEdges) APIKeyOrErr() (*APIKey, error) {
 // CurrencyOrErr returns the Currency value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e ProviderProfileEdges) CurrencyOrErr() (*FiatCurrency, error) {
-	if e.loadedTypes[2] {
-		if e.Currency == nil {
-			// Edge was loaded but was not found.
-			return nil, &NotFoundError{label: fiatcurrency.Label}
-		}
+	if e.Currency != nil {
 		return e.Currency, nil
+	} else if e.loadedTypes[2] {
+		return nil, &NotFoundError{label: fiatcurrency.Label}
 	}
 	return nil, &NotLoadedError{edge: "currency"}
 }
@@ -143,12 +135,10 @@ func (e ProviderProfileEdges) OrderTokensOrErr() ([]*ProviderOrderToken, error) 
 // ProviderRatingOrErr returns the ProviderRating value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e ProviderProfileEdges) ProviderRatingOrErr() (*ProviderRating, error) {
-	if e.loadedTypes[5] {
-		if e.ProviderRating == nil {
-			// Edge was loaded but was not found.
-			return nil, &NotFoundError{label: providerrating.Label}
-		}
+	if e.ProviderRating != nil {
 		return e.ProviderRating, nil
+	} else if e.loadedTypes[5] {
+		return nil, &NotFoundError{label: providerrating.Label}
 	}
 	return nil, &NotLoadedError{edge: "provider_rating"}
 }
@@ -167,7 +157,7 @@ func (*ProviderProfile) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case providerprofile.FieldIsPartner, providerprofile.FieldIsActive, providerprofile.FieldIsAvailable, providerprofile.FieldIsKybVerified:
+		case providerprofile.FieldIsActive, providerprofile.FieldIsAvailable, providerprofile.FieldIsKybVerified:
 			values[i] = new(sql.NullBool)
 		case providerprofile.FieldID, providerprofile.FieldTradingName, providerprofile.FieldHostIdentifier, providerprofile.FieldProvisionMode, providerprofile.FieldVisibilityMode, providerprofile.FieldAddress, providerprofile.FieldMobileNumber, providerprofile.FieldBusinessName, providerprofile.FieldIdentityDocumentType, providerprofile.FieldIdentityDocument, providerprofile.FieldBusinessDocument:
 			values[i] = new(sql.NullString)
@@ -215,12 +205,6 @@ func (pp *ProviderProfile) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field provision_mode", values[i])
 			} else if value.Valid {
 				pp.ProvisionMode = providerprofile.ProvisionMode(value.String)
-			}
-		case providerprofile.FieldIsPartner:
-			if value, ok := values[i].(*sql.NullBool); !ok {
-				return fmt.Errorf("unexpected type %T for field is_partner", values[i])
-			} else if value.Valid {
-				pp.IsPartner = value.Bool
 			}
 		case providerprofile.FieldIsActive:
 			if value, ok := values[i].(*sql.NullBool); !ok {
@@ -387,9 +371,6 @@ func (pp *ProviderProfile) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("provision_mode=")
 	builder.WriteString(fmt.Sprintf("%v", pp.ProvisionMode))
-	builder.WriteString(", ")
-	builder.WriteString("is_partner=")
-	builder.WriteString(fmt.Sprintf("%v", pp.IsPartner))
 	builder.WriteString(", ")
 	builder.WriteString("is_active=")
 	builder.WriteString(fmt.Sprintf("%v", pp.IsActive))

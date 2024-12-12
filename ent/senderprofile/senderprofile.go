@@ -19,6 +19,8 @@ const (
 	FieldWebhookURL = "webhook_url"
 	// FieldDomainWhitelist holds the string denoting the domain_whitelist field in the database.
 	FieldDomainWhitelist = "domain_whitelist"
+	// FieldProviderID holds the string denoting the provider_id field in the database.
+	FieldProviderID = "provider_id"
 	// FieldIsPartner holds the string denoting the is_partner field in the database.
 	FieldIsPartner = "is_partner"
 	// FieldIsActive holds the string denoting the is_active field in the database.
@@ -33,6 +35,8 @@ const (
 	EdgePaymentOrders = "payment_orders"
 	// EdgeOrderTokens holds the string denoting the order_tokens edge name in mutations.
 	EdgeOrderTokens = "order_tokens"
+	// EdgeLinkedAddress holds the string denoting the linked_address edge name in mutations.
+	EdgeLinkedAddress = "linked_address"
 	// Table holds the table name of the senderprofile in the database.
 	Table = "sender_profiles"
 	// UserTable is the table that holds the user relation/edge.
@@ -63,6 +67,13 @@ const (
 	OrderTokensInverseTable = "sender_order_tokens"
 	// OrderTokensColumn is the table column denoting the order_tokens relation/edge.
 	OrderTokensColumn = "sender_profile_order_tokens"
+	// LinkedAddressTable is the table that holds the linked_address relation/edge.
+	LinkedAddressTable = "linked_addresses"
+	// LinkedAddressInverseTable is the table name for the LinkedAddress entity.
+	// It exists in this package in order to avoid circular dependency with the "linkedaddress" package.
+	LinkedAddressInverseTable = "linked_addresses"
+	// LinkedAddressColumn is the table column denoting the linked_address relation/edge.
+	LinkedAddressColumn = "sender_profile_linked_address"
 )
 
 // Columns holds all SQL columns for senderprofile fields.
@@ -70,6 +81,7 @@ var Columns = []string{
 	FieldID,
 	FieldWebhookURL,
 	FieldDomainWhitelist,
+	FieldProviderID,
 	FieldIsPartner,
 	FieldIsActive,
 	FieldUpdatedAt,
@@ -122,6 +134,11 @@ func ByID(opts ...sql.OrderTermOption) OrderOption {
 // ByWebhookURL orders the results by the webhook_url field.
 func ByWebhookURL(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldWebhookURL, opts...).ToFunc()
+}
+
+// ByProviderID orders the results by the provider_id field.
+func ByProviderID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldProviderID, opts...).ToFunc()
 }
 
 // ByIsPartner orders the results by the is_partner field.
@@ -180,6 +197,20 @@ func ByOrderTokens(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newOrderTokensStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByLinkedAddressCount orders the results by linked_address count.
+func ByLinkedAddressCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newLinkedAddressStep(), opts...)
+	}
+}
+
+// ByLinkedAddress orders the results by linked_address terms.
+func ByLinkedAddress(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newLinkedAddressStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newUserStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -206,5 +237,12 @@ func newOrderTokensStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(OrderTokensInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, OrderTokensTable, OrderTokensColumn),
+	)
+}
+func newLinkedAddressStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(LinkedAddressInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, LinkedAddressTable, LinkedAddressColumn),
 	)
 }
