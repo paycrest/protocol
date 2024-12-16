@@ -83,7 +83,7 @@ func (s *PriorityQueueService) GetProviderRate(ctx context.Context, provider *en
 			providerordertoken.SymbolEQ(token),
 		).
 		WithProvider(func(pq *ent.ProviderProfileQuery) {
-			pq.WithCurrency()
+			pq.WithCurrencies()
 		}).
 		Select(
 			providerordertoken.FieldConversionRateType,
@@ -128,6 +128,8 @@ func (s *PriorityQueueService) CreatePriorityQueueForBucket(ctx context.Context,
 	if err != nil {
 		logger.Errorf("failed to delete existing circular queue: %v", err)
 	}
+
+	// TODO: add also the checks for all the currencies that a provider has
 
 	for _, provider := range providers {
 		tokens, err := storage.Client.ProviderOrderToken.
@@ -333,7 +335,8 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 func (s *PriorityQueueService) sendOrderRequest(ctx context.Context, order types.LockPaymentOrderFields) error {
 	// Assign the order to the provider and save it to Redis
 	orderKey := fmt.Sprintf("order_request_%s", order.ID)
-
+	
+	// TODO: Now we need to add currency
 	orderRequestData := map[string]interface{}{
 		"amount":      order.Amount.Mul(order.Rate).RoundBank(0).String(),
 		"institution": order.Institution,
