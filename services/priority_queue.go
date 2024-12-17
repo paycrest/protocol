@@ -152,7 +152,7 @@ func (s *PriorityQueueService) CreatePriorityQueueForBucket(ctx context.Context,
 			providerID := provider.ID
 			rate, err := s.GetProviderRate(ctx, provider, orderToken.Edges.Token.Symbol, bucket.Edges.Currency.Code)
 			if err != nil {
-				logger.Errorf("failed to get %s rate for provider %s: %v", token.Symbol, providerID, err)
+				logger.Errorf("failed to get %s rate for provider %s: %v", orderToken.Edges.Token.Symbol, providerID, err)
 				continue
 			}
 
@@ -166,7 +166,7 @@ func (s *PriorityQueueService) CreatePriorityQueueForBucket(ctx context.Context,
 			}
 
 			// Serialize the provider ID, token, rate, min and max order amount into a single string
-			data := fmt.Sprintf("%s:%s:%s:%s:%s", providerID, token.Symbol, rate, orderToken.MinOrderAmount, orderToken.MaxOrderAmount)
+			data := fmt.Sprintf("%s:%s:%s:%s:%s", providerID, orderToken.Edges.Token.Symbol, rate, orderToken.MinOrderAmount, orderToken.MaxOrderAmount)
 
 			// Enqueue the serialized data into the circular queue
 			err = storage.RedisClient.RPush(ctx, redisKey, data).Err()
