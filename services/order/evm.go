@@ -2,6 +2,7 @@ package order
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
@@ -816,14 +817,20 @@ func (s *OrderEVM) settleCallData(ctx context.Context, order *ent.LockPaymentOrd
 
 // encryptOrderRecipient encrypts the recipient details
 func (s *OrderEVM) encryptOrderRecipient(recipient *ent.PaymentOrderRecipient) (string, error) {
+	// Generate a cryptographically secure random nonce
+    nonce := make([]byte, 32)
+    if _, err := rand.Read(nonce); err != nil {
+        return "", fmt.Errorf("failed to generate nonce: %w", err)
+    }
 	message := struct {
+		Nonce			  string
 		AccountIdentifier string
 		AccountName       string
 		Institution       string
 		ProviderID        string
 		Memo              string
 	}{
-		recipient.AccountIdentifier, recipient.AccountName, recipient.Institution, recipient.ProviderID, recipient.Memo,
+		base64.StdEncoding.EncodeToString(nonce), recipient.AccountIdentifier, recipient.AccountName, recipient.Institution, recipient.ProviderID, recipient.Memo,
 	}
 
 	// Encrypt with the public key of the aggregator
