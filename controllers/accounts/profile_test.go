@@ -444,6 +444,33 @@ func TestProfile(t *testing.T) {
 				assert.Equal(t, "Invalid mobile number", response.Message)
 			})
 
+			t.Run("success for valid moblie number", func(t *testing.T) {
+				payload := types.ProviderProfilePayload{
+					MobileNumber:   "+2347012345678",
+					TradingName:    testCtx.providerProfile.TradingName,
+					HostIdentifier: testCtx.providerProfile.HostIdentifier,
+					Currency:       "KES",
+				}
+				res := profileUpdateRequest(payload)
+
+				// Assert the response body
+				assert.Equal(t, http.StatusOK, res.Code)
+
+				var response types.Response
+				err = json.Unmarshal(res.Body.Bytes(), &response)
+				assert.NoError(t, err)
+				assert.Equal(t, "Profile updated successfully", response.Message)
+
+				// Assert optional fields were correctly set and retrieved
+				providerProfile, err := db.Client.ProviderProfile.
+					Query().
+					Where(providerprofile.HasUserWith(user.ID(testCtx.user.ID))).
+					Only(context.Background())
+				assert.NoError(t, err)
+
+				assert.Equal(t, providerProfile.MobileNumber, "+2347012345678")
+			})
+
 			t.Run("fails for invalid identity document type", func(t *testing.T) {
 				payload := types.ProviderProfilePayload{
 					IdentityDocumentType: "student_id",
