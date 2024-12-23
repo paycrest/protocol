@@ -1341,7 +1341,7 @@ func (s *IndexerService) UpdateOrderStatusRefunded(ctx context.Context, log *typ
 		return fmt.Errorf("UpdateOrderStatusRefunded.commit %v", err)
 	}
 
-	if paymentOrderExists {
+	if paymentOrderExists && paymentOrder.Status != paymentorder.StatusRefunded {
 		paymentOrder.Status = paymentorder.StatusRefunded
 		paymentOrder.TxHash = log.TxHash
 
@@ -1437,6 +1437,7 @@ func (s *IndexerService) UpdateOrderStatusSettled(ctx context.Context, event *ty
 		return fmt.Errorf("UpdateOrderStatusSettled.aggregator: %v", err)
 	}
 
+	settledPercent := decimal.NewFromInt(0)
 	// Sender side status update
 	if paymentOrderExists && paymentOrder.Status != paymentorder.StatusSettled {
 		paymentOrderUpdate := tx.PaymentOrder.
@@ -1477,8 +1478,13 @@ func (s *IndexerService) UpdateOrderStatusSettled(ctx context.Context, event *ty
 		return fmt.Errorf("UpdateOrderStatusSettled.sender %v", err)
 	}
 
-	if paymentOrderExists {
-		// Send webhook notifcation to sender
+	if paymentOrderExists && paymentOrder.Status != paymentorder.StatusSettled {
+		if settledPercent.GreaterThanOrEqual(decimal.NewFromInt(100)) {
+			paymentOrder.Status = paymentorder.StatusSettled
+		}
+		paymentOrder.TxHash = event.TxHash
+
+		// Send webhook notification to sender
 		err = utils.SendPaymentOrderWebhook(ctx, paymentOrder)
 		if err != nil {
 			return fmt.Errorf("UpdateOrderStatusSettled.webhook: %v", err)
