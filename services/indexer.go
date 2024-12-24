@@ -1449,7 +1449,7 @@ func (s *IndexerService) UpdateOrderStatusSettled(ctx context.Context, event *ty
 			SetTxHash(event.TxHash)
 
 		// Convert settled percent to BPS and update
-		settledPercent := paymentOrder.PercentSettled.Add(decimal.NewFromBigInt(event.SettlePercent, 0).Div(decimal.NewFromInt(1000)))
+		settledPercent = paymentOrder.PercentSettled.Add(decimal.NewFromBigInt(event.SettlePercent, 0).Div(decimal.NewFromInt(1000)))
 
 		// If settled percent is 100%, mark order as settled
 		if settledPercent.GreaterThanOrEqual(decimal.NewFromInt(100)) {
