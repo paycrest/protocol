@@ -180,6 +180,12 @@ var (
 	ReturnAddressValidator func(string) error
 	// ReceiveAddressTextValidator is a validator for the "receive_address_text" field. It is called by the builders before save.
 	ReceiveAddressTextValidator func(string) error
+	// FeeAddressValidator is a validator for the "fee_address" field. It is called by the builders before save.
+	FeeAddressValidator func(string) error
+	// GatewayIDValidator is a validator for the "gateway_id" field. It is called by the builders before save.
+	GatewayIDValidator func(string) error
+	// ReferenceValidator is a validator for the "reference" field. It is called by the builders before save.
+	ReferenceValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() uuid.UUID
 )

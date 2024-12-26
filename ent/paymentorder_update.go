@@ -616,6 +616,21 @@ func (pou *PaymentOrderUpdate) check() error {
 			return &ValidationError{Name: "receive_address_text", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.receive_address_text": %w`, err)}
 		}
 	}
+	if v, ok := pou.mutation.FeeAddress(); ok {
+		if err := paymentorder.FeeAddressValidator(v); err != nil {
+			return &ValidationError{Name: "fee_address", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.fee_address": %w`, err)}
+		}
+	}
+	if v, ok := pou.mutation.GatewayID(); ok {
+		if err := paymentorder.GatewayIDValidator(v); err != nil {
+			return &ValidationError{Name: "gateway_id", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.gateway_id": %w`, err)}
+		}
+	}
+	if v, ok := pou.mutation.Reference(); ok {
+		if err := paymentorder.ReferenceValidator(v); err != nil {
+			return &ValidationError{Name: "reference", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.reference": %w`, err)}
+		}
+	}
 	if v, ok := pou.mutation.Status(); ok {
 		if err := paymentorder.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.status": %w`, err)}
@@ -1545,6 +1560,21 @@ func (pouo *PaymentOrderUpdateOne) check() error {
 	if v, ok := pouo.mutation.ReceiveAddressText(); ok {
 		if err := paymentorder.ReceiveAddressTextValidator(v); err != nil {
 			return &ValidationError{Name: "receive_address_text", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.receive_address_text": %w`, err)}
+		}
+	}
+	if v, ok := pouo.mutation.FeeAddress(); ok {
+		if err := paymentorder.FeeAddressValidator(v); err != nil {
+			return &ValidationError{Name: "fee_address", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.fee_address": %w`, err)}
+		}
+	}
+	if v, ok := pouo.mutation.GatewayID(); ok {
+		if err := paymentorder.GatewayIDValidator(v); err != nil {
+			return &ValidationError{Name: "gateway_id", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.gateway_id": %w`, err)}
+		}
+	}
+	if v, ok := pouo.mutation.Reference(); ok {
+		if err := paymentorder.ReferenceValidator(v); err != nil {
+			return &ValidationError{Name: "reference", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.reference": %w`, err)}
 		}
 	}
 	if v, ok := pouo.mutation.Status(); ok {

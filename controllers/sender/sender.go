@@ -2,6 +2,7 @@ package sender
 
 import (
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
@@ -221,6 +222,7 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 				Field:   "Token",
 				Message: "Provided token is not configured",
 			})
+			_ = tx.Rollback()
 			return
 		}
 	}
@@ -241,6 +243,7 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 				Field:   "FeeAddress",
 				Message: "FeeAddress is not allowed",
 			})
+			_ = tx.Rollback()
 			return
 		}
 
@@ -250,6 +253,7 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 					Field:   "FeeAddress",
 					Message: "Invalid Ethereum address",
 				})
+				_ = tx.Rollback()
 				return
 			}
 		} else {
@@ -258,6 +262,7 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 					Field:   "FeeAddress",
 					Message: "Invalid Tron address",
 				})
+				_ = tx.Rollback()
 				return
 			}
 		}
@@ -271,6 +276,7 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 					Field:   "ReturnAddress",
 					Message: "Invalid Ethereum address",
 				})
+				_ = tx.Rollback()
 				return
 			}
 		} else {
@@ -279,8 +285,41 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 					Field:   "ReturnAddress",
 					Message: "Invalid Tron address",
 				})
+				_ = tx.Rollback()
 				return
 			}
+		}
+	}
+
+	if payload.Reference != "" {
+		if !regexp.MustCompile(`^[a-zA-Z0-9\-_]+$`).MatchString(payload.Reference) {
+			u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
+				Field:   "Reference",
+				Message: "Reference must be alphanumeric",
+			})
+			return
+		}
+
+		referenceExists, err := storage.Client.PaymentOrder.
+			Query().
+			Where(
+				paymentorder.ReferenceEQ(payload.Reference),
+			).
+			Exist(ctx)
+		if err != nil {
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to initiate payment order", nil)
+			_ = tx.Rollback()
+			return
+		}
+
+		if referenceExists {
+			u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
+				Field:   "Reference",
+				Message: "Reference already exists",
+			})
+			_ = tx.Rollback()
+			return
 		}
 	}
 
@@ -378,14 +417,12 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 func (ctrl *SenderController) GetPaymentOrderByID(ctx *gin.Context) {
 	// Get order ID from the URL
 	orderID := ctx.Param("id")
+	isUUID := true
 
 	// Convert order ID to UUID
 	id, err := uuid.Parse(orderID)
 	if err != nil {
-		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusBadRequest, "error",
-			"Invalid order ID", nil)
-		return
+		isUUID = false
 	}
 
 	// Get sender profile from the context
@@ -397,25 +434,34 @@ func (ctrl *SenderController) GetPaymentOrderByID(ctx *gin.Context) {
 	sender := senderCtx.(*ent.SenderProfile)
 
 	// Fetch payment order from the database
-	paymentOrder, err := storage.Client.PaymentOrder.
-		Query().
-		Where(
-			paymentorder.IDEQ(id),
-			paymentorder.HasSenderProfileWith(senderprofile.IDEQ(sender.ID)),
-		).
+	paymentOrderQuery := storage.Client.PaymentOrder.Query()
+
+	if isUUID {
+		paymentOrderQuery = paymentOrderQuery.Where(paymentorder.IDEQ(id))
+	} else {
+		paymentOrderQuery = paymentOrderQuery.Where(paymentorder.ReferenceEQ(orderID))
+	}
+
+	paymentOrder, err := paymentOrderQuery.
+		Where(paymentorder.HasSenderProfileWith(senderprofile.IDEQ(sender.ID))).
 		WithRecipient().
 		WithToken(func(tq *ent.TokenQuery) {
 			tq.WithNetwork()
 		}).
 		WithTransactions().
 		Only(ctx)
-
 	if err != nil {
-		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusNotFound, "error",
-			"Payment order not found", nil)
+		if ent.IsNotFound(err) {
+			u.APIResponse(ctx, http.StatusNotFound, "error",
+				"Payment order not found", nil)
+		} else {
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error",
+				"Failed to fetch payment order", nil)
+		}
 		return
 	}
+
 	var transactions []types.TransactionLog
 	for _, transaction := range paymentOrder.Edges.Transactions {
 		transactions = append(transactions, types.TransactionLog{
