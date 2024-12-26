@@ -229,6 +229,18 @@ func init() {
 	paymentorderDescReceiveAddressText := paymentorderFields[13].Descriptor()
 	// paymentorder.ReceiveAddressTextValidator is a validator for the "receive_address_text" field. It is called by the builders before save.
 	paymentorder.ReceiveAddressTextValidator = paymentorderDescReceiveAddressText.Validators[0].(func(string) error)
+	// paymentorderDescFeeAddress is the schema descriptor for fee_address field.
+	paymentorderDescFeeAddress := paymentorderFields[15].Descriptor()
+	// paymentorder.FeeAddressValidator is a validator for the "fee_address" field. It is called by the builders before save.
+	paymentorder.FeeAddressValidator = paymentorderDescFeeAddress.Validators[0].(func(string) error)
+	// paymentorderDescGatewayID is the schema descriptor for gateway_id field.
+	paymentorderDescGatewayID := paymentorderFields[16].Descriptor()
+	// paymentorder.GatewayIDValidator is a validator for the "gateway_id" field. It is called by the builders before save.
+	paymentorder.GatewayIDValidator = paymentorderDescGatewayID.Validators[0].(func(string) error)
+	// paymentorderDescReference is the schema descriptor for reference field.
+	paymentorderDescReference := paymentorderFields[17].Descriptor()
+	// paymentorder.ReferenceValidator is a validator for the "reference" field. It is called by the builders before save.
+	paymentorder.ReferenceValidator = paymentorderDescReference.Validators[0].(func(string) error)
 	// paymentorderDescID is the schema descriptor for id field.
 	paymentorderDescID := paymentorderFields[0].Descriptor()
 	// paymentorder.DefaultID holds the default value on creation for the id field.

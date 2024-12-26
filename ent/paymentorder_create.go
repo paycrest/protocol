@@ -465,6 +465,21 @@ func (poc *PaymentOrderCreate) check() error {
 	if _, ok := poc.mutation.FeePercent(); !ok {
 		return &ValidationError{Name: "fee_percent", err: errors.New(`ent: missing required field "PaymentOrder.fee_percent"`)}
 	}
+	if v, ok := poc.mutation.FeeAddress(); ok {
+		if err := paymentorder.FeeAddressValidator(v); err != nil {
+			return &ValidationError{Name: "fee_address", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.fee_address": %w`, err)}
+		}
+	}
+	if v, ok := poc.mutation.GatewayID(); ok {
+		if err := paymentorder.GatewayIDValidator(v); err != nil {
+			return &ValidationError{Name: "gateway_id", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.gateway_id": %w`, err)}
+		}
+	}
+	if v, ok := poc.mutation.Reference(); ok {
+		if err := paymentorder.ReferenceValidator(v); err != nil {
+			return &ValidationError{Name: "reference", err: fmt.Errorf(`ent: validator failed for field "PaymentOrder.reference": %w`, err)}
+		}
+	}
 	if _, ok := poc.mutation.Status(); !ok {
 		return &ValidationError{Name: "status", err: errors.New(`ent: missing required field "PaymentOrder.status"`)}
 	}

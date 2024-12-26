@@ -46,9 +46,15 @@ func (PaymentOrder) Fields() []ent.Field {
 		field.String("receive_address_text").
 			MaxLen(60),
 		field.Float("fee_percent").GoType(decimal.Decimal{}),
-		field.String("fee_address").Optional(),
-		field.String("gateway_id").Optional(),
-		field.String("reference").Optional(),
+		field.String("fee_address").
+			MaxLen(60).
+			Optional(),
+		field.String("gateway_id").
+			MaxLen(70).
+			Optional(),
+		field.String("reference").
+			MaxLen(70).
+			Optional(),
 		field.Enum("status").
 			Values("initiated", "pending", "expired", "settled", "refunded").
 			Default("initiated"),
