@@ -366,6 +366,26 @@ func (pou *PaymentOrderUpdate) ClearGatewayID() *PaymentOrderUpdate {
 	return pou
 }
 
+// SetReference sets the "reference" field.
+func (pou *PaymentOrderUpdate) SetReference(s string) *PaymentOrderUpdate {
+	pou.mutation.SetReference(s)
+	return pou
+}
+
+// SetNillableReference sets the "reference" field if the given value is not nil.
+func (pou *PaymentOrderUpdate) SetNillableReference(s *string) *PaymentOrderUpdate {
+	if s != nil {
+		pou.SetReference(*s)
+	}
+	return pou
+}
+
+// ClearReference clears the value of the "reference" field.
+func (pou *PaymentOrderUpdate) ClearReference() *PaymentOrderUpdate {
+	pou.mutation.ClearReference()
+	return pou
+}
+
 // SetStatus sets the "status" field.
 func (pou *PaymentOrderUpdate) SetStatus(pa paymentorder.Status) *PaymentOrderUpdate {
 	pou.mutation.SetStatus(pa)
@@ -714,6 +734,12 @@ func (pou *PaymentOrderUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if pou.mutation.GatewayIDCleared() {
 		_spec.ClearField(paymentorder.FieldGatewayID, field.TypeString)
+	}
+	if value, ok := pou.mutation.Reference(); ok {
+		_spec.SetField(paymentorder.FieldReference, field.TypeString, value)
+	}
+	if pou.mutation.ReferenceCleared() {
+		_spec.ClearField(paymentorder.FieldReference, field.TypeString)
 	}
 	if value, ok := pou.mutation.Status(); ok {
 		_spec.SetField(paymentorder.FieldStatus, field.TypeEnum, value)
@@ -1258,6 +1284,26 @@ func (pouo *PaymentOrderUpdateOne) ClearGatewayID() *PaymentOrderUpdateOne {
 	return pouo
 }
 
+// SetReference sets the "reference" field.
+func (pouo *PaymentOrderUpdateOne) SetReference(s string) *PaymentOrderUpdateOne {
+	pouo.mutation.SetReference(s)
+	return pouo
+}
+
+// SetNillableReference sets the "reference" field if the given value is not nil.
+func (pouo *PaymentOrderUpdateOne) SetNillableReference(s *string) *PaymentOrderUpdateOne {
+	if s != nil {
+		pouo.SetReference(*s)
+	}
+	return pouo
+}
+
+// ClearReference clears the value of the "reference" field.
+func (pouo *PaymentOrderUpdateOne) ClearReference() *PaymentOrderUpdateOne {
+	pouo.mutation.ClearReference()
+	return pouo
+}
+
 // SetStatus sets the "status" field.
 func (pouo *PaymentOrderUpdateOne) SetStatus(pa paymentorder.Status) *PaymentOrderUpdateOne {
 	pouo.mutation.SetStatus(pa)
@@ -1636,6 +1682,12 @@ func (pouo *PaymentOrderUpdateOne) sqlSave(ctx context.Context) (_node *PaymentO
 	}
 	if pouo.mutation.GatewayIDCleared() {
 		_spec.ClearField(paymentorder.FieldGatewayID, field.TypeString)
+	}
+	if value, ok := pouo.mutation.Reference(); ok {
+		_spec.SetField(paymentorder.FieldReference, field.TypeString, value)
+	}
+	if pouo.mutation.ReferenceCleared() {
+		_spec.ClearField(paymentorder.FieldReference, field.TypeString)
 	}
 	if value, ok := pouo.mutation.Status(); ok {
 		_spec.SetField(paymentorder.FieldStatus, field.TypeEnum, value)

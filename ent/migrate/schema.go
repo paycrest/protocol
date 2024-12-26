@@ -246,6 +246,7 @@ var (
 		{Name: "fee_percent", Type: field.TypeFloat64},
 		{Name: "fee_address", Type: field.TypeString, Nullable: true},
 		{Name: "gateway_id", Type: field.TypeString, Nullable: true},
+		{Name: "reference", Type: field.TypeString, Nullable: true},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"initiated", "pending", "expired", "settled", "refunded"}, Default: "initiated"},
 		{Name: "api_key_payment_orders", Type: field.TypeUUID, Nullable: true},
 		{Name: "linked_address_payment_orders", Type: field.TypeInt, Nullable: true},
@@ -260,25 +261,25 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "payment_orders_api_keys_payment_orders",
-				Columns:    []*schema.Column{PaymentOrdersColumns[20]},
+				Columns:    []*schema.Column{PaymentOrdersColumns[21]},
 				RefColumns: []*schema.Column{APIKeysColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "payment_orders_linked_addresses_payment_orders",
-				Columns:    []*schema.Column{PaymentOrdersColumns[21]},
+				Columns:    []*schema.Column{PaymentOrdersColumns[22]},
 				RefColumns: []*schema.Column{LinkedAddressesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "payment_orders_sender_profiles_payment_orders",
-				Columns:    []*schema.Column{PaymentOrdersColumns[22]},
+				Columns:    []*schema.Column{PaymentOrdersColumns[23]},
 				RefColumns: []*schema.Column{SenderProfilesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "payment_orders_tokens_payment_orders",
-				Columns:    []*schema.Column{PaymentOrdersColumns[23]},
+				Columns:    []*schema.Column{PaymentOrdersColumns[24]},
 				RefColumns: []*schema.Column{TokensColumns[0]},
 				OnDelete:   schema.Cascade,
 			},

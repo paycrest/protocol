@@ -147,6 +147,11 @@ func GatewayID(v string) predicate.PaymentOrder {
 	return predicate.PaymentOrder(sql.FieldEQ(FieldGatewayID, v))
 }
 
+// Reference applies equality check predicate on the "reference" field. It's identical to ReferenceEQ.
+func Reference(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldEQ(FieldReference, v))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.PaymentOrder {
 	return predicate.PaymentOrder(sql.FieldEQ(FieldCreatedAt, v))
@@ -1065,6 +1070,81 @@ func GatewayIDEqualFold(v string) predicate.PaymentOrder {
 // GatewayIDContainsFold applies the ContainsFold predicate on the "gateway_id" field.
 func GatewayIDContainsFold(v string) predicate.PaymentOrder {
 	return predicate.PaymentOrder(sql.FieldContainsFold(FieldGatewayID, v))
+}
+
+// ReferenceEQ applies the EQ predicate on the "reference" field.
+func ReferenceEQ(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldEQ(FieldReference, v))
+}
+
+// ReferenceNEQ applies the NEQ predicate on the "reference" field.
+func ReferenceNEQ(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldNEQ(FieldReference, v))
+}
+
+// ReferenceIn applies the In predicate on the "reference" field.
+func ReferenceIn(vs ...string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldIn(FieldReference, vs...))
+}
+
+// ReferenceNotIn applies the NotIn predicate on the "reference" field.
+func ReferenceNotIn(vs ...string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldNotIn(FieldReference, vs...))
+}
+
+// ReferenceGT applies the GT predicate on the "reference" field.
+func ReferenceGT(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldGT(FieldReference, v))
+}
+
+// ReferenceGTE applies the GTE predicate on the "reference" field.
+func ReferenceGTE(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldGTE(FieldReference, v))
+}
+
+// ReferenceLT applies the LT predicate on the "reference" field.
+func ReferenceLT(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldLT(FieldReference, v))
+}
+
+// ReferenceLTE applies the LTE predicate on the "reference" field.
+func ReferenceLTE(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldLTE(FieldReference, v))
+}
+
+// ReferenceContains applies the Contains predicate on the "reference" field.
+func ReferenceContains(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldContains(FieldReference, v))
+}
+
+// ReferenceHasPrefix applies the HasPrefix predicate on the "reference" field.
+func ReferenceHasPrefix(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldHasPrefix(FieldReference, v))
+}
+
+// ReferenceHasSuffix applies the HasSuffix predicate on the "reference" field.
+func ReferenceHasSuffix(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldHasSuffix(FieldReference, v))
+}
+
+// ReferenceIsNil applies the IsNil predicate on the "reference" field.
+func ReferenceIsNil() predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldIsNull(FieldReference))
+}
+
+// ReferenceNotNil applies the NotNil predicate on the "reference" field.
+func ReferenceNotNil() predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldNotNull(FieldReference))
+}
+
+// ReferenceEqualFold applies the EqualFold predicate on the "reference" field.
+func ReferenceEqualFold(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldEqualFold(FieldReference, v))
+}
+
+// ReferenceContainsFold applies the ContainsFold predicate on the "reference" field.
+func ReferenceContainsFold(v string) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldContainsFold(FieldReference, v))
 }
 
 // StatusEQ applies the EQ predicate on the "status" field.

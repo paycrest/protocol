@@ -370,6 +370,7 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 			ValidUntil:     receiveAddress.ValidUntil,
 			SenderFee:      senderFee,
 			TransactionFee: protocolFee.Add(token.Edges.Network.Fee),
+			Reference:      paymentOrder.Reference,
 		})
 }
 
@@ -461,6 +462,7 @@ func (ctrl *SenderController) GetPaymentOrderByID(ctx *gin.Context) {
 		ReturnAddress:  paymentOrder.ReturnAddress,
 		ReceiveAddress: paymentOrder.ReceiveAddressText,
 		FeeAddress:     paymentOrder.FeeAddress,
+		Reference:      paymentOrder.Reference,
 		GatewayID:      paymentOrder.GatewayID,
 		CreatedAt:      paymentOrder.CreatedAt,
 		UpdatedAt:      paymentOrder.UpdatedAt,
@@ -626,6 +628,7 @@ func (ctrl *SenderController) GetPaymentOrders(ctx *gin.Context) {
 			ReturnAddress:  paymentOrder.ReturnAddress,
 			ReceiveAddress: paymentOrder.ReceiveAddressText,
 			FeeAddress:     paymentOrder.FeeAddress,
+			Reference:      paymentOrder.Reference,
 			GatewayID:      paymentOrder.GatewayID,
 			CreatedAt:      paymentOrder.CreatedAt,
 			UpdatedAt:      paymentOrder.UpdatedAt,

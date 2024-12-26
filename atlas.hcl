@@ -1,14 +1,3 @@
-variable "cloud_token" { 
-  type    = string
-  default = getenv("ATLAS_TOKEN")
-}
-  
-atlas {
-  cloud {
-    token = var.cloud_token
-  }
-}
-
 data "remote_dir" "staging" {
   name = "protocol-staging"
 }

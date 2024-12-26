@@ -19,6 +19,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	fastshot "github.com/opus-domini/fast-shot"
 	"github.com/paycrest/protocol/ent"
+	institutionEnt "github.com/paycrest/protocol/ent/institution"
 	"github.com/paycrest/protocol/ent/paymentorder"
 	"github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
@@ -224,6 +225,15 @@ func SendPaymentOrderWebhook(ctx context.Context, paymentOrder *ent.PaymentOrder
 		return err
 	}
 
+	institution, err := storage.Client.Institution.
+		Query().
+		Where(institutionEnt.CodeEQ(recipient.Institution)).
+		WithFiatCurrency().
+		Only(ctx)
+	if err != nil {
+		return err
+	}
+
 	// Create the payload
 	payloadStruct := types.PaymentOrderWebhookPayload{
 		Event: event,
@@ -240,6 +250,7 @@ func SendPaymentOrderWebhook(ctx context.Context, paymentOrder *ent.PaymentOrder
 			GatewayID:      paymentOrder.GatewayID,
 			SenderID:       profile.ID,
 			Recipient: types.PaymentOrderRecipient{
+				Currency:          institution.Edges.FiatCurrency.Code,
 				Institution:       recipient.Institution,
 				AccountIdentifier: recipient.AccountIdentifier,
 				AccountName:       recipient.AccountName,
@@ -248,6 +259,7 @@ func SendPaymentOrderWebhook(ctx context.Context, paymentOrder *ent.PaymentOrder
 			},
 			FromAddress:   paymentOrder.FromAddress,
 			ReturnAddress: paymentOrder.ReturnAddress,
+			Reference:     paymentOrder.Reference,
 			UpdatedAt:     paymentOrder.UpdatedAt,
 			CreatedAt:     paymentOrder.CreatedAt,
 			TxHash:        paymentOrder.TxHash,
