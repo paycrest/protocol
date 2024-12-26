@@ -420,14 +420,14 @@ func TestProfile(t *testing.T) {
 			}
 			t.Run("fails for invalid mobile number", func(t *testing.T) {
 				payload := types.ProviderProfilePayload{
-					MobileNumber:   "1234567890",
+					MobileNumber:   "01234567890",
 					TradingName:    testCtx.providerProfile.TradingName,
 					HostIdentifier: testCtx.providerProfile.HostIdentifier,
 					Currency:       "KES",
 				}
 				res1 := profileUpdateRequest(payload)
 
-				payload.MobileNumber = "+23456789029"
+				payload.MobileNumber = "+023456789029"
 				res2 := profileUpdateRequest(payload)
 
 				// Assert the response body
