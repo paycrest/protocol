@@ -300,7 +300,7 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 			return
 		}
 
-		referenceExists, err := storage.Client.PaymentOrder.
+		referenceExists, err := tx.PaymentOrder.
 			Query().
 			Where(
 				paymentorder.ReferenceEQ(payload.Reference),
@@ -366,6 +366,7 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 		SetFeePercent(feePercent).
 		SetFeeAddress(feeAddress).
 		SetReturnAddress(payload.ReturnAddress).
+		SetReference(payload.Reference).
 		AddTransactions(transactionLog).
 		Save(ctx)
 	if err != nil {

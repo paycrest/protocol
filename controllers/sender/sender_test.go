@@ -149,6 +149,7 @@ func TestSender(t *testing.T) {
 		payload := map[string]interface{}{
 			"amount":  "100",
 			"token":   testCtx.token.Symbol,
+
 			"rate":    "750",
 			"network": network.Identifier,
 			"recipient": map[string]interface{}{
@@ -157,6 +158,7 @@ func TestSender(t *testing.T) {
 				"accountName":       "John Doe",
 				"memo":              "Shola Kehinde - rent for May 2021",
 			},
+			"reference": "12kjdf-kjn33_REF",
 		}
 
 		headers := map[string]string{
@@ -179,6 +181,7 @@ func TestSender(t *testing.T) {
 
 		assert.Equal(t, data["amount"], payload["amount"])
 		assert.Equal(t, data["network"], payload["network"])
+		assert.Equal(t, data["reference"], payload["reference"])
 		assert.NotEmpty(t, data["validUntil"])
 
 		// Parse the payment order ID string to uuid.UUID
