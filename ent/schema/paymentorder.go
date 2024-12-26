@@ -48,6 +48,7 @@ func (PaymentOrder) Fields() []ent.Field {
 		field.Float("fee_percent").GoType(decimal.Decimal{}),
 		field.String("fee_address").Optional(),
 		field.String("gateway_id").Optional(),
+		field.String("reference").Optional(),
 		field.Enum("status").
 			Values("initiated", "pending", "expired", "settled", "refunded").
 			Default("initiated"),

@@ -396,6 +396,7 @@ type NewPaymentOrderPayload struct {
 	Rate          decimal.Decimal       `json:"rate" binding:"required"`
 	Network       string                `json:"network" binding:"required"`
 	Recipient     PaymentOrderRecipient `json:"recipient" binding:"required"`
+	Reference     string                `json:"reference"`
 	ReturnAddress string                `json:"returnAddress"`
 	FeePercent    decimal.Decimal       `json:"feePercent"`
 	FeeAddress    string                `json:"feeAddress"`
@@ -411,6 +412,7 @@ type ReceiveAddressResponse struct {
 	ValidUntil     time.Time       `json:"validUntil"`
 	SenderFee      decimal.Decimal `json:"senderFee"`
 	TransactionFee decimal.Decimal `json:"transactionFee"`
+	Reference      string          `json:"reference"`
 }
 
 // PaymentOrderResponse is the response type for a payment order
@@ -430,6 +432,7 @@ type PaymentOrderResponse struct {
 	ReturnAddress  string                `json:"returnAddress"`
 	ReceiveAddress string                `json:"receiveAddress"`
 	FeeAddress     string                `json:"feeAddress"`
+	Reference      string                `json:"reference"`
 	CreatedAt      time.Time             `json:"createdAt"`
 	UpdatedAt      time.Time             `json:"updatedAt"`
 	TxHash         string                `json:"txHash"`
@@ -453,6 +456,7 @@ type PaymentOrderWebhookData struct {
 	Recipient      PaymentOrderRecipient `json:"recipient"`
 	FromAddress    string                `json:"fromAddress"`
 	ReturnAddress  string                `json:"returnAddress"`
+	Reference      string                `json:"reference"`
 	UpdatedAt      time.Time             `json:"updatedAt"`
 	CreatedAt      time.Time             `json:"createdAt"`
 	TxHash         string                `json:"txHash"`

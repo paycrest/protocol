@@ -52,6 +52,8 @@ const (
 	FieldFeeAddress = "fee_address"
 	// FieldGatewayID holds the string denoting the gateway_id field in the database.
 	FieldGatewayID = "gateway_id"
+	// FieldReference holds the string denoting the reference field in the database.
+	FieldReference = "reference"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
 	// EdgeSenderProfile holds the string denoting the sender_profile edge name in mutations.
@@ -133,6 +135,7 @@ var Columns = []string{
 	FieldFeePercent,
 	FieldFeeAddress,
 	FieldGatewayID,
+	FieldReference,
 	FieldStatus,
 }
 
@@ -306,6 +309,11 @@ func ByFeeAddress(opts ...sql.OrderTermOption) OrderOption {
 // ByGatewayID orders the results by the gateway_id field.
 func ByGatewayID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldGatewayID, opts...).ToFunc()
+}
+
+// ByReference orders the results by the reference field.
+func ByReference(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldReference, opts...).ToFunc()
 }
 
 // ByStatus orders the results by the status field.

@@ -203,6 +203,20 @@ func (poc *PaymentOrderCreate) SetNillableGatewayID(s *string) *PaymentOrderCrea
 	return poc
 }
 
+// SetReference sets the "reference" field.
+func (poc *PaymentOrderCreate) SetReference(s string) *PaymentOrderCreate {
+	poc.mutation.SetReference(s)
+	return poc
+}
+
+// SetNillableReference sets the "reference" field if the given value is not nil.
+func (poc *PaymentOrderCreate) SetNillableReference(s *string) *PaymentOrderCreate {
+	if s != nil {
+		poc.SetReference(*s)
+	}
+	return poc
+}
+
 // SetStatus sets the "status" field.
 func (poc *PaymentOrderCreate) SetStatus(pa paymentorder.Status) *PaymentOrderCreate {
 	poc.mutation.SetStatus(pa)
@@ -569,6 +583,10 @@ func (poc *PaymentOrderCreate) createSpec() (*PaymentOrder, *sqlgraph.CreateSpec
 	if value, ok := poc.mutation.GatewayID(); ok {
 		_spec.SetField(paymentorder.FieldGatewayID, field.TypeString, value)
 		_node.GatewayID = value
+	}
+	if value, ok := poc.mutation.Reference(); ok {
+		_spec.SetField(paymentorder.FieldReference, field.TypeString, value)
+		_node.Reference = value
 	}
 	if value, ok := poc.mutation.Status(); ok {
 		_spec.SetField(paymentorder.FieldStatus, field.TypeEnum, value)
@@ -1019,6 +1037,24 @@ func (u *PaymentOrderUpsert) ClearGatewayID() *PaymentOrderUpsert {
 	return u
 }
 
+// SetReference sets the "reference" field.
+func (u *PaymentOrderUpsert) SetReference(v string) *PaymentOrderUpsert {
+	u.Set(paymentorder.FieldReference, v)
+	return u
+}
+
+// UpdateReference sets the "reference" field to the value that was provided on create.
+func (u *PaymentOrderUpsert) UpdateReference() *PaymentOrderUpsert {
+	u.SetExcluded(paymentorder.FieldReference)
+	return u
+}
+
+// ClearReference clears the value of the "reference" field.
+func (u *PaymentOrderUpsert) ClearReference() *PaymentOrderUpsert {
+	u.SetNull(paymentorder.FieldReference)
+	return u
+}
+
 // SetStatus sets the "status" field.
 func (u *PaymentOrderUpsert) SetStatus(v paymentorder.Status) *PaymentOrderUpsert {
 	u.Set(paymentorder.FieldStatus, v)
@@ -1422,6 +1458,27 @@ func (u *PaymentOrderUpsertOne) UpdateGatewayID() *PaymentOrderUpsertOne {
 func (u *PaymentOrderUpsertOne) ClearGatewayID() *PaymentOrderUpsertOne {
 	return u.Update(func(s *PaymentOrderUpsert) {
 		s.ClearGatewayID()
+	})
+}
+
+// SetReference sets the "reference" field.
+func (u *PaymentOrderUpsertOne) SetReference(v string) *PaymentOrderUpsertOne {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.SetReference(v)
+	})
+}
+
+// UpdateReference sets the "reference" field to the value that was provided on create.
+func (u *PaymentOrderUpsertOne) UpdateReference() *PaymentOrderUpsertOne {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.UpdateReference()
+	})
+}
+
+// ClearReference clears the value of the "reference" field.
+func (u *PaymentOrderUpsertOne) ClearReference() *PaymentOrderUpsertOne {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.ClearReference()
 	})
 }
 
@@ -1997,6 +2054,27 @@ func (u *PaymentOrderUpsertBulk) UpdateGatewayID() *PaymentOrderUpsertBulk {
 func (u *PaymentOrderUpsertBulk) ClearGatewayID() *PaymentOrderUpsertBulk {
 	return u.Update(func(s *PaymentOrderUpsert) {
 		s.ClearGatewayID()
+	})
+}
+
+// SetReference sets the "reference" field.
+func (u *PaymentOrderUpsertBulk) SetReference(v string) *PaymentOrderUpsertBulk {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.SetReference(v)
+	})
+}
+
+// UpdateReference sets the "reference" field to the value that was provided on create.
+func (u *PaymentOrderUpsertBulk) UpdateReference() *PaymentOrderUpsertBulk {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.UpdateReference()
+	})
+}
+
+// ClearReference clears the value of the "reference" field.
+func (u *PaymentOrderUpsertBulk) ClearReference() *PaymentOrderUpsertBulk {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.ClearReference()
 	})
 }
 

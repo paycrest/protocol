@@ -7414,6 +7414,7 @@ type PaymentOrderMutation struct {
 	addfee_percent         *decimal.Decimal
 	fee_address            *string
 	gateway_id             *string
+	reference              *string
 	status                 *paymentorder.Status
 	clearedFields          map[string]struct{}
 	sender_profile         *uuid.UUID
@@ -8451,6 +8452,55 @@ func (m *PaymentOrderMutation) ResetGatewayID() {
 	delete(m.clearedFields, paymentorder.FieldGatewayID)
 }
 
+// SetReference sets the "reference" field.
+func (m *PaymentOrderMutation) SetReference(s string) {
+	m.reference = &s
+}
+
+// Reference returns the value of the "reference" field in the mutation.
+func (m *PaymentOrderMutation) Reference() (r string, exists bool) {
+	v := m.reference
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldReference returns the old "reference" field's value of the PaymentOrder entity.
+// If the PaymentOrder object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PaymentOrderMutation) OldReference(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldReference is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldReference requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReference: %w", err)
+	}
+	return oldValue.Reference, nil
+}
+
+// ClearReference clears the value of the "reference" field.
+func (m *PaymentOrderMutation) ClearReference() {
+	m.reference = nil
+	m.clearedFields[paymentorder.FieldReference] = struct{}{}
+}
+
+// ReferenceCleared returns if the "reference" field was cleared in this mutation.
+func (m *PaymentOrderMutation) ReferenceCleared() bool {
+	_, ok := m.clearedFields[paymentorder.FieldReference]
+	return ok
+}
+
+// ResetReference resets all changes to the "reference" field.
+func (m *PaymentOrderMutation) ResetReference() {
+	m.reference = nil
+	delete(m.clearedFields, paymentorder.FieldReference)
+}
+
 // SetStatus sets the "status" field.
 func (m *PaymentOrderMutation) SetStatus(pa paymentorder.Status) {
 	m.status = &pa
@@ -8770,7 +8820,7 @@ func (m *PaymentOrderMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *PaymentOrderMutation) Fields() []string {
-	fields := make([]string, 0, 19)
+	fields := make([]string, 0, 20)
 	if m.created_at != nil {
 		fields = append(fields, paymentorder.FieldCreatedAt)
 	}
@@ -8825,6 +8875,9 @@ func (m *PaymentOrderMutation) Fields() []string {
 	if m.gateway_id != nil {
 		fields = append(fields, paymentorder.FieldGatewayID)
 	}
+	if m.reference != nil {
+		fields = append(fields, paymentorder.FieldReference)
+	}
 	if m.status != nil {
 		fields = append(fields, paymentorder.FieldStatus)
 	}
@@ -8872,6 +8925,8 @@ func (m *PaymentOrderMutation) Field(name string) (ent.Value, bool) {
 		return m.FeeAddress()
 	case paymentorder.FieldGatewayID:
 		return m.GatewayID()
+	case paymentorder.FieldReference:
+		return m.Reference()
 	case paymentorder.FieldStatus:
 		return m.Status()
 	}
@@ -8919,6 +8974,8 @@ func (m *PaymentOrderMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldFeeAddress(ctx)
 	case paymentorder.FieldGatewayID:
 		return m.OldGatewayID(ctx)
+	case paymentorder.FieldReference:
+		return m.OldReference(ctx)
 	case paymentorder.FieldStatus:
 		return m.OldStatus(ctx)
 	}
@@ -9055,6 +9112,13 @@ func (m *PaymentOrderMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetGatewayID(v)
+		return nil
+	case paymentorder.FieldReference:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetReference(v)
 		return nil
 	case paymentorder.FieldStatus:
 		v, ok := value.(paymentorder.Status)
@@ -9231,6 +9295,9 @@ func (m *PaymentOrderMutation) ClearedFields() []string {
 	if m.FieldCleared(paymentorder.FieldGatewayID) {
 		fields = append(fields, paymentorder.FieldGatewayID)
 	}
+	if m.FieldCleared(paymentorder.FieldReference) {
+		fields = append(fields, paymentorder.FieldReference)
+	}
 	return fields
 }
 
@@ -9259,6 +9326,9 @@ func (m *PaymentOrderMutation) ClearField(name string) error {
 		return nil
 	case paymentorder.FieldGatewayID:
 		m.ClearGatewayID()
+		return nil
+	case paymentorder.FieldReference:
+		m.ClearReference()
 		return nil
 	}
 	return fmt.Errorf("unknown PaymentOrder nullable field %s", name)
@@ -9321,6 +9391,9 @@ func (m *PaymentOrderMutation) ResetField(name string) error {
 		return nil
 	case paymentorder.FieldGatewayID:
 		m.ResetGatewayID()
+		return nil
+	case paymentorder.FieldReference:
+		m.ResetReference()
 		return nil
 	case paymentorder.FieldStatus:
 		m.ResetStatus()
