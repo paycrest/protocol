@@ -87,6 +87,120 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 		return
 	}
 
+	// Handle sender profile overrides
+	senderOrderToken, err := storage.Client.SenderOrderToken.
+		Query().
+		Where(
+			senderordertoken.HasTokenWith(
+				tokenEnt.IDEQ(token.ID),
+			),
+			senderordertoken.HasSenderWith(
+				senderprofile.IDEQ(sender.ID),
+			),
+		).
+		Only(ctx)
+	if err != nil {
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
+			Field:   "Token",
+			Message: "Provided token is not configured",
+		})
+		return
+	}
+
+	if senderOrderToken.FeeAddress == "" || senderOrderToken.RefundAddress == "" {
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
+			Field:   "Token",
+			Message: "Fee address or refund address is not configured",
+		})
+		return
+	}
+
+	if payload.FeeAddress != "" {
+		if !sender.IsPartner {
+			u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
+				Field:   "FeeAddress",
+				Message: "FeeAddress is not allowed",
+			})
+			return
+		}
+
+		if payload.FeePercent.IsZero() {
+			u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
+				Field:   "FeePercent",
+				Message: "FeePercent must be greater than zero",
+			})
+			return
+		}
+
+		if !strings.HasPrefix(payload.Network, "tron") {
+			if !u.IsValidEthereumAddress(payload.FeeAddress) {
+				u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
+					Field:   "FeeAddress",
+					Message: "Invalid Ethereum address",
+				})
+				return
+			}
+		} else {
+			if !u.IsValidTronAddress(payload.FeeAddress) {
+				u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
+					Field:   "FeeAddress",
+					Message: "Invalid Tron address",
+				})
+				return
+			}
+		}
+	}
+
+	if payload.ReturnAddress != "" {
+		if !strings.HasPrefix(payload.Network, "tron") {
+			if !u.IsValidEthereumAddress(payload.ReturnAddress) {
+				u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
+					Field:   "ReturnAddress",
+					Message: "Invalid Ethereum address",
+				})
+				return
+			}
+		} else {
+			if !u.IsValidTronAddress(payload.ReturnAddress) {
+				u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
+					Field:   "ReturnAddress",
+					Message: "Invalid Tron address",
+				})
+				return
+			}
+		}
+	}
+
+	if payload.Reference != "" {
+		if !regexp.MustCompile(`^[a-zA-Z0-9\-_]+$`).MatchString(payload.Reference) {
+			u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
+				Field:   "Reference",
+				Message: "Reference must be alphanumeric",
+			})
+			return
+		}
+
+		referenceExists, err := storage.Client.PaymentOrder.
+			Query().
+			Where(
+				paymentorder.ReferenceEQ(payload.Reference),
+			).
+			Exist(ctx)
+		if err != nil {
+			logger.Errorf("error: %v", err)
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to initiate payment order", nil)
+			return
+		}
+
+		if referenceExists {
+			u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
+				Field:   "Reference",
+				Message: "Reference already exists",
+			})
+			return
+		}
+	}
+
 	isPrivate := false
 	isTokenNetworkPresent := false
 	maxOrderAmount := decimal.NewFromInt(0)
@@ -201,134 +315,8 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 		return
 	}
 
-	// Handle sender profile overrides
-	var feePercent decimal.Decimal
-	var feeAddress string
-	var senderOrderToken *ent.SenderOrderToken
-
-	if (payload.FeePercent.IsZero() && !strings.HasPrefix(payload.Recipient.Memo, "P#P")) || payload.FeeAddress == "" {
-		senderOrderToken, err = tx.SenderOrderToken.
-			Query().
-			Where(
-				senderordertoken.HasTokenWith(
-					tokenEnt.IDEQ(token.ID),
-				),
-				senderordertoken.HasSenderWith(
-					senderprofile.IDEQ(sender.ID),
-				),
-			).Only(ctx)
-		if err != nil {
-			u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
-				Field:   "Token",
-				Message: "Provided token is not configured",
-			})
-			_ = tx.Rollback()
-			return
-		}
-	}
-
-	if payload.FeePercent.IsZero() && !strings.HasPrefix(payload.Recipient.Memo, "P#P") {
-		feePercent = senderOrderToken.FeePercent
-	} else {
-		feePercent = payload.FeePercent
-	}
-
-	if payload.FeeAddress == "" {
-		feeAddress = senderOrderToken.FeeAddress
-	}
-
-	if payload.FeeAddress != "" {
-		if !sender.IsPartner && !strings.HasPrefix(payload.Recipient.Memo, "P#P") {
-			u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
-				Field:   "FeeAddress",
-				Message: "FeeAddress is not allowed",
-			})
-			_ = tx.Rollback()
-			return
-		}
-
-		if !strings.HasPrefix(payload.Network, "tron") {
-			if !u.IsValidEthereumAddress(payload.FeeAddress) {
-				u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
-					Field:   "FeeAddress",
-					Message: "Invalid Ethereum address",
-				})
-				_ = tx.Rollback()
-				return
-			}
-		} else {
-			if !u.IsValidTronAddress(payload.FeeAddress) {
-				u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
-					Field:   "FeeAddress",
-					Message: "Invalid Tron address",
-				})
-				_ = tx.Rollback()
-				return
-			}
-		}
-		feeAddress = payload.FeeAddress
-	}
-
-	if payload.ReturnAddress != "" {
-		if !strings.HasPrefix(payload.Network, "tron") {
-			if !u.IsValidEthereumAddress(payload.ReturnAddress) {
-				u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
-					Field:   "ReturnAddress",
-					Message: "Invalid Ethereum address",
-				})
-				_ = tx.Rollback()
-				return
-			}
-		} else {
-			if !u.IsValidTronAddress(payload.ReturnAddress) {
-				u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
-					Field:   "ReturnAddress",
-					Message: "Invalid Tron address",
-				})
-				_ = tx.Rollback()
-				return
-			}
-		}
-	}
-
-	if payload.Reference != "" {
-		if !regexp.MustCompile(`^[a-zA-Z0-9\-_]+$`).MatchString(payload.Reference) {
-			u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
-				Field:   "Reference",
-				Message: "Reference must be alphanumeric",
-			})
-			return
-		}
-
-		referenceExists, err := tx.PaymentOrder.
-			Query().
-			Where(
-				paymentorder.ReferenceEQ(payload.Reference),
-			).
-			Exist(ctx)
-		if err != nil {
-			logger.Errorf("error: %v", err)
-			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to initiate payment order", nil)
-			_ = tx.Rollback()
-			return
-		}
-
-		if referenceExists {
-			u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
-				Field:   "Reference",
-				Message: "Reference already exists",
-			})
-			_ = tx.Rollback()
-			return
-		}
-	}
-
-	senderFee := decimal.NewFromFloat(0)
+	senderFee := payload.FeePercent.Mul(payload.Amount).Div(decimal.NewFromInt(100)).Round(4)
 	protocolFee := decimal.NewFromFloat(0)
-
-	if !strings.HasPrefix(payload.Recipient.Memo, "P#P") {
-		senderFee = feePercent.Mul(payload.Amount).Div(decimal.NewFromInt(100)).Round(4)
-	}
 
 	// Create transaction Log
 	transactionLog, err := tx.TransactionLog.
@@ -363,8 +351,8 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 		SetRate(payload.Rate).
 		SetReceiveAddress(receiveAddress).
 		SetReceiveAddressText(receiveAddress.Address).
-		SetFeePercent(feePercent).
-		SetFeeAddress(feeAddress).
+		SetFeePercent(payload.FeePercent).
+		SetFeeAddress(payload.FeeAddress).
 		SetReturnAddress(payload.ReturnAddress).
 		SetReference(payload.Reference).
 		AddTransactions(transactionLog).
