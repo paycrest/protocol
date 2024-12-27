@@ -418,7 +418,6 @@ func (s *OrderTron) createOrderCallData(order *ent.PaymentOrder) ([]byte, error)
 	}
 
 	// Fetch token configuration
-	isTokenConfigured := true
 	var networkIdentifier string
 
 	if serverConf.Environment == "production" {
@@ -427,34 +426,29 @@ func (s *OrderTron) createOrderCallData(order *ent.PaymentOrder) ([]byte, error)
 		networkIdentifier = "tron-shasta"
 	}
 
-	token, err := db.Client.SenderOrderToken.
-		Query().
-		Where(
-			senderordertoken.And(
-				senderordertoken.HasTokenWith(
-					tokenEnt.HasNetworkWith(network.IdentifierEQ(networkIdentifier)),
-				),
-				senderordertoken.HasSenderWith(
-					senderprofile.IDEQ(order.Edges.SenderProfile.ID),
-				),
-			)).
-		Only(context.Background())
-	if err != nil {
-		if ent.IsNotFound(err) {
-			isTokenConfigured = false
-		} else {
-			return nil, fmt.Errorf("failed to fetch order token: %w", err)
-		}
-	}
-
 	var refundAddress string
 	var refundAddressTron util.Address
 
-	if isTokenConfigured {
-		refundAddressTron, _ = util.Base58ToAddress(token.RefundAddress)
+	if order.ReturnAddress != "" {
+		refundAddressTron, _ = util.Base58ToAddress(order.ReturnAddress)
 		refundAddress = refundAddressTron.Hex()[4:]
 	} else {
-		refundAddressTron, _ = util.Base58ToAddress(order.ReturnAddress)
+		token, err := db.Client.SenderOrderToken.
+			Query().
+			Where(
+				senderordertoken.And(
+					senderordertoken.HasTokenWith(
+						tokenEnt.HasNetworkWith(network.IdentifierEQ(networkIdentifier)),
+					),
+					senderordertoken.HasSenderWith(
+						senderprofile.IDEQ(order.Edges.SenderProfile.ID),
+					),
+				)).
+			Only(context.Background())
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch order token: %w", err)
+		}
+		refundAddressTron, _ = util.Base58ToAddress(token.RefundAddress)
 		refundAddress = refundAddressTron.Hex()[4:]
 	}
 

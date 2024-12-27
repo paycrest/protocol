@@ -491,37 +491,23 @@ func (s *OrderEVM) createOrderCallData(order *ent.PaymentOrder) ([]byte, error) 
 		return nil, fmt.Errorf("failed to encrypt recipient details: %w", err)
 	}
 
-	var token *ent.SenderOrderToken
-	isTokenConfigured := true
-
-	if order.Edges.SenderProfile != nil {
-		token, err = db.Client.SenderOrderToken.
+	var refundAddress common.Address
+	if order.ReturnAddress != "" {
+		refundAddress = common.HexToAddress(order.ReturnAddress)
+	} else {
+		token, err := db.Client.SenderOrderToken.
 			Query().
 			Where(
-				senderordertoken.And(
-					senderordertoken.HasTokenWith(tokenEnt.IDEQ(order.Edges.Token.ID)),
-					senderordertoken.HasSenderWith(
-						senderprofile.IDEQ(order.Edges.SenderProfile.ID),
-					),
-				)).
+				senderordertoken.HasTokenWith(tokenEnt.IDEQ(order.Edges.Token.ID)),
+				senderordertoken.HasSenderWith(
+					senderprofile.IDEQ(order.Edges.SenderProfile.ID),
+				),
+			).
 			Only(context.Background())
 		if err != nil {
-			if ent.IsNotFound(err) {
-				isTokenConfigured = false
-			} else {
-				return nil, fmt.Errorf("failed to fetch order token: %w", err)
-			}
+			return nil, fmt.Errorf("failed to fetch order token: %w", err)
 		}
-	} else {
-		isTokenConfigured = false
-	}
-
-	var refundAddress common.Address
-
-	if isTokenConfigured {
 		refundAddress = common.HexToAddress(token.RefundAddress)
-	} else {
-		refundAddress = common.HexToAddress(order.ReturnAddress)
 	}
 
 	amountWithProtocolFee := order.Amount.Add(order.ProtocolFee)
