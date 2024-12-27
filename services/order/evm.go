@@ -25,9 +25,6 @@ import (
 	"github.com/paycrest/protocol/ent/paymentorder"
 	"github.com/paycrest/protocol/ent/providerordertoken"
 	"github.com/paycrest/protocol/ent/providerprofile"
-	"github.com/paycrest/protocol/ent/senderordertoken"
-	"github.com/paycrest/protocol/ent/senderprofile"
-	tokenEnt "github.com/paycrest/protocol/ent/token"
 	"github.com/paycrest/protocol/types"
 	"github.com/paycrest/protocol/utils"
 	cryptoUtils "github.com/paycrest/protocol/utils/crypto"
@@ -491,25 +488,6 @@ func (s *OrderEVM) createOrderCallData(order *ent.PaymentOrder) ([]byte, error) 
 		return nil, fmt.Errorf("failed to encrypt recipient details: %w", err)
 	}
 
-	var refundAddress common.Address
-	if order.ReturnAddress != "" {
-		refundAddress = common.HexToAddress(order.ReturnAddress)
-	} else {
-		token, err := db.Client.SenderOrderToken.
-			Query().
-			Where(
-				senderordertoken.HasTokenWith(tokenEnt.IDEQ(order.Edges.Token.ID)),
-				senderordertoken.HasSenderWith(
-					senderprofile.IDEQ(order.Edges.SenderProfile.ID),
-				),
-			).
-			Only(context.Background())
-		if err != nil {
-			return nil, fmt.Errorf("failed to fetch order token: %w", err)
-		}
-		refundAddress = common.HexToAddress(token.RefundAddress)
-	}
-
 	amountWithProtocolFee := order.Amount.Add(order.ProtocolFee)
 
 	// Define params
@@ -519,7 +497,7 @@ func (s *OrderEVM) createOrderCallData(order *ent.PaymentOrder) ([]byte, error) 
 		Rate:               order.Rate.BigInt(),
 		SenderFeeRecipient: common.HexToAddress(order.FeeAddress),
 		SenderFee:          utils.ToSubunit(order.SenderFee, order.Edges.Token.Decimals),
-		RefundAddress:      refundAddress,
+		RefundAddress:      common.HexToAddress(order.ReturnAddress),
 		MessageHash:        encryptedOrderRecipient,
 	}
 

@@ -115,6 +115,10 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 		return
 	}
 
+	feePercent := senderOrderToken.FeePercent
+	feeAddress := senderOrderToken.FeeAddress
+	returnAddress := senderOrderToken.RefundAddress
+
 	if payload.FeeAddress != "" {
 		if !sender.IsPartner {
 			u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
@@ -149,6 +153,9 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 				return
 			}
 		}
+
+		feePercent = payload.FeePercent
+		feeAddress = payload.FeeAddress
 	}
 
 	if payload.ReturnAddress != "" {
@@ -169,6 +176,7 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 				return
 			}
 		}
+		returnAddress = payload.ReturnAddress
 	}
 
 	if payload.Reference != "" {
@@ -315,7 +323,7 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 		return
 	}
 
-	senderFee := payload.FeePercent.Mul(payload.Amount).Div(decimal.NewFromInt(100)).Round(4)
+	senderFee := feePercent.Mul(payload.Amount).Div(decimal.NewFromInt(100)).Round(4)
 	protocolFee := decimal.NewFromFloat(0)
 
 	// Create transaction Log
@@ -351,9 +359,9 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 		SetRate(payload.Rate).
 		SetReceiveAddress(receiveAddress).
 		SetReceiveAddressText(receiveAddress.Address).
-		SetFeePercent(payload.FeePercent).
-		SetFeeAddress(payload.FeeAddress).
-		SetReturnAddress(payload.ReturnAddress).
+		SetFeePercent(feePercent).
+		SetFeeAddress(feeAddress).
+		SetReturnAddress(returnAddress).
 		SetReference(payload.Reference).
 		AddTransactions(transactionLog).
 		Save(ctx)

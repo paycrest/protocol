@@ -29,13 +29,9 @@ import (
 
 	"github.com/paycrest/protocol/ent/lockorderfulfillment"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
-	"github.com/paycrest/protocol/ent/network"
 	"github.com/paycrest/protocol/ent/paymentorder"
 	"github.com/paycrest/protocol/ent/providerordertoken"
 	"github.com/paycrest/protocol/ent/providerprofile"
-	"github.com/paycrest/protocol/ent/senderordertoken"
-	"github.com/paycrest/protocol/ent/senderprofile"
-	tokenEnt "github.com/paycrest/protocol/ent/token"
 	db "github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
 	"github.com/paycrest/protocol/utils"
@@ -417,40 +413,8 @@ func (s *OrderTron) createOrderCallData(order *ent.PaymentOrder) ([]byte, error)
 		return nil, fmt.Errorf("failed to encrypt recipient details: %w", err)
 	}
 
-	// Fetch token configuration
-	var networkIdentifier string
-
-	if serverConf.Environment == "production" {
-		networkIdentifier = "tron"
-	} else {
-		networkIdentifier = "tron-shasta"
-	}
-
-	var refundAddress string
-	var refundAddressTron util.Address
-
-	if order.ReturnAddress != "" {
-		refundAddressTron, _ = util.Base58ToAddress(order.ReturnAddress)
-		refundAddress = refundAddressTron.Hex()[4:]
-	} else {
-		token, err := db.Client.SenderOrderToken.
-			Query().
-			Where(
-				senderordertoken.And(
-					senderordertoken.HasTokenWith(
-						tokenEnt.HasNetworkWith(network.IdentifierEQ(networkIdentifier)),
-					),
-					senderordertoken.HasSenderWith(
-						senderprofile.IDEQ(order.Edges.SenderProfile.ID),
-					),
-				)).
-			Only(context.Background())
-		if err != nil {
-			return nil, fmt.Errorf("failed to fetch order token: %w", err)
-		}
-		refundAddressTron, _ = util.Base58ToAddress(token.RefundAddress)
-		refundAddress = refundAddressTron.Hex()[4:]
-	}
+	refundAddressTron, _ := util.Base58ToAddress(order.ReturnAddress)
+	refundAddress := refundAddressTron.Hex()[4:]
 
 	amountWithProtocolFee := order.Amount.Add(order.ProtocolFee)
 	tokenContractAddressTron, _ := util.Base58ToAddress(order.Edges.Token.ContractAddress)
