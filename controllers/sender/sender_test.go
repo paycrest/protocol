@@ -149,7 +149,6 @@ func TestSender(t *testing.T) {
 		payload := map[string]interface{}{
 			"amount":  "100",
 			"token":   testCtx.token.Symbol,
-
 			"rate":    "750",
 			"network": network.Identifier,
 			"recipient": map[string]interface{}{
