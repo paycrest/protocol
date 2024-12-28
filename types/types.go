@@ -387,6 +387,7 @@ type PaymentOrderRecipient struct {
 	Memo              string `json:"memo" binding:"required"`
 	ProviderID        string `json:"providerId"`
 	Currency          string `json:"currency"`
+	Nonce 		      string `json:"nonce"`
 }
 
 // NewPaymentOrderPayload is the payload for the create payment order endpoint

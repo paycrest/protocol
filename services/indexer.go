@@ -1506,33 +1506,11 @@ func (s *IndexerService) getOrderRecipientFromMessageHash(messageHash string) (*
 		return nil, err
 	}
 
-	// Attempt to unmarshal the message with nonce
-    var messageWithNonce struct {
-        Nonce             string
-        AccountIdentifier string
-        AccountName       string
-        Institution       string
-        ProviderID        string
-        Memo              string
-    }
-
-	if err := json.Unmarshal(messageBytes, &messageWithNonce); err == nil {
-        // Successfully unmarshaled message with nonce
-        return &types.PaymentOrderRecipient{
-            AccountIdentifier: messageWithNonce.AccountIdentifier,
-            AccountName:       messageWithNonce.AccountName,
-            Institution:       messageWithNonce.Institution,
-            ProviderID:        messageWithNonce.ProviderID,
-            Memo:              messageWithNonce.Memo,
-        }, nil
-    } else {
-		var recipient *types.PaymentOrderRecipient
-		if err := json.Unmarshal(messageBytes, &recipient); err != nil {
-			return nil, fmt.Errorf("%w", err)
-		}
-		return recipient, nil
+	var recipient *types.PaymentOrderRecipient
+	err = json.Unmarshal(messageBytes, &recipient); if err != nil {
+		return nil, fmt.Errorf("%w", err)
 	}
-	
+	return recipient, nil
 }
 
 // UpdateReceiveAddressStatus updates the status of a receive address. if `done` is true, the indexing process is complete for the given receive address
