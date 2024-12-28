@@ -578,14 +578,14 @@ func (ctrl *ProviderController) CancelOrder(ctx *gin.Context) {
 			}
 		}
 
-		// Update provider availability to off
-		_, err = storage.Client.ProviderProfile.
-			UpdateOneID(provider.ID).
-			SetIsAvailable(false).
-			Save(ctx)
-		if err != nil {
-			logger.Errorf("failed to update provider availability: %v", err)
-		}
+		// // Update provider availability to off
+		// _, err = storage.Client.ProviderProfile.
+		// 	UpdateOneID(provider.ID).
+		// 	SetIsAvailable(false).
+		// 	Save(ctx)
+		// if err != nil {
+		// 	logger.Errorf("failed to update provider availability: %v", err)
+		// }
 	}
 
 	// Update lock order status to cancelled
