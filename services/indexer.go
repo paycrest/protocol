@@ -97,7 +97,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 	// Initialize contract filterer
 	filterer, err := contracts.NewERC20TokenFilterer(common.HexToAddress(token.ContractAddress), client)
 	if err != nil {
-		logger.Errorf("IndexERC20Transfer.NewERC20TokenFilterer: %v", err)
+		logger.Errorf("IndexERC20Transfer.NewERC20TokenFilterer(%s): %v", token.Edges.Network.Identifier, err)
 		return err
 	}
 
@@ -135,7 +135,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 		return err
 	})
 	if retryErr != nil {
-		logger.Errorf("IndexERC20Transfer.FilterTransfer: %v", retryErr)
+		logger.Errorf("IndexERC20Transfer.FilterTransfer(%s): %v", token.Edges.Network.Identifier, retryErr)
 		return retryErr
 	}
 
