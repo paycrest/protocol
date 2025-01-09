@@ -20,7 +20,7 @@ Technical changes that will happen include UI changes, styling updates, integrat
 * **UI State Changes:**
   Changes to the frontend interface
 * **Styling Updates:**
-  CSS changes for the frontend
+  CSS changes for the application
 * **Integration Requirements:**
   Changes to the logic parts of the application or protocol 
 
