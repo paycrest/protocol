@@ -9,6 +9,7 @@ import (
 
 	fastshot "github.com/opus-domini/fast-shot"
 	"github.com/paycrest/protocol/ent"
+	"github.com/paycrest/protocol/ent/network"
 	"github.com/paycrest/protocol/ent/paymentorder"
 	"github.com/paycrest/protocol/ent/providerordertoken"
 	"github.com/paycrest/protocol/ent/providerprofile"
@@ -20,6 +21,7 @@ import (
 	"github.com/paycrest/protocol/utils/logger"
 	tokenUtils "github.com/paycrest/protocol/utils/token"
 	"github.com/shopspring/decimal"
+	"crypto/rand"
 )
 
 type PriorityQueueService struct{}
@@ -352,9 +354,16 @@ func (s *PriorityQueueService) sendOrderRequest(ctx context.Context, order types
 		return err
 	}
 
+	networkIdentifier := order.Network.Identifier
+	if networkIdentifier == "" {
+		logger.Errorf("network identifier is empty")
+		return fmt.Errorf("network identifier is empty")
+	}
+
+
 	// Notify the provider
 	orderRequestData["orderId"] = order.ID
-	if err := s.notifyProvider(ctx, orderRequestData); err != nil {
+	if err := s.notifyProvider(ctx, orderRequestData, networkIdentifier); err != nil {
 		logger.Errorf("failed to notify provider %s: %v", order.ProviderID, err)
 		return err
 	}
@@ -364,7 +373,7 @@ func (s *PriorityQueueService) sendOrderRequest(ctx context.Context, order types
 
 // notifyProvider sends an order request notification to a provider
 // TODO: ideally notifications should be moved to a notification service
-func (s *PriorityQueueService) notifyProvider(ctx context.Context, orderRequestData map[string]interface{}) error {
+func (s *PriorityQueueService) notifyProvider(ctx context.Context, orderRequestData map[string]interface{}, networkIdentifier string) error {
 	// TODO: can we add mode and host identifier to redis during priority queue creation?
 	providerID := orderRequestData["providerId"].(string)
 	delete(orderRequestData, "providerId")
@@ -381,28 +390,57 @@ func (s *PriorityQueueService) notifyProvider(ctx context.Context, orderRequestD
 		return err
 	}
 
-	// Compute HMAC
-	decodedSecret, err := base64.StdEncoding.DecodeString(provider.Edges.APIKey.Secret)
-	if err != nil {
-		return err
-	}
-	decryptedSecret, err := cryptoUtils.DecryptPlain(decodedSecret)
-	if err != nil {
-		return err
-	}
 
-	signature := tokenUtils.GenerateHMACSignature(orderRequestData, string(decryptedSecret))
+	// Fetch provider address
+    token, err := storage.Client.ProviderOrderToken.
+        Query().
+        Where(
+            providerordertoken.HasProviderWith(providerprofile.IDEQ(provider.ID)),
+        ).
+        Only(ctx)
+    if err != nil {
+        return err
+    }
+
+    var providerAddress string
+    for _, addr := range token.Addresses {
+        if addr.Network == networkIdentifier {
+            providerAddress = addr.Address
+            break
+        }
+    }
+
+    if providerAddress == "" {
+        return fmt.Errorf("failed to fetch provider address")
+    }
+
+	nonce := make([]byte, 32)
+    if _, err := rand.Read(nonce); err != nil {
+        return fmt.Errorf("failed to generate nonce: %w", err)
+    }
+
+	orderRequestData["providerAddress"] = providerAddress
+	orderRequestData["nonce"] = base64.StdEncoding.EncodeToString(nonce)
+
+	// encrypt the order request data
+	encryptedData, err := cryptoUtils.EncryptJSON(orderRequestData)
+	if err != nil {
+		return fmt.Errorf("failed to encrypt order request data: %w", err)
+	}
+	// @NOTE: Order request data is encrypted with the provider's public key which means every order request is unique
 
 	// Send POST request to the provider's node
-	_, err = fastshot.NewClient(provider.HostIdentifier).
+	response, err = fastshot.NewClient(provider.HostIdentifier).
 		Config().SetTimeout(30*time.Second).
-		Header().Add("X-Request-Signature", signature).
+		Header().Add("X-Request-Signature", string(encryptedData)).
 		Build().POST("/new_order").
 		Body().AsJSON(orderRequestData).
 		Send()
 	if err != nil {
 		return err
 	}
+	// @NOTE: The provider's node will decrypt the order request data with its private key
+	// and sign the data with its private key before sending it back to the server the signature for verification
 
 	return nil
 }
