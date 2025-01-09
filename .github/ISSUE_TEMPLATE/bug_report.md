@@ -18,11 +18,11 @@ assignees: ''
 **Tech Details**
 >Technical changes that will happen include UI changes, styling updates, integration requirements
 * **UI State Changes:**
->  Changes to the frontend interface
+    >  Changes to the frontend interface
 * **Styling Updates:**
->  CSS changes for the application
+    >  CSS changes for the application
 * **Integration Requirements:**
->  Changes to the logic parts of the application or protocol 
+    >  Changes to the logic parts of the application or protocol 
 
 
 **Design Link**
