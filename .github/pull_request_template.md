@@ -1,21 +1,37 @@
-## Description
-Added OSS templates for issues and pull requests
+By submitting a PR to this repository, you agree to the terms within the [Paycrest Code of Conduct](https://www.notion.so/paycrest/Contributor-Code-of-Conduct-1602482d45a2806bab75fd314b381f4c?pvs=4). Please see the [contributing guidelines](https://paycrest.notion.site/Contribution-Guide-1602482d45a2809a8930e6ad565c906a?pvs=4) for how to create and submit a high-quality PR for this repo.
 
-## Type of change
-- [ ] Bug fix (non-breaking change that fixes an issue)
-- [ ] New feature (non-breaking change that adds functionality)
-- [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
-- [ ] Documentation update
+### Description
 
-## Checklist
-- [ ] My code follows the style guidelines of this project.
-- [ ] I have performed a self-review of my code.
-- [ ] I have commented on my code, particularly in hard-to-understand areas.
-- [ ] I have added tests that prove my fix is effective or that my feature works.
-- [ ] New and existing unit tests pass locally with my changes.
+> Describe the purpose of this PR along with any background information and the impacts of the proposed change. For the benefit of the community, please do not assume prior context.
+>
+> Provide details that support your chosen implementation, including: breaking changes, alternatives considered, changes to the API, contracts etc.
+>
+> If the UI is being changed, please provide screenshots.
 
-## Related Issues
-List any related issues or tasks here (e.g., fixes #123).
 
-## Screenshots (if applicable)
-If relevant, include screenshots of changes here.
+### References
+
+> Include any links supporting this change such as a:
+>
+> - GitHub Issue/PR number addressed or fixed
+> - StackOverflow post
+> - Support forum thread
+> - Related pull requests/issues from other repos
+>
+> If there are no references, simply delete this section.
+
+### Testing
+
+> Describe how this can be tested by reviewers. Be specific about anything not tested and reasons why. If this project has unit and/or integration testing, tests should be added for new functionality and existing tests should complete without errors.
+>
+> Please include any manual steps for testing end-to-end or functionality not covered by unit/integration tests.
+>
+> Also include details of the environment this PR was developed in (language/platform/browser version).
+
+- [ ] This change adds test coverage for new/changed/fixed functionality
+
+### Checklist
+
+- [ ] I have added documentation for new/changed functionality in this PR
+- [ ] All active GitHub checks for tests, formatting, and security are passing
+- [ ] The correct base branch is being used, if not `master`
