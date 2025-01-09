@@ -1,5 +1,5 @@
 ## Description
-Please provide a brief description of your changes.
+Added OSS templates for issues and pull requests
 
 ## Type of change
 - [ ] Bug fix (non-breaking change that fixes an issue)
