@@ -2,12 +2,10 @@ package services
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
-	"strings"
 	"testing"
 
 	"github.com/jarcoal/httpmock"
@@ -15,14 +13,16 @@ import (
 	"github.com/paycrest/protocol/ent/enttest"
 	"github.com/paycrest/protocol/ent/lockpaymentorder"
 	"github.com/paycrest/protocol/ent/provisionbucket"
+	"github.com/ethereum/go-ethereum/crypto"
 	db "github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
 	cryptoUtils "github.com/paycrest/protocol/utils/crypto"
 	"github.com/paycrest/protocol/utils/test"
-	tokenUtils "github.com/paycrest/protocol/utils/token"
 	"github.com/redis/go-redis/v9"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
+	"encoding/json"
+	"encoding/hex"
 )
 
 var testCtxForPQ = struct {
@@ -37,6 +37,10 @@ var testCtxForPQ = struct {
 	maxAmount                   decimal.Decimal
 	bucket                      *ent.ProvisionBucket
 }{}
+
+var (
+	fromAddress, privateKey, _ = cryptoUtils.GenerateAccountFromIndex(0)
+)
 
 func setupForPQ() error {
 	// Set up test data
@@ -103,6 +107,12 @@ func setupForPQ() error {
 			"min_order_amount":         decimal.NewFromFloat(1.0),
 			"tokenSymbol":              token.Symbol,
 			"provider":                 publicProviderProfile,
+			"addresses": []map[string]string{
+				{
+					"address": fromAddress.Hex(),
+					"network": "localhost",
+				},
+			},
 		},
 	)
 	if err != nil {
@@ -298,6 +308,41 @@ func TestPriorityQueueTest(t *testing.T) {
 	})
 
 	t.Run("TestSendOrderRequest", func(t *testing.T) {
+		// setup httpmock
+		httpmock.Activate()
+		defer httpmock.Deactivate()
+
+		httpmock.RegisterResponder("POST", testCtxForPQ.publicProviderProfile.HostIdentifier+"/new_order",
+			func(r *http.Request) (*http.Response, error) {
+				bytes, err := io.ReadAll(r.Body)
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				var orderRequestData map[string]interface{}
+				if err := json.Unmarshal(bytes, &orderRequestData); err != nil {
+					log.Fatal(err)
+				}
+
+				messageHash := test.CreateMessageHash(orderRequestData)
+
+				// signature, err := utils.PersonalSign(messageHash.Hex(), privateKey)
+				signatureBytes, err := crypto.Sign(messageHash.Bytes(), privateKey)
+				if err != nil {
+					log.Fatal(err)
+				}
+				
+				responseData := map[string]string{
+					"signature": hex.EncodeToString(signatureBytes),
+				}
+				responseBytes, err := json.Marshal(responseData)
+				if err != nil {
+					log.Fatal(err)
+				}
+				return httpmock.NewBytesResponse(http.StatusOK, responseBytes), nil
+			},
+		)
+		
 		bucket, err := test.CreateTestProvisionBucket(map[string]interface{}{
 			"provider_id": testCtxForPQ.privateProviderProfile.ID,
 			"min_amount":  testCtxForPQ.minAmount,
@@ -333,6 +378,7 @@ func TestPriorityQueueTest(t *testing.T) {
 			ID:                order.ID,
 			ProviderID:        testCtxForPQ.publicProviderProfile.ID,
 			Token:             testCtxForPQ.token,
+			Network:           &ent.Network{Identifier: "localhost"},
 			GatewayID:         order.GatewayID,
 			Amount:            order.Amount,
 			Rate:              order.Rate,
@@ -347,37 +393,14 @@ func TestPriorityQueueTest(t *testing.T) {
 
 		t.Run("TestNotifyProvider", func(t *testing.T) {
 
-			// setup httpmock
-			httpmock.Activate()
-			defer httpmock.Deactivate()
-
-			httpmock.RegisterResponder("POST", testCtxForPQ.publicProviderProfile.HostIdentifier+"/new_order",
-				func(r *http.Request) (*http.Response, error) {
-					bytes, err := io.ReadAll(r.Body)
-					if err != nil {
-						log.Fatal(err)
-					}
-					// Compute HMAC
-					decodedSecret, err := base64.StdEncoding.DecodeString(testCtxForPQ.publicProviderProfileAPIKey.Secret)
-					assert.NoError(t, err)
-					decryptedSecret, err := cryptoUtils.DecryptPlain(decodedSecret)
-					assert.NoError(t, err)
-					signature := tokenUtils.GenerateHMACSignature(map[string]interface{}{
-						"data": "test",
-					}, string(decryptedSecret))
-					assert.Equal(t, r.Header.Get("X-Request-Signature"), signature)
-					if strings.Contains(string(bytes), "data") && strings.Contains(string(bytes), "test") {
-						resp := httpmock.NewBytesResponse(200, nil)
-						return resp, nil
-					} else {
-						return nil, nil
-					}
-				},
+			err := service.notifyProvider(
+				context.Background(), 
+				map[string]interface{}{
+						"providerId": testCtxForPQ.publicProviderProfile.ID,
+						"data":       "test",
+					},
+				"localhost",
 			)
-			err := service.notifyProvider(context.Background(), map[string]interface{}{
-				"providerId": testCtxForPQ.publicProviderProfile.ID,
-				"data":       "test",
-			})
 			assert.NoError(t, err)
 		})
 	})

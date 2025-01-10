@@ -7,9 +7,12 @@ import (
 	"strings"
 	"time"
 
+	"crypto/rand"
+	"encoding/hex"
+
+	"github.com/ethereum/go-ethereum/crypto"
 	fastshot "github.com/opus-domini/fast-shot"
 	"github.com/paycrest/protocol/ent"
-	"github.com/paycrest/protocol/ent/network"
 	"github.com/paycrest/protocol/ent/paymentorder"
 	"github.com/paycrest/protocol/ent/providerordertoken"
 	"github.com/paycrest/protocol/ent/providerprofile"
@@ -17,11 +20,8 @@ import (
 	"github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
 	"github.com/paycrest/protocol/utils"
-	cryptoUtils "github.com/paycrest/protocol/utils/crypto"
 	"github.com/paycrest/protocol/utils/logger"
-	tokenUtils "github.com/paycrest/protocol/utils/token"
 	"github.com/shopspring/decimal"
-	"crypto/rand"
 )
 
 type PriorityQueueService struct{}
@@ -335,18 +335,18 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 func (s *PriorityQueueService) sendOrderRequest(ctx context.Context, order types.LockPaymentOrderFields) error {
 	// Assign the order to the provider and save it to Redis
 	orderKey := fmt.Sprintf("order_request_%s", order.ID)
-
+	
 	orderRequestData := map[string]interface{}{
 		"amount":      order.Amount.Mul(order.Rate).RoundBank(0).String(),
 		"institution": order.Institution,
 		"providerId":  order.ProviderID,
 	}
-
+	
 	if err := storage.RedisClient.HSet(ctx, orderKey, orderRequestData).Err(); err != nil {
 		logger.Errorf("failed to map order to a provider in Redis: %v", err)
 		return err
 	}
-
+	
 	// Set a TTL for the order request
 	err := storage.RedisClient.ExpireAt(ctx, orderKey, time.Now().Add(orderConf.OrderRequestValidity)).Err()
 	if err != nil {
@@ -359,7 +359,6 @@ func (s *PriorityQueueService) sendOrderRequest(ctx context.Context, order types
 		logger.Errorf("network identifier is empty")
 		return fmt.Errorf("network identifier is empty")
 	}
-
 
 	// Notify the provider
 	orderRequestData["orderId"] = order.ID
@@ -377,31 +376,31 @@ func (s *PriorityQueueService) notifyProvider(ctx context.Context, orderRequestD
 	// TODO: can we add mode and host identifier to redis during priority queue creation?
 	providerID := orderRequestData["providerId"].(string)
 	delete(orderRequestData, "providerId")
-
+	
 	provider, err := storage.Client.ProviderProfile.
-		Query().
-		Where(
-			providerprofile.IDEQ(providerID),
+	Query().
+	Where(
+		providerprofile.IDEQ(providerID),
 		).
 		WithAPIKey().
 		Select(providerprofile.FieldProvisionMode, providerprofile.FieldHostIdentifier).
 		Only(ctx)
-	if err != nil {
-		return err
-	}
-
-
-	// Fetch provider address
-    token, err := storage.Client.ProviderOrderToken.
+		if err != nil {
+			return err
+		}
+		
+		
+		// Fetch provider address
+		token, err := storage.Client.ProviderOrderToken.
         Query().
         Where(
-            providerordertoken.HasProviderWith(providerprofile.IDEQ(provider.ID)),
-        ).
-        Only(ctx)
-    if err != nil {
-        return err
-    }
-
+			providerordertoken.HasProviderWith(providerprofile.IDEQ(provider.ID)),
+			).
+			Only(ctx)
+			if err != nil {
+				return err
+			}
+			
     var providerAddress string
     for _, addr := range token.Addresses {
         if addr.Network == networkIdentifier {
@@ -409,38 +408,59 @@ func (s *PriorityQueueService) notifyProvider(ctx context.Context, orderRequestD
             break
         }
     }
-
     if providerAddress == "" {
-        return fmt.Errorf("failed to fetch provider address")
+		return fmt.Errorf("failed to fetch provider address")
     }
-
+	
 	nonce := make([]byte, 32)
     if _, err := rand.Read(nonce); err != nil {
-        return fmt.Errorf("failed to generate nonce: %w", err)
+		return fmt.Errorf("failed to generate nonce: %w", err)
     }
-
+	
 	orderRequestData["providerAddress"] = providerAddress
 	orderRequestData["nonce"] = base64.StdEncoding.EncodeToString(nonce)
-
-	// encrypt the order request data
-	encryptedData, err := cryptoUtils.EncryptJSON(orderRequestData)
-	if err != nil {
-		return fmt.Errorf("failed to encrypt order request data: %w", err)
-	}
-	// @NOTE: Order request data is encrypted with the provider's public key which means every order request is unique
-
+	
+	// NOTE: including the orderRequestData in the message to be signed in other to ensure that the hash message depends on the order request data
+	prefix := fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(orderRequestData), orderRequestData)
+	messageHash := crypto.Keccak256Hash([]byte(prefix))
+	
 	// Send POST request to the provider's node
-	response, err = fastshot.NewClient(provider.HostIdentifier).
+	var res fastshot.Response
+	res, err = fastshot.NewClient(provider.HostIdentifier).
 		Config().SetTimeout(30*time.Second).
-		Header().Add("X-Request-Signature", string(encryptedData)).
+		Header().Add("X-Request-HashedMessage", messageHash.Hex()).
 		Build().POST("/new_order").
 		Body().AsJSON(orderRequestData).
 		Send()
 	if err != nil {
 		return err
 	}
-	// @NOTE: The provider's node will decrypt the order request data with its private key
-	// and sign the data with its private key before sending it back to the server the signature for verification
+
+	resData, err := utils.ParseJSONResponse(res.RawResponse)
+	if err != nil {
+		return err
+	}
+
+	signature, ok := resData["signature"].(string)
+	if !ok {
+		return fmt.Errorf("signature not found in response")
+	}
+
+	signatureBytes, err := hex.DecodeString(signature)
+	if err != nil {
+		return err
+	}
+
+	// Verify the signature
+	sigPublicKeyECDSA, err := crypto.SigToPub(messageHash.Bytes(), signatureBytes)
+	if err != nil {
+		return err
+	}
+
+	recoveredAddress := crypto.PubkeyToAddress(*sigPublicKeyECDSA)
+	if !strings.EqualFold(recoveredAddress.Hex(), providerAddress) {
+		return fmt.Errorf("recovered address does not match")
+	}
 
 	return nil
 }
