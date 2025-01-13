@@ -18,9 +18,6 @@ assignees: ''
 **Tech Details**
 >* Add the technical details of the feature
 
-**Design Link**
->* Link to the figma design file 
-
 **Notes/Assumptions**
 >* Notes or assumption that has to remain constant. 
 
