@@ -747,10 +747,10 @@ func (ctrl *ProviderController) NodeInfo(ctx *gin.Context) {
 		Query().
 		Where(providerprofile.IDEQ(providerCtx.(*ent.ProviderProfile).ID)).
 		WithAPIKey().
-		WithCurrency().
+		WithCurrencies().
 		Only(ctx)
 	if err != nil {
-		logger.Errorf("error: %v", err)
+		logger.Errorf("Failed to fetch node info: %v", err)
 		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch node info", nil)
 		return
 	}
@@ -760,23 +760,24 @@ func (ctrl *ProviderController) NodeInfo(ctx *gin.Context) {
 		Build().GET("/health").
 		Send()
 	if err != nil {
-		logger.Errorf("error: %v", err)
+		logger.Errorf("Failed to fetch node info: %v", err)
 		u.APIResponse(ctx, http.StatusServiceUnavailable, "error", "Failed to fetch node info", nil)
 		return
 	}
 
 	data, err := u.ParseJSONResponse(res.RawResponse)
 	if err != nil {
-		logger.Errorf("error: %v", err)
+		logger.Errorf("Failed to fetch node info: %v", err)
 		u.APIResponse(ctx, http.StatusServiceUnavailable, "error", "Failed to fetch node info", nil)
 		return
 	}
 
-	currency := data["data"].(map[string]interface{})["currency"].(string)
-	if currency != provider.Edges.Currency.Code {
-		logger.Errorf("error: %v", err)
-		u.APIResponse(ctx, http.StatusServiceUnavailable, "error", "Failed to fetch node info", nil)
-		return
+	currencies := data["data"].(map[string]interface{})["currencies"].(map[string]string)
+	for _, currency := range provider.Edges.Currencies {
+		if _, ok := currencies[currency.Code]; !ok {
+			u.APIResponse(ctx, http.StatusServiceUnavailable, "error", "Failed to fetch node info", nil)
+			return
+		}
 	}
 
 	u.APIResponse(ctx, http.StatusOK, "success", "Node info fetched successfully", data)

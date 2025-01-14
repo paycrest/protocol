@@ -467,7 +467,7 @@ func CreateTestProviderProfile(overrides map[string]interface{}) (*ent.ProviderP
 		SetHostIdentifier(payload["host_identifier"].(string)).
 		SetProvisionMode(providerprofile.ProvisionMode(payload["provision_mode"].(string))).
 		SetUserID(payload["user_id"].(uuid.UUID)).
-		SetCurrencyID(payload["currency_id"].(uuid.UUID)).
+		AddCurrencyIDs(payload["currency_id"].(uuid.UUID)).
 		SetVisibilityMode(providerprofile.VisibilityMode(payload["visibility_mode"].(string))).
 		Save(context.Background())
 
@@ -490,7 +490,6 @@ func AddProviderOrderTokenToProvider(overrides map[string]interface{}) (*ent.Pro
 		"floating_conversion_rate": decimal.NewFromFloat(1.0),
 		"max_order_amount":         decimal.NewFromFloat(1.0),
 		"min_order_amount":         decimal.NewFromFloat(1.0),
-		"tokenSymbol":              "",
 		"provider":                 nil,
 	}
 
@@ -501,17 +500,16 @@ func AddProviderOrderTokenToProvider(overrides map[string]interface{}) (*ent.Pro
 
 	orderToken, err := db.Client.ProviderOrderToken.
 		Create().
-		SetSymbol(payload["tokenSymbol"].(string)).
 		SetProvider(payload["provider"].(*ent.ProviderProfile)).
 		SetMaxOrderAmount(payload["min_order_amount"].(decimal.Decimal)).
 		SetMinOrderAmount(payload["max_order_amount"].(decimal.Decimal)).
 		SetConversionRateType(providerordertoken.ConversionRateType(payload["conversion_rate_type"].(string))).
 		SetFixedConversionRate(payload["fixed_conversion_rate"].(decimal.Decimal)).
 		SetFloatingConversionRate(payload["floating_conversion_rate"].(decimal.Decimal)).
-		SetAddresses([]struct {
-			Address string `json:"address"`
-			Network string `json:"network"`
-		}{}).
+		SetAddress(payload["address"].(string)).
+		SetNetwork(payload["network"].(string)).
+		SetTokenID(payload["token"].(int)).
+		SetCurrencyID(payload["currency"].(uuid.UUID)).
 		Save(context.Background())
 
 	return orderToken, err
@@ -563,27 +561,47 @@ func CreateTestFiatCurrency(overrides map[string]interface{}) (*ent.FiatCurrency
 		"name":        "Nigerian Naira",
 		"market_rate": 950.0,
 	}
-
 	// Apply overrides.
 	for key, value := range overrides {
 		payload[key] = value
 	}
+	
+	var institutions []*ent.Institution
+	var err error
+	if (payload["code"] == "KES") {
+		institutions, err = db.Client.Institution.CreateBulk(
+			db.Client.Institution.
+			Create().
+			SetName("M-Pesa").
+			SetCode("MPESAKES").
+			SetType(institution.TypeMobileMoney),
+			db.Client.Institution.
+			Create().
+			SetName("Equity Bank").
+			SetCode("EQTYKES"),
+			).Save(context.Background())
 
-	institutions, err := db.Client.Institution.CreateBulk(
-		db.Client.Institution.
+			if err != nil {
+				return nil, err
+			}
+	} else {
+		institutions, err = db.Client.Institution.CreateBulk(
+			db.Client.Institution.
 			Create().
 			SetName("MTN Momo").
 			SetCode("MOMONGPC").
 			SetType(institution.TypeMobileMoney),
-		db.Client.Institution.
+			db.Client.Institution.
 			Create().
 			SetName("Access Bank").
 			SetCode("ABNGNGLA"),
-	).Save(context.Background())
-
-	if err != nil {
-		return nil, err
+			).Save(context.Background())
+			
+			if err != nil {
+				return nil, err
+			}
 	}
+	
 
 	currency, err := db.Client.FiatCurrency.
 		Create().
@@ -596,7 +614,6 @@ func CreateTestFiatCurrency(overrides map[string]interface{}) (*ent.FiatCurrency
 		SetIsEnabled(true).
 		AddInstitutions(institutions...).
 		Save(context.Background())
-
 	return currency, err
 
 }
