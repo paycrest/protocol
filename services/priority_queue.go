@@ -7,6 +7,10 @@ import (
 	"strings"
 	"time"
 
+	"crypto/rand"
+	"encoding/hex"
+
+	"github.com/ethereum/go-ethereum/crypto"
 	fastshot "github.com/opus-domini/fast-shot"
 	"github.com/paycrest/protocol/ent"
 	"github.com/paycrest/protocol/ent/paymentorder"
@@ -16,9 +20,7 @@ import (
 	"github.com/paycrest/protocol/storage"
 	"github.com/paycrest/protocol/types"
 	"github.com/paycrest/protocol/utils"
-	cryptoUtils "github.com/paycrest/protocol/utils/crypto"
 	"github.com/paycrest/protocol/utils/logger"
-	tokenUtils "github.com/paycrest/protocol/utils/token"
 	"github.com/shopspring/decimal"
 )
 
@@ -333,18 +335,18 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 func (s *PriorityQueueService) sendOrderRequest(ctx context.Context, order types.LockPaymentOrderFields) error {
 	// Assign the order to the provider and save it to Redis
 	orderKey := fmt.Sprintf("order_request_%s", order.ID)
-
+	
 	orderRequestData := map[string]interface{}{
 		"amount":      order.Amount.Mul(order.Rate).RoundBank(0).String(),
 		"institution": order.Institution,
 		"providerId":  order.ProviderID,
 	}
-
+	
 	if err := storage.RedisClient.HSet(ctx, orderKey, orderRequestData).Err(); err != nil {
 		logger.Errorf("failed to map order to a provider in Redis: %v", err)
 		return err
 	}
-
+	
 	// Set a TTL for the order request
 	err := storage.RedisClient.ExpireAt(ctx, orderKey, time.Now().Add(orderConf.OrderRequestValidity)).Err()
 	if err != nil {
@@ -352,9 +354,15 @@ func (s *PriorityQueueService) sendOrderRequest(ctx context.Context, order types
 		return err
 	}
 
+	networkIdentifier := order.Network.Identifier
+	if networkIdentifier == "" {
+		logger.Errorf("network identifier is empty")
+		return fmt.Errorf("network identifier is empty")
+	}
+
 	// Notify the provider
 	orderRequestData["orderId"] = order.ID
-	if err := s.notifyProvider(ctx, orderRequestData); err != nil {
+	if err := s.notifyProvider(ctx, orderRequestData, networkIdentifier); err != nil {
 		logger.Errorf("failed to notify provider %s: %v", order.ProviderID, err)
 		return err
 	}
@@ -364,44 +372,94 @@ func (s *PriorityQueueService) sendOrderRequest(ctx context.Context, order types
 
 // notifyProvider sends an order request notification to a provider
 // TODO: ideally notifications should be moved to a notification service
-func (s *PriorityQueueService) notifyProvider(ctx context.Context, orderRequestData map[string]interface{}) error {
+func (s *PriorityQueueService) notifyProvider(ctx context.Context, orderRequestData map[string]interface{}, networkIdentifier string) error {
 	// TODO: can we add mode and host identifier to redis during priority queue creation?
 	providerID := orderRequestData["providerId"].(string)
 	delete(orderRequestData, "providerId")
-
+	
 	provider, err := storage.Client.ProviderProfile.
-		Query().
-		Where(
-			providerprofile.IDEQ(providerID),
+	Query().
+	Where(
+		providerprofile.IDEQ(providerID),
 		).
 		WithAPIKey().
 		Select(providerprofile.FieldProvisionMode, providerprofile.FieldHostIdentifier).
 		Only(ctx)
-	if err != nil {
-		return err
-	}
-
-	// Compute HMAC
-	decodedSecret, err := base64.StdEncoding.DecodeString(provider.Edges.APIKey.Secret)
-	if err != nil {
-		return err
-	}
-	decryptedSecret, err := cryptoUtils.DecryptPlain(decodedSecret)
-	if err != nil {
-		return err
-	}
-
-	signature := tokenUtils.GenerateHMACSignature(orderRequestData, string(decryptedSecret))
-
+		if err != nil {
+			return err
+		}
+		
+		
+		// Fetch provider address
+		token, err := storage.Client.ProviderOrderToken.
+        Query().
+        Where(
+			providerordertoken.HasProviderWith(providerprofile.IDEQ(provider.ID)),
+			).
+			Only(ctx)
+			if err != nil {
+				return err
+			}
+			
+    var providerAddress string
+    for _, addr := range token.Addresses {
+        if addr.Network == networkIdentifier {
+            providerAddress = addr.Address
+            break
+        }
+    }
+    if providerAddress == "" {
+		return fmt.Errorf("failed to fetch provider address")
+    }
+	
+	nonce := make([]byte, 32)
+    if _, err := rand.Read(nonce); err != nil {
+		return fmt.Errorf("failed to generate nonce: %w", err)
+    }
+	
+	orderRequestData["providerAddress"] = providerAddress
+	orderRequestData["nonce"] = base64.StdEncoding.EncodeToString(nonce)
+	
+	// NOTE: including the orderRequestData in the message to be signed in other to ensure that the hash message depends on the order request data
+	prefix := fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(orderRequestData), orderRequestData)
+	messageHash := crypto.Keccak256Hash([]byte(prefix))
+	
 	// Send POST request to the provider's node
-	_, err = fastshot.NewClient(provider.HostIdentifier).
+	var res fastshot.Response
+	res, err = fastshot.NewClient(provider.HostIdentifier).
 		Config().SetTimeout(30*time.Second).
-		Header().Add("X-Request-Signature", signature).
+		Header().Add("X-Request-HashedMessage", messageHash.Hex()).
 		Build().POST("/new_order").
 		Body().AsJSON(orderRequestData).
 		Send()
 	if err != nil {
 		return err
+	}
+
+	resData, err := utils.ParseJSONResponse(res.RawResponse)
+	if err != nil {
+		return err
+	}
+
+	signature, ok := resData["signature"].(string)
+	if !ok {
+		return fmt.Errorf("signature not found in response")
+	}
+
+	signatureBytes, err := hex.DecodeString(signature)
+	if err != nil {
+		return err
+	}
+
+	// Verify the signature
+	sigPublicKeyECDSA, err := crypto.SigToPub(messageHash.Bytes(), signatureBytes)
+	if err != nil {
+		return err
+	}
+
+	recoveredAddress := crypto.PubkeyToAddress(*sigPublicKeyECDSA)
+	if !strings.EqualFold(recoveredAddress.Hex(), providerAddress) {
+		return fmt.Errorf("recovered address does not match")
 	}
 
 	return nil
