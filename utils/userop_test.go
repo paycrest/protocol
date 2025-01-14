@@ -113,8 +113,8 @@ func TestUserOp(t *testing.T) {
 						},
 					},
 				})
-					log.Printf("Mock Data: %+v\n", resp)
-					return resp, err
+				
+				return resp, err
 				}
 
 				return httpmock.NewBytesResponse(200, []byte(`{"jsonrpc": "2.0","id": 1,"result":[]}`)), nil
