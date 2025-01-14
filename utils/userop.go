@@ -4,9 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"math/big"
 	"strings"
 	"time"
+	"strconv"
+
+	"encoding/hex"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -249,15 +253,15 @@ func SignUserOperation(userOperation *userop.UserOperation, chainId int64) error
 }
 
 // SendUserOperation sends the user operation
-func SendUserOperation(userOp *userop.UserOperation, chainId int64) (string, int64, error) {
+func SendUserOperation(userOp *userop.UserOperation, chainId int64) (string, string, int64, error) {
 	bundlerUrl, _, err := getEndpoints(chainId)
 	if err != nil {
-		return "", 0, fmt.Errorf("failed to get endpoints: %w", err)
+		return "", "", 0, fmt.Errorf("failed to get endpoints: %w", err)
 	}
 
 	client, err := rpc.Dial(bundlerUrl)
 	if err != nil {
-		return "", 0, fmt.Errorf("failed to connect to RPC client: %w", err)
+		return "", "", 0, fmt.Errorf("failed to connect to RPC client: %w", err)
 	}
 
 	var requestParams []interface{}
@@ -281,35 +285,46 @@ func SendUserOperation(userOp *userop.UserOperation, chainId int64) (string, int
 	err = client.Call(&result, "eth_sendUserOperation", requestParams...)
 	if err != nil {
 		op, _ := userOp.MarshalJSON()
-		return "", 0, fmt.Errorf("RPC error: %w\nUser Operation: %s", err, string(op))
+		return "", "", 0, fmt.Errorf("RPC error: %w\nUser Operation: %s", err, string(op))
 	}
 
 	var userOpHash string
 	err = json.Unmarshal(result, &userOpHash)
 	if err != nil {
-		return "", 0, fmt.Errorf("failed to unmarshal response: %w", err)
+		return "", "", 0, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
-	response, err := GetUserOperationByHash(userOpHash, chainId)
+	response, err := GetUserOperationByReceipt(userOpHash, chainId)
 	if err != nil {
-		return "", 0, fmt.Errorf("failed to get user operation by hash: %w", err)
+		return "", "", 0, fmt.Errorf("failed to get user operation by hash: %w", err)
 	}
 
 	transactionHash, ok := response["transactionHash"].(string)
 	if !ok {
-		return "", 0, fmt.Errorf("failed to get transaction hash")
+		return "", "", 0, fmt.Errorf("failed to get transaction hash")
 	}
-
-	blockNumber, ok := response["blockNumber"].(float64)
+	orderId, ok := response["orderId"].(string)
 	if !ok {
-		return "", 0, fmt.Errorf("failed to get block number")
+		return "", "", 0, fmt.Errorf("failed to get order ID")
 	}
 
-	return transactionHash, int64(blockNumber), nil
+	blockNumberStr, ok := response["blockNumber"].(string)
+	if !ok {
+		return "", "", 0, fmt.Errorf("failed to get block number")
+	}
+
+	blockNumberHex := blockNumberStr[2:]
+
+	blockNumberInt, err := strconv.ParseInt(blockNumberHex, 16, 64)
+	if err != nil {
+		return "", "", 0, fmt.Errorf("failed to parse block number: %w", err)
+	}
+
+	return transactionHash, orderId, blockNumberInt, nil
 }
 
-// GetUserOperationByHash fetches the user operation by hash
-func GetUserOperationByHash(userOpHash string, chainId int64) (map[string]interface{}, error) {
+// GetUserOperationByReceipt fetches the user operation by hash
+func GetUserOperationByReceipt(userOpHash string, chainId int64) (map[string]interface{}, error) {
 	bundlerUrl, _, err := getEndpoints(chainId)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get endpoints: %w", err)
@@ -322,12 +337,12 @@ func GetUserOperationByHash(userOpHash string, chainId int64) (map[string]interf
 
 	start := time.Now()
 	timeout := 10 * time.Minute
-
+	
 	var response map[string]interface{}
 	for {
 		time.Sleep(10 * time.Second)
 		var result json.RawMessage
-		err = client.Call(&result, "eth_getUserOperationByHash", []interface{}{userOpHash}...)
+		err = client.Call(&result, "eth_getUserOperationReceipt", []interface{}{userOpHash}...)
 		if err != nil {
 			return nil, fmt.Errorf("RPC error: %w", err)
 		}
@@ -337,7 +352,14 @@ func GetUserOperationByHash(userOpHash string, chainId int64) (map[string]interf
 			return nil, err
 		}
 
-		if response == nil && response["transactionHash"] == nil {
+		logs, ok := response["logs"].([]interface{})
+		if !ok {
+			return nil, fmt.Errorf("failed to get logs")
+		}
+
+		// Transaction hash is included in the logs
+		// based on the response, if logs is empty, then the response did not include the transaction hash
+		if response == nil || len(logs) == 0 {
 			elapsed := time.Since(start)
 			if elapsed >= timeout {
 				return nil, err
@@ -348,7 +370,49 @@ func GetUserOperationByHash(userOpHash string, chainId int64) (map[string]interf
 		break
 	}
 
-	return response, nil
+	userOpTransactionLogs, ok := response["logs"].([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("failed to get logs")
+	}
+	logMap, ok := userOpTransactionLogs[0].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("failed to parse log entry")
+	}
+	transactionHash, ok := logMap["transactionHash"].(string)
+	if !ok {
+		return nil, fmt.Errorf("failed to get transaction hash from log entry")
+	}
+	
+	blockNumber, ok := logMap["blockNumber"].(string)
+	if !ok {
+		return nil, fmt.Errorf("failed to get block number")
+	}
+
+	receipt := response["receipt"].(map[string]interface{})
+	var orderId string
+	
+	// Iterate over logs to find the OrderCreated event
+    for _, event := range receipt["logs"].([]interface{}) {
+		eventData := event.(map[string]interface{})
+		if eventData["topics"].([]interface{})[0] == "0x40ccd1ceb111a3c186ef9911e1b876dc1f789ed331b86097b3b8851055b6a137" {
+			unpackedEventData, err := UnpackEventData(eventData["data"].(string), contracts.GatewayMetaData.ABI, "OrderCreated")
+			if err != nil {
+				return nil, fmt.Errorf("userop failed to unpack event data: %w", err)
+			}
+			orderIdBytes := unpackedEventData[1].([32]byte)
+			orderId = hex.EncodeToString(orderIdBytes[:])
+			if orderId == "" {
+				return nil, fmt.Errorf("failed to get order ID")
+			}
+			break
+		}
+	}
+
+	return map[string]interface{}{
+        "orderId":     orderId,
+        "blockNumber": blockNumber,
+		"transactionHash": transactionHash,
+    }, nil
 }
 
 // GetPaymasterAccount fetches the paymaster account from stackup
