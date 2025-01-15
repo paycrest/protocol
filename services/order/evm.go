@@ -164,16 +164,6 @@ func (s *OrderEVM) CreateOrder(ctx context.Context, client types.RPCClient, orde
 		return fmt.Errorf("%s - CreateOrder.updateTxHash: %w", orderIDPrefix, err)
 	}
 
-	_, err = db.Client.PaymentOrder.
-		Update().
-		Where(paymentorder.IDEQ(orderID)).
-		SetBlockNumber(blockNumber).
-		SetGatewayID(gatewayOrderId).
-		Save(ctx)
-	if err != nil {
-		return fmt.Errorf("CreateLockPaymentOrder.db: %v", err)
-	}
-
 	// Refetch payment order
 	paymentOrder, err := db.Client.PaymentOrder.
 		Query().
