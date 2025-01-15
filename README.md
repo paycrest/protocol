@@ -1,18 +1,18 @@
-# Paycrest Protocol
+# Aggregator for the paycrest protocol.
 A P2P powered crypto-to-cash exchange protocol.
 
 This is a work in progress. Follow [this guide](https://www.freecodecamp.org/news/how-to-write-a-good-readme-file/) if you want to contribute to this README.
 
-## What is Paycrest Protocol?
-T.B.D.
+## What is Paycrest Aggregator?
+The aggregator node works to simplify and automate how liquidity flows between various providers and provision nodes.
 
-## Architecture
+## Architecture 
 T.B.D.
 
 ## Development Setup
-To set up your development environment for Paycrest Protocol, follow these steps:
+To set up your development environment, follow these steps:
 
-1. Setup Paycrest Protocol repo in your local machine.
+1. Setup Paycrest Protocol Aggregator repo in your local machine.
 ```bash
 # clone the repo
 git clone https://github.com/paycrest/protocol.git
@@ -118,12 +118,16 @@ go run scripts/seed/main.go
 
 ## Usage
 TODO: Add API documentation.
+[View API Documentation](https://docs.paycrest.io/)
 
-## Roadmap
-T.B.D.
 
 ## Contributing
 We welcome contributions to the Paycrest Protocol! To get started, follow these steps:
+
+
+> **Important:** Before you begin contributing, please ensure you've read and understood these important documents:
+> - [Contributing Guide](https://paycrest.notion.site/Contributor-Code-of-Conduct-1602482d45a2806bab75fd314b381f4c) - Critical information about development process, standards, and guidelines.
+> - [Code of Conduct](https://paycrest.notion.site/Contributor-Code-of-Conduct-1602482d45a2806bab75fd314b381f4c) - Our community standards and expectations.
 
 1. Fork the repository by clicking the "Fork" button on the top right corner of the repository page.
 
