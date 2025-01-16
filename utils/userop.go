@@ -394,19 +394,20 @@ func GetUserOperationByReceipt(userOpHash string, chainId int64) (map[string]int
     for _, event := range receipt["logs"].([]interface{}) {
 		eventData := event.(map[string]interface{})
 		if eventData["topics"].([]interface{})[0] == "0x40ccd1ceb111a3c186ef9911e1b876dc1f789ed331b86097b3b8851055b6a137" {
-			unpackedEventData, err := UnpackEventData(eventData["data"].(string), contracts.GatewayMetaData.ABI, "OrderCreated")
+			data := strings.TrimPrefix(eventData["data"].(string), "0x")
+			unpackedEventData, err := UnpackEventData(data, contracts.GatewayMetaData.ABI, "OrderCreated")
 			if err != nil {
 				return nil, fmt.Errorf("userop failed to unpack event data: %w", err)
 			}
 			orderIdBytes := unpackedEventData[1].([32]byte)
-			orderId = hex.EncodeToString(orderIdBytes[:])
+			orderId = "0x" + hex.EncodeToString(orderIdBytes[:])
 			if orderId == "" {
 				return nil, fmt.Errorf("failed to get order ID")
 			}
 			break
 		}
 	}
-
+	
 	return map[string]interface{}{
         "orderId":     orderId,
         "blockNumber": blockNumber,
