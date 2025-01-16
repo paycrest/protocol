@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
+	"strconv"
 	"strings"
 	"time"
-	"strconv"
 
 	"encoding/hex"
 
@@ -336,7 +336,7 @@ func GetUserOperationByReceipt(userOpHash string, chainId int64) (map[string]int
 
 	start := time.Now()
 	timeout := 10 * time.Minute
-	
+
 	var response map[string]interface{}
 	for {
 		time.Sleep(10 * time.Second)
@@ -381,7 +381,7 @@ func GetUserOperationByReceipt(userOpHash string, chainId int64) (map[string]int
 	if !ok {
 		return nil, fmt.Errorf("failed to get transaction hash from log entry")
 	}
-	
+
 	blockNumber, ok := logMap["blockNumber"].(string)
 	if !ok {
 		return nil, fmt.Errorf("failed to get block number")
@@ -389,14 +389,14 @@ func GetUserOperationByReceipt(userOpHash string, chainId int64) (map[string]int
 
 	receipt := response["receipt"].(map[string]interface{})
 	var orderId string
-	
+
 	// Iterate over logs to find the OrderCreated event
-    for _, event := range receipt["logs"].([]interface{}) {
+	for _, event := range receipt["logs"].([]interface{}) {
 		eventData := event.(map[string]interface{})
 		if eventData["topics"].([]interface{})[0] == "0x40ccd1ceb111a3c186ef9911e1b876dc1f789ed331b86097b3b8851055b6a137" {
 			unpackedEventData, err := UnpackEventData(eventData["data"].(string), contracts.GatewayMetaData.ABI, "OrderCreated")
 			if err != nil {
-				return nil, fmt.Errorf("userop failed to unpack event data: %w", err)
+				return nil, fmt.Errorf("userop failed to unpack event data: %w %v", err, eventData)
 			}
 			orderIdBytes := unpackedEventData[1].([32]byte)
 			orderId = hex.EncodeToString(orderIdBytes[:])
@@ -408,10 +408,10 @@ func GetUserOperationByReceipt(userOpHash string, chainId int64) (map[string]int
 	}
 
 	return map[string]interface{}{
-        "orderId":     orderId,
-        "blockNumber": blockNumber,
+		"orderId":         orderId,
+		"blockNumber":     blockNumber,
 		"transactionHash": transactionHash,
-    }, nil
+	}, nil
 }
 
 // GetPaymasterAccount fetches the paymaster account from stackup
