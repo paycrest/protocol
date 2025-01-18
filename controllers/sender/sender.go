@@ -56,6 +56,26 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 		return
 	}
 
+	// Validate if institution exists
+	institutionExists, err := storage.Client.Institution.
+		Query().
+		Where(
+			institution.CodeEQ(payload.Recipient.Institution),
+		).
+		Exist(ctx)
+	if err != nil {
+		logger.Errorf("error validating institution: %v", err)
+		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to validate institution", nil)
+		return
+	}
+	if !institutionExists {
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Failed to validate payload", types.ErrorData{
+			Field:   "Institution",
+			Message: "Invalid institution code provided",
+		})
+		return
+	}
+
 	// Get sender profile from the context
 	senderCtx, ok := ctx.Get("sender")
 	if !ok {
