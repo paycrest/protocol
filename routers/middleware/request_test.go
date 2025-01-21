@@ -1,4 +1,3 @@
-
 package middleware
 
 import (
@@ -22,6 +21,25 @@ func setupTestRouter() *gin.Engine {
 	})
 
 	return router
+}
+
+// Helper function to send a request and return the response recorder
+func sendRequest(router *gin.Engine, method, path string, headers map[string]string) *httptest.ResponseRecorder {
+	req, _ := http.NewRequest(method, path, nil)
+	for key, value := range headers {
+		req.Header.Set(key, value)
+	}
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	return w
+}
+
+// Helper function to decode JSON responses
+func decodeResponseBody(t *testing.T, body *httptest.ResponseRecorder) map[string]interface{} {
+	var response map[string]interface{}
+	err := json.NewDecoder(body.Body).Decode(&response)
+	assert.NoError(t, err)
+	return response
 }
 
 func TestRateLimitMiddleware(t *testing.T) {
@@ -67,16 +85,14 @@ func TestRateLimitMiddleware(t *testing.T) {
 			// Wait for rate limit to reset
 			time.Sleep(1 * time.Second)
 
+			headers := map[string]string{}
+			if tt.authenticated {
+				headers["Authorization"] = tt.token
+			}
+
 			var lastStatus int
 			for i := 0; i < tt.numRequests; i++ {
-				w := httptest.NewRecorder()
-				req, _ := http.NewRequest("GET", "/test", nil)
-
-				if tt.authenticated {
-					req.Header.Set("Authorization", tt.token)
-				}
-
-				router.ServeHTTP(w, req)
+				w := sendRequest(router, "GET", "/test", headers)
 				lastStatus = w.Code
 			}
 
@@ -88,22 +104,29 @@ func TestRateLimitMiddleware(t *testing.T) {
 func TestRateLimitErrorResponse(t *testing.T) {
 	router := setupTestRouter()
 
-	// Make enough requests to trigger rate limit
+	// Make enough requests to trigger the rate limit
+	headers := map[string]string{}
 	for i := 0; i < 6; i++ {
-		w := httptest.NewRecorder()
-		req, _ := http.NewRequest("GET", "/test", nil)
-		router.ServeHTTP(w, req)
+		w := sendRequest(router, "GET", "/test", headers)
 
+		// Check if the rate limit was triggered
 		if w.Code == http.StatusTooManyRequests {
-			var response map[string]interface{}
-			err := json.NewDecoder(w.Body).Decode(&response)
-			assert.NoError(t, err)
+			response := decodeResponseBody(t, w)
 
-			// Check response structure
-			assert.Contains(t, response, "error")
-			assert.Contains(t, response, "retry_after")
-			assert.Contains(t, response, "limit")
-			assert.Equal(t, "Too many requests from this IP address", response["error"])
+			// Verify the top-level structure of the response
+			assert.Equal(t, "error", response["status"])
+			assert.Equal(t, "Too many requests from this IP address", response["message"])
+
+			// Check nested data fields
+			data, ok := response["data"].(map[string]interface{})
+			assert.True(t, ok, "data field should be a map")
+			assert.Contains(t, data, "retry_after")
+			assert.Contains(t, data, "limit")
+
+			// Verify values
+			assert.Greater(t, data["retry_after"].(float64), 0.0)
+			assert.Equal(t, 5, int(data["limit"].(float64)))
+
 			break
 		}
 	}
