@@ -1,7 +1,10 @@
 package routers
 
 import (
+	"log"
 	"net/http"
+	"os"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/paycrest/protocol/controllers"
@@ -14,6 +17,17 @@ import (
 
 // RegisterRoutes add all routing list here automatically get main router
 func RegisterRoutes(route *gin.Engine) {
+
+	cacheService, err := middleware.NewCacheService(middleware.CacheConfig{
+		Host:     os.Getenv("REDIS_HOST"),
+		Port:     os.Getenv("REDIS_PORT"),
+		Password: os.Getenv("REDIS_PASSWORD"),
+		DB:       0,
+	})
+	if err != nil {
+		log.Fatalf("Failed to initialize cache: %v", err)
+	}
+
 	route.NoRoute(func(ctx *gin.Context) {
 		u.APIResponse(ctx, http.StatusNotFound, "error", "Route Not Found", nil)
 	})
@@ -30,14 +44,20 @@ func RegisterRoutes(route *gin.Engine) {
 
 	v1.GET(
 		"currencies",
+		cacheService.CacheMiddleware(24*time.Hour),
 		ctrl.GetFiatCurrencies,
 	)
 	v1.GET(
 		"institutions/:currency_code",
+		cacheService.CacheMiddleware(24*time.Hour),
 		ctrl.GetInstitutionsByCurrency,
 	)
+	v1.GET("pubkey",
+		cacheService.CacheMiddleware(365*24*time.Hour),
+		ctrl.GetAggregatorPublicKey,
+	)
+
 	v1.GET("rates/:token/:amount/:fiat", ctrl.GetTokenRate)
-	v1.GET("pubkey", ctrl.GetAggregatorPublicKey)
 	v1.POST("verify-account", ctrl.VerifyAccount)
 	v1.GET("orders/:id", ctrl.GetLockPaymentOrderStatus)
 
