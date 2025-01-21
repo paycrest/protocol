@@ -879,6 +879,41 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 		return nil
 	}
 
+	go func() {
+		timeToWait := 2 * time.Second
+
+		time.Sleep(timeToWait)
+		_ = utils.Retry(10, timeToWait, func() error {
+			// Update payment order with the gateway ID
+			paymentOrder, err := db.Client.PaymentOrder.
+				Query().
+				Where(
+					paymentorder.TxHashEQ(event.TxHash),
+				).
+				Only(ctx)
+			if err != nil {
+				if ent.IsNotFound(err) {
+					// Payment order does not exist, retry
+					return fmt.Errorf("trigger retry")
+				} else {
+					return fmt.Errorf("CreateLockPaymentOrder.db: %v", err)
+				}
+			}
+
+			_, err = db.Client.PaymentOrder.
+				Update().
+				Where(paymentorder.IDEQ(paymentOrder.ID)).
+				SetBlockNumber(int64(event.BlockNumber)).
+				SetGatewayID(gatewayId).
+				Save(ctx)
+			if err != nil {
+				return fmt.Errorf("CreateLockPaymentOrder.db: %v", err)
+			}
+
+			return nil
+		})
+	}()
+
 	// Get token from db
 	token, err := db.Client.Token.
 		Query().
