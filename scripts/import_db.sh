@@ -23,7 +23,8 @@ get_env_value() {
     local key=$1
     local file=$2
     # Using perl for more reliable parsing
-    local value=$(perl -ne 'print $1 if /^'$key'[\s]*=[\s]*(.*)/' "$file" | sed 's/^["'\'']//' | sed 's/["'\'']$//')
+    local value
+    value=$(perl -ne 'print $1 if /^'$key'[\s]*=[\s]*(.*)/' "$file" | sed 's/^["'\'']//' | sed 's/["'\'']$//')
     echo "$value"
 }
 
