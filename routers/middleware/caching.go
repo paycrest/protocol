@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -63,16 +64,17 @@ func NewCacheService(config config.RedisConfiguration) (*CacheService, error) {
 }
 
 func generateCacheKey(c *gin.Context) string {
+	conf := config.RedisConfig()
 	path := c.Request.URL.Path
 	switch {
 	case path == "/v1/currencies":
-		return "api:currencies:list"
+		return fmt.Sprintf("%s:api:currencies:list", conf.CacheVersion)
 	case path == "/v1/pubkey":
-		return "api:aggregator:pubkey"
+		return fmt.Sprintf("%s:api:aggregator:pubkey", conf.CacheVersion)
 	case len(c.Param("currency_code")) > 0:
-		return fmt.Sprintf("api:institutions:%s", c.Param("currency_code"))
+		return fmt.Sprintf("%s:api:institutions:%s", conf.CacheVersion, c.Param("currency_code"))
 	default:
-		return fmt.Sprintf("api:v1:%s:%s", c.Request.Method, path)
+		return fmt.Sprintf("%s:api:%s", conf.CacheVersion, path)
 	}
 }
 
@@ -142,18 +144,44 @@ func (w *cacheWriter) Write(b []byte) (int, error) {
 func (s *CacheService) WarmCache(ctx context.Context) error {
 	conf := config.ServerConfig()
 	baseURL := conf.HostDomain
-	if conf.HostDomain == "" {
+	if baseURL == "" {
 		return fmt.Errorf("host domain is not set in the server configuration")
 	}
 
-	endpoints := map[string]time.Duration{
-		"currencies":       24 * time.Hour,
-		"pubkey":           365 * time.Hour,
-		"institutions/USD": 24 * time.Hour,
-		"institutions/EUR": 24 * time.Hour,
-		"institutions/GBP": 24 * time.Hour,
+	// Fetch the list of supported currencies with a timeout
+	client := &http.Client{Timeout: 10 * time.Second}
+	currenciesURL := fmt.Sprintf("%s/v1/currencies", baseURL)
+	resp, err := client.Get(currenciesURL)
+	if err != nil {
+		return fmt.Errorf("failed to fetch currencies from %s: %v", currenciesURL, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to fetch currencies: status code %d", resp.StatusCode)
 	}
 
+	var currencies []string
+	if err := json.NewDecoder(resp.Body).Decode(&currencies); err != nil {
+		return fmt.Errorf("failed to decode currencies response: %v", err)
+	}
+
+	if len(currencies) == 0 {
+		fmt.Println("No currencies found. Using default currencies [USD, EUR, GBP].")
+		currencies = []string{"USD", "EUR", "GBP"}
+	}
+
+	// Define static and dynamic endpoints
+	endpoints := map[string]time.Duration{
+		"currencies": time.Duration(conf.CurrenciesCacheDuration) * time.Hour,
+		"pubkey":     time.Duration(conf.PubKeyCacheDuration) * time.Hour,
+	}
+
+	for _, currency := range currencies {
+		endpoints[fmt.Sprintf("institutions/%s", currency)] = time.Duration(conf.InstitutionsCacheDuration) * time.Hour
+	}
+
+	// Warm up cache for each endpoint
 	for path, duration := range endpoints {
 		urlStr := fmt.Sprintf("%s/v1/%s", baseURL, path)
 		parsedURL, err := url.Parse(urlStr)

@@ -3,13 +3,13 @@ module github.com/paycrest/protocol
 go 1.22.0
 
 require (
+	github.com/alicebob/miniredis/v2 v2.34.0
 	github.com/anaskhan96/base58check v0.0.0-20181220122047-b05365d494c4
 	github.com/btcsuite/btcd/btcec/v2 v2.3.2
 	github.com/chadsr/logrus-sentry v0.4.1
 	github.com/getsentry/sentry-go v0.13.0
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-co-op/gocron v1.35.0
-	github.com/go-redis/redismock/v9 v9.2.0
 	github.com/golang-jwt/jwt/v5 v5.0.0
 	github.com/jarcoal/httpmock v1.3.1
 	github.com/mailgun/mailgun-go/v3 v3.6.4
@@ -31,6 +31,7 @@ require (
 	github.com/FactomProject/basen v0.0.0-20150613233007-fe3947df716e // indirect
 	github.com/FactomProject/btcutilecc v0.0.0-20130527213604-d3a63a5752ec // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
+	github.com/alicebob/gopher-json v0.0.0-20230218143504-906a9b012302 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bits-and-blooms/bitset v1.7.0 // indirect
 	github.com/btcsuite/btcd v0.22.1 // indirect
@@ -84,6 +85,7 @@ require (
 	github.com/tklauser/go-sysconf v0.3.12 // indirect
 	github.com/tklauser/numcpus v0.6.1 // indirect
 	github.com/tyler-smith/go-bip32 v1.0.0 // indirect
+	github.com/yuin/gopher-lua v1.1.1 // indirect
 	github.com/yusufpapurcu/wmi v1.2.3 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9 // indirect
