@@ -5,11 +5,11 @@ import (
 	"log"
 	"time"
 
-	"github.com/paycrest/protocol/config"
-	"github.com/paycrest/protocol/routers"
-	"github.com/paycrest/protocol/storage"
-	"github.com/paycrest/protocol/tasks"
-	"github.com/paycrest/protocol/utils/logger"
+	"github.com/paycrest/aggregator/config"
+	"github.com/paycrest/aggregator/routers"
+	"github.com/paycrest/aggregator/storage"
+	"github.com/paycrest/aggregator/tasks"
+	"github.com/paycrest/aggregator/utils/logger"
 )
 
 func main() {

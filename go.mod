@@ -1,4 +1,4 @@
-module github.com/paycrest/protocol
+module github.com/paycrest/aggregator
 
 go 1.22.0
 

@@ -8,24 +8,24 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
-	"github.com/paycrest/protocol/ent"
-	"github.com/paycrest/protocol/ent/institution"
-	"github.com/paycrest/protocol/ent/lockorderfulfillment"
-	"github.com/paycrest/protocol/ent/lockpaymentorder"
-	"github.com/paycrest/protocol/ent/paymentorder"
-	"github.com/paycrest/protocol/ent/providerordertoken"
-	"github.com/paycrest/protocol/ent/providerprofile"
-	"github.com/paycrest/protocol/ent/receiveaddress"
-	"github.com/paycrest/protocol/ent/senderordertoken"
-	"github.com/paycrest/protocol/ent/senderprofile"
-	"github.com/paycrest/protocol/ent/token"
-	entToken "github.com/paycrest/protocol/ent/token"
-	db "github.com/paycrest/protocol/storage"
-	"github.com/paycrest/protocol/types"
-	"github.com/shopspring/decimal"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/google/uuid"
+	"github.com/paycrest/aggregator/ent"
+	"github.com/paycrest/aggregator/ent/institution"
+	"github.com/paycrest/aggregator/ent/lockorderfulfillment"
+	"github.com/paycrest/aggregator/ent/lockpaymentorder"
+	"github.com/paycrest/aggregator/ent/paymentorder"
+	"github.com/paycrest/aggregator/ent/providerordertoken"
+	"github.com/paycrest/aggregator/ent/providerprofile"
+	"github.com/paycrest/aggregator/ent/receiveaddress"
+	"github.com/paycrest/aggregator/ent/senderordertoken"
+	"github.com/paycrest/aggregator/ent/senderprofile"
+	"github.com/paycrest/aggregator/ent/token"
+	entToken "github.com/paycrest/aggregator/ent/token"
+	db "github.com/paycrest/aggregator/storage"
+	"github.com/paycrest/aggregator/types"
+	"github.com/shopspring/decimal"
 )
 
 // CreateTestUser creates a test user with default or custom values
@@ -495,11 +495,11 @@ func AddProviderOrderTokenToProvider(overrides map[string]interface{}) (*ent.Pro
 		"tokenSymbol":              "",
 		"provider":                 nil,
 		"addresses": []map[string]string{
-            {
-                "address": "",
-                "network": "",
-            },
-        },
+			{
+				"address": "",
+				"network": "",
+			},
+		},
 	}
 
 	// Apply overrides
@@ -508,22 +508,22 @@ func AddProviderOrderTokenToProvider(overrides map[string]interface{}) (*ent.Pro
 	}
 
 	// Extract addresses from payload
-    addresses := []struct {
-        Address string `json:"address"`
-        Network string `json:"network"`
-    }{}
+	addresses := []struct {
+		Address string `json:"address"`
+		Network string `json:"network"`
+	}{}
 
-    if addrOverrides, ok := payload["addresses"].([]map[string]string); ok {
-        for _, addr := range addrOverrides {
-            addresses = append(addresses, struct {
-                Address string `json:"address"`
-                Network string `json:"network"`
-            }{
-                Address: addr["address"],
-                Network: addr["network"],
-            })
-        }
-    }
+	if addrOverrides, ok := payload["addresses"].([]map[string]string); ok {
+		for _, addr := range addrOverrides {
+			addresses = append(addresses, struct {
+				Address string `json:"address"`
+				Network string `json:"network"`
+			}{
+				Address: addr["address"],
+				Network: addr["network"],
+			})
+		}
+	}
 
 	orderToken, err := db.Client.ProviderOrderToken.
 		Create().
@@ -648,6 +648,6 @@ func CreateEnvFile(filePath string, data map[string]string) (string, error) {
 }
 
 func CreateMessageHash(orderRequestData map[string]interface{}) common.Hash {
-    prefix := fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(orderRequestData), orderRequestData)
+	prefix := fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(orderRequestData), orderRequestData)
 	return crypto.Keccak256Hash([]byte(prefix))
 }

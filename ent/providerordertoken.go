@@ -10,8 +10,8 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/paycrest/protocol/ent/providerordertoken"
-	"github.com/paycrest/protocol/ent/providerprofile"
+	"github.com/paycrest/aggregator/ent/providerordertoken"
+	"github.com/paycrest/aggregator/ent/providerprofile"
 	"github.com/shopspring/decimal"
 )
 

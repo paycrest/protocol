@@ -14,21 +14,21 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/uuid"
-	"github.com/paycrest/protocol/config"
-	"github.com/paycrest/protocol/ent"
-	"github.com/paycrest/protocol/services/contracts"
-	db "github.com/paycrest/protocol/storage"
+	"github.com/paycrest/aggregator/config"
+	"github.com/paycrest/aggregator/ent"
+	"github.com/paycrest/aggregator/services/contracts"
+	db "github.com/paycrest/aggregator/storage"
 	"github.com/shopspring/decimal"
 
-	"github.com/paycrest/protocol/ent/institution"
-	"github.com/paycrest/protocol/ent/lockorderfulfillment"
-	"github.com/paycrest/protocol/ent/lockpaymentorder"
-	"github.com/paycrest/protocol/ent/paymentorder"
-	"github.com/paycrest/protocol/ent/providerordertoken"
-	"github.com/paycrest/protocol/ent/providerprofile"
-	"github.com/paycrest/protocol/types"
-	"github.com/paycrest/protocol/utils"
-	cryptoUtils "github.com/paycrest/protocol/utils/crypto"
+	"github.com/paycrest/aggregator/ent/institution"
+	"github.com/paycrest/aggregator/ent/lockorderfulfillment"
+	"github.com/paycrest/aggregator/ent/lockpaymentorder"
+	"github.com/paycrest/aggregator/ent/paymentorder"
+	"github.com/paycrest/aggregator/ent/providerordertoken"
+	"github.com/paycrest/aggregator/ent/providerprofile"
+	"github.com/paycrest/aggregator/types"
+	"github.com/paycrest/aggregator/utils"
+	cryptoUtils "github.com/paycrest/aggregator/utils/crypto"
 )
 
 // OrderEVM provides functionality related to on-chain interactions for payment orders
@@ -783,12 +783,12 @@ func (s *OrderEVM) settleCallData(ctx context.Context, order *ent.LockPaymentOrd
 // encryptOrderRecipient encrypts the recipient details
 func (s *OrderEVM) encryptOrderRecipient(recipient *ent.PaymentOrderRecipient) (string, error) {
 	// Generate a cryptographically secure random nonce
-    nonce := make([]byte, 32)
-    if _, err := rand.Read(nonce); err != nil {
-        return "", fmt.Errorf("failed to generate nonce: %w", err)
-    }
+	nonce := make([]byte, 32)
+	if _, err := rand.Read(nonce); err != nil {
+		return "", fmt.Errorf("failed to generate nonce: %w", err)
+	}
 	message := struct {
-		Nonce			  string
+		Nonce             string
 		AccountIdentifier string
 		AccountName       string
 		Institution       string

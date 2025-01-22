@@ -12,12 +12,12 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/paycrest/protocol/ent/lockpaymentorder"
-	"github.com/paycrest/protocol/ent/network"
-	"github.com/paycrest/protocol/ent/paymentorder"
-	"github.com/paycrest/protocol/ent/predicate"
-	"github.com/paycrest/protocol/ent/senderordertoken"
-	"github.com/paycrest/protocol/ent/token"
+	"github.com/paycrest/aggregator/ent/lockpaymentorder"
+	"github.com/paycrest/aggregator/ent/network"
+	"github.com/paycrest/aggregator/ent/paymentorder"
+	"github.com/paycrest/aggregator/ent/predicate"
+	"github.com/paycrest/aggregator/ent/senderordertoken"
+	"github.com/paycrest/aggregator/ent/token"
 )
 
 // TokenQuery is the builder for querying Token entities.

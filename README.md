@@ -15,7 +15,7 @@ To set up your development environment for Paycrest Protocol, follow these steps
 1. Setup Paycrest Protocol repo in your local machine.
 ```bash
 # clone the repo
-git clone https://github.com/paycrest/protocol.git
+git clone https://github.com/paycrest/aggregator.git
 cd protocol
 
 # copy and update enviroment variables
@@ -143,7 +143,7 @@ sh init.sh
 $ git push origin main
 ```
 
-5. Create a pull request by visiting the [repository page](https://github.com/paycrest/protocol) and clicking the "New pull request" button.
+5. Create a pull request by visiting the [repository page](https://github.com/paycrest/aggregator) and clicking the "New pull request" button.
 
 Our team will review your pull request and work with you to get it merged into the main branch of the repository. 
 

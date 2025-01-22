@@ -10,9 +10,9 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
-	"github.com/paycrest/protocol/ent/senderordertoken"
-	"github.com/paycrest/protocol/ent/senderprofile"
-	"github.com/paycrest/protocol/ent/token"
+	"github.com/paycrest/aggregator/ent/senderordertoken"
+	"github.com/paycrest/aggregator/ent/senderprofile"
+	"github.com/paycrest/aggregator/ent/token"
 	"github.com/shopspring/decimal"
 )
 
