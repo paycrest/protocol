@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/paycrest/protocol/config"
@@ -33,7 +34,8 @@ func main() {
 
 	// Initialize Redis
 	if err := storage.InitializeRedis(); err != nil {
-		logger.Fatalf("Redis initialization: %s", err)
+		log.Println(err)
+		logger.Fatalf("Redis initialization: %v", err)
 	}
 
 	// Subscribe to Redis keyspace events
