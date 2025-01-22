@@ -3,10 +3,10 @@ package routers
 import (
 	"log"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/paycrest/protocol/config"
 	"github.com/paycrest/protocol/controllers"
 	"github.com/paycrest/protocol/controllers/accounts"
 	"github.com/paycrest/protocol/controllers/provider"
@@ -17,12 +17,13 @@ import (
 
 // RegisterRoutes add all routing list here automatically get main router
 func RegisterRoutes(route *gin.Engine) {
+	conf := config.RedisConfig()
 
 	cacheService, err := middleware.NewCacheService(middleware.CacheConfig{
-		Host:     os.Getenv("REDIS_HOST"),
-		Port:     os.Getenv("REDIS_PORT"),
-		Password: os.Getenv("REDIS_PASSWORD"),
-		DB:       0,
+		Host:     conf.Host,
+		Port:     conf.Port,
+		Password: conf.Password,
+		DB:       conf.DB,
 	})
 	if err != nil {
 		log.Fatalf("Failed to initialize cache: %v", err)

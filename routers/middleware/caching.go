@@ -7,13 +7,26 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
+	"net/url"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/paycrest/protocol/config"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/redis/go-redis/v9"
 )
+
+// CacheMetrics holds the metrics for cache hits and misses
+type CacheMetrics struct {
+	hits   prometheus.Counter
+	misses prometheus.Counter
+}
+
+// CacheService handles Redis operations
+type CacheService struct {
+	client  *redis.Client
+	metrics CacheMetrics
+}
 
 type CacheConfig struct {
 	Host     string
@@ -22,17 +35,8 @@ type CacheConfig struct {
 	DB       int
 }
 
-type CacheMetrics struct {
-	hits   prometheus.Counter
-	misses prometheus.Counter
-}
-
-type CacheService struct {
-	client  *redis.Client
-	metrics CacheMetrics
-}
-
-func NewCacheService(config CacheConfig) (*CacheService, error) {
+// NewCacheService creates a new Redis cache service
+func NewCacheService(config config.RedisConfiguration) (*CacheService, error) {
 	metrics := CacheMetrics{
 		hits: prometheus.NewCounter(prometheus.CounterOpts{
 			Name: "cache_hits_total",
@@ -136,9 +140,10 @@ func (w *cacheWriter) Write(b []byte) (int, error) {
 }
 
 func (s *CacheService) WarmCache(ctx context.Context) error {
-	baseURL := os.Getenv("API_BASE_URL")
-	if baseURL == "" {
-		baseURL = "http://localhost:8080"
+	conf := config.ServerConfig()
+	baseURL := conf.HostDomain
+	if conf.HostDomain == "" {
+		return fmt.Errorf("host domain is not set in the server configuration")
 	}
 
 	endpoints := map[string]time.Duration{
@@ -150,9 +155,14 @@ func (s *CacheService) WarmCache(ctx context.Context) error {
 	}
 
 	for path, duration := range endpoints {
-		url := fmt.Sprintf("%s/v1/%s", baseURL, path)
-		key := generateCacheKey(&gin.Context{Request: &http.Request{URL: &url.URL{Path: "/v1/" + path}}})
-		if err := s.cacheEndpoint(ctx, url, key, duration); err != nil {
+		urlStr := fmt.Sprintf("%s/v1/%s", baseURL, path)
+		parsedURL, err := url.Parse(urlStr)
+		if err != nil {
+			fmt.Printf("Failed to parse URL %s: %v\n", urlStr, err)
+			continue
+		}
+		key := generateCacheKey(&gin.Context{Request: &http.Request{URL: parsedURL}})
+		if err := s.cacheEndpoint(ctx, urlStr, key, duration); err != nil {
 			fmt.Printf("Failed to cache %s: %v\n", path, err)
 		}
 	}
