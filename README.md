@@ -1,4 +1,4 @@
-## What is Paycrest Aggregator?
+## Paycrest Aggregator
 
 The aggregator works to simplify and automate how liquidity flows between various provision nodes and user-created orders.
 
@@ -14,6 +14,11 @@ The aggregator works to simplify and automate how liquidity flows between variou
 **Fulfill**: The provisioning node automatically disburses funds to their wallet or recipient's local bank account, mobile money wallet via connections to payment service providers (PSP).
 
 ## Development Setup
+
+Pre-requisite: Install required dependencies:
+- [Docker Compose](https://docs.docker.com/compose/install/)
+- [Ent](https://entgo.io/docs/getting-started/) for database ORM
+- [Atlas](https://atlasgo.io/guides/evaluation/install#install-atlas-locally) for database migrations
 
 To set up your development environment, follow these steps:
 
