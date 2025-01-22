@@ -437,11 +437,30 @@ func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPC
 	}
 	toBlock := header.Number.Uint64()
 
+	// Fetch last indexed lock order
+	lastIndexedOrder, err := db.Client.LockPaymentOrder.
+		Query().
+		Where(
+			lockpaymentorder.HasTokenWith(
+				token.HasNetworkWith(
+					networkent.IdentifierEQ(network.Identifier),
+				),
+			),
+		).
+		Order(ent.Desc(lockpaymentorder.FieldBlockNumber)).
+		Select(lockpaymentorder.FieldBlockNumber).
+		First(ctx)
+	if err != nil {
+		if !ent.IsNotFound(err) {
+			logger.Errorf("IndexOrderCreated.FetchLastIndexedBlock: %v", err)
+		}
+	}
+
 	// Fetch logs
 	var iter *contracts.GatewayOrderCreatedIterator
 	retryErr := utils.Retry(3, 1*time.Second, func() error {
 		iter, err = filterer.FilterOrderCreated(&bind.FilterOpts{
-			Start: uint64(int64(toBlock) - 5000),
+			Start: uint64(int64(toBlock) - lastIndexedOrder.BlockNumber),
 			End:   &toBlock,
 		}, nil, nil, nil)
 		return err
