@@ -10,6 +10,7 @@ require (
 	github.com/getsentry/sentry-go v0.13.0
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-co-op/gocron v1.35.0
+	github.com/go-redis/redismock/v9 v9.2.0
 	github.com/golang-jwt/jwt/v5 v5.0.0
 	github.com/jarcoal/httpmock v1.3.1
 	github.com/mailgun/mailgun-go/v3 v3.6.4

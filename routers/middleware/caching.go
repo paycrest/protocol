@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"net/url"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -64,17 +63,18 @@ func NewCacheService(config config.RedisConfiguration) (*CacheService, error) {
 }
 
 func generateCacheKey(c *gin.Context) string {
-	conf := config.RedisConfig()
+	// conf := config.RedisConfig()
+	conf := "v1"
 	path := c.Request.URL.Path
 	switch {
 	case path == "/v1/currencies":
-		return fmt.Sprintf("%s:api:currencies:list", conf.CacheVersion)
+		return fmt.Sprintf("%s:api:currencies:list", conf)
 	case path == "/v1/pubkey":
-		return fmt.Sprintf("%s:api:aggregator:pubkey", conf.CacheVersion)
+		return fmt.Sprintf("%s:api:aggregator:pubkey", conf)
 	case len(c.Param("currency_code")) > 0:
-		return fmt.Sprintf("%s:api:institutions:%s", conf.CacheVersion, c.Param("currency_code"))
+		return fmt.Sprintf("%s:api:institutions:%s", conf, c.Param("currency_code"))
 	default:
-		return fmt.Sprintf("%s:api:%s", conf.CacheVersion, path)
+		return fmt.Sprintf("%s:api:%s", conf, path)
 	}
 }
 
@@ -115,6 +115,7 @@ func (s *CacheService) CacheMiddleware(duration time.Duration) gin.HandlerFunc {
 		}
 
 		s.metrics.misses.Inc()
+		c.Header("X-Cache", "MISS") // Add this line
 		c.Writer = &cacheWriter{ResponseWriter: c.Writer, body: make([]byte, 0)}
 		c.Next()
 
@@ -148,8 +149,10 @@ func (s *CacheService) WarmCache(ctx context.Context) error {
 		return fmt.Errorf("host domain is not set in the server configuration")
 	}
 
-	// Fetch the list of supported currencies with a timeout
+	// Create HTTP client with timeout
 	client := &http.Client{Timeout: 10 * time.Second}
+
+	// Fetch currencies first
 	currenciesURL := fmt.Sprintf("%s/v1/currencies", baseURL)
 	resp, err := client.Get(currenciesURL)
 	if err != nil {
@@ -166,32 +169,33 @@ func (s *CacheService) WarmCache(ctx context.Context) error {
 		return fmt.Errorf("failed to decode currencies response: %v", err)
 	}
 
+	// Use default currencies if none found
 	if len(currencies) == 0 {
-		fmt.Println("No currencies found. Using default currencies [USD, EUR, GBP].")
 		currencies = []string{"USD", "EUR", "GBP"}
 	}
 
-	// Define static and dynamic endpoints
-	endpoints := map[string]time.Duration{
-		"currencies": time.Duration(conf.CurrenciesCacheDuration) * time.Hour,
-		"pubkey":     time.Duration(conf.PubKeyCacheDuration) * time.Hour,
+	// Cache currencies
+	currenciesKey := fmt.Sprintf("v1:api:currencies:list")
+	currenciesData, err := json.Marshal(currencies)
+	if err != nil {
+		return fmt.Errorf("failed to marshal currencies: %v", err)
+	}
+	if err := s.client.Set(ctx, currenciesKey, string(currenciesData), time.Duration(conf.CurrenciesCacheDuration)*time.Hour).Err(); err != nil {
+		return fmt.Errorf("failed to cache currencies: %v", err)
 	}
 
+	// Cache pubkey
+	pubkeyURL := fmt.Sprintf("%s/v1/pubkey", baseURL)
+	if err := s.cacheEndpoint(ctx, pubkeyURL, "v1:api:aggregator:pubkey", time.Duration(conf.PubKeyCacheDuration)*time.Hour); err != nil {
+		return fmt.Errorf("failed to cache pubkey: %v", err)
+	}
+
+	// Cache institutions for each currency
 	for _, currency := range currencies {
-		endpoints[fmt.Sprintf("institutions/%s", currency)] = time.Duration(conf.InstitutionsCacheDuration) * time.Hour
-	}
-
-	// Warm up cache for each endpoint
-	for path, duration := range endpoints {
-		urlStr := fmt.Sprintf("%s/v1/%s", baseURL, path)
-		parsedURL, err := url.Parse(urlStr)
-		if err != nil {
-			fmt.Printf("Failed to parse URL %s: %v\n", urlStr, err)
-			continue
-		}
-		key := generateCacheKey(&gin.Context{Request: &http.Request{URL: parsedURL}})
-		if err := s.cacheEndpoint(ctx, urlStr, key, duration); err != nil {
-			fmt.Printf("Failed to cache %s: %v\n", path, err)
+		institutionsURL := fmt.Sprintf("%s/v1/institutions/%s", baseURL, currency)
+		key := fmt.Sprintf("v1:api:institutions:%s", currency)
+		if err := s.cacheEndpoint(ctx, institutionsURL, key, time.Duration(conf.InstitutionsCacheDuration)*time.Hour); err != nil {
+			return fmt.Errorf("failed to cache institutions for %s: %v", currency, err)
 		}
 	}
 
@@ -201,22 +205,35 @@ func (s *CacheService) WarmCache(ctx context.Context) error {
 func (s *CacheService) cacheEndpoint(ctx context.Context, url, key string, duration time.Duration) error {
 	resp, err := http.Get(url)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to fetch from %s: %v", url, err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to fetch data from %s: status code %d", url, resp.StatusCode)
+		return fmt.Errorf("received non-200 status code (%d) from %s", resp.StatusCode, url)
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to read response body from %s: %v", url, err)
 	}
 
+	// Verify the response is valid JSON
+	var jsonCheck interface{}
+	if err := json.Unmarshal(body, &jsonCheck); err != nil {
+		return fmt.Errorf("invalid JSON response from %s: %v", url, err)
+	}
+
+	// Generate and store ETag
 	etag := generateETag(body)
-	s.client.Set(ctx, key, string(body), duration)
-	s.client.Set(ctx, key+":etag", etag, duration)
+	if err := s.client.Set(ctx, key+":etag", etag, duration).Err(); err != nil {
+		return fmt.Errorf("failed to cache etag for %s: %v", url, err)
+	}
+
+	// Cache the response
+	if err := s.client.Set(ctx, key, string(body), duration).Err(); err != nil {
+		return fmt.Errorf("failed to cache response for %s: %v", url, err)
+	}
 
 	return nil
 }
