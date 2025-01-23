@@ -951,7 +951,7 @@ func (s *IndexerService) CreateLockPaymentOrder(ctx context.Context, client type
 	// Get order recipient from message hash
 	recipient, err := s.getOrderRecipientFromMessageHash(event.MessageHash)
 	if err != nil {
-		return fmt.Errorf("failed to decrypt message hash: %w", err)
+		return nil
 	}
 
 	// Get provision bucket
