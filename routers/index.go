@@ -15,9 +15,6 @@ import (
 // RegisterRoutes add all routing list here automatically get main router
 func RegisterRoutes(route *gin.Engine) {
 
-	// Apply rate limiting middleware globally
-	route.Use(middleware.RateLimitMiddleware())
-
 	route.NoRoute(func(ctx *gin.Context) {
 		u.APIResponse(ctx, http.StatusNotFound, "error", "Route Not Found", nil)
 	})

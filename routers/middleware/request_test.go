@@ -8,30 +8,40 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/paycrest/protocol/utils/test"
 	"github.com/stretchr/testify/assert"
 )
 
-func setupTestRouter() *gin.Engine {
+var testCtx struct {
+	router *gin.Engine
+}
+
+func setup() error {
+	// Set Gin mode for testing
 	gin.SetMode(gin.TestMode)
+
+	// Initialize router
 	router := gin.New()
 	router.Use(RateLimitMiddleware())
 
+	// Add test route
 	router.GET("/test", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})
 	})
 
-	return router
+	// Assign router to the test context
+	testCtx.router = router
+	return nil
 }
 
-// Helper function to send a request and return the response recorder
-func sendRequest(router *gin.Engine, method, path string, headers map[string]string) *httptest.ResponseRecorder {
-	req, _ := http.NewRequest(method, path, nil)
-	for key, value := range headers {
-		req.Header.Set(key, value)
+func TestMain(m *testing.M) {
+	// Perform setup before running tests
+	if err := setup(); err != nil {
+		panic(err)
 	}
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-	return w
+
+	// Run all tests
+	m.Run()
 }
 
 // Helper function to decode JSON responses
@@ -43,7 +53,7 @@ func decodeResponseBody(t *testing.T, body *httptest.ResponseRecorder) map[strin
 }
 
 func TestRateLimitMiddleware(t *testing.T) {
-	router := setupTestRouter()
+	router := testCtx.router
 
 	tests := []struct {
 		name           string
@@ -82,7 +92,7 @@ func TestRateLimitMiddleware(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Wait for rate limit to reset
+			// Wait for the rate limit to reset
 			time.Sleep(1 * time.Second)
 
 			headers := map[string]string{}
@@ -92,7 +102,7 @@ func TestRateLimitMiddleware(t *testing.T) {
 
 			var lastStatus int
 			for i := 0; i < tt.numRequests; i++ {
-				w := sendRequest(router, "GET", "/test", headers)
+				w, _ := test.PerformRequest(t, "GET", "/test", nil, headers, router)
 				lastStatus = w.Code
 			}
 
@@ -102,12 +112,12 @@ func TestRateLimitMiddleware(t *testing.T) {
 }
 
 func TestRateLimitErrorResponse(t *testing.T) {
-	router := setupTestRouter()
+	router := testCtx.router
 
 	// Make enough requests to trigger the rate limit
 	headers := map[string]string{}
 	for i := 0; i < 6; i++ {
-		w := sendRequest(router, "GET", "/test", headers)
+		w, _ := test.PerformRequest(t, "GET", "/test", nil, headers, router)
 
 		// Check if the rate limit was triggered
 		if w.Code == http.StatusTooManyRequests {
