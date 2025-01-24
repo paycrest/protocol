@@ -466,7 +466,7 @@ func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPC
 		return err
 	})
 	if retryErr != nil {
-		logger.Errorf("IndexOrderCreated.FilterOrderCreated: %v", retryErr)
+		logger.Errorf("IndexOrderCreated.FilterOrderCreated (%s): %v", network.Identifier, retryErr)
 		return retryErr
 	}
 
