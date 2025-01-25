@@ -5,7 +5,7 @@ The aggregator works to simplify and automate how liquidity flows between variou
 
 ## Protocol Architecture
 
-![](https://lh7-rt.googleusercontent.com/docsz/AD_4nXd9vDhbrwj3ikJ9ghsVPc4qaZ7_RmgzNn3CjbW2jvAWepYYBmIat8Mtidid8OCBzuP7Sr-_zab6gjjpM6tSJm3p00akfR9xhkkzckDoZOhO9jiqgnO0EkZRyH4QoxgGAXRelCSNxQ?key=xfQ-CdRhtjGdAX7gL41tK8t-)
+![image](https://github.com/user-attachments/assets/fdea36e5-9f54-4b17-bf0d-44d33d96fc62)
 
 **Create Order**: The user creates an on/off ramp order (read Payment Intent) on the Gateway Smart Contract (escrow) through an onchain app built on the protocol like [Zap by Paycrest](https://github.com/paycrest/zap) or through our [Sender API](https://app.paycrest.io/).
 
