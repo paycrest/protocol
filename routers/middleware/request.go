@@ -20,7 +20,6 @@ var (
 // RateLimitMiddleware initializes and returns the rate limiter middleware
 func RateLimitMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Initialize limiters once
 		initOnce.Do(func() {
 			conf := config.ServerConfig()
 
@@ -79,7 +78,7 @@ func RateLimitMiddleware() gin.HandlerFunc {
 		} else {
 			unauthenticatedLimiter(c)
 		}
-		
+
 		c.Next()
 	}
 }
