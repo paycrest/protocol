@@ -1226,7 +1226,12 @@ func (s *IndexerService) handleCancellation(ctx context.Context, client types.RP
 			return fmt.Errorf("%s - failed to create lock payment order: %w", lockPaymentOrder.GatewayID, err)
 		}
 
-		err = s.order.RefundOrder(ctx, client, lockPaymentOrder.GatewayID)
+		network, err := lockPaymentOrder.Token.QueryNetwork().Only(ctx)
+		if err != nil {
+			return fmt.Errorf("%s - failed to fetch network: %w", lockPaymentOrder.GatewayID, err)
+		}
+
+		err = s.order.RefundOrder(ctx, client, network, lockPaymentOrder.GatewayID)
 		if err != nil {
 			logger.Errorf("handleCancellation.RefundOrder(%v): %v", order.ID, err)
 		}
@@ -1245,7 +1250,12 @@ func (s *IndexerService) handleCancellation(ctx context.Context, client types.RP
 			return fmt.Errorf("%s - failed to update lock payment order: %w", createdLockPaymentOrder.GatewayID, err)
 		}
 
-		err = s.order.RefundOrder(ctx, client, createdLockPaymentOrder.GatewayID)
+		network, err := createdLockPaymentOrder.QueryToken().QueryNetwork().Only(ctx)
+		if err != nil {
+			return fmt.Errorf("%s - failed to fetch network: %w", createdLockPaymentOrder.GatewayID, err)
+		}
+
+		err = s.order.RefundOrder(ctx, client, network, createdLockPaymentOrder.GatewayID)
 		if err != nil {
 			logger.Errorf("handleCancellation.RefundOrder(%v): %v", createdLockPaymentOrder.ID, err)
 		}

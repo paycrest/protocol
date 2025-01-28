@@ -97,7 +97,7 @@ type OrderRefundedEvent struct {
 // OrderService provides an interface for the OrderService
 type OrderService interface {
 	CreateOrder(ctx context.Context, client RPCClient, orderID uuid.UUID) error
-	RefundOrder(ctx context.Context, client RPCClient, orderID string) error
+	RefundOrder(ctx context.Context, client RPCClient, network *ent.Network, orderID string) error
 	SettleOrder(ctx context.Context, client RPCClient, orderID uuid.UUID) error
 }
 

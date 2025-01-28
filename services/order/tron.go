@@ -30,9 +30,11 @@ import (
 
 	"github.com/paycrest/aggregator/ent/lockorderfulfillment"
 	"github.com/paycrest/aggregator/ent/lockpaymentorder"
+	networkent "github.com/paycrest/aggregator/ent/network"
 	"github.com/paycrest/aggregator/ent/paymentorder"
 	"github.com/paycrest/aggregator/ent/providerordertoken"
 	"github.com/paycrest/aggregator/ent/providerprofile"
+	"github.com/paycrest/aggregator/ent/token"
 	db "github.com/paycrest/aggregator/storage"
 	"github.com/paycrest/aggregator/types"
 	"github.com/paycrest/aggregator/utils"
@@ -202,13 +204,20 @@ func (s *OrderTron) CreateOrder(ctx context.Context, client types.RPCClient, ord
 }
 
 // RefundOrder refunds sender on canceled lock order
-func (s *OrderTron) RefundOrder(ctx context.Context, client types.RPCClient, orderID string) error {
+func (s *OrderTron) RefundOrder(ctx context.Context, client types.RPCClient, network *ent.Network, orderID string) error {
 	orderIDPrefix := strings.Split(orderID, "-")[0]
 
 	// Fetch lock order from db
 	lockOrder, err := db.Client.LockPaymentOrder.
 		Query().
-		Where(lockpaymentorder.GatewayIDEQ(orderID)).
+		Where(
+			lockpaymentorder.GatewayIDEQ(orderID),
+			lockpaymentorder.HasTokenWith(
+				token.HasNetworkWith(
+					networkent.IdentifierEQ(network.Identifier),
+				),
+			),
+		).
 		WithToken(func(tq *ent.TokenQuery) {
 			tq.WithNetwork()
 		}).
