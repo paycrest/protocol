@@ -18,13 +18,9 @@ import (
 // RegisterRoutes add all routing list here automatically get main router
 func RegisterRoutes(route *gin.Engine) {
 	conf := config.RedisConfig()
+	serverConf := config.ServerConfig()
 
-	cacheService, err := middleware.NewCacheService(middleware.CacheConfig{
-		Host:     conf.Host,
-		Port:     conf.Port,
-		Password: conf.Password,
-		DB:       conf.DB,
-	})
+	cacheService, err := middleware.NewCacheService(conf)
 	if err != nil {
 		log.Fatalf("Failed to initialize cache: %v", err)
 	}
@@ -45,16 +41,16 @@ func RegisterRoutes(route *gin.Engine) {
 
 	v1.GET(
 		"currencies",
-		cacheService.CacheMiddleware(24*time.Hour),
+		cacheService.CacheMiddleware(time.Duration(serverConf.CurrenciesCacheDuration)*time.Hour),
 		ctrl.GetFiatCurrencies,
 	)
 	v1.GET(
 		"institutions/:currency_code",
-		cacheService.CacheMiddleware(24*time.Hour),
+		cacheService.CacheMiddleware(time.Duration(serverConf.InstitutionsCacheDuration)*time.Hour),
 		ctrl.GetInstitutionsByCurrency,
 	)
 	v1.GET("pubkey",
-		cacheService.CacheMiddleware(365*24*time.Hour),
+		cacheService.CacheMiddleware(time.Duration(serverConf.PubKeyCacheDuration)*24*time.Hour),
 		ctrl.GetAggregatorPublicKey,
 	)
 
