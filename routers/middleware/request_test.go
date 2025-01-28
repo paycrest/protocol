@@ -12,33 +12,18 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func setup() *gin.Engine {
+func TestRateLimit(t *testing.T) {
 	// Set Gin mode for testing
 	gin.SetMode(gin.TestMode)
 
 	// Initialize router
 	router := gin.New()
-	router.Use(RateLimitMiddleware())
+	router.Use(RateLimitMiddleware)
 
 	// Add test route
 	router.GET("/test", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})
 	})
-
-	return router
-}
-
-// Helper function to decode JSON responses
-func decodeResponseBody(t *testing.T, body *httptest.ResponseRecorder) map[string]interface{} {
-	var response map[string]interface{}
-	err := json.NewDecoder(body.Body).Decode(&response)
-	assert.NoError(t, err)
-	return response
-}
-
-func TestRateLimit(t *testing.T) {
-
-	router := setup()
 
 	t.Run("TestRateLimitMiddleware", func(t *testing.T) {
 		tests := []struct {
@@ -140,4 +125,12 @@ func TestRateLimit(t *testing.T) {
 		data = response["data"].(map[string]interface{})
 		assert.Equal(t, 50, int(data["limit"].(float64)))
 	})
+}
+
+// Helper function to decode JSON responses
+func decodeResponseBody(t *testing.T, body *httptest.ResponseRecorder) map[string]interface{} {
+	var response map[string]interface{}
+	err := json.NewDecoder(body.Body).Decode(&response)
+	assert.NoError(t, err)
+	return response
 }
