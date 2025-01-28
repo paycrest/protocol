@@ -12,11 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var testCtx struct {
-	router *gin.Engine
-}
-
-func setup() error {
+func setup() *gin.Engine {
 	// Set Gin mode for testing
 	gin.SetMode(gin.TestMode)
 
@@ -29,9 +25,7 @@ func setup() error {
 		c.JSON(200, gin.H{"status": "ok"})
 	})
 
-	// Assign router to the test context
-	testCtx.router = router
-	return nil
+	return router
 }
 
 // Helper function to decode JSON responses
@@ -44,12 +38,7 @@ func decodeResponseBody(t *testing.T, body *httptest.ResponseRecorder) map[strin
 
 func TestRateLimit(t *testing.T) {
 
-	// Perform setup before running tests
-	if err := setup(); err != nil {
-		panic(err)
-	}
-
-	router := testCtx.router
+	router := setup()
 
 	t.Run("TestRateLimitMiddleware", func(t *testing.T) {
 		tests := []struct {
