@@ -460,7 +460,7 @@ func (s *IndexerService) IndexOrderCreated(ctx context.Context, client types.RPC
 	var iter *contracts.GatewayOrderCreatedIterator
 	retryErr := utils.Retry(3, 1*time.Second, func() error {
 		iter, err = filterer.FilterOrderCreated(&bind.FilterOpts{
-			Start: uint64(int64(toBlock) - 10000),
+			Start: uint64(int64(toBlock) - 1000000),
 			End:   &toBlock,
 		}, nil, nil, nil)
 		return err
