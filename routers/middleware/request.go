@@ -7,8 +7,8 @@ import (
 
 	ratelimit "github.com/JGLTechnologies/gin-rate-limit"
 	"github.com/gin-gonic/gin"
-	"github.com/paycrest/protocol/config"
-	u "github.com/paycrest/protocol/utils"
+	"github.com/paycrest/aggregator/config"
+	u "github.com/paycrest/aggregator/utils"
 )
 
 var (
