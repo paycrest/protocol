@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/paycrest/protocol/config"
+	"github.com/paycrest/aggregator/config"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/redis/go-redis/v9"
 )
@@ -63,18 +63,17 @@ func NewCacheService(config config.RedisConfiguration) (*CacheService, error) {
 }
 
 func generateCacheKey(c *gin.Context) string {
-	// conf := config.RedisConfig()
-	conf := "v1"
+	conf := config.RedisConfig()
 	path := c.Request.URL.Path
 	switch {
 	case path == "/v1/currencies":
-		return fmt.Sprintf("%s:api:currencies:list", conf)
+		return fmt.Sprintf("%s:api:currencies:list", conf.CacheVersion)
 	case path == "/v1/pubkey":
-		return fmt.Sprintf("%s:api:aggregator:pubkey", conf)
+		return fmt.Sprintf("%s:api:aggregator:pubkey", conf.CacheVersion)
 	case len(c.Param("currency_code")) > 0:
-		return fmt.Sprintf("%s:api:institutions:%s", conf, c.Param("currency_code"))
+		return fmt.Sprintf("%s:api:institutions:%s", conf.CacheVersion, c.Param("currency_code"))
 	default:
-		return fmt.Sprintf("%s:api:%s", conf, path)
+		return fmt.Sprintf("%s:api:%s", conf.CacheVersion, path)
 	}
 }
 
