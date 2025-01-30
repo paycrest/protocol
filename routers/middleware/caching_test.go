@@ -138,4 +138,5 @@ func TestCacheMiddleware(t *testing.T) {
 				require.NoError(t, json.Unmarshal([]byte(val), &jsonCheck), "Invalid JSON for key")
 			})
 		}
-	
+	})
+}
