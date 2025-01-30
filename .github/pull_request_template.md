@@ -15,7 +15,7 @@ By submitting a PR, I agree to Paycrest's [Contributor Code of Conduct](https://
 > - GitHub Issue/PR number addressed or fixed
 > - StackOverflow post
 > - Support forum thread
-> - Related pull requests/issues from other repos
+> - Related pull requests/issues from other repos e.g #407
 >
 > If there are no references, simply delete this section.
 
