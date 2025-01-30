@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/paycrest/protocol/utils/test"
+	"github.com/paycrest/aggregator/utils/test"
 	"github.com/stretchr/testify/assert"
 )
 
