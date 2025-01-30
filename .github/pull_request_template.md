@@ -1,6 +1,3 @@
-By submitting a PR, I agree to Paycrest's [Contributor Code of Conduct](https://paycrest.notion.site/Contributor-Code-of-Conduct-1602482d45a2806bab75fd314b381f4c) and [Contribution Guide](https://paycrest.notion.site/Contribution-Guide-1602482d45a2809a8930e6ad565c906a).
-
-
 ### Description
 
 > Describe the purpose of this PR along with any background information and the impacts of the proposed change. For the benefit of the community, please do not assume prior context.
@@ -36,3 +33,6 @@ By submitting a PR, I agree to Paycrest's [Contributor Code of Conduct](https://
 - [ ] I have added documentation and tests for new/changed functionality in this PR
 - [ ] All active GitHub checks for tests, formatting, and security are passing
 - [ ] The correct base branch is being used, if not `main`
+
+
+By submitting a PR, I agree to Paycrest's [Contributor Code of Conduct](https://paycrest.notion.site/Contributor-Code-of-Conduct-1602482d45a2806bab75fd314b381f4c) and [Contribution Guide](https://paycrest.notion.site/Contribution-Guide-1602482d45a2809a8930e6ad565c906a).
