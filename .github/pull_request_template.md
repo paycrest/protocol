@@ -9,7 +9,7 @@
 
 > Include any links supporting this change such as a:
 >
-> - GitHub Issue/PR number addressed or fixed
+> - GitHub Issue/PR number addressed or fixed e.g closes #407
 > - StackOverflow post
 > - Support forum thread
 > - Related pull requests/issues from other repos e.g #407
