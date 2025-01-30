@@ -18,7 +18,7 @@ func TestRateLimit(t *testing.T) {
 
 	// Initialize router
 	router := gin.New()
-	router.Use(RateLimitMiddleware)
+	router.Use(RateLimitMiddleware())
 
 	// Add test route
 	router.GET("/test", func(c *gin.Context) {
