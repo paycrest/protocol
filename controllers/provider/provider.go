@@ -608,9 +608,9 @@ func (ctrl *ProviderController) CancelOrder(ctx *gin.Context) {
 		go func() {
 			var err error
 			if strings.HasPrefix(order.Edges.Token.Edges.Network.Identifier, "tron") {
-				err = orderService.NewOrderTron().RefundOrder(ctx, nil, order.GatewayID)
+				err = orderService.NewOrderTron().RefundOrder(ctx, nil, order.Edges.Token.Edges.Network, order.GatewayID)
 			} else {
-				err = orderService.NewOrderEVM().RefundOrder(ctx, nil, order.GatewayID)
+				err = orderService.NewOrderEVM().RefundOrder(ctx, nil, order.Edges.Token.Edges.Network, order.GatewayID)
 			}
 			if err != nil {
 				logger.Errorf("CancelOrder.RefundOrder(%v): %v", orderID, err)
