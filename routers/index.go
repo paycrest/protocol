@@ -4,16 +4,17 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/paycrest/protocol/controllers"
-	"github.com/paycrest/protocol/controllers/accounts"
-	"github.com/paycrest/protocol/controllers/provider"
-	"github.com/paycrest/protocol/controllers/sender"
-	"github.com/paycrest/protocol/routers/middleware"
-	u "github.com/paycrest/protocol/utils"
+	"github.com/paycrest/aggregator/controllers"
+	"github.com/paycrest/aggregator/controllers/accounts"
+	"github.com/paycrest/aggregator/controllers/provider"
+	"github.com/paycrest/aggregator/controllers/sender"
+	"github.com/paycrest/aggregator/routers/middleware"
+	u "github.com/paycrest/aggregator/utils"
 )
 
 // RegisterRoutes add all routing list here automatically get main router
 func RegisterRoutes(route *gin.Engine) {
+
 	route.NoRoute(func(ctx *gin.Context) {
 		u.APIResponse(ctx, http.StatusNotFound, "error", "Route Not Found", nil)
 	})
@@ -39,7 +40,7 @@ func RegisterRoutes(route *gin.Engine) {
 	v1.GET("rates/:token/:amount/:fiat", ctrl.GetTokenRate)
 	v1.GET("pubkey", ctrl.GetAggregatorPublicKey)
 	v1.POST("verify-account", ctrl.VerifyAccount)
-	v1.GET("orders/:id", ctrl.GetLockPaymentOrderStatus)
+	v1.GET("orders/:chain_id/:id", ctrl.GetLockPaymentOrderStatus)
 
 	// KYC routes
 	v1.POST("kyc", ctrl.RequestIDVerification)

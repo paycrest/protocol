@@ -10,14 +10,14 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/google/uuid"
-	"github.com/paycrest/protocol/ent"
-	"github.com/paycrest/protocol/ent/institution"
-	"github.com/paycrest/protocol/ent/lockorderfulfillment"
-	"github.com/paycrest/protocol/ent/lockpaymentorder"
-	"github.com/paycrest/protocol/ent/paymentorder"
-	"github.com/paycrest/protocol/ent/providerordertoken"
-	"github.com/paycrest/protocol/ent/providerprofile"
-	"github.com/paycrest/protocol/ent/transactionlog"
+	"github.com/paycrest/aggregator/ent"
+	"github.com/paycrest/aggregator/ent/institution"
+	"github.com/paycrest/aggregator/ent/lockorderfulfillment"
+	"github.com/paycrest/aggregator/ent/lockpaymentorder"
+	"github.com/paycrest/aggregator/ent/paymentorder"
+	"github.com/paycrest/aggregator/ent/providerordertoken"
+	"github.com/paycrest/aggregator/ent/providerprofile"
+	"github.com/paycrest/aggregator/ent/transactionlog"
 	"github.com/shopspring/decimal"
 )
 
@@ -97,7 +97,7 @@ type OrderRefundedEvent struct {
 // OrderService provides an interface for the OrderService
 type OrderService interface {
 	CreateOrder(ctx context.Context, client RPCClient, orderID uuid.UUID) error
-	RefundOrder(ctx context.Context, client RPCClient, orderID string) error
+	RefundOrder(ctx context.Context, client RPCClient, network *ent.Network, orderID string) error
 	SettleOrder(ctx context.Context, client RPCClient, orderID uuid.UUID) error
 }
 
@@ -386,6 +386,7 @@ type PaymentOrderRecipient struct {
 	Memo              string `json:"memo" binding:"required"`
 	ProviderID        string `json:"providerId"`
 	Currency          string `json:"currency"`
+	Nonce             string `json:"nonce"`
 }
 
 // NewPaymentOrderPayload is the payload for the create payment order endpoint

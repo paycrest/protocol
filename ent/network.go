@@ -9,7 +9,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/paycrest/protocol/ent/network"
+	"github.com/paycrest/aggregator/ent/network"
 	"github.com/shopspring/decimal"
 )
 

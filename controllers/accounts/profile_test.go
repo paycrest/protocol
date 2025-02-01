@@ -9,22 +9,22 @@ import (
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/paycrest/protocol/ent"
-	"github.com/paycrest/protocol/routers/middleware"
-	"github.com/paycrest/protocol/services"
-	db "github.com/paycrest/protocol/storage"
-	"github.com/paycrest/protocol/types"
+	"github.com/paycrest/aggregator/ent"
+	"github.com/paycrest/aggregator/routers/middleware"
+	"github.com/paycrest/aggregator/services"
+	db "github.com/paycrest/aggregator/storage"
+	"github.com/paycrest/aggregator/types"
 	"github.com/shopspring/decimal"
 
 	"github.com/gin-gonic/gin"
-	"github.com/paycrest/protocol/ent/enttest"
-	"github.com/paycrest/protocol/ent/providerprofile"
-	"github.com/paycrest/protocol/ent/senderordertoken"
-	"github.com/paycrest/protocol/ent/senderprofile"
-	tokenDB "github.com/paycrest/protocol/ent/token"
-	"github.com/paycrest/protocol/ent/user"
-	"github.com/paycrest/protocol/utils/test"
-	"github.com/paycrest/protocol/utils/token"
+	"github.com/paycrest/aggregator/ent/enttest"
+	"github.com/paycrest/aggregator/ent/providerprofile"
+	"github.com/paycrest/aggregator/ent/senderordertoken"
+	"github.com/paycrest/aggregator/ent/senderprofile"
+	tokenDB "github.com/paycrest/aggregator/ent/token"
+	"github.com/paycrest/aggregator/ent/user"
+	"github.com/paycrest/aggregator/utils/test"
+	"github.com/paycrest/aggregator/utils/token"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -445,6 +445,33 @@ func TestProfile(t *testing.T) {
 				err = json.Unmarshal(res2.Body.Bytes(), &response)
 				assert.NoError(t, err)
 				assert.Equal(t, "Invalid mobile number", response.Message)
+			})
+
+			t.Run("success for valid moblie number", func(t *testing.T) {
+				payload := types.ProviderProfilePayload{
+					MobileNumber:   "+2347012345678",
+					TradingName:    testCtx.providerProfile.TradingName,
+					HostIdentifier: testCtx.providerProfile.HostIdentifier,
+					Currency:       "KES",
+				}
+				res := profileUpdateRequest(payload)
+
+				// Assert the response body
+				assert.Equal(t, http.StatusOK, res.Code)
+
+				var response types.Response
+				err = json.Unmarshal(res.Body.Bytes(), &response)
+				assert.NoError(t, err)
+				assert.Equal(t, "Profile updated successfully", response.Message)
+
+				// Assert optional fields were correctly set and retrieved
+				providerProfile, err := db.Client.ProviderProfile.
+					Query().
+					Where(providerprofile.HasUserWith(user.ID(testCtx.user.ID))).
+					Only(context.Background())
+				assert.NoError(t, err)
+
+				assert.Equal(t, providerProfile.MobileNumber, "+2347012345678")
 			})
 
 			t.Run("fails for invalid identity document type", func(t *testing.T) {

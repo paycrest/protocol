@@ -8,14 +8,16 @@ import (
 
 // ServerConfiguration type defines the server configurations
 type ServerConfiguration struct {
-	Debug        bool
-	Host         string
-	Port         string
-	Timezone     string
-	AllowedHosts string
-	Environment  string
-	SentryDSN    string
-	HostDomain   string
+	Debug                    bool
+	Host                     string
+	Port                     string
+	Timezone                 string
+	AllowedHosts             string
+	Environment              string
+	SentryDSN                string
+	HostDomain               string
+	RateLimitUnauthenticated int
+	RateLimitAuthenticated   int
 }
 
 // ServerConfig sets the server configuration
@@ -27,6 +29,8 @@ func ServerConfig() *ServerConfiguration {
 	viper.SetDefault("ALLOWED_HOSTS", "*")
 	viper.SetDefault("ENVIRONMENT", "local")
 	viper.SetDefault("SENTRY_DSN", "")
+	viper.SetDefault("RATE_LIMIT_UNAUTHENTICATED", 5)
+	viper.SetDefault("RATE_LIMIT_AUTHENTICATED", 50)
 
 	return &ServerConfiguration{
 		Debug:        viper.GetBool("DEBUG"),
@@ -37,6 +41,8 @@ func ServerConfig() *ServerConfiguration {
 		Environment:  viper.GetString("ENVIRONMENT"),
 		SentryDSN:    viper.GetString("SENTRY_DSN"),
 		HostDomain:   viper.GetString("HOST_DOMAIN"),
+		RateLimitUnauthenticated: viper.GetInt("RATE_LIMIT_UNAUTHENTICATED"),
+        RateLimitAuthenticated:   viper.GetInt("RATE_LIMIT_AUTHENTICATED"),
 	}
 }
 

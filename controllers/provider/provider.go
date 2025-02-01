@@ -8,19 +8,19 @@ import (
 
 	"github.com/google/uuid"
 	fastshot "github.com/opus-domini/fast-shot"
-	"github.com/paycrest/protocol/config"
-	"github.com/paycrest/protocol/ent"
-	"github.com/paycrest/protocol/ent/fiatcurrency"
-	"github.com/paycrest/protocol/ent/lockorderfulfillment"
-	"github.com/paycrest/protocol/ent/lockpaymentorder"
-	"github.com/paycrest/protocol/ent/providerprofile"
-	"github.com/paycrest/protocol/ent/token"
-	"github.com/paycrest/protocol/ent/transactionlog"
-	orderService "github.com/paycrest/protocol/services/order"
-	"github.com/paycrest/protocol/storage"
-	"github.com/paycrest/protocol/types"
-	u "github.com/paycrest/protocol/utils"
-	"github.com/paycrest/protocol/utils/logger"
+	"github.com/paycrest/aggregator/config"
+	"github.com/paycrest/aggregator/ent"
+	"github.com/paycrest/aggregator/ent/fiatcurrency"
+	"github.com/paycrest/aggregator/ent/lockorderfulfillment"
+	"github.com/paycrest/aggregator/ent/lockpaymentorder"
+	"github.com/paycrest/aggregator/ent/providerprofile"
+	"github.com/paycrest/aggregator/ent/token"
+	"github.com/paycrest/aggregator/ent/transactionlog"
+	orderService "github.com/paycrest/aggregator/services/order"
+	"github.com/paycrest/aggregator/storage"
+	"github.com/paycrest/aggregator/types"
+	u "github.com/paycrest/aggregator/utils"
+	"github.com/paycrest/aggregator/utils/logger"
 	"github.com/shopspring/decimal"
 
 	"github.com/gin-gonic/gin"
@@ -578,14 +578,14 @@ func (ctrl *ProviderController) CancelOrder(ctx *gin.Context) {
 			}
 		}
 
-		// Update provider availability to off
-		_, err = storage.Client.ProviderProfile.
-			UpdateOneID(provider.ID).
-			SetIsAvailable(false).
-			Save(ctx)
-		if err != nil {
-			logger.Errorf("failed to update provider availability: %v", err)
-		}
+		// // Update provider availability to off
+		// _, err = storage.Client.ProviderProfile.
+		// 	UpdateOneID(provider.ID).
+		// 	SetIsAvailable(false).
+		// 	Save(ctx)
+		// if err != nil {
+		// 	logger.Errorf("failed to update provider availability: %v", err)
+		// }
 	}
 
 	// Update lock order status to cancelled
@@ -608,9 +608,9 @@ func (ctrl *ProviderController) CancelOrder(ctx *gin.Context) {
 		go func() {
 			var err error
 			if strings.HasPrefix(order.Edges.Token.Edges.Network.Identifier, "tron") {
-				err = orderService.NewOrderTron().RefundOrder(ctx, nil, order.GatewayID)
+				err = orderService.NewOrderTron().RefundOrder(ctx, nil, order.Edges.Token.Edges.Network, order.GatewayID)
 			} else {
-				err = orderService.NewOrderEVM().RefundOrder(ctx, nil, order.GatewayID)
+				err = orderService.NewOrderEVM().RefundOrder(ctx, nil, order.Edges.Token.Edges.Network, order.GatewayID)
 			}
 			if err != nil {
 				logger.Errorf("CancelOrder.RefundOrder(%v): %v", orderID, err)

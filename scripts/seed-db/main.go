@@ -7,14 +7,14 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/paycrest/protocol/config"
-	"github.com/paycrest/protocol/ent"
-	"github.com/paycrest/protocol/ent/fiatcurrency"
-	"github.com/paycrest/protocol/storage"
-	"github.com/paycrest/protocol/types"
-	"github.com/paycrest/protocol/utils/crypto"
-	"github.com/paycrest/protocol/utils/logger"
-	"github.com/paycrest/protocol/utils/token"
+	"github.com/paycrest/aggregator/config"
+	"github.com/paycrest/aggregator/ent"
+	"github.com/paycrest/aggregator/ent/fiatcurrency"
+	"github.com/paycrest/aggregator/storage"
+	"github.com/paycrest/aggregator/types"
+	"github.com/paycrest/aggregator/utils/crypto"
+	"github.com/paycrest/aggregator/utils/logger"
+	"github.com/paycrest/aggregator/utils/token"
 	"github.com/shopspring/decimal"
 )
 

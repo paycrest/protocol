@@ -8,26 +8,28 @@ import (
 	"fmt"
 	"net/http"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum/crypto"
 	fastshot "github.com/opus-domini/fast-shot"
-	"github.com/paycrest/protocol/config"
-	"github.com/paycrest/protocol/ent"
-	"github.com/paycrest/protocol/ent/fiatcurrency"
-	"github.com/paycrest/protocol/ent/identityverificationrequest"
-	"github.com/paycrest/protocol/ent/institution"
-	"github.com/paycrest/protocol/ent/linkedaddress"
-	"github.com/paycrest/protocol/ent/lockpaymentorder"
-	"github.com/paycrest/protocol/ent/providerprofile"
-	"github.com/paycrest/protocol/ent/token"
-	svc "github.com/paycrest/protocol/services"
-	orderSvc "github.com/paycrest/protocol/services/order"
-	"github.com/paycrest/protocol/storage"
-	"github.com/paycrest/protocol/types"
-	u "github.com/paycrest/protocol/utils"
-	"github.com/paycrest/protocol/utils/logger"
+	"github.com/paycrest/aggregator/config"
+	"github.com/paycrest/aggregator/ent"
+	"github.com/paycrest/aggregator/ent/fiatcurrency"
+	"github.com/paycrest/aggregator/ent/identityverificationrequest"
+	"github.com/paycrest/aggregator/ent/institution"
+	"github.com/paycrest/aggregator/ent/linkedaddress"
+	"github.com/paycrest/aggregator/ent/lockpaymentorder"
+	"github.com/paycrest/aggregator/ent/network"
+	"github.com/paycrest/aggregator/ent/providerprofile"
+	"github.com/paycrest/aggregator/ent/token"
+	svc "github.com/paycrest/aggregator/services"
+	orderSvc "github.com/paycrest/aggregator/services/order"
+	"github.com/paycrest/aggregator/storage"
+	"github.com/paycrest/aggregator/types"
+	u "github.com/paycrest/aggregator/utils"
+	"github.com/paycrest/aggregator/utils/logger"
 	"github.com/shopspring/decimal"
 
 	"github.com/gin-gonic/gin"
@@ -309,14 +311,24 @@ func (ctrl *Controller) VerifyAccount(ctx *gin.Context) {
 
 // GetLockPaymentOrderStatus controller fetches a payment order status by ID
 func (ctrl *Controller) GetLockPaymentOrderStatus(ctx *gin.Context) {
-	// Get order ID from the URL
+	// Get order and chain ID from the URL
 	orderID := ctx.Param("id")
+	chainID, err := strconv.ParseInt(ctx.Param("chain_id"), 10, 64)
+	if err != nil {
+		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid chain ID", nil)
+		return
+	}
 
 	// Fetch related payment orders from the database
 	orders, err := storage.Client.LockPaymentOrder.
 		Query().
 		Where(
 			lockpaymentorder.GatewayIDEQ(orderID),
+			lockpaymentorder.HasTokenWith(
+				token.HasNetworkWith(
+					network.ChainIDEQ(chainID),
+				),
+			),
 		).
 		WithToken(func(tq *ent.TokenQuery) {
 			tq.WithNetwork()
