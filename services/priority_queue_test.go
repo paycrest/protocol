@@ -94,21 +94,22 @@ func setupForPQ() error {
 		return err
 	}
 	testCtxForPQ.publicProviderProfileAPIKey = apiKey
-	tokens, err := test.AddProviderOrderTokenToProvider(
+	_, err = test.AddProviderOrderTokenToProvider(
 		map[string]interface{}{
 			"fixed_conversion_rate":    decimal.NewFromFloat(100),
 			"conversion_rate_type":     "fixed",
 			"floating_conversion_rate": decimal.NewFromFloat(1.0),
 			"max_order_amount":         decimal.NewFromFloat(1000),
 			"min_order_amount":         decimal.NewFromFloat(1.0),
-			"tokenSymbol":              token.Symbol,
 			"provider":                 publicProviderProfile,
+			"currency_id":              currency.ID,
+			"network":                  token.Edges.Network.Identifier,
+			"tokenID":                  token.ID,
 		},
 	)
 	if err != nil {
 		return err
 	}
-	fmt.Println("provider tokens", tokens)
 	testCtxForPQ.publicProviderProfile = publicProviderProfile
 
 	bucket, err := test.CreateTestProvisionBucket(map[string]interface{}{
@@ -225,7 +226,7 @@ func TestPriorityQueueTest(t *testing.T) {
 
 		data, err := db.RedisClient.LRange(ctx, redisKey, 0, -1).Result()
 		assert.NoError(t, err)
-		assert.Equal(t, len(data), 1)
+		assert.Equal(t, 1, len(data))
 		assert.Contains(t, data[0], testCtxForPQ.publicProviderProfile.ID)
 	})
 
