@@ -849,9 +849,25 @@ func (ctrl *ProviderController) NodeInfo(ctx *gin.Context) {
 		return
 	}
 
-	currencies := data["data"].(map[string]interface{})["currencies"].(map[string]string)
+	// Change this line to handle currencies as a slice instead of a map
+	currenciesData, ok := data["data"].(map[string]interface{})["currencies"].([]interface{})
+	if !ok {
+		u.APIResponse(ctx, http.StatusServiceUnavailable, "error", "Currencies data is not in expected format", nil)
+		return
+	}
+
+	// Create a map to hold currency codes for easier lookup
+	currenciesMap := make(map[string]struct{})
+	for _, currency := range currenciesData {
+		if currencyMap, ok := currency.(map[string]interface{}); ok {
+			if code, exists := currencyMap["code"].(string); exists {
+				currenciesMap[code] = struct{}{}
+			}
+		}
+	}
+
 	for _, currency := range provider.Edges.Currencies {
-		if _, ok := currencies[currency.Code]; !ok {
+		if _, ok := currenciesMap[currency.Code]; !ok {
 			u.APIResponse(ctx, http.StatusServiceUnavailable, "error", "Failed to fetch node info", nil)
 			return
 		}
