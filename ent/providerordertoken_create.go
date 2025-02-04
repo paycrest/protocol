@@ -97,6 +97,20 @@ func (potc *ProviderOrderTokenCreate) SetAddresses(s []struct {
 	return potc
 }
 
+// SetRateSlippage sets the "rate_slippage" field.
+func (potc *ProviderOrderTokenCreate) SetRateSlippage(d decimal.Decimal) *ProviderOrderTokenCreate {
+	potc.mutation.SetRateSlippage(d)
+	return potc
+}
+
+// SetNillableRateSlippage sets the "rate_slippage" field if the given value is not nil.
+func (potc *ProviderOrderTokenCreate) SetNillableRateSlippage(d *decimal.Decimal) *ProviderOrderTokenCreate {
+	if d != nil {
+		potc.SetRateSlippage(*d)
+	}
+	return potc
+}
+
 // SetProviderID sets the "provider" edge to the ProviderProfile entity by ID.
 func (potc *ProviderOrderTokenCreate) SetProviderID(id string) *ProviderOrderTokenCreate {
 	potc.mutation.SetProviderID(id)
@@ -158,6 +172,10 @@ func (potc *ProviderOrderTokenCreate) defaults() {
 	if _, ok := potc.mutation.UpdatedAt(); !ok {
 		v := providerordertoken.DefaultUpdatedAt()
 		potc.mutation.SetUpdatedAt(v)
+	}
+	if _, ok := potc.mutation.RateSlippage(); !ok {
+		v := providerordertoken.DefaultRateSlippage
+		potc.mutation.SetRateSlippage(v)
 	}
 }
 
@@ -257,6 +275,10 @@ func (potc *ProviderOrderTokenCreate) createSpec() (*ProviderOrderToken, *sqlgra
 	if value, ok := potc.mutation.Addresses(); ok {
 		_spec.SetField(providerordertoken.FieldAddresses, field.TypeJSON, value)
 		_node.Addresses = value
+	}
+	if value, ok := potc.mutation.RateSlippage(); ok {
+		_spec.SetField(providerordertoken.FieldRateSlippage, field.TypeFloat64, value)
+		_node.RateSlippage = value
 	}
 	if nodes := potc.mutation.ProviderIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -450,6 +472,30 @@ func (u *ProviderOrderTokenUpsert) UpdateAddresses() *ProviderOrderTokenUpsert {
 	return u
 }
 
+// SetRateSlippage sets the "rate_slippage" field.
+func (u *ProviderOrderTokenUpsert) SetRateSlippage(v decimal.Decimal) *ProviderOrderTokenUpsert {
+	u.Set(providerordertoken.FieldRateSlippage, v)
+	return u
+}
+
+// UpdateRateSlippage sets the "rate_slippage" field to the value that was provided on create.
+func (u *ProviderOrderTokenUpsert) UpdateRateSlippage() *ProviderOrderTokenUpsert {
+	u.SetExcluded(providerordertoken.FieldRateSlippage)
+	return u
+}
+
+// AddRateSlippage adds v to the "rate_slippage" field.
+func (u *ProviderOrderTokenUpsert) AddRateSlippage(v decimal.Decimal) *ProviderOrderTokenUpsert {
+	u.Add(providerordertoken.FieldRateSlippage, v)
+	return u
+}
+
+// ClearRateSlippage clears the value of the "rate_slippage" field.
+func (u *ProviderOrderTokenUpsert) ClearRateSlippage() *ProviderOrderTokenUpsert {
+	u.SetNull(providerordertoken.FieldRateSlippage)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create.
 // Using this option is equivalent to using:
 //
@@ -635,6 +681,34 @@ func (u *ProviderOrderTokenUpsertOne) SetAddresses(v []struct {
 func (u *ProviderOrderTokenUpsertOne) UpdateAddresses() *ProviderOrderTokenUpsertOne {
 	return u.Update(func(s *ProviderOrderTokenUpsert) {
 		s.UpdateAddresses()
+	})
+}
+
+// SetRateSlippage sets the "rate_slippage" field.
+func (u *ProviderOrderTokenUpsertOne) SetRateSlippage(v decimal.Decimal) *ProviderOrderTokenUpsertOne {
+	return u.Update(func(s *ProviderOrderTokenUpsert) {
+		s.SetRateSlippage(v)
+	})
+}
+
+// AddRateSlippage adds v to the "rate_slippage" field.
+func (u *ProviderOrderTokenUpsertOne) AddRateSlippage(v decimal.Decimal) *ProviderOrderTokenUpsertOne {
+	return u.Update(func(s *ProviderOrderTokenUpsert) {
+		s.AddRateSlippage(v)
+	})
+}
+
+// UpdateRateSlippage sets the "rate_slippage" field to the value that was provided on create.
+func (u *ProviderOrderTokenUpsertOne) UpdateRateSlippage() *ProviderOrderTokenUpsertOne {
+	return u.Update(func(s *ProviderOrderTokenUpsert) {
+		s.UpdateRateSlippage()
+	})
+}
+
+// ClearRateSlippage clears the value of the "rate_slippage" field.
+func (u *ProviderOrderTokenUpsertOne) ClearRateSlippage() *ProviderOrderTokenUpsertOne {
+	return u.Update(func(s *ProviderOrderTokenUpsert) {
+		s.ClearRateSlippage()
 	})
 }
 
@@ -989,6 +1063,34 @@ func (u *ProviderOrderTokenUpsertBulk) SetAddresses(v []struct {
 func (u *ProviderOrderTokenUpsertBulk) UpdateAddresses() *ProviderOrderTokenUpsertBulk {
 	return u.Update(func(s *ProviderOrderTokenUpsert) {
 		s.UpdateAddresses()
+	})
+}
+
+// SetRateSlippage sets the "rate_slippage" field.
+func (u *ProviderOrderTokenUpsertBulk) SetRateSlippage(v decimal.Decimal) *ProviderOrderTokenUpsertBulk {
+	return u.Update(func(s *ProviderOrderTokenUpsert) {
+		s.SetRateSlippage(v)
+	})
+}
+
+// AddRateSlippage adds v to the "rate_slippage" field.
+func (u *ProviderOrderTokenUpsertBulk) AddRateSlippage(v decimal.Decimal) *ProviderOrderTokenUpsertBulk {
+	return u.Update(func(s *ProviderOrderTokenUpsert) {
+		s.AddRateSlippage(v)
+	})
+}
+
+// UpdateRateSlippage sets the "rate_slippage" field to the value that was provided on create.
+func (u *ProviderOrderTokenUpsertBulk) UpdateRateSlippage() *ProviderOrderTokenUpsertBulk {
+	return u.Update(func(s *ProviderOrderTokenUpsert) {
+		s.UpdateRateSlippage()
+	})
+}
+
+// ClearRateSlippage clears the value of the "rate_slippage" field.
+func (u *ProviderOrderTokenUpsertBulk) ClearRateSlippage() *ProviderOrderTokenUpsertBulk {
+	return u.Update(func(s *ProviderOrderTokenUpsert) {
+		s.ClearRateSlippage()
 	})
 }
 

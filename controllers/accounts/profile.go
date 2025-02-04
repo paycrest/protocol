@@ -382,6 +382,16 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 			).
 			Only(ctx)
 
+		// In the UpdateProviderProfile function, add this to the token processing section
+		if !tokenPayload.RateSlippage.IsZero() {
+			// Validate rate slippage
+			percentDeviation := u.AbsPercentageDeviation(currency.MarketRate, tokenPayload.RateSlippage)
+			if percentDeviation.GreaterThan(decimal.NewFromInt(20)) { // 20% max
+				u.APIResponse(ctx, http.StatusBadRequest, "error", "Rate slippage cannot exceed 20% of market rate", nil)
+				return
+			}
+		}
+
 		if err != nil {
 			if ent.IsNotFound(err) {
 				// Token doesn't exist, create it
@@ -395,6 +405,7 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 					SetMinOrderAmount(tokenPayload.MinOrderAmount).
 					SetAddresses(tokenPayload.Addresses).
 					SetProviderID(provider.ID).
+					SetRateSlippage(tokenPayload.RateSlippage).
 					Save(ctx)
 				if err != nil {
 					u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to set token - "+tokenPayload.Symbol, nil)
@@ -413,6 +424,7 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 				SetMaxOrderAmount(tokenPayload.MaxOrderAmount).
 				SetMinOrderAmount(tokenPayload.MinOrderAmount).
 				SetAddresses(tokenPayload.Addresses).
+				SetRateSlippage(tokenPayload.RateSlippage).
 				Save(ctx)
 			if err != nil {
 				u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to set token - "+tokenPayload.Symbol, nil)
@@ -607,6 +619,7 @@ func (ctrl *ProfileController) GetProviderProfile(ctx *gin.Context) {
 			FloatingConversionRate: token.FloatingConversionRate,
 			MaxOrderAmount:         token.MaxOrderAmount,
 			MinOrderAmount:         token.MinOrderAmount,
+			RateSlippage:           token.RateSlippage,
 			Addresses: make([]struct {
 				Address string `json:"address"`
 				Network string `json:"network"`

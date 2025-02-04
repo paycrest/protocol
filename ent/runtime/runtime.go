@@ -28,6 +28,7 @@ import (
 	"github.com/paycrest/aggregator/ent/user"
 	"github.com/paycrest/aggregator/ent/verificationtoken"
 	"github.com/paycrest/aggregator/ent/webhookretryattempt"
+	"github.com/shopspring/decimal"
 )
 
 // The init function reads all schema descriptors with runtime code
@@ -260,6 +261,10 @@ func init() {
 	providerordertoken.DefaultUpdatedAt = providerordertokenDescUpdatedAt.Default.(func() time.Time)
 	// providerordertoken.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	providerordertoken.UpdateDefaultUpdatedAt = providerordertokenDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// providerordertokenDescRateSlippage is the schema descriptor for rate_slippage field.
+	providerordertokenDescRateSlippage := providerordertokenFields[7].Descriptor()
+	// providerordertoken.DefaultRateSlippage holds the default value on creation for the rate_slippage field.
+	providerordertoken.DefaultRateSlippage = decimal.Decimal(providerordertokenDescRateSlippage.Default.(float64))
 	providerprofileFields := schema.ProviderProfile{}.Fields()
 	_ = providerprofileFields
 	// providerprofileDescTradingName is the schema descriptor for trading_name field.

@@ -8,6 +8,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/shopspring/decimal"
 )
 
 const (
@@ -33,6 +34,8 @@ const (
 	FieldMinOrderAmount = "min_order_amount"
 	// FieldAddresses holds the string denoting the addresses field in the database.
 	FieldAddresses = "addresses"
+	// FieldRateSlippage holds the string denoting the rate_slippage field in the database.
+	FieldRateSlippage = "rate_slippage"
 	// EdgeProvider holds the string denoting the provider edge name in mutations.
 	EdgeProvider = "provider"
 	// Table holds the table name of the providerordertoken in the database.
@@ -58,6 +61,7 @@ var Columns = []string{
 	FieldMaxOrderAmount,
 	FieldMinOrderAmount,
 	FieldAddresses,
+	FieldRateSlippage,
 }
 
 // ForeignKeys holds the SQL foreign-keys that are owned by the "provider_order_tokens"
@@ -88,6 +92,8 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
+	// DefaultRateSlippage holds the default value on creation for the "rate_slippage" field.
+	DefaultRateSlippage decimal.Decimal
 )
 
 // ConversionRateType defines the type for the "conversion_rate_type" enum field.
@@ -159,6 +165,11 @@ func ByMaxOrderAmount(opts ...sql.OrderTermOption) OrderOption {
 // ByMinOrderAmount orders the results by the min_order_amount field.
 func ByMinOrderAmount(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldMinOrderAmount, opts...).ToFunc()
+}
+
+// ByRateSlippage orders the results by the rate_slippage field.
+func ByRateSlippage(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldRateSlippage, opts...).ToFunc()
 }
 
 // ByProviderField orders the results by provider field.

@@ -37,6 +37,10 @@ func (ProviderOrderToken) Fields() []ent.Field {
 			Address string `json:"address"`
 			Network string `json:"network"`
 		}{}),
+		field.Float("rate_slippage").
+			GoType(decimal.Decimal{}).
+			Default(0).
+			Optional(),
 	}
 }
 

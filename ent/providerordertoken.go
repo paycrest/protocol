@@ -41,6 +41,8 @@ type ProviderOrderToken struct {
 		Address string "json:\"address\""
 		Network string "json:\"network\""
 	} `json:"addresses,omitempty"`
+	// RateSlippage holds the value of the "rate_slippage" field.
+	RateSlippage decimal.Decimal `json:"rate_slippage,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ProviderOrderTokenQuery when eager-loading is set.
 	Edges                         ProviderOrderTokenEdges `json:"edges"`
@@ -75,7 +77,7 @@ func (*ProviderOrderToken) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case providerordertoken.FieldAddresses:
 			values[i] = new([]byte)
-		case providerordertoken.FieldFixedConversionRate, providerordertoken.FieldFloatingConversionRate, providerordertoken.FieldMaxOrderAmount, providerordertoken.FieldMinOrderAmount:
+		case providerordertoken.FieldFixedConversionRate, providerordertoken.FieldFloatingConversionRate, providerordertoken.FieldMaxOrderAmount, providerordertoken.FieldMinOrderAmount, providerordertoken.FieldRateSlippage:
 			values[i] = new(decimal.Decimal)
 		case providerordertoken.FieldID:
 			values[i] = new(sql.NullInt64)
@@ -162,6 +164,12 @@ func (pot *ProviderOrderToken) assignValues(columns []string, values []any) erro
 					return fmt.Errorf("unmarshal field addresses: %w", err)
 				}
 			}
+		case providerordertoken.FieldRateSlippage:
+			if value, ok := values[i].(*decimal.Decimal); !ok {
+				return fmt.Errorf("unexpected type %T for field rate_slippage", values[i])
+			} else if value != nil {
+				pot.RateSlippage = *value
+			}
 		case providerordertoken.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field provider_profile_order_tokens", values[i])
@@ -236,6 +244,9 @@ func (pot *ProviderOrderToken) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("addresses=")
 	builder.WriteString(fmt.Sprintf("%v", pot.Addresses))
+	builder.WriteString(", ")
+	builder.WriteString("rate_slippage=")
+	builder.WriteString(fmt.Sprintf("%v", pot.RateSlippage))
 	builder.WriteByte(')')
 	return builder.String()
 }

@@ -287,8 +287,24 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 			continue
 		}
 
+		slippageThreshold := decimal.NewFromFloat(0.5) // Default fallback
+
+		providerToken, err := storage.Client.ProviderOrderToken.
+			Query().
+			Where(
+				providerordertoken.SymbolEQ(order.Token.Symbol),
+				providerordertoken.HasProviderWith(providerprofile.IDEQ(order.ProviderID)),
+			).
+			Only(ctx)
+		if err != nil {
+			logger.Errorf("%s - failed to get provider token slippage: %v", orderIDPrefix, err)
+			// Use default slippage if lookup fails
+		} else {
+			slippageThreshold = providerToken.RateSlippage
+		}
+
 		// TODO: make the slippage of 0.5 configurable by provider
-		if rate.Sub(order.Rate).Abs().LessThanOrEqual(decimal.NewFromFloat(0.5)) {
+		if rate.Sub(order.Rate).Abs().LessThanOrEqual(decimal.NewFromFloat(slippageThreshold)) {
 			// Found a match for the rate
 			if index == 0 {
 				// Match found at index 0, perform LPOP to dequeue
