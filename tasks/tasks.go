@@ -2,6 +2,7 @@ package tasks
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"math"
 	"strings"
@@ -32,7 +33,9 @@ import (
 	"github.com/paycrest/aggregator/storage"
 	"github.com/paycrest/aggregator/types"
 	"github.com/paycrest/aggregator/utils"
+	cryptoUtils "github.com/paycrest/aggregator/utils/crypto"
 	"github.com/paycrest/aggregator/utils/logger"
+	tokenUtils "github.com/paycrest/aggregator/utils/token"
 	"github.com/redis/go-redis/v9"
 	"github.com/shopspring/decimal"
 )
@@ -774,28 +777,32 @@ func ReassignUnvalidatedLockOrders() {
 	for _, order := range lockOrders {
 		for _, fulfillment := range order.Edges.Fulfillments {
 			if fulfillment.ValidationStatus == lockorderfulfillment.ValidationStatusPending {
-				// TODO: use auth
-				// // Compute HMAC
-				// decodedSecret, err := base64.StdEncoding.DecodeString(order.Edges.Provider.Edges.APIKey.Secret)
-				// if err != nil {
-				// 	logger.Errorf("ReassignUnvalidatedLockOrders: %v", err)
-				// 	return
-				// }
-				// decryptedSecret, err := cryptoUtils.DecryptPlain(decodedSecret)
-				// if err != nil {
-				// 	logger.Errorf("ReassignUnvalidatedLockOrders: %v", err)
-				// 	return
-				// }
+				// Compute HMAC
+				decodedSecret, err := base64.StdEncoding.DecodeString(order.Edges.Provider.Edges.APIKey.Secret)
+				if err != nil {
+					logger.Errorf("ReassignUnvalidatedLockOrders: %v", err)
+					return
+				}
+				decryptedSecret, err := cryptoUtils.DecryptPlain(decodedSecret)
+				if err != nil {
+					logger.Errorf("ReassignUnvalidatedLockOrders: %v", err)
+					return
+				}
 
-				// payload := map[string]interface{}{}
+				payload := map[string]interface{}{
+					"orderId": order.ID,
+					"psp":     fulfillment.Psp,
+					"txId":    fulfillment.TxID,
+				}
 
-				// signature := tokenUtils.GenerateHMACSignature(payload, string(decryptedSecret))
+				signature := tokenUtils.GenerateHMACSignature(payload, string(decryptedSecret))
 
-				// Send GET request to the provider's node
+				// Send POST request to the provider's node
 				res, err := fastshot.NewClient(order.Edges.Provider.HostIdentifier).
-					Config().SetTimeout(30 * time.Second).
-					// Header().Add("X-Request-Signature", signature).
-					Build().GET(fmt.Sprintf("/tx_status/%s/%s", fulfillment.Psp, fulfillment.TxID)).
+					Config().SetTimeout(30*time.Second).
+					Header().Add("X-Request-Signature", signature).
+					Build().POST("/tx_status").
+					Body().AsJSON(payload).
 					Send()
 				if err != nil {
 					logger.Errorf("ReassignUnvalidatedLockOrders: %v", err)
@@ -813,6 +820,7 @@ func ReassignUnvalidatedLockOrders() {
 				if status == "failed" {
 					_, err = storage.Client.LockOrderFulfillment.
 						UpdateOneID(fulfillment.ID).
+						SetTxID(fulfillment.TxID).
 						SetValidationStatus(lockorderfulfillment.ValidationStatusFailed).
 						SetValidationError(data["data"].(map[string]interface{})["error"].(string)).
 						Save(ctx)
@@ -832,6 +840,7 @@ func ReassignUnvalidatedLockOrders() {
 				} else if status == "success" {
 					_, err = storage.Client.LockOrderFulfillment.
 						UpdateOneID(fulfillment.ID).
+						SetTxID(fulfillment.TxID).
 						SetValidationStatus(lockorderfulfillment.ValidationStatusSuccess).
 						Save(ctx)
 					if err != nil {
