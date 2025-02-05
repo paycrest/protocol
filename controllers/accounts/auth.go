@@ -530,6 +530,7 @@ func (ctrl *AuthController) ChangePassword(ctx *gin.Context) {
 	userID, err := uuid.Parse(user_id)
 	if err != nil {
 		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid credential", nil)
+		return
 	}
 
 	// Fetch user account.
@@ -539,6 +540,7 @@ func (ctrl *AuthController) ChangePassword(ctx *gin.Context) {
 		Only(ctx)
 	if err != nil {
 		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid credential", nil)
+		return
 	}
 
 	// Check if the old password is correct
@@ -560,7 +562,6 @@ func (ctrl *AuthController) ChangePassword(ctx *gin.Context) {
 		UpdateOne(user).
 		SetPassword(payload.NewPassword).
 		Save(ctx)
-
 	if err != nil {
 		u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to change password", nil)
 		return
@@ -577,7 +578,8 @@ func (ctrl *AuthController) DeleteAccount(ctx *gin.Context) {
 	// parse user id to uuid
 	userID, err := uuid.Parse(user_id)
 	if err != nil {
-		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid credential", nil)
+		u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid authorization token", nil)
+		return
 	}
 
 	// Fetch user account.
@@ -586,7 +588,13 @@ func (ctrl *AuthController) DeleteAccount(ctx *gin.Context) {
 		Where(userEnt.IDEQ(userID)).
 		Only(ctx)
 	if err != nil {
-		u.APIResponse(ctx, http.StatusBadRequest, "error", "Invalid credential", nil)
+		if ent.IsNotFound(err) {
+			u.APIResponse(ctx, http.StatusUnauthorized, "error", "Invalid authorization token", nil)
+			return
+		} else {
+			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to delete account", nil)
+			return
+		}
 	}
 
 	// Delete user account, delete user account will delete all related data via cascade
