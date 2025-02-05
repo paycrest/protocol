@@ -727,6 +727,7 @@ func SyncLockOrderFulfillments() {
 			if status == "failed" {
 				_, err = storage.Client.LockOrderFulfillment.
 					Create().
+					SetOrderID(order.ID).
 					SetPsp(psp).
 					SetTxID(txId).
 					SetValidationStatus(lockorderfulfillment.ValidationStatusFailed).
@@ -748,6 +749,7 @@ func SyncLockOrderFulfillments() {
 			} else if status == "success" {
 				_, err = storage.Client.LockOrderFulfillment.
 					Create().
+					SetOrderID(order.ID).
 					SetPsp(psp).
 					SetTxID(txId).
 					SetValidationStatus(lockorderfulfillment.ValidationStatusSuccess).
