@@ -694,8 +694,8 @@ func SyncLockOrderFulfillments() {
 			// }
 
 			payload := map[string]interface{}{
-				"orderId":  order.ID,
-				"currency": order.Edges.ProvisionBucket.Edges.Currency,
+				"orderId":  order.ID.String(),
+				"currency": order.Edges.ProvisionBucket.Edges.Currency.String(),
 			}
 			// signature := tokenUtils.GenerateHMACSignature(payload, string(decryptedSecret))
 
@@ -794,8 +794,8 @@ func SyncLockOrderFulfillments() {
 					// }
 
 					payload := map[string]interface{}{
-						"orderId":  order.ID,
-						"currency": order.Edges.ProvisionBucket.Edges.Currency,
+						"orderId":  order.ID.String(),
+						"currency": order.Edges.ProvisionBucket.Edges.Currency.String(),
 						"psp":      fulfillment.Psp,
 						"txId":     fulfillment.TxID,
 					}
