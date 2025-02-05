@@ -716,7 +716,7 @@ func SyncLockOrderFulfillments() {
 
 			data, err := utils.ParseJSONResponse(res.RawResponse)
 			if err != nil {
-				logger.Errorf("SyncLockOrderFulfillments: %v %v", err, data)
+				logger.Errorf("SyncLockOrderFulfillments: %v %v", err, payload)
 				continue
 			}
 
@@ -819,7 +819,7 @@ func SyncLockOrderFulfillments() {
 
 					data, err := utils.ParseJSONResponse(res.RawResponse)
 					if err != nil {
-						logger.Errorf("SyncLockOrderFulfillments: %v %v", err, data)
+						logger.Errorf("SyncLockOrderFulfillments: %v %v", err, payload)
 						continue
 					}
 
