@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
+	"os"
 	"regexp"
 	"strings"
 	"testing"
@@ -13,6 +15,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jarcoal/httpmock"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/paycrest/aggregator/config"
 	"github.com/paycrest/aggregator/ent"
 	"github.com/paycrest/aggregator/routers/middleware"
 	svc "github.com/paycrest/aggregator/services"
@@ -32,6 +35,7 @@ import (
 )
 
 func TestAuth(t *testing.T) {
+
 	// setup httpmock
 	httpmock.Activate()
 	defer httpmock.Deactivate()
@@ -431,6 +435,62 @@ func TestAuth(t *testing.T) {
 			assert.Contains(t, errorMap, "field")
 			assert.Equal(t, "Scopes[0]", errorMap["field"].(string))
 			assert.Contains(t, errorMap, "message")
+		})
+
+		t.Run("testing UserEarlyAccess", func(t *testing.T) {
+			tests := []struct {
+				name                string
+				environment         string
+				expectedEarlyAccess bool
+			}{
+				{
+					name:                "Non-production environment (development)",
+					environment:         "development",
+					expectedEarlyAccess: true,
+				},
+				{
+					name:                "Non-production environment (staging)",
+					environment:         "staging",
+					expectedEarlyAccess: true,
+				},
+				{
+					name:                "Production environment",
+					environment:         "production",
+					expectedEarlyAccess: false,
+				},
+			}
+
+			for _, tt := range tests {
+				t.Run(tt.name, func(t *testing.T) {
+					os.Setenv("ENVIRONMENT", tt.environment)
+
+					serverConf := config.ServerConfiguration{Environment: tt.environment}
+
+					hasEarlyAccess := serverConf.Environment != "production"
+
+					ctx := context.Background()
+					user, err := client.User.Create().
+						SetFirstName("Ike").
+						SetLastName("Ayo").
+						SetEmail(fmt.Sprintf("test-%s@example.com", tt.environment)).
+						SetPassword("password").
+						SetScope("sender").
+						SetHasEarlyAccess(hasEarlyAccess).
+						Save(ctx)
+					assert.NoError(t, err)
+
+					createdUser, err := client.User.Get(ctx, user.ID)
+					if err != nil {
+						t.Fatal("Failed to fetch user from database:", err)
+					}
+					assert.Equal(t, tt.expectedEarlyAccess, createdUser.HasEarlyAccess, "unexpected HasEarlyAccess for environment %s", tt.environment)
+
+					// Cleanup
+					err = client.User.DeleteOne(user).Exec(ctx)
+					assert.NoError(t, err)
+				})
+
+			}
 		})
 
 	})
