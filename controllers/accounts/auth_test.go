@@ -61,8 +61,17 @@ func TestAuth(t *testing.T) {
 
 	db.Client = client
 
-	// Set up test fiat currency
 	_, _ = test.CreateTestFiatCurrency(nil)
+	KESPayloadCurrency := map[string]interface{}{
+		"code":        "KES",
+		"short_name":  "Shilling",
+		"decimals":    2,
+		"symbol":      "KSh",
+		"name":        "Kenyan Shilling",
+		"market_rate": 550.0,
+	}
+
+	_, _ = test.CreateTestFiatCurrency(KESPayloadCurrency)
 
 	// Set up test routers
 	router := gin.New()
@@ -91,7 +100,7 @@ func TestAuth(t *testing.T) {
 				LastName:  "Ayo",
 				Email:     "ikeayo@example.com",
 				Password:  "password",
-				Currency:  "NGN",
+				Currencies:  []string{"NGN"},
 				Scopes:    []string{"sender", "provider"},
 			}
 
@@ -217,7 +226,7 @@ func TestAuth(t *testing.T) {
 				LastName:  "Ayo",
 				Email:     "ikeayo2@example.com",
 				Password:  "password2",
-				Currency:  "NGN",
+				Currencies:  []string{"NGN"},
 				Scopes:    []string{"provider"},
 			}
 
@@ -301,7 +310,7 @@ func TestAuth(t *testing.T) {
 				LastName:  "Ayo",
 				Email:     "ikeayoprovider@example.com",
 				Password:  "password",
-				Currency:  "NGN",
+				Currencies: []string{"NGN", "KES"},
 				Scopes:    []string{"provider"},
 			}
 

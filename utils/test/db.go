@@ -161,7 +161,7 @@ func CreateTRC20Token(client types.RPCClient, overrides map[string]interface{}) 
 		UpdateNewValues().
 		ID(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("CreateERC20Token.networkId: %w", err)
+		return nil, fmt.Errorf("CreateTRC20Token.networkId: %w", err)
 	}
 
 	// Create token
@@ -454,6 +454,7 @@ func CreateTestProviderProfile(overrides map[string]interface{}) (*ent.ProviderP
 		"provision_mode":  "auto",
 		"is_partner":      false,
 		"visibility_mode": "public",
+		"is_available":    true,
 	}
 
 	// Apply overrides
@@ -469,8 +470,9 @@ func CreateTestProviderProfile(overrides map[string]interface{}) (*ent.ProviderP
 		SetHostIdentifier(payload["host_identifier"].(string)).
 		SetProvisionMode(providerprofile.ProvisionMode(payload["provision_mode"].(string))).
 		SetUserID(payload["user_id"].(uuid.UUID)).
-		SetCurrencyID(payload["currency_id"].(uuid.UUID)).
+		AddCurrencyIDs(payload["currency_id"].(uuid.UUID)).
 		SetVisibilityMode(providerprofile.VisibilityMode(payload["visibility_mode"].(string))).
+		SetIsAvailable(payload["is_available"].(bool)).
 		Save(context.Background())
 
 	return profile, err
@@ -487,19 +489,16 @@ func AddProvisionBucketToLockPaymentOrder(order *ent.LockPaymentOrder, bucketId 
 func AddProviderOrderTokenToProvider(overrides map[string]interface{}) (*ent.ProviderOrderToken, error) {
 	// Default payload
 	payload := map[string]interface{}{
+		"currency_id":              uuid.New(),
 		"fixed_conversion_rate":    decimal.NewFromFloat(1.0),
 		"conversion_rate_type":     "fixed",
 		"floating_conversion_rate": decimal.NewFromFloat(1.0),
 		"max_order_amount":         decimal.NewFromFloat(1.0),
 		"min_order_amount":         decimal.NewFromFloat(1.0),
-		"tokenSymbol":              "",
 		"provider":                 nil,
-		"addresses": []map[string]string{
-			{
-				"address": "",
-				"network": "",
-			},
-		},
+		"tokenID":                  0,
+		"address":                  "0x1234567890123456789012345678901234567890",
+		"network":                  "polygon",
 	}
 
 	// Apply overrides
@@ -507,34 +506,30 @@ func AddProviderOrderTokenToProvider(overrides map[string]interface{}) (*ent.Pro
 		payload[key] = value
 	}
 
-	// Extract addresses from payload
-	addresses := []struct {
-		Address string `json:"address"`
-		Network string `json:"network"`
-	}{}
-
-	if addrOverrides, ok := payload["addresses"].([]map[string]string); ok {
-		for _, addr := range addrOverrides {
-			addresses = append(addresses, struct {
-				Address string `json:"address"`
-				Network string `json:"network"`
-			}{
-				Address: addr["address"],
-				Network: addr["network"],
-			})
+	if payload["tokenID"].(int) == 0 {
+		// Create test token
+		backend, _ := SetUpTestBlockchain()
+		token, err := CreateERC20Token(backend, map[string]interface{}{
+			"deployContract": false,
+		})
+		if err != nil {
+			return nil, err
 		}
+		payload["tokenID"] = token.ID
 	}
 
 	orderToken, err := db.Client.ProviderOrderToken.
 		Create().
-		SetSymbol(payload["tokenSymbol"].(string)).
 		SetProvider(payload["provider"].(*ent.ProviderProfile)).
 		SetMaxOrderAmount(payload["min_order_amount"].(decimal.Decimal)).
 		SetMinOrderAmount(payload["max_order_amount"].(decimal.Decimal)).
 		SetConversionRateType(providerordertoken.ConversionRateType(payload["conversion_rate_type"].(string))).
 		SetFixedConversionRate(payload["fixed_conversion_rate"].(decimal.Decimal)).
 		SetFloatingConversionRate(payload["floating_conversion_rate"].(decimal.Decimal)).
-		SetAddresses(addresses).
+		SetAddress(payload["address"].(string)).
+		SetNetwork(payload["network"].(string)).
+		SetTokenID(payload["tokenID"].(int)).
+		SetCurrencyID(payload["currency_id"].(uuid.UUID)).
 		Save(context.Background())
 
 	return orderToken, err
@@ -555,11 +550,13 @@ func CreateTestProvisionBucket(overrides map[string]interface{}) (*ent.Provision
 		payload[key] = value
 	}
 
+	ctx := context.Background()
+
 	bucket, err := db.Client.ProvisionBucket.Create().
 		SetMinAmount(payload["min_amount"].(decimal.Decimal)).
 		SetMaxAmount(payload["max_amount"].(decimal.Decimal)).
 		SetCurrencyID(payload["currency_id"].(uuid.UUID)).
-		Save(context.Background())
+		Save(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -567,7 +564,7 @@ func CreateTestProvisionBucket(overrides map[string]interface{}) (*ent.Provision
 	_, err = db.Client.ProviderProfile.
 		UpdateOneID(payload["provider_id"].(string)).
 		AddProvisionBucketIDs(bucket.ID).
-		Save(context.Background())
+		Save(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -586,26 +583,45 @@ func CreateTestFiatCurrency(overrides map[string]interface{}) (*ent.FiatCurrency
 		"name":        "Nigerian Naira",
 		"market_rate": 950.0,
 	}
-
 	// Apply overrides.
 	for key, value := range overrides {
 		payload[key] = value
 	}
 
-	institutions, err := db.Client.Institution.CreateBulk(
-		db.Client.Institution.
-			Create().
-			SetName("MTN Momo").
-			SetCode("MOMONGPC").
-			SetType(institution.TypeMobileMoney),
-		db.Client.Institution.
-			Create().
-			SetName("Access Bank").
-			SetCode("ABNGNGLA"),
-	).Save(context.Background())
+	var institutions []*ent.Institution
+	var err error
+	if payload["code"] == "KES" {
+		institutions, err = db.Client.Institution.CreateBulk(
+			db.Client.Institution.
+				Create().
+				SetName("M-Pesa").
+				SetCode("MPESAKES").
+				SetType(institution.TypeMobileMoney),
+			db.Client.Institution.
+				Create().
+				SetName("Equity Bank").
+				SetCode("EQTYKES"),
+		).Save(context.Background())
 
-	if err != nil {
-		return nil, err
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		institutions, err = db.Client.Institution.CreateBulk(
+			db.Client.Institution.
+				Create().
+				SetName("MTN Momo").
+				SetCode("MOMONGPC").
+				SetType(institution.TypeMobileMoney),
+			db.Client.Institution.
+				Create().
+				SetName("Access Bank").
+				SetCode("ABNGNGLA"),
+		).Save(context.Background())
+
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	currency, err := db.Client.FiatCurrency.
@@ -619,7 +635,6 @@ func CreateTestFiatCurrency(overrides map[string]interface{}) (*ent.FiatCurrency
 		SetIsEnabled(true).
 		AddInstitutions(institutions...).
 		Save(context.Background())
-
 	return currency, err
 
 }

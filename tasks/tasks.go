@@ -1191,7 +1191,9 @@ func ComputeMarketRate() error {
 		tokenConfigs, err := storage.Client.ProviderOrderToken.
 			Query().
 			Where(
-				providerordertoken.SymbolIn("USDT", "USDC"),
+				providerordertoken.HasTokenWith(
+					tokenent.SymbolIn("USDT", "USDC"),
+				),
 				providerordertoken.ConversionRateTypeEQ(providerordertoken.ConversionRateTypeFixed),
 			).
 			Select(providerordertoken.FieldFixedConversionRate).
