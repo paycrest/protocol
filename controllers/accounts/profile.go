@@ -382,14 +382,13 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 			).
 			Only(ctx)
 
-		// In the UpdateProviderProfile function, add this to the token processing section
-		if !tokenPayload.RateSlippage.IsZero() {
-			// Validate rate slippage
-			percentDeviation := u.AbsPercentageDeviation(currency.MarketRate, tokenPayload.RateSlippage)
-			if percentDeviation.GreaterThan(decimal.NewFromInt(20)) { // 20% max
-				u.APIResponse(ctx, http.StatusBadRequest, "error", "Rate slippage cannot exceed 20% of market rate", nil)
-				return
-			}
+		// Handle slippage validation and default value
+		if tokenPayload.RateSlippage.IsZero() {
+			tokenPayload.RateSlippage = decimal.NewFromFloat(0.5) // Default 0.5%
+		} else if tokenPayload.RateSlippage.LessThan(decimal.Zero) ||
+			tokenPayload.RateSlippage.GreaterThan(decimal.NewFromInt(20)) {
+			u.APIResponse(ctx, http.StatusBadRequest, "error", "Rate slippage must be between 0% and 20%", nil)
+			return
 		}
 
 		if err != nil {
@@ -668,5 +667,6 @@ func (ctrl *ProfileController) GetProviderProfile(ctx *gin.Context) {
 		IdentityDocument:     provider.IdentityDocument,
 		BusinessDocument:     provider.BusinessDocument,
 		IsKybVerified:        provider.IsKybVerified,
+		
 	})
 }

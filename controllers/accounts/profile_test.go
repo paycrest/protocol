@@ -18,6 +18,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/paycrest/aggregator/ent/enttest"
+	"github.com/paycrest/aggregator/ent/providerordertoken"
 	"github.com/paycrest/aggregator/ent/providerprofile"
 	"github.com/paycrest/aggregator/ent/senderordertoken"
 	"github.com/paycrest/aggregator/ent/senderprofile"
@@ -373,6 +374,120 @@ func TestProfile(t *testing.T) {
 			assert.True(t, providerProfile.IsActive)
 		})
 
+		///////////////////////////
+
+		t.Run("with token rate slippage", func(t *testing.T) {
+			profileUpdateRequest := func(payload types.ProviderProfilePayload) *httptest.ResponseRecorder {
+				accessToken, _ := token.GenerateAccessJWT(testCtx.user.ID.String(), "provider")
+				headers := map[string]string{
+					"Authorization": "Bearer " + accessToken,
+				}
+				res, err := test.PerformRequest(t, "PATCH", "/settings/provider", payload, headers, router)
+				assert.NoError(t, err)
+				return res
+			}
+
+			// Base token payload with required fields
+			baseTokenPayload := types.ProviderOrderTokenPayload{
+				Symbol:                 "TST",
+				ConversionRateType:     providerordertoken.ConversionRateTypeFixed,
+				FixedConversionRate:    decimal.NewFromFloat(50000),
+				FloatingConversionRate: decimal.NewFromFloat(0),
+				MaxOrderAmount:         decimal.NewFromFloat(1),
+				MinOrderAmount:         decimal.NewFromFloat(0.001),
+				Addresses: []struct {
+					Address string `json:"address"`
+					Network string `json:"network"`
+				}{
+					{
+						Address: "0x123",
+						Network: "ethereum",
+					},
+				},
+			}
+
+			t.Run("fails when rate slippage exceeds 20%", func(t *testing.T) {
+				tokenPayload := baseTokenPayload
+				tokenPayload.RateSlippage = decimal.NewFromFloat(25) // 25% slippage
+
+				payload := types.ProviderProfilePayload{
+					TradingName:    testCtx.providerProfile.TradingName,
+					HostIdentifier: testCtx.providerProfile.HostIdentifier,
+					Currency:       "KES",
+					Tokens:         []types.ProviderOrderTokenPayload{tokenPayload},
+				}
+
+				res := profileUpdateRequest(payload)
+				assert.Equal(t, http.StatusBadRequest, res.Code)
+
+				var response types.Response
+				err := json.Unmarshal(res.Body.Bytes(), &response)
+				assert.NoError(t, err)
+				assert.Equal(t, "Rate slippage cannot exceed 20% of market rate", response.Message)
+			})
+
+			t.Run("succeeds with valid rate slippage", func(t *testing.T) {
+				tokenPayload := baseTokenPayload
+				tokenPayload.RateSlippage = decimal.NewFromFloat(15) // 15% slippage
+
+				payload := types.ProviderProfilePayload{
+					TradingName:    testCtx.providerProfile.TradingName,
+					HostIdentifier: testCtx.providerProfile.HostIdentifier,
+					Currency:       "KES",
+					Tokens:         []types.ProviderOrderTokenPayload{tokenPayload},
+				}
+
+				res := profileUpdateRequest(payload)
+				assert.Equal(t, http.StatusOK, res.Code)
+
+				var response types.Response
+				err := json.Unmarshal(res.Body.Bytes(), &response)
+				assert.NoError(t, err)
+				assert.Equal(t, "Profile updated successfully", response.Message)
+
+				// Verify the rate slippage was saved correctly
+				providerToken, err := db.Client.ProviderOrderToken.
+					Query().
+					Where(
+						providerordertoken.SymbolEQ("TST"),
+						providerordertoken.HasProviderWith(providerprofile.IDEQ(testCtx.providerProfile.ID)),
+					).
+					Only(context.Background())
+
+				assert.NoError(t, err)
+				assert.Equal(t, decimal.NewFromFloat(15), providerToken.RateSlippage)
+			})
+
+			t.Run("defaults to zero slippage when not specified", func(t *testing.T) {
+				tokenPayload := baseTokenPayload
+				// Don't set RateSlippage field
+
+				payload := types.ProviderProfilePayload{
+					TradingName:    testCtx.providerProfile.TradingName,
+					HostIdentifier: testCtx.providerProfile.HostIdentifier,
+					Currency:       "KES",
+					Tokens:         []types.ProviderOrderTokenPayload{tokenPayload},
+				}
+
+				res := profileUpdateRequest(payload)
+				assert.Equal(t, http.StatusOK, res.Code)
+
+				// Verify the rate slippage defaulted to zero
+				providerToken, err := db.Client.ProviderOrderToken.
+					Query().
+					Where(
+						providerordertoken.SymbolEQ("TST"),
+						providerordertoken.HasProviderWith(providerprofile.IDEQ(testCtx.providerProfile.ID)),
+					).
+					Only(context.Background())
+
+				assert.NoError(t, err)
+				assert.True(t, providerToken.RateSlippage.IsZero())
+			})
+		})
+
+		/////////////////////////////
+
 		t.Run("with visibility", func(t *testing.T) {
 			// Test partial update
 			accessToken, _ := token.GenerateAccessJWT(testCtx.user.ID.String(), "provider")
@@ -577,6 +692,7 @@ func TestProfile(t *testing.T) {
 			})
 
 		})
+
 	})
 
 	t.Run("GetSenderProfile", func(t *testing.T) {

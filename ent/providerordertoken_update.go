@@ -149,24 +149,6 @@ func (potu *ProviderOrderTokenUpdate) AddMinOrderAmount(d decimal.Decimal) *Prov
 	return potu
 }
 
-// SetAddresses sets the "addresses" field.
-func (potu *ProviderOrderTokenUpdate) SetAddresses(s []struct {
-	Address string "json:\"address\""
-	Network string "json:\"network\""
-}) *ProviderOrderTokenUpdate {
-	potu.mutation.SetAddresses(s)
-	return potu
-}
-
-// AppendAddresses appends s to the "addresses" field.
-func (potu *ProviderOrderTokenUpdate) AppendAddresses(s []struct {
-	Address string "json:\"address\""
-	Network string "json:\"network\""
-}) *ProviderOrderTokenUpdate {
-	potu.mutation.AppendAddresses(s)
-	return potu
-}
-
 // SetRateSlippage sets the "rate_slippage" field.
 func (potu *ProviderOrderTokenUpdate) SetRateSlippage(d decimal.Decimal) *ProviderOrderTokenUpdate {
 	potu.mutation.ResetRateSlippage()
@@ -191,6 +173,24 @@ func (potu *ProviderOrderTokenUpdate) AddRateSlippage(d decimal.Decimal) *Provid
 // ClearRateSlippage clears the value of the "rate_slippage" field.
 func (potu *ProviderOrderTokenUpdate) ClearRateSlippage() *ProviderOrderTokenUpdate {
 	potu.mutation.ClearRateSlippage()
+	return potu
+}
+
+// SetAddresses sets the "addresses" field.
+func (potu *ProviderOrderTokenUpdate) SetAddresses(s []struct {
+	Address string "json:\"address\""
+	Network string "json:\"network\""
+}) *ProviderOrderTokenUpdate {
+	potu.mutation.SetAddresses(s)
+	return potu
+}
+
+// AppendAddresses appends s to the "addresses" field.
+func (potu *ProviderOrderTokenUpdate) AppendAddresses(s []struct {
+	Address string "json:\"address\""
+	Network string "json:\"network\""
+}) *ProviderOrderTokenUpdate {
+	potu.mutation.AppendAddresses(s)
 	return potu
 }
 
@@ -315,14 +315,6 @@ func (potu *ProviderOrderTokenUpdate) sqlSave(ctx context.Context) (n int, err e
 	if value, ok := potu.mutation.AddedMinOrderAmount(); ok {
 		_spec.AddField(providerordertoken.FieldMinOrderAmount, field.TypeFloat64, value)
 	}
-	if value, ok := potu.mutation.Addresses(); ok {
-		_spec.SetField(providerordertoken.FieldAddresses, field.TypeJSON, value)
-	}
-	if value, ok := potu.mutation.AppendedAddresses(); ok {
-		_spec.AddModifier(func(u *sql.UpdateBuilder) {
-			sqljson.Append(u, providerordertoken.FieldAddresses, value)
-		})
-	}
 	if value, ok := potu.mutation.RateSlippage(); ok {
 		_spec.SetField(providerordertoken.FieldRateSlippage, field.TypeFloat64, value)
 	}
@@ -331,6 +323,14 @@ func (potu *ProviderOrderTokenUpdate) sqlSave(ctx context.Context) (n int, err e
 	}
 	if potu.mutation.RateSlippageCleared() {
 		_spec.ClearField(providerordertoken.FieldRateSlippage, field.TypeFloat64)
+	}
+	if value, ok := potu.mutation.Addresses(); ok {
+		_spec.SetField(providerordertoken.FieldAddresses, field.TypeJSON, value)
+	}
+	if value, ok := potu.mutation.AppendedAddresses(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, providerordertoken.FieldAddresses, value)
+		})
 	}
 	if potu.mutation.ProviderCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -499,24 +499,6 @@ func (potuo *ProviderOrderTokenUpdateOne) AddMinOrderAmount(d decimal.Decimal) *
 	return potuo
 }
 
-// SetAddresses sets the "addresses" field.
-func (potuo *ProviderOrderTokenUpdateOne) SetAddresses(s []struct {
-	Address string "json:\"address\""
-	Network string "json:\"network\""
-}) *ProviderOrderTokenUpdateOne {
-	potuo.mutation.SetAddresses(s)
-	return potuo
-}
-
-// AppendAddresses appends s to the "addresses" field.
-func (potuo *ProviderOrderTokenUpdateOne) AppendAddresses(s []struct {
-	Address string "json:\"address\""
-	Network string "json:\"network\""
-}) *ProviderOrderTokenUpdateOne {
-	potuo.mutation.AppendAddresses(s)
-	return potuo
-}
-
 // SetRateSlippage sets the "rate_slippage" field.
 func (potuo *ProviderOrderTokenUpdateOne) SetRateSlippage(d decimal.Decimal) *ProviderOrderTokenUpdateOne {
 	potuo.mutation.ResetRateSlippage()
@@ -541,6 +523,24 @@ func (potuo *ProviderOrderTokenUpdateOne) AddRateSlippage(d decimal.Decimal) *Pr
 // ClearRateSlippage clears the value of the "rate_slippage" field.
 func (potuo *ProviderOrderTokenUpdateOne) ClearRateSlippage() *ProviderOrderTokenUpdateOne {
 	potuo.mutation.ClearRateSlippage()
+	return potuo
+}
+
+// SetAddresses sets the "addresses" field.
+func (potuo *ProviderOrderTokenUpdateOne) SetAddresses(s []struct {
+	Address string "json:\"address\""
+	Network string "json:\"network\""
+}) *ProviderOrderTokenUpdateOne {
+	potuo.mutation.SetAddresses(s)
+	return potuo
+}
+
+// AppendAddresses appends s to the "addresses" field.
+func (potuo *ProviderOrderTokenUpdateOne) AppendAddresses(s []struct {
+	Address string "json:\"address\""
+	Network string "json:\"network\""
+}) *ProviderOrderTokenUpdateOne {
+	potuo.mutation.AppendAddresses(s)
 	return potuo
 }
 
@@ -695,14 +695,6 @@ func (potuo *ProviderOrderTokenUpdateOne) sqlSave(ctx context.Context) (_node *P
 	if value, ok := potuo.mutation.AddedMinOrderAmount(); ok {
 		_spec.AddField(providerordertoken.FieldMinOrderAmount, field.TypeFloat64, value)
 	}
-	if value, ok := potuo.mutation.Addresses(); ok {
-		_spec.SetField(providerordertoken.FieldAddresses, field.TypeJSON, value)
-	}
-	if value, ok := potuo.mutation.AppendedAddresses(); ok {
-		_spec.AddModifier(func(u *sql.UpdateBuilder) {
-			sqljson.Append(u, providerordertoken.FieldAddresses, value)
-		})
-	}
 	if value, ok := potuo.mutation.RateSlippage(); ok {
 		_spec.SetField(providerordertoken.FieldRateSlippage, field.TypeFloat64, value)
 	}
@@ -711,6 +703,14 @@ func (potuo *ProviderOrderTokenUpdateOne) sqlSave(ctx context.Context) (_node *P
 	}
 	if potuo.mutation.RateSlippageCleared() {
 		_spec.ClearField(providerordertoken.FieldRateSlippage, field.TypeFloat64)
+	}
+	if value, ok := potuo.mutation.Addresses(); ok {
+		_spec.SetField(providerordertoken.FieldAddresses, field.TypeJSON, value)
+	}
+	if value, ok := potuo.mutation.AppendedAddresses(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, providerordertoken.FieldAddresses, value)
+		})
 	}
 	if potuo.mutation.ProviderCleared() {
 		edge := &sqlgraph.EdgeSpec{

@@ -287,9 +287,6 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 			continue
 		}
 
-		var slippageThreshold decimal.Decimal
-		slippageThreshold = decimal.NewFromFloat(0.5) // Default fallback
-
 		providerToken, err := storage.Client.ProviderOrderToken.
 			Query().
 			Where(
@@ -297,15 +294,30 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 				providerordertoken.HasProviderWith(providerprofile.IDEQ(order.ProviderID)),
 			).
 			Only(ctx)
+
 		if err != nil {
-			logger.Errorf("%s - failed to get provider token slippage: %v", orderIDPrefix, err)
-			// Use default slippage if lookup fails
-		} else {
-			slippageThreshold = providerToken.RateSlippage
+			logger.Errorf("%s - failed to fetch provider token: %v", orderIDPrefix, err)
+			return err
 		}
 
-		// TODO: make the slippage of 0.5 configurable by provider
-		if rate.Sub(order.Rate).Abs().LessThanOrEqual(slippageThreshold) {
+		// Default slippage to 0 if not set
+		var slippageThreshold decimal.Decimal = decimal.NewFromFloat(0)
+
+		if !providerToken.RateSlippage.IsZero() {
+			slippageThreshold = providerToken.RateSlippage
+
+			// Ensure slippage does not exceed 20% of market rate
+			maxAllowedSlippage := decimal.NewFromFloat(20) // 20% limit
+			if slippageThreshold.GreaterThan(maxAllowedSlippage) {
+				logger.Errorf("%s - rate_slippage exceeds allowed limit for provider %s: %v", orderIDPrefix, order.ProviderID, slippageThreshold)
+				return fmt.Errorf("rate_slippage exceeds allowed limit of 20%%")
+			}
+		}
+
+		// Calculate allowed deviation based on slippage
+		allowedDeviation := order.Rate.Mul(slippageThreshold.Div(decimal.NewFromInt(100)))
+
+		if rate.Sub(order.Rate).Abs().LessThanOrEqual(allowedDeviation) {
 			// Found a match for the rate
 			if index == 0 {
 				// Match found at index 0, perform LPOP to dequeue

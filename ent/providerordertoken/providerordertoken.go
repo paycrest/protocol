@@ -8,7 +8,6 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	"github.com/shopspring/decimal"
 )
 
 const (
@@ -32,10 +31,10 @@ const (
 	FieldMaxOrderAmount = "max_order_amount"
 	// FieldMinOrderAmount holds the string denoting the min_order_amount field in the database.
 	FieldMinOrderAmount = "min_order_amount"
-	// FieldAddresses holds the string denoting the addresses field in the database.
-	FieldAddresses = "addresses"
 	// FieldRateSlippage holds the string denoting the rate_slippage field in the database.
 	FieldRateSlippage = "rate_slippage"
+	// FieldAddresses holds the string denoting the addresses field in the database.
+	FieldAddresses = "addresses"
 	// EdgeProvider holds the string denoting the provider edge name in mutations.
 	EdgeProvider = "provider"
 	// Table holds the table name of the providerordertoken in the database.
@@ -60,8 +59,8 @@ var Columns = []string{
 	FieldConversionRateType,
 	FieldMaxOrderAmount,
 	FieldMinOrderAmount,
-	FieldAddresses,
 	FieldRateSlippage,
+	FieldAddresses,
 }
 
 // ForeignKeys holds the SQL foreign-keys that are owned by the "provider_order_tokens"
@@ -92,8 +91,6 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
-	// DefaultRateSlippage holds the default value on creation for the "rate_slippage" field.
-	DefaultRateSlippage decimal.Decimal
 )
 
 // ConversionRateType defines the type for the "conversion_rate_type" enum field.

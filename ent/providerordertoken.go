@@ -36,13 +36,13 @@ type ProviderOrderToken struct {
 	MaxOrderAmount decimal.Decimal `json:"max_order_amount,omitempty"`
 	// MinOrderAmount holds the value of the "min_order_amount" field.
 	MinOrderAmount decimal.Decimal `json:"min_order_amount,omitempty"`
+	// RateSlippage holds the value of the "rate_slippage" field.
+	RateSlippage decimal.Decimal `json:"rate_slippage,omitempty"`
 	// Addresses holds the value of the "addresses" field.
 	Addresses []struct {
 		Address string "json:\"address\""
 		Network string "json:\"network\""
 	} `json:"addresses,omitempty"`
-	// RateSlippage holds the value of the "rate_slippage" field.
-	RateSlippage decimal.Decimal `json:"rate_slippage,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ProviderOrderTokenQuery when eager-loading is set.
 	Edges                         ProviderOrderTokenEdges `json:"edges"`
@@ -156,6 +156,12 @@ func (pot *ProviderOrderToken) assignValues(columns []string, values []any) erro
 			} else if value != nil {
 				pot.MinOrderAmount = *value
 			}
+		case providerordertoken.FieldRateSlippage:
+			if value, ok := values[i].(*decimal.Decimal); !ok {
+				return fmt.Errorf("unexpected type %T for field rate_slippage", values[i])
+			} else if value != nil {
+				pot.RateSlippage = *value
+			}
 		case providerordertoken.FieldAddresses:
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field addresses", values[i])
@@ -163,12 +169,6 @@ func (pot *ProviderOrderToken) assignValues(columns []string, values []any) erro
 				if err := json.Unmarshal(*value, &pot.Addresses); err != nil {
 					return fmt.Errorf("unmarshal field addresses: %w", err)
 				}
-			}
-		case providerordertoken.FieldRateSlippage:
-			if value, ok := values[i].(*decimal.Decimal); !ok {
-				return fmt.Errorf("unexpected type %T for field rate_slippage", values[i])
-			} else if value != nil {
-				pot.RateSlippage = *value
 			}
 		case providerordertoken.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -242,11 +242,11 @@ func (pot *ProviderOrderToken) String() string {
 	builder.WriteString("min_order_amount=")
 	builder.WriteString(fmt.Sprintf("%v", pot.MinOrderAmount))
 	builder.WriteString(", ")
-	builder.WriteString("addresses=")
-	builder.WriteString(fmt.Sprintf("%v", pot.Addresses))
-	builder.WriteString(", ")
 	builder.WriteString("rate_slippage=")
 	builder.WriteString(fmt.Sprintf("%v", pot.RateSlippage))
+	builder.WriteString(", ")
+	builder.WriteString("addresses=")
+	builder.WriteString(fmt.Sprintf("%v", pot.Addresses))
 	builder.WriteByte(')')
 	return builder.String()
 }

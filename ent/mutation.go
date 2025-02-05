@@ -10244,6 +10244,8 @@ type ProviderOrderTokenMutation struct {
 	addmax_order_amount         *decimal.Decimal
 	min_order_amount            *decimal.Decimal
 	addmin_order_amount         *decimal.Decimal
+	rate_slippage               *decimal.Decimal
+	addrate_slippage            *decimal.Decimal
 	addresses                   *[]struct {
 		Address string "json:\"address\""
 		Network string "json:\"network\""
@@ -10252,14 +10254,12 @@ type ProviderOrderTokenMutation struct {
 		Address string "json:\"address\""
 		Network string "json:\"network\""
 	}
-	rate_slippage    *decimal.Decimal
-	addrate_slippage *decimal.Decimal
-	clearedFields    map[string]struct{}
-	provider         *string
-	clearedprovider  bool
-	done             bool
-	oldValue         func(context.Context) (*ProviderOrderToken, error)
-	predicates       []predicate.ProviderOrderToken
+	clearedFields   map[string]struct{}
+	provider        *string
+	clearedprovider bool
+	done            bool
+	oldValue        func(context.Context) (*ProviderOrderToken, error)
+	predicates      []predicate.ProviderOrderToken
 }
 
 var _ ent.Mutation = (*ProviderOrderTokenMutation)(nil)
@@ -10728,72 +10728,6 @@ func (m *ProviderOrderTokenMutation) ResetMinOrderAmount() {
 	m.addmin_order_amount = nil
 }
 
-// SetAddresses sets the "addresses" field.
-func (m *ProviderOrderTokenMutation) SetAddresses(s []struct {
-	Address string "json:\"address\""
-	Network string "json:\"network\""
-}) {
-	m.addresses = &s
-	m.appendaddresses = nil
-}
-
-// Addresses returns the value of the "addresses" field in the mutation.
-func (m *ProviderOrderTokenMutation) Addresses() (r []struct {
-	Address string "json:\"address\""
-	Network string "json:\"network\""
-}, exists bool) {
-	v := m.addresses
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldAddresses returns the old "addresses" field's value of the ProviderOrderToken entity.
-// If the ProviderOrderToken object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ProviderOrderTokenMutation) OldAddresses(ctx context.Context) (v []struct {
-	Address string "json:\"address\""
-	Network string "json:\"network\""
-}, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldAddresses is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldAddresses requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldAddresses: %w", err)
-	}
-	return oldValue.Addresses, nil
-}
-
-// AppendAddresses adds s to the "addresses" field.
-func (m *ProviderOrderTokenMutation) AppendAddresses(s []struct {
-	Address string "json:\"address\""
-	Network string "json:\"network\""
-}) {
-	m.appendaddresses = append(m.appendaddresses, s...)
-}
-
-// AppendedAddresses returns the list of values that were appended to the "addresses" field in this mutation.
-func (m *ProviderOrderTokenMutation) AppendedAddresses() ([]struct {
-	Address string "json:\"address\""
-	Network string "json:\"network\""
-}, bool) {
-	if len(m.appendaddresses) == 0 {
-		return nil, false
-	}
-	return m.appendaddresses, true
-}
-
-// ResetAddresses resets all changes to the "addresses" field.
-func (m *ProviderOrderTokenMutation) ResetAddresses() {
-	m.addresses = nil
-	m.appendaddresses = nil
-}
-
 // SetRateSlippage sets the "rate_slippage" field.
 func (m *ProviderOrderTokenMutation) SetRateSlippage(d decimal.Decimal) {
 	m.rate_slippage = &d
@@ -10862,6 +10796,72 @@ func (m *ProviderOrderTokenMutation) ResetRateSlippage() {
 	m.rate_slippage = nil
 	m.addrate_slippage = nil
 	delete(m.clearedFields, providerordertoken.FieldRateSlippage)
+}
+
+// SetAddresses sets the "addresses" field.
+func (m *ProviderOrderTokenMutation) SetAddresses(s []struct {
+	Address string "json:\"address\""
+	Network string "json:\"network\""
+}) {
+	m.addresses = &s
+	m.appendaddresses = nil
+}
+
+// Addresses returns the value of the "addresses" field in the mutation.
+func (m *ProviderOrderTokenMutation) Addresses() (r []struct {
+	Address string "json:\"address\""
+	Network string "json:\"network\""
+}, exists bool) {
+	v := m.addresses
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAddresses returns the old "addresses" field's value of the ProviderOrderToken entity.
+// If the ProviderOrderToken object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderOrderTokenMutation) OldAddresses(ctx context.Context) (v []struct {
+	Address string "json:\"address\""
+	Network string "json:\"network\""
+}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAddresses is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAddresses requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAddresses: %w", err)
+	}
+	return oldValue.Addresses, nil
+}
+
+// AppendAddresses adds s to the "addresses" field.
+func (m *ProviderOrderTokenMutation) AppendAddresses(s []struct {
+	Address string "json:\"address\""
+	Network string "json:\"network\""
+}) {
+	m.appendaddresses = append(m.appendaddresses, s...)
+}
+
+// AppendedAddresses returns the list of values that were appended to the "addresses" field in this mutation.
+func (m *ProviderOrderTokenMutation) AppendedAddresses() ([]struct {
+	Address string "json:\"address\""
+	Network string "json:\"network\""
+}, bool) {
+	if len(m.appendaddresses) == 0 {
+		return nil, false
+	}
+	return m.appendaddresses, true
+}
+
+// ResetAddresses resets all changes to the "addresses" field.
+func (m *ProviderOrderTokenMutation) ResetAddresses() {
+	m.addresses = nil
+	m.appendaddresses = nil
 }
 
 // SetProviderID sets the "provider" edge to the ProviderProfile entity by id.
@@ -10962,11 +10962,11 @@ func (m *ProviderOrderTokenMutation) Fields() []string {
 	if m.min_order_amount != nil {
 		fields = append(fields, providerordertoken.FieldMinOrderAmount)
 	}
-	if m.addresses != nil {
-		fields = append(fields, providerordertoken.FieldAddresses)
-	}
 	if m.rate_slippage != nil {
 		fields = append(fields, providerordertoken.FieldRateSlippage)
+	}
+	if m.addresses != nil {
+		fields = append(fields, providerordertoken.FieldAddresses)
 	}
 	return fields
 }
@@ -10992,10 +10992,10 @@ func (m *ProviderOrderTokenMutation) Field(name string) (ent.Value, bool) {
 		return m.MaxOrderAmount()
 	case providerordertoken.FieldMinOrderAmount:
 		return m.MinOrderAmount()
-	case providerordertoken.FieldAddresses:
-		return m.Addresses()
 	case providerordertoken.FieldRateSlippage:
 		return m.RateSlippage()
+	case providerordertoken.FieldAddresses:
+		return m.Addresses()
 	}
 	return nil, false
 }
@@ -11021,10 +11021,10 @@ func (m *ProviderOrderTokenMutation) OldField(ctx context.Context, name string) 
 		return m.OldMaxOrderAmount(ctx)
 	case providerordertoken.FieldMinOrderAmount:
 		return m.OldMinOrderAmount(ctx)
-	case providerordertoken.FieldAddresses:
-		return m.OldAddresses(ctx)
 	case providerordertoken.FieldRateSlippage:
 		return m.OldRateSlippage(ctx)
+	case providerordertoken.FieldAddresses:
+		return m.OldAddresses(ctx)
 	}
 	return nil, fmt.Errorf("unknown ProviderOrderToken field %s", name)
 }
@@ -11090,6 +11090,13 @@ func (m *ProviderOrderTokenMutation) SetField(name string, value ent.Value) erro
 		}
 		m.SetMinOrderAmount(v)
 		return nil
+	case providerordertoken.FieldRateSlippage:
+		v, ok := value.(decimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRateSlippage(v)
+		return nil
 	case providerordertoken.FieldAddresses:
 		v, ok := value.([]struct {
 			Address string "json:\"address\""
@@ -11099,13 +11106,6 @@ func (m *ProviderOrderTokenMutation) SetField(name string, value ent.Value) erro
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetAddresses(v)
-		return nil
-	case providerordertoken.FieldRateSlippage:
-		v, ok := value.(decimal.Decimal)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetRateSlippage(v)
 		return nil
 	}
 	return fmt.Errorf("unknown ProviderOrderToken field %s", name)
@@ -11252,11 +11252,11 @@ func (m *ProviderOrderTokenMutation) ResetField(name string) error {
 	case providerordertoken.FieldMinOrderAmount:
 		m.ResetMinOrderAmount()
 		return nil
-	case providerordertoken.FieldAddresses:
-		m.ResetAddresses()
-		return nil
 	case providerordertoken.FieldRateSlippage:
 		m.ResetRateSlippage()
+		return nil
+	case providerordertoken.FieldAddresses:
+		m.ResetAddresses()
 		return nil
 	}
 	return fmt.Errorf("unknown ProviderOrderToken field %s", name)
