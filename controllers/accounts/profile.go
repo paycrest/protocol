@@ -382,12 +382,12 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 			).
 			Only(ctx)
 
-		// Handle slippage validation and default value
+			// Handle slippage validation and default value
 		if tokenPayload.RateSlippage.IsZero() {
-			tokenPayload.RateSlippage = decimal.NewFromFloat(0.5) // Default 0.5%
+			tokenPayload.RateSlippage = decimal.Zero // Default to 0
 		} else if tokenPayload.RateSlippage.LessThan(decimal.Zero) ||
-			tokenPayload.RateSlippage.GreaterThan(decimal.NewFromInt(20)) {
-			u.APIResponse(ctx, http.StatusBadRequest, "error", "Rate slippage must be between 0% and 20%", nil)
+			tokenPayload.RateSlippage.GreaterThan(decimal.NewFromFloat(20)) {
+			u.APIResponse(ctx, http.StatusBadRequest, "error", "Rate slippage cannot exceed 20% of market rate", nil)
 			return
 		}
 
@@ -667,6 +667,5 @@ func (ctrl *ProfileController) GetProviderProfile(ctx *gin.Context) {
 		IdentityDocument:     provider.IdentityDocument,
 		BusinessDocument:     provider.BusinessDocument,
 		IsKybVerified:        provider.IsKybVerified,
-		
 	})
 }
