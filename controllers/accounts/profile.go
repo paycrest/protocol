@@ -360,7 +360,6 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Failed to fetch currency", nil)
 			return
 		}
-		///////////////////////////////////////////////////////
 
 		// Calculate the token max order amount in local currency
 		maxOrderAmountInLocalCurrency := tokenPayload.MaxOrderAmount.Mul(currency.MarketRate)
@@ -373,7 +372,6 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 			First(ctx)
 		if err != nil {
 			if ent.IsNotFound(err) {
-				// No provision buckets for the currency
 				u.APIResponse(ctx, http.StatusBadRequest, "error", "No provision buckets available for the currency", nil)
 				return
 			}
@@ -383,11 +381,9 @@ func (ctrl *ProfileController) UpdateProviderProfile(ctx *gin.Context) {
 
 		// Compare the token's max order amount in local currency with the largest provision bucket size
 		if maxOrderAmountInLocalCurrency.GreaterThan(largestBucket.MaxAmount) {
-			u.APIResponse(ctx, http.StatusBadRequest, "error", fmt.Sprintf("Max order amount exceeds the largest provision bucket size of %.2f %s", largestBucket.MaxAmount, payload.Currency), nil)
+			u.APIResponse(ctx, http.StatusBadRequest, "error", "Max order amount exceeds the largest provision bucket size", nil)
 			return
 		}
-
-		///////////////////////////////////////////////////////
 
 		var rate decimal.Decimal
 
