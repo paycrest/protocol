@@ -111,6 +111,14 @@ func (s *PriorityQueueService) GetProviderRate(ctx context.Context, provider *en
 	return rate, nil
 }
 
+// deleteQueue deletes existing circular queue
+func (s *PriorityQueueService) deleteQueue(ctx context.Context, key string) {
+	_, err := storage.RedisClient.Del(ctx, key).Result()
+	if err != nil {
+		logger.Errorf("failed to delete existing circular queue: %v", err)
+	}
+}
+
 // CreatePriorityQueueForBucket creates a priority queue for a bucket and saves it to redis
 func (s *PriorityQueueService) CreatePriorityQueueForBucket(ctx context.Context, bucket *ent.ProvisionBucket) {
 	// Create a slice to store the provider profiles sorted by trust score
@@ -121,13 +129,27 @@ func (s *PriorityQueueService) CreatePriorityQueueForBucket(ctx context.Context,
 	// 	return trustScoreI > trustScoreJ // Sort in descending order
 	// })
 
-	// Enqueue provider ID and rate as a single string into the circular queue
 	redisKey := fmt.Sprintf("bucket_%s_%s_%s", bucket.Edges.Currency.Code, bucket.MinAmount, bucket.MaxAmount)
 
-	_, err := storage.RedisClient.Del(ctx, redisKey).Result() // delete existing queue
+	prevData, err := storage.RedisClient.LRange(ctx, redisKey, 0, -1).Result()
 	if err != nil {
-		logger.Errorf("failed to delete existing circular queue: %v", err)
+		logger.Errorf("failed to fetch provider rates: %v", err)
 	}
+
+	// Convert []string to []interface{}
+	prevValues := make([]interface{}, len(prevData))
+	for i, v := range prevData {
+		prevValues[i] = v
+	}
+
+	// Store previous provider data
+	prevRedisKey := redisKey + "_prev"
+	err = storage.RedisClient.RPush(ctx, prevRedisKey, prevValues...).Err()
+	if err != nil {
+		logger.Errorf("failed to store previous provider rates: %v", err)
+	}
+
+	s.deleteQueue(ctx, redisKey)
 
 	for _, provider := range providers {
 		tokens, err := storage.Client.ProviderOrderToken.
@@ -227,10 +249,108 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 
 	// partnerProviders := []string{}
 
+	err = s.matchRate(ctx, redisKey, orderIDPrefix, order, excludeList)
+	if err != nil {
+		prevRedisKey := redisKey + "_prev"
+		err = s.matchRate(ctx, prevRedisKey, orderIDPrefix, order, excludeList)
+		s.deleteQueue(ctx, prevRedisKey)
+		if err != nil {
+			return err
+		}
+
+	}
+
+	return nil
+}
+
+// sendOrderRequest sends an order request to a provider
+func (s *PriorityQueueService) sendOrderRequest(ctx context.Context, order types.LockPaymentOrderFields) error {
+	// Assign the order to the provider and save it to Redis
+	orderKey := fmt.Sprintf("order_request_%s", order.ID)
+
+	orderRequestData := map[string]interface{}{
+		"amount":      order.Amount.Mul(order.Rate).RoundBank(0).String(),
+		"institution": order.Institution,
+		"providerId":  order.ProviderID,
+	}
+
+	if err := storage.RedisClient.HSet(ctx, orderKey, orderRequestData).Err(); err != nil {
+		logger.Errorf("failed to map order to a provider in Redis: %v", err)
+		return err
+	}
+
+	// Set a TTL for the order request
+	err := storage.RedisClient.ExpireAt(ctx, orderKey, time.Now().Add(orderConf.OrderRequestValidity)).Err()
+	if err != nil {
+		logger.Errorf("failed to set TTL for order request: %v", err)
+		return err
+	}
+
+	// Notify the provider
+	orderRequestData["orderId"] = order.ID
+	if err := s.notifyProvider(ctx, orderRequestData); err != nil {
+		logger.Errorf("failed to notify provider %s: %v", order.ProviderID, err)
+		return err
+	}
+
+	return nil
+}
+
+// notifyProvider sends an order request notification to a provider
+// TODO: ideally notifications should be moved to a notification service
+func (s *PriorityQueueService) notifyProvider(ctx context.Context, orderRequestData map[string]interface{}) error {
+	// TODO: can we add mode and host identifier to redis during priority queue creation?
+	providerID := orderRequestData["providerId"].(string)
+	delete(orderRequestData, "providerId")
+
+	provider, err := storage.Client.ProviderProfile.
+		Query().
+		Where(
+			providerprofile.IDEQ(providerID),
+		).
+		WithAPIKey().
+		Only(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Compute HMAC
+	decodedSecret, err := base64.StdEncoding.DecodeString(provider.Edges.APIKey.Secret)
+	if err != nil {
+		return err
+	}
+	decryptedSecret, err := cryptoUtils.DecryptPlain(decodedSecret)
+	if err != nil {
+		return err
+	}
+
+	signature := tokenUtils.GenerateHMACSignature(orderRequestData, string(decryptedSecret))
+
+	// Send POST request to the provider's node
+	res, err := fastshot.NewClient(provider.HostIdentifier).
+		Config().SetTimeout(30*time.Second).
+		Header().Add("X-Request-Signature", signature).
+		Build().POST("/new_order").
+		Body().AsJSON(orderRequestData).
+		Send()
+	if err != nil {
+		return err
+	}
+
+	data, err := utils.ParseJSONResponse(res.RawResponse)
+	if err != nil {
+		logger.Errorf("PriorityQueueService.notifyProvider: %v %v", err, data)
+	}
+
+	return nil
+}
+
+// matchRate matches order rate with a provider rate
+func (s *PriorityQueueService) matchRate(ctx context.Context, redisKey string, orderIDPrefix string, order types.LockPaymentOrderFields, excludeList []string) error {
 	for index := 0; ; index++ {
 		providerData, err := storage.RedisClient.LIndex(ctx, redisKey, int64(index)).Result()
 		if err != nil {
-			break
+			return err
 		}
 
 		// if providerData == "" {
@@ -324,88 +444,6 @@ func (s *PriorityQueueService) AssignLockPaymentOrder(ctx context.Context, order
 
 			break
 		}
-	}
-
-	return nil
-}
-
-// sendOrderRequest sends an order request to a provider
-func (s *PriorityQueueService) sendOrderRequest(ctx context.Context, order types.LockPaymentOrderFields) error {
-	// Assign the order to the provider and save it to Redis
-	orderKey := fmt.Sprintf("order_request_%s", order.ID)
-
-	orderRequestData := map[string]interface{}{
-		"amount":      order.Amount.Mul(order.Rate).RoundBank(0).String(),
-		"institution": order.Institution,
-		"providerId":  order.ProviderID,
-	}
-
-	if err := storage.RedisClient.HSet(ctx, orderKey, orderRequestData).Err(); err != nil {
-		logger.Errorf("failed to map order to a provider in Redis: %v", err)
-		return err
-	}
-
-	// Set a TTL for the order request
-	err := storage.RedisClient.ExpireAt(ctx, orderKey, time.Now().Add(orderConf.OrderRequestValidity)).Err()
-	if err != nil {
-		logger.Errorf("failed to set TTL for order request: %v", err)
-		return err
-	}
-
-	// Notify the provider
-	orderRequestData["orderId"] = order.ID
-	if err := s.notifyProvider(ctx, orderRequestData); err != nil {
-		logger.Errorf("failed to notify provider %s: %v", order.ProviderID, err)
-		return err
-	}
-
-	return nil
-}
-
-// notifyProvider sends an order request notification to a provider
-// TODO: ideally notifications should be moved to a notification service
-func (s *PriorityQueueService) notifyProvider(ctx context.Context, orderRequestData map[string]interface{}) error {
-	// TODO: can we add mode and host identifier to redis during priority queue creation?
-	providerID := orderRequestData["providerId"].(string)
-	delete(orderRequestData, "providerId")
-
-	provider, err := storage.Client.ProviderProfile.
-		Query().
-		Where(
-			providerprofile.IDEQ(providerID),
-		).
-		WithAPIKey().
-		Only(ctx)
-	if err != nil {
-		return err
-	}
-
-	// Compute HMAC
-	decodedSecret, err := base64.StdEncoding.DecodeString(provider.Edges.APIKey.Secret)
-	if err != nil {
-		return err
-	}
-	decryptedSecret, err := cryptoUtils.DecryptPlain(decodedSecret)
-	if err != nil {
-		return err
-	}
-
-	signature := tokenUtils.GenerateHMACSignature(orderRequestData, string(decryptedSecret))
-
-	// Send POST request to the provider's node
-	res, err := fastshot.NewClient(provider.HostIdentifier).
-		Config().SetTimeout(30*time.Second).
-		Header().Add("X-Request-Signature", signature).
-		Build().POST("/new_order").
-		Body().AsJSON(orderRequestData).
-		Send()
-	if err != nil {
-		return err
-	}
-
-	data, err := utils.ParseJSONResponse(res.RawResponse)
-	if err != nil {
-		logger.Errorf("PriorityQueueService.notifyProvider: %v %v", err, data)
 	}
 
 	return nil
