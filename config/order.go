@@ -20,7 +20,6 @@ type OrderConfiguration struct {
 	RefundCancellationCount          int
 	PercentDeviationFromExternalRate decimal.Decimal
 	PercentDeviationFromMarketRate   decimal.Decimal
-	ActiveAAService                  string
 }
 
 // OrderConfig sets the order configuration
@@ -40,7 +39,6 @@ func OrderConfig() *OrderConfiguration {
 		ReceiveAddressValidity:           time.Duration(viper.GetInt("RECEIVE_ADDRESS_VALIDITY")) * time.Minute,
 		OrderRequestValidity:             time.Duration(viper.GetInt("ORDER_REQUEST_VALIDITY")) * time.Second,
 		TronProApiKey:                    viper.GetString("TRON_PRO_API_KEY"),
-		ActiveAAService:                  viper.GetString("ACTIVE_AA_SERVICE"),
 		EntryPointContractAddress:        common.HexToAddress(viper.GetString("ENTRY_POINT_CONTRACT_ADDRESS")),
 		BucketQueueRebuildInterval:       viper.GetInt("BUCKET_QUEUE_REBUILD_INTERVAL"),
 		RefundCancellationCount:          viper.GetInt("REFUND_CANCELLATION_COUNT"),
