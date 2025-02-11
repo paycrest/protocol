@@ -89,7 +89,6 @@ func (ctrl *SenderController) InitiatePaymentOrder(ctx *gin.Context) {
 				Message: "Provided token is not supported",
 			})
 		} else {
-			// log.Errorf("Database error while validating token", err)
 			u.APIResponse(ctx, http.StatusInternalServerError, "error", "Internal server error", nil)
 		}
 		return
