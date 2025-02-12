@@ -102,6 +102,13 @@ type StreamDestinationAttributes struct {
     PostTimeoutSec   int               `json:"post_timeout_sec,omitempty"`
 }
 
+type FilterConfig struct {
+    Addresses  	[]string
+    ERC20Tokens []string
+    Abi    		string
+	ListName    string
+}
+
 
 // TokenTransferEvent represents a token transfer event.
 type TokenTransferEvent struct {

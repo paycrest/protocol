@@ -532,3 +532,104 @@ func GetTokenRateFromQueue(tokenSymbol string, orderAmount decimal.Decimal, fiat
 
 	return rateResponse, nil
 }
+
+// GetEncodedFilterFunction generates a base64-encoded JavaScript filter function for QuickNode streams.
+// @dev: This function can be used to either create or update a stream. Ensure all the addresses and tokens are valid.
+// Parameters:
+// - config: A FilterConfig struct containing the addresses, ERC20 tokens, ABI, and list name.
+// Returns:
+// - A base64-encoded string of the JavaScript filter function.
+func GetEncodedFilterFunction(config types.FilterConfig) string {
+    addressesStr := "["
+    for i, addr := range config.Addresses {
+        if i > 0 {
+            addressesStr += ","
+        }
+        addressesStr += fmt.Sprintf("'%s'", addr)
+    }
+    addressesStr += "]"
+
+    tokensStr := "["
+    for i, token := range config.ERC20Tokens {
+        if i > 0 {
+            tokensStr += ","
+        }
+        tokensStr += fmt.Sprintf("'%s'", token)
+    }
+    tokensStr += "]"
+
+    filterFunc := fmt.Sprintf(`
+    function main(stream) {
+        let results = {};
+        const addressess = %s
+        const ERC20Tokens = %s
+        const erc20Abi = '%s'
+        const listName = '%s'
+
+        try {
+            // Initialize or update the address list
+            results.createList = qnUpsertList(listName, {
+                add_items: addressess
+            });
+
+            const data = stream.data
+            var result = decodeEVMReceipts(data[0].receipts, [erc20Abi])
+
+            // Filter for receipts with decoded logs
+            result = result.filter(
+                receipt => receipt.decodedLogs && receipt.decodedLogs.length > 0
+            )
+
+            const logs = result.map(receipt => receipt.decodedLogs).flat();
+            let receivedAddress, receivedAmount, senderAddress, receivedToken, blockNumber, transactionHash;
+            let listContents = null;
+
+            // Get current list contents
+            try {
+                listContents = qnGetList(listName);
+            } catch (error) {
+                results.listError = error.message;
+            }
+
+            for (let i = 0; i < logs.length; i++) {
+                if (logs[i].address === ERC20Tokens[i] && logs[i].name === 'Transfer') {
+                    const fromAddress = logs[i].from.toLowerCase();
+                    
+                    // Manual check against list contents
+                    const matchingAddress = listContents.find(
+                        addr => addr.toLowerCase() === fromAddress
+                    );
+
+                    if (matchingAddress) {
+                        receivedToken = logs[i].address;
+                        blockNumber = logs[i].blockNumber;
+                        transactionHash = logs[i].transactionHash;
+                        receivedAddress = logs[i].to;
+                        receivedAmount = logs[i].value;
+                        senderAddress = fromAddress;
+                    }
+                    // once a match has been found, remove the address from the list
+                    if (matchingAddress) {
+                        results.removeFromList = qnRemoveListItem(listName, matchingAddress);
+                    }
+                }
+            }
+
+            return { 
+                results: results,
+                transactionHash: transactionHash,
+                blockNumber: blockNumber,
+                receivedToken: receivedToken,
+                senderAddress: senderAddress,
+                receivedAddress: receivedAddress,
+                receivedAmount: receivedAmount,
+            };
+        } catch (error) {
+            return {
+                error: error.message,
+            };
+        }
+    }`, addressesStr, tokensStr, config.Abi, config.ListName)
+
+    return base64.StdEncoding.EncodeToString([]byte(filterFunc))
+}
