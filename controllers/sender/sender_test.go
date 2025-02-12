@@ -88,10 +88,6 @@ func setup() error {
 		return err
 	}
 
-	// console alikey and secretkey
-	fmt.Println(apiKey, " api key ")
-	fmt.Println(secretKey, " secret key ")
-
 	testCtx.apiKey = apiKey
 
 	testCtx.token = token
@@ -114,6 +110,8 @@ func setup() error {
 
 func TestSender(t *testing.T) {
 
+	ctx := context.Background()
+
 	// Set up test database client
 	client := enttest.Open(t, "sqlite3", "file:ent?mode=memory&_fk=1")
 	defer client.Close()
@@ -124,7 +122,7 @@ func TestSender(t *testing.T) {
 	err := setup()
 	assert.NoError(t, err)
 
-	senderTokens, err := client.SenderOrderToken.Query().All(context.Background())
+	senderTokens, err := client.SenderOrderToken.Query().All(ctx)
 	assert.NoError(t, err)
 	assert.Greater(t, len(senderTokens), 0)
 
@@ -146,7 +144,7 @@ func TestSender(t *testing.T) {
 		network, err := db.Client.Network.
 			Query().
 			Where(network.IdentifierEQ(testCtx.networkIdentifier)).
-			Only(context.Background())
+			Only(ctx)
 		assert.NoError(t, err)
 
 		payload := map[string]interface{}{
@@ -171,7 +169,7 @@ func TestSender(t *testing.T) {
 			// Temporarily disable the network
 			_, err = db.Client.Network.UpdateOne(network).
 				SetIsEnabled(false).
-				Save(context.Background())
+				Save(ctx)
 			assert.NoError(t, err)
 
 			res, err := test.PerformRequest(t, "POST", "/sender/orders", payload, headers, router)
@@ -187,13 +185,13 @@ func TestSender(t *testing.T) {
 
 			errorData, ok := response.Data.(map[string]interface{})
 			assert.True(t, ok, "response.Data is not of type map[string]interface{}")
-			assert.Equal(t, "network", errorData["field"])
-			assert.Equal(t, "Provided network is not enabled", errorData["message"])
+			assert.Equal(t, "Token", errorData["field"])
+			assert.Equal(t, "Provided token is not supported", errorData["message"])
 
 			// Re-enable the network for subsequent tests
 			_, err = db.Client.Network.UpdateOne(network).
 				SetIsEnabled(true).
-				Save(context.Background())
+				Save(ctx)
 			assert.NoError(t, err)
 		})
 
@@ -226,7 +224,7 @@ func TestSender(t *testing.T) {
 				Query().
 				Where(paymentorder.IDEQ(paymentOrderUUID)).
 				WithRecipient().
-				Only(context.Background())
+				Only(ctx)
 			assert.NoError(t, err)
 
 			assert.NotNil(t, paymentOrder.Edges.Recipient)
@@ -263,9 +261,15 @@ func TestSender(t *testing.T) {
 		})
 
 		t.Run("New networks should have is_enabled default to false", func(t *testing.T) {
-			newNetwork, err := db.Client.Network.Create().
-				SetIdentifier("test-network").
-				Save(context.Background())
+			newNetwork, err := db.Client.Network.
+				Create().
+				SetChainID(1).
+				SetIdentifier("bnb-smart-chain").
+				SetRPCEndpoint("https://testnet.rpc.url").
+				SetIdentifier("bnb-smart-chain").
+				SetIsTestnet(true).
+				SetFee(decimal.NewFromFloat(0.01)).
+				Save(ctx)
 			assert.NoError(t, err)
 
 			assert.False(t, newNetwork.IsEnabled, "is_enabled should default to false")
