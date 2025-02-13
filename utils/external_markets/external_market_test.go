@@ -122,7 +122,7 @@ func TestExternalMarketRates(t *testing.T) {
 					t.Errorf("FetchRate() error = %v, wantErr %v", err, tt.wantErr)
 					return
 				}
-				if got != tt.want {
+				if got.Price != tt.want {
 					t.Errorf("FetchRate() = %v, want %v", got, tt.want)
 				}
 			})
