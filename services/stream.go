@@ -149,8 +149,6 @@ func (q *QuickNodeStreamManager) CreateAddressStream(ctx context.Context, order 
 		return "", err
 	}
 
-	fmt.Println("..........y.y.y.y.y.y.y.y.y.y.y.y.y.y.y.y.y.y.y.y.y.y.y.y.y.yy..destinationAttributes", destinationAttributes)
-
 	params := types.StreamCreationParams{
 		Name: "PaycrestLinkedAddressStream",
 		Network: "arbitrum-mainnet",
@@ -172,7 +170,6 @@ func (q *QuickNodeStreamManager) CreateAddressStream(ctx context.Context, order 
         return "", err
     }
 
-	fmt.Println(".0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0..0.0.streamId", streamId)
     return streamId, nil
 }
 
@@ -340,8 +337,6 @@ func (q *QuickNodeStreamManager) createQuickNodeStream(_ context.Context, payloa
 		return "", fmt.Errorf("CREATE_STREAM: error sending request: %w", err)
 	}
 
-	fmt.Println("res.040404040404040404004040..4.4.4.4.4.4.4.4.4.4.4.4.4.4.4RawResponse", res.RawResponse)
-
 	data, err := utils.ParseJSONResponse(res.RawResponse)
 	if err != nil {
 		return "", fmt.Errorf("CREATE_STREAM: error parsing response: %w", err)
@@ -361,8 +356,6 @@ func getQuickNodeStreamClient(url string) (*fastshot.ClientBuilder, error) {
 		"Content-Type": "application/json",
 		"x-api-key": streamConf.QuickNodeAPIKey,
 	}
-
-	fmt.Println("..........url is............................................")
 
     client := fastshot.NewClient(url).
         Config().SetTimeout(30 * time.Second).
@@ -389,7 +382,7 @@ func generateHeaderForStream() (types.DestinationAttributes, error) {
 	signature := tokenUtils.GenerateHMACSignature(payloadForHMAC, streamConf.QuickNodePrivateKey)
 
 	destinationHeader := types.DestinationAttributes{
-			URL: `/v1/stream/quicknode-linked-addresses-hook`, // Set the correct URL for the webhook
+			URL: `v1/stream/quicknode-linked-addresses-hook`, // Set the correct URL for the webhook
 			Compression: "none",
 			MaxRetry: 5,
 			RetryIntervalSec: 1,
