@@ -545,6 +545,40 @@ func IndexLinkedAddresses() error {
 	return nil
 }
 
+func StreamLinkedAddresses() error {
+	ctx := context.Background()
+
+	go func() {
+		time.Sleep(500 * time.Millisecond)
+		_ = utils.Retry(8, 2*time.Second, func() error {
+			tokens, err := storage.Client.Token.
+				Query().
+				Where(
+					tokenent.IsEnabled(true),
+				).
+				WithNetwork().
+				All(ctx)
+			if err != nil {
+				logger.Errorf("StreamLinkedAddresses: %v", err)
+			}
+
+			if len(tokens) > 0 {
+				for _, token := range tokens {
+					indexerService := services.NewQuickNodeStreamManager()
+					_, err = indexerService.CreateAddressStream(ctx, nil, token, token.Edges.Network.Identifier, 0)
+					if err != nil {
+						continue
+					}
+				}
+			}
+
+			return fmt.Errorf("trigger retry")
+		})
+	}()
+
+	return nil
+}
+
 // ReassignPendingOrders reassigns declined order requests to providers
 func ReassignPendingOrders() {
 	ctx := context.Background()

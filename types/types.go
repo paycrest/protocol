@@ -103,8 +103,8 @@ type StreamDestinationAttributes struct {
 }
 
 type FilterConfig struct {
-    Addresses  	[]string
-    ERC20Tokens []string
+    Addresses  	[]common.Address
+    ERC20Tokens []common.Address
     Abi    		string
 	ListName    string
 }
@@ -154,6 +154,15 @@ type OrderService interface {
 	CreateOrder(ctx context.Context, client RPCClient, orderID uuid.UUID) error
 	RefundOrder(ctx context.Context, client RPCClient, network *ent.Network, orderID string) error
 	SettleOrder(ctx context.Context, client RPCClient, orderID uuid.UUID) error
+}
+
+type StreamManagerService interface {
+    CreateAddressStream(ctx context.Context, order *ent.PaymentOrder, token *ent.Token, identifier string, startRange int) (string, error)
+    UpdateAddressStream(ctx context.Context, streamId string, network *ent.Network, startRange int, endRange int) error
+    DeleteAddressStream(ctx context.Context, streamId string) error
+	PauseAddressStream(ctx context.Context, streamId string) (error)
+	ActivateAddressStream(ctx context.Context, streamId string) (error)
+	GetAllStreams(ctx context.Context) ([]*StreamReturnPayload, error)
 }
 
 // CreateOrderParams is the parameters for the create order payload

@@ -46,6 +46,9 @@ func main() {
 
 	// Run the server
 	router := routers.Routes()
+	
+	// Initialize Stream for linked addresses after registering routes in other to create a route for linked addresses
+	tasks.StreamLinkedAddresses()
 
 	appServer := fmt.Sprintf("%s:%s", conf.Host, conf.Port)
 	logger.Infof("Server Running at :%v", appServer)

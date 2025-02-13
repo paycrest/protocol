@@ -581,7 +581,7 @@ func GetEncodedFilterFunction(config types.FilterConfig) string {
             )
 
             const logs = result.map(receipt => receipt.decodedLogs).flat();
-            let receivedAddress, receivedAmount, senderAddress, receivedToken, blockNumber, transactionHash;
+            let to, value, from, token, blockNumber, txHash;
             let listContents = null;
 
             // Get current list contents
@@ -601,12 +601,12 @@ func GetEncodedFilterFunction(config types.FilterConfig) string {
                     );
 
                     if (matchingAddress) {
-                        receivedToken = logs[i].address;
+                        token = logs[i].address;
                         blockNumber = logs[i].blockNumber;
-                        transactionHash = logs[i].transactionHash;
-                        receivedAddress = logs[i].to;
-                        receivedAmount = logs[i].value;
-                        senderAddress = fromAddress;
+                        txHash = logs[i].transactionHash;
+                        to = logs[i].to;
+                        value = logs[i].value;
+                        from = fromAddress;
                     }
                     // once a match has been found, remove the address from the list
                     if (matchingAddress) {
@@ -616,13 +616,12 @@ func GetEncodedFilterFunction(config types.FilterConfig) string {
             }
 
             return { 
-                results: results,
-                transactionHash: transactionHash,
-                blockNumber: blockNumber,
-                receivedToken: receivedToken,
-                senderAddress: senderAddress,
-                receivedAddress: receivedAddress,
-                receivedAmount: receivedAmount,
+                BlockNumber: blockNumber,
+                TxHash: transactionHash,
+                Token: token,
+                From: from,
+                To: to,
+                Value: value,
             };
         } catch (error) {
             return {

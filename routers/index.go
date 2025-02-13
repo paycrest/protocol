@@ -8,6 +8,7 @@ import (
 	"github.com/paycrest/aggregator/controllers/accounts"
 	"github.com/paycrest/aggregator/controllers/provider"
 	"github.com/paycrest/aggregator/controllers/sender"
+	"github.com/paycrest/aggregator/controllers/stream"
 	"github.com/paycrest/aggregator/routers/middleware"
 	u "github.com/paycrest/aggregator/utils"
 )
@@ -24,6 +25,7 @@ func RegisterRoutes(route *gin.Engine) {
 	authRoutes(route)
 	senderRoutes(route)
 	providerRoutes(route)
+	streamRoutes(route)
 
 	ctrl := controllers.NewController()
 
@@ -127,4 +129,14 @@ func providerRoutes(route *gin.Engine) {
 	v1.GET("rates/:token/:fiat", providerCtrl.GetMarketRate)
 	v1.GET("stats", providerCtrl.Stats)
 	v1.GET("node-info", providerCtrl.NodeInfo)
+}
+
+func streamRoutes(route *gin.Engine) {
+	streamCtrl := stream.NewStreamController()
+
+	v1 := route.Group("/v1/stream/")
+	v1.Use(middleware.OnlyQuickNodeMiddleware)
+
+	// Stream Webhook routes
+	v1.POST("quicknode-linked-addresses-hook", streamCtrl.QuicknodeLinkedAddressHook)
 }

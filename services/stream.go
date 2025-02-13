@@ -5,84 +5,183 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
 	fastshot "github.com/opus-domini/fast-shot"
 	"github.com/paycrest/aggregator/config"
 	"github.com/paycrest/aggregator/ent"
+	networkent "github.com/paycrest/aggregator/ent/network"
+	"github.com/paycrest/aggregator/storage"
 	"github.com/paycrest/aggregator/types"
 	"github.com/paycrest/aggregator/utils"
 	"github.com/paycrest/aggregator/utils/logger"
 	tokenUtils "github.com/paycrest/aggregator/utils/token"
+	"github.com/paycrest/aggregator/services/contracts"
 )
 
 var streamConf = config.StreamConfig()
+var rpcClients = map[string]types.RPCClient{}
 
+// setRPCClients connects to the RPC endpoints of all networks
+func setRPCClients(ctx context.Context) ([]*ent.Network, error) {
+	isTestnet := false
+	if serverConf.Environment != "production" {
+		isTestnet = true
+	}
 
-// StreamManager is an interface for managing streams
-type StreamManager interface {
-    // AddressStreamManager is an interface for managing address streams
-    CreateAddressStream(ctx context.Context, network *ent.Network, startRange int, endRange int) (string, error)
-    UpdateAddressStream(ctx context.Context, streamId string, network *ent.Network, startRange int, endRange int) error
-    DeleteAddressStream(ctx context.Context, streamId string) error
-	PauseAddressStream(ctx context.Context, streamId string) (error)
-	ActivateAddressStream(ctx context.Context, streamId string) (error)
-    
-    // EventStreamManager is an interface for managing event streams
-    // CreateContractEventStream(ctx context.Context, params types.StreamCreationParams) (string, error)
-    // DeleteContractEventStream(ctx context.Context, streamID string) error
-    // UpdateContractEventStream(ctx context.Context, streamID string, params types.StreamCreationParams) error
-	// GetContractEventStream(ctx context.Context, streamID string) (*types.StreamReturnPayload, error)
+	networks, err := storage.Client.Network.
+		Query().
+		Where(networkent.IsTestnetEQ(isTestnet)).
+		All(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("setRPCClients.fetchNetworks: %w", err)
+	}
 
-	GetAllStreams(ctx context.Context) ([]*types.StreamReturnPayload, error)
+	// Connect to RPC endpoint
+	var client types.RPCClient
+	for _, network := range networks {
+		if rpcClients[network.Identifier] == nil && !strings.HasPrefix(network.Identifier, "tron") {
+			retryErr := utils.Retry(3, 1*time.Second, func() error {
+				client, err = types.NewEthClient(network.RPCEndpoint)
+				return err
+			})
+			if retryErr != nil {
+				logger.Errorf("failed to connect to %s RPC %v", network.Identifier, retryErr)
+				continue
+			}
+
+			rpcClients[network.Identifier] = client
+		}
+	}
+
+	return networks, nil
 }
 
 // QuickNodeStreamManager is a service for managing streams using QuickNode
-type QuickNodeStreamManager struct {
-	streamManager StreamManager
+type QuickNodeStreamManager struct{}
+
+func NewQuickNodeStreamManager() *QuickNodeStreamManager{
+	return &QuickNodeStreamManager{}
 }
 
-
 // This function will need to be called everytime a new receive address is generated
-func (q *QuickNodeStreamManager) CreateAddressStream(ctx context.Context, network *ent.Network, startRange int, endRange int, filterConfig types.FilterConfig) (string, error) {
-	if endRange <= startRange {
-		return "", fmt.Errorf("endRange must be greater than startRange")
+func (q *QuickNodeStreamManager) CreateAddressStream(ctx context.Context, order *ent.PaymentOrder, token *ent.Token, identifier string, startRange int) (string, error) {
+	_, err := setRPCClients(ctx)
+	if err != nil {
+        logger.Errorf("CreateAddressStream: error setting RPC clients: %v", err)
+        return "", fmt.Errorf("CreateAddressStream: error setting RPC clients: %w", err)
+    }
+
+	client := rpcClients[identifier]
+	// Connect to RPC endpoint
+	
+	retryErr := utils.Retry(3, 1*time.Second, func() error {
+		client, err = types.NewEthClient(token.Edges.Network.RPCEndpoint)
+		return err
+	})
+	if retryErr != nil {
+        logger.Errorf("CreateAddressStream: error connecting to RPC endpoint: %v", retryErr)
+        return "", retryErr
+    }
+
+	var addressToWatch string
+
+	if order != nil {
+		token = order.Edges.Token
+		addressToWatch = order.Edges.ReceiveAddress.Address
 	}
+
+	// Fetch current block header
+	header, err := client.HeaderByNumber(ctx, nil)
+	if err != nil {
+        logger.Errorf("CreateAddressStream: error fetching block header: %v", err)
+        return "", err
+    }
+	endRange := header.Number.Int64()
+
+	addresses := []common.Address{}
+	if addressToWatch != "" {
+		fromRange := int(5000)
+		if token.Edges.Network.Identifier == "bnb-smart-chain" {
+			startRange = 1000
+		}
+		addresses = []common.Address{common.HexToAddress(addressToWatch)}
+		startRange = int(endRange) - fromRange
+	} else {
+		startRange = int(endRange) - 100
+	}
+
+	filterConfig := types.FilterConfig{
+		Addresses: addresses,
+		ERC20Tokens: []common.Address{common.HexToAddress(token.ContractAddress)},
+		Abi: contracts.ERC20TokenABI,
+		ListName: "PaycrestLinkedAddresses",
+	}
+
+	getAllStreams, err := q.GetAllStreams(ctx)
+	if err != nil {
+        logger.Errorf("CreateAddressStream: error fetching all streams: %v", err)
+        return "", err
+    }
+
+	for _, stream := range getAllStreams {
+		if stream.Name == "PaycrestLinkedAddressStream" && stream.Network == identifier {
+			// Stream already exists
+			// update the stream with the new range
+			err := q.UpdateAddressStream(ctx, stream.ID, startRange, int(endRange), filterConfig)
+			if err != nil {
+                logger.Errorf("CreateAddressStream: error updating existing stream: %v", err)
+                return "", err
+            }
+			return stream.ID, nil
+		}
+	}
+
+	destinationAttributes, err := generateHeaderForStream()
+	if err != nil {
+		logger.Errorf("CreateAddressStream: error generating header for stream: %v", err)
+		return "", err
+	}
+
 	params := types.StreamCreationParams{
-		Name: "PaycrestAddressStream",
-		Network: network.Identifier,
+		Name: "PaycrestLinkedAddressStream",
+		Network: identifier,
 		Dataset: "block_with_receipts",
 		FilterFunction: utils.GetEncodedFilterFunction(filterConfig),
 		Region: "usa_east",
 		StartRange: startRange,
-		EndRange: endRange,
+		EndRange: int(endRange),
 		DatasetBatchSize: 2, // need to be verify to know how many transactions to fetch at a time @chibie
 		IncludeStreamMetadata: "body",
 		Status: "active",
 		Destination: "webhook",
-		DestinationAttributes: map[string]interface{}{
-			"url": "webhook", // todo, set up a webhook to receive the data and use HMAC to verify the data
-			"compression": "none",
-			"max_retry": 5,
-			"retry_interval_sec": 1,
-			"post_timeout_sec":   10,
-		},
+		DestinationAttributes: destinationAttributes,
 	}
 
 	streamId, err := q.createQuickNodeStream(ctx, params, streamConf.QuickNodeAPIURL)
 	if err != nil {
-		return "", err
-	}
+        logger.Errorf("CreateAddressStream: error creating new stream: %v", err)
+        return "", err
+    }
     return streamId, nil
 }
 
-func (q *QuickNodeStreamManager) UpdateAddressStream(ctx context.Context, streamId string, network *ent.Network, startRange int, endRange int, filterConfig types.FilterConfig) error {
+func (q *QuickNodeStreamManager) UpdateAddressStream(ctx context.Context, streamId string, startRange int, endRange int, filterConfig types.FilterConfig) error {
 	if endRange <= startRange {
 		return fmt.Errorf("UPDATE_STREAM: endRange must be greater than startRange")
 	}
 	if streamId == "" {
 		return fmt.Errorf("UPDATE_STREAM: streamId is required")
 	}
+
+	destinationAttributes, err := generateHeaderForStream()
+	if err != nil {
+		logger.Errorf("CreateAddressStream: error generating header for stream: %v", err)
+		return err
+	}
+
 	params := types.StreamCreationParams{
 		Name: "PaycrestAddressStream",
 		FilterFunction: utils.GetEncodedFilterFunction(filterConfig),
@@ -92,13 +191,7 @@ func (q *QuickNodeStreamManager) UpdateAddressStream(ctx context.Context, stream
 		DatasetBatchSize: 2, // need to be verify to know how many transactions to fetch at a time @chibie
 		Status: "active",
 		Destination: "webhook",
-		DestinationAttributes: map[string]interface{}{
-			"url": "webhook", // todo, set up a webhook to receive the data and use HMAC to verify the data
-			"compression": "none",
-			"max_retry": 5,
-			"retry_interval_sec": 1,
-			"post_timeout_sec":   10,
-		},
+		DestinationAttributes: destinationAttributes,
 	}
 
 	// Convert payload to JSON
@@ -267,7 +360,21 @@ func getQuickNodeStreamClient(url string) (*fastshot.ClientBuilder, error) {
 		return nil, fmt.Errorf("url is required")
 	}
 
-    nonce := make([]byte, 32)
+	headers := map[string]string{
+		"accept": "application/json",
+		"Content-Type": "application/json",
+		"x-api-key": streamConf.QuickNodeAPIKey,
+	}
+
+    client := fastshot.NewClient(url).
+        Config().SetTimeout(30 * time.Second).
+		Header().AddAll(headers)
+	
+	return client, nil
+}
+
+func generateHeaderForStream() (map[string]interface{}, error) {
+	nonce := make([]byte, 32)
     _, err := rand.Read(nonce)
     if err != nil {
         return nil, err
@@ -278,17 +385,22 @@ func getQuickNodeStreamClient(url string) (*fastshot.ClientBuilder, error) {
     // create a map to hold the nonce and timestamp
     payloadForHMAC := map[string]interface{}{
         "nonce":     fmt.Sprintf("%x", nonce),
-        "timestamp": currentTimestamp,
+        "timestamp": fmt.Sprintf("%d", currentTimestamp),
     }
 
-    client := fastshot.NewClient(url).
-        Config().SetTimeout(30 * time.Second).
-        Header().Add("accept", "application/json").
-        Header().Add("Content-Type", "application/json").
-        Header().Add("x-api-key", streamConf.QuickNodeAPIKey).
-        Header().Add("X-QN-Nonce", fmt.Sprintf("%x", nonce)).
-        Header().Add("X-QN-Timestamp", fmt.Sprintf("%d", currentTimestamp)).
-        Header().Add("X-QN-Signature", tokenUtils.GenerateHMACSignature(payloadForHMAC, streamConf.QuickNodePrivateKey))
+	signature := tokenUtils.GenerateHMACSignature(payloadForHMAC, streamConf.QuickNodePrivateKey)
 
-	return client, nil
+	destinationHeader := map[string]interface{}{
+			"url": `https://api.paycrest.io/v1/stream/quicknode-linked-addresses-hook`, // Set the correct URL for the webhook
+			"compression": "none",
+			"max_retry": 5,
+			"retry_interval_sec": 1,
+			"post_timeout_sec":   10,
+			"headers": map[string]interface{}{
+				"Client-Type": "quicknode",
+				"Authorization": fmt.Sprintf("%s", signature),
+				"Payload": payloadForHMAC,
+			},
+		}
+	return destinationHeader, nil
 }

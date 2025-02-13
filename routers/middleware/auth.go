@@ -496,6 +496,53 @@ func OnlyWebMiddleware(c *gin.Context) {
 	c.Next()
 }
 
+func OnlyQuickNodeMiddleware(c *gin.Context) {
+	// Check the request headers to determine the desired authentication method
+	clientType := c.GetHeader("Client-Type")
+
+	if clientType != "quicknode" {
+		u.APIResponse(c, http.StatusUnauthorized, "error", "Unrecognized Client-Type", nil)
+		c.Abort()
+		return
+	}
+
+	authHeader := c.GetHeader("Authorization")
+	if authHeader == "" {
+		u.APIResponse(c, http.StatusUnauthorized, "error", "Missing Authorization header", nil)
+		c.Abort()
+		return
+	}
+
+	payload := c.GetHeader("Payload")
+
+	var payloadData map[string]interface{}
+	err := json.Unmarshal([]byte(payload), &payloadData)
+	if err != nil {
+		u.APIResponse(c, http.StatusBadRequest, "error", "Invalid payload format", err.Error())
+		c.Abort()
+		return
+	}
+
+	timestamp, ok := payloadData["timestamp"].(float64) // unix timestamp
+	if !ok || timestamp == 0 {
+		u.APIResponse(c, http.StatusUnauthorized, "error", "Missing or invalid timestamp in payload", nil)
+		c.Abort()
+		return
+	}
+
+	var streamConf = config.StreamConfig()
+
+	// Verify the HMAC signature
+	valid := token.VerifyHMACSignature(payloadData, string(streamConf.QuickNodePrivateKey), authHeader)
+	if !valid {
+		u.APIResponse(c, http.StatusUnauthorized, "error", "Invalid HMAC signature", nil)
+		c.Abort()
+		return
+	}
+
+	c.Next()
+}
+
 // determineOwnerAddress determines the owner address from the linked accounts
 func determineOwnerAddress(accounts []LinkedAccount) string {
 	var emailExists bool
