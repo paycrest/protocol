@@ -547,6 +547,7 @@ func IndexLinkedAddresses() error {
 
 func StreamLinkedAddresses() error {
 	ctx := context.Background()
+	fmt.Println("StreamLinkedAddresses")
 
 	go func() {
 		time.Sleep(500 * time.Millisecond)

@@ -1,10 +1,12 @@
 package services
 
 import (
+	// "bytes"
 	"context"
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
+	"io"
 	"strings"
 	"time"
 
@@ -13,12 +15,14 @@ import (
 	"github.com/paycrest/aggregator/config"
 	"github.com/paycrest/aggregator/ent"
 	networkent "github.com/paycrest/aggregator/ent/network"
+	"github.com/paycrest/aggregator/services/contracts"
 	"github.com/paycrest/aggregator/storage"
 	"github.com/paycrest/aggregator/types"
 	"github.com/paycrest/aggregator/utils"
 	"github.com/paycrest/aggregator/utils/logger"
 	tokenUtils "github.com/paycrest/aggregator/utils/token"
-	"github.com/paycrest/aggregator/services/contracts"
+	// tokenUtils "github.com/paycrest/aggregator/utils/token"
+	// tokenUtils "github.com/paycrest/aggregator/utils/token"
 )
 
 var streamConf = config.StreamConfig()
@@ -76,16 +80,16 @@ func (q *QuickNodeStreamManager) CreateAddressStream(ctx context.Context, order 
 
 	client := rpcClients[identifier]
 	// Connect to RPC endpoint
-	
-	retryErr := utils.Retry(3, 1*time.Second, func() error {
-		client, err = types.NewEthClient(token.Edges.Network.RPCEndpoint)
-		return err
-	})
-	if retryErr != nil {
-        logger.Errorf("CreateAddressStream: error connecting to RPC endpoint: %v", retryErr)
-        return "", retryErr
-    }
-
+	if client == nil {
+		retryErr := utils.Retry(3, 1*time.Second, func() error {
+			client, err = types.NewEthClient(token.Edges.Network.RPCEndpoint)
+			return err
+		})
+		if retryErr != nil {
+			logger.Errorf("CreateAddressStream: error connecting to RPC endpoint: %v", retryErr)
+			return "", retryErr
+		}
+	}
 	var addressToWatch string
 
 	if order != nil {
@@ -145,11 +149,13 @@ func (q *QuickNodeStreamManager) CreateAddressStream(ctx context.Context, order 
 		return "", err
 	}
 
+	fmt.Println("..........y.y.y.y.y.y.y.y.y.y.y.y.y.y.y.y.y.y.y.y.y.y.y.y.y.yy..destinationAttributes", destinationAttributes)
+
 	params := types.StreamCreationParams{
 		Name: "PaycrestLinkedAddressStream",
-		Network: identifier,
+		Network: "arbitrum-mainnet",
 		Dataset: "block_with_receipts",
-		FilterFunction: utils.GetEncodedFilterFunction(filterConfig),
+		// FilterFunction: utils.GetEncodedFilterFunction(filterConfig),
 		Region: "usa_east",
 		StartRange: startRange,
 		EndRange: int(endRange),
@@ -165,6 +171,8 @@ func (q *QuickNodeStreamManager) CreateAddressStream(ctx context.Context, order 
         logger.Errorf("CreateAddressStream: error creating new stream: %v", err)
         return "", err
     }
+
+	fmt.Println(".0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0..0.0.streamId", streamId)
     return streamId, nil
 }
 
@@ -184,7 +192,7 @@ func (q *QuickNodeStreamManager) UpdateAddressStream(ctx context.Context, stream
 
 	params := types.StreamCreationParams{
 		Name: "PaycrestAddressStream",
-		FilterFunction: utils.GetEncodedFilterFunction(filterConfig),
+		// FilterFunction: utils.GetEncodedFilterFunction(filterConfig),
 		Region: "usa_east",
 		StartRange: startRange,
 		EndRange: endRange,
@@ -194,23 +202,17 @@ func (q *QuickNodeStreamManager) UpdateAddressStream(ctx context.Context, stream
 		DestinationAttributes: destinationAttributes,
 	}
 
-	// Convert payload to JSON
-	jsonPayload, err := json.Marshal(params)
-	if err != nil {
-		return fmt.Errorf("UPDATE_STREAM: error marshaling payload: %w", err)
-	}
-
 	url := fmt.Sprintf("%s/%s", streamConf.QuickNodeAPIURL, streamId)
 
-	client, err := getQuickNodeStreamClient(streamId)
+	client, err := getQuickNodeStreamClient(url)
 	if err != nil {
 		return fmt.Errorf("UPDATE_STREAM: error creating client: %w", err)
 	}
 
 	// Execute POST request using FastShot
 	_, err = client.Build().
-		PATCH(url).
-		Body().AsJSON(jsonPayload).
+		PATCH("").
+		Body().AsJSON(&params).
 		Retry().Set(3, 1*time.Second).
 		Send()
 	if err != nil {
@@ -226,14 +228,14 @@ func (q *QuickNodeStreamManager) DeleteAddressStream(ctx context.Context, stream
 		return fmt.Errorf("DELETE_STREAM: streamId is required")
 	}
 	url := fmt.Sprintf("%s/%s", streamConf.QuickNodeAPIURL, streamId)
-	client, err := getQuickNodeStreamClient(streamId)
+	client, err := getQuickNodeStreamClient(url)
 	if err != nil {
 		return fmt.Errorf("DELETE_STREAM: error creating client: %w", err)
 	}
 
 	// Execute DELETE request using FastShot
 	_, err = client.Build().
-		DELETE(url).
+		DELETE("").
 		Retry().Set(3, 1*time.Second).
 		Send()
 	if err != nil {
@@ -258,7 +260,7 @@ func (q *QuickNodeStreamManager) PauseAddressStream(ctx context.Context, streamI
 
 	// Execute PATCH request using FastShot
 	_, err = client.Build().
-		PATCH(url).
+		PATCH("").
 		Retry().Set(3, 1*time.Second).
 		Send()
 	if err != nil {
@@ -283,7 +285,7 @@ func (q *QuickNodeStreamManager) ActivateAddressStream(ctx context.Context, stre
 
 	// Execute PATCH request using FastShot
 	_, err = client.Build().
-		PATCH(url).
+		PATCH("").
 		Retry().Set(3, 1*time.Second).
 		Send()
 	if err != nil {
@@ -295,56 +297,50 @@ func (q *QuickNodeStreamManager) ActivateAddressStream(ctx context.Context, stre
 }
 
 func (q *QuickNodeStreamManager) GetAllStreams(ctx context.Context) ([]*types.StreamReturnPayload, error) {
-	url := fmt.Sprintf("%s", streamConf.QuickNodeAPIURL)
+	url := streamConf.QuickNodeAPIURL
 	client, err := getQuickNodeStreamClient(url)
 	if err != nil {
 		return nil, fmt.Errorf("GET_STREAMS: error creating client: %w", err)
 	}
 
 	res, err := client.Build().
-		GET(url).
+		GET("").
 		Retry().Set(3, 1*time.Second).
 		Send()
 	if err != nil {
 		logger.Errorf("error sending request: %v", err)
 		return nil, fmt.Errorf("GET_STREAMS: error sending request: %w", err)
 	}
+
 	defer res.RawResponse.Body.Close()
 
 	if res.StatusCode() < 200 || res.StatusCode() >= 300 {
-        return nil, fmt.Errorf("GET_STREAMS: unexpected status code: %d", res.StatusCode)
+		return nil, fmt.Errorf("GET_STREAMS: unexpected status code: %d", res.StatusCode())
     }
 
 	var response []*types.StreamReturnPayload
-	if err := json.NewDecoder(res.RawResponse.Body).Decode(&response); err != nil {
-		return nil, fmt.Errorf("GET_STREAMS: error decoding response: %w", err)
-	}
-
+	body, _ := io.ReadAll(res.RawResponse.Body)
+	json.Unmarshal(body, &response)
     return response, nil
 }
 
-func (q *QuickNodeStreamManager) createQuickNodeStream(ctx context.Context, payload types.StreamCreationParams, url string) (string, error) {
-	// Convert payload to JSON
-	jsonPayload, err := json.Marshal(payload)
-	if err != nil {
-		return "", fmt.Errorf("CREATE_STREAM: error marshaling payload: %w", err)
-	}
-
+func (q *QuickNodeStreamManager) createQuickNodeStream(_ context.Context, payload types.StreamCreationParams, url string) (string, error) {
 	client, err := getQuickNodeStreamClient(url)
 	if err != nil {
 		return "", fmt.Errorf("CREATE_STREAM: error creating client: %w", err)
 	}
 
-	// Execute POST request using FastShot
 	res, err := client.Build().
-		POST(url).
-		Body().AsJSON(jsonPayload).
+		POST("").
+		Body().AsJSON(&payload).
 		Retry().Set(3, 1*time.Second).
 		Send()
 	if err != nil {
 		logger.Errorf("error sending request: %v", err)
 		return "", fmt.Errorf("CREATE_STREAM: error sending request: %w", err)
 	}
+
+	fmt.Println("res.040404040404040404004040..4.4.4.4.4.4.4.4.4.4.4.4.4.4.4RawResponse", res.RawResponse)
 
 	data, err := utils.ParseJSONResponse(res.RawResponse)
 	if err != nil {
@@ -357,7 +353,7 @@ func (q *QuickNodeStreamManager) createQuickNodeStream(ctx context.Context, payl
 // getConfiguredClient returns a configured FastShot client
 func getQuickNodeStreamClient(url string) (*fastshot.ClientBuilder, error) {
 	if url == "" {
-		return nil, fmt.Errorf("url is required")
+		return nil, fmt.Errorf("QuickNode: URL is required")
 	}
 
 	headers := map[string]string{
@@ -366,6 +362,8 @@ func getQuickNodeStreamClient(url string) (*fastshot.ClientBuilder, error) {
 		"x-api-key": streamConf.QuickNodeAPIKey,
 	}
 
+	fmt.Println("..........url is............................................")
+
     client := fastshot.NewClient(url).
         Config().SetTimeout(30 * time.Second).
 		Header().AddAll(headers)
@@ -373,16 +371,16 @@ func getQuickNodeStreamClient(url string) (*fastshot.ClientBuilder, error) {
 	return client, nil
 }
 
-func generateHeaderForStream() (map[string]interface{}, error) {
+func generateHeaderForStream() (types.DestinationAttributes, error) {
 	nonce := make([]byte, 32)
     _, err := rand.Read(nonce)
     if err != nil {
-        return nil, err
+        return types.DestinationAttributes{}, err
     }
 
     currentTimestamp := time.Now().Unix()
 
-    // create a map to hold the nonce and timestamp
+    // // create a map to hold the nonce and timestamp
     payloadForHMAC := map[string]interface{}{
         "nonce":     fmt.Sprintf("%x", nonce),
         "timestamp": fmt.Sprintf("%d", currentTimestamp),
@@ -390,16 +388,17 @@ func generateHeaderForStream() (map[string]interface{}, error) {
 
 	signature := tokenUtils.GenerateHMACSignature(payloadForHMAC, streamConf.QuickNodePrivateKey)
 
-	destinationHeader := map[string]interface{}{
-			"url": `https://api.paycrest.io/v1/stream/quicknode-linked-addresses-hook`, // Set the correct URL for the webhook
-			"compression": "none",
-			"max_retry": 5,
-			"retry_interval_sec": 1,
-			"post_timeout_sec":   10,
-			"headers": map[string]interface{}{
-				"Client-Type": "quicknode",
-				"Authorization": fmt.Sprintf("%s", signature),
-				"Payload": payloadForHMAC,
+	destinationHeader := types.DestinationAttributes{
+			URL: `/v1/stream/quicknode-linked-addresses-hook`, // Set the correct URL for the webhook
+			Compression: "none",
+			MaxRetry: 5,
+			RetryIntervalSec: 1,
+			PostTimeoutSec:   10,
+			Headers: types.DestinationAttributesHeaders{
+				ClientType: "quicknode",
+				Authorization: signature,
+				Nonce: fmt.Sprintf("%x", nonce),
+				Timestamp: fmt.Sprintf("%d", currentTimestamp),
 			},
 		}
 	return destinationHeader, nil

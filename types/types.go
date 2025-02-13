@@ -68,8 +68,25 @@ type StreamCreationParams struct {
     IncludeStreamMetadata string                 `json:"include_stream_metadata"`
     Status                string                 `json:"status"`
     Destination           string                 `json:"destination"`
-    DestinationAttributes map[string]interface{} `json:"destination_attributes"`
+    DestinationAttributes DestinationAttributes 	 `json:"destination_attributes"`
 }
+
+type DestinationAttributes struct {
+	URL              string            		`json:"url,omitempty"`
+	Compression      string            		`json:"compression,omitempty"`
+	Headers          DestinationAttributesHeaders `json:"headers,omitempty"`
+	MaxRetry         int               		`json:"max_retry,omitempty"`
+	RetryIntervalSec int               		`json:"retry_interval_sec,omitempty"`
+	PostTimeoutSec   int               		`json:"post_timeout_sec,omitempty"`
+}
+
+type DestinationAttributesHeaders struct {
+	Authorization string `json:"Authorization"`
+	ClientType string `json:"Client-Type"`
+	Nonce string `json:"Nonce"`
+	Timestamp string `json:"Timestamp"`
+}
+
 
 // StreamWebhook represents the details of a stream webhook.
 type StreamReturnPayload struct {

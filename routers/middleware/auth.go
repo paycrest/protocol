@@ -513,24 +513,26 @@ func OnlyQuickNodeMiddleware(c *gin.Context) {
 		return
 	}
 
-	payload := c.GetHeader("Payload")
-
-	var payloadData map[string]interface{}
-	err := json.Unmarshal([]byte(payload), &payloadData)
-	if err != nil {
-		u.APIResponse(c, http.StatusBadRequest, "error", "Invalid payload format", err.Error())
+	Nonce := c.GetHeader("Nonce")
+	if Nonce == "" || Nonce == "0" {
+		u.APIResponse(c, http.StatusUnauthorized, "error", "Missing Nonce header", nil)
 		c.Abort()
 		return
 	}
-
-	timestamp, ok := payloadData["timestamp"].(float64) // unix timestamp
-	if !ok || timestamp == 0 {
+	
+	Timestamp := c.GetHeader("Timestamp")
+	if Timestamp == "" || Timestamp == "0" {
 		u.APIResponse(c, http.StatusUnauthorized, "error", "Missing or invalid timestamp in payload", nil)
 		c.Abort()
 		return
 	}
 
 	var streamConf = config.StreamConfig()
+
+	payloadData := map[string]interface{}{
+        "nonce":     Nonce,
+        "timestamp": Timestamp,
+    }
 
 	// Verify the HMAC signature
 	valid := token.VerifyHMACSignature(payloadData, string(streamConf.QuickNodePrivateKey), authHeader)
