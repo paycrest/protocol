@@ -3,305 +3,189 @@ package utils
 import (
 	"fmt"
 
-	"context"
-	"encoding/json"
-	"net/http"
-	"sort"
-	"strconv"
 	"strings"
 	"time"
 
-	"github.com/paycrest/aggregator/config"
+	fastshot "github.com/opus-domini/fast-shot"
+	"github.com/shopspring/decimal"
 )
 
-// Provider represents a rate provider
-type Provider string
-
-const (
-	ProviderBitget  Provider = "BITGET"
-	ProviderBinance Provider = "BINANCE"
-	ProviderQuidax  Provider = "QUIDAX"
+var (
+	BitgetAPIURL  = "https://api.bitget.com"
+	BinanceAPIURL = "https://api.binance.com"
+	QuidaxAPIURL  = "https://www.quidax.com/api/v1"
 )
 
-// Rate holds currency pair information *****
-type Rate struct {
-	Currency  string
-	Price     float64
-	Provider  Provider
-	Timestamp time.Time
-}
-
-// RateResponse represents a standardized rate response
-type RateResponse struct {
-	Rate  Rate
-	Error error
-}
-
-// BitgetP2PAd represents a P2P advertisement from Bitget
-type BitgetP2PAd struct {
-	Price     string `json:"price"`
-	Available string `json:"available"`
-}
-
-// BitgetResponse represents the API response from Bitget
-type BitgetResponse struct {
-	Code    string        `json:"code"`
-	Message string        `json:"msg"`
-	Data    []BitgetP2PAd `json:"data"`
-}
-
-// ExternalMarketRates handles fetching and calculating rates from external providers
-type ExternalMarketRates struct {
-	httpClient *http.Client
-	quidaxURL  string
-	bitgetURL  string
-	binanceURL string
-}
-
-// NewExternalMarketRates creates a new instance of ExternalMarketRates
-func NewExternalMarketRates() *ExternalMarketRates {
-	cfg := config.ServerConfig()
-	return &ExternalMarketRates{
-		httpClient: &http.Client{
-			Timeout: 10 * time.Second,
-		},
-		quidaxURL:  cfg.QuidaxURL,
-		bitgetURL:  cfg.BitgetURL,
-		binanceURL: cfg.BinanceURL,
-	}
-}
-
-// FetchRate gets the median rate for a given currency
-func (e *ExternalMarketRates) FetchRate(ctx context.Context, currency string) (Rate, error) {
-	switch strings.ToUpper(currency) {
-	case "NGN":
-		return e.fetchNGNRate(ctx)
-	default:
-		return e.fetchOtherCurrencyRate(ctx, currency)
-	}
-}
-
-// fetchNGNRate fetches rate for NGN from Quidax and BItget
-func (e *ExternalMarketRates) fetchNGNRate(ctx context.Context) (Rate, error) {
-	rates := make(chan RateResponse, 2)
-
-	// Fetch rates concurrently
-	go func() {
-		rate, err := e.fetchQuidaxRate(ctx, "NGN")
-		rates <- RateResponse{Rate: rate, Error: err}
-	}()
-
-	go func() {
-		rate, err := e.fetchBitgetRate(ctx, "NGN")
-		rates <- RateResponse{Rate: rate, Error: err}
-	}()
-
-	// Collect results
-	var validRates []Rate
-	for i := 0; i < 2; i++ {
-		resp := <-rates
-		if resp.Error == nil {
-			validRates = append(validRates, resp.Rate)
+// fetchExternalRate fetches the external rate for a fiat currency
+func FetchExternalRate(currency string) (decimal.Decimal, error) {
+	currency = strings.ToUpper(currency)
+	supportedCurrencies := []string{"KES", "NGN", "GHS", "TZS", "UGX", "XOF"}
+	isSupported := false
+	for _, supported := range supportedCurrencies {
+		if currency == supported {
+			isSupported = true
+			break
 		}
 	}
-	if len(validRates) == 0 {
-		return Rate{}, fmt.Errorf("no valid rates found for NGN")
+	if !isSupported {
+		return decimal.Zero, fmt.Errorf("ComputeMarketRate: currency not supported")
 	}
-	return calculateMedianRate(validRates), nil
-}
 
-// fetchOtherCurrencyRate fetches rate for other currencies from Binance and Bidget
-func (e *ExternalMarketRates) fetchOtherCurrencyRate(ctx context.Context, currency string) (Rate, error) {
-	rates := make(chan RateResponse, 2)
+	var prices []decimal.Decimal
 
-	go func() {
-		rate, err := e.fetchBinanceRate(ctx, currency)
-		rates <- RateResponse{Rate: rate, Error: err}
-	}()
-
-	go func() {
-		rate, err := e.fetchBitgetRate(ctx, currency)
-		rates <- RateResponse{Rate: rate, Error: err}
-	}()
-
-	var validRates []Rate
-	for i := 0; i < 2; i++ {
-		resp := <-rates
-		if resp.Error == nil {
-			validRates = append(validRates, resp.Rate)
+	// Fetch rates based on currency
+	if currency == "NGN" {
+		quidaxRate, err := FetchQuidaxRate(currency)
+		if err == nil {
+			prices = append(prices, quidaxRate)
+		}
+	} else {
+		binanceRate, err := FetchBinanceRate(currency)
+		if err == nil {
+			prices = append(prices, binanceRate)
 		}
 	}
-	if len(validRates) == 0 {
-		return Rate{}, fmt.Errorf("no valid rates found for %s", currency)
+
+	// Fetch Bitget rate for all supported currencies
+	bitgetRate, err := FetchBitgetRate(currency)
+	if err == nil {
+		prices = append(prices, bitgetRate)
 	}
-	return calculateMedianRate(validRates), nil
+
+	if len(prices) == 0 {
+		return decimal.Zero, fmt.Errorf("ComputeMarketRate: no valid rates found")
+	}
+
+	// Return the median price
+	return Median(prices), nil
 }
 
-// fetchBitgetRate fetches rates from Bitget
-func (e *ExternalMarketRates) fetchBitgetRate(ctx context.Context, currency string) (Rate, error) {
-	url := fmt.Sprintf("%s?symbol=USDT%s&limit=20", e.bitgetURL, strings.ToUpper(currency))
+// FetchQuidaxRate fetches the USDT exchange rate from Quidax (NGN only)
+func FetchQuidaxRate(currency string) (decimal.Decimal, error) {
+	url := fmt.Sprintf("/api/v1/markets/tickers/usdt%s", strings.ToLower(currency))
 
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	res, err := fastshot.NewClient(QuidaxAPIURL).
+		Config().SetTimeout(30*time.Second).
+		Build().GET(url).
+		Retry().Set(3, 5*time.Second).
+		Send()
 	if err != nil {
-		return Rate{}, fmt.Errorf("creating request: %w", err)
+		return decimal.Zero, fmt.Errorf("FetchQuidaxRate: %w", err)
 	}
 
-	resp, err := e.httpClient.Do(req)
+	data, err := ParseJSONResponse(res.RawResponse)
 	if err != nil {
-		return Rate{}, fmt.Errorf("fetching from Bitget:: %w", err)
-	}
-	defer resp.Body.Close()
-
-	var result BitgetResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return Rate{}, fmt.Errorf("decoding Bitget response: %w", err)
+		return decimal.Zero, fmt.Errorf("FetchQuidaxRate: %w", err)
 	}
 
-	if len(result.Data) == 0 {
-		return Rate{}, fmt.Errorf("no Bitget P2P ads found for %s", currency)
+	price, err := decimal.NewFromString(data["data"].(map[string]interface{})["ticker"].(map[string]interface{})["buy"].(string))
+	if err != nil {
+		return decimal.Zero, fmt.Errorf("FetchQuidaxRate: %w", err)
 	}
 
-	// Extract and convert prices to float64
-	var prices []float64
-	for _, ad := range result.Data {
-		price, err := strconv.ParseFloat(ad.Price, 64)
+	return price, nil
+}
+
+// FetchBinanceRate fetches the median USDT exchange rate from Binance P2P
+func FetchBinanceRate(currency string) (decimal.Decimal, error) {
+
+	res, err := fastshot.NewClient(BinanceAPIURL).
+		Config().SetTimeout(30*time.Second).
+		Header().Add("Content-Type", "application/json").
+		Build().POST("/bapi/c2c/v2/friendly/c2c/adv/search").
+		Retry().Set(3, 5*time.Second).
+		Body().AsJSON(map[string]interface{}{
+		"asset":     "USDT",
+		"fiat":      currency,
+		"tradeType": "SELL",
+		"page":      1,
+		"rows":      20,
+	}).
+		Send()
+	if err != nil {
+		return decimal.Zero, fmt.Errorf("FetchBinanceRate: %w", err)
+	}
+
+	resData, err := ParseJSONResponse(res.RawResponse)
+	if err != nil {
+		return decimal.Zero, fmt.Errorf("FetchBinanceRate: %w", err)
+	}
+
+	data, ok := resData["data"].([]interface{})
+	if !ok || len(data) == 0 {
+		return decimal.Zero, fmt.Errorf("FetchBinanceRate: no data in response")
+	}
+
+	var prices []decimal.Decimal
+	for _, item := range data {
+		adv, ok := item.(map[string]interface{})["adv"].(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		price, err := decimal.NewFromString(adv["price"].(string))
 		if err != nil {
 			continue
 		}
+
 		prices = append(prices, price)
 	}
 
 	if len(prices) == 0 {
-		return Rate{}, fmt.Errorf("no valid Bitget P2P prices found for %s", currency)
+		return decimal.Zero, fmt.Errorf("FetchBinanceRate: no valid prices found")
 	}
 
-	medianPrice := calculateMedian(prices)
-	return Rate{
-		Currency:  currency,
-		Price:     medianPrice,
-		Provider:  ProviderBitget,
-		Timestamp: time.Now(),
-	}, nil
-
+	return Median(prices), nil
 }
 
-// fetchBinanceRate fetches rates from Binance
-func (e *ExternalMarketRates) fetchBinanceRate(ctx context.Context, currency string) (Rate, error) {
-	url := fmt.Sprintf("%s?symbol=USDT%s", e.binanceURL, strings.ToUpper(currency))
+// FetchBitgetRate fetches the median USDT exchange rate from Bitget P2P
+func FetchBitgetRate(currency string) (decimal.Decimal, error) {
 
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	res, err := fastshot.NewClient(BitgetAPIURL).
+		Config().SetTimeout(30*time.Second).
+		Header().Add("Content-Type", "application/json").
+		Build().POST("/api/v2/p2p/adv/search").
+		Retry().Set(3, 5*time.Second).
+		Body().AsJSON(map[string]interface{}{
+		"tokenId": "USDT",
+		"fiat":    currency,
+		"side":    "sell",
+		"page":    1,
+		"size":    20,
+	}).
+		Send()
 	if err != nil {
-		return Rate{}, fmt.Errorf("creating request: %w", err)
+		return decimal.Zero, fmt.Errorf("FetchBitgetRate: %w", err)
 	}
 
-	resp, err := e.httpClient.Do(req)
+	resData, err := ParseJSONResponse(res.RawResponse)
 	if err != nil {
-		return Rate{}, fmt.Errorf("fetching from Binance:: %w", err)
-	}
-	defer resp.Body.Close()
-
-	var result struct {
-		Price string `json:"price"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return Rate{}, fmt.Errorf("decoding Binance response: %w", err)
-	}
-	price, err := strconv.ParseFloat(result.Price, 64)
-	if err != nil {
-		return Rate{}, fmt.Errorf("parsing Binance price: %w", err)
-	}
-	return Rate{
-		Currency:  currency,
-		Price:     price,
-		Provider:  ProviderBinance,
-		Timestamp: time.Now(),
-	}, nil
-}
-
-// fetchQuidaxRate fetches ratesfrom Quidax
-func (e *ExternalMarketRates) fetchQuidaxRate(ctx context.Context, currency string) (Rate, error) {
-	url := fmt.Sprintf("%s/usdt%s/ticker", e.quidaxURL, strings.ToLower(currency))
-
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		return Rate{}, fmt.Errorf("creating request: %w", err)
-	}
-	resp, err := e.httpClient.Do(req)
-	if err != nil {
-		return Rate{}, fmt.Errorf("fetching from Quidax:: %w", err)
-	}
-	defer resp.Body.Close()
-
-	var result struct {
-		Data struct {
-			LastPrice string `json:"last_price"`
-		} `json:"data"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return Rate{}, fmt.Errorf("decoding Quidax response: %w", err)
+		return decimal.Zero, fmt.Errorf("FetchBitgetRate: %w", err)
 	}
 
-	price, err := strconv.ParseFloat(result.Data.LastPrice, 64)
-	if err != nil {
-		return Rate{}, fmt.Errorf("parsing Quidax price: %w", err)
+	data, ok := resData["data"].([]interface{})
+	if !ok || len(data) == 0 {
+		return decimal.Zero, fmt.Errorf("FetchBitgetRate: no data in response")
 	}
 
-	return Rate{
-		Currency:  currency,
-		Price:     price,
-		Provider:  ProviderQuidax,
-		Timestamp: time.Now(),
-	}, nil
-}
-
-// calculateMedian calculates the median value from slice of float64
-func calculateMedian(values []float64) float64 {
-	if len(values) == 0 {
-		return 0
-	}
-
-	sort.Float64s(values)
-	middle := len(values) / 2
-
-	if len(values)%2 == 0 {
-		return (values[middle-1] + values[middle]) / 2
-	}
-	return values[middle]
-}
-
-// New helper function to calculate median from Rate objects
-func calculateMedianRate(rates []Rate) Rate {
-	if len(rates) == 0 {
-		return Rate{}
-	}
-
-	// Extract prices for median calculation
-	prices := make([]float64, len(rates))
-	for i, rate := range rates {
-		prices[i] = rate.Price
-	}
-
-	medianPrice := calculateMedian(prices)
-
-	// Find the rate object closest to the median price
-	var closestRate Rate
-	smallestDiff := float64(^uint(0) >> 1) // Max float64
-
-	for _, rate := range rates {
-
-		// Find closest rate to median
-		diff := Abs(rate.Price - medianPrice)
-		if diff < smallestDiff {
-			smallestDiff = diff
-			closestRate = rate
+	var prices []decimal.Decimal
+	for _, item := range data {
+		adv, ok := item.(map[string]interface{})["price"].(string)
+		if !ok {
+			continue
 		}
+
+		price, err := decimal.NewFromString(adv)
+		if err != nil {
+			continue
+		}
+
+		prices = append(prices, price)
 	}
 
-	// Return a new Rate with the median price but keeping other metadata from the closest rate
-	return Rate{
-		Currency:  closestRate.Currency,
-		Price:     medianPrice,
-		Provider:  closestRate.Provider,
-		Timestamp: closestRate.Timestamp,
+	if len(prices) == 0 {
+		return decimal.Zero, fmt.Errorf("FetchBitgetRate: no valid prices found")
 	}
+
+	return Median(prices), nil
 }

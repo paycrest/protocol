@@ -146,14 +146,6 @@ func ContainsString(slice []string, item string) bool {
 	return false
 }
 
-// abs returns the absolute value of x.
-func Abs(x float64) float64 {
-	if x < 0 {
-		return -x
-	}
-	return x
-}
-
 // Median returns the median value of a decimal slice
 func Median(data []decimal.Decimal) decimal.Decimal {
 	l := len(data)

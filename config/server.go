@@ -18,9 +18,6 @@ type ServerConfiguration struct {
 	HostDomain               string
 	RateLimitUnauthenticated int
 	RateLimitAuthenticated   int
-	QuidaxURL                string
-	BitgetURL                string
-	BinanceURL               string
 }
 
 // ServerConfig sets the server configuration
@@ -34,9 +31,6 @@ func ServerConfig() *ServerConfiguration {
 	viper.SetDefault("SENTRY_DSN", "")
 	viper.SetDefault("RATE_LIMIT_UNAUTHENTICATED", 5)
 	viper.SetDefault("RATE_LIMIT_AUTHENTICATED", 50)
-	viper.SetDefault("QUIDAX_URL", "https://www.quidax.com/api/v1/markets")
-	viper.SetDefault("BITGET_URL", "https://api.bitget.com/api/mix/v1/market/p2p/advertisements")
-	viper.SetDefault("BINANCE_URL", "https://api.binance.com/api/v3/ticker/price")
 
 	return &ServerConfiguration{
 		Debug:                    viper.GetBool("DEBUG"),
@@ -49,9 +43,6 @@ func ServerConfig() *ServerConfiguration {
 		HostDomain:               viper.GetString("HOST_DOMAIN"),
 		RateLimitUnauthenticated: viper.GetInt("RATE_LIMIT_UNAUTHENTICATED"),
 		RateLimitAuthenticated:   viper.GetInt("RATE_LIMIT_AUTHENTICATED"),
-		QuidaxURL:                viper.GetString("QUIDAX_URL"),
-		BitgetURL:                viper.GetString("BITGET_URL"),
-		BinanceURL:               viper.GetString("BINANCE_URL"),
 	}
 }
 
