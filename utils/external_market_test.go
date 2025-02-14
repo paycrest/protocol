@@ -1,4 +1,4 @@
-package externalmarkets
+package utils
 
 import (
 	"context"
@@ -10,21 +10,21 @@ import (
 func TestExternalMarketRates(t *testing.T) {
 	// Mock Bitget server with currency-specific responses
 	bitgetServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		currency := r.URL.Query().Get("fiat")
+		symbol := r.URL.Query().Get("symbol")
 		var response string
 
-		switch currency {
-		case "NGN":
+		switch symbol {
+		case "USDTNGN":
 			response = `{
                 "code": "00000",
                 "msg": "success",
                 "data": [
-                    {"price": "740.0", "available": "1000"},
-                    {"price": "745.0", "available": "2000"},
-                    {"price": "750.0", "available": "1500"}
+                    {"price": "745.0", "available": "1000"},
+                    {"price": "750.0", "available": "2000"},
+                    {"price": "755.0", "available": "1500"}
                 ]
             }`
-		case "KES":
+		case "USDTKES":
 			response = `{
                 "code": "00000",
                 "msg": "success",
@@ -34,7 +34,7 @@ func TestExternalMarketRates(t *testing.T) {
                     {"price": "146.0", "available": "1500"}
                 ]
             }`
-		case "GHS":
+		case "USDTGHS":
 			response = `{
                 "code": "00000",
                 "msg": "success",
@@ -94,11 +94,12 @@ func TestExternalMarketRates(t *testing.T) {
 			currency string
 			want     float64
 			wantErr  bool
+			setup    func(emr *ExternalMarketRates)
 		}{
 			{
 				name:     "Test NGN rate fetch",
 				currency: "NGN",
-				want:     750.0,
+				want:     752.5,
 				wantErr:  false,
 			},
 			{
@@ -117,13 +118,16 @@ func TestExternalMarketRates(t *testing.T) {
 
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
+				if tt.setup != nil {
+					tt.setup(emr)
+				}
 				got, err := emr.FetchRate(ctx, tt.currency)
 				if (err != nil) != tt.wantErr {
 					t.Errorf("FetchRate() error = %v, wantErr %v", err, tt.wantErr)
 					return
 				}
-				if got.Price != tt.want {
-					t.Errorf("FetchRate() = %v, want %v", got, tt.want)
+				if !tt.wantErr && got.Price != tt.want {
+					t.Errorf("FetchRate() = %v, want %v", got.Price, tt.want)
 				}
 			})
 		}
@@ -163,6 +167,24 @@ func TestExternalMarketRates(t *testing.T) {
 					t.Errorf("calculateMedian() = %v, want %v", got, tt.want)
 				}
 			})
+		}
+	})
+
+	t.Run("Concurrent Provider Failures", func(t *testing.T) {
+		// Set up mock servers that fail
+		failingServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusInternalServerError)
+		}))
+		defer failingServer.Close()
+
+		emr := NewExternalMarketRates()
+		emr.bitgetURL = failingServer.URL
+		emr.binanceURL = "invalid-url"
+
+		// Should still work with one valid provider
+		_, err := emr.FetchRate(context.Background(), "KES")
+		if err == nil {
+			t.Error("Expected error when all providers fail")
 		}
 	})
 }

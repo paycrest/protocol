@@ -1,4 +1,4 @@
-package externalmarkets
+package utils
 
 import (
 	"fmt"
@@ -10,8 +10,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/paycrest/aggregator/utils"
 )
 
 // Provider represents a rate provider
@@ -285,8 +283,11 @@ func calculateMedianRate(rates []Rate) Rate {
 	// Find the rate object closest to the median price
 	var closestRate Rate
 	smallestDiff := float64(^uint(0) >> 1) // Max float64
+
 	for _, rate := range rates {
-		diff := utils.Abs(rate.Price - medianPrice)
+
+		// Find closest rate to median
+		diff := Abs(rate.Price - medianPrice)
 		if diff < smallestDiff {
 			smallestDiff = diff
 			closestRate = rate
