@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/paycrest/aggregator/config"
 )
 
 // Provider represents a rate provider
@@ -58,13 +60,14 @@ type ExternalMarketRates struct {
 
 // NewExternalMarketRates creates a new instance of ExternalMarketRates
 func NewExternalMarketRates() *ExternalMarketRates {
+	cfg := config.ServerConfig()
 	return &ExternalMarketRates{
 		httpClient: &http.Client{
 			Timeout: 10 * time.Second,
 		},
-		quidaxURL:  "https://www.quidax.com/api/v1/markets",
-		bitgetURL:  "https://api.bitget.com/api/mix/v1/market/p2p/advertisements",
-		binanceURL: "https://api.binance.com/api/v3/ticker/price",
+		quidaxURL:  cfg.QuidaxURL,
+		bitgetURL:  cfg.BitgetURL,
+		binanceURL: cfg.BinanceURL,
 	}
 }
 
