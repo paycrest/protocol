@@ -33,16 +33,16 @@ func ServerConfig() *ServerConfiguration {
 	viper.SetDefault("RATE_LIMIT_AUTHENTICATED", 50)
 
 	return &ServerConfiguration{
-		Debug:        viper.GetBool("DEBUG"),
-		Host:         viper.GetString("SERVER_HOST"),
-		Port:         viper.GetString("SERVER_PORT"),
-		Timezone:     viper.GetString("SERVER_TIMEZONE"),
-		AllowedHosts: viper.GetString("ALLOWED_HOSTS"),
-		Environment:  viper.GetString("ENVIRONMENT"),
-		SentryDSN:    viper.GetString("SENTRY_DSN"),
-		HostDomain:   viper.GetString("HOST_DOMAIN"),
+		Debug:                    viper.GetBool("DEBUG"),
+		Host:                     viper.GetString("SERVER_HOST"),
+		Port:                     viper.GetString("SERVER_PORT"),
+		Timezone:                 viper.GetString("SERVER_TIMEZONE"),
+		AllowedHosts:             viper.GetString("ALLOWED_HOSTS"),
+		Environment:              viper.GetString("ENVIRONMENT"),
+		SentryDSN:                viper.GetString("SENTRY_DSN"),
+		HostDomain:               viper.GetString("HOST_DOMAIN"),
 		RateLimitUnauthenticated: viper.GetInt("RATE_LIMIT_UNAUTHENTICATED"),
-        RateLimitAuthenticated:   viper.GetInt("RATE_LIMIT_AUTHENTICATED"),
+		RateLimitAuthenticated:   viper.GetInt("RATE_LIMIT_AUTHENTICATED"),
 	}
 }
 
