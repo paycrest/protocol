@@ -55,6 +55,78 @@ func NewEthClient(endpoint string) (RPCClient, error) {
 	return &ethRPC{ethClient}, nil
 }
 
+// Stream
+type StreamCreationParams struct {
+    Name                  string                 `json:"name"`
+    Network               string                 `json:"network"`
+    Dataset               string                 `json:"dataset"`
+    FilterFunction        string                 `json:"filter_function"`
+    Region                string                 `json:"region"`
+    StartRange            int                    `json:"start_range"`
+    EndRange              int                    `json:"end_range"`
+    DatasetBatchSize      int                    `json:"dataset_batch_size"`
+    IncludeStreamMetadata string                 `json:"include_stream_metadata"`
+    Status                string                 `json:"status"`
+    Destination           string                 `json:"destination"`
+    DestinationAttributes DestinationAttributes 	 `json:"destination_attributes"`
+}
+
+type DestinationAttributes struct {
+	URL              string            		`json:"url,omitempty"`
+	Compression      string            		`json:"compression,omitempty"`
+	Headers          DestinationAttributesHeaders `json:"headers,omitempty"`
+	MaxRetry         int               		`json:"max_retry,omitempty"`
+	RetryIntervalSec int               		`json:"retry_interval_sec,omitempty"`
+	PostTimeoutSec   int               		`json:"post_timeout_sec,omitempty"`
+}
+
+type DestinationAttributesHeaders struct {
+	Authorization string `json:"Authorization"`
+	ClientType string `json:"Client-Type"`
+	Nonce string `json:"Nonce"`
+	Timestamp string `json:"Timestamp"`
+}
+
+
+// StreamWebhook represents the details of a stream webhook.
+type StreamReturnPayload struct {
+    ID                   string                 `json:"id"`
+    CreatedAt            string                 `json:"created_at"`
+    UpdatedAt            string                 `json:"updated_at"`
+    Name                 string                 `json:"name"`
+    Network              string                 `json:"network"`
+    Dataset              string                 `json:"dataset"`
+    Region               string                 `json:"region"`
+    FilterFunction       string                 `json:"filter_function"`
+    StartRange           int                    `json:"start_range"`
+    EndRange             int                    `json:"end_range"`
+    DatasetBatchSize     int                    `json:"dataset_batch_size"`
+    IncludeStreamMetadata string                `json:"include_stream_metadata"`
+    Status               string                 `json:"status"`
+    Destination          string                 `json:"destination"`
+    DestinationAttributes map[string]interface{} `json:"destination_attributes"`
+    Sequence             int                    `json:"sequence"`
+    CurrentHash          string                 `json:"current_hash"`
+}
+
+// DestinationAttributes holds the attributes for different destination types.
+type StreamDestinationAttributes struct {
+    URL              string            `json:"url,omitempty"`
+    Compression      string            `json:"compression,omitempty"`
+    Headers          map[string]string `json:"headers,omitempty"`
+    MaxRetry         int               `json:"max_retry,omitempty"`
+    RetryIntervalSec int               `json:"retry_interval_sec,omitempty"`
+    PostTimeoutSec   int               `json:"post_timeout_sec,omitempty"`
+}
+
+type FilterConfig struct {
+    Addresses  	[]common.Address
+    ERC20Tokens []common.Address
+    Abi    		string
+	ListName    string
+}
+
+
 // TokenTransferEvent represents a token transfer event.
 type TokenTransferEvent struct {
 	BlockNumber uint64
@@ -99,6 +171,15 @@ type OrderService interface {
 	CreateOrder(ctx context.Context, client RPCClient, orderID uuid.UUID) error
 	RefundOrder(ctx context.Context, client RPCClient, network *ent.Network, orderID string) error
 	SettleOrder(ctx context.Context, client RPCClient, orderID uuid.UUID) error
+}
+
+type StreamManagerService interface {
+    CreateAddressStream(ctx context.Context, order *ent.PaymentOrder, token *ent.Token, identifier string, startRange int) (string, error)
+    UpdateAddressStream(ctx context.Context, streamId string, network *ent.Network, startRange int, endRange int) error
+    DeleteAddressStream(ctx context.Context, streamId string) error
+	PauseAddressStream(ctx context.Context, streamId string) (error)
+	ActivateAddressStream(ctx context.Context, streamId string) (error)
+	GetAllStreams(ctx context.Context) ([]*StreamReturnPayload, error)
 }
 
 // CreateOrderParams is the parameters for the create order payload
