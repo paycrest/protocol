@@ -564,14 +564,27 @@ func GetEncodedFilterFunction(config types.FilterConfig) string {
         const addressess = %s
         const ERC20Tokens = %s
         const erc20Abi = '%s'
-        const listName = '%s'
 
         try {
-            // Initialize or update the address list
-            results.createList = qnUpsertList(listName, {
-                add_items: addressess
-            });
+			// Initialize or update the address list
+			if (addressess.length !== 0) {
+				// It is better to add items one by one in other to avoid replacing the whole list
+				for (let i = 0; i < addressess.length; i++) {
+					// We just add it to the list cause after getting the logs we will remove it in other to avoid duplicates in the list, so we clean the list after each run
+					qnAddListItem("PaycrestLinkedAddresses", addressess[i]);
+				}
+			}
 
+			if (ERC20Tokens.length !== 0) {
+				for (let i = 0; i < ERC20Tokens.length; i++) {
+					if (qnContainsListItem("PaycrestSupportedTokenAddresses", ERC20Tokens[i])) {
+						continue;
+					} else {
+						qnAddListItem("PaycrestSupportedTokenAddresses", ERC20Tokens[i]);
+					}
+				}
+			}
+			
             const data = stream.data
             var result = decodeEVMReceipts(data[0].receipts, [erc20Abi])
 
@@ -581,43 +594,57 @@ func GetEncodedFilterFunction(config types.FilterConfig) string {
             )
 
             const logs = result.map(receipt => receipt.decodedLogs).flat();
+
             let to, value, from, token, blockNumber, txHash;
-            let listContents = null;
+
+            let PaycrestListLinkedAddresses = null;
+            let PaycrestSupportedTokenAddresses = null;
 
             // Get current list contents
             try {
-                listContents = qnGetList(listName);
+                PaycrestListLinkedAddresses = qnGetList("PaycrestLinkedAddresses");
             } catch (error) {
                 results.listError = error.message;
             }
 
+			try {
+                PaycrestSupportedTokenAddresses = qnGetList("PaycrestSupportedTokenAddresses");
+            } catch (error) {
+                results.listError = error.message;
+            }
+			
+
             for (let i = 0; i < logs.length; i++) {
-                if (logs[i].address === ERC20Tokens[i] && logs[i].name === 'Transfer') {
+				const matchingTokenAddress = PaycrestSupportedTokenAddresses.find(
+					tAddr => tAddr.toLowerCase() === logs[i].address.toLowerCase()
+				);
+                if (matchingTokenAddress && logs[i].name === 'Transfer') {
                     const fromAddress = logs[i].from.toLowerCase();
+					const toAddress = logs[i].to.toLowerCase();
                     
                     // Manual check against list contents
-                    const matchingAddress = listContents.find(
-                        addr => addr.toLowerCase() === fromAddress
+                    const matchingLinkedAddress = PaycrestListLinkedAddresses.find(
+                        addr => addr.toLowerCase() === toAddress // || addr.toLowerCase() === fromAddress
                     );
 
-                    if (matchingAddress) {
+                    if (matchingLinkedAddress) {
                         token = logs[i].address;
                         blockNumber = logs[i].blockNumber;
                         txHash = logs[i].transactionHash;
-                        to = logs[i].to;
+                        to = toAddress;
                         value = logs[i].value;
                         from = fromAddress;
                     }
                     // once a match has been found, remove the address from the list
-                    if (matchingAddress) {
-                        results.removeFromList = qnRemoveListItem(listName, matchingAddress);
+                    if (matchingLinkedAddress) {
+                        qnRemoveListItem("PaycrestLinkedAddresses", matchingLinkedAddress);
                     }
                 }
             }
 
             return { 
                 BlockNumber: blockNumber,
-                TxHash: transactionHash,
+                TxHash: txHash,
                 Token: token,
                 From: from,
                 To: to,
@@ -628,7 +655,7 @@ func GetEncodedFilterFunction(config types.FilterConfig) string {
                 error: error.message,
             };
         }
-    }`, addressesStr, tokensStr, config.Abi, config.ListName)
+    }`, addressesStr, tokensStr, config.Abi)
 
     return base64.StdEncoding.EncodeToString([]byte(filterFunc))
 }
