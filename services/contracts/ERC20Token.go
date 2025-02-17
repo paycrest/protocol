@@ -38,6 +38,7 @@ var ERC20TokenMetaData = &bind.MetaData{
 // ERC20TokenABI is the input ABI used to generate the binding from.
 // Deprecated: Use ERC20TokenMetaData.ABI instead.
 var ERC20TokenABI = ERC20TokenMetaData.ABI
+var TransferEventABI = `[{"anonymous": false,"inputs": [{"indexed": true, "type": "address", "name": "from"},{"indexed": true, "type": "address", "name": "to"},{"indexed": false, "type": "uint256", "name": "value"}],"name": "Transfer","type": "event"}]`
 
 // ERC20TokenBin is the compiled bytecode used for deploying new contracts.
 // Deprecated: Use ERC20TokenMetaData.Bin instead.

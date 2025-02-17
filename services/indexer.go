@@ -57,6 +57,7 @@ type Indexer interface {
 	UpdateReceiveAddressStatus(ctx context.Context, client types.RPCClient, receiveAddress *ent.ReceiveAddress, paymentOrder *ent.PaymentOrder, event *types.TokenTransferEvent) (bool, error)
 	UpdateOrderStatusSettled(ctx context.Context, network *ent.Network, event *types.OrderSettledEvent) error
 	UpdateOrderStatusRefunded(ctx context.Context, network *ent.Network, event *types.OrderRefundedEvent) error
+	StreamERC20Transfer(ctx context.Context, client types.RPCClient, order *ent.PaymentOrder, token *ent.Token, transferEvent *types.TokenTransferEvent) error
 }
 
 // IndexerService performs blockchain to database extract, transform, load (ETL) operations.
@@ -73,6 +74,172 @@ func NewIndexerService(order types.OrderService) Indexer {
 		priorityQueue: priorityQueue,
 		order:         order,
 	}
+}
+
+// IndexERC20Transfer indexes transfers to the receive address for an EVM network.
+func (s *IndexerService) StreamERC20Transfer(ctx context.Context, client types.RPCClient, order *ent.PaymentOrder, token *ent.Token, transferEvent *types.TokenTransferEvent) error {
+	var err error
+
+	if order != nil {
+		token = order.Edges.Token
+	}
+
+	if strings.EqualFold(transferEvent.From, token.Edges.Network.GatewayContractAddress) {
+		return nil
+	}
+
+	linkedAddress, err := db.Client.LinkedAddress.
+		Query().
+		Where(
+			linkedaddress.AddressEQ(transferEvent.To),
+		).
+		Only(ctx)
+	if err != nil {
+		if !ent.IsNotFound(err) {
+			logger.Errorf("IndexERC20Transfer.db: %v", err)
+		}
+	}
+
+	// Create a new payment order from the transfer event to the linked address
+	if linkedAddress != nil {
+		orderAmount := utils.FromSubunit(transferEvent.Value, token.Decimals)
+		// Check if the payment order already exists
+		paymentOrderExists := true
+		_, err := db.Client.PaymentOrder.
+			Query().
+			Where(
+				paymentorder.FromAddress(transferEvent.From),
+				paymentorder.AmountEQ(orderAmount),
+				paymentorder.HasLinkedAddressWith(
+					linkedaddress.AddressEQ(linkedAddress.Address),
+					linkedaddress.LastIndexedBlockEQ(int64(transferEvent.BlockNumber)),
+				),
+			).
+			WithSenderProfile().
+			Only(ctx)
+		if err != nil {
+			if ent.IsNotFound(err) {
+				// Payment order does not exist, no need to update
+				paymentOrderExists = false
+			} else {
+				return fmt.Errorf("IndexERC20Transfer.fetchOrder: %v", err)
+			}
+		}
+
+		if paymentOrderExists {
+			return nil
+		}
+
+		// Create payment order
+		institution, err := s.getInstitutionByCode(ctx, linkedAddress.Institution)
+		if err != nil {
+			logger.Errorf("IndexERC20Transfer.GetInstitutionByCode: %v", err)
+			return nil
+		}
+
+		currency, err := db.Client.FiatCurrency.
+			Query().
+			Where(
+				fiatcurrency.IsEnabledEQ(true),
+				fiatcurrency.CodeEQ(institution.Edges.FiatCurrency.Code),
+			).
+			Only(ctx)
+		if err != nil {
+			if !ent.IsNotFound(err) {
+				logger.Errorf("IndexERC20Transfer.FetchFiatCurrency: %v", err)
+			}
+			return nil
+		}
+
+		// Get rate from priority queue
+		rateResponse, err := utils.GetTokenRateFromQueue(token.Symbol, orderAmount, currency.Code, currency.MarketRate)
+		if err != nil {
+			logger.Errorf("IndexERC20Transfer.GetTokenRateFromQueue: %v", err)
+			return nil
+		}
+
+		tx, err := db.Client.Tx(ctx)
+		if err != nil {
+			logger.Errorf("IndexERC20Transfer.Tx: %v", err)
+			return nil
+		}
+
+		order, err := db.Client.PaymentOrder.
+			Create().
+			SetAmount(orderAmount).
+			SetAmountPaid(orderAmount).
+			SetAmountReturned(decimal.NewFromInt(0)).
+			SetPercentSettled(decimal.NewFromInt(0)).
+			SetNetworkFee(token.Edges.Network.Fee).
+			SetProtocolFee(decimal.NewFromInt(0)).
+			SetSenderFee(decimal.NewFromInt(0)).
+			SetToken(token).
+			SetRate(rateResponse).
+			SetTxHash(transferEvent.TxHash).
+			SetBlockNumber(int64(transferEvent.BlockNumber)).
+			SetFromAddress(transferEvent.From).
+			SetLinkedAddress(linkedAddress).
+			SetReceiveAddressText(linkedAddress.Address).
+			SetFeePercent(decimal.NewFromInt(0)).
+			SetReturnAddress(linkedAddress.Address).
+			// AddTransactions(transactionLog).
+			Save(ctx)
+		if err != nil {
+			logger.Errorf("IndexERC20Transfer.CreatePaymentOrder: %v", err)
+			_ = tx.Rollback()
+			return nil
+		}
+
+		_, err = tx.PaymentOrderRecipient.
+			Create().
+			SetInstitution(linkedAddress.Institution).
+			SetAccountIdentifier(linkedAddress.AccountIdentifier).
+			SetAccountName(linkedAddress.AccountName).
+			SetPaymentOrder(order).
+			Save(ctx)
+		if err != nil {
+			logger.Errorf("IndexERC20Transfer.CreatePaymentOrderRecipient: %v", err)
+			_ = tx.Rollback()
+			return nil
+		}
+
+		_, err = tx.LinkedAddress.
+			UpdateOneID(linkedAddress.ID).
+			SetTxHash(transferEvent.TxHash).
+			SetLastIndexedBlock(int64(transferEvent.BlockNumber)).
+			Save(ctx)
+		if err != nil {
+			logger.Errorf("IndexERC20Transfer.UpdateLinkedAddress: %v", err)
+			_ = tx.Rollback()
+			return nil
+		}
+
+		if err := tx.Commit(); err != nil {
+			logger.Errorf("IndexERC20Transfer.Commit: %v", err)
+			return nil
+		}
+
+		err = s.order.CreateOrder(ctx, client, order.ID)
+		if err != nil {
+			logger.Errorf("IndexERC20Transfer.CreateOrder: %v", err)
+			return nil
+		}
+
+	} else if order != nil {
+		// Process transfer event for receive address
+		done, err := s.UpdateReceiveAddressStatus(ctx, client, order.Edges.ReceiveAddress, order, transferEvent)
+		if err != nil {
+			if !strings.Contains(err.Error(), "Duplicate payment order") {
+				logger.Errorf("IndexERC20Transfer.UpdateReceiveAddressStatus: %v", err)
+			}
+			return nil
+		}
+		if done {
+			return nil
+		}
+	}
+
+	return nil
 }
 
 // IndexERC20Transfer indexes transfers to the receive address for an EVM network.
@@ -138,6 +305,7 @@ func (s *IndexerService) IndexERC20Transfer(ctx context.Context, client types.RP
 
 		return err
 	})
+
 	if retryErr != nil {
 		logger.Errorf("IndexERC20Transfer.FilterTransfer(%s): %v", token.Edges.Network.Identifier, retryErr)
 		return retryErr

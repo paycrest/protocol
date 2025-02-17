@@ -111,18 +111,34 @@ func (q *QuickNodeStreamManager) CreateAddressStream(ctx context.Context, order 
 		if token.Edges.Network.Identifier == "bnb-smart-chain" {
 			startRange = 1000
 		}
-		addresses = []common.Address{common.HexToAddress(addressToWatch)}
+		// addresses = []common.Address{common.HexToAddress(addressToWatch)}
 		startRange = int(endRange) - fromRange
 	} else {
+		addresses = []common.Address{common.HexToAddress("0x0f13743a0C27D898EC62F3444Ed6a99E009a8912")} // serve for test purpose
 		startRange = int(endRange) - 100
 	}
 
 	filterConfig := types.FilterConfig{
 		Addresses: addresses,
-		ERC20Tokens: []common.Address{common.HexToAddress(token.ContractAddress)},
-		Abi: contracts.ERC20TokenABI,
-		ListName: "PaycrestLinkedAddresses",
+		ERC20Tokens: []common.Address{common.HexToAddress("0xaf88d065e77c8cC2239327C5EDb3A432268e5831")},
+		Abi: contracts.TransferEventABI,
 	}
+
+	// length of addresses should be at least 1
+	if len(addresses) == 0 {
+		return "", nil
+	}
+
+	// filterConfig := types.FilterConfig{
+	// 	Addresses: addresses,
+	// 	ERC20Tokens: []common.Address{common.HexToAddress(token.ContractAddress)},
+	// 	Abi: contracts.ERC20TokenABI,
+	// 	ListName: "PaycrestLinkedAddresses",
+	// }
+
+	// fmt.Println("...........3.3.3.3..3.3.3..3.3..3.3filterConfig", filterConfig)
+
+	// fmt.Println("filter function: ...5.5.5.5.5.5.5.5.5.5.", utils.GetEncodedFilterFunction(filterConfig))
 
 	getAllStreams, err := q.GetAllStreams(ctx)
 	if err != nil {
@@ -149,14 +165,17 @@ func (q *QuickNodeStreamManager) CreateAddressStream(ctx context.Context, order 
 		return "", err
 	}
 
+
 	params := types.StreamCreationParams{
 		Name: "PaycrestLinkedAddressStream",
-		Network: "arbitrum-mainnet",
+		Network: "arbitrum-mainnet", // identifier,
 		Dataset: "block_with_receipts",
-		// FilterFunction: utils.GetEncodedFilterFunction(filterConfig),
+		FilterFunction: utils.GetEncodedFilterFunction(filterConfig),
 		Region: "usa_east",
-		StartRange: startRange,
-		EndRange: int(endRange),
+		StartRange:            305080560, // 305064772
+		EndRange:              305080570,
+		// StartRange: startRange,
+		// EndRange: int(endRange),
 		DatasetBatchSize: 2, // need to be verify to know how many transactions to fetch at a time @chibie
 		IncludeStreamMetadata: "body",
 		Status: "active",
@@ -189,10 +208,12 @@ func (q *QuickNodeStreamManager) UpdateAddressStream(ctx context.Context, stream
 
 	params := types.StreamCreationParams{
 		Name: "PaycrestAddressStream",
-		// FilterFunction: utils.GetEncodedFilterFunction(filterConfig),
+		FilterFunction: utils.GetEncodedFilterFunction(filterConfig),
 		Region: "usa_east",
-		StartRange: startRange,
-		EndRange: endRange,
+		// StartRange: startRange,
+		// EndRange: endRange,
+		StartRange:            305080560, // 305064772
+		EndRange:              305080570,
 		DatasetBatchSize: 2, // need to be verify to know how many transactions to fetch at a time @chibie
 		Status: "active",
 		Destination: "webhook",
@@ -382,7 +403,7 @@ func generateHeaderForStream() (types.DestinationAttributes, error) {
 	signature := tokenUtils.GenerateHMACSignature(payloadForHMAC, streamConf.QuickNodePrivateKey)
 
 	destinationHeader := types.DestinationAttributes{
-			URL: `v1/stream/quicknode-linked-addresses-hook`, // Set the correct URL for the webhook
+			URL: `https://88c5-86-13-108-4.ngrok-free.app/v1/stream/quicknode-linked-addresses-hook`, // Set the correct URL for the webhook
 			Compression: "none",
 			MaxRetry: 5,
 			RetryIntervalSec: 1,

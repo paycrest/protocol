@@ -123,7 +123,6 @@ type FilterConfig struct {
     Addresses  	[]common.Address
     ERC20Tokens []common.Address
     Abi    		string
-	ListName    string
 }
 
 

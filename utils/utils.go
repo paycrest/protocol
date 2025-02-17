@@ -571,7 +571,7 @@ func GetEncodedFilterFunction(config types.FilterConfig) string {
 				// It is better to add items one by one in other to avoid replacing the whole list
 				for (let i = 0; i < addressess.length; i++) {
 					// We just add it to the list cause after getting the logs we will remove it in other to avoid duplicates in the list, so we clean the list after each run
-					qnAddListItem("PaycrestLinkedAddresses", addressess[i]);
+					results.createList = qnAddListItem("PaycrestLinkedAddresses", addressess[i]);
 				}
 			}
 
@@ -580,7 +580,7 @@ func GetEncodedFilterFunction(config types.FilterConfig) string {
 					if (qnContainsListItem("PaycrestSupportedTokenAddresses", ERC20Tokens[i])) {
 						continue;
 					} else {
-						qnAddListItem("PaycrestSupportedTokenAddresses", ERC20Tokens[i]);
+						results.createList = qnAddListItem("PaycrestSupportedTokenAddresses", ERC20Tokens[i]);
 					}
 				}
 			}
@@ -637,7 +637,8 @@ func GetEncodedFilterFunction(config types.FilterConfig) string {
                     }
                     // once a match has been found, remove the address from the list
                     if (matchingLinkedAddress) {
-                        qnRemoveListItem("PaycrestLinkedAddresses", matchingLinkedAddress);
+                        results.removeFromList = qnRemoveListItem("PaycrestLinkedAddresses", matchingLinkedAddress);
+						results.containsListItem = qnContainsListItem("PaycrestLinkedAddresses", matchingLinkedAddress);
                     }
                 }
             }
@@ -649,6 +650,7 @@ func GetEncodedFilterFunction(config types.FilterConfig) string {
                 From: from,
                 To: to,
                 Value: value,
+				error: results.listError || null,
             };
         } catch (error) {
             return {
