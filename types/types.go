@@ -125,6 +125,15 @@ type FilterConfig struct {
     Abi    		string
 }
 
+type QuickNodeFunctionPayload struct {
+    Name        string `json:"name"`
+    Description string `json:"description"`
+    Kind        string `json:"kind"`
+    Code        string `json:"code"`
+    Binary      bool   `json:"binary"`
+    Limits      map[string]int `json:"limits"`
+}
+
 
 // TokenTransferEvent represents a token transfer event.
 type TokenTransferEvent struct {
